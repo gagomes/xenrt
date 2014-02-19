@@ -29,7 +29,7 @@ BINLINKS    := xenrt xrt
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
 
-REVISION	= $(HG) -R $(1) log -r tip --template "$(notdir $(1)):{rev}:{node}"
+REVISION	= $(GIT) -R $(1) log -r tip --template "$(notdir $(1)):{rev}:{node}"
 
 .PHONY: update 
 update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE) .hg/patches $(ROOT)/$(INTERNAL)/.hg/patches

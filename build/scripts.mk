@@ -128,7 +128,7 @@ uninstall:
 .PHONY: %.hg
 %.hg:
 	$(info Updating $@ repository...)
-	[ -d $(ROOT)/$@ ] || $(HG) clone $(HGPATH)/$@ $(ROOT)/$@
+	[ -d $(ROOT)/$@ ] || $(GIT) clone $(HGPATH)/$@ $(ROOT)/$@
 	-$(HG) -R $(ROOT)/$@ pull
 	$(HG) -R $(ROOT)/$@ update
 

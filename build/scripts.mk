@@ -29,17 +29,20 @@ BINLINKS    := xenrt xrt
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
 
-REVISION	= $(GIT) -R $(1) log -r tip --template "$(notdir $(1)):{rev}:{node}"
+REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$(notdir $(1)):%H"
+
 
 .PHONY: update 
-update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE)
+update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE) .git/patches/master $(ROOT)/$(INTERNAL)/.git/patches/master
 	$(info Updated XenRT repositories.)
 
-.hg/patches: $(PATCHQUEUE)
+.git/patches/master: $(PATCHQUEUE)
 	[ -e $@ ] || ln -s $(ROOT)/$< $@
+	touch $@/status 
 
-$(ROOT)/$(INTERNAL)/.hg/patches: $(INTERNALPATCHQUEUE)
+$(ROOT)/$(INTERNAL)/.git/patches/master: $(INTERNALPATCHQUEUE)
 	[ -e $@ ] || ln -s $(ROOT)/$< $@
+	touch $@/status 
 
 .PHONY: minimal-install
 minimal-install: install
@@ -129,9 +132,8 @@ uninstall:
 %.git:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
-	pushd $(ROOT)/$@
+	cd $(ROOT)/$@
 	-$(GIT) pull
-	popd
 
 .PHONY: $(CONFDIR)
 $(CONFDIR):
@@ -191,11 +193,13 @@ progs:
 	$(MAKE) -C progs ROOT=$(ROOT) DESTDIR=$(SHAREDIR)/scripts/progs install 
 
 .PHONY: $(SHAREDIR)/VERSION
+$(SHAREDIR)/VERSION: PATCHPATH=$(realpath $(ROOT)/$(XENRT)/.git/patches/master)
 $(SHAREDIR)/VERSION: $(SRCDIRS) 
 	$(info Creating $(notdir $@) stamp file...)
 	echo `$(call REVISION,$(ROOT)/$(XENRT))` > $@ 
-	echo `$(call REVISION,$(ROOT)/$(INTERNAL))` >> $@ 
-	echo `$(call REVISION,$(ROOT)/$(XENRT)/.hg/patches)` >> $@ 
+	echo `$(call REVISION,$(ROOT)/$(INTERNAL))` >> $@
+	echo $(PATCHPATH)
+	echo `$(call REVISION,$(PATCHPATH))` >> $@ 
 
 $(SHAREDIR)/SITE: $(SHAREDIR)
 	$(info Creating $(notdir $@) stamp file...)

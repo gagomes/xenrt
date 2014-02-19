@@ -6,6 +6,7 @@ ROOT                = $(shell realpath ..)
 
 SITE                = DEV
 WEB_CONTROL_PATH    = http://localhost/control/
+GITPATH             = git://hg.uk.xensource.com/xenrt
 
 PRODUCTIONCONFIG    = no
 
@@ -21,10 +22,11 @@ TFTPROOT            = /tftpboot
 WEBROOT             = /var/www
 JOBRESULTDIR        = /local/scratch/results
 
-INTERNAL            = xenrt-internal.hg
-PATCHQUEUE          = xenrt.pq.hg
-PERFPATCHQUEUE      = xenrt.perf-pq.hg
-XENRT               = xenrt.hg
+INTERNAL            = xenrt-internal.git
+PATCHQUEUE          = xenrt.pq.git
+PERFPATCHQUEUE      = xenrt.perf-pq.git
+XENRT               = xenrt.git
+INTERNALPATCHQUEUE  = xenrt-internal.pq.git
 
 NFSCOMMON           = sync,no_root_squash,insecure,subtree_check
 

@@ -85,7 +85,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(hg status -amn ; [ ! -d .hg/patches ] || hg diff -r qparent:qtip | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git status -amn ; [ ! -d .hg/patches ] || hg diff -r qparent:qtip | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \

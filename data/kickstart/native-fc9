@@ -1,0 +1,28 @@
+install
+text
+%DISTROURL%
+lang en_UK.UTF-8
+keyboard uk
+network --device %ETHDEVICE% --bootproto dhcp
+rootpw --iscrypted %ROOTPASS% 
+firewall --disabled
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %TIMEZONE%
+zerombr
+bootloader --location=mbr --append="console=ttyS0,115200n8 %KARG%"
+clearpart --all --drives=%MAINDISK%
+part /boot --fstype "ext3" --size=%BOOTDISKSIZE% --ondisk=%MAINDISK%
+part / --fstype "ext3" --size=10000 --ondisk=%MAINDISK%
+%MORE%
+
+%packages
+@ admin-tools
+@ text-internet
+@ server-cfg
+@ development-tools
+@ development-libs
+lvm2
+e2fsprogs
+%EXTRA%
+

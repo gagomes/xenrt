@@ -1,0 +1,15 @@
+<xenrt>
+    <variables>
+        <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    </variables>
+
+    <prepare>
+        <host id="0">
+        </host>
+    </prepare>
+
+    <testsequence group="maxVCPUs">
+        <testcase id="xenserver.tc.maxima.TC18836"/>
+    </testsequence>
+    
+</xenrt>

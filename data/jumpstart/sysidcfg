@@ -1,0 +1,14 @@
+system_locale=C
+keyboard=UK-English
+terminal=vt100
+install_locale=C
+timeserver=localhost
+timezone=GMT
+network_interface=primary {primary dhcp protocol_ipv6=no}
+security_policy=NONE
+nfs4_domain=local
+root_password=$1$BWNYEkj/$/Pek73yu0InPkV7X3wP.i1
+name_service=NONE
+service_profile=limited_net
+auto_reg=disable
+

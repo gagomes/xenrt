@@ -1,0 +1,2406 @@
+#
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# Pool operations testcases
+#
+# Copyright (c) 2008 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+import socket, re, string, time, traceback, sys, random, copy, shutil, os, re
+import xenrt, xenrt.lib.xenserver
+from xenrt import XRTError
+
+class _Hotfix(xenrt.TestCase):
+
+    INITIAL_VERSION = "Miami"
+    INITIAL_BRANCH = None
+    INITIAL_HOTFIXES = []
+
+    UPGRADE_VERSIONS = []
+    UPGRADE_BRANCHES = []
+    UPGRADE_HOTFIXES = []
+
+    POOLED = False
+    LICENSESKU = True
+    CHECKVM = True
+    EXTRASUBCASES = []
+    SKIP_ON_FG_FREE_NO_ACTIVATION = False
+    NEGATIVE = False
+    CC = False
+
+    def doHotfixesRetail(self, version, branch, hotfixes):
+        for hf in hotfixes:
+            patch = xenrt.TEC().lookup(["HOTFIXES", version, branch, hf.upper()])
+            patches = self.host.minimalList("patch-list")
+            if self.POOLED:
+                self.pool.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.reboot()
+                self.slave.reboot()
+            else:
+                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.reboot()
+                
+                if "XS" in hf:
+                    self.writeToUsrGroups(hf)
+            
+            patches2 = self.host.minimalList("patch-list")
+            self.host.execdom0("xe patch-list")
+            if len(patches2) <= len(patches):
+                raise xenrt.XRTFailure("Patch list did not grow after patch application %s/%s" % (version, hf))
+            xenrt.TEC().comment("Applied hotfix %s to initial version %s" % (hf, version))
+
+    def writeToUsrGroups(self, hf):
+        rpms = self.host.execdom0("rpm -qa|sort")
+        dir  = '/usr/groups/xen/release-metadata'
+        cmd = 'mkdir -p %s && echo "%s" > %s/%s' % (dir, rpms, dir, hf)
+        xenrt.ssh.SSH(xenrt.TEC().lookup("MASTER_DISTFILES_SYNC_HOST"), cmd, "xenrtd")
+    
+    def doHotfixesOEM(self, version, hotfixes):
+        for hf in hotfixes:
+            update = xenrt.TEC().lookup(\
+                ["OEM_UPDATE_%s" % (version.upper()), hf.upper()])
+            patches = self.host.minimalList("patch-list")
+            updatefile = xenrt.TEC().getFile(update)
+            if not updatefile:
+                raise xenrt.XRTError("Couldn't retrieve %s." % (update))
+            if updatefile[-4:] == ".bz2":
+                newfile = "%s/update.fs" % (xenrt.TEC().getWorkdir())
+                shutil.copyfile(updatefile, "%s.bz2" % (newfile))
+                xenrt.util.command("bunzip2 %s.bz2" % (newfile))
+                try:
+                    self.host.applyOEMUpdate(newfile)
+                    if self.POOLED:
+                        self.slave.applyOEMUpdate(newfile)
+                finally:
+                    os.unlink(newfile)
+            else:
+                self.host.applyOEMUpdate(updatefile)
+                if self.POOLED:
+                    self.slave.applyOEMUpdate(updatefile)
+            if self.POOLED:
+                self.host.reboot()
+                self.slave.reboot()
+            else:
+                self.host.reboot()
+            patches2 = self.host.minimalList("patch-list")
+            self.host.execdom0("xe patch-list")
+            if len(patches2) <= len(patches):
+                raise xenrt.XRTFailure("Patch list did not grow after update "
+                                       "application %s/%s" % (version, hf))
+            xenrt.TEC().comment("Applied update %s to initial version %s" %
+                                (hf, version))
+
+    def doHotfixes(self, version, branch, hotfixes):
+        if self.host.embedded:
+            self.doHotfixesOEM(version, hotfixes)
+        else:
+            self.doHotfixesRetail(version, branch, hotfixes)
+    
+    def preCheck(self):
+        pass
+    
+    def postPrepare(self):
+        pass
+
+    def prepare(self, arglist):
+        self.currentversion = None
+
+        if self.SKIP_ON_FG_FREE_NO_ACTIVATION and xenrt.TEC().lookup("FG_FREE_NO_ACTIVATION", False, boolean=True):
+            xenrt.TEC().skip("Skipping because FG_FREE_NO_ACTIVATION=yes")
+            return
+
+        if len(self.UPGRADE_VERSIONS) != len(self.UPGRADE_HOTFIXES):
+            raise xenrt.XRTError("Upgrade versions and hotfixes config broken")
+
+        # Perform the initial version install
+        inputdir = xenrt.TEC().lookup("PRODUCT_INPUTDIR_%s" % (self.INITIAL_VERSION.replace(" ", "").upper()), None)
+        if not inputdir:
+            inputdir = xenrt.TEC().lookup("PIDIR_%s" % (self.INITIAL_VERSION.replace(" ", "").upper()), None)
+        if not inputdir:
+            raise xenrt.XRTError("No product input directory set for %s" % (self.INITIAL_VERSION))
+
+        if self.CC:
+            sku = False
+        else:
+            sku = self.LICENSESKU
+            usev6 = xenrt.TEC().lookup(["VERSION_CONFIG", self.INITIAL_VERSION, "V6_DBV"], None)
+            if usev6:
+                sku = False
+
+        productVersion = self.INITIAL_VERSION.split()[0]
+        self.host = xenrt.lib.xenserver.createHost(version=inputdir, productVersion=productVersion, license=sku)
+        self.getLogsFrom(self.host)
+        
+        if self.CC:
+            self.host.configureForCC()
+            
+            # Create a shared SR for the license server as there's no local SR for CC
+            nfsSR = xenrt.lib.xenserver.NFSStorageRepository(self.host, "nfs")
+            nfsSR.create()
+            self.host.addSR(nfsSR, default=True)
+        
+        if self.POOLED:
+            self.slave = xenrt.lib.xenserver.createHost(id=1, version=inputdir, productVersion=productVersion, license=sku)
+            
+            if self.CC:
+                self.slave.configureForCC()
+            
+            self.getLogsFrom(self.slave)
+        
+        self.currentversion = productVersion
+        xenrt.TEC().comment("Initial host(s) install of %s" % self.INITIAL_VERSION)
+        v6applied = False
+        if not self.CC and usev6:
+            self.host.installLicenseServerGuest(name="LicenseServer")
+            
+            v6 = self.getGuest("LicenseServer").getV6LicenseServer()
+            v6.removeAllLicenses()
+            v6.addLicense("valid-platinum")
+            self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+            if self.POOLED:
+                self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
+            v6applied = True
+
+        if self.POOLED:
+            self.pool = xenrt.lib.xenserver.poolFactory(self.host.productVersion)(self.host)
+            
+            if self.CC:
+                self.pool.configureSSL()
+            
+            self.pool.addHost(self.slave)
+            
+            # DL: add this when hotfix arrives
+            # try mpp-rdac for Cowley onwards
+            #if isinstance(self.pool, xenrt.lib.xenserver.MNRPool) and not "MNR" in self.INITIAL_VERSION:
+            #    for h in self.pool.getHosts():
+            #        h.enableMultipathing(mpp_rdac=True)
+
+        if self.CHECKVM:
+            # Install a VM
+            if self.host.embedded:
+                # Just an empty shell of a VM
+                template = self.host.getTemplate("other")
+                cli = self.host.getCLIInstance()
+                args = []
+                args.append("template=\"%s\"" % (template))
+                args.append("new-name-label=%s" % (xenrt.randomGuestName()))
+                self.guest = cli.execute("vm-install", string.join(args)).strip()
+            else:
+                self.guest = self.host.createGenericLinuxGuest()
+                self.guest.shutdown()
+
+
+        initialBranch = self.INITIAL_BRANCH
+        if not initialBranch:
+            initialBranch = xenrt.TEC().lookup(["DEFAULT_HOTFIX_BRANCH", self.INITIAL_VERSION],
+                                xenrt.TEC().lookup(["HOTFIXES", self.INITIAL_VERSION]).keys()[0])
+
+        # Perform hotfixes
+        self.doHotfixes(self.INITIAL_VERSION, initialBranch, self.INITIAL_HOTFIXES)
+
+        # Perform the required upgrades and hotfixes to those upgrades
+        for i in range(len(self.UPGRADE_VERSIONS)):
+            uver = self.UPGRADE_VERSIONS[i]
+            try:
+                ubranch = self.UPGRADE_BRANCHES[i]
+            except:
+                ubranch = xenrt.TEC().lookup(["DEFAULT_HOTFIX_BRANCH", uver],
+                            xenrt.TEC().lookup(["HOTFIXES", uver]).keys()[0])
+
+            uhfs = self.UPGRADE_HOTFIXES[i]
+            uv6 = xenrt.TEC().lookup(["VERSION_CONFIG", uver, "V6_DBV"], None)
+
+            inputdir = xenrt.TEC().lookup("PRODUCT_INPUTDIR_%s" %(uver.replace(" ", "").upper()), None)
+            if not inputdir:
+                inputdir = xenrt.TEC().lookup("PIDIR_%s" % (uver.replace(" ", "").upper()), None)
+            if not inputdir:
+                raise xenrt.XRTError("No product input directory set for %s" % uver)
+            xenrt.TEC().setInputDir(inputdir)
+
+            try:
+                # Perform the product upgrade
+                if self.POOLED:
+                    self.pool = self.pool.upgrade(uver)
+                    self.host = self.pool.master
+                    self.slave = self.pool.getSlaves()[0]
+                else:
+                    self.host = self.host.upgrade(uver)
+                time.sleep(180)
+                if self.POOLED:
+                    self.pool.check()
+                else:
+                    self.host.check()
+                self.currentversion = uver
+                xenrt.TEC().comment("Upgraded host(s) to %s" % (uver))
+
+                if uv6 and not v6applied and not self.CC:
+                    # Apply a v6 platinum license to this host
+                    v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer()
+                    v6.removeAllLicenses()
+                    v6.addLicense("valid-platinum")
+                    self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+                    if self.POOLED:
+                        self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
+                    v6applied = True # This ensures we only apply the v6 license once
+
+                # Perform hotfixes for this version
+                self.doHotfixes(uver, ubranch, uhfs)
+                
+            finally:
+                xenrt.TEC().setInputDir(None)
+
+        # Perform any steps required after the preparation installs/upgrades
+        self.postPrepare()
+        
+        # Perform any necessary precheck
+        self.preCheck()
+
+    def doHotfixRetail(self):
+        # Perform the hotfix
+        patch = xenrt.TEC().lookup("THIS_HOTFIX")
+        patches = self.host.minimalList("patch-list")
+        if self.NEGATIVE:
+            try:
+                if self.POOLED:
+                    self.pool.applyPatch(xenrt.TEC().getFile(patch))
+                else:
+                    self.host.applyPatch(xenrt.TEC().getFile(patch))
+                    
+            except xenrt.XRTFailure, e:
+                if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
+                    xenrt.TEC().logverbose("Patch apply failed as expected when 6.2_vGPU_Tech_Preview is already installed")
+                # we didn't correctly escape this for Oxford but we still test this so have added exception.
+                elif "required_version" in e.data and not "5.6SP2" in e.data and not "XenServer 6.2 Service Pack" in e.data:
+                    if not "^" in e.data or not e.data.strip().endswith("$"):
+                        raise xenrt.XRTFailure("Version regex not correctly anchored")
+                    elif not "\\." in e.data and not "BUILD_NUMBER" in e.data:
+                        raise xenrt.XRTFailure("Backslashes not correctly escaped in version regex.")
+            else:
+                raise xenrt.XRTFailure("Able to apply patch when it should not be allowed")
+                
+        else:
+            
+            if self.POOLED:
+                cmd = "cat /etc/xensource/pool.conf"
+                masterPoolConfBefore = self.host.execdom0(cmd)
+                slavePoolConfigBefore = self.slave.execdom0(cmd)
+
+                self.pool.applyPatch(xenrt.TEC().getFile(patch))
+                
+                if self.host.execdom0(cmd) != masterPoolConfBefore:
+                    raise xenrt.XRTFailure("master /etc/xensource/pool.conf changed after hotfix application")
+                
+                if self.slave.execdom0(cmd) != slavePoolConfigBefore:
+                    raise xenrt.XRTFailure("slave /etc/xensource/pool.conf changed after hotfix application")
+            
+            else:
+                self.host.applyPatch(xenrt.TEC().getFile(patch))
+            patches2 = self.host.minimalList("patch-list")
+            self.host.execdom0("xe patch-list")
+            if len(patches2) <= len(patches):
+                raise xenrt.XRTFailure("Patch list did not grow after patch application")
+            # Make sure all hosts have all patches
+            for puuid in patches:
+                hosts = self.host.genParamGet("patch", puuid, "hosts").split(", ")
+                if not self.host.getMyHostUUID() in hosts:
+                    raise xenrt.XRTFailure("Patch %s not applied to the master" % puuid)
+                if self.POOLED and not self.slave.getMyHostUUID() in hosts:
+                    raise xenrt.XRTFailure("Patch %s not applied to the slave" % puuid)
+
+    def doHotfixOEM(self):
+        if self.NEGATIVE:
+            raise xenrt.XRTError("Negative update application test not "
+                                 "applicable for OEM edition")
+        # Perform the update. Note this may be an upgrade as well.
+        update = xenrt.TEC().lookup("THIS_UPDATE")
+        updatefile = xenrt.TEC().getFile(update)
+        if not updatefile:
+            raise xenrt.XRTError("Couldn't retrieve %s." % (update))
+        if updatefile[-4:] == ".bz2":
+            newfile = "%s/update.fs" % (xenrt.TEC().getWorkdir())
+            shutil.copyfile(updatefile, "%s.bz2" % (newfile))
+            xenrt.util.command("bunzip2 %s.bz2" % (newfile))
+            try:
+                self.host.applyOEMUpdate(newfile)
+                if self.POOLED:
+                    self.slave.applyOEMUpdate(newfile)
+            finally:
+                os.unlink(newfile)
+        else:
+            self.host.applyOEMUpdate(updatefile)
+            if self.POOLED:
+                self.slave.applyOEMUpdate(updatefile)
+        if self.POOLED:
+            self.host.reboot()
+            self.slave.reboot()
+        else:
+            self.host.reboot()
+
+        # If this was an upgrade we may need to upgrade the host objects
+        # Probably ought to do the pool object too but let's see if we
+        # can get away with that...
+        v = xenrt.TEC().lookup("PRODUCT_VERSION")
+        if v != self.currentversion:
+            hosts = [self.host]
+            if self.POOLED:
+                hosts.append(self.slave)
+            for host in hosts:
+                xenrt.lib.xenserver.cli.clearCacheFor(host.machine)
+                host.tailored = False
+                newHost = xenrt.lib.xenserver.hostFactory(v)(host.machine, productVersion=v)
+                host.populateSubclass(newHost)
+                host.replaced = newHost
+                try:
+                    xenrt.TEC().registry.hostReplace(self, newHost)
+                except:
+                    pass
+                if host == hosts[0]:
+                    self.host = newHost
+                else:
+                    self.slave = newHost
+            self.currentversion = v
+
+        # Check the patches
+        patches = self.host.minimalList("patch-list")
+        self.host.execdom0("xe patch-list")
+        # Make sure all hosts have all patches
+        for puuid in patches:
+            hosts = self.host.genParamGet("patch", puuid, "hosts").split(", ")
+            if not self.host.getMyHostUUID() in hosts:
+                raise xenrt.XRTFailure("Patch %s not applied to the master" %
+                                       (puuid))
+            if self.POOLED and not self.slave.getMyHostUUID() in hosts:
+                raise xenrt.XRTFailure("Patch %s not applied to the slave" %
+                                       (puuid))
+
+    def doHotfix(self):
+        if self.host.embedded:
+            self.doHotfixOEM()
+        else:
+            self.doHotfixRetail()
+
+    def checkHotfixContents(self):
+        if not self.host.embedded and (isinstance(self.host, xenrt.lib.xenserver.BostonHost) or self.host.productVersion == "Oxford"):
+            remotefn = "/tmp/XSUPDATE"
+            sftp = self.host.sftpClient()
+            hotfix = xenrt.TEC().lookup("THIS_HOTFIX")
+            
+            if "XS62ESP1" in hotfix:
+                return
+            
+            try:
+                sftp.copyTo(xenrt.TEC().getFile(hotfix), remotefn)
+            finally:
+                sftp.close()
+
+            if hotfix.endswith(".unsigned"):
+                ret = self.host.execdom0("bash %s unpack" % remotefn).strip()
+            else:
+                # decrypt hotfix
+                self.host.execdom0("gpg --keyring /opt/xensource/gpg/pubring.gpg -d %s > %s.sh" % (remotefn, remotefn))
+                
+                # unpack hotfix contents
+                ret = self.host.execdom0("bash %s.sh unpack" % remotefn).strip()
+            
+            # view hotfix contents
+            contents = self.host.execdom0("cat %s/CONTENTS | sort" % ret).strip()
+            contentsUniq = self.host.execdom0("cat %s/CONTENTS | sort | uniq" % ret).strip()
+            
+            if contents != contentsUniq:
+                raise xenrt.XRTFailure("Duplicated lines in hotfix contents")
+
+    
+    def checkDriverDisks(self):
+        
+        if not xenrt.TEC().lookup("DRIVER_DISK_REPO", None):
+            return
+        
+        xenrt.TEC().logverbose("Installing Mercurial so can get driver disks")
+        
+        td = xenrt.TEC().tempDir()
+        xenrt.util.command("cd %s && hg clone %s" % (td, xenrt.TEC().lookup("DRIVER_DISK_REPO")))
+        # remove all but isos
+        xenrt.util.command("cd %s && find -type f | grep -v .iso | xargs rm -f " % td)
+        # remove files from .hg/
+        xenrt.util.command("cd %s &&  find driverdisks.hg/.hg -type f -exec rm {} \;"  % td)
+        # tar the content, copy to the host and untar
+        xenrt.util.command("cd %s && tar -czf driverdisks.hg.tgz driverdisks.hg" % td)
+        sftp = self.host.sftpClient()
+        try: 
+            sftp.copyTo(td+"/driverdisks.hg.tgz", "/driverdisks.hg.tgz")
+        finally:
+            sftp.close()
+        self.host.execdom0("cd / && tar -xzf driverdisks.hg.tgz && rm /driverdisks.hg.tgz")
+
+        xenrt.TEC().logverbose("Listing driver disks for this kernel")
+        self.host.execdom0("uname -r")
+        isos = self.host.execdom0('cd / && find /driverdisks.hg | grep "`uname -r`" | grep ".iso$" || true').strip().splitlines()
+        
+        for i in range(len(isos)):
+            
+            # mount driver disk
+            self.host.execdom0("mkdir /mnt/%d" % i)
+            self.host.execdom0("mount -o loop %s /mnt/%d" % (isos[i], i))
+            
+            # create a location to copy contents of driver disk to.
+            # we do this as we need read-write access to hack the install.sh script
+            self.host.execdom0("mkdir /tmp/%d" % i)
+            
+            # copy driver disk contents to /tmp/{i}
+            self.host.execdom0("cp -R /mnt/%d/* /tmp/%d/" % (i, i))
+
+            # unmount driver disk
+            self.host.execdom0("cd / && umount /mnt/%d && rmdir /mnt/%d" % (i, i))
+            
+            # hack driver disk scripts so doesn't ask to confirm
+            self.host.execdom0("sed -i 's/if \[ -d \$installed_repos_dir\/$identifier \]/if \[ 0 -eq 1 \]/' /tmp/%d/install.sh" % i)
+            self.host.execdom0('sed -i "s/print msg/return/" /tmp/%d/install.sh || true' % i)
+            
+            # list rpms in driver disk
+            xenrt.TEC().logverbose("Listing RPMs in driver disk")
+            driverDiskRpms = self.host.execdom0('cd / && find /tmp/%d | grep ".rpm$"' % i).strip().splitlines()
+            
+            # dictionary of kernel objects for cross referencing against installed ones after driver disk has been installed
+            kos = {}
+            
+            # manually unpack all rpms to get driver names and versions
+            xenrt.TEC().logverbose("Unpacking all RPMs in driver disk so can get version numbers")
+            for j in range(len(driverDiskRpms)):
+                self.host.execdom0("mkdir /tmp/%d/%d" % (i, j))
+                self.host.execdom0("cd /tmp/%d/%d && rpm2cpio %s | cpio -idmv" % (i, j, driverDiskRpms[j]))
+                
+                for ko in self.host.execdom0('cd / && find /tmp/%d/%d | grep ".ko$" || true' % (i, j)).strip().splitlines():
+                    koShort = re.match(".*/(.*?)\.ko$", ko).group(1)
+                    kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
+
+            # list all rpms before installing driver disk
+            rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
+        
+            # install driver disk
+            self.host.execdom0("cd /tmp/%d && ./install.sh" % i)
+            
+            # ensure the module dependency table has been updated correctly
+            for ko in kos:
+                if len(self.host.execdom0("modinfo %s | grep `uname -r`" % ko).strip().splitlines()) == 0:
+                    raise xenrt.XRTFailure("Could not find kernel version in driver modinfo for %s" % ko)
+                    
+                if kos[ko] != self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko):
+                    raise xenrt.XRTFailure("driver modinfo shows incorrect version. It should be \"%s\"." % kos[ko])
+
+            self.writeToUsrGroups(isos[i].replace("/driverdisks.hg/", "").replace("/", "-").replace(".iso", ""))
+            
+            # list all rpms after installing driver disk
+            rpmsAfter = self.host.execdom0("rpm -qa|sort").splitlines()
+            
+            # get list of all new rpms installed (according to the system)
+            newRpms = filter(lambda x: not x in rpmsBefore, rpmsAfter)
+            xenrt.TEC().logverbose("New RPMS:\n" + "\n".join(newRpms))
+            
+             # now uninstall (this helps when you have multiple versions of the same driver)
+            for rpm in newRpms:
+                self.host.execdom0("rpm -ev %s" % rpm)
+                
+            if len(newRpms) != len(driverDiskRpms):
+                raise xenrt.XRTFailure("Incorrect RPMs installed by driver disk. Expected %d. Found %d." % (len(driverDiskRpms), len(newRpms)))
+
+            # remove repository stamp from xapi database
+            try:
+                command = """cd /tmp/%d &&  python -c "from xcp.accessor import *; from xcp.repository import *; print Repository(FileAccessor('file://./', True), '').identifier" """ % i
+                repoID = self.host.execdom0(command).strip()
+                self.host.execdom0("rm -rf /etc/xensource/installed-repos/%s" % repoID)
+            except:
+                pass
+
+    def checkPatchList(self):
+        # Make sure the patch list contains everything we expected and no
+        # more. If an expected patch description contains "*" then any
+        # hotfix can match this - this is used for testing new hotfixes
+        # where the name is not specified as needing testing.
+        exps = xenrt.TEC().lookupLeaves("PATCH_DESCRIPTIONS")
+        hftexts = []        
+        for puuid in self.host.minimalList("patch-list"):
+            hftext = self.host.genParamGet("patch", puuid, "name-label")
+            hftexts.append(hftext)
+        missing = []
+        any = 0
+        for exp in exps:
+            if exp == "*":
+                any = any + 1
+            else:
+                if exp in hftexts:
+                    hftexts.remove(exp)
+                else:
+                    missing.append(exp)
+        if any and len(hftexts) == any:
+            # The number of hotfix names we have after removing the expected
+            # ones matches the number of wildcards - this is good.
+            hftexts = []
+        
+        
+        # Commenting this out for now. It's good practice to check
+        # apply the hotfix and check this manually and it's annoying
+        # if this fails.
+        #if len(missing) > 0:
+        #    raise xenrt.XRTFailure("Patch(es) missing: %s" %
+        #                           (string.join(missing, ",")))
+        #if len(hftexts) > 0:
+        #    raise xenrt.XRTFailure("Unexpected patch(es): %s" %
+        #                           (string.join(hftexts, ",")))
+        
+    def checkGuest(self):
+        # Check the VM
+        if self.host.embedded:
+            guests = self.host.minimalList("vm-list")
+            if not self.guest in guests:
+                raise xenrt.XRTFailure("VM missing")
+        else:
+            self.guest.start()
+            self.guest.shutdown()
+
+    def checkNTP(self, master):
+        if master:
+            host = self.host
+        else:
+            host = self.slave
+        # Make sure /etc/ntp.conf exists or is a symlink to a file that
+        # exists
+        if host.execdom0("test -e /etc/ntp.conf", retval="code") != 0:
+            if host.execdom0("test -L /etc/ntp.conf", retval="code") == 0:
+                raise xenrt.XRTFailure("/etc/ntp.conf is a dangling symlink")
+            else:
+                raise xenrt.XRTFailure("/etc/ntp.conf is missing")
+
+        # Make sure the ntpd service is reported as running
+        data = host.execdom0("service ntpd status | cat")
+        if not "running" in data:
+            raise xenrt.XRTFailure("ntpd service is not running")
+
+        # Make sure the ntpd process is running
+        data = host.execdom0("ps axw")
+        if not "ntpd" in data:
+            raise xenrt.XRTFailure("ntpd process is not running")
+        
+    def run(self, arglist):
+
+        self.runSubcase("checkHotfixContents", (), "Check", "Hotfix")
+        
+        # Apply the hotfix but don't reboot yet
+        if self.runSubcase("doHotfix", (), "Patch", "Apply") != xenrt.RESULT_PASS:
+            return
+        
+        if not self.NEGATIVE and not self.host.embedded:
+            self.runSubcase("checkPatchList", (), "PatchList", "Initial")
+
+        if not self.host.embedded:
+            # Reboot into the patched installation
+            self.host.reboot()
+            if self.POOLED:
+                self.slave.reboot()
+
+        if not self.POOLED and not self.NEGATIVE and not self.host.embedded:
+            self.runSubcase("checkDriverDisks", (), "Check", "DriverDisks")
+            
+        if not self.NEGATIVE:
+            # Check the list again
+            if self.runSubcase("checkPatchList", (), "PatchList", "Reboot") != xenrt.RESULT_PASS:
+                return
+
+        if self.CHECKVM:
+            # Make sure our VM still works/exists
+            if self.runSubcase("checkGuest", (), "Check", "VM") != xenrt.RESULT_PASS:
+                return
+
+        if not self.NEGATIVE:
+            # Reboot and check the list again
+            self.host.reboot()
+            if self.POOLED:
+                self.slave.reboot()
+            if self.runSubcase("checkPatchList", (), "PatchList", "Reboot2") != xenrt.RESULT_PASS:
+                return
+
+        self.runSubcase("checkNTP", (True), "CA-27444", "master")
+        if self.POOLED:
+            self.runSubcase("checkNTP", (False), "CA-27444", "slave")
+
+        for e in self.EXTRASUBCASES:
+            if self.runSubcase(e[0], e[1], e[2], e[3]) != xenrt.RESULT_PASS:
+                return
+
+#############################################################################
+# Hotfix application
+
+# Base versions
+class _MiamiRTM(_Hotfix):
+    INITIAL_VERSION = "Miami"
+    
+class _MiamiHF3(_MiamiRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+
+class _OrlandoRTM(_Hotfix):
+    INITIAL_VERSION = "Orlando"
+
+class _OrlandoHF1(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF1"]
+    
+class _OrlandoHF2(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+    
+class _OrlandoHF3(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+    
+class _OrlandoHF2only(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF2"]
+
+class _OrlandoHF3only(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF3"]
+    
+class _OrlandoAllHFonly(_OrlandoRTM):
+    INITIAL_HOTFIXES = ["HF3", "XS50EU3004", "XS50EU3005", "XS50EU3007", "XS50EU3008", "XS50EU3009", "XS50EU3010", "XS50EU3011", "XS50EU3012", "XS50EU3013", "XS50EU3014", "XS50EU3015", "XS50EU3016", "XS50EU3017", "XS50EU3018"]
+
+class _FloodgateRTM(_Hotfix):
+    INITIAL_VERSION = "Orlando HF3"
+
+class _GeorgeRTM(_Hotfix):
+    INITIAL_VERSION = "George"
+
+class _GeorgeHFd(_GeorgeRTM):
+    INITIAL_HOTFIXES = ["LVHD","EPT","Time"]
+
+class _GeorgeHF1(_GeorgeRTM):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _GeorgeHF2(_GeorgeRTM):
+    INITIAL_HOTFIXES = ["HF2"]
+
+class _GeorgeU1(_Hotfix):
+    INITIAL_VERSION = "George HF1"
+
+class _GeorgeU2(_Hotfix):
+    INITIAL_VERSION = "George HF2"
+    
+class _GeorgeU2HFd(_GeorgeRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020"]
+
+class _MNRRTM(_Hotfix):
+    INITIAL_VERSION = "MNR"
+
+class _MNRHFd(_MNRRTM):
+    INITIAL_HOTFIXES = ["XS56E001", "XS56E002", "XS56E003", "XS56E004", "XS56E005", "XS56E006", "XS56E007", "XS56E009", "XS56E010", "XS56E011", "XS56E012", "XS56E013", "XS56E014", "XS56E015", "XS56E016", "XS56E017", "XS56E018", "XS56E019", "XS56E020", "XS56E021", "XS56E022", "XS56E023"]
+
+class _MNRCCRTM(_Hotfix):
+    INITIAL_VERSION = "MNRCC"
+    CC = True
+
+class _MNRCCHFd(_MNRCCRTM):
+    INITIAL_HOTFIXES = ["XS56ECC001", "XS56ECC002", "XS56ECC003", "XS56ECC004", "XS56ECC005", "XS56ECC006", "XS56ECC007", "XS56ECC008",  "XS56ECC009", "XS56ECC010", "XS56ECC011"]
+
+class _CowleyRTM(_Hotfix):
+    INITIAL_VERSION = "Cowley"
+    
+class _CowleyWithOxford(_CowleyRTM):
+    INITIAL_HOTFIXES = ["HFOXFORD"]
+
+class _CowleyHFd(_CowleyRTM):
+    INITIAL_HOTFIXES = ["XS56EFP1001", "XS56EFP1004", "XS56EFP1005", "XS56EFP1006", "XS56EFP1007", "XS56EFP1008", "XS56EFP1009", "XS56EFP1010", "XS56EFP1011" , "XS56EFP1012", "XS56EFP1013", "XS56EFP1014", "XS56EFP1015", "XS56EFP1016", "XS56EFP1017",  "XS56EFP1018", "XS56EFP1019", "XS56EFP1020", "XS56EFP1021", "XS56EFP1022"]
+    
+class _CowleyWithOxfordAndBob(_CowleyRTM):
+    INITIAL_HOTFIXES = ["HFOXFORD","HFBOB"]
+
+class _OxfordRTM(_Hotfix):
+    INITIAL_VERSION = "Oxford"
+    
+class _OxfordHFd(_OxfordRTM):
+    INITIAL_HOTFIXES = ["XS56ESP2001", "XS56ESP2002", "XS56ESP2003", "XS56ESP2004", "XS56ESP2005", "XS56ESP2006", "XS56ESP2007", "XS56ESP2008", "XS56ESP2009", "XS56ESP2010", "XS56ESP2011", "XS56ESP2012", "XS56ESP2013", "XS56ESP2014", "XS56ESP2015", "XS56ESP2016", "XS56ESP2018", "XS56ESP2019", "XS56ESP2020", "XS56ESP2021", "XS56ESP2022", "XS56ESP2023", "XS56ESP2024", "XS56ESP2025", "XS56ESP2026", "XS56ESP2027", "XS56ESP2028", "XS56ESP2029", "XS56ESP2030", "XS56ESP2031", "XS56ESP2032", "XS56ESP2033", "XS56ESP2034"]
+    
+class _BostonRTM(_Hotfix):
+    INITIAL_VERSION = "Boston"
+    
+class _BostonBritney(_BostonRTM):
+    INITIAL_HOTFIXES = ["XS60E001"]
+
+class _BostonHFd(_BostonRTM):
+    INITIAL_HOTFIXES = ["XS60E001", "XS60E002", "XS60E003", "XS60E004", "XS60E005", "XS60E006", "XS60E007", "XS60E008", "XS60E010", "XS60E012", "XS60E013", "XS60E014", "XS60E015", "XS60E016", "XS60E017", "XS60E018", "XS60E019", "XS60E020", "XS60E021", "XS60E022", "XS60E023", "XS60E024", "XS60E025", "XS60E026", "XS60E027", "XS60E028", "XS60E029", "XS60E030", "XS60E031", "XS60E032", "XS60E033", "XS60E034", "XS60E035", "XS60E037"]
+
+class _SanibelRTM(_Hotfix):
+    INITIAL_VERSION = "Sanibel"
+    
+class _SanibelHFd(_SanibelRTM):
+    INITIAL_HOTFIXES = ["XS602E004", "XS602E005", "XS602E006", "XS602E007", "XS602E008", "XS602E009", "XS602E010", "XS602E011", "XS602E013", "XS602E014", "XS602E016", "XS602E017", "XS602E018", "XS602E019", "XS602E020", "XS602E021", "XS602E022", "XS602E023", "XS602E024", "XS602E025", "XS602E026", "XS602E027", "XS602E028", "XS602E029", "XS602E030", "XS602E032"]
+    
+class _SanibelCCRTM(_Hotfix):
+    INITIAL_VERSION = "SanibelCC"
+    CC = True
+    
+class _SanibelCCHFd(_SanibelCCRTM):
+    INITIAL_HOTFIXES = ["XS602ECC001", "XS602ECC002", "XS602ECC003", "XS602ECC004", "XS602ECC005", "XS602ECC006", "XS602ECC007", "XS602ECC008"]
+
+class _TampaRTM(_Hotfix):
+    INITIAL_VERSION = "Tampa"
+    
+class _TampaHFd(_TampaRTM):
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E036"]
+    
+class _ClearwaterRTM(_Hotfix):
+    INITIAL_VERSION = "Clearwater"
+    INITIAL_BRANCH = "RTM"
+    
+class _ClearwaterRTMHFd(_ClearwaterRTM):
+    INITIAL_HOTFIXES = ["XS62E001", "XS62E002", "XS62E004", "XS62E005", "XS62E007", "XS62E008", "XS62E009", "XS62E010", "XS62E011", "XS62E012", "XS62E014"]
+    
+class _ClearwaterSP1(_ClearwaterRTM):
+    INITIAL_BRANCH = "SP1"
+    INITIAL_HOTFIXES = ["XS62ESP1"]
+    
+class _ClearwaterSP1HFd(_ClearwaterSP1):
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002"]
+    
+    
+# Upgrades
+class _OrlandoRTMviaMiamiHF3(_MiamiHF3):
+    UPGRADE_VERSIONS = ["Orlando"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _OrlandoHF1viaMiamiHF3(_OrlandoRTMviaMiamiHF3):
+    UPGRADE_HOTFIXES = [["HF1"]]
+
+class _OrlandoHF2viaMiamiHF3(_OrlandoRTMviaMiamiHF3):
+    UPGRADE_HOTFIXES = [["HF2"]]
+
+class _OrlandoHF3viaMiamiHF3(_OrlandoRTMviaMiamiHF3):
+    UPGRADE_HOTFIXES = [["HF3"]]
+
+# Single host testcases
+class TC8821(_OrlandoRTM):
+    """Apply hotfix to XenServer 5.0.0 RTM"""
+    pass
+
+class TC8822(_OrlandoHF1):
+    """Apply hotfix to XenServer 5.0.0 update 1"""
+    pass
+
+class TC8823(_OrlandoHF2only):
+    """Apply hotfix to XenServer 5.0.0 update 2"""
+    pass
+
+class TC8824(_OrlandoHF2):
+    """Apply hotfix to XenServer 5.0.0 update 1 + update 2"""
+    pass
+
+class TC8825(_OrlandoRTMviaMiamiHF3):
+    """Apply hotfix to XenServer 5.0.0 RTM which has been upgraded from Miami + Miami updates 1, 2 and 3"""
+    pass
+
+class TC10539(_OrlandoHF3only):
+    """Apply hotfix to XenServer 5.0.0 update 3"""
+    pass
+    
+class TC17913(_OrlandoAllHFonly):
+    """Apply hotfix to XenServer 5.0.0 update 3 and all other hotfixes"""
+    pass
+    
+class TC10540(_OrlandoHF3):
+    """Apply hotfix to XenServer 5.0.0 update 1 + update 2 + update 3"""
+    pass
+
+class TC10541(_FloodgateRTM):
+    """Apply hotfix to XenServer 5.0.0u3 (Floodgate rollup) RTM"""
+    pass
+
+class TC10603(_GeorgeRTM):
+    """Apply hotfix to XenServer 5.5.0 RTM"""
+    pass
+
+class TC10604(_GeorgeHFd):
+    """Apply hotfix to XenServer 5.5.0 + LVHD, EPT, and time hotfixes"""
+    pass
+
+class TC10777(_GeorgeHF1):
+    """Apply hotfix to XenServer 5.5.0 + update 1 hotfix"""
+    pass
+
+class TC11501(_GeorgeHF2):
+    """Apply hotfix to XenServer 5.5.0 + update 2 hotfix"""
+    pass
+
+class TC10798(_GeorgeU1):
+    """Apply hotfix to XenServer 5.5.0 Update 1"""
+    pass
+
+class TC11502(_GeorgeU2):
+    """Apply hotfix to XenServer 5.5.0 Update 2"""
+    pass
+
+class TC17964(_GeorgeU2HFd):
+    """Apply hotfix to XenServer 5.5.0 Update 2 and all other hotfixes"""
+    pass
+
+class TC11934(_MNRRTM):
+    """Apply hotfix to XenServer 5.6.0 RTM"""
+    pass
+
+class TC11940(_MNRHFd):
+    """Apply hotfix to XenServer 5.6.0 RTM with all previous released hotfixes applied"""
+    pass
+
+class TC17970(_MNRCCRTM):
+    """Apply hotfix to XenServer 5.6.0 RTM"""
+    pass
+
+class TC17971(_MNRCCHFd):
+    """Apply hotfix to XenServer 5.6.0 RTM with all previous released hotfixes applied"""
+    pass
+
+class TC12694(_CowleyRTM):
+    """Apply hotfix to XenServer 5.6 FP1 RTM"""
+    pass
+    
+class TC14455(_CowleyWithOxford):
+    """Apply hotfix to XenServer 5.6 FP1 RTM + SP2 Hotfix"""
+    pass
+    
+class TC14908(_CowleyWithOxfordAndBob):
+    """Apply hotfix to XenServer 5.6 FP1 RTM + SP2 Hotfix + Bob Hotfix"""
+    pass
+
+class TC15521(_CowleyHFd):
+    """Apply hotfix to XenServer 5.6.0 FP1 RTM with all previous released hotfixes applied"""
+    pass
+
+class TC14439(_OxfordRTM):
+    """Apply hotfix to XenServer 5.6 SP2 RTM"""
+    pass
+    
+class TC15238(_OxfordHFd):
+    """Apply hotfix to XenServer 5.6 SP2 RTM with all previous hotfixes applied"""
+    pass
+    
+class TC15215(_BostonRTM):
+    """Apply hotfix to XenServer 6.0.0 RTM"""
+    pass
+    
+class TC16628(_SanibelRTM):
+    """Apply hotfix to XenServer 6.0.2 RTM"""
+    pass
+    
+class TC18394(_SanibelCCRTM):
+    """Apply hotfix to XenServer 6.0.2 CC RTM"""
+    pass
+
+class TC18162(_TampaRTM):
+    """Apply hotfix to XenServer 6.1 RTM"""
+    pass
+
+class TC19911(_ClearwaterRTM):
+    """Apply hotfix to XenServer 6.2 RTM"""
+    pass
+
+class TC20944(_ClearwaterSP1):
+    """Apply hotfix to XenServer 6.2 SP1"""
+    pass
+
+class TC15307(_BostonBritney):
+    """Apply hotfix to XenServer 6.0.0 with Hotfix Britney applied"""
+    pass
+
+class TC15218(_BostonHFd):
+    """Apply hotfix to XenServer 6.0 RTM with all previous released hotfixes applied"""
+    pass
+    
+class TC16630(_SanibelHFd):
+    """Apply hotfix to XenServer 6.0.2 RTM with all previous released hotfixes applied"""
+    pass
+    
+class TC18395(_SanibelCCHFd):
+    """Apply hotfix to XenServer 6.0.2 CC RTM with all previous released hotfixes applied"""
+    pass
+    
+class TC18171(_TampaHFd):
+    """Apply hotfix to XenServer 6.0.2 RTM with all previous released hotfixes applied"""
+    pass
+
+class TC19915(_ClearwaterRTMHFd):
+    """Apply hotfix to XenServer 6.2 RTM with all previous released (non-SP1) hotfixes applied"""
+    pass
+
+class TC20927(_ClearwaterSP1HFd):
+    """Apply hotfix to XenServer 6.2 SP1 with all previous released hotfixes applied"""
+    pass
+    
+# Negative tests (the hotfix should not apply to this base)
+class TC10545(_OrlandoRTM):
+    """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
+    NEGATIVE = True
+
+class TC10546(_OrlandoHF1):
+    """Apply hotfix to XenServer 5.0.0 + update 1 (should fail)"""
+    NEGATIVE = True
+
+class TC10547(_OrlandoHF2only):
+    """Apply hotfix to XenServer 5.0.0 + update 2 (should fail)"""
+    NEGATIVE = True
+
+class TC10723(_FloodgateRTM):
+    """Apply hotfix to XenServer 5.0.0u3 (Floodgate rollup) RTM (should fail)"""
+    NEGATIVE = True
+
+class TC10605(_GeorgeU1):
+    """Apply hotfix to XenServer 5.5.0 Update 1 (should fail)"""
+    NEGATIVE = True
+
+class TC11505(_GeorgeHF1):
+    """Apply hotfix to XenServer 5.5.0 + update 1 (should fail)"""
+    NEGATIVE = True
+
+class TC11506(_GeorgeRTM):
+    """Apply hotfix to XenServer 5.5.0 RTM (should fail)"""
+    NEGATIVE = True
+
+class TC11507(_GeorgeHFd):
+    """Apply hotfix to XenServer 5.5.0 + LVHD, EPT, and time hotfixes (should fail)"""
+    NEGATIVE = True
+
+class TC11936(_GeorgeU2):
+    """Apply hotfix to XenServer 5.5.0 Update 2 (should fail)"""
+    NEGATIVE = True
+    
+class TC12695(_MNRRTM):
+    """Apply hotfix to XenServer 5.6.0 (should fail)"""
+    NEGATIVE = True
+
+class TC14438(_CowleyRTM):
+    """Apply hotfix to XenServer 5.6 FP1 (should fail)"""
+    NEGATIVE = True
+    
+class TC15522(_CowleyWithOxford):
+    """Apply hotfix to XenServer 5.6 FP1 RTM + SP2 Hotfix (should fail)"""
+    NEGATIVE = True
+
+class TC15216(_OxfordRTM):
+    """Apply hotfix to XenServer 5.6 FP1 SP2 (should fail)"""
+    NEGATIVE = True
+
+class TC15306(_BostonRTM):
+    """Apply hotfix to XenServer 6.0 (should fail)"""
+    NEGATIVE = True
+    
+class TC18488(_SanibelCCRTM):
+    """Apply hotfix to XenServer 6.0.2 CC (should fail)"""
+    NEGATIVE = True
+
+class TC16632(_SanibelRTM):
+    """Apply hotfix to XenServer 6.0.2 (should fail)"""
+    NEGATIVE = True
+    
+class TC19912(_TampaRTM):
+    """Apply hotfix to XenServer 6.2 (should fail)"""
+    NEGATIVE = True
+    
+class TC20945(_ClearwaterRTM):
+    """Apply hotfix to XenServer 6.2RTM (should fail)"""
+    NEGATIVE = True
+    
+class TCvGPUTechPreview(_ClearwaterRTM):
+    """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
+    NEGATIVE = True
+    INITIAL_HOTFIXES = ["XS62ETP001"]
+    
+# Pool testcases
+class TC8842(_OrlandoRTM):
+    """Apply hotfix to XenServer 5.0.0 RTM (pool)"""
+    POOLED = True
+
+class TC8843(_OrlandoHF1):
+    """Apply hotfix to XenServer 5.0.0 update 1 (pool)"""
+    POOLED = True
+
+class TC8844(_OrlandoHF2only):
+    """Apply hotfix to XenServer 5.0.0 update 2 (pool)"""
+    POOLED = True
+
+class TC8845(_OrlandoHF2):
+    """Apply hotfix to XenServer 5.0.0 update 1 + update 2 (pool)"""
+    POOLED = True
+
+class TC8846(_OrlandoRTMviaMiamiHF3):
+    """Apply hotfix to XenServer 5.0.0 RTM which has been upgraded from Miami + Miami updates 1, 2 and 3 (pool)"""
+    POOLED = True
+
+class TC10542(_OrlandoHF3only):
+    """Apply hotfix to XenServer 5.0.0 update 3 (pool)"""
+    POOLED = True
+
+class TC10543(_OrlandoHF3):
+    """Apply hotfix to XenServer 5.0.0 update 1 + update 2 + update 3 (pool)"""
+    POOLED = True
+
+class TC10544(_FloodgateRTM):
+    """Apply hotfix to XenServer 5.0.0u3 (Floodgate rollup) RTM (pool)"""
+    POOLED = True
+
+class TC10606(_GeorgeRTM):
+    """Apply hotfix to XenServer 5.5.0 RTM (pool)"""
+    POOLED = True
+
+class TC10607(_GeorgeHFd):
+    """Apply hotfix to XenServer 5.5.0 + LVHD, EPT, and time hotfixes (pool)"""
+    POOLED = True   
+
+class TC10779(_GeorgeHF1):
+    """Apply hotfix to XenServer 5.5.0 + update 1 hotfix (pool)"""
+    POOLED = True
+
+class TC11504(_GeorgeHF2):
+    """Apply hotfix to XenServer 5.5.0 + update 2 hotfix (pool)"""
+    POOLED = True
+
+class TC10799(_GeorgeU1):
+    """Apply hotfix to XenServer 5.5.0 Update 1 (pool)"""
+    POOLED = True
+
+class TC11503(_GeorgeU2):
+    """Apply hotfix to XenServer 5.5.0 Update 2 (pool)"""
+    POOLED = True
+
+class TC11935(_MNRRTM):
+    """Apply hotfix to XenServer 5.6.0 RTM (pool)"""
+    POOLED = True
+
+class TC17972(_MNRCCRTM):
+    """Apply hotfix to XenServer 5.6.0 CC (pool)"""
+    POOLED = True
+
+class TC12696(_CowleyRTM):
+    """Apply hotfix to XenServer 5.6 FP1 RTM (pool)"""
+    POOLED = True
+    
+class TC14437(_OxfordRTM):
+    """Apply hotfix to XenServer 5.6 FP1 SP2 RTM (pool)"""
+    POOLED = True
+    
+class TC15217(_BostonBritney):
+    """Apply hotfix to XenServer 6.0.0 RTM with hotfix Britney applied (XS60E001) (pool)"""
+    POOLED = True
+
+class TC16629(_SanibelRTM):
+    """Apply hotfix to XenServer 6.0.2 RTM (pool)"""
+    POOLED = True
+
+class TC18396(_SanibelCCRTM):
+    """Apply hotfix to XenServer 6.0.2 CC RTM (pool)"""
+    POOLED = True
+    
+class TC18161(_TampaRTM):
+    """Apply hotfix to XenServer 6.1 RTM (pool)"""
+    POOLED = True
+
+class TC19914(_ClearwaterRTM):
+    """Apply hotfix to XenServer 6.2 RTM (pool)"""
+    POOLED = True
+    
+class TC20946(_ClearwaterSP1):
+    """Apply hotfix to XenServer 6.2 SP1 (pool)"""
+    POOLED = True
+    
+#############################################################################
+# Upgrade with a rollup
+
+class _UpgradeRollup(_Hotfix):
+    """Base class for tests that perform a product upgrade using a build
+    that has rolled up hotfixes."""
+
+    def doUpgrade(self):
+        # Perform the product upgrade
+        if self.POOLED:
+            self.pool = self.pool.upgrade()
+            self.host = self.pool.master
+            self.slave = self.pool.getSlaves()[0]
+        else:
+            self.host = self.host.upgrade()
+        time.sleep(180)
+        if self.POOLED:
+            self.pool.check()
+        else:
+            self.host.check()
+
+    def run(self, arglist):
+
+        # Perform the upgrade, this will boot in to the upgraded and patched
+        # host
+        if self.runSubcase("doUpgrade", (), "Upgrade", "Perform") != \
+                xenrt.RESULT_PASS:
+            return
+        
+        # Check the patch list
+        if self.runSubcase("checkPatchList", (), "PatchList", "Upgraded") != \
+                xenrt.RESULT_PASS:
+            return
+
+        if self.CHECKVM:
+            # Make sure our VM still works/exists
+            if self.runSubcase("checkGuest", (), "Check", "VM") != \
+                   xenrt.RESULT_PASS:
+                return
+
+        # Reboot and check the list again
+        self.host.reboot()
+        if self.POOLED:
+            self.slave.reboot()
+        if self.runSubcase("checkPatchList", (), "PatchList", "Reboot") != \
+                xenrt.RESULT_PASS:
+            return
+
+        for e in self.EXTRASUBCASES:
+            if self.runSubcase(e[0], e[1], e[2], e[3]) != xenrt.RESULT_PASS:
+                return
+
+class _UpgradeNotAllowed(_Hotfix):
+    """Base class for tests that checks the upgrade is not allowed for one particular to another """
+
+    def doUpgrade(self):
+        # Perform the product upgrade
+        try:
+            if self.POOLED:
+                self.pool = self.pool.upgrade()
+                self.host = self.pool.master
+                self.slave = self.pool.getSlaves()[0]
+            else:
+                self.host = self.host.upgrade()
+        except: 
+            pass
+        else:
+            raise xenrt.XRTError("Upgrade was successful when it was not expected to")
+
+    def run(self, arglist):
+
+        # Perform the upgrade and verifies that upgrade should be unsuccesful
+        if self.runSubcase("doUpgrade", (), "Upgrade", "Perform") != \
+                xenrt.RESULT_PASS:
+            return
+
+class _RioRTMFailUpg(_UpgradeNotAllowed):
+    INITIAL_VERSION = "Rio"
+
+class _MiamiRTMFailUpg(_UpgradeNotAllowed):
+    INITIAL_VERSION = "Miami"
+
+class _OrlandoRTMFailUpg(_UpgradeNotAllowed):
+    INITIAL_VERSION = "Orlando"
+
+class _GeorgeRTMFailUpg(_UpgradeNotAllowed):
+    INITIAL_VERSION = "George"
+
+# Base versions
+class _MiamiRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+
+class _MiamiHF1Upg(_MiamiRTMUpg):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _MiamiHF2Upg(_MiamiRTMUpg):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+
+class _MiamiHF3Upg(_MiamiRTMUpg):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+
+class _MiamiRTMViaRioUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _OrlandoRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+
+class _OrlandoHF1Upg(_OrlandoRTMUpg):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _OrlandoHF2Upg(_OrlandoRTMUpg):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+
+class _OrlandoHF3Upg(_OrlandoRTMUpg):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+
+class _OrlandoHF3onlyUpg(_OrlandoRTMUpg):
+    INITIAL_HOTFIXES = ["HF3"]
+
+class _OrlandoRTMViaMiamiUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+    UPGRADE_VERSIONS = ["Orlando"]
+    UPGRADE_HOTFIXES = [[]]
+    
+class _OrlandoRTMViaRioAndMiamiUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami", "Orlando"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _GeorgeBetaUpg(_UpgradeRollup):
+    INITIAL_VERSION = "George Beta"
+
+class _GeorgeRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+
+class _GeorgeHF1Upg(_GeorgeRTMUpg):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _GeorgeHF2Upg(_GeorgeRTMUpg):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+
+class _GeorgeRTMViaOrlandoUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _GeorgeRTMViaOrlandoAndMiamiUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+    UPGRADE_VERSIONS = ["Orlando", "George"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _GeorgeRTMViaOrlandoAndMiamiAndRioUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami", "Orlando", "George"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _MidnightRideBetaUpg(_UpgradeRollup):
+    INITIAL_VERSION = "MNR Beta"
+
+class _MNRRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+
+class _MNRRTMViaGeorgeUpg(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+    UPGRADE_VERSIONS = ["MNR"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _MNRRTMViaGeorgeAndOrlandoUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George", "MNR"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _MNRRTMViaGeorgeAndOrlandoAndMiamiUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+    UPGRADE_VERSIONS = ["Orlando", "George", "MNR"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _MNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami", "Orlando", "George", "MNR"]
+    UPGRADE_HOTFIXES = [[], [], [], []]
+
+class _CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami","Orlando", "George", "MNR", "Cowley"]
+    UPGRADE_HOTFIXES = [[], [], [], [], []]
+
+class _CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+    UPGRADE_VERSIONS = ["Orlando", "George", "MNR", "Cowley"]
+    UPGRADE_HOTFIXES = [[], [], [], []]
+
+class _CowleyViaMNRRTMViaGeorgeAndOrlando(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George", "MNR", "Cowley"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _CowleyViaMNRRTMViaGeorge(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+    UPGRADE_VERSIONS = ["MNR", "Cowley"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _CowleyViaMNRRTM(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+    UPGRADE_VERSIONS = ["Cowley"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _CowleyRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Cowley"
+
+class _BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Rio"
+    UPGRADE_VERSIONS = ["Miami","Orlando", "George", "MNR", "Cowley","Boston"]
+    UPGRADE_HOTFIXES = [[], [], [], [], [], []]
+    
+class _BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami(_UpgradeRollup):
+    INITIAL_VERSION = "Miami"
+    UPGRADE_VERSIONS = ["Orlando", "George", "MNR", "Cowley","Boston"]
+    UPGRADE_HOTFIXES = [[], [], [], [], []]
+
+class _BostonViaCowleyViaMNRRTMViaGeorgeAndOrlando(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George", "MNR", "Cowley","Boston"]
+    UPGRADE_HOTFIXES = [[], [], [], []]
+
+class _BostonViaCowleyViaMNRRTMViaGeorge(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+    UPGRADE_VERSIONS = ["MNR", "Cowley","Boston"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _BostonViaCowleyViaMNRRTM(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+    UPGRADE_VERSIONS = ["Cowley","Boston"]
+    UPGRADE_HOTFIXES = [[], []]
+    
+class _BostonViaCowleyRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Cowley"
+    UPGRADE_VERSIONS = ["Boston"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _BostonRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Boston"
+
+class _SanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George", "MNR", "Oxford","Sanibel"]
+    UPGRADE_HOTFIXES = [[], [], [], []]
+
+class _SanibelViaOxfordViaMNRRTMViaGeorge(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+    UPGRADE_VERSIONS = ["MNR", "Oxford","Sanibel"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _SanibelViaOxfordViaMNRRTM(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+    UPGRADE_VERSIONS = ["Oxford","Sanibel"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _SanibelViaOxfordRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Oxford"
+    UPGRADE_VERSIONS = ["Sanibel"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _SanibelRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Sanibel"
+
+class _TampaViaSanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando"
+    UPGRADE_VERSIONS = ["George", "MNR", "Oxford","Sanibel", "Tampa"]
+    UPGRADE_HOTFIXES = [[], [], [], [], []]
+
+class _TampaViaSanibelViaOxfordViaMNRRTMViaGeorge(_UpgradeRollup):
+    INITIAL_VERSION = "George"
+    UPGRADE_VERSIONS = ["MNR", "Oxford","Sanibel", "Tampa"]
+    UPGRADE_HOTFIXES = [[], [], [], []]
+
+class _TampaViaSanibelViaOxfordViaMNRRTM(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+    UPGRADE_VERSIONS = ["Oxford","Sanibel", "Tampa"]
+    UPGRADE_HOTFIXES = [[], [], []]
+
+class _TampaViaSanibelViaOxfordRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Oxford"
+    UPGRADE_VERSIONS = ["Sanibel", "Tampa"]
+    UPGRADE_HOTFIXES = [[], []]
+
+class _TampaViaSanibelRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Sanibel"
+    UPGRADE_VERSIONS = ["Tampa"]
+    UPGRADE_HOTFIXES = [[]]
+    
+class _TampaRTMUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Tampa"
+
+class _FloodgateRollupUpg(_UpgradeRollup):
+    INITIAL_VERSION = "Orlando HF3"
+
+class _GeorgeUpdate1Upg(_UpgradeRollup):
+    INITIAL_VERSION = "George Update 1"
+
+class _BostonBeta1(_UpgradeRollup):
+    INITIAL_VERSION = "Boston Beta1"
+
+class _BostonBeta3(_UpgradeRollup):
+    INITIAL_VERSION = "Boston Beta3"
+
+class _BostonMNRAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "MNR"
+    INITIAL_HOTFIXES = ["XS56E001","XS56E002","XS56E003","XS56E004","XS56E005","XS56E006","XS56E007","XS56E009","XS56E010", "XS56E011", "XS56E012", "XS56E013"]
+
+class _BostonOxfAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "OXFORD"
+    INITIAL_HOTFIXES = ["XS56ESP2001","XS56ESP2002","XS56ESP2003","XS56ESP2004","XS56ESP2005","XS56ESP2006","XS56ESP2007","XS56ESP2008","XS56ESP2009","XS56ESP2010","XS56ESP2011","XS56ESP2012","XS56ESP2014","XS56ESP2015","XS56ESP2016"]
+
+class _BostonCowAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "Cowley"
+    INITIAL_HOTFIXES = ["XS56EFP1001","XS56EFP1002","XS56EFP1004","XS56EFP1005","XS56EFP1006","XS56EFP1007","XS56EFP1008","XS56EFP1009","XS56EFP1010","XS56EFP1011","OXFHF"]  
+
+class _BostonCowAllHFBobHF(_UpgradeRollup):
+    INITIAL_VERSION = "Cowley"
+    INITIAL_HOTFIXES = ["XS56EFP1001","XS56EFP1002","XS56EFP1004","XS56EFP1005","XS56EFP1006","XS56EFP1007","XS56EFP1008","XS56EFP1009","XS56EFP1010","XS56EFP1011","OXFHF","XS56ESP2001"]
+
+class _SanibelBosAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "Boston"
+    INITIAL_HOTFIXES = ["XS60E001","XS60E002","XS60E003","XS60E004","XS60E005","XS60E006","XS60E007","XS60E008","XS60E009","XS60E010","XS60E013","XS60E014","XS60E015","XS60E016"]
+
+class _TampaSanibelAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "Boston"
+    INITIAL_HOTFIXES = ["XS602E003","XS602E004","XS602E005"]
+
+class _TampaOriginalSanibelAllHF(_UpgradeRollup):
+    INITIAL_VERSION = "Boston"
+    INITIAL_HOTFIXES = ["XS602E001", "XS602E002", "XS602E003","XS602E004","XS602E005"]
+
+# Single host testcases
+
+class TC8827(_MiamiRTMUpg):
+    """Single host upgrade from Miami RTM"""
+    pass
+
+class TC8828(_MiamiHF1Upg):
+    """Single host upgrade from Miami hotfix 1"""
+    pass
+
+class TC8829(_MiamiHF2Upg):
+    """Single host upgrade from Miami hotfix 2"""
+    pass
+
+class TC8830(_MiamiHF3Upg):
+    """Single host upgrade from Miami hotfix 3"""
+    pass
+
+class TC8847(_MiamiRTMViaRioUpg):
+    """Single host upgrade from Miami RTM previously upgraded from Rio RTM"""
+    pass
+
+class TC8831(_OrlandoRTMUpg):
+    """Single host upgrade from Orlando RTM"""
+    pass
+
+class TC8832(_OrlandoHF1Upg):
+    """Single host upgrade from Orlando update 1"""
+    pass
+
+class TC8833(_OrlandoHF2Upg):
+    """Single host upgrade from Orlando update 2"""
+    pass
+
+class TC8834(_OrlandoHF3Upg):
+    """Single host upgrade from Orlando update 3"""
+    pass
+
+class TC9124(_OrlandoRTMViaMiamiUpg):
+    """Single host upgrade from Orlando RTM previously upgraded from Miami RTM"""
+    pass
+
+class TC9125(_OrlandoRTMViaRioAndMiamiUpg):
+    """Single host upgrade from Orlando RTM previously upgraded from Miami RTM and Rio RTM"""
+    pass
+
+class TC9139(_GeorgeBetaUpg):
+    """Single host upgrade from George Beta"""
+    pass
+
+class TC11085(_GeorgeRTMUpg):
+    """Single host upgrade from George RTM"""
+    pass
+
+class TC11086(_GeorgeHF1Upg):
+    """Single host upgrade from George update 1"""
+    pass
+
+class TC11087(_GeorgeHF2Upg):
+    """Single host upgrade from George update 2"""
+    pass
+
+class TC11088(_GeorgeRTMViaOrlandoUpg):
+    """Single host upgrade from George RTM previously upgraded from Orlando RTM"""
+    pass
+
+class TC11089(_GeorgeRTMViaOrlandoAndMiamiUpg):
+    """Single host upgrade from George RTM previously upgraded from Orlando RTM and Miami RTM"""
+    pass
+
+class TC11090(_GeorgeRTMViaOrlandoAndMiamiAndRioUpg):
+    """Single host upgrade from George RTM previously upgraded from Orlando RTM, Miami RTM and Rio RTM"""
+    pass
+
+class TC11338(_MidnightRideBetaUpg):
+    """Single host upgrade from Midnight Ride Beta"""
+    pass
+
+class TC12070(_MNRRTMUpg):
+    """Single host upgrade from Midnight Ride RTM"""
+    pass
+
+class TC12072(_MNRRTMViaGeorgeUpg):
+    """Single host upgrade from Midnight Ride RTM previously upgraded from George RTM"""
+    pass
+
+class TC12074(_MNRRTMViaGeorgeAndOrlandoUpg):
+    """Single host upgrade from Midnight Ride RTM previously upgraded from George RTM and Orlando RTM"""
+    pass
+
+class TC12076(_MNRRTMViaGeorgeAndOrlandoAndMiamiUpg):
+    """Single host upgrade from Midnight Ride RTM previously upgraded from George RTM, Orlando RTM and Miami RTM"""
+    pass
+
+class TC12078(_MNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Single host upgrade from Midnight Ride RTM previously upgraded from George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    pass
+
+class TC14885(_CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Single host upgrade from Cowley RTM previously upgraded from MNR RTM,George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    pass
+
+class TC14886(_CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami):
+    """Single host upgrade from Cowley RTM previously upgraded from MNR RTM, George RTM, Orlando RTM and Miami RTM"""
+    pass
+
+class TC14887(_CowleyViaMNRRTMViaGeorgeAndOrlando):
+    """Single host upgrade from Cowley RTM previously upgraded from MNR RTM,George RTM and Orlando RTM"""
+    pass
+
+class TC14888(_CowleyViaMNRRTMViaGeorge):
+    """Single host upgrade from Cowley RTM previously upgraded from MNR RTM previously upgraded from George RTM"""
+    pass
+
+class TC14889(_CowleyViaMNRRTM):
+    """Single host upgrade from Cowley RTM previously upgraded from MNR RTM"""
+    pass
+
+class TC14890(_CowleyRTMUpg):
+    """Single host upgrade from Cowley RTM"""
+    pass
+
+class TC17662(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM,George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    pass
+
+class TC17663(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM, George RTM, Orlando RTM and Miami RTM"""
+    pass
+    
+class TC17664(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlando):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM,George RTM and Orlando RTM"""
+    pass
+    
+class TC17665(_BostonViaCowleyViaMNRRTMViaGeorge):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM previously upgraded from George RTM"""
+    pass
+    
+class TC17666(_BostonViaCowleyViaMNRRTM):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM"""
+    pass
+
+class TC17667(_BostonViaCowleyRTMUpg):
+    """Single host upgrade from Boston RTM previously upgraded from Cowley RTM"""
+    pass
+
+class TC17668(_BostonRTMUpg):
+    """Single host upgrade from Boston RTM"""
+    pass
+
+class TC19837(_TampaViaSanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando):
+    """Single Host Upgrade From Tampa, Sanibel, Oxford, MNR, George, Orlando"""
+    pass
+
+class TC19838(_TampaViaSanibelViaOxfordViaMNRRTMViaGeorge):
+    """Single Host Upgrade From Tampa, Sanibel, Oxford, MNR, George"""
+    pass
+
+class TC19839(_TampaViaSanibelViaOxfordViaMNRRTM):
+    """Single Host Upgrade From Tampa, Sanibel, Oxford, MNR"""
+    pass
+
+class TC19840(_TampaViaSanibelViaOxfordRTMUpg):
+    """Single Host Upgrade From Tampa, Sanibel, Oxford"""
+    pass
+
+class TC19841(_TampaViaSanibelRTMUpg):
+    """Single Host Upgrade From Tampa, Sanibel"""
+    pass
+
+class TC19842(_TampaRTMUpg):
+    """Single Host Upgrade From Tampa"""
+    pass
+
+class TC19843(_SanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando):
+    """Single Host Upgrade From Sanibel, Oxford, MNR, George, Orlando"""
+    pass
+
+class TC19844(_SanibelViaOxfordViaMNRRTMViaGeorge):
+    """Single Host Upgrade From Sanibel, Oxford, MNR, George"""
+    pass
+
+class TC19845(_SanibelViaOxfordViaMNRRTM):
+    """Single Host Upgrade From Sanibel, Oxford, MNR"""
+    pass
+
+class TC19846(_SanibelViaOxfordRTMUpg):
+    """Single Host Upgrade From Sanibel, Oxford"""
+    pass
+
+class TC19847(_SanibelRTMUpg):
+    """Single Host Upgrade From Sanibel"""
+    pass
+
+
+class TC14963(_RioRTMFailUpg):
+    """Single host upgrade check from Rio RTM"""
+    pass
+
+class TC14964(_MiamiRTMFailUpg):
+    """Single host upgrade check from Miami RTM"""
+    pass
+
+class TC14965(_OrlandoRTMFailUpg):
+    """Single host upgrade check from Orlando RTM"""
+    pass
+
+class TC14966(_GeorgeRTMFailUpg):
+    """Single host upgrade check from George RTM"""
+    pass
+
+class TC14973(_BostonBeta1):
+    """Single host upgrade from Boston Beta1"""
+    pass
+
+class TC14974(_BostonBeta3):
+    """Single host upgrade from Boston Beta3"""
+    pass
+
+class TC14997(_BostonMNRAllHF):
+    """Single host upgrade from MNR RTM plus all the hotfixes of MNR"""
+    pass
+
+class TC15000(_BostonOxfAllHF):
+    """Single host upgrade from Oxford RTM plus all the hotfixes of Oxford"""
+    pass
+
+class TC15022(_BostonCowAllHF):
+    """Single host upgrade from Cowley RTM plus all the hotfixes upto Oxford"""
+    pass
+
+class TC15023(_BostonCowAllHFBobHF):
+    """Single host upgrade from Cowley RTM plus all the hotfixes upto Oxford plus Bob hotfix"""
+    pass
+
+class TC15629(_SanibelBosAllHF):
+    """Single host upgrade from Boston RTM plus all the hotfixes of Boston"""
+    pass
+
+class TC17657(_TampaSanibelAllHF):
+    """Single host upgrade from Sanibel RTM plus all the hotfixes of Sanibel"""
+    pass
+
+class TC17658(_TampaOriginalSanibelAllHF):
+    """Single host upgrade from Sanibel RTM (original) plus all the hotfixes of Sanibel"""
+    pass
+
+class TC19859(_UpgradeRollup):
+    """Single Host Upgrade From Tampa with All Hotfixes"""
+    INITIAL_VERSION = "Tampa"
+
+class TC19860(_UpgradeRollup):
+    """Single Host Upgrade From Sanibel with All Hotfixes"""
+    INITIAL_VERSION = "Sanibel"
+
+class TC19861(_UpgradeRollup):
+    """Single Host Upgrade From Boston with All Hotfixes"""
+    INITIAL_VERSION = "Boston"
+
+class TC19862(_UpgradeRollup):
+    """Single Host Upgrade From Oxford with All Hotfixes"""
+    INITIAL_VERSION = "Oxford"
+
+class TC19863(_UpgradeRollup):
+    """Single Host Upgrade From Cowley with All Hotfixes"""
+    INITIAL_VERSION = "Cowley"
+
+class TC19864(_UpgradeRollup):
+    """Single Host Upgrade From MNR with All Hotfixes"""
+    INITIAL_VERSION = "MNR"
+
+class TC19865(_UpgradeRollup):
+    """Rolling Pool Upgrade From Tampa with All Hotfixes"""
+    INITIAL_VERSION = "Tampa"
+    POOLED = True
+
+class TC19866(_UpgradeRollup):
+    """Rolling Pool Upgrade From Sanibel with All Hotfixes"""
+    INITIAL_VERSION = "Sanibel"
+    POOLED = True
+
+class TC19867(_UpgradeRollup):
+    """Rolling Pool Upgrade From Boston with All Hotfixes"""
+    INITIAL_VERSION = "Boston"
+    POOLED = True
+
+class TC19868(_UpgradeRollup):
+    """Rolling Pool Upgrade From Oxford with All Hotfixes"""
+    INITIAL_VERSION = "Oxford"
+    POOLED = True
+
+class TC19869(_UpgradeRollup):
+    """Rolling Pool Upgrade From Cowley with All Hotfixes"""
+    INITIAL_VERSION = "Cowley"
+    POOLED = True
+
+class TC19870(_UpgradeRollup):
+    """Rolling Pool Upgrade From MNR with All Hotfixes"""
+    INITIAL_VERSION = "MNR"
+    POOLED = True
+
+# Pool testcases
+
+class TC14967(_RioRTMFailUpg):
+    """Rolling pool upgrade check from Rio RTM"""
+    POOLED = True
+
+class TC14968(_MiamiRTMFailUpg):
+    """Rolling pool upgrade check from Miami RTM"""
+    POOLED = True
+
+class TC14970(_OrlandoRTMFailUpg):
+    """Rolling pool upgrade check from Orlando RTM"""
+    POOLED = True
+
+class TC14969(_GeorgeRTMFailUpg):
+    """Rolling pool upgrade check from George RTM"""
+    POOLED = True
+
+class TC8853(_MiamiRTMUpg):
+    """Rolling pool upgrade from Miami RTM"""
+    POOLED = True
+
+class TC8855(_MiamiHF1Upg):
+    """Rolling pool upgrade from Miami hotfix 1"""
+    POOLED = True
+
+class TC8854(_MiamiHF2Upg):
+    """Rolling pool upgrade from Miami hotfix 2"""
+    POOLED = True
+
+class TC8859(_MiamiHF3Upg):
+    """Rolling pool upgrade from Miami hotfix 3"""
+    POOLED = True
+
+class TC8861(_MiamiRTMViaRioUpg):
+    """Rolling pool upgrade from Miami RTM previously upgraded from Rio RTM"""
+    POOLED = True
+
+class TC8860(_OrlandoRTMUpg):
+    """Rolling pool upgrade from Orlando RTM"""
+    POOLED = True
+
+class TC8857(_OrlandoHF1Upg):
+    """Rolling pool upgrade from Orlando update 1"""
+    POOLED = True
+
+class TC8858(_OrlandoHF2Upg):
+    """Rolling pool upgrade from Orlando update 2"""
+    POOLED = True
+
+class TC8856(_OrlandoHF3Upg):
+    """Rolling pool upgrade from Orlando update 3"""
+    POOLED = True
+
+class TC8856Quick(_OrlandoHF3onlyUpg):
+    """Rolling pool upgrade from Orlando update 3 (skipping HF1, HF2)"""
+    POOLED = True
+
+class TC9126(_OrlandoRTMViaMiamiUpg):
+    """Rolling pool upgrade from Orlando RTM previously upgraded from Miami RTM"""
+    POOLED = True
+
+class TC9127(_OrlandoRTMViaRioAndMiamiUpg):
+    """Rolling pool upgrade from Orlando RTM previously upgraded from Miami RTM and Rio RTM"""
+    POOLED = True
+
+class TC9140(_GeorgeBetaUpg):
+    """Rolling pool upgrade from George Beta"""
+    POOLED = True
+
+class TC11091(_GeorgeRTMUpg):
+    """Rolling pool upgrade from George RTM"""
+    POOLED = True
+
+class TC11092(_GeorgeHF1Upg):
+    """Rolling pool upgrade from George update 1"""
+    POOLED = True
+
+class TC11093(_GeorgeHF2Upg):
+    """Rolling pool upgrade from George update 2"""
+    POOLED = True
+
+class TC11094(_GeorgeRTMViaOrlandoUpg):
+    """Rolling pool upgrade from George RTM previously upgraded from Orlando RTM"""
+    POOLED = True
+
+class TC11095(_GeorgeRTMViaOrlandoAndMiamiUpg):
+    """Rolling pool upgrade from George RTM previously upgraded from Orlando RTM and Miami RTM"""
+    POOLED = True
+
+class TC11096(_GeorgeRTMViaOrlandoAndMiamiAndRioUpg):
+    """Rolling pool upgrade from George RTM previously upgraded from Orlando RTM, Miami RTM and Rio RTM"""
+    POOLED = True
+
+class TC11339(_MidnightRideBetaUpg):
+    """Rolling pool upgrade from Midnight Ride Beta"""
+    POOLED = True
+
+class TC12071(_MNRRTMUpg):
+    """Rolling pool upgrade from Midnight Ride RTM"""
+    POOLED = True
+
+class TC12073(_MNRRTMViaGeorgeUpg):
+    """Rolling pool upgrade from Midnight Ride RTM previously upgraded from George RTM"""
+    POOLED = True
+
+class TC12075(_MNRRTMViaGeorgeAndOrlandoUpg):
+    """Rolling pool upgrade from Midnight Ride RTM previously upgraded from George RTM and Orlando RTM"""
+    POOLED = True
+
+class TC12077(_MNRRTMViaGeorgeAndOrlandoAndMiamiUpg):
+    """Rolling pool upgrade from Midnight Ride RTM previously upgraded from George RTM, Orlando RTM and Miami RTM"""
+    POOLED = True
+
+class TC12079(_MNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Rolling pool upgrade from Midnight Ride RTM previously upgraded from George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    POOLED = True
+
+class TC14891(_CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Rolling pool upgrade from Cowley RTM previously upgraded from MNR RTM,George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    POOLED = True
+
+class TC14892(_CowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami):
+    """Rolling pool upgrade from Cowley RTM previously upgraded from MNR RTM, George RTM, Orlando RTM and Miami RTM"""
+    POOLED = True
+
+class TC14893(_CowleyViaMNRRTMViaGeorgeAndOrlando):
+    """Rolling pool upgrade from Cowley RTM previously upgraded from MNR RTM,George RTM and Orlando RTM"""
+    POOLED = True
+
+class TC14894(_CowleyViaMNRRTMViaGeorge):
+    """Rolling pool upgrade from Cowley RTM previously upgraded from MNR RTM previously upgraded from George RTM"""
+    POOLED = True
+
+class TC14895(_CowleyViaMNRRTM):
+    """Rolling pool upgrade from Cowley RTM previously upgraded from MNR RTM"""
+    POOLED = True
+
+class TC14896(_CowleyRTMUpg):
+    """Rolling pool upgrade from Cowley RTM"""
+    POOLED = True
+
+class TC17669(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiamiAndRioUpg):
+    """Rolling pool upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM,George RTM, Orlando RTM, Miami RTM and Rio RTM"""
+    POOLED = True
+    
+class TC17670(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlandoAndMiami):
+    """Rolling pool upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM, George RTM, Orlando RTM and Miami RTM"""
+    POOLED = True
+    
+class TC17671(_BostonViaCowleyViaMNRRTMViaGeorgeAndOrlando):
+    """Rolling pool upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM,George RTM and Orlando RTM"""
+    POOLED = True
+    
+class TC17672(_BostonViaCowleyViaMNRRTMViaGeorge):
+    """Rolling pool upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM previously upgraded from George RTM"""
+    POOLED = True
+    
+class TC17673(_BostonViaCowleyViaMNRRTM):
+    """Rolling pool upgrade from Boston RTM previously upgraded from Cowley RTM, MNR RTM"""
+    POOLED = True
+    
+class TC17674(_BostonViaCowleyRTMUpg):
+    """Rolling pool upgrade from Cowley RTM"""
+    POOLED = True
+
+class TC17675(_BostonRTMUpg):
+    """Rolling pool upgrade from Cowley RTM"""
+    POOLED = True
+
+class TC19848(_TampaViaSanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando):
+    """Rolling Pool Upgrade From Tampa, Sanibel, Oxford, MNR, George, Orlando"""
+    POOLED = True
+    
+class TC19849(_TampaViaSanibelViaOxfordViaMNRRTMViaGeorge):
+    """Rolling Pool Upgrade From Tampa, Sanibel, Oxford, MNR, George"""
+    POOLED = True
+    
+class TC19850(_TampaViaSanibelViaOxfordViaMNRRTM):
+    """Rolling Pool Upgrade From Tampa, Sanibel, Oxford, MNR"""
+    POOLED = True
+
+class TC19851(_TampaViaSanibelViaOxfordRTMUpg):
+    """Rolling Pool Upgrade From Tampa, Sanibel, Oxford"""
+    POOLED = True
+
+class TC19852(_TampaViaSanibelRTMUpg):
+    """Rolling Pool Upgrade From Tampa, Sanibel"""
+    POOLED = True
+
+class TC19853(_TampaRTMUpg):
+    """Rolling Pool Upgrade From Tampa"""
+    POOLED = True
+
+class TC19854(_SanibelViaOxfordViaMNRRTMViaGeorgeAndOrlando):
+    """Rolling Pool Upgrade From Sanibel, Oxford, MNR, George, Orlando"""
+    POOLED = True
+
+class TC19855(_SanibelViaOxfordViaMNRRTMViaGeorge):
+    """Rolling Pool Upgrade From Sanibel, Oxford, MNR, George"""
+    POOLED = True
+
+class TC19856(_SanibelViaOxfordViaMNRRTM):
+    """Rolling Pool Upgrade From Sanibel, Oxford, MNR"""
+    POOLED = True
+
+class TC19857(_SanibelViaOxfordRTMUpg):
+    """Rolling Pool Upgrade From Sanibel, Oxford"""
+    POOLED = True
+
+class TC19858(_SanibelRTMUpg):
+    """Rolling Pool Upgrade From Sanibel"""
+    POOLED = True
+
+class TC14975(_BostonBeta1):
+    """Rolling pool upgrade from Boston Beta1"""
+    POOLED = True
+
+class TC14976(_BostonBeta3):
+    """Rolling pool upgrade from Boston Beta3"""
+    POOLED = True
+
+class TC14998(_BostonMNRAllHF):
+    """Rolling pool upgrade from MNR RTM plus all the hotfixes of MNR"""
+    POOLED = True
+
+class TC15001(_BostonOxfAllHF):
+    """Rolling pool upgrade from Oxford RTM plus all the hotfixes of Oxford"""
+    POOLED = True
+
+class TC15024(_BostonCowAllHF):
+    """Rolling pool upgrade from Cowley RTM plus all the hotfixes upto Oxford"""
+    POOLED = True
+
+class TC15025(_BostonCowAllHFBobHF):
+    """Rolling pool upgrade from Cowley RTM plus all the hotfixes upto Oxford plus Bob hotfix"""
+    POOLED = True
+
+class TC15630(_SanibelBosAllHF):
+    """Rolling pool upgrade from Boston RTM plus all the hotfixes of Boston"""
+    POOLED = True
+
+class TC17659(_TampaSanibelAllHF):
+    """Rolling pool upgrade from Sanibel RTM plus all the hotfixes of Sanibel"""
+    POOLED = True
+
+class TC17660(_TampaOriginalSanibelAllHF):
+    """Rolling pool upgrade from Sanibel RTM (original) plus all the hotfixes of Sanibel"""
+    POOLED = True
+
+#############################################################################
+# OEM update checks (including rolled up hotfix reporting)
+# These OEM specific tests are deprecated in favour of the generalised
+# tests above
+
+# Base versions
+class _MiamiOEMRTM(_Hotfix):
+    INITIAL_VERSION = "Miami"
+    
+class _MiamiOEMHF1(_MiamiOEMRTM):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _MiamiOEMHF2(_MiamiOEMRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+
+class _MiamiOEMHF3(_MiamiOEMRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+
+class _OrlandoOEMRTM(_Hotfix):
+    INITIAL_VERSION = "Orlando"
+
+class _OrlandoOEMHF1(_OrlandoOEMRTM):
+    INITIAL_HOTFIXES = ["HF1"]
+    
+class _OrlandoOEMHF2(_OrlandoOEMRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+
+class _OrlandoOEMHF3(_OrlandoOEMRTM):
+    INIITAL_HOTFIXES = ["HF1", "HF2", "HF3"]
+
+class _GeorgeOEMRTM(_Hotfix):
+    INITIAL_VERSION = "George"
+
+class _GeorgeOEMHF1(_GeorgeOEMRTM):
+    INITIAL_HOTFIXES = ["HF1"]
+
+class _GeorgeOEMHF2(_GeorgeOEMRTM):
+    INITIAL_HOTFIXES = ["HF1", "HF2"]
+    
+# Upgrades
+class _OrlandoOEMRTMviaMiamiHF3(_MiamiOEMHF3):
+    UPGRADE_VERSIONS = ["Orlando"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _GeorgeOEMRTMviaOrlandoHF3(_OrlandoOEMHF3):
+    UPGRADE_VERSIONS = ["George"]
+    UPGRADE_HOTFIXES = [[]]
+
+class _GeorgeOEMRTMviaOrlandoHF3viaMiamiHF3(_MiamiOEMHF3):
+    UPGRADE_VERSIONS = ["Orlando", "George"]
+    UPGRADE_HOTFIXES = [["HF1","HF2","HF3"],[]]
+
+class _GeorgeOEMHF2viaGeorgeOEMRTM(_GeorgeOEMRTM):
+    UPGRADE_VERSIONS = ["George"]
+    UPGRADE_HOTFIXES = [["HF1", "HF2"]]
+
+class _GeorgeOEMHF2viaOrlandoHF3viaMiamiHF3(_MiamiOEMHF3):
+    UPGRADE_VERSIONS = ["Orlando", "George"]
+    UPGRADE_HOTFIXES = [["HF1","HF2","HF3"],["HF1","HF2"]]
+
+# Single host testcases
+class TC8900(_OrlandoOEMRTM):
+    """OEM update from Orlando RTM"""
+    pass
+
+class TC8901(_OrlandoOEMHF1):
+    """OEM update from Orlando HF1 via Orlando RTM"""
+    pass
+
+class TC8902(_OrlandoOEMHF2):
+    """OEM update from Orlando HF2 via Orlando RTM and HF1"""
+    pass
+
+class TC10750(_OrlandoOEMHF3):
+    """OEM update from Orlando HF3 via Orlando RTM, HF1 and HF2"""
+    pass
+
+class TC8896(_MiamiOEMRTM):
+    """OEM update from Miami RTM"""
+    pass
+
+class TC8897(_MiamiOEMHF1):
+    """OEM update from Miami HF1 via Miami RTM"""
+    pass
+
+class TC8898(_MiamiOEMHF2):
+    """OEM update from Miami HF2 via Miami RTM and HF1"""
+    pass
+
+class TC8899(_MiamiOEMHF3):
+    """OEM update from Miami HF3 via Miami RTM, HF1 and HF2"""
+    pass
+
+class TC8903(_OrlandoOEMRTMviaMiamiHF3):
+    """OEM update from Orlando RTM via Miami RTM, Miami HF1, 2 and 3"""
+    pass
+
+class TC10751(_GeorgeOEMRTMviaOrlandoHF3):
+    """OEM update from George RTM via Orlando RTM, HF1, HF2 and HF3"""
+    pass
+
+class TC10752(_GeorgeOEMRTMviaOrlandoHF3viaMiamiHF3):
+    """OEM update from George RTM via Miami RTM, HF1, HF2, HF3, Orlando RTM, HF1, HF2 and HF3"""
+    pass
+
+class TC11573(_GeorgeOEMHF2viaGeorgeOEMRTM):
+    """OEM update from George Update 2 via George RTM"""
+    pass
+
+class TC11574(_GeorgeOEMHF2viaOrlandoHF3viaMiamiHF3):
+    """OEM update from George Update 2 via Miami RTM, HF1, HF2, HF3, Orlando RTM, HF1, HF2 and HF3"""
+    pass
+
+class TC10744(_GeorgeOEMRTM):
+    """OEM update from George RTM"""
+    pass
+
+class TC11575(_GeorgeOEMHF2):
+    """OEM update from George Update 2"""
+    pass
+    
+class TCUnsignedHotfixChecks(xenrt.TestCase):
+    """Unsigned hotfix contents and metadata checks"""
+    def run(self, arglist):
+    
+        tempDir = xenrt.resources.TempDirectory()
+        
+        hotfixFiles = filter(self.__includeHotfixPredicate, self._getHotfixFiles(tempDir))
+        xenrt.TEC().logverbose("Extracted %d hotfixes" % len(hotfixFiles))       
+          
+        for h in hotfixFiles:
+            hotfixName = h.split('/')[-1]
+            
+            xenrt.TEC().logverbose("Hotfix = " + hotfixName)
+            unpackLoc = xenrt.command("bash %s unpack" % h).strip()
+           
+            if not "/tmp/tmp" in unpackLoc:
+                raise xenrt.XRTFailure("Didn't get hotfix tmp path for %s" % h)
+            
+            tmpUnpackDir = xenrt.resources.TempDirectory()
+            xenrt.command("mv %s %s" % (unpackLoc, tmpUnpackDir.dir))
+            tmp = os.path.join(tmpUnpackDir.dir, unpackLoc.rstrip('/').split('/')[-1])
+            xenrt.TEC().logverbose("Unpacked hotfix located %s" % tmp)
+            
+            # view hotfix contents
+            contents = xenrt.command("cat %s/CONTENTS | sort" % tmp).strip()
+            xenrt.TEC().logverbose("SORTED CONTENTS: %s" % contents) 
+            hotfixHead = xenrt.command("head -n100 %s" % h)
+            
+            #Run sub-tests
+            self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
+            self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
+            self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
+            self.runSubcase("_checkOxfordPreCheckUuid", (hotfixHead, contents), hotfixName, "Oxford pre-check uuid")
+            self.runSubcase("_checkCowleyNoPreCheckUuid", (hotfixHead, contents), hotfixName, "Cowley no-pre-check uuid")
+            self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
+            self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
+            
+            
+    def __includeHotfixPredicate(self, name):
+        if "test-hotfix" in name:
+            xenrt.TEC().logverbose("Test hotfix %s found, skipping..." % name)
+            return False
+        
+        if re.search("hotfix.*test.*[.]unsigned", name) != None:
+            xenrt.TEC().logverbose("Test hotfix %s found, skipping..." % name)
+            return False
+        
+        return True
+                       
+                
+    """Sub-tests"""
+    def _checkDuplicateLines(self, h, tmp, contents, metadata):
+        """
+        Check the contents file of the hotfix package does not have duplicate lines of of text in it
+        """
+        xenrt.TEC().logverbose("Checking for duplicate lines in CONTENTS file")
+        for version in ["^5\.6\.0$", "^5\.6\.100$", "^5\.5\.0$", "^5\.0\.0$"]:
+            if self._versionRegexFound(version, metadata):
+                if not "oxford-lcm" in xenrt.TEC().lookup("INPUTDIR"): #Run for oxford-lcm
+                    xenrt.TEC().logverbose("Version %s so skipping duplicate contents test" % version) 
+                    return
+        
+        if "XS62ESP1" in metadata:
+            # There are duplicated lines and there's nothing we can do about it.
+            return
+        
+        contentsUniq = xenrt.command("cat %s/CONTENTS | sort | uniq" % tmp).strip()
+        if contents != contentsUniq:
+            xenrt.TEC().logverbose("Contents are: %s" % contents) 
+            xenrt.TEC().logverbose("Unique contents are: %s" % contentsUniq) 
+            raise xenrt.XRTFailure("Duplicated lines in hotfix contents for %s" % h)
+
+    def _checkVersionRegex(self, contents):
+        """
+        Check regex escaping:
+        The unsigned hotfix contents must contain a line that looks like this:
+        VERSION_REGEX="^6\.1\.0$"
+        The regex must start with a caret and end with a dollar and have escaped dots.
+        """
+        xenrt.TEC().logverbose("Checking version regex....") 
+        regexValue = self._extractField("VERSION_REGEX", contents)
+
+        if regexValue == None:
+            raise xenrt.XRTFailure("VERSION_REGEX field was not found in the hotfix") 
+        
+        if regexValue.count('^') != 1 or regexValue.count('\.') != 2 or regexValue.count('$') != 1:
+            raise xenrt.XRTFailure("VERSION_REGEX value %s was misformed" % regexValue)
+
+    def _checkBostonPreCheckUuid(self, metadata, contents): 
+        bostonUuid="95ac709c-e408-423f-8d22-84b8134a149e"  
+        expectedLabel="XS60E001"
+        versionRegex="^6\.0\.0$"
+        verifySubstring = "verify_update"
+        self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
+        
+    def _checkOxfordPreCheckUuid(self, metadata, contents): 
+        oxfordUuid="17fde43e-0a5e-48ac-8b85-cf6ed8c6344d"  
+        expectedLabel="XS56ESP2"
+        versionRegex="^5\.6\.100$"
+        verifySubstring = "verify_update"
+        self._checkPreCheckUuid(metadata, contents, oxfordUuid, expectedLabel, versionRegex, verifySubstring)
+        
+    def _checkCowleyNoPreCheckUuid(self, metadata, contents): 
+        cowleyUuid="17fde43e-0a5e-48ac-8b85-cf6ed8c6344d"  
+        expectedLabel="XS56EFP1"
+        versionRegex="^5\.6\.100$"
+        verifySubstring = "verify_no_update"
+        self._checkPreCheckUuid(metadata, contents, cowleyUuid, expectedLabel, versionRegex, verifySubstring)
+    
+    def _checkSanibelBuildRegex(self, metadata):
+        """
+        If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:
+        XS_BUILD_REGEX="^53456.$"
+        """
+        branchName = "sanibel-lcm"
+        buildRegex = "^53456.$"
+        self._checkBuildRegex(metadata, buildRegex, branchName)
+        
+    def _checkSweeneyBuildRegex(self, metadata):
+        """
+        If the unsigned hotfix url contains sweeney-lcm  the the unsigned hotfix contents must contain:
+        XS_BUILD_REGEX="^58523.$"
+        """
+        branchName = "sweeney-lcm"
+        buildRegex = "^58523.$"
+        self._checkBuildRegex(metadata, buildRegex, branchName)
+    
+    """ Helper methods"""  
+    def _checkBuildRegex(self, metadata, requiredRegex, branchName):
+        xenrt.TEC().logverbose("Checking build regex....") 
+        
+        if not branchName in xenrt.TEC().lookup("INPUTDIR"):
+            xenrt.TEC().logverbose("Not %s so skipping build regex test" % branchName) 
+            return
+        
+        key = "XS_BUILD_REGEX"
+        fieldValue = self._extractField(key, metadata)
+        if fieldValue == None:
+            raise xenrt.XRTFailure("Could not find a value for %s" % key) 
+        
+        if fieldValue !=  requiredRegex:
+            raise xenrt.XRTFailure("Build regex was %s, but should have been %s" % (fieldValue, requiredRegex))
+                
+    def _checkPreCheckUuid(self, metadata, contents, uuid, expectedLabel, versionRegex, verifySubstring): 
+        xenrt.TEC().logverbose("Checking pre-check uuid....") 
+        if not self._versionRegexFound(versionRegex, metadata):
+            xenrt.TEC().logverbose("Not %s so skipping pre-check uuid test" % versionRegex) 
+            return
+            
+        labelValue = self._extractField("LABEL", metadata)
+                
+        if labelValue.startswith(expectedLabel):
+            xenrt.TEC().logverbose("%s was in label - checking for uuid" % expectedLabel) 
+            precheckLine = "precheck_script %s %s" %(verifySubstring, uuid)
+            if not precheckLine in contents:
+                raise xenrt.XRTFailure("Precheck script uuid not found in %s hotfix matching %s" % (versionRegex, precheckLine))
+        else: 
+            xenrt.TEC().logverbose("%s was not in label %s - skipping uuid check" % (labelValue, expectedLabel)) 
+            
+    def _checkPreCheckUuidNotMatchingLabel(self, metadata, contents, uuid, expectedLabel, versionRegex, verifySubstring): 
+        xenrt.TEC().logverbose("Checking pre-check uuid....") 
+        if not self._versionRegexFound(versionRegex, metadata):
+            xenrt.TEC().logverbose("Not %s so skipping pre-check uuid test" % versionRegex) 
+            return
+            
+        labelValue = self._extractField("LABEL", metadata)
+                
+        if not labelValue.startswith(expectedLabel):
+            xenrt.TEC().logverbose("%s was not in label - checking for uuid" % expectedLabel) 
+            precheckLine = "precheck_script %s %s" %(verifySubstring, uuid)
+            if not precheckLine in contents:
+                raise xenrt.XRTFailure("Precheck script uuid not found in %s hotfix matching %s" % (versionRegex, precheckLine))
+        else: 
+            xenrt.TEC().logverbose("%s was in label %s - skipping uuid check" % (labelValue, expectedLabel)) 
+            
+    def _versionRegexFound(self, versionRegex, metadata): 
+        return versionRegex == self._extractField("VERSION_REGEX", metadata)
+  
+    def _getHotfixFiles(self, tempDir):
+        wildcard = "*.unsigned"
+        inputDir=xenrt.TEC().lookup("INPUTDIR").rstrip("/")
+        unsignedHotfixesTarball = xenrt.TEC().getFiles( inputDir + "/" + wildcard)
+        if unsignedHotfixesTarball == None:
+            xenrt.TEC().logverbose("Could not find any files to tar up") 
+            return []
+        return xenrt.archive.TarGzArchiver().extractAndMatch(unsignedHotfixesTarball, tempDir.dir, "*")
+        
+    def _extractField(self, fieldName, contents):
+        toMatch = fieldName + "="
+        for line in contents.split("\n"):
+            if toMatch in line:
+                return line.split("=")[-1].strip('"')
+        return None
+
+class TCRollingPoolUpdate(xenrt.TestCase):
+    """
+    Upgrade and install all HFXs for the 'to' release on a pool.
+    i.e. Install all HFXs after host upgrade and perform most significant apply action.
+    This means that the master will be at XS version NEW + all HFXs while the slaves are at XS version OLD.
+    """
+
+    UPGRADE = True
+
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        self.newPool = None
+        self.INITIAL_VERSION = self.pool.master.productVersion
+        self.FINAL_VERSION = None
+        self.vmActionIfHostRebootRequired = "SHUTDOWN"
+        self.applyAllHFXsBeforeApplyAction = True
+        self.preEvacuate = None
+        self.preReboot = None
+        self.skipApplyRequiredPatches = False
+        
+        args = self.parseArgsKeyValue(arglist)
+        if "INITIAL_VERSION" in args.keys():
+            self.INITIAL_VERSION = args["INITIAL_VERSION"]
+        if "FINAL_VERSION" in args.keys():
+            self.FINAL_VERSION   = args["FINAL_VERSION"]
+        if "vmActionIfHostRebootRequired" in args.keys():
+            self.vmActionIfHostRebootRequired = args["vmActionIfHostRebootRequired"]
+        if "applyAllHFXsBeforeApplyAction" in args.keys() and args["applyAllHFXsBeforeApplyAction"].lower() =="no":
+            self.applyAllHFXsBeforeApplyAction = False
+        if "skipApplyRequiredPatches" in args.keys() and args["skipApplyRequiredPatches"].lower() == "yes":
+            self.skipApplyRequiredPatches = True
+        
+        # Eject CDs in all VMs
+        for h in self.pool.getHosts():
+            for guestName in h.listGuests():
+                self.getGuest(guestName).changeCD(None)
+
+    def doUpdate(self):
+        pool_upgrade = xenrt.lib.xenserver.host.RollingPoolUpdate(poolRef = self.pool, 
+                                                            newVersion=self.FINAL_VERSION,
+                                                            upgrade = self.UPGRADE,
+                                                            applyAllHFXsBeforeApplyAction=self.applyAllHFXsBeforeApplyAction,
+                                                            vmActionIfHostRebootRequired=self.vmActionIfHostRebootRequired,
+                                                            preEvacuate=self.preEvacuate,
+                                                            preReboot=self.preReboot,
+                                                            skipApplyRequiredPatches=self.skipApplyRequiredPatches)
+        self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
+
+    def run(self, arglist=None):
+        self.preCheckVMs(self.pool)
+        self.doUpdate()
+        self.postCheckVMs(self.newPool)
+        
+    def preCheckVMs(self,pool):
+        self.expectedRunningVMs = 0
+        for h in pool.getHosts():
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            self.expectedRunningVMs += len(runningGuests)
+        xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
+    
+    def postCheckVMs(self,pool):
+        postUpgradeRunningGuests = 0
+        for h in pool.getHosts():
+            try:
+                h.verifyHostFunctional(migrateVMs=False)
+            except Exception, e:
+                xenrt.TEC().logverbose("Functional Host Verification of host: %s failed with Exception: %s" % (h.getName(), str(e)))
+
+            runningGuests = h.listGuests(running=True)
+            xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
+            postUpgradeRunningGuests += len(runningGuests)
+
+        xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
+        if self.expectedRunningVMs != postUpgradeRunningGuests:
+            xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
+            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
+
+class TCRollingPoolHFX(TCRollingPoolUpdate):
+    """
+    Install Required HFX(s) for a current release on a pool 
+    Install All Required Patches and THIS_HOTFIX and perform most significant apply action.
+    """
+    
+    UPGRADE = False
+
+class TC21007(TCRollingPoolUpdate):
+    """
+    Perform rolling pool update test with Xapi restart on hosts in intermediate states 
+    during Rolling pool update. Regression test for HFX-1033, HFX-1034, HFX-1035.
+    """
+
+    def prepare(self, arglist):
+        TCRollingPoolUpdate.prepare(self, arglist)
+        self.preEvacuate = self.doRestartToolstack
+        self.preReboot = self.doRestartToolstack
+
+    def doRestartToolstack(self, host):
+        host.restartToolstack()

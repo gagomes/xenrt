@@ -1,0 +1,54 @@
+                        ==========================
+                        Silent Install Readme Note
+                        ==========================
+
+This note shows the different line commands to run unattended "silent" install/Uninstall(s) for the Broadcom Driver installer.
+
+
+NOTES: 
+======
+- All commands are case sensitive      
+- User must "Run as Administrator" for Windows Vista when using "msiexec" for "silent" install/uninstall(s).
+
+Silent Install from within the installer source folder:
+setup /s /v/qn
+or
+msiexec /i "BDrv5706.msi" /qn
+
+Silent Upgrade from within the installer source folder:
+setup /s /v/qn
+
+Silent Uninstall from within the installer source folder:
+msiexec /x "BDrv5706.msi" /qn
+
+Silent Uninstall from any folder:
+msiexec /x "{830754EB-0312-4BFF-AFE3-95164025757B}" /qn
+
+Silent Reinstall of the same installer:
+setup /s /v"/qn REINSTALL=ALL"
+
+GUI Reinstall of the same installer:
+setup /V"REINSTALL=ALL"
+
+Silent Install AND create a log file at (f:\1testlog.txt):
+setup /s /v"/qn /L f:\1testlog.txt"
+
+Silent Install to include iSCSI Crash Dump (Default setting is NO):
+32 bit: setup /s /v"/qn ADDSOURCE=DrvFiles,iSCSICrashDump"
+64 bit: setup /s /v"/qn ADDSOURCE=DrvFiles_AMD64,iSCSICrashDump_AMD64"
+
+Silent Repair for iSCSI Crash Dump:
+32 bit: setup /s /v"/qn REINSTALL=iSCSICrashDump"
+64 bit: setup /s /v"/qn REINSTALL=iSCSICrashDump_AMD64"
+
+
+If performing a silent upgrade or uninstall, please make sure you do a manual reboot afterwards to avoid leaving the system in an 
+inconsistent state.
+
+During silent upgrade or uninstall, your system may reboot automatically.  If you wish to suppress the reboot, please append 
+REBOOT=ReallySuppress to the end of the corresponding upgrade or uninstall command listed above. 
+Note that for setup command, please use:   setup /s /v"/qn REBOOT=ReallySuppress"
+
+In some circumstances, reboot is required before uninstallation can continue. If you used REBOOT=ReallySuppress to suppress the reboot, 
+the uninstallation may be suspended. You will need to reboot manually for the uninstallation to continue.
+

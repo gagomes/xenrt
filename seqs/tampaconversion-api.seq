@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <serial blocker="yes">
+        <testcase id="testcases.xenserver.tc.appliance.TC15638" />
+    </serial>
+    <serial>
+        <testcase id="testcases.xenserver.tc.appliance.TC17883" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17882" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17884" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17885" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17886" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17887" />
+        <testcase id="testcases.xenserver.tc.appliance.TC18142" />
+    </serial>
+  </testsequence>
+</xenrt>

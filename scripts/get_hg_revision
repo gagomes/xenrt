@@ -1,0 +1,107 @@
+#!/usr/bin/python
+#
+# xenrt: Xen regression Testing
+#
+# Takes the output of hg history on stdin and a %Y%m%d date as the only arg
+# returns on stdout the most recent changeset before 23:59:59 on that
+# date. We work from oldest to newest changeset indexes - because of
+# branching, there is not a total order on changesets. Going this way means
+# that we probably get what we wanted (i.e. the earlier checkins)
+#
+# Maps from:
+#
+#  YYYYMMDD
+#  YYYYMMDD.HHMMSS
+#  <CSETHASH>
+#  tip
+#
+# To:
+#
+#  YYYYMMDD.HHMMSS <CSETHASH>
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, August 2005
+
+import sys, string, time
+
+rcs = None
+if sys.argv[1] == "tip":
+    ts = None
+elif len(sys.argv[1]) == 12:
+    ts = None
+    rcs = sys.argv[1]
+else:
+    try:
+        t = time.strptime(sys.argv[1] + " 23:59:59 UTC", "%Y%m%d %H:%M:%S %Z")
+    except:
+        t = time.strptime(sys.argv[1] + " UTC", "%Y%m%d.%H%M%S %Z")
+    ts = time.mktime(t)
+
+csets = {}
+
+#print t
+cset = ""
+cind = -1
+rind = -1
+
+while 1:
+    line = sys.stdin.readline()
+    if not line:
+        break
+    ll = string.split(line)
+    if len(ll) > 1:
+        if ll[0] == "changeset:":
+            lc = string.split(ll[1], ":")
+            if len(lc) > 1:
+                cind = int(lc[0])
+                cset = lc[1]
+            else:
+                sys.stderr.write("hg history parse error (changeset)\n")
+                sys.exit(1)
+        elif ll[0] == "date:":
+            try:
+                x = time.strptime(string.join(ll[1:]))
+                diff = 0
+            except:
+                x = time.strptime(string.join(ll[1:-1]))
+                diff = -3600 * int(ll[-1][:-2])
+            xs = time.mktime(x) + diff
+            csets["%08u" % (cind)] = (xs, cset)
+
+            if rcs and rcs == cset:
+                rind = cind
+
+            if not ts and not rcs:
+                # We just want the tip
+                print time.strftime("%Y%m%d.%H%M%S", time.localtime(xs)), cset
+                sys.exit(0)
+
+if rcs:
+    if rind != -1:
+        (xs, cset) = csets["%08u" % (rind)]
+        print time.strftime("%Y%m%d.%H%M%S", time.localtime(xs)), cset
+        sys.exit(0)
+    else:
+        sys.stderr.write("Couldn't find changeset" + rcs + "\n")
+        sys.exit(1)
+
+cinds = csets.keys()
+cinds.sort()
+
+# Go through changesets in index order, find the first changeset that is
+# later than out required time the back up one.
+prevind = ""
+for cind in cinds:
+    (xs, cset) = csets[cind]
+    if xs > ts:
+        if prevind == "":
+            sys.stderr.write("Cannot find earlier than required.\n")
+            sys.exit(1)
+        break
+    prevind = cind
+
+(xs, cset) = csets[prevind]
+print time.strftime("%Y%m%d.%H%M%S", time.localtime(xs)), cset
+
+#print csets[times[-1]]
+

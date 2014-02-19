@@ -1,0 +1,180 @@
+#!/bin/bash
+
+# This should be the last benchmark run on a guest.
+
+SCRIPTDIR=`dirname $0`
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/cli
+
+EXCHANGE_ISO_DIR="172.31.0.149:/scratch/kspalding"
+
+SYSDIR="/dev/fs/C/WINDOWS/system32"
+REG="${SYSDIR}/reg.exe" 
+FIND="${SYSDIR}/find.exe"
+ADFIND="./adfind.exe"
+LOADSIM="/dev/fs/C/Program\\ Files/Loadsim/loadsim.exe"
+
+convert_guid() {
+    local MACHINE_GUID=${1}
+
+    GUID_PT1=${MACHINE_GUID:0:8}
+    GUID_PT2=${MACHINE_GUID:12:4}
+    GUID_PT3=${MACHINE_GUID:8:4}
+    GUID_PT4=${MACHINE_GUID:22:2}
+    GUID_PT5=${MACHINE_GUID:20:2}
+    GUID_PT6=${MACHINE_GUID:18:2}
+    GUID_PT7=${MACHINE_GUID:16:2}
+    GUID_PT8=${MACHINE_GUID:30:2}
+    GUID_PT9=${MACHINE_GUID:28:2}
+    GUID_PT10=${MACHINE_GUID:26:2}
+    GUID_PT11=${MACHINE_GUID:24:2}
+
+    echo ${GUID_PT1}${GUID_PT2}${GUID_PT3}${GUID_PT4}${GUID_PT5}${GUID_PT6}${GUID_PT7}${GUID_PT8}${GUID_PT9}${GUID_PT10}${GUID_PT11} | tr [:upper:] [:lower:]
+
+}
+
+umount_on_error() {
+    cd /tmp
+    umount ${WORKDIR}/iso &> /dev/null || true
+}
+
+trap umount_on_error EXIT INT HUP KILL
+
+install_this() {
+    DOMINDEX=${1}
+    
+    set -x
+    mkdir ${WORKDIR}/iso 
+    mount -t nfs ${EXCHANGE_ISO_DIR} ${WORKDIR}/iso    
+    ln -s ${WORKDIR}/iso/exchange_update.iso /opt/xensource/packages/iso/exchange_update.iso
+    ln -s ${WORKDIR}/iso/exchange.iso /opt/xensource/packages/iso/exchange.iso
+
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+    DOMINDEX=${1} 
+ 
+    set -x 
+ 
+    GUESTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+    # XEUID=`get_guest_uuid ${DOMINDEX}`   
+    
+    # Install Active Directory.
+    ${SSH} Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote AD
+    # Wait for install to finish.
+    while true; do
+        if ${SSH} -oPasswordAuthentication=no XENTEST+Administrator@${GUESTNAME} \
+            cat /dev/fs/C/adinstalled.txt &> /dev/null; then
+            break
+        fi  
+        sleep 30
+    done
+
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${REG} add \"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\" /v DefaultDomainName /d XENTEST /f
+
+    # Install support tools.
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote SUPPORT
+
+    # Install networking stuff.
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote IIS 
+
+    # Install exchange.
+    xe vm-cd-change vm-id=${XEUID} cd-name=w2k3eesp1.iso cd-location=Local \
+        new-cd-name=exchange.iso new-cd-location=Local
+   
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/exchangeinstall.txt XENTEST+Administrator@${GUESTNAME}: 
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote EXCHANGE 
+    
+    while true; do
+        if ${SSH} -oPasswordAuthentication=no XENTEST+Administrator@${GUESTNAME} \
+            ${FIND} \"Setup completed\" C:\\\\Exchange\\ Server\\ Setup\\ Progress.log |\
+                grep "Setup completed"; then
+            break
+        fi  
+        sleep 30
+    done
+
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${REG} add \"HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\" /v DefaultPassword /d xenroot /f
+    
+    ${SSH} XENTEST+Administrator@${GUESTNAME} rm -f /dev/fs/C//Exchange\\ Server\\ Setup\\ Progress.log
+ 
+    # Update exchange.
+    xe vm-cd-change vm-id=${XEUID} cd-name=exchange.iso cd-location=Local \
+        new-cd-name=exchange_update.iso new-cd-location=Local
+
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/exchangeupdate.txt XENTEST+Administrator@${GUESTNAME}: 
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote EXCHANGE_UPDATE 
+ 
+    while true; do
+        if ${SSH} -oPasswordAuthentication=no XENTEST+Administrator@${GUESTNAME} \
+            ${FIND} \"Setup completed\" C:\\\\Exchange\\ Server\\ Setup\\ Progress.log |\
+                grep "Setup completed"; then
+            break
+        fi  
+        sleep 30
+    done
+
+    # Install LoadSim.
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/loadsim.msi XENTEST+Administrator@${GUESTNAME}:
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote LOADSIM
+
+    # Sort out SIM file.
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/adfind.exe XENTEST+Administrator@${GUESTNAME}:
+    ${SSH} XENTEST+Administrator@${GUESTNAME} chmod +x ${ADFIND}
+    
+    MACHINE_GUID=`${SSH} XENTEST+Administrator@${GUESTNAME} ${ADFIND} -gc -b "" 2> /dev/null | grep -A 10 "adminDisplayName: XENSOURC" | grep GUID | sed -e 's/>objectGUID: {//' -e 's/-//g' -e 's/}//'`
+
+    MACHINE_NAME=`${SSH} XENTEST+Administrator@${GUESTNAME} ${ADFIND} -gc -b "" 2> /dev/null | grep "adminDisplayName: XENSOURC" | sed -e 's/>adminDisplayName: //' -e 's/\r//'`
+
+    STORAGE_GUID=`${SSH} XENTEST+Administrator@${GUESTNAME} ${ADFIND} -gc -b "" 2> /dev/null | grep -A 10 "adminDisplayName: First Storage Group" | grep GUID | sed -e 's/>objectGUID: {//' -e 's/-//g' -e 's/}//'`
+
+    MAILBOX_GUID=`${SSH} XENTEST+Administrator@${GUESTNAME} ${ADFIND} -gc -b "" 2> /dev/null | grep -A 10 "name: Mailbox Store" | grep GUID | sed -e 's/>objectGUID: {//' -e 's/-//g' -e 's/}//'`
+
+    LOADSIM_MACHINE_GUID=`convert_guid ${MACHINE_GUID}`
+    LOADSIM_STORAGE_GUID=`convert_guid ${STORAGE_GUID}`
+    LOADSIM_MAILBOX_GUID=`convert_guid ${MAILBOX_GUID}`
+
+    echo MACHINE_GUID: ${LOADSIM_MACHINE_GUID}
+    echo NAME: ${MACHINE_NAME}
+    echo STORAGE_GUID: ${LOADSIM_STORAGE_GUID}
+    echo MAILBOX_GUID: ${LOADSIM_MAILBOX_GUID}
+
+    cat ${WORKDIR}/${THISSCRIPT}/template.sim | sed -e "s/%MACHINE_GUID%/${LOADSIM_MACHINE_GUID}/" \
+                        -e "s/%MACHINE_NAME%/${MACHINE_NAME}/" \
+                        -e "s/%STORAGE_GUID%/${LOADSIM_STORAGE_GUID}/" \
+                        -e "s/%MAILBOX_GUID%/${LOADSIM_MAILBOX_GUID}/" \
+                        > ${WORKDIR}/${THISSCRIPT}/run.sim
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/run.sim XENTEST+Administrator@${GUESTNAME}:
+
+    # Run test.
+    ${SSH} XENTEST+Administrator@${GUESTNAME} ${SCRIPTDIR}/remote/loadsim.remote RUN_LOADSIM    
+    # Get log.
+    ${SCP} XENTEST+Administrator@${GUESTNAME}:/dev/fs/C/WINDOWS/system32/lsperf.log ${WORKDIR}/logs/
+
+    # Get summary.
+    ${SSH} XENTEST+Administrator@${GUESTNAME} /dev/fs/C/Program\\ Files/LoadSim/lslog.exe answer C:\\\\WINDOWS\\\\system32\\\\lsperf.log 2> /dev/null > ${WORKDIR}/logs/lssummary.log || true
+
+}
+
+BM_RUN=run_this
+
+process_this() {
+
+    # Result.
+    if [ -e ${WORKDIR}/logs/lssummary.log ]; then
+        MEAN=`cat ${WORKDIR}/logs/lssummary.log | grep "Weighted Avg" | awk '{ print $7 }'`
+        echo "Test: passed"
+        echo "Value: Mean: ${MEAN}"
+    else
+        echo "Test: failed"
+    fi    
+ 
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

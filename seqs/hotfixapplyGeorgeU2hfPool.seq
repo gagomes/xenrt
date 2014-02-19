@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- Hotfix application tests for hotfixes to XenServer 5.5.0 Update 2 (Pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION> 
+    <PIDIR_ORLANDO>/usr/groups/release/xenserver-5.0.0</PIDIR_ORLANDO>
+    <PIDIR_ORLANDOHF3>/usr/groups/release/XenServer-5.0.0-Update3-GA</PIDIR_ORLANDOHF3>
+    <PIDIR_GEORGE>/usr/groups/release/XenServer-5.5.0</PIDIR_GEORGE>
+    <PIDIR_GEORGEHF1>/usr/groups/release/XenServer-5.5.0-Update1</PIDIR_GEORGEHF1>
+    <PIDIR_GEORGEHF2>/usr/groups/release/XenServer-5.5.0-Update2</PIDIR_GEORGEHF2>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine"/>
+
+  <testsequence group="U2">
+    <testcase id="xenserver.tc.hotfix.TC11503"/>
+    <testcase id="xenserver.tc.hotfix.TC11504"/>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- 24 Test Host vSwitch Scalability Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="3">
+      <host id="24">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </host>
+    </pool>
+    <pool id="0">
+      <storage type="nfs" name="shared" default="true"/>
+      <allhosts start="0" stop="11"/>
+    </pool>
+    <pool id="1">
+      <storage type="nfs" name="shared" default="true"/>
+      <allhosts start="12" stop="23"/>
+    </pool>
+
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TC11903"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

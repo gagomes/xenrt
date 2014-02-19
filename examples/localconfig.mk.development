@@ -1,0 +1,3 @@
+TEST_INPUTS ?= /usr/groups/xenrt/distmaster
+
+WEB_CONTROL_PATH ?= http://xenrt.hq.xensource.com/control/

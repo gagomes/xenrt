@@ -1,0 +1,51 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <memory>1024</memory>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x86-BenchInst">
+      <testcase tc="TC-20785" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K200">
+      <testcase tc="TC-20789" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K200</arg>
+      </testcase>
+      <testcase tc="TC-20780" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K200</arg>
+        <arg>clones=16</arg>
+      </testcase>
+      <testcase tc="TC-20781" id="testcases.xenserver.tc.vgpu.TCGPUWorkload">
+        <arg>guest=win7</arg>
+        <arg>clones=16</arg>
+        <arg>vgpuconfig=K200</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>time=172800</arg>
+      </testcase>
+      <testcase tc="TC-20787" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win7</arg>
+        <arg>clones=16</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,57 @@
+<xenrt>
+
+  <!-- George basic Windows check -->
+
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="1"/>
+  <default name="GUESTDISK" value="DEFAULT"/>
+  <default name="GUESTVERSION" value="ws08r2-x64"/>
+  <default name="VMOPSITER" value="2"/>
+  <default name="SRMWORKLOADS" value="workloads"/>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6646"/>
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6650"/>
+
+      <serial group="WindowsGuest">
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall" tc="TC-6692">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=winguest</arg>
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-6693">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-6694">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-6695">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-6696">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>${SRMWORKLOADS}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-6698">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>live</arg>
+          <arg>${SRMWORKLOADS}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCShutdown" tc="TC-6699">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+      </serial>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

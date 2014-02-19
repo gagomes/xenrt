@@ -1,0 +1,85 @@
+diff -r 14fc50745d66 Makefile
+--- a/Makefile	Mon Jan 12 16:38:32 2009 +0000
++++ b/Makefile	Mon Jan 12 16:38:32 2009 +0000
+@@ -72,8 +72,6 @@ XENRT_SWAP_IMAGE = $(MY_OBJ_DIR)/swap
+ XENRT_SWAP_IMAGE = $(MY_OBJ_DIR)/swap
+ XENRT_SWAP_G = 2
+ XENRT_SWAP_DEVICE = sdb
+-XENRT_DATA_IMAGE = $(MY_OBJ_DIR)/data.ext3
+-XENRT_DATA_G = 100
+ XENRT_DATA_DEVICE = sdc
+ 
+ iso-cookie = $(MY_OBJ_DIR)/.$(1).iso.cookie
+@@ -90,8 +88,7 @@ OVA_BRANDING = sed -e "s/@OVA_ROOT_DEVIC
+                    -e "s/@OVA_MEM@/$$(( $(OVA_MEM_MB)*1024*1024 ))/g" \
+                    -e "s/@XENRT_SWAP_DEVICE@/$(XENRT_SWAP_DEVICE)/g" \
+                    -e "s/@XENRT_DISK_SWAP@/$$(( $(XENRT_SWAP_G)*1000*1000*1000 ))/g" \
+-                   -e "s/@XENRT_DATA_DEVICE@/$(XENRT_DATA_DEVICE)/g" \
+-                   -e "s/@XENRT_DISK_DATA@/$$(( $(XENRT_DATA_G)*1000*1000*1000 ))/g"
++                   -e "s/@XENRT_DATA_DEVICE@/$(XENRT_DATA_DEVICE)/g"
+ 
+ include $(PROJECT_OUTPUTDIR)/kernel-dom0/kernel.inc
+ 
+@@ -404,9 +401,8 @@ post: $(POST_COOKIE)
+ 	#$(CHROOT) rm -rf /home/xenrtd/xenrt.hg/.hg*
+ 	# Remove keys (NOT TESTED YET!)
+ 	#$(CHROOT) find /home/xenrtd/xenrt.hg/keys ! -type d -exec rm -f "{}" \;
+-	# Set up swap and data files
++	# Set up swap file
+ 	bash mkfs.swap $(XENRT_SWAP_IMAGE) $(XENRT_SWAP_G)
+-	bash mkfs.ext3 $(STAGING)/local $(XENRT_DATA_IMAGE) $(XENRT_DATA_G)
+ 
+ 	@touch $@
+ 
+@@ -446,16 +442,10 @@ iso: $(ISO_COOKIE)
+ 
+ $(call iso-cookie,xenrt): $(OVA_STAGING)/ova.xml
+ 	mkdir -p $(OVA_STAGING)/$(XENRT_SWAP_DEVICE)
+-	mkdir -p $(OVA_STAGING)/$(XENRT_DATA_DEVICE)
+ 
+ 	set -ex ; for chunk in $$(seq -f "%09.f" 0 $$(($(XENRT_SWAP_G)-1))) ; do \
+ 		O=$(OVA_STAGING)/$(XENRT_SWAP_DEVICE)/chunk-$$chunk.gz ; \
+ 		dd if=$(XENRT_SWAP_IMAGE) bs=1MB count=1000 skip=$${chunk}000 | gzip -v9 > $${O} ; \
+-	done
+-
+-	set -ex ; for chunk in $$(seq -f "%09.f" 0 $$(($(XENRT_DATA_G)-1))) ; do \
+-		O=$(OVA_STAGING)/$(XENRT_DATA_DEVICE)/chunk-$$chunk.gz ; \
+-		dd if=$(XENRT_DATA_IMAGE) bs=1MB count=1000 skip=$${chunk}000 | gzip -v9 > $${O} ; \
+ 	done
+ 
+ 	@touch $@
+diff -r 14fc50745d66 overlay.xenrt/etc/fstab
+--- a/overlay.xenrt/etc/fstab	Mon Jan 12 16:38:32 2009 +0000
++++ b/overlay.xenrt/etc/fstab	Mon Jan 12 16:39:01 2009 +0000
+@@ -1,5 +1,4 @@
+ /dev/@OVA_ROOT_DEVICE@1	/		ext3	defaults	1  1
+-/dev/@XENRT_DATA_DEVICE@	/local		ext3	defaults	1  1
+ /dev/@XENRT_SWAP_DEVICE@	swap		swap	defaults	1  1
+ none		/dev/pts	devpts	defaults	0  0
+ none		/dev/shm	tmpfs	defaults	0  0
+diff -r 14fc50745d66 overlay.xenrt/etc/rc.local
+--- a/overlay.xenrt/etc/rc.local	Mon Jan 12 16:38:32 2009 +0000
++++ b/overlay.xenrt/etc/rc.local	Mon Jan 12 16:38:32 2009 +0000
+@@ -13,6 +13,9 @@ sysctl -q -w vm.dirty_ratio=5
+ sysctl -q -w vm.dirty_ratio=5 
+ 
+ if [ ! -e /.configdone ]; then
++    mkfs.ext3 -F /dev/@XENRT_DATA_DEVICE@
++    mount /dev/@XENRT_DATA_DEVICE@ /local
++    echo "/dev/@XENRT_DATA_DEVICE@    /local      ext3    defaults    1  1" >> /etc/fstab
+     mkdir -p /local/apt-cache/private
+     mkdir -p /local/apt-cache/tmp
+     mkdir -p /local/apt-cache/import
+diff -r 14fc50745d66 xenrt.ova.xml.in
+--- a/xenrt.ova.xml.in	Mon Jan 12 16:38:32 2009 +0000
++++ b/xenrt.ova.xml.in	Mon Jan 12 16:38:32 2009 +0000
+@@ -11,9 +11,7 @@
+         <hacks is_hvm="false"/>
+                 <vbd device="@OVA_ROOT_DEVICE@" function="root" mode="w" vdi="vdi_@OVA_ROOT_DEVICE@"/>
+                 <vbd device="@XENRT_SWAP_DEVICE@" function="swap" mode="w" vdi="vdi_@XENRT_SWAP_DEVICE@"/>
+-                <vbd device="@XENRT_DATA_DEVICE@" function="data" mode="w" vdi="vdi_@XENRT_DATA_DEVICE@"/>
+         </vm>
+         <vdi name="vdi_@OVA_ROOT_DEVICE@" size="@OVA_DISK@" source="file://@OVA_ROOT_DEVICE@" type="dir-gzipped-chunks" variety="system"/>
+         <vdi name="vdi_@XENRT_SWAP_DEVICE@" size="@XENRT_DISK_SWAP@" source="file://@XENRT_SWAP_DEVICE@" type="dir-gzipped-chunks" variety="system"/>
+-        <vdi name="vdi_@XENRT_DATA_DEVICE@" size="@XENRT_DISK_DATA@" source="file://@XENRT_DATA_DEVICE@" type="dir-gzipped-chunks" variety="system"/>
+ </appliance>

@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Boston VM scalability test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <LINUX_DISTRO>rhel54</LINUX_DISTRO>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VM">
+    <testcase id="xenserver.tc.scalability.TC6848"/>
+    <testcase id="xenserver.tc.scalability.TC6853"/>
+    <testcase id="xenserver.tc.scalability.TC7336"/>
+  </testsequence>
+
+</xenrt>

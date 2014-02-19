@@ -1,0 +1,200 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+
+  <testsequence>
+    <serial group="OVF">
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteDistroSetup" name ="HTTP Distro">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>rhel57,centos6</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14193" name="TC-14193">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14193</arg>
+       <arg>TC14193</arg>
+       <arg>14193</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14228" name="TC-14228">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14228</arg>
+       <arg>TC14228</arg>
+       <arg>14228</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14261" name="TC-14261">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14261</arg>
+       <arg>TC14261</arg>
+       <arg>14261</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14196" name="TC-14196">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14196</arg>
+       <arg>TC14196</arg>
+       <arg>14196</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14215" name="TC-14215">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14215</arg>
+       <arg>TC14215</arg>
+       <arg>14215</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14260" name="TC-14260">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14260</arg>
+       <arg>TC14260</arg>
+       <arg>14260</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14204" name="TC-14204">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14204</arg>
+       <arg>TC14204</arg>
+       <arg>14204</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14205" name="TC-14205">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14205</arg>
+       <arg>TC14205</arg>
+       <arg>14205</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14245" name="TC-14245">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14245</arg>
+       <arg>TC14245</arg>
+       <arg>14245</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14247" name="TC-14247">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14247</arg>
+       <arg>TC14247</arg>
+       <arg>14247</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14302" name="TC-14302">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14302</arg>
+       <arg>TC14302</arg>
+       <arg>14302</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14305" name="TC-14305">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14305</arg>
+       <arg>TC14305</arg>
+       <arg>14305</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14267" name="TC-14267">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14267</arg>
+       <arg>TC14267</arg>
+       <arg>14267</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14268" name="TC-14268">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14268</arg>
+       <arg>TC14268</arg>
+       <arg>14268</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14248" name="TC-14248">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14248</arg>
+       <arg>TC14248</arg>
+       <arg>14248</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14294" name="TC-14294">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14294</arg>
+       <arg>TC14294</arg>
+       <arg>14294</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14296" name="TC-14296">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14296</arg>
+       <arg>TC14296</arg>
+       <arg>14296</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14297" name="TC-14297">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14297</arg>
+       <arg>TC14297</arg>
+       <arg>14297</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14298" name="TC-14298">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14298</arg>
+       <arg>TC14298</arg>
+       <arg>14298</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14303" name="TC-14303">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14303</arg>
+       <arg>TC14303</arg>
+       <arg>14303</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14307" name="TC-14307">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_14307</arg>
+       <arg>TC14307</arg>
+       <arg>14307</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14277" name="TC-14277">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_14277</arg>
+        <arg>TC14277</arg>
+        <arg>14277</arg>
+        <arg>postRun=true</arg>
+      </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14282" name="TC-14282">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_14282</arg>
+        <arg>TC14282</arg>
+        <arg>14282</arg>
+        <arg>postRun=true</arg>
+      </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14290" name="TC-14290">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_14290</arg>
+        <arg>TC14290</arg>
+        <arg>14290</arg>
+        <arg>postRun=true</arg>
+      </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-14273" name="TC-14273">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_14273</arg>
+        <arg>TC14273</arg>
+        <arg>14273</arg>
+        <arg>postRun=true</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

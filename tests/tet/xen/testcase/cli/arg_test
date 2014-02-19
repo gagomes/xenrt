@@ -1,0 +1,102 @@
+#
+## Add your test specific information btween the "< >"'s
+#
+#######################################################################
+#
+# The name of this file is cli_test
+#
+#
+# Copyright (c) 2005 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+#
+# Created on 092705, by Ovais Quraishi
+#
+# Changes:
+#        <Include date, name, description and reason.>
+#        <Do not remove or overwrite previous change remarks.>
+#        <Use this indentation. One tabstop. >
+#
+#       Initial version 092805, Ovais Quraishi 
+#
+#
+# This file:
+#	XenOpt 1.x CLI test case 
+#
+# Description of this test file:
+#       tp1() - Tests the default std out behavior of "xenman" 
+#		command w/o an command line arg on the controller
+#       tp2()
+#       tp3()
+#       tp4()
+#       tp5()
+#
+# Expected results:
+#       tp1()
+#       tp2()
+#       tp3()
+#       tp4()
+#       tp5()
+#
+# Side effects of this test:
+#        <None.>
+#
+# Supporting files and Relationship:
+#        <None.>
+#
+################################################################
+
+# ---TET test purposes--- #
+iclist="ic1"                                # list invocable components
+
+# map the icnames to the test purpose functions
+ic1="tp1"               # functions for ic1
+
+# test name
+test_name="arg_test"
+
+
+#---TET startup functions---#
+tet_startup="startup"                   # startup function
+tet_cleanup="cleanup"                   # cleanup function
+
+#####################################################################
+#       tp1() - Test XENMAN command without supplying a CL arg.
+#####################################################################
+
+tp1()
+{
+
+     tp_result="PASSED"
+     log_n_echo "This is the args:$@|$foo||"
+     tet_result PASS
+}
+
+
+
+
+# ------- End -------
+
+# --- TET startup function --- #
+
+startup()
+{
+# --- Test Suite Specific common shell functions ---#
+export TSROOT
+. ${TSROOT:?}/utils/funcs
+
+}
+
+# --- TET cleanup function --- #
+cleanup() # clean-up function
+{
+}
+#
+
+# ------- DO NOT EDIT THIS POINT FORWARD -------
+
+#--- Include the TCM--- #
+# execute shell test case manager - must be last line
+. $TET_ROOT/lib/ksh/tcm.ksh
+

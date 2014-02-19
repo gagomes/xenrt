@@ -1,0 +1,36 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <ENABLE_CITRIXCERT>yes</ENABLE_CITRIXCERT>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <serial blocker="yes">
+        <testcase id="testcases.xenserver.tc.appliance.TC15638" />
+    </serial>
+    <parallel>
+        <testcase id="testcases.xenserver.tc.appliance.TC15570" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17812" />
+        <testcase id="testcases.xenserver.tc.appliance.TC15580" />
+        <testcase id="testcases.xenserver.tc.appliance.TC15584" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17875" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17871" />
+    </parallel>
+    <serial>
+        <testcase id="testcases.xenserver.tc.appliance.TC17688" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17687" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17686" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17685" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17883" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17882" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17884" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17885" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17886" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17887" />
+        <testcase id="testcases.xenserver.tc.appliance.TC17888" />
+        <testcase id="testcases.xenserver.tc.appliance.TC18142" />
+    </serial>
+  </testsequence>
+</xenrt>

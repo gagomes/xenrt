@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    <SUPPLEMENTAL_PACK_CDS>xs-nicaea.iso</SUPPLEMENTAL_PACK_CDS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="cowleyns">
+      <testcase id="xenserver.tc.ns.TC12666"/>  
+      <testcase id="xenserver.tc.ns.TC12673"/>
+      <testcase id="xenserver.tc.ns.TC12674"/>
+      <testcase id="xenserver.tc.ns.TC12675"/>
+      <testcase id="xenserver.tc.ns.TC12676"/>
+      <testcase id="xenserver.tc.ns.TC12710"/>
+    </serial>
+  </testsequence>
+  
+</xenrt>

@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Workload: find over filesystem
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, November 2005
+
+THISSCRIPT=`basename $0`
+
+run() {
+    touch /tmp/${THISSCRIPT}.running
+    while [ -e /tmp/${THISSCRIPT}.running ]; do
+	find / -type f -fstype ext3 | xargs -n1 sum || true
+    done
+}
+
+stop() {
+    rm -f /tmp/${THISSCRIPT}.running
+    killall find || true
+    killall sum || true
+    sleep 5
+    killall find || true
+    killall sum || true
+}
+
+case "$1" in
+    start)
+	shift
+        $0 run "$@" > /dev/null 2>&1 &
+        ;;
+    stop)
+	shift
+	stop
+	;;
+    run)
+	shift
+	run "$@"
+	;;
+esac

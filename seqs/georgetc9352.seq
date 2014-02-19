@@ -1,0 +1,12 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="SANBoot">
+      <testcase id="xenserver.tc.install.TC9352"/>
+    </serial>
+  </testsequence>
+</xenrt>

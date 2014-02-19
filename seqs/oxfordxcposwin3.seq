@@ -1,0 +1,157 @@
+<xenrt>
+
+  <!-- MNR OS functional test sequence: vistaeesp2 and vistaeesp2-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+    <serial group="vistaeesp2">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9602">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>distro=vistaeesp2</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="vistaeesp2">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9603">
+        <arg>guest=vistaeesp2</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-9604">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-9605">
+        <arg>guest=vistaeesp2</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-9606">
+        <arg>guest=vistaeesp2</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-9607">
+        <arg>guest=vistaeesp2</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9608">
+        <arg>guest=vistaeesp2</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9610">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9611">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9612">
+        <arg>guest=vistaeesp2</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=vistaeesp2</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    <serial group="vistaeesp2-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9614">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>distro=vistaeesp2-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="vistaeesp2-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9615">
+        <arg>guest=vistaeesp2-x64</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-9616">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-9617">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-9618">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-9619">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9620">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9622">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9623">
+        <arg>N/A</arg>
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9624">
+        <arg>guest=vistaeesp2-x64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=vistaeesp2-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

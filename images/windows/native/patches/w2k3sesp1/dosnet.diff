@@ -1,0 +1,18 @@
+--- old/dosnet.inf	2007-02-05 12:55:41.000000000 +0000
++++ new/dosnet.inf	2007-02-05 13:09:31.000000000 +0000
+@@ -129,6 +129,7 @@
+ d1,storport.sys
+ 
+ [FloppyFiles.2]
++d1=FASTTX2K.sys
+ d1,disk1,disk103
+ d1,cpqarray.sys
+ d1,atapi.sys
+@@ -204,6 +205,7 @@
+ 
+ 
+ [Files]
++d1=FASTTX2K.sys
+ 
+ 
+ 

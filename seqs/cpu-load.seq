@@ -1,0 +1,16 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+      </pool>
+      <allhosts/>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_cpuload.TCCPUload" host="RESOURCE_HOST_0" />
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- Orlando OEM RRD Flash specific test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+    <OPTION_EMBEDDED>yes</OPTION_EMBEDDED>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="RRD">
+      <testcase id="xenserver.tc.rrd.TC8316" prio="3"/>
+      <testcase id="xenserver.tc.rrd.TC8317" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,17 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vlan_scalability2.TCVlanScalability" host="RESOURCE_HOST_0">
+        <arg>numvlans=512</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

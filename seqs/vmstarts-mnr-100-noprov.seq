@@ -1,0 +1,9 @@
+  <xenrt>
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCTimeVMStarts" host="RESOURCE_HOST_0">
+        <arg>numdesktops=100</arg>
+        <arg>noprov</arg>
+        <arg>machines=q3,q4</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

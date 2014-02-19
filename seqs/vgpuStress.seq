@@ -1,0 +1,17 @@
+<xenrt>
+  <!-- vGPU Stress tests 3 days -->
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <parallel group="Stress" workers="2">
+      <testcase id="testcases.xenserver.tc.vgpu.StressvGPUK140"  tc="TC-20589"/>
+      <testcase id="testcases.xenserver.tc.vgpu.StressvGPUK240"  tc="TC-20590"/>
+    </parallel>
+  </testsequence>
+</xenrt>

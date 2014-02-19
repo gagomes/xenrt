@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# XRT-325: create a symlink definition file for a symlink in the tree.
+
+set -e
+
+encode() {
+    SYMLINK=$1
+    
+    if [ -z "${SYMLINK}" ]; then
+	echo "Need to provide a symlink path"
+	return 1
+    fi
+    
+    TARGET=`readlink ${SYMLINK}`
+    
+    echo ${TARGET} > ${SYMLINK}-xenrt-symlink
+    echo ${SYMLINK}-xenrt-symlink
+}
+
+encode $1

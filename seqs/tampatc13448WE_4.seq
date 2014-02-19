@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxvCPUs_4" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC17752" prio="4" tc="TC-17752"/>
+      <testcase id="xenserver.tc.smoketest.TC18433" prio="4" tc="TC-18433"/>
+      <testcase id="xenserver.tc.smoketest.TC18434" prio="4" tc="TC-18434"/>
+      <testcase id="xenserver.tc.smoketest.TC18435" prio="4" tc="TC-18435"/>
+      <testcase id="xenserver.tc.smoketest.TC18436" prio="4" tc="TC-18436"/>
+    </parallel>
+  </testsequence>
+</xenrt>

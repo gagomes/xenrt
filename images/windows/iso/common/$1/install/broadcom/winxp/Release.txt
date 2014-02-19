@@ -1,0 +1,1721 @@
+                        ===========================
+                        R E L E A S E    N O T E S
+                        ===========================
+
+                       Broadcom Windows Installer Projects
+          For Windows NT 4.0, Windows 2000, XP 32/64 bit, Vista 32/64 bit
+
+                Copyright (c) 2002-2007 Broadcom Corporation
+                            All rights reserved.
+                             January 08, 2007
+
+
+Version 2.10.56 (October 19, 2007)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00031704 )
+                 BACS3 - Support information in add/remove programs 
+                 list BACS as BACS 2 in comments section
+      Cause:
+                 Carried over from the older BACS 2 installer
+      Files:
+                 Management installer
+      Change:    
+                 Changed the strings for BACS 2 related files to BACS 3
+
+   2. Problem:   ( Cont00031711 )
+                 Umbrella Installer v10.53.1 doesn't install in Win 2k
+      Cause:
+                 Setup Prerequisites for .NET Framework 2.0 in Win2k is
+                 different from other newer OSes
+      Files:
+                 Management and Umbrella installer
+      Change:    
+                 Changed the Setup prerequisites condition for .NET 2.0 
+                 framework for all Oses according to MSFT KB318785
+
+   3. Problem:   ( Cont00031919 )
+                 Bacs3: Bacs systemtray does not start
+      Cause:
+                 Migrated BACSTray to use Visual studio 2005 library
+      Files:
+                 Management and Umbrella installer
+      Change:    
+                 Included VS2005 libraries into the installers
+
+   4. Problem:   ( Cont00031924 )
+                 Bacs3: Bacs icon is missing in control panel
+      Cause:
+                 Migrated BACSTray to use Visual studio 2005 library
+      Files:
+                 Management and Umbrella installer
+      Change:    
+                 Included VS2005 libraries into the installers
+
+Version 2.10.55 (October 10, 2007)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for the new iSCSI driver name change
+       Impact:
+                 NetXtreme II Installer and Umbrella installer
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00031802 )
+                 Umbrella Installer: reinstallation does not work.
+      Cause:
+                 64 bit umbrella and management installer called the wrong 
+                 API for BASP upgrade
+      Files:
+                 Management and Umbrella installer 64 bit
+      Change:    
+                 Used the correct API to upgrade BASP
+
+Version 2.10.54 (October 9, 2007)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Silent installation by default does not install
+                 ISCSI Crash Dump driver
+       Impact:
+                 NetXtreme II Installer and Umbrella installer
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00031767 )
+                 Silent.txt Advertises Silent Downgrade Feature for other 
+                 OEMs 
+      Cause:
+                 Silent.txt is not updated
+      Files:
+                 Silent.txt
+      Change:    
+                 Customize Silent.txt for each OEM
+
+Version 2.10.53 (October 5, 2007)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for Windows Server 2008
+       Impact:
+                 All installers
+
+Version 2.10.52 (October 5, 2007)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00031654 )
+                 Umbrella Installer:  Need to Include ISCSI Crash 
+                 Dump Driver Option as Seen on T3.7 Driver Installer
+       Impact:
+                 Umbrella installer
+   2.  Change:   
+                 Changed iSCSI Crash Dump driver name and description for
+                 installers
+       Impact:
+                 NetXtreme II driver installer and umbrella installer
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00031636 )
+                 Umbrella Installer:Device drivers do not get loaded after 
+                 installation completes.  
+      Cause:
+                 Wrong feature name is used for Umbrella installer
+      Files:
+                 NetXtreme II driver installer and Umbrella installer
+      Change:    
+                 Changed the action for installing devices
+   2. Problem:   
+                 iSCSI Crash Dump driver registry modification gets called 
+                 all the time
+      Cause:
+                 No condition check for iSCSI crash dump action
+      Files:
+                 NetXtreme II driver installer and Umbrella installer
+      Change:    
+                 Changed the action for running iSCSI crash dump action
+
+Version 2.10.51 (October 3, 2007)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added necessary files for BACS 3
+       Impact:
+                 Management and Umbrella installer
+
+Version 2.10.50 (September 21, 2007)
+------------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for BACS 3
+       Impact:
+                 Management and Umbrella installer
+   2.  Change:   
+                 Removed support for Win9x 
+       Impact:
+                 Management and Umbrella installer
+
+Version 2.10.39 (September 20, 2007)
+------------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added new feature for iSCSI Crash Dump utility
+       Impact:
+                 NetXtreme II Driver installer
+   2.  Change:   
+                 Added support to disable downgrade for all installers
+                 prior to T3.7
+       Impact:
+                 NetXtreme II and Umbrella installer
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00031490 )
+                 Windows 64 bit U-Installer does not write UInstallerVersion 
+                 to WOW6432Node   
+      Cause:
+                 Umbrella installer did not include 32 bit registry node
+      Files:
+                 Umbrella Installer          
+      Change:    
+                 Added 32 bit registry node into 64 bit umbrella installer
+
+Version 2.10.38 (September 19, 2007)
+------------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00031471 )
+                 The NX2 Driver Installer Should not Load ISCSI Drivers 
+                 including Crash Dump in Vista
+       Impact:
+                 NetXtreme II and Umbrella Installer
+
+Version 2.10.37 (September 10, 2007)
+------------------------------------
+   Fixes:
+   =====
+   1. Problem:   ( Cont00031270 )
+                 Additional modification in the driver installer is 
+                 required for iSCSI Boot crash dump support
+      Cause:
+                 The registry entry was created on the wrong registry
+                 entry and the driver file was copied to the wrong 
+                 folder on x64 system
+      Files:
+                 NetXtreme II and Umbrella installer
+      Change:    
+                 Fixed the location for the driver file and registry entry
+      Impact:
+                 NetXtreme II and Umbrella installer
+
+   2. Problem:   
+                 Co-Installer file was copied to the wrong directory
+      Cause:
+                 Co-Installer file for x64 was copied to the wrong
+                 system folder
+      Files:
+                 NetXtreme II and Umbrella installer
+      Change:    
+                 Fixed the path to copy the co-installer over
+      Impact:
+                 NetXtreme II and Umbrella installer
+
+Version 2.10.36 (Septemter 5, 2007)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00030883 )
+                 W2K3 x 64 update changes the device state from disabled 
+                 to enabled
+       Impact:
+                 Umbrella installer
+
+Version 2.10.35 (August 29, 2007)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for iSCSI driver installation
+       Impact:
+                 NetXtreme II and Umbrella Installer
+   2.  Change:   
+                 Create a registry entry in MSFT iSCSI initiator
+                 for iSCSI "crash dump" 
+       Impact:
+                 NetXtreme II and Umbrella Installer
+
+Version 2.10.34 (August 23, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Changed Umbrella installer to modify driver parameter 
+                 during upgrade/downgrade to/from T3.5 installer to
+                 accomodate iSCSI enumeration
+       Impact:
+                 Umbrella Installer 
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00030995 )
+                 Broadcom folder left behind after uninstallation of driver
+                 and management installer.
+      Cause:
+                 Certain Components not set to proper directory
+      Files:
+                 Management Installer
+      Change:    
+                 Broadcom folder removed after uninstallation.
+
+Version 2.10.33 (August 6, 2007)
+--------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00030629 )
+                 Teton Driver Downgrade Will Result in Duplicates 
+                 and Invalid Advanced Properties   
+      Cause:
+                 Downgrade installer that has older driver that does
+                 not support newer feature will fail to cleanup
+                 the registry key
+      Files:
+                 NetXtreme II installer and Umbrella Installer          
+      Change:    
+                 Prevent downgrade to older installers
+
+Version 2.10.32c (August 2, 2007)
+---------------------------------
+   * Cont00030866
+
+Version 2.10.32b (July 24, 2007)
+--------------------------------
+   * Cont00029330
+
+Version 2.10.32 (June 21, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Changed NetXtreme II Driver installer to only set
+                 KMDF registry key for umbrella during upgrade and 
+                 booting through BRCM iSCSI boot device
+       Impact:
+                 Umbrella Installer  
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00030096 )
+                 Management Installer should not advertise BASP on Home/
+                 Personal Editions of Vista and XP.     
+      Cause:
+                 There was no filter condition before.
+      Files:
+                 Management Installer and Umbrella Installer          
+      Change:    
+                 BASP feature no longer is advertised.
+
+Version 2.10.31b (June 21, 2007)
+--------------------------------
+
+Version 2.10.31 (June 14, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029821 )
+                 Can not disable TOE from GUI
+       Impact:
+                 Management Installer and Umbrella Installer
+
+   2.  Change:   ( Cont00029936 )
+                 Need Installer Support for "Co-installer fix" 
+                 for NetXtreme II Driver Upgrade Speed/duplex Issue
+       Impact:
+                 NetXtreme II Driver Installer & Umbrella Installer
+
+Version 2.10.30 (June 6, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for NDIS6 BASP for Vista
+       Impact:
+                 Management Installer
+   2.  Change:   
+                 Integrate BASP Upgrade module to Installer
+       Impact:
+                 Management Installer & Umbrella Installer
+
+Version 2.10.24 (May 31, 2007)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00029747 )
+                 Improper text appears for 4401 Installer using Dutch.
+                 
+      Cause:
+                 Dutch was not properly translated for 4401 Driver Installer
+
+      Files:
+                 4401 Driver Installer localization
+                
+      Change:    
+                 Default English text is shown in place of improper text.
+
+
+Version 2.10.23 (May 25, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029239 )
+                 IBM requies driver installer to be able to down-level 
+                 the NDIS driver(s)
+       Impact:
+                 NetXtreme I and II driver installers. These changes assume
+                 that the older drivers to be downgraded are forward 
+                 compatible with the newer drivers.
+   Fixes:
+   ===========
+   1. Problem:   
+                 NetXtreme I driver installer causes a popup during silent
+                 installation
+      Cause:
+                 Did not handle the silent installation popup properly
+      Files:     
+                 NetXtreme I driver installer                                
+      Change:
+                 Added UI check level to properly display popup during
+                 UI/silent installations
+
+Version 2.10.22 (May 15, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029451 )
+                 Remove the "Upgrade" button on the License tab 
+                 in BACS for NX2
+       Impact:
+                 Umbrella Installer
+
+Version 2.10.21 (May 2, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029361 )
+                 Added Bpowmon to an OEM Management Installer
+       Impact:
+                 Management Installer
+
+Version 2.10.20 April 30, 2007)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00025927 )
+                 Added OEM support info for a NetExtreme II Installer
+       Impact:
+                 NetXtreme II Driver Installer
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00029283 )
+                 Management installer does not upgrade ASF 32 bit on 
+                 x64 platforms
+      Cause:
+                 ASF 32 bit upgrade scenario was not properly handled.
+
+      Files:     Management Installer
+                                
+      Change:
+                 Management installer properly upgrades from ASF 32 bit on
+                 x64 platforms
+                 
+   2. Problem:   ( Cont00029227 )
+                 No BACS icon in system tray after installation
+                 of BACS.
+      Cause:
+                 Improper value set for all users.
+
+      Files:
+                 Management Installer
+                
+      Change:    
+                 Set all users to proper value.
+
+   3. Problem:   ( Cont00029294 )
+                 When running installer using AT command-line task scheduler, 
+                 not all components get installed.
+      Cause:
+                 Improper value set for all users.
+
+      Files:
+                 Management Installer
+                
+      Change:    
+                 Set all users to proper value.
+
+Version 2.10.19 (April 18, 2007)
+--------------------------------
+   Fixes:
+   ===========
+   1. Problem:   
+                 Installing driver on Windows Vista on user under "Administrator"
+                 privilege failed
+      Cause:
+                 The manifest file for installer was set to the wrong privilege
+      Files:
+                 NetXtreme I driver Installer modules
+      Change:    
+                 Changed the manifest file to the appropriate setup
+      Impact:
+                 NetXtreme I Driver Installer
+
+Version 2.10.18 (April 12, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029036 )
+                 Added support for NetXtreme II driver installer in
+                 iSCSI boot environment
+       Impact:
+                 NetXtreme II Driver Installer
+
+Version 2.10.17 (April 10, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00029051 )
+                 Integrated Management Installer with ASF
+       Impact:
+                 Management Installer
+
+Version 2.10.16 (March 26, 2007)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for NetExtreme II for Windows Vista
+       Impact:
+                 5706 Driver Installer
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028462 )
+                 BACS Installer leaves an empty folder in 'Program Files (x86)' for x64.
+                 
+      Cause:
+                 Unneeded Components were present
+
+      Files:
+                 BACS Management Installer
+                
+      Change:    
+                 Removed unneeded components
+
+Version 2.10.15 (February 22, 2007)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028469 )
+                 Improper text appears during installer in Vista (Swedish). 
+                 
+      Cause:
+                 Swedish was not properly translated for 4401 Driver Installer
+
+      Files:
+                 4401 Driver Installer localization
+                
+      Change:    
+                 Default English text is shown in place of improper text.
+
+Version 2.10.14 (February 16, 2007)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028517 )
+                 Umbrella Installer needs to include additional DLL 
+                 files that go with the VBD driver
+      Cause:
+                 Latest driver and umbrella installer did not have the
+                 newly added DLLs
+
+      Files:
+                 NetXtreme II and Umbrealla Installers
+                
+      Change:    
+                 Added the additional driver files to the installer package
+
+Version 2.10.13 (January 30, 2007)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for ASF Configuration for AMD64 platform
+       Impact:
+                 ASF Installer
+
+Version 2.10.12 (January 15, 2007)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00028109 )
+                 Add WinXP 32/x64 to the supported OS for Teton 
+                 DrvInstaller
+       Impact:
+                 NetXtreme II Driver Installer
+
+Version 2.10.11 (January 12, 2007)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028127 )
+                 W2K364 - Umbrella installer only writes UInstallerVersion 
+                 to the 64bit reg
+      Cause:
+                 When updating the installer project into the newer build,
+                 this registry entry was accidentally removed.
+
+      Files:
+                 Umbrella Installer database
+                
+      Change:    
+                 Added 32 bit registry entry when running umbrella installer 
+                 on 64 bit target system
+
+Version 2.10.10 (January 11, 2007)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028061 )
+                 Umbrealla Installer v10.15.01 does not remove all 
+                 folders after a silent uninstall in W2K3 x64 - no SNP
+      Cause:
+                 This is because of the side effect introduced on the
+                 fix for Cont00027870. 
+
+      Files:
+                 FixForUpgrade.exe
+                
+      Change:    
+                 Changed the T2.6 Umbrella installer during major upgrade 
+                 to not remove 5706 during major upgrade by changing the
+                 target parameter instead of the condition
+
+Version 2.10.9 (January 08, 2007)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   
+                 The application description display for the 
+                 management installer was displayed untranslated
+                 for all languages. 
+      Cause:
+                 The description string was not translated up until
+                 now.
+
+      Files:
+                 BMgmtInstaller.ism
+                
+      Change:    
+                 Translated the strings for all the languages.
+                 
+   2. Problem:   
+                 The hotkey in the Dutch language for the "back"
+                 button was not unique.
+      Cause:
+                 There was a clash in the accelerator hotkey 
+                 between the back and next button.
+
+      Files:
+                 BMgmtInstaller.ism
+                
+      Change:    
+                 Picked a different accelerator hotkey for the
+                 back button.                 
+                 
+                 
+Version 2.10.8 (December 29, 2006)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027870 )
+                 SLB Team Serving as NLB Cluster Adapter Loses All 
+                 Members During Driver Upgrade
+      Cause:
+                 When doing major upgrades, the older installer in
+                 question (the version mentioned in the bug report)
+                 accidentally uninstalls the NDIS VBD client. This
+                 changes the instance id when the major upgrade finishes.
+
+      Files:
+                 FixForUpgrade.exe
+                
+      Change:    
+                 Updated FixForUpgrade.exe to detect the scenario and
+                 skip uninstallting the NDIS VBD client during the 
+                 scenario mentioned in the bug.
+                 
+   2. Problem:   ( Cont00027883 )
+                 4401 Driver Installer - Improper Publisher Name 
+                 appears in Programs and Features for Vista (German)
+      Cause:
+                 The company name is displayed with wrong translated
+                 string.
+
+      Files:
+                 BDrvInst44.ism.
+                
+      Change:    
+                 To fix this, I changed the string table to display 
+                 un-translated company name in English. 
+                 This is how our NetXtreme installer does           
+                 
+                 
+Version 2.10.7 (December 28, 2006)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( CQ27966 )
+                 Silent Install by Feature on IA64 and IA32 Platforms 
+                 appears installed but does not install components.
+      Cause:
+                 The feature hierarchy was not setup right in the 
+                 setup design.
+
+      Files:
+                 BMgmtInstaller.ism
+                
+      Change:    
+                 Renamed the parent and children feature names in the 
+                 setup design and setup the hierarchy correctly. Also
+                 set the "required" field on all the features appropriately.
+                 
+                 
+Version 2.10.6 (December 21, 2006)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Request to write into registry key hive of the product
+                 release version for umbrella installer
+
+       Impact:
+                 Umbrella and Management Installer
+
+Version 2.10.5 (December 19, 2006)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Deleted THA localization from BACS
+       Impact:
+                 Management Installer
+
+Version 2.10.4 (December 12, 2006)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 Added support for reboot detection using XML file for
+                 4401 Driver Installer
+       Impact:
+                 4401 Driver Installer
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027491 )
+                 Upgrading MgmtApps from 9.4b to 9.7 fails
+      Cause:
+                 This is because if Rel 8.1 Management Installer installed
+                 on the system, the later installer will never prompt for reboot
+                 although BASP is installed. Reboot is needed to upgrade
+                 BASP.
+      Files:
+                 Management Installer modules
+      Change:    
+                 Changed the condition to reboot all the time when BASP exists 
+      Impact:
+                 Management Installer
+   2. Problem:   ( Cont00027826 )
+                 BACS and ASF : Short cut link's  right click properties are 
+                 different
+      Cause:
+                 The initial ASFConfig shortcut was only a "dummy" shortcut.
+      Files:
+                 ASF Installer module
+      Change:    
+                 Changed the ASFConfig shortcut to have a valid location and path
+                 and changed the behavior of the ASFConfig shortcut
+      Impact:
+                 ASF Installer
+
+Version 2.10.3 (December 7, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   
+                 TPM Driver Installer should only run on Windows XP.
+       Impact:
+                 TPM Driver Installer
+   2.  Change:
+                 Added Link and Support Information on TPM Driver Installer
+       Impact:
+                 TPM Driver Installer
+
+Version 2.10.2 (November 22, 2006)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00024378 )
+                 Running the setup with the "/a" option doesn't require a path
+       Impact:
+                 Umbrella Installer
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027604 )
+                 ASF Installer: Cancel installation prompt pops up 
+                 when clicking on the "Next" button
+      Cause:
+                 The condition to advance to the installation was wrong.
+      Files:
+                 ASF Installer
+      Change:    
+                 Changed the condition to correctly advance to the
+                 installation process
+      Impact:
+                 ASF Installer
+   2. Problem:   ( Cont00027604 )
+                 On Vista 64bit, the installation can be completed, but an 
+                 ASFconfig folder with the help file is created in the 
+                 Program Files (x86) directory. This installer should NOT be 
+                 installing any ASFConfig component.
+      Cause:
+                 The help file was not part of the ASF Config
+      Files:
+                 ASF Installer
+      Change:    
+                 Made the help file to be always part of the ASF COnfig
+      Impact:
+                 ASF Installer
+
+Version 2.10.1 (November 13, 2006)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:   ( Cont00014597 )
+                 Need umbrella installer to be able to force down grade
+       Impact:
+                 Umbrella and Management Installer
+   Fixes:
+   =====
+   1. Problem:   ( Cont00026828 )
+                 Blank popup message when running umbrella installer silently
+      Cause:
+                 During downgrade scenario, the custom action to display the
+                 popup did not properly conditioned to surpress during
+                 downgrade
+      Files:
+                 Management and Umbrella modules
+      Change:    
+                 The downgrade capability is disabled unless the
+                 users specifically set the switch.
+      Impact:
+                 Umbrella Installer
+
+Version 2.10.0 (November 3, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  
+                Upgraded all Installers to new Installshield
+                Version 12.
+       Impact:
+                All Installers
+   2.  Change:  
+                Changed Management Installer Feature hierarchies
+                to be consistent with the other Installers
+       Impact:
+                Management Installer
+
+Version 1.10.9 (May 31, 2007)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00029747 )
+                 Improper text appears for 4401 Installer using Dutch.
+                 
+      Cause:
+                 Dutch was not properly translated for 4401 Driver Installer
+
+      Files:
+                 4401 Driver Installer localization
+                
+      Change:    
+                 Default English text is shown in place of improper text.
+
+Version 1.10.8 (February 22, 2007)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00028469 )
+                 Improper text appears during installer in Vista (Swedish). 
+                 
+      Cause:
+                 Swedish was not properly translated for 4401 Driver Installer
+
+      Files:
+                 4401 Driver Installer localization
+                
+      Change:    
+                 Default English text is shown in place of improper text.
+
+Version 1.10.7 (December 29, 2006)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027883 )
+                 4401 Driver Installer - Improper Publisher Name 
+                 appears in Programs and Features for Vista (German)
+      Cause:
+                 The company name is displayed with wrong translated
+                 string.
+
+      Files:
+                 BDrvInst44.ism.
+                
+      Change:    
+                 To fix this, I changed the string table to display 
+                 un-translated company name in English. 
+                 This is how our NetXtreme installer does  
+                 
+                 
+Version 1.10.6 (December 12, 2006)
+----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027826 )
+                 BACS and ASF : Short cut link's  right click properties are 
+                 different
+      Cause:
+                 The initial ASFConfig shortcut was only a "dummy" shortcut.
+      Files:
+                 ASF Installer module
+      Change:    
+                 Changed the ASFConfig shortcut to have a valid location and path
+                 and changed the behavior of the ASFConfig shortcut
+      Impact:
+                 ASF Installer
+
+Version 1.10.5 (November 22, 2006)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027604 )
+                 ASF Installer: Cancel installation prompt pops up 
+                 when clicking on the "Next" button
+      Cause:
+                 The condition to advance to the installation was wrong.
+      Files:
+                 ASF Installer
+      Change:    
+                 Changed the condition to correctly advance to the
+                 installation process
+      Impact:
+                 ASF Installer
+   2. Problem:   ( Cont00027604 )
+                 On Vista 64bit, the installation can be completed, but an 
+                 ASFconfig folder with the help file is created in the 
+                 Program Files (x86) directory. This installer should NOT be 
+                 installing any ASFConfig component.
+      Cause:
+                 The help file was not part of the ASF Config
+      Files:
+                 ASF Installer
+      Change:    
+                 Made the help file to be always part of the ASF COnfig
+      Impact:
+                 ASF Installer
+
+Version 1.10.4 (October 24, 2006)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  ( Cont00026995 )
+                ASF IP Monitor does not work for Vista x64 system.
+       Impact:
+                ASF Installer
+   2.  Change:  ( Cont00027096 )
+                Add BACS and BACS Installer support for Windows 
+                Vista 64bits (AMD64) for Lenovo MB  
+       Impact:  
+                Management Installer
+   3.  Change: 
+                Changed the NICCheck API behavior
+       Impact:
+                All drivers and umbrella installers
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027113 )
+                 Umbrella Installer removes teton/legacy driver folders 
+                 when bacs/basp, snmp, cim are selected for removal
+      Cause:
+                 A side effect from the fix done in Cont00026233 and 
+                 Cont00026432. 
+      Files:
+                 Management Installer modules and Umbrella Installer
+      Change:    
+                 Changed the feature hierarchy in umbrella installer to
+                 make sure that drivers are installed by default and
+                 de-selectable
+      Impact:
+                 Management and Umbrella Installer
+
+Version 1.10.3 (October 11, 2006)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00027095 )
+                 Silent Install from BRCM Umb Installer to BRCM Drv 
+                 Installer v10.01.01 Results in a Pop Up Message-W2K3x64
+      Cause:
+                 The condition check for popup message did not include
+                 the scenario when running silent installation
+      Files:
+                 NetXtreme II x64 driver installer modules
+      Change:    
+                 Changed the popup display error message to handle 
+                 silent installation scenario
+      Impact:
+                 NetXtreme II driver installer and Umbrella Installer
+
+Version 1.10.2 (October 4, 2006)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   
+                 The installation failed when NICChecek property is 
+                 turned on Windows Vista.
+      Cause:
+                 The NICCheck always checks against the NDIS5.1 
+                 INF file which recently has a Vista entry inside the
+                 Vista that causes the NICCheck not checking the correct
+                 Hardware ID
+      Files:
+                 NetXtreme I driver installer modules
+      Change:    
+                 Add a new functionality to check against the NDIS6 INF
+                 file in the case of Windows Vista
+      Impact:
+                 NetXtreme I driver installer
+
+Version 1.10.1 (October 4, 2006)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  
+                Changed the INF File name for NDIS 5.1 driver that gets
+                installed in Vista to be unified with the older Windows
+                INF file name
+       Impact:
+                NetXtreme I driver and umbrella installer
+
+Version 1.10.0 (October 2, 2006)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  
+                Added a new API to abort installation process when HP's
+                NCU package has already existed in the system
+       Impact:
+                NetXtreme II driver and umbrella installer
+   2.  Change:
+                Changed the NetXtreme II driver installer abort installer
+                when it detects Windows XP using the default MSI popup
+                message box instead of our own custom message
+       Impact:
+                NetXtreme II driver installer
+
+Version 1.2.0 (September 25, 2006)
+-----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  
+                Changed 4401 Driver installer into MSM based installer 
+                from MSI 
+       Impact:
+                4401 Driver Installer
+   2.  Change:  
+                ASF Installer is ready for Vista. ASFConfig (ASF GUI)
+                will not get installed on Vista x64 platform
+       Impact:
+                ASF Installer
+
+   3.  Change:  ( Cont00026774 )
+                Uninstalling BACS when tray icon is present will trigger 
+                warning message on Vista.
+       Impact:
+                Management and Umbrella Installer
+   4.  Change:  ( Cont00026232 )
+                Umbrella installer to install CHM (help) file by default
+       Impact:
+                Management and Umbrella Installer
+   5.  Change:  ( Cont00026665 )
+                The Upgrading Error from BRCM Umbrella Installer to BRCM 
+                Drv/Mgmt Apps Installer Needs to be User Friendly
+       Impact:
+                Drivers, Management and Umbrella Installer
+
+Version 1.1.14 (September 15, 2006)
+-----------------------------------
+   Fixes:
+   ===========
+   1. Problem:   
+                 BACS IA64 shortcut link is not properly set
+      Cause:
+                 Installer shortcut for BACS IA64 was not set properly
+      Files:
+                 BACS Module
+      Change:    
+                 Fixed the shortcut to have the correct link
+      Impact:
+                 Management Installer
+
+Version 1.1.13 (September 7, 2006)
+----------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  
+                Management Installer is ready for Vista. On Vista platform 
+                installation, BASP will not get installed
+       Impact:
+                Management Installer
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00026593 )
+                 There is a dead link of Broadcom in support information
+                 (TW,CH OS)(v9.52.0.0)
+      Cause:
+                 There are typos on the link for Chinese localization string
+      Files:
+                 Management Installer
+      Change:    
+                 Fixed the link type to the correct Broadcom link
+      Impact:
+                 Management Installer
+
+Version 1.1.12 (August 30, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00026590 )
+                 Silent install of ia32 ASFConfig in x64 Environment Results
+                 in Pop-up Message
+      Cause:
+                 When the installer encounter invalid OS target machine, the 
+                 installer will popup a message of "invalid OS" and aborts
+                 the installer. The popup message did not handle the silent
+                 installation scenario properly. 
+      Files:
+                 All Installer
+      Change:    
+                 Add the condition to not popup during silent install
+      Impact:
+                 All installers
+
+Version 1.1.11 (August 18, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:  ( Cont00026432 )
+                Add/Remove Components should not Display Driver Selection for
+                Umbrella Installer
+       Impact:
+                Changed the umbrella installer to not showing Driver selection
+                and skip all the driver installations during add/remove components
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00026233 )
+                 Silent install of fails when ADDSOURCE used
+      Cause:
+                 When umbrella installer tried to install BACS component only
+                 using the commandline, driver installers custom actions are
+                 also being executed but the driver files are not being copied
+                 into the directory. Therefore, it made the installer failed
+      Files:
+                 Umbrella Installer 
+
+      Change:    
+                 Add Driver Installer modules on every features
+      Impact:
+                 Umbrella Installer
+   2. Problem:   ( Cont00026409 )
+                 T2.8.4 Driver installer silent update results in pop-up message
+      Cause:
+                 Reboot popup message box showed up during silent installation
+                 to remind users to reboot the system after upgrading
+      Files:
+                 NetXtreme II Merge Modulues
+      Change:    
+                 Changed popup message to use Windows popup message box for reboot
+                 that will lead to automatic reboot during silent installation
+      Impact:
+                 All installers
+   3. Problem:   ( Cont00026166 )
+                 Error occurs when launching BACS under non-admin previlage on
+                 XP x64
+      Cause:     
+                 BACS components for 64 bit platform uses advertised shortcut that 
+                 resulting the shortcut to be installed using the msi file 
+                 when the first BACS shortcut is launched. In non-admin account, 
+                 that account tried to find the msi account on the account's default
+                 location which resulting the file cannot be found
+      Files:      
+                 BACS 64 bit Merge Modules 
+      Change:
+                 Changed the BACS shortcut into non-advertised shortcut and specify
+                 the exact location of the application
+      Impact:    
+                 Management and Umbrella Installer
+   4. Problem:   ( Cont00026390 )
+                 IA32 ASF Config Installer runs to Completion in Windows XP x64
+      Cause:     
+                 There is no abort installation feature on the ASF Installer to detect
+                 and abort the installation when trying to install at the wrong platform
+      Files:     
+                 ASF Installer 32bit modules
+      Change:    
+                 Add a feature to abort installation when wrong OS platform is detected
+                 and show up a dialog box with localized strings
+      Impact:
+                 ASF Installer
+   5. Problem:   ( Cont00026148 )
+                 BACS Installshield contains English strings in German installer version
+      Cause:     
+                 The localized strings cannot be put inside the merge modules, it must be
+                 in the installer database in order to get localized. 
+      Files: 
+                 Management and ASF Installers Modules
+      Change:
+                 Moved all the localized string from the merge modules to the installer
+                 database in order for the localized strings to get picked up
+      Impact:
+                 NetXtreme Driver, ASF and Management installers
+   6. Problem:   ( Cont00026444 )
+                 BACS installer v9.06.02 upgrade from v9.03.01 results in reboot.
+      Cause:     
+                 During installer upgrade, the Power Monitor service is using the BMAPI
+                 Therefore, the installer cannot replace/update the BMAPI file that
+                 forces the installer to prompt for reboot at the end.
+      Files:     
+                 Management Installers modules
+      Change:
+                 Stop the Power Monitor service before upgrading and restart it back again
+                 when the upgrade is finished. This change will also affect during 
+                 uninstallation
+      Impact:
+                 Management installers
+
+Version 1.1.10 (August 8, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1.  Change:
+                 When installing both Umbrella and NetXtreme II driver
+                 installer on Windows XP platform, the installation will
+                 be aborted in the case of NetXtreme II installer and
+                 NetXtreme II related installation will be skipped on
+                 umbrella installer
+       Impact:
+                 Umbrella and NetXtreme II Driver Installer
+
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00025871 )
+                 Cancelling Mgmt Apps Uninstallation Toward the  
+                 End Will Cause Error if Uninstallation/Reinstallation 
+                 Attempted Subsequently 
+      Cause:
+                 The Cancel button is not disabled in the Setup  
+                 Progress dialog if initiated from Control Panel's
+                 Add/Remove Program. Cancelling during install /
+                 upgrade / uninstall is not supported.
+      Files:
+                 All Installer files
+      Change:    
+                 Hide cancel button
+      Impact:
+                 All installers.
+   2. Problem:   ( Cont00026086 )
+                 Running Sequential Silent Install of Umbrella Installer Leaves 
+                 L2 Driver in Disabled State
+      Cause:
+                 During silent install, the popup message box that shows the system
+                 need to be rebooted did not show up because the box was using
+                 our BRCM made popup box
+      Files:
+                 Umbrella, NetXtreme, NetXtreme II, and TPM Driver Installer
+      Change:    
+                 Changed popup message to use Windows popup message box for reboot
+                 that will lead to automatic reboot during silent installation
+      Impact:
+                 All installers
+
+Version 1.1.9 (July 14, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00025778 )
+                 Upgrade Installation of Teton Driver from T2.6 
+                 Release Did not Update the Co-installer 
+      Cause:
+                 Bug in BWinInst.dll where reboot requests were not
+                 properly handled
+      Files:
+                 BDrv5706:       BDrv5706Msm_*.ism, BDrv5706.ism
+                 BDrvInstaller:  BDrvInstMSM_*.ism, BDrvInstaller.ism,
+                 BMgmtInstaller: CustomActionMSM_*.ism, BMgmtInstaller.ism
+      Change:    
+                 Call new BWinInst API to set the property for reboot 
+                 request and show reboot message based on the property
+      Impact:
+                 All driver installers.
+   2. Problem:   ( Cont00025793 )
+                 Scheduled Installation of Teton Driver Installer 
+                 Fails to load Drivers in Win2K 
+      Cause:
+                 DIFxAPI returned access denied when trying to 
+                 install as a scheduled task in logged off mode.
+      Impact:
+                 Teton driver installer.
+      Files:
+                 BDrv5706Msm_*.ism
+      Change:    
+                 Installer will run the install API in system context.
+   3. Problem:   ( Cont00025817 )
+                 Silent Upgrade over T2.6b Gold Release Pops up Message 
+                 that Update is Successful 
+      Cause:
+                 Message is from T2.6b Gold MSI database when the old 
+                 product is being removed. Custom Action that shows 
+                 this message was not conditioned properly and got 
+                 executed during silent major upgrade.
+      Impact:
+                 Teton driver installer.
+      Files:
+                 BDrv5706Msm_*.ism
+      Change:    
+                 Call FixForUpgrade.exe to patch the T2.6b Gold database
+                 before doing upgrade.
+ 
+   Enhancement:
+   ===========
+   1.  Change:
+                 By request, changed ASF IP Monitor service name into:
+                 "Broadcom ASF IP and SMBIOS Mailbox Monitor" 
+                 (Refer to Cont00025052)
+       Impact:
+                 ASF Installer
+
+Version 1.1.8 (July 2, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:   ( Cont00025503 )
+                 MSM based Installer v9.05.01 Fails to Install NDIS 
+                 Client (nd50x v2.8.9) on Teton based NIC 
+      Cause:
+                 VBD Driver caused bus rescan during uninstallation
+                 with multiple WSD enabled NIC, causing phantom
+                 NDIS left behind.
+      Impact:
+                 BDrv5706, BDrvInstaller, BMgmtInstaller, Umbrella
+      Files:
+                 BDrv5706:       BDrv5706Msm_*.ism, 
+                 BDrvInstaller:  BDrvInstMSM_*.ism, 
+                 BMgmtInstaller: CustomActionMSM_*.ism
+      Changes:    
+                 1. BDrv5706: Call new API in BWinInst to disable 
+                    VBD before uninstall.
+                 2. All installers: In case of reboot is needed 
+                    because disabling fails, condition unecessary 
+                    custom actions not to run after reboot. All 
+                    installers are affected because they are packaged
+                    in umbrella.
+   2. Problem:   ( Cont00022668 )
+                 Canceled Mgmt Apps Setup May Leave SNMP in 
+                 a non-working state
+      Cause:
+                 Installations involving drivers cannot be canceled
+      Impact:
+                 All installers
+      Files:
+                 All installers MSI project files
+      Changes:    
+                 Disable CANCEL button in the progress dialog
+   3. Problem:   ( Cont00025482 )
+                 Support Info for Teton Driver Installer Not 
+                 Consistent with Legacy Driver and Mgmt Apps Installers
+      Cause:
+                 Teton installer missing custom actions to set
+                 support info as other installers do.
+      Impact:
+                 Teton installer
+      Files:
+                 BDrv5706Msm_*.ism
+      Changes:    
+                 Added custom actions to set support info
+
+   Enhancement:
+   ===========
+   1.  Change:
+                 In case of upgrade, if WSD node is present or 
+                 disabling child nodes fails, reboot and continue 
+                 to upgrade.
+       Impact:
+                 Teton driver installer.
+
+Version 1.1.7 (June 20, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1. Change:
+                 WSD Driver files are renamed to 8.3 format
+      Impact:
+                 Teton driver installer.
+
+Version 1.1.6 (June 9, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:
+                 Cont00025098 - Unselecting/Reslecting Bacs/basp causes
+                 managment installer to not install chm help file 
+      Cause:
+                 CHM is a hidden subfeature under BACS, and does not get 
+                 selected if BACS is unselected and then implicitly reselected
+                 by selecting BASP.
+      Impact:
+                 Management installer, Umbrella installer
+      Files:
+                 BMgmtInstaller.ism, Umbrella.ism
+      Changes:    
+                 Include CHM in BASP feature 
+   2. Problem:   Cont00025056 - Upgrading Teton driver installer from a flash 
+                 disk prompts the user for a 'Disk 1' 
+      Cause:
+                 Windows SourceList setting is pointing to the previous 
+                 source location
+      Impact:
+                 Teton driver installer.
+      Files:
+                 BDrv5706Msm_AMD64.ism, BDrv5706Msm_IA32.ism, BWinInst.dll
+      Changes:    
+                 1. BWinInst function BInstBRCMSetDrvSrcList was hard 
+                    coded for NetXtreme Driver Installer. 
+                    Use MsiSourceListAddSource with Product Code
+                    property instead to make function generic.
+                 2. Added Custom action to call BInstBRCMSetDrvSrcList API of 
+                    BWinInst.dll
+   3. Problem:   If CIM is installed by 2 products, uninstalling
+                 1 product will remove CIM all together. 
+      Cause:
+                 removal of CIM was done without checking if it 
+                 was used by more than 1 product.
+      Impact:
+                 Management Installer and ASF Installer
+      Files:
+                 BWinInst.dll
+      Changes:    
+                 Remove CIM only if it is installed by 1 product.
+   Enhancement:
+   ===========
+   1. Change:
+                 Added WSD and ISCSI drivers to Teton driver installer
+      Impact:
+                 Teton driver installer.
+
+Version 1.1.5 (May 25, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:
+                 Cont00024992 - BASP Link/Dependency to BACS in Mgmt Apps 
+                 Installer Does Not Install BACS 
+      Cause:
+                 Feature table was re-oraganized to fix some validation errors.
+      Impact:
+                 Management installer.
+      Files:
+                 BMgmtInstaller.ism
+      Changes:    
+                 Include BACS MSM in BASP feature 
+
+Version 1.1.4 (May 24, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Problem:
+                 Cont00024895 - B57 driver installer for HP fails 
+                 during the installation process. 
+      Cause:
+                 When we build the INF file name, the code was not prepared to
+                 deal with W2k3 system as the check included only XP and w2k.
+      Impact:
+                 NetXtreme driver installer.
+      Files:
+                 BWinInst\service.cpp
+      Changes:    
+                 Reversed the INF file name check. If the platform is not AMD64 
+                 or IA64, we now assume the platform to be IA32 and build the 
+                 INF file name with full path. 
+   2. Problem:
+                 Cont00024860 - Teton Installer 9.02.02 - yellow bangs after 
+                 on 2nd installation with two 5708 cards
+      Cause:
+                 When VBD is uninstalled after its child nodes, the devices 
+                 are enumerated, and caused phantom devices left behind after 
+                 uninstallation, which caused the problem on installation 
+                 onwards.
+      Impact:
+                 Teton driver installer.
+      Files:
+                 BWinInst\internal.cpp, BDrvInstMSM*.ism, BDrv5706MSM*.ism
+      Changes:    
+                 BWinInstl.dll: Skip enumeration when VBD is uninstalled
+                 Installers: Call BInstScanForHardwareChanges before uninstall
+   3. Problem:
+                 Cont00024941 - Mgmt Apps Installer v9.02.03 Does Not Install 
+                 SNMP Interface Agent Correctly
+      Cause:
+                 Copy and paste error during migration from MSI based project.
+                 Registry setting 
+                 [HKEY_LOCAL_MACHINE\SOFTWARE\Broadcom\Bcmif\CurrentVersion]
+                 has the wrong entries.
+      Impact:
+                 Management installer (IA32).
+      Files:
+                 SnmpMsm_IA32.ism
+      Changes:    
+                 Corrected registry entry.
+                  
+
+Version 1.1.3 (May 10, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Request:
+                 CIM and SNMP are default selected. They should not be selected 
+                 by default.
+      Cause:
+                 The install level for SNMP and CIM were put as 1 in the condition
+                 when fixing validation error ICE79.
+      Impact:
+                 BMgmtInstaller
+      Files:
+                 BMgmtInstaller.ism
+      Changes:
+                 Changed install level from 1 to 101 in conditions of SNMP & CIM.
+   2. Request:
+                 BACS files were not removed after uninstall if previously
+                 upgraded from version 7 of BMgmtInstaller.
+      Cause:
+                 Component ID was changed from version 7 to version 8 
+                 while the keyfile remained the same.
+      Impact:
+                 BMgmtInstaller
+      Files:
+                 BacsMSM_IA32.ism
+      Changes:
+                 1. unset bacs.exe as the key file
+                 2. add new registry key under HKCU to be the key path
+                 3. change shortcut to non-advertised and set the target to bacs.exe
+   3. Request:
+                 BDrv5706 failed to install on W2K
+      Cause:
+                 Condition of Installing NDIS custom action does not include W2K
+      Impact:
+                 BDrv5706  Installer
+      Files:
+                 BDrv5706Msm_IA32.ism
+      Changes:
+                 Corrected the condition in custom action.
+   4. Request:
+                 File extraction failed if temp folder name has an extra dot, 
+                 which caused the installation failed because DIFxAPI.dll is missing
+                 from the temp folder.
+      Cause:
+                 BWinInst.dll failed to handle this use case.
+      Impact:
+                 BWinInst.dll
+      Files:
+                 BWinInst\internal.cpp
+      Changes:
+                 added support for the temp folder with an extra dot in the name.
+   5. Request:
+                 Silent.txt not up to date with new product code.
+      Cause:
+      Impact:
+                 All installers
+      Files:
+                 Silent.txt files in all projects.
+      Changes:
+                 Updated product codes.
+
+Version 1.1.2 (April 20, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1. Request:
+                 Support changing MSI package file name in buildscript.
+      Cause:
+                 Management installer has 2 different MSI package file names 
+                 depending on the product configuration.
+      Impact:
+                 Buildscript, Management installer, Umbrella installer
+   2. Request:
+                 Changed BACS uninstall registry to use product code property 
+                 instead of hard coded product code.
+      Cause:
+                 Since the registry had hard coded the product code, it has 
+                 to be changed every time a major upgrade is done.
+      Impact:
+                 Management installer BACS MSMs
+   Fixes:
+   ===========
+   1. Request:
+                 Matched component ID with old projects, shared components.
+      Cause:
+                 For proper reference counting by Windows.
+      Impact:
+                 All installers
+      Files:
+                 All project files containing components
+      Changes:
+                 ID and shared property of components
+   2. Request:
+                 Moved Microsoft_DLL_IA32 component from BACS and SNMP 
+                 to standalone MSM.
+      Cause:
+                 We are matching component ID and therefore we cannot have 
+                 2 MSMs using the same component ID (build error).
+      Impact:
+                 Management installer, BACS MSM, SNMP MSM, Umbrella installer
+      Files:
+                 BMgmtInstaller.ism, BacsMSM_IA32.ism, SnmpMsm_IA32.ism, 
+                 MicrosoftDllMsm_IA32.ism, BMgmtInstaller.xml,
+                 Umbrella.ism, Umbrella.xml
+      Changes:
+                 Moved the reference to Microsoft_DLL_IA32 component.
+   3. Request:
+                 Changed product codes for major upgrade.
+      Cause:
+                 Feature and component tables have been changed from 
+                 pre-MSM projects, so minor upgrade from the already 
+                 released softwares would fail.
+      Impact:
+                 All installers
+      Files:
+                 All MSI project files
+      Changes:
+                 Product code
+   4. Request:
+                 Old 5706 installer has only 1 cab files, while the new MSM 
+                 based 5706 installer has 4 cab files. It should only contain
+                 1 cab file.
+      Cause:
+                 Most projects uses "one cab per component" option for custom 
+                 compression, while the old 5706 installer uses "one cab per 
+                 feature" option.
+      Impact:
+                 5706 driver installer
+      Files:
+                 BDrv5706.ism
+      Changes:
+                 change from "one cab per component" to "one cab per feature".
+
+
+Version 1.1.1 (April 13, 2006)
+---------------------------------
+   Enhancement:
+   ===========
+   1. Request:
+                 Moved BASP upgrade reboot message for Umbrella from 
+                 BMgmtInstaller to Umbrella project.
+      Cause:
+                 
+      Impact:
+                 Management and umbrella installer.
+   Fixes:
+   ===========
+   1. Request:
+                 Custom action for upgrade BASP reboot message was never executed;
+                 the existing message we saw after upgrade was actually from the 
+                 BASP removed custom action.
+      Cause:
+                 Conditions for the custom actions were not correct.
+      Impact:
+                 Management installer
+      Files:
+                 CustomActionMSM_IA32.ism, CustomActionMSM_IA64.ism, CustomActionMSM_AMD64.ism
+      Changes:
+                 Fixed the conditions for custom actions.
+
+
+Version 1.1.0 (April 12, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Request:
+                 CQ# 20614
+      Cause:
+                 A registry was deleted after uninstallation.
+      Impact:
+                 Teton driver installer.
+      Files:
+                 BDrv5706.ism, BDrv5706Msm_AMD64.ism, BDrv5706Msm_IA32.ism
+      Changes:
+                 Display reboot message after uninstallation.
+
+Version 1.0.1 (March 29, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Request:
+                 Changed MSI package name for NetXtreme driver installer.
+      Cause:
+                 Regressed when creating new product config for 
+                 MSI/MSM split-up.
+      Impact:
+                 NetXtreme driver installer.
+
+Version 1.0.0 (March 29, 2006)
+---------------------------------
+   Fixes:
+   ===========
+   1. Request:
+                 CQ# 24157
+      Cause:
+                 Cancelling during uninstall causes uninstall issues in Golfers
+      Impact:
+                 Management installer.
+      Files:
+                 BMgmtInstaller.ism
+      Changes:
+                 Cancel button is disabled once uninstallation is confirmed 
+                 and started. Cancelling in the middle of uninstallation 
+                 is not supported.
+   Enhancement:
+   ===========
+   1. Request:
+                 Extracted NetXtreme driver installer
+                 functionality in to a separate MSM.
+      Cause:
+                 MSI/MSM split-up.
+      Impact:
+                 NetXtreme driver installer.
+                 
+                 

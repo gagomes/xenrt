@@ -1,0 +1,69 @@
+<xenrt>
+
+  <!-- OS functional tests: debian60 -->
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+      <serial group="debian60">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-13213">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=debian60</arg>
+          <arg>distro=debian60</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="debian60">
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-13218">
+            <arg>guest=debian60</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=1000</arg>
+          </testcase>
+        </serial>
+      </serial>
+
+      <serial group="ws08r2sp1-x64">
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9653">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=ws08r2sp1-x64</arg>
+          <arg>distro=ws08r2sp1-x64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="ws08r2sp1-x64">
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9654">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9659">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=1000</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=ws08r2sp1-x64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

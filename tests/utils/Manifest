@@ -1,0 +1,6 @@
+# Status: distributable
+f16fc60f5b80722430a54d821a52f7e0  ./usemem_win.c
+b593706e3ffcd2ee2fc0e5405ed83ea6  ./usemem.c
+c0d742564191c7cce2591c7c26cd42e9  ./usemem
+c8a024a523a909484ba77f19de6deef6  ./usemem_win.exe
+

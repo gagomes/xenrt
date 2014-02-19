@@ -1,0 +1,9 @@
+[Components]
+iis_common=ON
+iis_inetmgr=ON
+aspnet=ON
+iis_asp=ON
+iis_www=ON
+iis_smtp=ON
+iis_nntp=ON
+

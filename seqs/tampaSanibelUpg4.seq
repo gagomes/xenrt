@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- Boston rolling pool upgrade test from Oxford with all the hotfixes on -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_BOSTON>
+    <CARBON_PATCHES_BOSTON>
+      <XS602E001>/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E001/54289/hotfix-XS602E001/XS602E001.xsupdate</XS602E001>
+      <XS602E002>/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E002/54264/hotfix-XS602E002/XS602E002.xsupdate</XS602E002>
+      <XS602E003>/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E003/55192/hotfix-XS602E003/XS602E003.xsupdate</XS602E003>
+      <XS602E004>/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E004/56521/hotfix-XS602E004/XS602E004.xsupdate</XS602E004>
+      <XS602E005>/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E005/56710/hotfix-XS602E005/XS602E005.xsupdate</XS602E005>
+    </CARBON_PATCHES_BOSTON>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+
+  <prepare>
+    <host id="2">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC17660"/>
+  </testsequence>
+
+</xenrt>

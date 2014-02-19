@@ -1,0 +1,18 @@
+# Description: Microsoft HCT corestress test
+# Status: downloadable
+# Obtaining:
+# This test is part of the Microsoft HCTs. If you have access to the HCTs then you
+# should be able to extract this particular test. A list of the required files is
+# available in the Manifest
+d5661d07c7fddc45c3f296bec00a0357  ./DiskLoad.exe
+89e2dc1c89de7c28085205bfe591a401  ./WTTLog.dll
+3a1ca89d3b9759905c124de755fbc5f9  ./AutoDV.vbs
+d6b42cf58aa107327db4b317182a9ae2  ./DRS_Ext.ini
+7a4174309726c2b829d1dfc3e100daa5  ./consume.exe
+ba9d94e0b26962bfb113319b02fb8584  ./Runstrss.exe
+3fb42611855e02f854c27f5565f75081  ./AutoDV.xml
+85d92341c8149bc6809ebd972d13cafa  ./sleep.exe
+f05698a56d6113d992e30c8d0b7cde9a  ./DRS_Stress.ini
+114cda05e1d39ee88eb57f93189e4541  ./runstrss.xml.trace
+4205b6fc5b9b053fca46b1b6d1e7f1a2  ./memstrs.bat
+7d6968da40bcef3544502f57e4ab65fd  ./DiskLoadWrapper.vbs

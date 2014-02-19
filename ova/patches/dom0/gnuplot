@@ -1,0 +1,8 @@
+diff -r 27930464c634 packages.xenrt
+--- a/packages.xenrt	Mon Mar 17 09:18:43 2008 +0000
++++ b/packages.xenrt	Mon Mar 17 09:19:04 2008 +0000
+@@ -38,3 +38,4 @@ perl-Net-SSLeay
+ perl-Net-SSLeay
+ vconfig
+ perl-libwww-perl
++gnuplot

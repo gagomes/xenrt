@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the d/tbench benchmark
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, Chris Thompson-Walsh, July-August 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+DBENCHVER=dbench-3.03
+NUM_CLIENTS=64
+
+TIMEOUT=3600
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+check_skip() {
+    if [ "`arch`" == "x86_64" ]; then
+	BM_SKIP=true
+    fi
+}
+BM_CHECKSKIP=check_skip
+
+install_dtbench() {
+    tar -zxf ${DBENCHVER}.tar.gz
+    cd ${DBENCHVER}
+    ./configure 
+    make
+}
+BM_INSTALL=install_dtbench
+
+run_tbench() {
+    ( ./${DBENCHVER}/tbench_srv | true ) &
+    ./${DBENCHVER}/tbench -c ./${DBENCHVER}/client.txt ${NUM_CLIENTS} > \
+	${WORKDIR}/logs/${SUBDIR}.out 2> ${WORKDIR}/logs/${SUBDIR}.err
+    killall tbench_srv || true
+    killall ${WORKDIR}/${THISSCRIPT}/${DBENCHVER}/tbench || true
+    if grep -q FAILED ${WORKDIR}/logs/${SUBDIR}.out; then
+	log_extra_data "Reason:" `grep FAILED ${WORKDIR}/logs/${SUBDIR}.out | head -n1`
+	false
+    fi
+}
+
+if [ "${THISSCRIPT}" = "dbench" ]; then
+    BM_RUN='./${DBENCHVER}/dbench -c ./${DBENCHVER}/client.txt ${NUM_CLIENTS} > ${WORKDIR}/logs/${SUBDIR}.out 2> ${WORKDIR}/logs/${SUBDIR}.err'
+else
+    BM_RUN=run_tbench
+fi
+
+#Throughput 123.132 MB/sec 64 procs
+process_dtbench() {
+    grep ^Throughput ${WORKDIR}/logs/${SUBDIR}.out | \
+	awk '{print "Value:",$1,$2;}' | tail -n1
+}
+BM_PROCESS=process_dtbench
+
+. ${SCRIPTDIR}/generic

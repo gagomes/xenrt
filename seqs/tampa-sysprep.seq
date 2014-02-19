@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- Test VM with sysprep'd PV drivers -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="Sysprep">
+      <testcase id="xenserver.guest.TCSysprep" tc="TC-18618" name="TC-18618">
+        <arg>distro=ws08r2-x64</arg>
+        <arg>clones=3</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

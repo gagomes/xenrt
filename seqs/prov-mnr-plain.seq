@@ -1,0 +1,22 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+  </xenrt>

@@ -1,0 +1,32 @@
+<xenrt>
+  <!-- Pool of 2 clearwater hosts with 2 linux VMs on NFS -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="0">
+        <vm name="debian">
+          <distro>debian60</distro>
+          <memory>128</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="centos">
+          <distro>centos63</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="1" />
+      <storage type="nfs" name="nfs" default="true"/>
+    </pool>
+  </prepare>
+</xenrt>

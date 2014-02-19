@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Check a domain for reachability
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 7 August 2005
+
+XENMACHINE=$1
+DOMNAME=$2
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+. ${SCRIPTDIR}/functions
+RETVAL=0
+
+set -e
+
+X=`echo ${DOMNAME} | cut -d - -f 1`
+if [ "$X" != "Domain" ]; then
+    # Not a Xen domain, ignore
+    exit 0;
+fi
+
+if [ "${DOMNAME}" = "Domain-0" ]; then
+    HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+else
+    DOMINDEX=`echo ${DOMNAME} | cut -d - -f 2`
+    HOSTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+fi
+
+${SSHTO} ${SSHCONNTIMEOUT} root@${HOSTNAME} /bin/true

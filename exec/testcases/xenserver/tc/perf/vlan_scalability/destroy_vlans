@@ -1,0 +1,10 @@
+#!/bin/bash
+
+before=$(echo "import time; print time.time()" | python)
+time for vlan in $(xe vlan-list --minimal | sed "s/,/ /g"); do
+	xe vlan-destroy uuid=$vlan;
+done
+after=$(echo "import time; print time.time()" | python)
+echo
+echo print $after - $before | python
+

@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Orlando to George iSCSI pool rolling upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Orlando"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.0.0-Update3-GA"/>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>None</RPU_WINDOWS_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8767"/>
+  </testsequence>
+
+</xenrt>

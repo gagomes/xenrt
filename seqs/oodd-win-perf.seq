@@ -1,0 +1,116 @@
+
+<xenrt>
+
+  <!-- performance testing for Windows Out-of-date Drivers -->
+  <default name="TESTED_PRODUCT_VERSION" value="TestedVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_VERSION" value="FromVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_INPUTDIR" value="FromInputDir-MustOverrideInSuite"/>
+  <default name="TO_PRODUCT_VERSION" value="ToVer-MustOverrideInSuite"/>
+  <default name="TO_PRODUCT_INPUTDIR" value="ToInputDir-MustOverrideInSuite"/>
+  <default name="FROM_REVISION" value="Unknown" />
+  <default name="REVISION" value="Unknown" />
+  <default name="GUESTDISTRO" value="win7sp1-x86" /> 
+  <default name="GUESTDISTROTYPE" value="win7" />                <!-- winxp | win7 | win2008 -->
+  <default name="VM_ACTION_ON_HOST_REBOOT" value="SHUTDOWN" />   <!-- EVACUATE | SUSPEND | SHUTDOWN-->
+
+  <variables>
+    <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
+        <vm name="guest1_1">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0" />
+          <postinstall action="installDrivers" />
+        </vm>
+      </host>
+      <host id="1" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
+        <vm name="guest1_2">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0" />
+          <postinstall action="installDrivers" />
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial>
+
+      <serial group="ApplyReleasedHFXs" blocker="yes">
+        <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" blocker="yes">
+          <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+          <arg>applyAllHFXsBeforeApplyAction=True</arg>
+        </testcase>
+      </serial>
+
+      <serial group="XS${FROM_REVISION}T${FROM_REVISION}" guest="guest1_1">
+          <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate"  host="RESOURCE_HOST_0">
+            <arg>guest=guest1_1</arg>
+            <arg>numiters=20</arg>
+          </testcase>
+          <testcase id="benchmarks.micro.TCiometer" />
+          <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+            <arg>vm_type=${GUESTDISTROTYPE}</arg>
+            <arg>num_vm_pairs=1</arg>
+            <arg>num_vm_threads=2</arg>
+            <arg>trySingleDom0Thread=True</arg>
+            <arg>trySingleVMPair=True</arg>
+            <arg>trySingleVMThread=True</arg>
+            <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+          </testcase>
+      </serial>
+
+      <serial group="RollingPoolUpdate" blocker="yes">
+        <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" blocker="yes">
+          <arg>FINAL_VERSION=${TO_PRODUCT_VERSION}</arg>
+          <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+          <arg>applyAllHFXsBeforeApplyAction=True</arg>
+        </testcase>
+      </serial>
+
+      <serial group="XS${REVISION}T${FROM_REVISION}" guest="guest1_1">
+          <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate"  host="RESOURCE_HOST_0">
+            <arg>guest=guest1_1</arg>
+            <arg>numiters=20</arg>
+          </testcase>
+          <testcase id="benchmarks.micro.TCiometer" />
+          <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+            <arg>vm_type=${GUESTDISTROTYPE}</arg>
+            <arg>num_vm_pairs=1</arg>
+            <arg>num_vm_threads=2</arg>
+            <arg>trySingleDom0Thread=True</arg>
+            <arg>trySingleVMPair=True</arg>
+            <arg>trySingleVMThread=True</arg>
+            <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+          </testcase>
+      </serial>
+
+      <serial group="UpgradeVMDrivers" blocker="yes">
+        <testcase id="testcases.xenserver.tc.upgrade.UpgradeAllVMTools" blocker="yes"/>
+      </serial>
+
+      <serial group="XS${REVISION}T${REVISION}" guest="guest1_1">
+          <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate"  host="RESOURCE_HOST_0">
+            <arg>guest=guest1_1</arg>
+            <arg>numiters=20</arg>
+          </testcase>
+          <testcase id="benchmarks.micro.TCiometer" />
+          <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+            <arg>vm_type=${GUESTDISTROTYPE}</arg>
+            <arg>num_vm_pairs=1</arg>
+            <arg>num_vm_threads=2</arg>
+            <arg>trySingleDom0Thread=True</arg>
+            <arg>trySingleVMPair=True</arg>
+            <arg>trySingleVMThread=True</arg>
+            <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+          </testcase>
+      </serial>
+    </serial>
+  </testsequence>
+
+</xenrt>

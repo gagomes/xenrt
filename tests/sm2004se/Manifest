@@ -1,0 +1,25 @@
+# Description: SysMark 2004 SE
+# Status: proprietary
+# Obtaining:
+# SysMark 2004 SE can be obtained from http://www.bapco.com/products/sysmark2004se/
+# The iso should then be placed in /usr/share/xenrt/images/iso
+# This test also requires virtual audio cable v4 (vac), available from 
+# www.ntonyx.com. A license is required, however, for the test, simply extract
+# the contents of the demo zip in to a vac subfolder.
+d73651daaece4fedce7425f310cf0416  ./vac/readme.txt
+faa8dbe6212eeb4d4da4852ddabe945b  ./vac/vrtaucbl.inf
+a336f2762ec182e51c3e3a73a3bc9e0e  ./vac/vac.chm
+e514c34490251bb1b83b385331a67e2e  ./vac/setup.exe
+2846a401a8dd77d1b0565adc910a93bd  ./vac/setup64.exe
+b0b389dd238be41fca5368a2d8bbb80e  ./vac/setup.ini
+7a64f2d2c80bfe3cb1f83142000e3d7e  ./vac/i386/vrtaucbl.sys
+7ea61a7ba87aa7b8095e020a7cc34683  ./vac/i386/vcctlpan.exe
+ac76d0bbcfd0e6de715f075b4bb504f6  ./vac/homepage.url
+bd3623aea99662282a3e05c8bfbb09d3  ./vac/license.txt
+a28f077ad7cbb362e92c69873b31a348  ./vac/file_id.diz
+b7a9d2e6739281c2e4b036001b796ba1  ./vac/removeservice.inf
+b53945f5c50b4f0c2ba0f4414e83ef18  ./vac/amd64/vrtaucbl.sys
+92f529cb1ecfa6beb6a6a9f7c17d227c  ./vac/amd64/vcctlpan.exe
+746e6eb3f8b4c860c4dcdc50110cae1f  ./vac/AudioRepeater.exe
+6d85a0534b73cb1829d80bb3f217e528  ./sendkeys.vbs
+*                                 ./xen.iss

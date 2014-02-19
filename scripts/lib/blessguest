@@ -1,0 +1,116 @@
+#
+# XenRT: Xen regression testing. How to xenify a guest image.
+#
+# (C) XenSource Inc. 2006
+# James Bulpin, Mar-Sep 2006
+
+
+# Take a non-XenRT blessed guest and blesses it with scripts, SSH keys etc.
+bless_guest() {
+    local HOSTNAME=$1
+    local DISTRO=$2
+
+    local CLEANSCRIPTDIR=${SCRIPTDIR}/clean
+
+    # Windows or PV Linux? Assume distro starts with "w" for Windows
+    if ! ( echo ${DISTRO} | grep -q "^w" ); then
+	# We don't need to do this for Windows
+
+        # Create a script to run on the guest to set up the SSH authorized_keys
+        # file
+	SSHPUBKEY=`cat ${SCRIPTDIR}/${KEYBASE}.pub`
+	SSHCFG=`mktemp /tmp/sshcfgXXXXXX`
+	cat > ${SSHCFG} <<EOF
+#!/bin/bash
+if [ ! -d /root/.ssh ]; then
+  mkdir -p /root/.ssh
+  chmod 700 /root/.ssh
+fi
+echo "${SSHPUBKEY}" >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+EOF
+	chmod +x ${SSHCFG}
+
+        # Establish the password to use
+	PASSWORD=${CARBON_GUEST_PASSWORD}
+	unset GUEST_PASSWORD
+	TMPSSH=`mktemp /tmp/xenrtsshXXXXXX`
+	for p in ${PASSWORD} ${ROOT_PASSWORDS}; do
+	    if expect ${CLEANSCRIPTDIR}/sshpassword.expect \
+		root@${HOSTNAME} /bin/true ${p} >> ${TMPSSH}; then
+		
+		GUEST_PASSWORD=${p}
+		break
+	    fi
+	done
+
+	if [ -z "${GUEST_PASSWORD}" ]; then
+	    if grep -q 'Invalid password' ${TMPSSH}; then
+		log_extra_data \
+		    "Reason: could not log in to guest using any password" \
+		    "I know"
+	    else
+		log_extra_data "Reason: could not make an SSH connection to" \
+		    "guest"
+	    fi
+	    rm -f ${TMPSSH}
+	    return ${RC_ERROR}
+	fi
+	rm -f ${TMPSSH}
+
+	expect ${CLEANSCRIPTDIR}/scppassword.expect ${SSHCFG} \
+	    root@${HOSTNAME}:${SSHCFG} ${GUEST_PASSWORD}
+	expect ${CLEANSCRIPTDIR}/sshpassword.expect root@${HOSTNAME} \
+	    ${SSHCFG} ${GUEST_PASSWORD}
+
+	rm -f ${SSHCFG}
+    fi
+
+    # Add a firewall rule to allow everything and save rules.
+    ${SSH} root@${HOSTNAME} iptables -D RH-Firewall-1-INPUT \
+        -j REJECT --reject-with icmp-host-prohibited || true
+    ${SSH} root@${HOSTNAME} iptables -A RH-Firewall-1-INPUT \
+        -j ACCEPT || true
+    ${SSH} root@${HOSTNAME} "iptables-save > /etc/sysconfig/iptables" || true
+
+    # Send over setup and benchmark scripts
+    ${SSH} root@${HOSTNAME} \
+	"rm -rf ${REMOTE_SCRIPTDIR}; mkdir -p ${REMOTE_SCRIPTDIR}"
+    ${SCP} -p -r ${SCRIPTDIR}/* root@${HOSTNAME}:${REMOTE_SCRIPTDIR}/
+    if [ -e ${WORKDIR}/per-run-config ]; then
+	${SCP} ${WORKDIR}/per-run-config \
+	    root@${HOSTNAME}:${PER_RUN_CONFIG_LOCAL}
+    fi
+
+    # Windows tweaks
+    if ( echo ${DISTRO} | grep -q "^w" ); then
+	${SSH} ${SSHCONNTIMEOUT} root@${HOSTNAME} \
+	    ln -s /usr/local/bin/bash /bin/bash || true
+
+	# Perform any necessary post-install steps on the guest
+	PIARGS=""
+	if [ "${OPTION_USE_EMS}" = "yes" ]; then
+	    PIARGS="${PIARGS} ems"
+	fi
+	if ! ${SSH} ${SSHCONNTIMEOUT} root@${HOSTNAME} \
+	    ${REMOTE_SCRIPTDIR}/installvm post-install ${PIARGS} > \
+	    ${WORKDIR}/logs/postinstall-${HOSTNAME}.log 2>&1; then
+	    
+	    log_extra_data "Reason: post-install actions failed"
+	    return ${RC_ERROR}
+	fi
+
+    fi
+
+    # CA-4624 copy over debs
+    if [ -n "${COPYDEB}" ]; then
+        ${SSH} 
+        ${SCP} -p -r ${COPYDEB} root@${HOSTNAME}:/tmp/copydeb
+    fi
+
+    # Install extra RPMs/debs
+    ${SSH} root@${HOSTNAME} ${REMOTE_SCRIPTDIR}/remote/tailorimage ${DISTRO}
+
+    # Tweak the guest so we can clone it in the future
+    ${SSH} root@${HOSTNAME} ${REMOTE_SCRIPTDIR}/remote/preclone ${DISTRO}
+}

@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# Run this script on a guest before a clone to make the image suitable
+# for cloning.
+
+DISTRO=$1
+
+set -x
+
+# Clones have a different MAC address. Remove references to the existing
+# MAC from network configs. This doesn't break the original VM.
+if [ -e /etc/redhat-release ]; then
+    for c in /etc/sysconfig/network-scripts/ifcfg-eth*; do
+	if [ -e $c ]; then
+	    mv $c $c.orig
+	    grep -v ^HWADDR $c.orig > $c
+	fi
+    done
+fi

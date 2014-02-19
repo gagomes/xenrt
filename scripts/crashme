@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run crashme
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, August 2005-April 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=7200
+BM_SUPPORTED_PLATFORMS="Linux"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+BM_INSTALL="tar -zxf crashme.tgz && patch < sa_mask.patch && make"
+
+run_crashme() {
+
+    # We don't want gigs of core files
+    ulimit -c 0
+
+    # The argument is the number of minutes to run for, or "lite",
+    # "quick", "stress" or "benchmark"
+    MINUTES=5
+    if [ "${TESTTYPE}" = "default" -o "${TESTTYPE}" = "quick" ]; then
+	MINUTES=5
+    elif [ "${TESTTYPE}" = "lite" ]; then
+	MINUTES=2
+    elif [ "${TESTTYPE}" = "stress" ]; then
+	MINUTES=60
+    elif [ "${TESTTYPE}" = "benchmark" ]; then
+	MINUTES=30
+    else
+	MINUTES=${TESTTYPE}
+    fi
+    log_extra_data "Comment: Running crashtest for ${MINUTES} minutes"
+
+    HOURS=$[${MINUTES} / 60]
+    MINUTES=$[${MINUTES} % 60]
+
+    # We must redirect STDOUT, it generates about 300MB/minute!
+    su -s /bin/bash -c \
+	"./crashme +2000 666 100 ${HOURS}:${MINUTES}:00 > /dev/null" nobody \
+	|| true
+}
+BM_RUN=run_crashme
+
+. ${SCRIPTDIR}/generic

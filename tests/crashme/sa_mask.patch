@@ -1,0 +1,11 @@
+--- crashme.c.orig	2005-08-19 16:26:01.975350000 +0100
++++ crashme.c	2005-08-19 16:33:32.915350000 +0100
+@@ -260,7 +260,7 @@ void my_signal(sig, func)
+ #else
+  struct sigaction act;
+  act.sa_handler = func;
+- act.sa_mask = 0;
++ sigemptyset (&act.sa_mask);
+ #ifdef linux
+  act.sa_restorer = 0;
+ #endif /* linux */

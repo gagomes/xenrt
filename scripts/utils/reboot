@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Wrapper for guest reboot.
+#
+# (C) XenSource UK Ltd 2006
+# James Bulpin, August 2006
+
+UTILSDIR=`dirname $0`
+SCRIPTDIR=`dirname ${UTILSDIR}`
+
+. ${SCRIPTDIR}/lib/windows
+
+if iswindows; then
+    ${SHUTDOWN} -f -r -t 10
+else
+    /sbin/reboot
+fi

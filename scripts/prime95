@@ -1,0 +1,181 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Install and run the Prime95 benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+BM_SUPPORTED_PLATFORMS="Windows Linux"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+    DURATION=${1:-3600}
+    set_test_timeout $[${DURATION} + 600]
+}
+
+BM_INSTALL=install_this
+
+run_this_linux() {
+    DURATION=${1:-3600}
+    SPECIAL=$2
+
+    set -x
+
+    if [ ! -e mprime ]; then
+        tar -zxf sprime2414.tar.gz
+    fi
+
+    # Start one background task per processor
+    CPUS=`grep -c ^processor /proc/cpuinfo`
+    if [ "${SPECIAL}" = "double" ]; then
+        log_extra_data "Comment: Running two processes per CPU"
+        CPUS=$[${CPUS} + ${CPUS}]
+    fi
+    log_extra_data "Comment: Running ${CPUS} processes"
+    for (( i=0;i<${CPUS};i++ )); do
+      ./mprime -d -t -A$i >> ${WORKDIR}/logs/mprime.log.$i &
+      PID[$i]=$!
+    done
+    STARTEDAT=`date +%s`
+    sleep 10
+
+    # Check the processes are all running
+    MISSING=0
+    for (( i=0;i<${CPUS};i++ )); do
+        if [ ! -d /proc/${PID[$i]} ]; then
+            MISSING=$[${MISSING} + 1]
+        fi
+    done
+    if [ ${MISSING} != 0 ]; then
+        killall mprime || true
+        sleep 5
+        killall mprime || true
+        log_extra_data "Reason: ${MISSING} instance(s) did not start"
+        return ${RC_ERROR}
+    fi
+
+    # Wait until the deadline
+    DEADLINE=$[${STARTEDAT} + ${DURATION}]
+    while [ `date +%s` -lt ${DEADLINE} ]; do
+       echo "Stress testing with mprime..."
+       sleep 30
+
+       # Check process(es) still running
+        MISSING=0
+        for (( i=0;i<${CPUS};i++ )); do
+            if [ ! -d /proc/${PID[$i]} ]; then
+                MISSING=$[${MISSING} + 1]
+            fi
+        done
+        if [ ${MISSING} != 0 ]; then
+            killall mprime || true
+            sleep 5
+            killall mprime || true
+            log_extra_data "Reason: ${MISSING} instance(s) terminated early"
+            return ${RC_ERROR}
+        fi
+    done
+
+    killall mprime || true
+    sleep 5
+    killall mprime || true
+    sleep 5
+
+    RUNNING=0
+    for (( i=0;i<${CPUS};i++ )); do
+        if [ -d /proc/${PID[$i]} ]; then
+            RUNNING=$[${RUNNING} + 1]
+        fi
+    done
+    if [ ${RUNNING} != 0 ]; then
+        log_extra_data "Reason: ${RUNNING} instance(s) did not die"
+        return ${RC_ERROR}
+    fi
+
+}
+
+run_this_windows() {
+    DURATION=$1  
+    TIMESPENT=0
+
+    set -x
+
+    chmod 777 .
+
+cat > run.bat <<EOF
+cd `winify_path ${WORKDIR}/${THISSCRIPT}`
+prime95.exe -t
+EOF
+chmod +x run.bat
+
+    # PATH hack to make SOON find the win32 at.exe and not the unix at command
+    PATH=/dev/fs/C/WINDOWS/system32:$PATH
+    if ${WORKDIR}/${THISSCRIPT}/soon.exe 90 /INTERACTIVE \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/run.bat`
+	then
+        # Deal with the fact soon.exe returns an error...
+	echo
+    fi
+    sleep 130
+
+    PID=`ps a | grep prime95.exe | awk '{print $1}'`
+    if [ -z "${PID}" ]; then
+	log_extra_data "Reason: prime95.exe did not start"
+	return ${RC_ERROR}
+    fi
+
+    while [ "${TIMESPENT}" -lt "${DURATION}" ]; do
+       echo "Stress testing with Prime95..."
+       sleep 30
+       TIMESPENT=$[ ${TIMESPENT} + 30 ]
+       
+       # Check it's still running
+       if ! ( ps -p ${PID} | grep -q ${PID} ); then
+	   log_extra_data "Reason: prime95.exe terminated early"
+	   return ${RC_ERROR}
+       fi
+    done
+
+    for p in ${PID}; do
+	kill ${p}
+    done
+}
+
+run_this() {
+    if iswindows; then
+        run_this_windows "$@"
+    else
+        run_this_linux "$@"
+    fi
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/results.txt ${WORKDIR}/${THISSCRIPT}/prime.ini ${WORKDIR}/${THISSCRIPT}/local.ini"
+
+process_this() {
+    # Only needed on Linux
+    for f in ${WORKDIR}/logs/mprime.log.*; do
+        if ! grep -q "0 errors, 0 warnings" $f; then
+            b=`basename $f`
+            leg_extra_data "Warning: Possible error in $b"
+        fi
+    done
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

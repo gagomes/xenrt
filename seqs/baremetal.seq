@@ -1,0 +1,15 @@
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host productType="nativelinux" productVersion="centos64-x64" id="0">
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="dummy.TCDummySleep" host="RESOURCE_HOST_0">
+    </testcase>
+  </testsequence>
+</xenrt>

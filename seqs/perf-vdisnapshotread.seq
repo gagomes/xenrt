@@ -1,0 +1,25 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+      <DOM0_MEM>6144</DOM0_MEM>
+      <DOM0_RDSIZE>262144</DOM0_RDSIZE>
+    </variables>
+
+    <prepare>
+     <pool>
+        <allhosts/>
+     </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vdisnapshotread.TCVDISnapshotRead" host="RESOURCE_HOST_0">
+        <arg>RUNS=[1]</arg>
+        <arg>PRODUCT_VERSION=Boston</arg>
+        <arg>XSVERSIONS=['Boston-50762']</arg>
+        <arg>VMS=[1]</arg>
+        <arg>THRESHOLD=30.0</arg>
+        <arg>pinvcpus=0</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

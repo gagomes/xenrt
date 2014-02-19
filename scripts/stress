@@ -1,0 +1,74 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# General stress test
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, August-December 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+    local DURATION=${1:-1}
+    local DURATION=$[${DURATION} * 3600]
+
+    set -x
+
+    # Force a timeout to be 1 hour more than we intend to run for
+    set_test_timeout $[${DURATION} + 3600]
+    
+    if iswindows; then
+	DONOTHING=true
+    else
+	tar -zxf stress.tar.gz
+	STEM=`ls stress-*.tar.gz | sed -e 's/.tar.gz$//' | tail -1`
+	ln -s ${STEM} src
+	log_extra_data "Comment: Using stress version ${STEM}"
+	cd src
+	./configure
+	make
+	cp src/stress ../
+    fi
+}
+BM_INSTALL=install_this
+
+run_this() {
+    local DURATION=${1:-3600}
+    local DURATION=$[${DURATION} * 3600]
+
+    set -x
+    
+    if iswindows; then
+	DONOTHING=true
+    elif [ "${DURATION}" -eq 0 ]; then
+    DONOTHING=true    
+    else
+	/local/bm/scripts/workloads/w_find start
+	./stress -t ${DURATION}s --cpu 20 --io 10 --vm 4 --vm-bytes 64M \
+	    --verbose
+	/local/bm/scripts/workloads/w_find stop
+    fi
+}
+BM_RUN=run_this
+
+process_this() {
+    local DURATION=${1:-3600}
+    local DURATION=$[${DURATION} * 3600]
+    if ! iswindows; then
+	/local/bm/scripts/workloads/w_find stop
+    fi
+}
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

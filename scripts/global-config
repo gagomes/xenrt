@@ -1,0 +1,352 @@
+# xenrt: Xen regression Testing
+#
+# Common configuration options
+#
+# Important variables are indicated by "TODO"
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, July 2005-May 2006
+
+dbtrace() {
+    if true; then
+	echo "$@" >> /tmp/dbtrace-`whoami | sed -e's/\\\\//'`
+    fi
+}
+
+#############################################################################
+# The central scripts, images, status, config...                            #
+#############################################################################
+
+# This is the NFS-accessable location for the scripts, test, etc...
+XENRT_BASE=${XENRT_BASE:-TODO}
+
+# Local binaries
+XENRT_LOCAL_BINARIES=${XENRT_BASE}/bin
+
+# Where any machine-specific mods live
+MACHINE_SPECIFIC=${XENRT_BASE}/machines
+
+# Where any machine-specific script overrides live
+MACHINE_CONFIG=${MACHINE_CONFIG:-${SCRIPTDIR}/machconfig}
+
+# Soft(ish) state
+SOFT_STATE_DIR=${XENRT_BASE}/state
+
+# Keydir is a subdir of ${SCRIPTDIR}
+KEYDIR=${KEYDIR:-keys}
+KEYBASE=${KEYBASE:-${KEYDIR}/id_dsa_xenrt}
+# Keybase is relative to ${SCRIPTDIR}
+DBKEYBASE=${DBKEYBASE:-${KEYDIR}/id_dsa_database}
+
+# The location our working directory (scratch)
+TESTBASE=${TESTBASE:-/local/scratch/xenrt}
+
+#############################################################################
+# Test results directories etc.                                             #
+#############################################################################
+
+# The result summary files go under here
+TEST_WORKING_BASE=${TEST_WORKING_BASE:-${XENRT_BASE}/results}
+
+#############################################################################
+# Test machines configuration                                               #
+#############################################################################
+
+# The place we put scripts on the test machines - this will be automatically
+# created
+REMOTE_SCRIPTDIR=${REMOTE_SCRIPTDIR:-/local/bm/scripts}
+
+# The user to run as on the test boxes
+REMOTE_USER=${REMOTE_USER:-root}
+
+# Setup mountpoints
+DOM0_SETUP_MOUNT=${DOM0_SETUP_MOUNT:-/mnt/dom0}
+
+# The number of guest images we will create
+MAX_GUESTS=${MAX_GUESTS:-5}
+
+# We support local LVM roots for guests (default) or NFS root ("nfs")
+#OPTION_GUEST_ROOT=nfs
+if [ "${OPTION_GUEST_ROOT}" = "nfs" ]; then
+    NFS_ROOT_SERVER=${NFS_ROOT_SERVER:-TODO}
+    NFS_ROOT_PATH=${NFS_ROOT_PATH:-TODO}
+    ROOT_VDEV=${ROOT_VDEV:-/dev/nfs}
+else
+    # LVM for guest domains
+    if [ -e /xenrtvg ]; then
+	Volume_Group=`cat /xenrtvg`
+    else
+	Volume_Group=${Volume_Group:-"VG_XenRT"}
+    fi
+    Logical_Volume_Size=${Logical_Volume_Size:-"6G"}
+    Logical_Volume_Name=${Logical_Volume_Name:-"LV"}
+    LV_NAME_SWAP=${LV_NAME_SWAP:-"swap"}
+    LV_SIZE_SWAP=${LV_SIZE_SWAP:-"4G"}
+
+    # Virtual disk images for unmodified guests on VMX systems
+    LV_NAME_VMX=${LV_NAME_VMX:-"VMXdisk"}
+    LV_SIZE_VMX=${LV_SIZE_VMX:-"10G"}
+
+    # Where guests see their / filesystem (virtual block device)
+    ROOT_VDISK=${ROOT_VDISK:-/dev/sda}
+    ROOT_VDEV=${ROOT_VDEV:-${ROOT_VDISK}3}
+    # and optionally swap
+    SWAP_VDEV=${SWAP_VDEV:-${ROOT_VDISK}2}
+fi
+
+#############################################################################
+# Web interface                                                             #
+#############################################################################
+
+HTTP_BASE_DIR=${HTTP_BASE_DIR:-${XENRT_BASE}}
+HTTP_BASE_URL=${HTTP_BASE_URL:-TODO}
+NFS_BASE_URL=${NFS_BASE_URL:-TODO}
+APT_CACHER=${APT_CACHER}
+
+# Getting the test tarballs
+TEST_TARBALL_BASE=${TEST_TARBALL_BASE:-${HTTP_BASE_URL}/tests/}
+TEST_TARBALL_TAIL=${TEST_TARBALL_TAIL:-".tgz"}
+TEST_TARBALL_ROOT=${TEST_TARBALL_ROOT:-${HTTP_BASE_DIR}/tests}
+
+# The dist tarballs
+DIST_TARBALL_BASE=${DIST_TARBALL_BASE:-${HTTP_BASE_URL}/dists/}
+DIST_TARBALL_ROOT=${DIST_TARBALL_ROOT:-${HTTP_BASE_DIR}/dists}
+DIST_TARBALL_NFS=${DIST_TARBALL_NFS:-${NFS_BASE_URL}/dists}
+
+# Images
+IMAGE_BASE=${IMAGE_BASE:-${HTTP_BASE_URL}/images/}
+IMAGE_ROOT=${IMAGE_ROOT:-${HTTP_BASE_DIR}/images}
+
+#############################################################################
+# Building Xen                                                              #
+#############################################################################
+
+# KERNEL_CACHE is where we keep copies of downloaded kernels
+
+REPOBASE=${REPOBASE:-${TESTBASE}/repos}
+REPOEXT=${REPOEXT:-.hg}
+REPOBASEURL=${REPOBASEURL:-http://xenbits.xensource.com}
+REPOEXTURL=${REPOEXTURL:-.hg}
+KERNEL_CACHE=${KERNEL_CACHE:-/tmp}
+KERNEL_REPO=${KERNEL_REPO:-http://www.kernel.org}
+
+if [ "${OPTION_CLEAR_BUILDOPTS}" != "yes" ]; then
+    XEN_BUILD_OPTIONS=${XEN_BUILD_OPTIONS:-"debug=y verbose=y"}
+fi
+
+# Build hosts
+BUILD_HOST_32=${BUILD_HOST_32:-localhost}
+BUILD_HOST_64=${BUILD_HOST_64:-TODO}
+BUILD_HOST_WIN32=${BUILD_HOST_WIN32:-TODO}
+
+# RPM stuff
+RPM_URL_FMT=${RPM_URL_FMT:-TODO}
+RPM_PATH_FMT=${RPM_PATH_FMT:-TODO}
+DOM0_PATH=${DOM0_PATH:-TODO}
+
+rpm_distro() {
+    local D=$1
+    if [ "${D}" = "rhel41" ]; then
+	echo "rhel4.1"
+    elif [ "${D}" = "" ]; then
+	echo "rhel4.1"
+    else
+	echo ${D}
+    fi
+}
+
+# Source repos
+XE_SVN_REPO=${XE_SVN_REPO:-TODO}
+
+CARBON_DISTRO_DIR=${CARBON_DISTRO_DIR:-/dropbox/rpms}
+
+#############################################################################
+# Tools and commands                                                        #
+#############################################################################
+
+SSH=${SSH:-"ssh_wrapper ssh"}
+SCP=${SCP:-"ssh_wrapper scp"}
+SSHTO=${SSHTO:-"ssh_wrapper nannyssh"}
+
+if [ "${OPTION_PREINSTALLED}" == "yes" ]; then
+    SSHDOM0=${SSHDOM0:-"ssh_password_wrapper ssh"}
+    SSHTODOM0=${SSHTODOM0:-"ssh_password_wrapper nannyssh"}
+    SCPDOM0=${SCPDOM0:-"ssh_password_wrapper scp"}
+else 
+    SSHDOM0=${SSHDOM0:-"ssh_wrapper ssh"}
+    SSHTODOM0=${SSHTODOM0:-"ssh_wrapper nannyssh"}
+    SCPDOM0=${SCPDOM0:-"ssh_wrapper scp"}
+fi
+
+# Access to network machines (build boxes)
+SSHNET=${SSHNET:-"ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"}
+SCPNET=${SCPNET:-"scp -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null"}
+
+MEDIAN=${MEDIAN:-${SCRIPTDIR}/utils/median.py}
+XENUSE=${XENUSE:-echo}
+HG=${HG:-hg}
+HGINIT=${HGINIT:-${HG} clone -U}
+HGINITLOC=${HGINITLOC:-"."}
+
+if [ -z "${HARD_REBOOT}" ]; then
+    if [ -n "${XENUSE}" ]; then
+	HARD_REBOOT="${XENUSE} --reboot"
+    else
+	HARD_REBOOT=TODO
+    fi
+fi
+
+#############################################################################
+# Booting                                                                   #
+#############################################################################
+
+# PXE
+PXE_USE_SSH=${PXE_USE_SSH:-no}
+if [ "${PXE_USE_SSH}" = "yes" ]; then
+    PXE_User=${PXE_User:-"root"}
+    PXE_Controller=${PXE_Controller:-"wiley"}
+fi
+
+PXE_ROOTDIR=${PXE_ROOTDIR:-/tftpboot}
+
+PXE_Conf_Directory=${PXE_Conf_Directory:-"${PXE_ROOTDIR}/pxelinux.cfg${PXE_SUBDIR}"}
+if [ -z "${PXE_COMMAND_PREFIX}" ]; then
+    if [ "${PXE_USE_SSH}" = "yes" ]; then
+	dbtrace Using SSH for PXE control
+	PXE_COMMAND_PREFIX="${SSH} ${PXE_User}@${PXE_Controller}"
+    else
+	dbtrace Using local FS for PXE control
+	PXE_COMMAND_PREFIX=""
+    fi
+fi
+pxe_copy_to_confdir() {
+    if [ "${PXE_USE_SSH}" = "yes" ]; then
+	${SCP} $1 ${PXE_User}@${PXE_Controller}:${PXE_Conf_Directory}/$2
+    else
+	cp $1 ${PXE_Conf_Directory}/$2
+    fi
+}
+
+# Xen install data
+Dist_File=${Dist_File:-"/root/dist.tgz"}
+Dist_Install_Script=${Dist_Install_Script:-"install.sh"}
+
+# dom0 config
+DOM0_MEM=${DOM0_MEM:-524288}
+
+# Guest domain booting
+GUEST_DOM_MEM=${GUEST_DOM_MEM:-750}
+
+ROOT_DISTRO=${ROOT_DISTRO}
+
+#############################################################################
+# Communications                                                            #
+#############################################################################
+
+# Serial console details (port is 0 or 1)
+SERIAL_CONSOLE_PORT=${SERIAL_CONSOLE_PORT:-0}
+SERIAL_CONSOLE_BAUD=${SERIAL_CONSOLE_BAUD:-115200}
+
+# Network setup
+NET_NETWORK=${NET_NETWORK:-TODO}
+NET_NETMASK=${NET_NETMASK:-TODO}
+NET_GATEWAY=${NET_GATEWAY:-TODO}
+DOM0_HOSTNAME_SUFFIX=${DOM0_HOSTNAME_SUFFIX}
+DNSDOMAIN=${DNSDOMAIN:-TODO}
+# these next two are mutually exclusive, only set one
+if [ -z "${CLEANROOT_USE_DHCP}" -a -z "${CLEANROOT_NO_IP_PNP}" ]; then
+    CLEANROOT_NO_IP_PNP=yes
+fi
+# these next two are mutually exclusive, only set one
+if [ -z "${DOM0_USE_DHCP}" -a -z "${DOM0_NO_IP_PNP}" ]; then
+    DOM0_NO_IP_PNP=yes
+fi
+
+NTP_SERVERS=${NTP_SERVERS:-"0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org"}
+
+# Guest domain hostname formation
+GUEST_HOSTNAME_SUFFIX=${GUEST_HOSTNAME_SUFFIX}
+
+# Communication to network machines (build boxes)
+NET_USER=${NET_USER:-`whoami`}
+
+# Serial console access
+SERIAL_CONSOLE_CONSERVER=${SERIAL_CONSOLE_CONSERVER:-no}
+CONSERVER=${CONSERVER:-console}
+
+# Reserved MAC prefix
+XENSOURCE_MAC_PREFIX=${XENSOURCE_MAC_PREFIX:-"00:16:3e"}
+
+#############################################################################
+# Benchmark configs                                                         #
+#############################################################################
+
+NETPERF_SERVER_USER=${NETPERF_SERVER_USER:-root}
+NETPERF_SOCKS=${NETPERF_SOCKS:-"131072"}
+
+#############################################################################
+# Database                                                                  #
+#############################################################################
+
+# Database server
+DBSERVER=${DBSERVER}
+DBUSER=${DBUSER:-xenrt}
+
+DBMETHOD=${DBMETHOD:-file}
+DBMETHODTYPE=${DBMETHODTYPE:-ssh}
+
+SSHDB=${SSHDB:-"ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -i ${SCRIPTDIR}/${DBKEYBASE}"}
+
+#############################################################################
+# Product                                                                   #
+#############################################################################
+
+CARBON_DOM0_USERNAME=${CARBON_DOM0_USERNAME:-root}
+CARBON_DOM0_PASSWORD=${CARBON_DOM0_PASSWORD:-xensource}
+CARBON_GUEST_PASSWORD=${CARBON_GUEST_PASSWORD:-xensource}
+CARBON_LICENSE_GOOD_PRE_B2A4=${CARBON_LICENSE_GOOD_PRE_B2A4:-"(license (terms (feature 'XenEnterprise') (expires '2009-12-31 23:59:59') (name 'xenrt') (company '') (address1 '') (address2 '') (city '') (state '') (postalcode '') (country ''))(signature 3OPDF4-OUMNRS-1JR1E8-1GV2SE-NBS6QP))"}
+CARBON_LICENSE_GOOD=${CARBON_LICENSE_GOOD:-"(license (terms (feature 'XenEnterprise') (expires '2009-12-31 23:59:59') (name 'xenrt') (company '') (address1 '') (address2 '') (city '') (state '') (postalcode '') (country ''))(signature 0P4PPN-UVVFUB-D5S5F9-PBG6GM-K5H816))"}
+CARBON_LICENSE_BLANK=${CARBON_LICENSE_BLANK:="(terms (feature 'XenEnterprise') (type 'single-machine') (version '1.0') (expires '2009-12-31 23:59:59') (name 'xenrt') (company '') (address1 '') (address2 '') (city '') (state '') (postal_code '') (country '') (serial_no ) (sku_type 'XE Enterprise'))"}
+CARBON_CLIENT_ROOT_COUNT=${CARBON_CLIENT_ROOT_COUNT:-0}
+
+#############################################################################
+# Misc                                                                      #
+#############################################################################
+
+# Script return codes
+RC_OK=0
+RC_TIMEOUT=1
+RC_DEAD=2
+RC_FAIL=3
+RC_NOT_SETUP=4
+RC_ERROR=5
+RC_BMDEAD=6
+
+# Locking (on the controller machine)
+XENRT_LOCKDIR=${XENRT_LOCKDIR:-${XENRT_BASE}/locks}
+LOCK_TIMEOUT=${LOCK_TIMEOUT:-3600}
+LOCK_WAIT=${LOCK_WAIT:-30}
+LOCK_RETRIES=${LOCK_RETRIES:-680}
+
+# The individual locks
+LOCK_REPOS=${LOCK_REPOS:-repos}
+LOCK_TARBALLS=${LOCK_TARBALLS:-tarballs}
+
+# Rsync for filesystems
+RSYNC_HOST=${RSYNC_HOST:-NOT_DEFINED}
+RSYNC_USER=${RSYNC_USER:-root}
+
+RSYNC_ROOT=${IMAGE_ROOT}/domroot
+RSYNC_ROOT64=${IMAGE_ROOT}/domroot64
+RSYNC_SSH=${RSYNC_SSH:-${SSH}}
+
+# Timezone (from /usr/share/zoneinfo)
+OUR_TIMEZONE=${OUR_TIMEZONE:-UTC}
+
+# Logs to capture from dom0
+DOM0_EXTRA_LOG_FILES="/var/log/xend.log /var/log/xend-debug.log /var/log/xcs.log /var/log/xen-hotplug.log /var/log/xen"
+
+# How the CLI refers to VIFs
+VIF_PREFIX_HVM=${VIF_PREFIX_HVM:-"nic"}
+VIF_PREFIX_PV=${VIF_PREFIX_PV:-"eth"}
+

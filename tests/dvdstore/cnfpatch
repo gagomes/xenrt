@@ -1,0 +1,11 @@
+--- my.cnf	2007-09-27 15:24:09.000000000 +0100
++++ my.cnf.new	2007-09-27 15:24:24.000000000 +0100
+@@ -11,7 +11,7 @@
+ myisam_sort_buffer_size=16M
+ thread_cache=250
+ innodb_data_home_dir=
+-innodb_data_file_path=/dev/xvdb:20Gnewraw
++innodb_data_file_path=/dev/xvdb:20Graw
+ 
+ [mysql.server]
+ user=mysql

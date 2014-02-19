@@ -1,0 +1,103 @@
+<xenrt>
+   <!-- Scaled-down seq file for performance testing for Windows Out-of-date Drivers -->
+   <default name="OLD_PRODUCT_VERSION" value="ToBePassedFromSuiteFile" />
+   <default name="OLD_PRODUCT_INPUTDIR" value="ToBePassedFromSuiteFile" />
+   <default name="OLD_REVISION" value="Unknown" />
+   <default name="REVISION" value="Unknown" />
+   <default name="GUESTDISTRO" value="win7sp1-x86" />
+   <default name="VM_ACTION_ON_HOST_REBOOT" value="SHUTDOWN" />
+   <!-- EVACUATE | SUSPEND | SHUTDOWN-->
+   <variables>
+      <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+      <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+      <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+   </variables>
+   <prepare>
+      <pool id="0">
+         <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+            <vm name="guest1_1">
+               <distro>${GUESTDISTRO}</distro>
+               <network device="0" />
+               <postinstall action="installDrivers" />
+            </vm>
+         </host>
+         <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+            <vm name="guest1_2">
+               <distro>${GUESTDISTRO}</distro>
+               <network device="0" />
+               <postinstall action="installDrivers" />
+            </vm>
+         </host>
+      </pool>
+   </prepare>
+   <testsequence>
+      <serial>
+         <serial group="XS${OLD_REVISION}T${OLD_REVISION}" guest="guest1_1">
+            <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate" host="RESOURCE_HOST_0">
+               <arg>guest=guest1_1</arg>
+               <arg>numiters=2</arg>
+            </testcase>
+            <testcase id="benchmarks.micro.TCiometer" />
+            <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+               <arg>vm_type=win7</arg>
+               <arg>num_host_runs=1</arg>
+               <arg>num_vm_runs=1</arg>
+               <arg>num_vm_pairs=1</arg>
+               <arg>num_vm_threads=2</arg>
+               <arg>trySingleDom0Thread=True</arg>
+               <arg>trySingleVMPair=True</arg>
+               <arg>trySingleVMThread=True</arg>
+               <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+            </testcase>
+         </serial>
+         <serial group="RPU" blocker="yes">
+            <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" blocker="yes">
+               <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+               <arg>applyAllHFXsBeforeApplyAction=True</arg>
+            </testcase>
+         </serial>
+         <serial group="XS${REVISION}T${OLD_REVISION}" guest="guest1_1">
+            <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate" host="RESOURCE_HOST_0">
+               <arg>guest=guest1_1</arg>
+               <arg>numiters=2</arg>
+            </testcase>
+            <testcase id="benchmarks.micro.TCiometer" />
+            <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+               <arg>vm_type=win7</arg>
+               <arg>num_host_runs=1</arg>
+               <arg>num_vm_runs=1</arg>
+               <arg>num_vm_pairs=1</arg>
+               <arg>num_vm_threads=2</arg>
+               <arg>trySingleDom0Thread=True</arg>
+               <arg>trySingleVMPair=True</arg>
+               <arg>trySingleVMThread=True</arg>
+               <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+            </testcase>
+         </serial>
+         <serial group="WinDriverUpdate" blocker="yes">
+            <testcase id="testcases.xenserver.tc.upgrade.UpgradeAllVMTools" blocker="yes" />
+         </serial>
+         <serial group="XS${REVISION}T${REVISION}" guest="guest1_1">
+            <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" name="VMMigrate" host="RESOURCE_HOST_0">
+               <arg>guest=guest1_1</arg>
+               <arg>numiters=2</arg>
+            </testcase>
+            <testcase id="benchmarks.micro.TCiometer" />
+            <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+               <arg>vm_type=win7</arg>
+               <arg>num_host_runs=1</arg>
+               <arg>num_vm_runs=1</arg>
+               <arg>num_vm_pairs=1</arg>
+               <arg>num_vm_threads=2</arg>
+               <arg>trySingleDom0Thread=True</arg>
+               <arg>trySingleVMPair=True</arg>
+               <arg>trySingleVMThread=True</arg>
+               <arg>prebuilt_vms=guest1_1,guest1_2</arg>
+            </testcase>
+         </serial>
+      </serial>
+      <serial group="Performance logs">
+         <testcase id="xenserver.tc.perf.tc_networkthroughput.TCComparePerformanceLogs" name="TCPerfLogs" />
+      </serial>
+   </testsequence>
+</xenrt>

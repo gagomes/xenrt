@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# XenRT - Xen Regression Testing
+#
+# slurp - Starts a number of slurp processes in dom0.
+#         Stops them when called with stop.
+#
+# Karl Spalding, November 2006
+
+SCRIPTDIR=`dirname $0`
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+BM_INSTALL_SKIP_TARBALL=true
+
+run_this() {
+    set -x
+    N=${1}
+
+    if [ "${N}" = "stop" ]; then
+	killall slurp || true
+    else
+	for I in `seq 1 ${N}`; do
+	    ${SCRIPTDIR}/progs/slurp &> /dev/null &
+	done
+	log_extra_data "Comment: Started ${N} slurps."
+    fi
+}
+
+BM_RUN=run_this
+
+. ${SCRIPTDIR}/generic

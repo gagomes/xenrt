@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!--Support LACP NIC bonding for tallahassee on Netscaler Box -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.bonding.TCLacpBondSetUpMng24Nic" tc="TC-18593"/>
+    <testcase id="testcases.xenserver.tc.bonding.TCFailover24nic" tc="TC-18594"/>
+    <testcase id="testcases.xenserver.tc.bonding.BondSplit" tc="TC-18595"/>
+    <testcase id="testcases.xenserver.tc.bonding.TCLacpBondx12" tc="TC-18596"/>
+    <testcase id="testcases.xenserver.tc.bonding.TCFailoverExistingBonds" tc="TC-18597"/>
+    <testcase id="testcases.xenserver.tc.bonding.TCSplitExistingBonds" tc="TC-18557"/>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,101 @@
+<xenrt>
+
+  <default name="VMSPERHOST" value="5"/>
+  <default name="THREADS" value="5"/>
+  <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="USE_INTELLICACHE" value="yes"/>
+  <default name="ITERATIONS" value="1"/>
+  <default name="WORKLOAD_TYPE" value="DISK"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <NTHREADS>5</NTHREADS>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <QUICKLOGS>yes</QUICKLOGS>
+    <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
+    <!-- <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS> -->
+    <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
+    <OPTION_ENABLE_REDO_LOG>yes</OPTION_ENABLE_REDO_LOG>
+    <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
+    <OPTION_ENABLE_REDO_LOG>yes</OPTION_ENABLE_REDO_LOG>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" network="STORAGE01"/>
+      <allhosts/>
+
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+          <VMS />
+        </PHYSICAL>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <VLAN network="STORAGE">
+            <STORAGE />
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+
+      <vm name="gold0">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfssr</storage>
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+   <serial group="CloneStart">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-18701">
+      <arg>vmsperhost=${VMSPERHOST}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18703">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+   </serial>
+
+   <serial group="MasterReboot">
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterRebootOnly" tc="TC-19871">
+      <arg>workloadtype=${WORKLOAD_TYPE}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+   </serial>
+
+   <serial group="OneSlaveReboot">
+    <testcase id="xenserver.tc.scalability.TCStbltyOneSlaveReboot" tc="TC-19872">
+      <arg>workloadtype=${WORKLOAD_TYPE}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+   </serial>
+
+   <serial group="AllSlaveRebootExceptOne">
+    <testcase id="xenserver.tc.scalability.TCStbltyAllSlaveRebootExceptOne" tc="TC-19873">
+      <arg>workloadtype=${WORKLOAD_TYPE}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+   </serial>
+
+   <serial group="XenDesktop49Reboot">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktop49Reboot" tc="TC-19874">
+      <arg>workloadtype=${WORKLOAD_TYPE}</arg>
+      <arg>threads=${THREADS}</arg>
+      <arg>iterations=${ITERATIONS}</arg>
+    </testcase>
+   </serial>
+
+  </testsequence>
+</xenrt>

@@ -1,0 +1,47 @@
+diff -r 51d6b589d6e2 windows/install/xensetup.nsi
+--- a/windows/install/xensetup.nsi	Wed Jun 28 17:57:28 2006 +0100
++++ b/windows/install/xensetup.nsi	Fri Jun 30 07:03:04 2006 -0700
+@@ -49,37 +49,37 @@ Section "Install Section" SecDrvInst ;No
+ 
+   ExecWait '"$INSTDIR\install.exe" "$INSTDIR\xenevtchn.inf" "root\xenevtchn"' $0
+   ${If} $0 != '0'
+-    MessageBox MB_OK "install of xenevtchn failed: $$0"
++    MessageBox MB_OK "install of xenevtchn failed: $$0" /SD IDOK
+     Goto out
+   ${EndIf}
+ 
+   ExecWait '"$INSTDIR\install.exe" "$INSTDIR\xenvbd.inf" "PCI\VEN_FFFD&DEV_0101"' $0
+   ${If} $0 != '0'
+-    MessageBox MB_OK "install of xenvbd failed: $$0"
++    MessageBox MB_OK "install of xenvbd failed: $$0" /SD IDOK
+     Goto out
+   ${EndIf}
+ 
+   ExecWait '"$INSTDIR\install.exe" "$INSTDIR\xennet.inf" "XEN\vif"' $0
+   ${If} $0 != '0'
+-    MessageBox MB_OK "install of xenvbd failed: $$0"
++    MessageBox MB_OK "install of xenvbd failed: $$0" /SD IDOK
+     Goto out
+   ${EndIf}
+ 
+   SetOutPath "c:\"
+   File ..\xenvbd\scsiboot\obj\i386\ntbootdd.sys
+ 
+-  MessageBox MB_YESNO|MB_ICONQUESTION "Would you like to enable boot from PV disk?" IDNO NoScsiBoot
++  MessageBox MB_YESNO|MB_ICONQUESTION "Would you like to enable boot from PV disk?" /SD IDYES IDNO NoScsiBoot
+ 
+   Rename c:\boot.ini c:\boot.ini.bak
+   
+   File boot.ini
+ 
+ NoScsiBoot:
+-  MessageBox MB_YESNO|MB_ICONQUESTION "You must reboot to activate the PV drivers. Reboot now?" IDNO +2
++  MessageBox MB_YESNO|MB_ICONQUESTION "You must reboot to activate the PV drivers. Reboot now?" /SD IDYES IDNO +2
+   Reboot
+ 
+ out:
+-  MessageBox MB_OK "No reboot"
++  MessageBox MB_OK "No reboot" /SD IDOK
+   
+ SectionEnd ; end the section
+ 

@@ -1,0 +1,10 @@
+# Status: proprietary
+df96d0b00d0a0a3a94632986cd737718  ./fs1/usr/xenrt_custom_1
+6564f765025b68822c4583f6f1bb5f03  ./fs1/usr/xenrt_custom_2
+ffe7737df5c4b23b4961ba88ef06565f  ./fs2/etc/xenrt_ecustom_1
+fe66818d36edee4b099ec23cb06b7f4c  ./fs2/etc/xenrt_ecustom_2
+cb1ecdc0fc6b326477a5032fdef71b22  ./RPMs1/rsync-2.6.8-3.1.i386.rpm
+54ce2cb0f500c59d821ba28108bc2425  ./RPMs1/lynx-2.8.5-28.1.i386.rpm
+c403bb8cf548a3399404a46bc49c4db1  ./RPMs2/nmap-4.11-1.1.i386.rpm
+5ca7d0977d70d7eb7fb88caf66ca756e  ./RPMs2/make-3.81-1.1.i386.rpm
+ac2ed0857ddc9b55628d3b6cec5ef281  ./squashfs-tools-3.0-4.i386.rpm

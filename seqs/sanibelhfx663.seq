@@ -1,0 +1,20 @@
+<xenrt>
+        
+         <!-- Regression tests for HFX663 (HotFix Obelix) -->
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+
+  <prepare>
+      <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="HFX-663">
+      <testcase id="xenserver.tc.snapshot.TC18784"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

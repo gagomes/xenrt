@@ -1,0 +1,31 @@
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="platinum" />
+      <host id="1" license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <MANAGEMENT mode="static" />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+      <arg>vm_type=win7</arg>
+      <arg>num_vm_pairs=4</arg>
+      <arg>num_vm_threads=8</arg>
+      <arg>trySingleDom0Thread=True</arg>
+      <arg>trySingleVMPair=True</arg>
+      <arg>trySingleVMThread=True</arg>
+      <arg>use_gro=True</arg>
+      <arg>use_lro=True</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

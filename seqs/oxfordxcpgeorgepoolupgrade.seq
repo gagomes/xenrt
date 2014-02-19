@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- George to Cowley NFS pool rolling upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="George"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.5.0-Update2"/>
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>ws08-x86</RPU_WINDOWS_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" dhcp="no"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8064"/>
+  </testsequence>
+
+</xenrt>

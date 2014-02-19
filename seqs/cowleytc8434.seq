@@ -1,0 +1,29 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="EPT1G2C">
+      <testcase id="xenserver.tc.smoketest.TC8437" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC8438" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC8598" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11917" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11918" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11916" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9107" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9108" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9109" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9110" prio="3"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,32 @@
+<xenrt>
+  <variables>
+    <!--  supply this on command line instead so that the same seq file can work with more than one release -->
+    <!--  <PRODUCT_VERSION>MNR</PRODUCT_VERSION> -->
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="fastStoreSR" default="true" />
+      <allhosts license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <NIC />
+          <NIC />
+          <MANAGEMENT mode="static" />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-40">
+      <arg>numdesktops=40</arg>
+      <arg>novifs</arg>
+    </testcase>
+
+  </testsequence>
+</xenrt>

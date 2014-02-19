@@ -1,0 +1,2 @@
+#!/bin/bash
+grep --color=always -n -e guset -e slef -e ugprade -e minimamList -e maser -e sutie -e testacse -e isci -e testacse -e salve -e buidl -e paralle[^l] -e [^x]vdb -e xnserver $1 || true

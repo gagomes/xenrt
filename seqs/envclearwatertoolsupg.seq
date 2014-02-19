@@ -1,0 +1,30 @@
+<xenrt>
+  <!-- Upgraded Clearwater Host with VMs on old tools -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="0">
+      <vm name="win8-x64">
+        <distro>win8-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="w2k3eesp2">
+        <distro>w2k3eesp2</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

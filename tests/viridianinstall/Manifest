@@ -1,0 +1,39 @@
+# Description: Files needed to make a viridian install work
+# Status: NDA
+857c7de91ceca8e6c61e933027e29f16  ./070306_070312/CreateVM.js
+cd3661f8f4352bbfac27c30485064e82  ./070306_070312/Launch the hypervisor.lnk
+5dea70b9d433c4308751dd149904618e  ./070306_070312/ControlVM.js
+28b868da4b47dbfcb78e08a82d1b2105  ./6001_070114/CreateVM.js
+495a87a49406eb971cc84bde63cf6d5b  ./6001_070114/server_files/rdp4vs.dll
+d16740bff32df07265c7dc48e21f8134  ./6001_070114/server_files/hvcmd.exe
+56b12b89bb2f396baaff4008d880b98f  ./6001_070114/server_files/azroles.dll
+0899a03f2d60b5ef75fceecc2eeb61c8  ./6001_070114/ClientSetup.cmd
+cb0a664e974dc7b6d8789c597ad51b8c  ./6001_070114/CreateSwitch.vbs
+655d29a7e35e8023406f56172e2fe3e9  ./6001_070114/ServerSetup.cmd
+490d95acb5f09643c8f3c1ddcd32b6a9  ./6001_070114/client_files/amd64fre/rdp4vs.dll
+aad8dffeeb99fb09140e9bb7672bbf77  ./6001_070114/client_files/amd64fre/rdp4vs.pdb
+cfefa57a526844af44d4016547f5aeb0  ./6001_070114/client_files/amd64fre/mstscax.pdb
+cd6c297ed8625644dca28256cc18d74c  ./6001_070114/client_files/amd64fre/mstscax.dll
+4c27a62d3c31e5d657d8f65929e35a05  ./6001_070114/client_files/amd64fre/mstscax.dll.mui
+44cd259bfc5ebfe12aea4c8307e1784e  ./6001_070114/client_files/amd64/sfpdisable.exe
+5dea70b9d433c4308751dd149904618e  ./6001_070114/ControlVM.js
+17c58346fc3b0a91ac98e9a7fac688e9  ./070423/CreateVM.js
+21dd77da344c0ecde78ac80e5d282814  ./070423/fixup2.cmd
+8ae52696eae332fa100cd1d8e07b3d54  ./070423/fixup1.cmd
+c3bad925c6ce9683f677282d76929d48  ./070423/Launch the hypervisor.lnk
+5dea70b9d433c4308751dd149904618e  ./070423/ControlVM.js
+d41b2fd70cd62922ca4b8c3bb4a37320  ./070703/CreateVM.js
+cb0a664e974dc7b6d8789c597ad51b8c  ./070703/CreateSwitch.vbs
+5ab416a8cf7ae2f4af35764f60355c20  ./070703/viridian_cbb_oob_fre/packages/Windows6.0-KB999998-x64.msu
+ebcc9b26c06b485a62db35bfc8b1084d  ./070703/viridian_cbb_oob_fre/packages/Windows6.0-KB999999-x64.msu
+1d11392e721f500b7ac25adde6cf56e4  ./070703/viridian_cbb_oob_fre/tools/netcfg.exe
+29c3a20bcdd61445fe35bc91c987a4d5  ./070703/viridian_cbb_oob_fre/tools/sfpcopy.exe
+314a81354fbae7d8d7621ea9f6b85326  ./070703/viridian_cbb_oob_fre/tools/turn_off_sn_validation.reg
+23d2c2e60a7bc0089c05fb67c95d472d  ./070703/ControlVM.js
+4fc381b0e90fa4e04311d84c35ddbdd9  ./070703/InstallViridian.cmd
+92db759ce5584a75dba4ed2a5d7ffccb  ./070703/viridian_cbb_oob_chk/packages/Windows6.0-KB999998-x64.msu
+20de6a9734b928c537d58f4242062aef  ./070703/viridian_cbb_oob_chk/packages/Windows6.0-KB999999-x64.msu
+1d11392e721f500b7ac25adde6cf56e4  ./070703/viridian_cbb_oob_chk/tools/netcfg.exe
+29c3a20bcdd61445fe35bc91c987a4d5  ./070703/viridian_cbb_oob_chk/tools/sfpcopy.exe
+314a81354fbae7d8d7621ea9f6b85326  ./070703/viridian_cbb_oob_chk/tools/turn_off_sn_validation.reg
+d41d8cd98f00b204e9800998ecf8427e  ./070703/070703-1240

@@ -1,0 +1,8 @@
+# Status: NDA
+# Additional certifcates required as of 19/01/2012
+# http://support.citrix.com/article/CTX131994
+e73365e35101aca04e1927957d3aa9e1  ./conf
+78b27c4a2a2801ed29c92e7fca6f5a73  ./cacert.pem
+8bf797f9399d238c484c23e55c7281d2  ./client.pem
+c8d55fbe41cac561583607b861ef1813  ./server.pem
+

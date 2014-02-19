@@ -1,0 +1,250 @@
+#
+# xenrt: Xen regression Testing
+#
+# Windows library
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, July 2006
+
+if ! uname -o &> /dev/null; then
+    UNAME="uname -H"
+else
+    UNAME="uname -o"
+fi
+
+if [ `${UNAME}` = Cygwin -o `${UNAME}` = Windows ]; then
+    ISWINDOWS=yes
+    if [ `${UNAME}` = Cygwin ]; then
+	WIN_UNIX_DRIVE_C=/cygdrive/c
+	CPPREFIX="c#/cygwin"
+    else
+	WIN_UNIX_DRIVE_C=/dev/fs/C
+	CPPREFIX="c#/SFU"
+    fi
+fi
+
+iswindows() {
+    test "${ISWINDOWS}" = "yes"
+}
+
+
+winify_path_dom0() {
+    echo "c:/SFU$1" | sed -e's#/#\\\\#g'
+}
+
+winify_path() {
+    if [ `${UNAME}` = Cygwin ]; then
+	echo "c:/cygwin$1" | sed -e's#/#\\#g'
+    else
+	echo "c:/SFU$1" | sed -e's#/#\\#g'
+    fi
+}
+
+# Tweak paths for SFU
+if iswindows; then
+    for p in /usr/contrib/bin /usr/contrib/win32/bin /usr/local/bin \
+	/dev/fs/C/WINDOWS/system32 /dev/fs/C/SFU/common; do
+
+	if [ -d $p ]; then
+	    PATH=$PATH:$p
+	    export PATH
+	fi
+    done
+
+    for p in /usr/local/lib /usr/local/ssl/lib; do
+	if [ -d $p ]; then
+	    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$p
+	    export LD_LIBRARY_PATH
+	fi
+    done
+fi
+
+# How to install Java (if not already installed)
+windows_install_java() {
+    set -x
+    local JAVABASE="${WIN_UNIX_DRIVE_C}/Program Files/Java"
+    if JAVAEXE=`find "${JAVABASE}" -name java.exe 2>/dev/null`; then
+	echo "Java installed at ${JAVAEXE}"
+    else
+        find "${JAVABASE}" || true
+	echo "Installing Java"
+	(
+	    get_test_tarball windows-java
+	    tar -zxf windows-java.tgz
+	    cd windows-java
+	    chmod +x jre-*.exe
+	    ./jre-*.exe /s /v"/qn" > javainstall.out 2>&1
+	)
+	JAVAEXE=`find "${JAVABASE}" -name java.exe 2>/dev/null`
+    fi
+    if [ -z "${JAVAEXE}" ]; then
+	echo "Failed to find java.exe"
+	return 1
+    fi
+}
+
+# How to install .NET (if not already installed).
+windows_install_dotnet() {
+    set -x
+    local DOTNETBASE="${WIN_UNIX_DRIVE_C}/Windows/Microsoft.NET/Framework/v2.0.50727"
+    if [ -d "${DOTNETBASE}" ]; then
+        echo ".NET is installed at ${DOTNETBASE}."
+    else
+        echo "Installing .NET"    
+        get_test_tarball dotnet
+        tar -zxf dotnet.tgz
+        cd dotnet
+        chmod +x dotnetfx.exe
+        ./dotnetfx.exe /q:a /c:"Install /q" > dotnetinstall.out 2>&1
+	cat dotnetinstall.out
+    fi    
+    if ! [ -d "${DOTNETBASE}" ]; then
+        echo "Failed to install .NET."
+        return 1
+    fi
+}
+
+win_killall() {
+    local PROCESS=${1}
+    local PIDS=`ps -ae | grep ${PROCESS} | sed -e 's/^[ \t]*\([0-9]*\).*$/\1/'`
+    for p in ${PIDS}; do
+        kill $p || true
+    done
+}
+
+# reboot_windows - reboot a Windows guest.
+#
+# Usage: reboot_windows <host>
+#
+# Reboots the windows machine '<host>'.
+
+SHUTDOWN="/dev/fs/C/WINDOWS/system32/shutdown.exe"
+WIN_HIBERNATE_ENABLE="/dev/fs/C/WINDOWS/system32/powercfg.exe /HIBERNATE ON"
+WIN_HIBERNATE_COMMAND="/dev/fs/C/WINDOWS/system32/rundll32.exe powrprof.dll,SetSuspendState"
+
+reboot_windows() {
+    local HOSTNAME=$1
+    if ${SSH} Administrator@${HOSTNAME} [ -e ${SHUTDOWN} ]; then
+	${SSH} Administrator@${HOSTNAME} ${SHUTDOWN} -f -r -t 10
+    else
+	${SSH} Administrator@${HOSTNAME} \
+	    ${REMOTE_SCRIPTDIR}/utils/devcon.exe reboot
+    fi
+}
+
+hibernate_windows() {
+    local HOSTNAME=$1
+    ${SSH} Administrator@${HOSTNAME} ${WIN_HIBERNATE_ENABLE} \
+	> /dev/null 2>&1 </dev/null || true
+    ${SSH} Administrator@${HOSTNAME} ${WIN_HIBERNATE_COMMAND} \
+	> /dev/null 2>&1 </dev/null &
+}
+
+wait_for_boot_win() {
+    local HOST=$1
+    local USER=${2:root}
+
+    if [ -z "${REBOOT_TIMEOUT}" ]; then
+        local REBOOT_TIMEOUT=600
+    fi
+
+    local REBOOT_START=`date +%s`
+    local DEADLINE=$[${REBOOT_START} + ${REBOOT_TIMEOUT}]
+
+    while true; do
+        if $DB ${SSHTO} ${SSHCONNTIMEOUT} ${USER}@${HOST} /bin/true; then
+            break;
+        fi
+        local NOW=`date +%s`
+        if [ ${NOW} -gt ${DEADLINE} ]; then
+            log_extra_data "Reason: boot timed out"
+            echo "Timed out waiting for reboot"
+            return ${RC_TIMEOUT}
+        fi
+        echo "waiting for reboot to complete..."
+        sleep 30;
+    done
+
+}
+
+# Run a CMD script "on the glass". This waits for completion notification
+# Arg is the CMD script to run (as a Unix path)
+run_on_glass() {
+    set -x
+    local CMDSCRIPT=${1}
+    local CMDSCRIPT_WIN=`posixpath2nt $1`
+    SIGNALFILE=`mktemp /dev/fs/C/runningXXX`
+
+    echo del `posixpath2nt ${SIGNALFILE}` >> ${CMDSCRIPT}
+    touch ${SIGNALFILE}
+
+    PATH=/dev/fs/C/WINDOWS/system32:$PATH ${SCRIPTDIR}/utils/soon.exe 90 \
+	/INTERACTIVE ${CMDSCRIPT_WIN} &> /dev/null || true
+
+    # Wait for the signal file to go away. There is currently no timeout on
+    # this - the main test script will do that.
+    while [ -e ${SIGNALFILE} ]; do
+	    sleep 120
+    done
+
+}
+
+win_systeminfo() {
+    TMPFILE=`mktemp /tmp/winsysXXX`
+
+    export PATH=$PATH:/dev/fs/C/WINDOWS/system32/wbem
+    /dev/fs/C/WINDOWS/system32/cmd.exe /c \
+	"C:\Windows\System32\systeminfo.exe" > ${TMPFILE} \
+	2>/dev/null </dev/null
+
+    for KEY in "^OS Name:" "^OS Version:" "^Total Physical Memory:" "^Processor(s):" "^OS Configuration:" "^OS Build Type"; do
+	if LINE=`cat ${TMPFILE} | grep "${KEY}"`; then
+            echo Comment: ${LINE} 
+        fi
+
+        if echo ${LINE} | grep -q "OS Version:"; then
+            echo KernBase: `echo ${LINE} | sed -e 's/^OS Version:[ \t]+//'`
+        fi
+    done
+    rm -f ${TMPFILE}
+}
+
+win_version() {
+    if [ ! -e /dev/fs/C/WINDOWS/system32/systeminfo.exe ]; then
+	# Probably Windows 2000
+	echo "w2k"
+	return 0
+    fi
+    SYSINFO=`mktemp /tmp/sysinfXXX`
+    win_systeminfo > ${SYSINFO}    
+    if grep "OS Name" ${SYSINFO} | grep -q "Enterprise Edition"; then
+        if grep "OS Version" ${SYSINFO} | grep -q "Service Pack 1"; then
+            if grep "Build Type" ${SYSINFO} | grep -q "Checked"; then
+                echo "w2k3eesp1chk"
+            else
+                # Actually it's either w2k3eesp1 or w2k3eer2 but since we don't
+                # currently install CD 2 of r2 it might as well be sp1..
+                echo "w2k3eesp1"
+            fi
+        elif grep "OS Version" ${SYSINFO} | grep -q "Service Pack 2"; then
+            echo "w2k3eesp2-rc"
+        else
+            echo "w2k3ee"
+        fi
+    elif grep "OS Name" ${SYSINFO} | grep -q "Standard Edition"; then
+        if grep "OS Version" ${SYSINFO} | grep -q "Service Pack 1"; then
+            # Actually it's either w2k3sesp1 or w2k3ser2 but since we don't
+            # currently install CD 2 of r2 it might as well be sp1..
+            echo "w2k3sesp1"
+        elif grep "OS Version" ${SYSINFO} | grep -q "Service Pack 2"; then
+            echo "w2k3sesp2-rc"
+        else
+            echo "w2k3se"
+        fi
+    elif grep "OS Name" ${SYSINFO} | grep -q "XP"; then
+        echo "winxpsp2"
+    else
+        echo "unknown"
+    fi
+    rm -f ${SYSINFO}
+}

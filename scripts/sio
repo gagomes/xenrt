@@ -1,0 +1,138 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Install and run the SIO benchmark to test CIFS.
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+
+SCRIPTDIR=`dirname $0`
+
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+FSIZE=3072
+
+RETVAL=0
+
+# This should be set somewhere else really.
+XENPASSWD=xensource
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+sfussh() {
+    local HOST=${1}
+    shift
+    local COMMAND=$@
+    local EXPECT_SCRIPT=`mktemp /tmp/sshexpectXXXX`
+    local RESULT=0
+    local TMPFILE=`mktemp /tmp/expectoutXXXXXX`
+
+    echo "#!/usr/bin/expect --" >> ${EXPECT_SCRIPT}
+    echo "" >> ${EXPECT_SCRIPT}
+    echo "spawn ssh -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oPubkeyAuthentication=no ${HOST} \"${COMMAND}; echo RETURNED: \$?\""  >> ${EXPECT_SCRIPT}
+    echo "expect \"*password:*\"" >> ${EXPECT_SCRIPT}
+    echo "send \"${XENPASSWD}\\r\"" >> ${EXPECT_SCRIPT}
+    echo "interact" >> ${EXPECT_SCRIPT}
+
+    chmod +x ${EXPECT_SCRIPT}
+    expect ${EXPECT_SCRIPT} &> ${TMPFILE} 
+    if grep -q "RETURNED: 0" ${TMPFILE}; then
+        RESULT=0
+    else 
+        RESULT=1
+    fi
+
+    cat ${TMPFILE}
+
+    # Clean up.
+    rm -f ${EXPECT_SCRIPT}
+
+    return ${RESULT}
+
+}
+
+SFUSSH=sfussh
+
+NETCMD="/dev/fs/C/WINDOWS/system32/net.exe"
+NETSH="/dev/fs/C/WINDOWS/system32/netsh.exe"
+
+BM_INSTALL=
+
+run_this() {
+    SERVERINDEX=${1}
+    CLIENTINDEX=${2}
+
+    set -x
+
+    SERVERNAME=`get_guest_hostname ${XENMACHINE} ${SERVERINDEX}`
+    CLIENTNAME=`get_guest_hostname ${XENMACHINE} ${CLIENTINDEX}`
+
+    # Enable File and Printer Sharing in Firewall on Server and share a folder
+    if ! ${SFUSSH} Administrator@${SERVERNAME} /local/bm/scripts/remote/sio.remote server; then
+        log_extra_data "Reason: sio.remote server failed."
+        return ${RC_ERROR}
+    fi
+    ${SCP} Administrator@${SERVERNAME}:/tmp/sio.remote.log ${WORKDIR}/logs
+
+    # See what the server calls itself in NBT land
+    SERVER_NBT=`${SSH} Administrator@${SERVERNAME} ${NETCMD} config server | grep "Server Name" | awk '{print $3}' | sed -e's/\\\\//g' -e 's/\\r//g'`
+   
+    # Create the client script.
+#"${NETCMD}" use z: \\\\\\\\${SERVER_NBT}\\\\siotest ${XENPASSWD} /user:Administrator > /tmp/sio-run.log 2>&1 < /dev/null
+    cat > ${WORKDIR}/${THISSCRIPT}/sioclient.sh <<EOF
+#!/bin/bash
+set -x
+source /etc/profile
+"${NETCMD}" use z: \\\\\\\\${SERVER_NBT}\\\\siotest ${XENPASSWD} > /tmp/sio-run.log 2>&1 < /dev/null
+"${NETCMD}" use >> /tmp/sio-run.log 2>&1 < /dev/null
+touch /dev/fs/Z/test.file
+chmod a+rwx /dev/fs/Z/test.file
+${WORKDIR}/${THISSCRIPT}/sio_win32.exe 70 100 16k 0 ${FSIZE}m 120 1 z:\\test.file -fillonce >> /tmp/sio-run.log 2>&1 < /dev/null
+${WORKDIR}/${THISSCRIPT}/sio_win32.exe 70 100 16k 0 ${FSIZE}m 120 1 z:\\test.file -niceoutput >> /tmp/sio-run.log 2>&1 < /dev/null
+"${NETCMD}" use z: /delete >> /tmp/sio-run.log 2>&1 < /dev/null
+cat /tmp/sio-run.log
+EOF
+    cat ${WORKDIR}/${THISSCRIPT}/sioclient.sh
+
+    ${SSH} Administrator@${CLIENTNAME} mkdir -p ${WORKDIR}/${THISSCRIPT}
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/* \
+	Administrator@${CLIENTNAME}:${WORKDIR}/${THISSCRIPT}/
+
+    ${SSH} Administrator@${CLIENTNAME} \
+	chmod a+x ${WORKDIR}/${THISSCRIPT}/sioclient.sh
+    ${SFUSSH} Administrator@${CLIENTNAME} ${WORKDIR}/${THISSCRIPT}/sioclient.sh
+    ${SCP} Administrator@${CLIENTNAME}:/tmp/sio-run.log ${WORKDIR}/logs
+
+    # Cleanup the server
+    ${SSH} Administrator@${SERVERNAME} ${SCRIPTDIR}/remote/sio.remote \
+	serverpost
+    ${SCP} Administrator@${SERVERNAME}:/tmp/sio.remote-post.log ${WORKDIR}/logs
+    
+    return 0
+}
+
+BM_RUN=run_this
+
+process_this() {
+    SERVERINDEX=${1}    
+    CLIENTINDEX=${2}
+
+    if grep -q "z: was deleted successfully" ${WORKDIR}/logs/sio-run.log; then
+        echo "Test: passed"
+        echo "Result: Latency: `cat ${WORKDIR}/logs/sio-run.log | grep 'LAT(ms):' | awk '{ print $2 }'`"
+        echo "Result: Throughput: `cat ${WORKDIR}/logs/sio-run.log | grep 'TPUT(KB/s):' | awk '{ print $2 }'`"
+    else
+        echo "Test: failed"
+    fi
+    
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

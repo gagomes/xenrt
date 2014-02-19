@@ -1,0 +1,50 @@
+#!/usr/bin/python
+
+import sys, os, os.path
+
+# We expect three parameters, location of logs, and time and size thresholds
+# Thresholds can be 'None'
+
+# We spit out on stdout a tarball of any relevant logs
+# Any errors / debug messages go to stderr
+
+if len(sys.argv) != 4:
+    sys.stderr.write("Incorrect number of arguments\n")
+    sys.exit(1)
+
+path = sys.argv[1]
+timeStr = sys.argv[2]
+sizeStr = sys.argv[3]
+
+if timeStr == "None":
+    time = None
+else:
+    time = int(timeStr)
+if sizeStr == "None":
+    size = None
+else:
+    size = long(sizeStr)
+
+logsToCollect = []
+
+# Grab the contents of the directory
+logs = os.listdir(path)
+for log in logs:
+    st = os.stat("%s/%s" % (path,log))
+    if size and st.st_size > size:
+        continue
+    if time and st.st_mtime < time:
+        continue
+    logsToCollect.append(log)
+
+if len(logsToCollect) > 0:
+    # Construct the relevant tar command line
+    cmd = "cd %s && tar -cO" % (path)
+    for log in logsToCollect:
+        cmd += " " + log
+    # Now execute it
+    rc = os.system(cmd)
+    if rc > 0:
+        sys.stderr.write("Got return code %u from tar command!" % (rc))
+
+sys.exit(0)

@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Orlando pool operations test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolJoin">
+      <testcase id="xenserver.tc.pool.TC8604"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

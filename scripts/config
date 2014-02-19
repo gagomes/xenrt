@@ -1,0 +1,29 @@
+# xenrt: Xen regression Testing
+#
+# Configuration entry point
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, July 2005-May 2006
+
+PER_RUN_CONFIG_LOCAL=/tmp/xenrt-per-run-config-local
+config_overrides() {
+
+    # Per-run overrides passed via PER_RUN_CONFIG
+    if [ -n "$2" -a -e "$2" ]; then
+        . $2
+    elif [ -e "${PER_RUN_CONFIG_LOCAL}" ]; then
+        # If nothing specified then we may have beeb called by a method
+        # other than dispatch (e.g. cleanmachine calling setup-partitions).
+        # Try a static file.
+        . ${PER_RUN_CONFIG_LOCAL}
+    fi
+}
+
+# This will include per-user, per-run, and site config.
+config_overrides ${XENMACHINE} ${PER_RUN_CONFIG}
+
+# This is legacy site config
+[ -f ${SCRIPTDIR}/${SITE}-site-config ] && . ${SCRIPTDIR}/${SITE}-site-config
+
+. ${SCRIPTDIR}/global-config
+

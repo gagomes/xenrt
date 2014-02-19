@@ -1,0 +1,172 @@
+XenRT test harness
+==================
+
+The XenRT Python codebase is released under the terms of the 3-clause BSD
+license. Full details can be found in the file exec/LICENSE.
+
+Third party software
+====================
+
+The following pieces of third party software are included in the XenRT 
+distribution as separate works.
+
+bonnie++, dbench, dhcp, dnsmasq, gnbd, iscsitarget, kernbench, lmbench, ltp,
+memtest, memtest86+, mysql, perl DBI+DBD-MySQL, osdb, osdlaim, pxelinux, qemu,
+scapy, stress, sysbench, virtinst and xm-test are distributed under the terms of
+the GNU Public License.
+
+Twisted and libvirt are distributed under the terms of the GNU Lesser General 
+Public License.
+
+crashme is distributed according to the following permission:
+
+
+/*
+ *             COPYRIGHT (c) 1990-1994 BY        *
+ *  GEORGE J. CARRETTE, CONCORD, MASSACHUSETTS.  *
+ *             ALL RIGHTS RESERVED               *
+
+Permission to use, copy, modify, distribute and sell this software
+and its documentation for any purpose and without fee is hereby
+granted, provided that the above copyright notice appear in all copies
+and that both that copyright notice and this permission notice appear
+in supporting documentation, and that the name of the author
+not be used in advertising or publicity pertaining to distribution
+of the software without specific, written prior permission.
+
+postmark and tet are distributed unmodified in accordance with the Artistic
+Licence contained with the packages.
+
+iometer is distributed under the terms of the Intel open source license.
+
+netperf is distributed under the terms of the following license:
+ 
+	   Copyright (C) 1993-2007 Hewlett-Packard Company
+                         ALL RIGHTS RESERVED.
+ 
+  The enclosed software and documentation includes copyrighted works
+  of Hewlett-Packard Co. For as long as you comply with the following
+  limitations, you are hereby authorized to (i) use, reproduce, and
+  modify the software and documentation, and to (ii) distribute the
+  software and documentation, including modifications, for
+  non-commercial purposes only.
+      
+  1.  The enclosed software and documentation is made available at no
+      charge in order to advance the general development of
+      high-performance networking products.
+ 
+  2.  You may not delete any copyright notices contained in the
+      software or documentation. All hard copies, and copies in
+      source code or object code form, of the software or
+      documentation (including modifications) must contain at least
+      one of the copyright notices.
+ 
+  3.  The enclosed software and documentation has not been subjected
+      to testing and quality control and is not a Hewlett-Packard Co.
+      product. At a future time, Hewlett-Packard Co. may or may not
+      offer a version of the software and documentation as a product.
+  
+  4.  THE SOFTWARE AND DOCUMENTATION IS PROVIDED "AS IS".
+      HEWLETT-PACKARD COMPANY DOES NOT WARRANT THAT THE USE,
+      REPRODUCTION, MODIFICATION OR DISTRIBUTION OF THE SOFTWARE OR
+      DOCUMENTATION WILL NOT INFRINGE A THIRD PARTY'S INTELLECTUAL
+      PROPERTY RIGHTS. HP DOES NOT WARRANT THAT THE SOFTWARE OR
+      DOCUMENTATION IS ERROR FREE. HP DISCLAIMS ALL WARRANTIES,
+      EXPRESS AND IMPLIED, WITH REGARD TO THE SOFTWARE AND THE
+      DOCUMENTATION. HP SPECIFICALLY DISCLAIMS ALL WARRANTIES OF
+      MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+  
+  5.  HEWLETT-PACKARD COMPANY WILL NOT IN ANY EVENT BE LIABLE FOR ANY
+      DIRECT, INDIRECT, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES
+      (INCLUDING LOST PROFITS) RELATED TO ANY USE, REPRODUCTION,
+      MODIFICATION, OR DISTRIBUTION OF THE SOFTWARE OR DOCUMENTATION.
+
+PostgreSQL is distributed under the terms of this license:
+
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose, without fee, and without a written agreement
+is hereby granted, provided that the above copyright notice and this
+paragraph and the following two paragraphs appear in all copies.
+
+IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
+DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING
+LOST PROFITS, ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS
+DOCUMENTATION, EVEN IF THE UNIVERSITY OF CALIFORNIA HAS BEEN ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
+ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA HAS NO OBLIGATIONS TO
+PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+
+The Sun Java Runtime Environment (JRE) is distributed under the terms of the Sun
+Microsystems, Inc. Binary Code License Agreement
+(http://java.sun.com/j2se/1.5.0/jre-1_5_0_07-license.txt)
+ 
+ttcp is public domain software.
+
+LRMI is used in the vm68 test. It's license is:
+
+        Linux Real Mode Interface - A library of DPMI-like functions for
+        Linux.
+        
+        Copyright (C) 1998 by Josh Vanderhoof
+        
+        Permission is hereby granted, free of charge, to any person obtaining
+        a copy of this software and associated documentation files (the
+        "Software"), to deal in the Software without restriction, including
+        without limitation the rights to use, copy, modify, merge, publish,
+        distribute, sublicense, and/or sell copies of the Software, and to
+        permit persons to whom the Software is furnished to do so, subject to
+        the following conditions:
+        
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+        EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+        MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+        IN NO EVENT SHALL JOSH VANDERHOOF BE LIABLE FOR ANY CLAIM, DAMAGES OR
+        OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+        ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+        OTHER DEALINGS IN THE SOFTWARE.
+
+The Microsoft .NET Framework 2.0 is the redistributable package.
+
+adfind.exe, prime95, and sciencemark2 are freeware applications.
+
+
+
+XenRT also makes uses of the following pieces of software which are freely
+available, but due to license restrictions we are not able to distribute.
+Paths in the repository and Download URLs (where available) are included:
+
+Microsoft Exchange Loadsim (tests/loadsim/loadsim.msi)
+http://www.microsoft.com/downloads/details.aspx?FamilyId=92EB2EDC-3433-47CA-A5F8-0483C7DDEA85
+
+Microsoft SQLIO (tests/sqlio/SQLIO.msi)
+https://www.microsoft.com/downloads/details.aspx?FamilyId=9A8B005B-84E4-4F24-8D65-CB53442D9E19&displaylang=en
+
+Microsoft SQLIOSim (tests/sqliosim/[ia64,x64,x86]/sqliosim.com, and
+tests/sqliosim/ErrorLog.xslt)
+http://support.microsoft.com/kb/231619
+
+
+
+XenRT also can make use of a number of third party applications which require
+licensing. These are:
+
+PassMark BurnInTest Professional (copy installed version files to
+tests/burnintest(64)/)
+http://www.passmark.com/products/bit.htm
+
+PassMark PerformanceTest (copy installed version files to tests/passmark/)
+http://www.passmark.com/products/pt.htm
+
+SpecJBB(2005) (copy installed version files to specjbb(2005)/installed)
+http://www.spec.org/jbb2000/ http://www.spec.org/jbb2005/
+
+Any packages not specifically listed here will either have licensing information
+included in the package, or are public domain software that is freely
+distributable.

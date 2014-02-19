@@ -1,0 +1,17 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vminstall.TCVMInstall" host="RESOURCE_HOST_0">
+        <arg>numvms=500</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

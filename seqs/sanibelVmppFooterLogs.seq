@@ -1,0 +1,36 @@
+<xenrt>
+  <!-- Sanibel Hotfix HFX794 Tests  -->
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iSCSI SR" default="true" />
+      <host id="0" license="platinum">
+        <vm name="centos56">
+          <distro>centos56</distro>
+          <network device="0"/>
+          <disk device="0" size="8"/>
+          <postinstall action="preCloneTailor"/>
+          <postinstall action="shutdown"/>
+        </vm>
+        <vm name="rhel5">
+          <distro>rhel5</distro>
+          <disk device="0" size="8"/>
+          <network device="0"/>
+          <postinstall action="preCloneTailor"/>
+          <postinstall action="shutdown"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMPP">
+      <testcase id="testcases.xenserver.tc.backup.TCMultiSnapshot" tc="TC-19988"/>
+    </serial>
+  </testsequence>
+</xenrt>

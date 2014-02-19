@@ -1,0 +1,25 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <allhosts license="platinum">
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+      </allhosts>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.vlan_scalability.tc_vlan_scalability.TCVlanScalability" host="RESOURCE_HOST_0" />
+  </testsequence>
+</xenrt>
+
+

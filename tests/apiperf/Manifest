@@ -1,0 +1,3 @@
+# Description: XenServer ISO containing an ISCSI target VM. 
+# Status: proprietary
+ae3863a3e107a4f723e1cc2a495e280f  ./xenserver-iscsi-target.iso

@@ -1,0 +1,5 @@
+8910b5c15cbf43e560640625a8f49eea  ./data-4mb.tgz
+7aafda6390f26d882548c6313cf864d3  ./data-40mb.tgz
+09f0662de2ec67301fbe0b177b8446f7  ./postgresql-7.4.10.tar.gz
+e96afa969813ffd1078f85762b8eebdc  ./osdb-0.21.tgz
+45fbe5a5f8844aa0ea6336d46f409af8  ./getlogin.patch

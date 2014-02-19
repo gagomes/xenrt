@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-Setup" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <ProductKey>
+          <WillShowUI>OnError</WillShowUI>
+          <Key>%PRODUCTKEY%</Key>
+        </ProductKey>
+      </UserData>
+      <DiskConfiguration>
+        <WillShowUI>Never</WillShowUI>
+        <Disk>
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <CreatePartition>
+              <Order>1</Order>
+              <Type>Primary</Type>
+              <Extend>true</Extend>
+            </CreatePartition>
+          </CreatePartitions>
+        </Disk>
+      </DiskConfiguration>  
+      <ImageInstall>
+        <OSImage>
+          <WillShowUI>Never</WillShowUI>
+        	  <InstallFrom>
+	            <MetaData wcm:action="add">
+        	      <Key>/IMAGE/NAME</Key>
+	              <Value>%VERSIONNAME%</Value>
+        	    </MetaData>
+              </InstallFrom>
+              <InstallTo>
+                <DiskID>0</DiskID>
+                <PartitionID>1</PartitionID>
+              </InstallTo>
+          <InstallToAvailablePartition>false</InstallToAvailablePartition>
+        </OSImage>
+      </ImageInstall>
+    </component>
+    <component name="Microsoft-Windows-International-Core-WinPE" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
+      <UILanguage>en-US</UILanguage> 
+    </component>
+  </settings>
+
+  <!-- NOTE: we need to use settings overrides to enable remote desktop and open up the relevant port in the firewall;
+         at present, these settings have not yet been authored; in the meantime, we use guirunonce items to get this
+         functionality (and we autologon to make sure the guirunonce items will run right after setup) -->
+
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="%ARCH%" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <ComputerName>*</ComputerName>
+    </component>
+  </settings>
+  <settings pass="oobeSystem">
+    <component name="Microsoft-Windows-Shell-Setup" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" processorArchitecture="%ARCH%">
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <CommandLine>d:\$OEM$\runonce.cmd</CommandLine>
+          <Description>Post-install script.</Description>
+          <Order>20</Order>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+      <TimeZone>Greenwich Standard Time</TimeZone>
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <NetworkLocation>Other</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+      </OOBE>
+      <UserAccounts>
+        <AdministratorPassword>
+          <Value>%PASSWORD%</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Password>
+                <Value>%PASSWORD%</Value>
+                <PlainText>true</PlainText>
+            </Password>
+            <Name>XenRT</Name>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+      <AutoLogon>
+        <Enabled>true</Enabled>
+        <Username>Administrator</Username>
+        <Password>
+          <Value>%PASSWORD%</Value>
+          <PlainText>true</PlainText>
+        </Password>
+      </AutoLogon>
+    </component>
+  </settings>
+
+</unattend>

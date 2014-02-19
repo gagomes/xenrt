@@ -1,0 +1,31 @@
+<xenrt>
+
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCTimeVMClones" host="RESOURCE_HOST_0">
+        <arg>xapi=xapi-trunk-25489-stunnel</arg>
+        <arg>numclones=800</arg>
+      </testcase>
+    </testsequence>
+
+</xenrt>

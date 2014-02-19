@@ -1,0 +1,319 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <!-- SR type is needed so localstoragecaching will work -->
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    <DOM0_MEM>3072</DOM0_MEM>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="fastStoreSR" default="true" />
+      <allhosts />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <NIC />
+          <NIC />
+          <MANAGEMENT mode="static" />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+      <arg>numdesktops=2</arg>
+      <arg>novifs</arg>
+      <arg>localstoragecaching</arg>
+      <arg>buffercache=r</arg>
+    </testcase>
+
+    <!--  <for iter="I" values="10,20,30,40,50,01,03,05,07,15,25,35,45,55"> -->
+    <for iter="I" values="20,30,10,40,25,01,03,05,07,15,35,45,50,55">
+      <action action="prepare" />
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-${I}">
+        <arg>numdesktops=${I}</arg>
+        <arg>novifs</arg>
+        <arg>localstoragecaching</arg>
+        <arg>buffercache=r</arg>
+      </testcase>
+    </for>
+
+    <!-- First a few with no local caching -->
+    <!--
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStartsNC-10">
+        <arg>numdesktops=10</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStartsNC-20">
+        <arg>numdesktops=20</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStartsNC-40">
+        <arg>numdesktops=40</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStartsNC-55">
+        <arg>numdesktops=55</arg>
+      </testcase>
+
+<action action="prepare"/>
+-->
+    <!-- Now the cases with local caching -->
+    <!--
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-01">
+        <arg>numdesktops=1</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+        <arg>numdesktops=2</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-03">
+        <arg>numdesktops=3</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-04">
+        <arg>numdesktops=4</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-05">
+        <arg>numdesktops=5</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-06">
+        <arg>numdesktops=6</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-07">
+        <arg>numdesktops=7</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-08">
+        <arg>numdesktops=8</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-10">
+        <arg>numdesktops=10</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-12">
+        <arg>numdesktops=12</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-14">
+        <arg>numdesktops=14</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-16">
+        <arg>numdesktops=16</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-18">
+        <arg>numdesktops=18</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-20">
+        <arg>numdesktops=20</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-23">
+        <arg>numdesktops=23</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-26">
+        <arg>numdesktops=26</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-29">
+        <arg>numdesktops=29</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-32">
+        <arg>numdesktops=32</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-35">
+        <arg>numdesktops=35</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-39">
+        <arg>numdesktops=39</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-43">
+        <arg>numdesktops=43</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-45">
+        <arg>numdesktops=45</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-47">
+        <arg>numdesktops=47</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-50">
+        <arg>numdesktops=50</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-51">
+        <arg>numdesktops=51</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-55">
+        <arg>numdesktops=55</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-60">
+        <arg>numdesktops=60</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+-->
+    <!-- now fill in some gaps if there is still time -->
+    <!--
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-41">
+        <arg>numdesktops=41</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-45b">
+        <arg>numdesktops=45</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-48">
+        <arg>numdesktops=48</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-49">
+        <arg>numdesktops=49</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-49b">
+        <arg>numdesktops=49</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-50b">
+        <arg>numdesktops=50</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-52">
+        <arg>numdesktops=52</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-53">
+        <arg>numdesktops=53</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-57">
+        <arg>numdesktops=57</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-33">
+        <arg>numdesktops=33</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-27">
+        <arg>numdesktops=27</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-24">
+        <arg>numdesktops=24</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-21">
+        <arg>numdesktops=21</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+
+<action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-09">
+        <arg>numdesktops=9</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+-->
+  </testsequence>
+</xenrt>

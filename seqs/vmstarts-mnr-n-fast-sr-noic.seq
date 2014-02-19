@@ -1,0 +1,40 @@
+<xenrt>
+  <variables>
+    <!--  supply this on command line instead so that the same seq file can work with more than one release -->
+    <!--  <PRODUCT_VERSION>MNR</PRODUCT_VERSION> -->
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="fastStoreSR" default="true" />
+      <allhosts license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <NIC />
+          <NIC />
+          <MANAGEMENT mode="static" />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+      <arg>numdesktops=1</arg>
+      <arg>novifs</arg>
+    </testcase>
+
+    <for iter="I" values="10,20,30,40,50,05,15,25,35,45">
+      <action action="prepare" />
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-${I}">
+        <arg>numdesktops=${I}</arg>
+        <arg>novifs</arg>
+      </testcase>
+    </for>
+
+  </testsequence>
+</xenrt>

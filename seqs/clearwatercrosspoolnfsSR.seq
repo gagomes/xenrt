@@ -1,0 +1,31 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+        <storage type="nfs" name="crosspoolSharedNFSSR"/>
+      <host id="0">
+      </host>
+      <host id="1">
+      </host>
+    </pool>
+
+    <pool id="1">
+      <host id="2">
+      </host>
+      <host id="3">
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolSharedSR">
+      <testcase id="xenserver.tc.crosspool.TC18674" name="TC18674" tc="TC-18674"/>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

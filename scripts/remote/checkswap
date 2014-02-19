@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+# Script to check for presence of swap and it being of a minimum size
+#
+# (C) XenSource Inc. 2006
+# Written by Andrew Peace, July 2006
+# Modified by James Bulpin, July 2006
+
+set -e
+
+checkswap() {
+    local expected_swapfiles=${1:-1}
+    local min_swapsize=${1:-450000}
+    
+    # do we have the correct number of output lines (should be 2 - one for the 
+    # header, and the second for the actual swap device, since we only use one).
+    swapfiles=$(/sbin/swapon -s | wc -l)
+    if [ "${swapfiles}" -ne "$((expected_swapfiles + 1))" ] ; then
+	echo "Expecting ${expected_swapfiles} swap devices, found $((${swapfiles} - 1))."
+	/sbin/swapon -s >&2
+	return 1
+    fi
+    
+    # Is the swap device at least 1GB?
+    swapsize=$(/sbin/swapon -s | tail -n1 | awk '{print $3}')
+    if [ "${swapsize}" -le ${min_swapsize} ] ; then
+	echo "Swap device was size ${swapsize}, expected at least ${min_swapsize}" >&2
+	/sbin/swapon -s >&2
+	return 1
+    fi
+}
+
+checkswap "$@"
+

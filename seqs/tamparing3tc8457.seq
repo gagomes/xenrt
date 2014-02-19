@@ -1,0 +1,30 @@
+<xenrt>
+
+  <!-- MNR TC-8457 vdi-copy Testing -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsisr"/>
+      <storage type="netapp" name="netappsr" options="thin"/>
+      <storage type="nfs" name="nfssr"/>
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8457">
+      <testcase id="xenserver.tc.storage.TC8458"/>
+      <testcase id="xenserver.tc.storage.TC8459"/>
+      <testcase id="xenserver.tc.storage.TC8460"/>
+      <testcase id="xenserver.tc.storage.TC8461"/>
+      <testcase id="xenserver.tc.storage.TC8462"/>
+      <testcase id="xenserver.tc.storage.TC8463"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

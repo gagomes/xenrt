@@ -1,0 +1,6 @@
+# Description: Microsoft SQLIO Tool
+# Status: downloadable
+# Obtaining:
+# Download SQLIO.msi from
+# https://www.microsoft.com/downloads/details.aspx?FamilyId=9A8B005B-84E4-4F24-8D65-CB53442D9E19&displaylang=en
+fd52f8a86f1f27353c3229bd28403b24  ./SQLIO.msi

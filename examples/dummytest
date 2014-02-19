@@ -1,0 +1,121 @@
+#!/bin/bash
+
+SCRIPTDIR=`dirname $0`
+THISSCRIPT=`basename $0`
+
+TIMEOUT=45
+
+RETVAL=0
+
+RC_OK=0
+RC_TIMEOUT=1
+RC_DEAD=2
+RC_FAIL=3
+RC_NOT_SETUP=4
+RC_ERROR=5
+RC_BMDEAD=6
+
+set -e
+
+if ( echo $1 | grep -q ^WORKDIR= ); then
+    WORKDIR=`echo $1 | cut -d = -f 2`
+    shift
+fi
+
+install() {
+    mkdir -p ${WORKDIR}/logs
+    touch ${WORKDIR}/.setupcomplete
+}
+
+run() {
+    sleep 20
+    set > ${WORKDIR}/logs/env.txt
+    touch ${WORKDIR}/.xenrt-success
+}
+
+start_run() {
+
+    mkdir -p ${WORKDIR}/logs
+    date +%s > ${WORKDIR}/.started
+    ${SCRIPTDIR}/${THISSCRIPT} run "$@" < /dev/null > ${WORKDIR}/logs/xenrt-run.out 2> ${WORKDIR}/logs/xenrt-run.err &
+    echo $! > ${WORKDIR}/.pid
+}
+
+stop_run() {
+    if [ -e ${WORKDIR}/.pid ]; then
+      kill -9 `cat `${WORKDIR}/.pid
+    fi
+}
+
+waitfor() {
+
+    cd ${WORKDIR}
+    local START=`cat .started`
+    local DEADLINE=$[$START + $TIMEOUT]
+    local PID=`cat .pid`
+
+    while true; do
+      if [ '!' -d /proc/${PID} ]; then
+        echo "Done"
+        if [ -e ${WORKDIR}/.xenrt-success ]; then
+            exit ${RC_OK}
+        elif [ -e ${WORKDIR}/.xenrt-success-${SUBDIR} ]; then
+            exit ${RC_OK}
+        else
+            exit ${RC_ERROR}
+        fi
+      fi
+      local NOW=`date +%s`
+      if [ $NOW -gt $DEADLINE ]; then
+          echo "Timeout"
+          exit ${RC_TIMEOUT}
+      fi
+      echo "Running"
+      sleep 2
+    done
+}
+
+process() {
+    if [ -e ${WORKDIR}/.xenrt-success ]; then
+        echo "Test: passed"
+    else
+        echo "Test: failed"
+	RETVAL=1
+    fi
+}
+
+getlogs() {
+    tar -jcf - -C ${WORKDIR}/logs .
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+        install
+        ;;
+  start)
+        start_run
+        ;;
+  stop)
+        stop_run
+        ;;
+  run)
+	run
+	;;
+  waitfor)
+	waitfor
+        ;;
+  process)
+        process
+        ;;
+  getlogs)
+        getlogs
+        ;;
+  *)
+        exit 1
+esac
+
+exit $RETVAL

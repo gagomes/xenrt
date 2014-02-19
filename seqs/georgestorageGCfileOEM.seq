@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- George VHDoEXT storage GC/coalesce test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="VHDoEXT">
+      <testcase id="xenserver.tc.vhd.TC8553"/>
+      <testcase id="xenserver.tc.vhd.TC8558"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

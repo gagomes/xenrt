@@ -1,0 +1,12 @@
+diff -rup a/osdb-0.21/src/callable-sql/postgres-call/osdb-pg.m4 b/osdb-0.21/src/callable-sql/postgres-call/osdb-pg.m4
+--- a/osdb-0.21/src/callable-sql/postgres-call/osdb-pg.m4	2004-10-11 22:17:44.000000000 +0000
++++ b/osdb-0.21/src/callable-sql/postgres-call/osdb-pg.m4	2005-12-16 17:17:38.000000000 +0000
+@@ -414,7 +414,7 @@ setDefaults() {
+     dataDir=NULL;
+     osdblog=stdout;
+     DBHOST=NULL;
+-    DBUSER=getlogin();
++    DBUSER="root";
+     DBPASSWORD=NULL;
+     DBNAME="osdb";
+     DBPORT=0;

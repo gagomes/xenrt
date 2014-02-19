@@ -1,0 +1,56 @@
+Manifests
+=========
+
+The tests directory is split into two, the primary part is kept within the
+xenrt.hg tree, and the secondary part is outside (in 
+/usr/groups/xenrt/distmaster).
+
+The part within the xenrt.hg tree should only contain non binary files, upon
+which XenSource holds all the rights. For example, config files for tests, 
+simple python scripts to run tests etc. Any binary files or 3rd party code
+should be kept in distmaster.
+
+Within the test directory in xenrt.hg there should be a file called Manifest.
+The Manifest contains a list of files needed for the test and their md5sums, in
+the format "md5sum relative_file_path". If the md5sum is not known (for example
+it is a file that can change, such as a key file), then an * can be used.
+
+The Manifest file also has a header, in the following format:
+
+# Description: Short description of the files in this test dir
+# Status: NDA / proprietary / downloadable / distributable
+# License: GPL / XS / <other>
+# Obtaining:
+# <text>
+# <text>
+
+The four status values mean:
+NDA:		Files are supplied to us under an NDA or similar arrangement,
+		i.e. we cannot distribute it, and other XenRT users cannot
+		purchase/download it
+proprietary: 	Files are 3rd party proprietary code that we cannot distribute,
+		but a XenRT user can purchase for themselves.
+downloadable: 	Files are 3rd party, and license terms prevent us from
+		distributing them, but a XenRT user can simply download them
+		themselves.
+distributable: 	Files are OK to include in a XenRT distribution.
+
+If no header is applied, distributable is assumed.
+
+In the case of proprietary or downloadable files, the text under the
+"Obtaining:" header will be used in generating instructions for the XenRT user
+as to where to obtain the files from. This should therefore contain any relevant
+version information and purchase/download URLs and instructions on processing
+any files to match the format in the Manifest.
+
+For distributable files, the License field should be put in with the appropriate
+license. XS = XenSource owned code that we are happy to distribute. Other
+'standard' licenses can simply be entered in, if the application uses a custom
+license, place this in a suitably named file (if it isn't already) and point to
+this file in the License field.
+
+
+
+There is a utility scripts/buildmanifest which can be run while inside a test
+directory. This will simply generate a Manifest file with md5sums of all the
+files in the current directory.

@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <!-- specify the XenServer release here: -->
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    
+    <!-- specify the number of threads that are required for the prepare: -->
+    <!-- in this example 2 are required for parallel host and VM installation. -->
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <!-- specify what hosts, pools and VMs are required here: -->
+  <prepare>
+      <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.hg/exec/ -->
+    <testcase id="testcases.xenserver.tc.breakpointstest.TCMyTestCase"/>
+    
+  </testsequence>
+</xenrt>

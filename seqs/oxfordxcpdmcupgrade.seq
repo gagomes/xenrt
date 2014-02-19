@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- MNR DMC upgrade test sequence -->
+
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.5.0-Update2"/>
+  <default name="OLD_PRODUCT_VERSION" value="George"/>
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <storage type="nfs" name="nfssr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9283">
+      <testcase id="xenserver.tc.balloon.TC9322"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

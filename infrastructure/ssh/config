@@ -1,0 +1,14 @@
+UseBlacklistedKeys yes
+Host hg.uk.xensource.com
+IdentityFile ~/.ssh/id_dsa_hg
+
+Host *.testdev.hq.xensource.com
+        StrictHostKeyChecking no
+        CheckHostIP no
+        UserKnownHostsFile /dev/null
+ 
+Host *.xenrt.xs.citrite.net
+        StrictHostKeyChecking no
+        CheckHostIP no
+        UserKnownHostsFile /dev/null
+

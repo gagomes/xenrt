@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the Wine test suite
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+# Alex Brett, July 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+BM_SUPPORTED_PLATFORMS="Windows"
+
+RETVAL=0
+
+# Don't pass by default, we'll deal with that
+BM_PROCESS_NO_DEFAULT_PASS="yes"
+
+# Tests to ignore
+IGNORED_TESTS="exception.c process.c listbox.c msg.c rtlstr.c profile.c"
+IGNORED_TESTS="${IGNORED_TESTS} shellpath.c sysparams.c"
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+    # Permissions fix
+    chmod 777 ${WORKDIR}/${THISSCRIPT}
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+    set -x
+
+    # This script uses SOON to start it, since it needs to interact with
+    # the desktop...
+    echo "cd `winify_path ${WORKDIR}/${THISSCRIPT}`" > \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    echo "winetest.exe -c -o results.txt -t XenRT" >> \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    echo "del `winify_path ${WORKDIR}/${THISSCRIPT}/running`" >> \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    unix2dos `winify_path ${WORKDIR}/${THISSCRIPT}/wrapper` \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/wrapper.bat`   
+ 
+    echo 1 > ${WORKDIR}/${THISSCRIPT}/running
+        
+    # PATH hack to make SOON find the win32 at.exe and not the unix at command
+    PATH=/dev/fs/C/WINDOWS/system32:$PATH
+    if ${WORKDIR}/${THISSCRIPT}/soon.exe 60 /INTERACTIVE \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/wrapper.bat` 
+	then
+        # Deal with the fact soon.exe returns an error...
+	echo
+    fi
+       
+    # Job has completed once running file disappears (this is to make
+    # waitfor work correctly)
+    while [ -e ${WORKDIR}/${THISSCRIPT}/running ]
+      do
+      sleep 60
+    done
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/results.txt ${WORKDIR}/${THISSCRIPT}/diff_results.txt"
+
+process_this() {
+    
+    # Build up the grep expression to remove unwanted results
+    GE=""
+    for i in ${IGNORED_TESTS};
+      do
+      GE="${GE} -e ${i}"  
+    done
+    
+    # Remove any allowed failures
+    grep 'Test failed:' ${WORKDIR}/${THISSCRIPT}/results.txt | grep -v ${GE} \
+	> ${WORKDIR}/fails-virt-${SUBDIR}.txt || true
+
+    # See what fails on native Windows
+    grep 'Test failed:' ${WORKDIR}/${THISSCRIPT}/baseline > \
+	${WORKDIR}/fails-native-${SUBDIR}.txt || true
+    cat >> ${WORKDIR}/fails-native-${SUBDIR}.txt <<EOF
+metafile.c:801: Test failed: emf_TextOut_on_path: mfsize=244, bsize=244, diff=7
+metafile.c:801: Test failed: emf_LineTo MM_ANISOTROPIC: mfsize=312, bsize=312, diff=14
+metafile.c:801: Test failed: emf_LineTo MM_TEXT: mfsize=228, bsize=228, diff=17
+metafile.c:801: Test failed: emf_LineTo NULL: mfsize=312, bsize=312, diff=20
+protocol.c:259: Test failed: szStatusText != text/html
+win.c:2419: Test failed: hwnd 00090074 message 0000
+clipping.c:114: Test failed: GetRandomRgn 400,300 - 500,341
+protocol.c:881: Test failed: expected ReportData
+win.c:2419: Test failed: hwnd 000900A2 message 0000
+EOF
+
+    # See what we're left with after removing allowed and native fails
+    grep -vFf ${WORKDIR}/fails-native-${SUBDIR}.txt \
+	${WORKDIR}/fails-virt-${SUBDIR}.txt > \
+	${WORKDIR}/logs/fails-${SUBDIR}.txt || true
+	
+    # Count the fails
+    FAIL_COUNT=`wc -l ${WORKDIR}/logs/fails-${SUBDIR}.txt | awk '{print $1}'`
+	
+    if [ ${FAIL_COUNT} = 0 ]; then
+	echo "Test: passed"
+    else
+	if [ ${FAIL_COUNT} -lt 2000 ]; then
+	    echo "Test: passed"
+	    echo "Warning: ${FAIL_COUNT} disallowed failures"
+	else
+	    echo "Test: failed"
+	    echo "Comment: ${FAIL_COUNT} disallowed failures"
+	fi
+    fi
+
+    # Get other stats
+    EXECUTED=`grep "tests executed" ${WORKDIR}/${THISSCRIPT}/results.txt | awk 'BEGIN{e=0}{e=e+$2}END{print e}'`
+    FAILEDALL=`grep "tests executed" ${WORKDIR}/${THISSCRIPT}/results.txt | awk 'BEGIN{e=0}{e=e+$9}END{print e}'`
+    echo "Comment: ${EXECUTED} tests executed"
+    echo "Comment: ${FAILEDALL} tests failed"
+}
+
+BM_PROCESS_NO_DEFAULT_PASS=yes
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

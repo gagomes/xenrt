@@ -1,0 +1,214 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+
+  <testsequence>
+    <parallel group="Setup" workers="2">
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>storageType=nfs,iscsi</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteADSetup" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+      </testcase>
+    </parallel>
+    <serial group="VM Operations">
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteDistroSetup">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>rhel45,centos45</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10255" name="TC-10255">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10255</arg>
+       <arg>TC10255</arg>
+       <arg>10255</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10315" name="TC-10315">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10315</arg>
+       <arg>TC10315</arg>
+       <arg>10315</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10277" name="TC-10277">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10277</arg>
+       <arg>TC10277</arg>
+       <arg>10277</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10271" name="TC-10271">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10271</arg>
+       <arg>TC10271</arg>
+       <arg>10271</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10272" name="TC-10272">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10272</arg>
+       <arg>TC10272</arg>
+       <arg>10272</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10274" name="TC-10274">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10274</arg>
+       <arg>TC10274</arg>
+       <arg>10274</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10279" name="TC-10279">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10279</arg>
+       <arg>TC10279</arg>
+       <arg>10279</arg>
+       <arg>postRun=true</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" name="RBACSetup">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>Setup</arg>
+       <arg>RBACSetup</arg>
+       <arg>RBACSetup</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10267" name="TC-10267">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10267</arg>
+       <arg>TC10267</arg>
+       <arg>10267</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10300" name="TC-10300">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10300</arg>
+       <arg>TC10300</arg>
+       <arg>10300</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10318" name="TC-10318">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10318</arg>
+       <arg>TC10318</arg>
+       <arg>10318</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10299" name="TC-10299">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10299</arg>
+       <arg>TC10299</arg>
+       <arg>10299</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10301" name="TC-10301">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10301</arg>
+       <arg>TC10301</arg>
+       <arg>10301</arg>
+       <arg>postRun=true</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" name="RBACSetup1" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>Setup</arg>
+       <arg>RBACSetup</arg>
+       <arg>RBACSetup</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10281" name="TC-10281">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10281</arg>
+       <arg>TC10281</arg>
+       <arg>10281</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10282" name="TC-10282">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10282</arg>
+       <arg>TC10282</arg>
+       <arg>10282</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10288" name="TC-10288">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10288</arg>
+       <arg>TC10288</arg>
+       <arg>10288</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10291" name="TC-10291">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10291</arg>
+       <arg>TC10291</arg>
+       <arg>10291</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10292" name="TC-10292">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10292</arg>
+       <arg>TC10292</arg>
+       <arg>10292</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10293" name="TC-10293">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10293</arg>
+       <arg>TC10293</arg>
+       <arg>10293</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10294" name="TC-10294">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10294</arg>
+       <arg>TC10294</arg>
+       <arg>10294</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10295" name="TC-10295">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10295</arg>
+       <arg>TC10295</arg>
+       <arg>10295</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10296" name="TC-10296">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10296</arg>
+       <arg>TC10296</arg>
+       <arg>10296</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10297" name="TC-10297">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10297</arg>
+       <arg>TC10297</arg>
+       <arg>10297</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" name="RBACSetup2" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>Setup</arg>
+       <arg>RBACSetup</arg>
+       <arg>RBACSetup</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10323" name="TC-10323">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10323</arg>
+       <arg>TC10323</arg>
+       <arg>10323</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10316" name="TC-10316">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10316</arg>
+       <arg>TC10316</arg>
+       <arg>10316</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# XenRT: Xen Regression Testing
+#
+# Test the Storage Manager. 
+#
+# (C) XenSource UK Ltd, 2006
+# Karl Spalding, December 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/carboncommon
+. ${SCRIPTDIR}/lib/cli
+
+TIMEOUT=7200 
+RETVAL=0
+CLIDIR=`dirname ${CARBON_CD_IMAGE}`
+
+BM_INSTALL_SKIP_TARBALL=yes
+
+set -e
+
+run_this() {
+    set -x
+
+    cp ${CLIDIR}/cli-regress.tar.gz ${WORKDIR}/${THISSCRIPT}/
+    tar xvzf ${WORKDIR}/${THISSCRIPT}/cli-regress.tar.gz
+
+    local HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+
+    # The license file has to be in the current directory.
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/sm_stress.opt \
+        root@${HOSTNAME}:
+    ${SCP} ${WORKDIR}/${THISSCRIPT}/license.txt \
+        root@${HOSTNAME}:
+
+    if ${SSH} root@${HOSTNAME} \
+        ./sm_stress.opt \
+            -host localhost &> ${WORKDIR}/logs/out.log 
+        then
+        RETVAL=${RC_OK}
+    else
+        RETVAL=${RC_ERROR}
+    fi
+
+    if ! grep "Executing" ${WORKDIR}/logs/out.log; then
+        log_extra_data "Reason: No output detected."
+        RETVAL=${RC_ERROR}
+    fi
+
+    return ${RETVAL}
+}
+
+BM_RUN=run_this
+
+process_this() {
+
+    if grep "FAILURE" ${WORKDIR}/logs/out.log; then
+        echo "Test: failed"
+    else
+        echo "Test: passed"
+    fi
+
+}
+
+BM_PROCESS=process_this
+
+BM_NO_DEFAULT_LOGS=yes
+
+. ${SCRIPTDIR}/generic

@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+    <!-- Enable the Common Criteria Restrictions for all hosts. -->
+    <ENFORCE_CC_RESTRICTIONS>true</ENFORCE_CC_RESTRICTIONS>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <NMAP_ALLOWED_PORTS>tcp/22 tcp/443</NMAP_ALLOWED_PORTS>
+  </variables>
+
+  <prepare>
+    <!-- The TOE -->
+    <pool>
+      <storage type="nfs" name="shared" default="true"/>
+      <host id="0" license="false"/>
+      <host id="1" license="false"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VMS/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI">
+          <NIC/>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Evaluation">
+      <testcase id="xenserver.tc.cc.TC11214"/>
+      <testcase id="xenserver.negative.TCincorrectPassword">
+        <arg>RESOURCE_HOST_0</arg>
+      </testcase>
+      <testcase id="xenserver.tc.security.TC8352"/>
+      <testcase id="xenserver.tc.security.TC7939"/>
+      <testcase id="xenserver.tc.security.TC8368"/>
+      <testcase id="xenserver.tc.agent.TC8768"/>
+      <testcase id="xenserver.tc.security.TC10179"/>
+      <testcase id="xenserver.security.TCOpenPorts"/>
+      <testcase id="xenserver.tc.cc.TC11221"/>
+      <testcase id="xenserver.tc.cc.TC11215"/>
+      <testcase id="xenserver.tc.cc.TC11216"/>
+      <testcase id="xenserver.tc.cc.TC11222"/>
+      <testcase id="xenserver.tc.cc.TC11223"/>
+      <testcase id="xenserver.tc.cc.TC10795"/>
+      <testcase id="xenserver.tc.cc.TC11224"/>
+      <testcase id="xenserver.tc.cc.TC11225"/>
+      <testcase id="xenserver.tc.cc.TC10940"/>
+      <testcase id="xenserver.tc.cc.TC11226"/>
+      <testcase id="xenserver.tc.cc.TC11228"/>
+      <testcase id="xenserver.tc.cc.TC11229"/>
+      <testcase id="xenserver.tc.security.TC11260"/>
+      <testcase id="xenserver.tc.security.TC11261"/>
+      <testcase id="xenserver.tc.cc.TC11353"/>
+      <testcase id="xenserver.tc.cc.TC10941"/>
+      <testcase id="xenserver.tc.cc.TC11352"/>
+    </serial>
+  </testsequence>  
+
+</xenrt>

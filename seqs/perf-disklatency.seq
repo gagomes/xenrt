@@ -1,0 +1,22 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_disk_latency.TCDiskLatency" host="RESOURCE_HOST_0">
+        <arg>numvms=40</arg>
+        <arg>edisks=3</arg>
+        <arg>bufsize=512</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

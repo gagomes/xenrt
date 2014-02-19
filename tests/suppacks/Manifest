@@ -1,0 +1,19 @@
+# Description: Sample XenServer Supplemental Pack ISOs. 
+# Status: proprietary
+# Type: directory
+0f3a628baee6c4d2419d584f3d10b661  ./bigmemory.iso
+8f4cb416a15deaffb61945505a5b8b0a  ./bugtool.iso
+8fa1bb6c0ee6bce415d6582f7768be4c  ./bugtool2.iso
+bc4b217635b49934435ef84e5ad4cc91  ./bugtool3.iso
+396084b719cd05a4785c2ab8d9f9deee  ./bugtool4.iso
+1854d640176cf2006457e6b39a2ab1f7  ./combined.iso
+52bed0f40d135b558888732368be7950  ./helloworld-user.iso
+fed96f053909ec5545dc2ad129502e6d  ./helloworld-user2.0.iso
+a2b61cf8dd69cb204ada5af5e78da94e  ./homogeneous.iso
+85259930efe40451598888fa90b28f00  ./mypack.iso
+4fc73421161e4f95438004fe5c473e99  ./smallmemory.iso
+7c581da1b0e7ac59e56bd8965768eee7  ./unmet-dependency.iso
+88dc093f29c441e4c465f98803f10183  ./unmet-version.iso
+c4f51df7f2adbe090693cd508a12ddae  ./webpage.iso
+32cdae4a8d1b7f4d61467168f48b611a  ./xs-nicaea.iso
+e847dc64c70e3a0d584e6cbff6c7f64f  ./hpsa.iso

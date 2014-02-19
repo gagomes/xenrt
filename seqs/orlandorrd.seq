@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- Orlando Persistent Stats test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="RRD">
+      <testcase id="xenserver.tc.rrd.TC8244"/>
+      <testcase id="xenserver.tc.rrd.TC8245"/>
+      <testcase id="xenserver.tc.rrd.TC8246"/>
+      <testcase id="xenserver.tc.rrd.TC8248"/>
+      <testcase id="xenserver.tc.rrd.TC8262"/>
+      <testcase id="xenserver.tc.rrd.TC8287"/>
+      <testcase id="xenserver.tc.rrd.TC8306"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

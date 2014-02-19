@@ -1,0 +1,6 @@
+install_type	flash_install
+archive_location %%ARCHIVE_LOCATION%%
+partitioning	explicit
+filesys rootdisk.s0	free	/
+filesys rootdisk.s1	512		swap
+

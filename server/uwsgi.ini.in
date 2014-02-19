@@ -1,0 +1,14 @@
+[uwsgi]
+http-socket = :1025
+chdir = @sharedir@/server/
+worker-mount = /share/control=start.wsgi
+manage-script-name=true
+processes = @wsgiworkers@
+stats = :9090
+uid = xenrtd
+gid = xenrtd
+harakiri = 300
+max-requests = 5000
+log-syslog=xenrt
+enable-threads = true
+disable-logging = true

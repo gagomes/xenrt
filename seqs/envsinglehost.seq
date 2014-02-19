@@ -1,0 +1,13 @@
+<xenrt>
+  <!-- Single host, no VMs -->
+    
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <allhosts />
+  </prepare>
+</xenrt>
+

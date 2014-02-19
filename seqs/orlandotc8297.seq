@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Orlando TC-8297 Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8297">
+      <testcase id="xenserver.tc.regression.TC8297"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

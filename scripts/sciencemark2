@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the Sciencemark2 benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+# Alex Brett, July 2006
+
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=7200
+BM_SUPPORTED_PLATFORMS="Windows"
+
+RETVAL=0
+
+# Don't pass by default, we'll deal with that
+BM_PROCESS_NO_DEFAULT_PASS="yes"
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+    # Permissions fix
+    chmod 777 ${WORKDIR}/${THISSCRIPT}
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+    set -x
+
+    # This script uses SOON to start it, since it needs to interact with the
+    # desktop...
+    echo "cd `winify_path ${WORKDIR}/${THISSCRIPT}`" > \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    echo "ScienceMark2.exe -runallbench -automate" >> \
+	${WORKDIR}/${THISSCRIPT}/wrapper 
+    echo "del `winify_path ${WORKDIR}/${THISSCRIPT}/running`" >> \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    unix2dos `winify_path ${WORKDIR}/${THISSCRIPT}/wrapper` \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/wrapper.bat` &> /dev/null
+
+    run_on_glass ${WORKDIR}/${THISSCRIPT}/wrapper.bat 
+        
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/Console-*.txt"
+
+process_this() {
+    # We've passed if we have a results file.
+    RECENT_RESULT=`ls -t ${WORKDIR}/${THISSCRIPT}/*.rst 2> /dev/null | head -n 1`
+    if ! [ -z "${RECENT_RESULT}" ]; then
+    	echo "Test: passed"
+	    sed -n '6p' "${RECENT_RESULT}" | awk '{ printf("Value: membench: %.2f\nValue: STREAM: %.2f\nValue: cipherbench: %.2f\nValue: moldyn: %.2f\nValue: primordia: %.2f\nValue: BLAS/FLOPs: %.2f\nValue: Overall: %.2f\n",$(NF-6),$(NF-5),$(NF-4),$(NF-3),$(NF-2),$(NF-1),$NF) }'
+    else
+    	echo "Test: failed"
+    fi      
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

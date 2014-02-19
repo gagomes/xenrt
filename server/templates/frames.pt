@@ -1,0 +1,19 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+<HEAD>
+<TITLE>XenRT</TITLE>
+</HEAD>
+
+<frameset cols="*,400" frameborder="0" border="1">
+  <frameset rows="50,*" frameborder="0" border="1">
+    <frame name="filter" src="jobquery">
+    <frame name="matrix" src="${matrix}">
+  </frameset>
+  <frameset rows="300,*" frameborder="0" border="1">
+    <frame name="jobdesc" src="${jobdetail}">
+    <frame name="testdesc" src="${testdetail}">
+  </frameset>
+</frameset>
+
+
+</HTML>

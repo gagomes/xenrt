@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- George XenTest Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="XenTest">
+    <testcase id="xenserver.tc.xentest.TC8429"/>
+    <testcase id="xenserver.tc.xentest.TC8430"/>
+    <testcase id="xenserver.tc.xentest.TC8431"/>
+    <testcase id="xenserver.tc.xentest.TC8706"/>
+  </testsequence>
+
+</xenrt>

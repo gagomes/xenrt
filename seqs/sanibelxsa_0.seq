@@ -1,0 +1,27 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <!--For Sweeney-->
+    <!--<CC_ENABLE_SSH>yes</CC_ENABLE_SSH>
+    <TAILOR_CLEAR_IPTABLES>yes</TAILOR_CLEAR_IPTABLES>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>-->
+    
+  </variables>
+
+  <prepare>
+    <host id="0" >
+      <!-- For Sweeney -->
+      <!-- <storage type="nfs" name="nfssr" default="true" />-->
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase tc="TC-20684" id="testcases.xenserver.security.TCXSA55" />
+    <testcase tc="TC-20674" id="testcases.xenserver.security.TCXSA20" />
+    <testcase tc="TC-20675" id="testcases.xenserver.security.TCXSA21" />
+    <testcase tc="TC-20676" id="testcases.xenserver.security.TCXSA22" />
+    <testcase tc="TC-20678" id="testcases.xenserver.security.TCXSA24" />
+    <testcase tc="TC-20677" id="testcases.xenserver.security.TCXSA23" />
+  </testsequence>
+</xenrt>

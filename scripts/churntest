@@ -1,0 +1,195 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the churn test.
+#
+# Reads the following environment variables (all times are in seconds):
+# CHURN_RUN_LENGTH (how long to run for, defaults to 3600, i.e. 1 hour)
+# CHURN_GUEST_COUNT (how many guests to create, defaults to 5)
+# CHURN_MIN_TIME (the minimum time a guest should run for, defaults to 30)
+# CHURN_MAX_TIME (the maximum time a guest should run for, defaults to 300)
+# CHURN_GUEST_MEM (the amount of memory to give a guest, defaults to 64M)
+# CHURN_WORKLOADS (a space separated list of workloads to run on the guest)
+# (workloads are expected to be in ${SCRIPTDIR}/workloads, and are expected to
+# take start and stop commands)
+#
+# (C) XenSource UK Ltd, 2006
+# Alex Brett, August 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+# Set default parameters
+RUNLENGTH=${CHURN_RUN_LENGTH:-3600}
+CHURN_GUEST_COUNT=${CHURN_GUEST_COUNT:-5}
+MINTIME=${CHURN_MIN_TIME:-30}
+MAXTIME=${CHURN_MAX_TIME:-300}
+MEM=${CHURN_GUEST_MEM:-64}
+
+# Set timeout to runlength + 10 minutes
+TIMEOUT=$(( ${RUNLENGTH} + 600 ))
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+get_oct3() {
+  # Get the third octet by XOR'ing all 4 octets of the dom0 IP
+  DOM0IP=`get_dom0_ipaddr ${XENMACHINE}`
+  DOM0_1=`echo ${DOM0IP} | awk -F. '{ print $1 }'`
+  DOM0_2=`echo ${DOM0IP} | awk -F. '{ print $2 }'`
+  DOM0_3=`echo ${DOM0IP} | awk -F. '{ print $3 }'`
+  DOM0_4=`echo ${DOM0IP} | awk -F. '{ print $4 }'`
+  OCT3=$(( ${DOM0_1} ^ ${DOM0_2} ^ ${DOM0_3} ^ ${DOM0_4} ))
+}
+
+install_this() {
+  # Set up CHURN_GUEST_COUNT LVM volumes (they only need to be 300M),
+  # mkfs.ext2 each volume, and untar the guest image. Volumes are named
+  # churnX
+
+  # Find out kernel parameters
+  KERNEL_VER=`cat /boot/domU_version`
+  KERNEL="/boot/vmlinuz-${KERNEL_VER}"
+  MODULES="/lib/modules/${KERNEL_VER}"
+
+  # Get 3rd octet
+  get_oct3
+
+  CTR=1
+  while [ "${CTR}" -le "${CHURN_GUEST_COUNT}" ]; do
+    # Set up volume
+    lvcreate -L 300M -n churn${CTR} /dev/${Volume_Group}
+    mkfs.ext2 /dev/${Volume_Group}/churn${CTR}
+
+    # Mount volume
+    TMPDIR=`mktemp -d /tmp/tmpdirXXXXX`
+    mount /dev/${Volume_Group}/churn${CTR} ${TMPDIR}
+ 
+    # Extract filesystem
+    tar -xpzf ${WORKDIR}/${THISSCRIPT}/guest.tgz -C ${TMPDIR}
+
+    # Bring in modules
+    cp -R ${MODULES} ${TMPDIR}/lib/modules
+
+    # Copy in scripts
+    mkdir -p ${TMPDIR}/${REMOTE_SCRIPTDIR}
+    cp -r ${SCRIPTDIR}/* ${TMPDIR}/${REMOTE_SCRIPTDIR}/
+
+    # Unmount volume
+    umount -l ${TMPDIR}
+    rmdir ${TMPDIR}
+
+    # Set up Xen config file
+    echo "name=\"churn${CTR}\"" > ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "kernel=\"${KERNEL}\"" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "memory=${MEM}" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "vif=['']" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "disk=[ 'phy:/dev/${Volume_Group}/churn${CTR},sda1,w' ]" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "root=\"/dev/sda1 ro\"" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+    echo "extra=\"ip=169.254.${OCT3}.${CTR}:1.2.3.4::255.255.0.0:churn${CTR}:eth0:off\"" >> ${WORKDIR}/${THISSCRIPT}/churn${CTR}
+
+    CTR=$(( ${CTR} + 1 ))
+  done 
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+  route del -net 169.254.0.0/16 dev eth0 || true
+
+  # Give this machine an IP that means it can talk to the guests
+  get_oct3
+  ifconfig eth0:254 down > /dev/null 2>&1 || true
+  ifconfig eth0:254 169.254.${OCT3}.254 netmask 255.255.0.0 up
+
+  # Start up all guests using the helper process, record PIDs
+  CTR=1
+  while [ "${CTR}" -le "${CHURN_GUEST_COUNT}" ]; do
+    # Create child proc...
+    ${WORKDIR}/${THISSCRIPT}/child $CTR $SCRIPTDIR ${WORKDIR}/${THISSCRIPT} \
+      $OCT3 $MINTIME $MAXTIME "${CHURN_WORKLOADS}" \
+      > ${WORKDIR}/${THISSCRIPT}/guest${CTR}.log 2>&1 & 
+
+    # Record PID
+    GUESTPIDS[$CTR]=$!
+
+    # Increment counter
+    CTR=$(( ${CTR} + 1 ))
+  done  
+
+  # Wait for RUNLENGTH seconds, checking that all helper procs are still
+  # running
+  STARTTIME=`date +%s`
+  ENDTIME=$(( ${STARTTIME} + ${RUNLENGTH} ))
+  CURTIME=${STARTTIME}
+  FAIL="no"
+
+  while [ "${CURTIME}" -lt "${ENDTIME}" ]; do
+
+    CTR=1
+    while [ "${CTR}" -le "${CHURN_GUEST_COUNT}" ]; do
+
+      # Check if the proc is still there
+      if [ '!' -d /proc/${GUESTPIDS[$CTR]} ]; then
+        # It's gone, so somethings gone wrong, time to fail...
+        echo 1>&2 "Child process ${CTR} has terminated, aborting test!"
+        FAIL="yes"
+        break 3
+      fi
+
+      CTR=$(( ${CTR} + 1 ))
+    done
+
+    # Wait 1 minute, then check again
+    sleep 60
+
+    # Recaculate current time so we can check we aren't meant to finish
+    CURTIME=`date +%s`
+
+  done
+
+  # Done, so terminate child procs, and destroy any running domains
+  CTR=1
+  while [ "${CTR}" -le "${CHURN_GUEST_COUNT}" ]; do
+    kill -9 ${GUESTPIDS[$CTR]} > /dev/null 2>&1 || true
+    xm destroy churn${CTR} > /dev/null 2>&1 || true
+    CTR=$(( ${CTR} + 1 ))
+
+    # Look for any useful error reports
+    grep ^Reason: ${WORKDIR}/${THISSCRIPT}/guest${CTR}.log | append_extra_data
+  done
+
+  # Take down network interface
+  ifconfig eth0:254 down > /dev/null 2>&1 || true
+
+  # Exit with appropriate status
+  if [ "${FAIL}" == "yes" ]; then
+    exit 1
+  fi
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${DOM0_EXTRA_LOG_FILES} ${WORKDIR}/${THISSCRIPT}/guest*.log"
+
+process_this() {
+  # Read in all the .count files, add up the total number of creations, and
+  # return this as the Value
+  TOTALCOUNT=0
+  CTR=1
+  while [ "${CTR}" -le "${CHURN_GUEST_COUNT}" ]; do
+    GUESTCOUNT=`cat ${WORKDIR}/${THISSCRIPT}/guest${CTR}.count`
+    TOTALCOUNT=$(( ${TOTALCOUNT} + ${GUESTCOUNT} ))
+    CTR=$(( ${CTR} + 1 ))
+  done  
+  echo "Value: ${TOTALCOUNT}"
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

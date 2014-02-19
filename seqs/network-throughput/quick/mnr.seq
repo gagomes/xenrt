@@ -1,0 +1,34 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="platinum" />
+      <host id="1" license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <MANAGEMENT mode="static" />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+      <arg>use_irqbalance=True</arg>
+      <arg>num_host_runs=1</arg>
+      <arg>host_run_time=10</arg>
+      <arg>host_ping_count=2</arg>
+      <arg>num_host_threads=1</arg>
+      <arg>num_vm_runs=1</arg>
+      <arg>vm_run_time=10</arg>
+      <arg>num_vm_pairs=1</arg>
+      <arg>vm_ping_count=2</arg>
+      <arg>vm_type=win7</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

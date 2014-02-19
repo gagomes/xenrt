@@ -1,0 +1,22 @@
+This directory contains utility files that we are not allowed to distribute,
+but that are essential to core parts of the operation of XenRT.
+
+Where possible, we have automated the download of these tools in utils.mk,
+however in some cases this is not possible. Instructions on how to obtain
+these files are shown below:
+
+devcon.exe / devcon64.exe
+-------------------------
+The DevCon command line utility is a scriptable alternative to the Windows Device Manager. Within XenRT these are used as part of driver installation on
+older version of Windows.
+
+The tools can be obtained from the Windows Driver Kit (WDK), available at http://msdn.microsoft.com/en-us/library/windows/hardware/hh852362.aspx
+
+devcon64.exe is the renamed x64 version of DevCon.
+
+
+certmgr.exe
+-----------
+The certmgr tool is used to install necessary certificates when running against e.g. test signed drivers.
+
+It is available from the Windows SDK at http://www.microsoft.com/en-gb/download/details.aspx?id=8279

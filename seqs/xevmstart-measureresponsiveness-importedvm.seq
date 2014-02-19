@@ -1,0 +1,20 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_xevmstart.TCXeVMstart" host="RESOURCE_HOST_0">
+        <arg>numothervms=0</arg>
+        <arg>numiters=10</arg>
+        <arg>network=Pool-wide network associated with eth0</arg>
+        <arg>measureresponsiveness</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

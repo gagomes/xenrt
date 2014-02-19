@@ -1,0 +1,7 @@
+# Description: Autoit scripting language interpreter and compiler
+# Status: distributable
+# Version: 3.3.0.0
+# Obtaining:
+# http://www.autoitscript.com/autoit3/downloads.shtml
+0a9b41382ad6ae4308d67f7709fcd4b2  ./autoit-v3-setup.exe
+ced61ba03f014d87f47deceb16d56d9e  ./license.htm

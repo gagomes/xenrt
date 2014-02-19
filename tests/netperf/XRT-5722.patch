@@ -1,0 +1,12 @@
+diff -rup netperf-2.4.3.orig/src/netlib.c netperf-2.4.3/src/netlib.c
+--- netperf-2.4.3.orig/src/netlib.c	2007-02-15 00:12:35.000000000 +0000
++++ netperf-2.4.3/src/netlib.c	2009-04-01 12:59:36.000000000 +0000
+@@ -1898,7 +1898,7 @@ bind_to_specific_processor(int processor
+      fall-back on what we had before, which is to use just the size of
+      an unsigned long. raj 2006-09-14 */
+ 
+-#if defined(__CPU_SETSIZE)
++#if defined(__CPU_SETSIZE) && defined(__CPU_ZERO)
+ #define NETPERF_CPU_SETSIZE __CPU_SETSIZE
+ #define NETPERF_CPU_SET(cpu, cpusetp)  __CPU_SET(cpu, cpusetp)
+ #define NETPERF_CPU_ZERO(cpusetp)      __CPU_ZERO (cpusetp)

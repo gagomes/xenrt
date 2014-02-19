@@ -1,0 +1,48 @@
+<xenrt>
+
+  <!-- George Linux suites test sequence for SLES 11 -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host>
+      <vm name="sles11">
+        <distro>sles11</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="sles11x64">
+        <distro>sles11</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <arch>x86-64</arch>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="sles11" guest="sles11">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-9036" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-9038" prio="3"/>
+      </serial>
+      <serial group="sles11x64" guest="sles11x64">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-9037" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-9039" prio="3"/>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

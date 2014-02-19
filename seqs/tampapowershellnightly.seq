@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- PowerShell tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <DOTNETVERSION>3.5</DOTNETVERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="PShell">
+      <testcase id="xenserver.gui.TC8300"/>
+      <testcase id="xenserver.gui.TC8304"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

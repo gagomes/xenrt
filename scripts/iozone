@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Install and run the IO Zone benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=21600
+LOGFILE=${WORKDIR}/logs/iozone.log
+THROUGHPUT_LOGFILE=${WORKDIR}/logs/throughput.log
+THREADS=4
+BM_SUPPORTED_PLATFORMS="Windows Linux"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+if ! iswindows; then
+    BM_CHECK_COMMANDS="gcc make"
+    BM_CHECK_FILES="/usr/include/stdio.h"
+fi
+
+install_this() {
+
+    set -x
+
+    if iswindows; then
+        cp ${WORKDIR}/${THISSCRIPT}/cygwin1.dll /dev/fs/C/WINDOWS/system32/
+        cp ${WORKDIR}/${THISSCRIPT}/sh.exe /dev/fs/C/WINDOWS/
+    else
+        cd ${WORKDIR}/${THISSCRIPT}
+        make linux
+    fi
+
+}
+
+BM_INSTALL=install_this
+
+do_run() {
+    local RUNTYPE=$1
+
+    if [ "${RUNTYPE}" == "benchmark" ]; then
+	${WORKDIR}/${THISSCRIPT}/${IOZONE_EXE} -a | tee ${LOGFILE}
+        ${WORKDIR}/${THISSCRIPT}/${IOZONE_EXE} -t ${THREADS} | \
+	    tee ${THROUGHPUT_LOGFILE}
+    elif [ "${RUNTYPE}" == "quick" ]; then
+        ${WORKDIR}/${THISSCRIPT}/${IOZONE_EXE} -i 0 -a | tee ${LOGFILE}
+        ${WORKDIR}/${THISSCRIPT}/${IOZONE_EXE} -t ${THREADS} -i 0 | \
+	    tee ${THROUGHPUT_LOGFILE}
+    fi    
+}
+
+run_this() {
+
+    set -x
+
+    local RUNTYPE=${1:-benchmark}
+    local RETVAL=0
+
+    # Full details of IOZONE options can be found at:
+    # http://www.iozone.org/docs/IOzone_msword_98.pdf
+
+    if iswindows; then
+        IOZONE_EXE=iozone.exe
+    else
+        IOZONE_EXE=iozone
+    fi
+
+    if ! do_run ${RUNTYPE}; then
+	RETVAL=${RC_ERROR}
+    fi
+
+    if grep -q "iozone test complete." ${LOGFILE}; then
+        if grep -q "iozone test complete." ${THROUGHPUT_LOGFILE}; then
+            ${SCRIPTDIR}/iozone_results ${LOGFILE} | append_extra_data
+            ${SCRIPTDIR}/iozone_results ${THROUGHPUT_LOGFILE} | \
+		append_extra_data
+        else
+            partial_pass
+            log_extra_data "Comment: Throughput test failed."
+            ${SCRIPTDIR}/iozone_results ${LOGFILE} | append_extra_data
+        fi
+    elif grep -q "iozone test complete." ${THROUGHPUT_LOGFILE}; then
+        partial_pass
+        log_extra_data "Comment: Auto test failed."
+        ${SCRIPTDIR}/iozone_results ${THROUGHPUT_LOGFILE} | append_extra_data
+    else
+        RETVAL=${RC_ERROR}
+    fi    
+
+    return ${RETVAL}
+}
+
+BM_RUN=run_this
+
+. ${SCRIPTDIR}/generic

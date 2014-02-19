@@ -1,0 +1,33 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+      <ENABLE_CITRIXCERT>yes</ENABLE_CITRIXCERT>
+      <ALWAYS_TEST_SIGN>yes</ALWAYS_TEST_SIGN>
+    </variables>
+
+    <prepare>
+      <pool>
+        <host id="0" license="platinum">
+            <NETWORK>
+                <PHYSICAL network="NPRI">
+                    <MANAGEMENT mode="static" />
+                    <NIC />
+                </PHYSICAL>
+            </NETWORK>
+        </host>
+        <host id="1" license="platinum">
+            <NETWORK>
+                <PHYSICAL network="NPRI">
+                    <MANAGEMENT mode="static" />
+                    <NIC />
+                </PHYSICAL>
+            </NETWORK>
+        </host>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_networkthroughput.TCNetworkThroughput">
+      </testcase>
+    </testsequence>
+  </xenrt>

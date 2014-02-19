@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <scheduler>
+    <param>MACHINES_REQUIRED=2</param>
+  </scheduler>
+  
+  <prepare>
+    <pool>
+      <allhosts />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- Hotfix Cartwheel -->
+    <serial group="HFX-996">
+      <testcase id="testcases.xenserver.tc.storage.GCCheckOnDisabledHost" name="TC20914" tc="TC-20914"/>
+    </serial>
+  </testsequence>
+</xenrt>

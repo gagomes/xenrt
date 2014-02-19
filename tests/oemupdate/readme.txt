@@ -1,0 +1,3 @@
+For various reasons, the actual files in this test dir are not listed in the
+Manifest - this file is to ensure the tarball still gets built...
+ 

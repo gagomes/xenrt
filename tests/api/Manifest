@@ -1,0 +1,12 @@
+# Status: proprietary
+762a6ef800f26984ffbd5b6cc92e42e8  ./rhel5/ocaml-3.09.1-1.2.el5.rf.i386.rpm
+732de673ed936ee75e54ef6f0143f745  ./dom0/test.css
+ea1cb0f0ec393e68196502d83e8628ff  ./dom0/test_log.js
+f75fdb858a1c04ee1a1fbd9cb35db6f2  ./windows/dllunix.dll
+89a951891ad659b49c0acaf8c0d03552  ./windows/gtserver_win.exe
+3efdc263e725277333c1e3ee061ec76b  ./windows/ocamlrun.exe
+8257eb0e0d0e90600bf8cd070ed974aa  ./windows/ocamlrun.dll
+bfca9c2269d9fdb5511c6be371b193fe  ./linux/gtlinuxops.ml
+f6f125c71b04c2bf450248904d030319  ./linux/gtmessages.ml
+1578d4f1b841f67b6362964f741f135d  ./linux/gtserver_linux.ml
+cd3e431f09741b493eb97a4e1119ffdd  ./linux/gtcomms.ml

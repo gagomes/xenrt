@@ -1,0 +1,9 @@
+DISPLAY xensource.msg
+SERIAL 0 115200
+PROMPT 1
+TIMEOUT 50
+DEFAULT local
+
+label local
+	LOCALBOOT 0
+

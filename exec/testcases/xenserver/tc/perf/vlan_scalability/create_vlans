@@ -1,0 +1,52 @@
+#!/bin/bash
+
+#default arguments:
+vlans_from=1
+
+case $# in
+	1)
+		;;
+	2)
+		vlans_from=$1;
+		shift
+		;;
+	*)
+		echo "USAGE:  $(basename $0) [vlans-from=$vlans_from] vlans-to" 1>&2
+		echo "        Create vlans with the specified numbers" 1>&2
+		exit 1
+		;;
+esac
+
+vlans_to=$1;
+shift
+
+if [ $vlans_from -gt $vlans_to ]
+then
+	echo "$(basename $0): vlans-from ($vlans_from) > vlans-to ($vlans_to).  Not creating any vlans." 1>&2
+	exit 0
+fi;
+
+
+## End of argument passing.
+## Now, let's do some real work:
+
+# Create the VLANs on the eth1 PIF on *each* host rather than just on
+# a random one. (Previously, if it turned out to be the one on the
+# master, it would cause the dbsync code on the slave on xapi restart
+# to create its own ones, hence doubling the total number of VLANs.)
+
+for ((i=$vlans_from; i<=$vlans_to; i++));
+do
+    # Create the networks
+    network_uuid=$(xe network-create name-label=vlan$i)
+    echo net=$network_uuid
+
+    # Create the VLANs on eth1 on each host
+    for pif in $(xe pif-list --minimal device=eth1 VLAN=-1 | sed "s/,/ /g")
+    do
+        echo pif=$pif
+        vlan_uuid=$(xe vlan-create pif-uuid=$pif vlan=$i network-uuid=$network_uuid)
+        xe pif-plug uuid=$vlan_uuid
+        echo vlan=$vlan_uuid
+    done;
+done

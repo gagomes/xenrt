@@ -1,0 +1,68 @@
+#!/usr/bin/python
+#
+# Fork a child and monitor its STDOUT for liveness. Kill it if it doesn't
+# send anything for a while.
+#
+# (C) XenSource UK Ltd. November 2005
+# James Bulpin, November 2005
+
+import sys, os, select, signal
+
+# Maximum time the child can not send anything on stderr or stdout before
+# we kill it
+max_idle = 300
+
+debug = 0
+
+(por, pow) = os.pipe()
+#(per, pew) = os.pipe()
+
+pid = os.fork()
+if pid == 0:
+    # Child
+    os.close(por)
+    #os.close(per)
+    sys.stdout.close()
+    #sys.stderr.close()
+    os.dup2(pow, 1)
+    #os.dup2(pew, 2)
+    os.close(pow)
+    #os.close(pew)
+    os.execvp(sys.argv[1], sys.argv[1:])
+
+# Parent
+os.close(pow)
+#os.close(pew)
+sys.stdin.close()
+
+fin = os.fdopen(por)
+
+p = select.poll()
+p.register(fin, select.POLLIN)
+
+
+idle = 0
+while 1:
+    fdset = p.poll(1000)
+    if len(fdset) > 0:
+        line = fin.readline()
+        if not line:
+            break
+        sys.stdout.write(line)
+        sys.stdout.flush()
+        idle = 0
+    else:
+        if debug:
+            sys.stderr.write("select timeout\n")
+        idle = idle + 1
+        if idle > max_idle:
+            sys.stderr.write("Timeout: killing child (%u)\n" % (pid))
+            os.kill(pid, signal.SIGKILL)
+            sys.exit(1)
+
+(p, rc) = os.wait()
+if debug:
+    sys.stderr.write("Parent exiting (child returned %d)\n" % (rc))
+if rc:
+    sys.exit(1)
+    

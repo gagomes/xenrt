@@ -1,0 +1,533 @@
+#!/usr/bin/python
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# Script to control tests at a deployment site.
+#
+# Copyright (c) 2006 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+import sys, string, getopt, urllib, os, pwd, traceback, signal, time
+import tempfile, re, pickle, threading
+sys.path.append(os.path.dirname(sys.argv[0]))
+import xenrt
+
+_sharedir = "@sharedir@"
+_rootdir = "@rootdir@"
+_vardir = "@vardir@"
+
+optparse = []
+optparse.append(("OPTIONS", "--arch", True))
+optparse.append(("REPO", "--repo", True))
+optparse.append(("REVISION", "--revision", True))
+optparse.append(("OPTION_PATCHQUEUE", "--pq", True))
+optparse.append(("OPTION_PQ_PATCH", "--pqpatch", True))
+optparse.append(("OPTION_PATCHQUEUE_REV", "--pqrev", True))
+optparse.append(("HVARCH", "--hvarch", True))
+optparse.append(("HARNESS_TRACE", "--trace", False))
+optparse.append(("NOFINALLY", "--no-finally", False))
+optparsevars = []
+for opt in optparse:
+    var, flag, hasarg = opt
+    optparsevars.append(var)
+
+debug = False
+traceon = 0
+def trace(str):
+    global traceon
+    if traceon:
+        sys.stderr.write(str)
+
+def incrementfailcount():
+    try:
+        f = file("%s/site-controller-fail-count" % _vardir)
+        count = int(f.readline().strip())
+        f.close()
+    except:
+        count = 0
+    f = file("%s/site-controller-fail-count" % _vardir, "w")
+    f.write("%d\n" % (count + 1))
+    f.close()
+    
+
+# Kill self if still running after 5 minutes
+class WatchdogThread(threading.Thread):
+    def run(self):
+        time.sleep(300)
+        os.kill(os.getpid(), signal.SIGKILL)
+
+watchdog = WatchdogThread()
+watchdog.daemon=True
+watchdog.start() 
+
+
+site = None
+domain = None
+args = None
+lockfile = None
+
+## Rate limit for starting jobs.
+# The window, in minutes, the the rolling rate limit is applied over
+ratewindow = 10
+# The maximum number of jobs that can be started in each ratewindow
+ratejobs = 5
+# The maximum number of jobs that can be started in any one site-controller run
+burstjobs = 3
+ratehistoryfile = "/tmp/xenrt-site-controller-history.dat"
+
+logserver=None
+# Communication with central control daemon
+com = xenrt.Commands(raw=1)
+logserver=None
+
+# Dirty hack to use the JOBSERVER_PROXY and rate limit variables
+if os.path.exists("/etc/xenrt/site.xml"):
+    f = file("/etc/xenrt/site.xml", "r")
+    data = f.read()
+    f.close()
+    r = re.search("<JOBSERVER_PROXY>(http:.*?)<\/JOBSERVER_PROXY>", data)
+    if r:
+        com.setProxies({'http': r.group(1)})
+    r = re.search("<JOB_RATE_LIMIT_WINDOW>(\d+)<\/JOB_RATE_LIMIT_WINDOW>", data)
+    if r:
+        ratewindow = int(r.group(1))
+    r = re.search("<JOB_RATE_LIMIT_JOBS>(\d+)<\/JOB_RATE_LIMIT_JOBS>", data)
+    if r:
+        ratejobs = int(r.group(1))
+    r = re.search("<JOB_RATE_LIMIT_BURST>(\d+)<\/JOB_RATE_LIMIT_BURST>", data)
+    if r:
+        burstjobs = int(r.group(1))
+    r = re.search("<LOG_SERVER>(.+)<\/LOG_SERVER>", data)
+    if r:
+        logserver = r.group(1)
+
+def fqdn(host):
+    global domain
+    if domain:
+        return "%s.%s" % (host, domain)
+    return host
+
+def killJob(jobid):
+    global _sharedir
+    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
+    f = os.popen("nice lsof %s" % resdir)
+    for l in f.readlines():
+        m = re.match("main.py\s+(\d+)", l)
+        if m:
+            pid = m.group(1)
+            cmd = "kill -2 %s" % pid
+            trace("Killing job %s using %s\n" % (jobid, cmd))
+            os.system(cmd)
+            time.sleep(5)
+    f.close()
+    f = os.popen("nice lsof %s" % resdir)
+    pids = []
+    for l in f.readlines():
+        m = re.match("\S+\s+(\d+)", l)
+        if m:
+            pids.append(m.group(1))
+    if len(pids) > 0:
+        cmd = "kill -9 %s" % (" ".join(pids))
+        trace("Killing job %s using %s\n" % (jobid, cmd))
+        os.system(cmd)
+
+def checkJobRunning(jobid):
+    pid = None
+    global _sharedir
+    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
+    f = os.popen("nice lsof %s" % resdir)
+    for l in f.readlines():
+        m = re.match("main.py\s+(\d+)", l)
+        if m:
+            pid = m.group(1)
+    f.close()
+    return pid
+
+def startDebuggerJob(jobid, cmd):
+    dythonPath = '/usr/share/dython-env/bin/python'   # '/home/xenrtd/req_stuff_breakpoints/v3/bin/python'
+    debugCmd = []
+    debugCmd.append(dythonPath)
+    debugCmd.append('%s/control/debuggerinvoker.py'%(_sharedir))
+    debugCmd.append('%s'%(jobid))
+    cmd.insert(0,dythonPath)
+    debugList = []
+    debugList.append(debug)
+    debugList.append(logserver)
+    debugList.append(cmd)
+    fileObj  = open("%s/results/jobs/%s/jobData" %(_sharedir, jobid), 'wb')
+    pickle.dump(debugList, fileObj)
+    fileObj.close()
+    trace("exec: %s\n" % (string.join(cmd)))
+    os.spawnv(os.P_NOWAIT, debugCmd[0], debugCmd)
+
+  
+
+
+def start_job(jobid):
+    """Start a job using the machines previously scheduled"""
+    global com, _sharedir, _rootdir, args, debug
+    # Create a working directory
+    resdir = "%s/results/jobs/%s" % (_sharedir, jobid)
+    os.makedirs(resdir)
+   
+    data = com.run("status", ["%s" % (jobid)])
+    cmd = ["%s/exec/main.py" % (_sharedir)]
+    cmd.append("-V")
+    cmd.append("-C")
+    cmd.append(resdir)
+    cmd.append("--redir")
+    cmd.append("--remote")
+    if args:
+        for a in string.split(args):
+            cmd.append(a)
+    if data.has_key("CLI_ARGS_PASSTHROUGH"):
+        for i in string.split(data["CLI_ARGS_PASSTHROUGH"]):
+            cmd.append(i)
+    if data.has_key("SCHEDULEDON") and not "--pool" in cmd and not "--existing" in cmd:
+        hosts = string.split(data["SCHEDULEDON"], ",")
+        if data.has_key("SCHEDULEDON2"):
+            hosts.extend(string.split(data["SCHEDULEDON2"], ","))
+        if data.has_key("SCHEDULEDON3"):
+            hosts.extend(string.split(data["SCHEDULEDON3"], ","))
+        hostslong = map(fqdn, hosts)
+        cmd.append("--host")
+        cmd.append("%s" % (string.join(hostslong, ",")))
+    if data.has_key("DEPS"):
+        cmd.append("--sequence")
+        cmd.append("%s" % (data["DEPS"]))
+    else:
+        com.run("update", [jobid, "FAILED", "No sequence file specified"])
+        com.run("complete", [jobid])
+        return
+    if data.has_key("TESTCASEFILES"):
+        cmd.append("--testcasefiles")
+        cmd.append("%s" % (data["TESTCASEFILES"]))
+    for optpair in optparse:
+        var, flag, hasarg = optpair
+        if data.has_key(var):
+            cmd.append(flag)
+            if hasarg:
+                cmd.append(data[var])
+    for k in data.keys():
+        if not k in ("DEPS", "SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3", "TESTCASEFILES", "CLI_ARGS_PASSTHROUGH") \
+                and not k in optparsevars:
+            cmd.append("-D")
+            cmd.append("%s=%s" % (k, data[k]))
+    cmdl = string.join(cmd)
+
+    if (data.has_key("XENRT_PQ_NAME") and len(data['XENRT_PQ_NAME']) > 0):
+        trace("Using patchqueue XENRT_PQ_NAME='%s'\n" % (data['XENRT_PQ_NAME']))
+    else:
+        data["XENRT_PQ_NAME"] = "xenrt.pq.hg"
+        trace("Set XENRT_PQ_NAME to default value, '%s'\n" % (data["XENRT_PQ_NAME"]))
+
+    if data.has_key("GUARD") and len(data["GUARD"]) > 0:
+        trace("Using PQ guard '%s' with PQ '%s'\n" % (data['GUARD'],data['XENRT_PQ_NAME']))
+    else:
+        data["GUARD"] = "-n"
+
+    # Prepare to apply specified patches from specified patchqueue, first removing any current patches.
+    pqpath = "%s/../%s" % (_rootdir,data['XENRT_PQ_NAME'])
+    if not os.path.isdir(os.path.realpath(pqpath)):
+        errmsg = "Found no patchqueue '%s' at '%s'." % (data['XENRT_PQ_NAME'],pqpath)
+        trace("%s\n" % (errmsg))
+        if not debug:
+            com.run("update", [jobid, "FAILED", errmsg])
+            com.run("complete", [jobid])
+        return
+
+    rc = os.system("cd %s && hg qpop -a && hg qselect -n && [ -d ../%s ] && ln -sfn ../../%s .hg/patches && hg qselect %s" %
+              (_rootdir,data['XENRT_PQ_NAME'],data['XENRT_PQ_NAME'],data['GUARD']))
+    if rc > 0:
+        # Failed set-up, so bail out.
+        errmsg = "Failed to set up guard '%s' in PQ '%s'" % (data['GUARD'],data['XENRT_PQ_NAME'])
+        trace("%s\n" % (errmsg))
+        if not debug:
+            com.run("update", [jobid, "FAILED", errmsg])
+            com.run("complete", [jobid])
+        return
+    rc = os.system("cd %s && hg pull --mq && hg update -C --mq && hg qpush -a" % (_rootdir))
+    # Depending on choice of patchqueue there might be unguarded patches or not.
+    if rc > 0 and data["GUARD"] != "-n":
+        # The patch queue failed to apply, so bail out.
+        os.system("cd %s && hg qpop -a" % (_rootdir))
+        os.system("cd %s && hg qselect -n" % (_rootdir))
+        errmsg = "Guard %s in PQ %s failed to apply" % (data['GUARD'],data['XENRT_PQ_NAME'])
+        trace("%s\n" % (errmsg))
+        if not debug:
+            com.run("update", [jobid, "FAILED", errmsg])
+            com.run("complete", [jobid])
+        return
+    
+    custompatchtmp = ""
+    if data.has_key("CUSTOM_PATCH") and len(data["CUSTOM_PATCH"]) > 0:
+        errmsg = ""
+        
+        # download custom-patch from scheduler
+        custompatchtmp = "/tmp/" + jobid + data["CUSTOM_PATCH"]
+        com.run("download", [jobid, "-p", data["CUSTOM_PATCH"], "-f", custompatchtmp])
+
+        if os.path.isfile(custompatchtmp):
+            # apply patch
+            rc = os.system("cd %s && hg import --no-commit %s" % (_rootdir, custompatchtmp))
+            if rc > 0:
+                errmsg = "Couldn't import custom patch %s" % (data["CUSTOM_PATCH"])
+        else:
+            errmsg = "Couldn't find custom patch %s" % (data["CUSTOM_PATCH"])
+            
+        if len(errmsg) > 0:
+            trace("%s\n" % (errmsg))
+            if not debug:
+                com.run("update", [jobid, "FAILED", errmsg])
+                com.run("complete", [jobid])
+            
+            if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
+                os.system("cd %s && hg revert --all" % (_rootdir))
+                # delete all files in the custom patch as some of these might be left as untracked
+                # by the revert-all. They need to be deleted so as to allow patches on these files in future.
+                os.system("cd %s && cat %s | lsdiff --strip 1 | xargs -I '{}' rm -f '{}'" % (_rootdir, custompatchtmp))
+                os.system("cd %s && hg update -C" % (_rootdir))
+                os.system("rm -f %s" % custompatchtmp)
+            return
+
+
+    if 'DEBUG' in data and data['DEBUG'] == 'yes':
+        try:
+            os.system("cd %s && make minimal-install BUILDPREFIX=%s" % (_rootdir,jobid))
+            cmd[0] = '%s/%s-exec/main.py'%(_sharedir,jobid)
+            startDebuggerJob(jobid, cmd)
+        except Exception as e:
+            print 'ERROR here: %s'%(e)
+    else:
+        os.system("cd %s && make minimal-install" % (_rootdir))
+        trace("exec: %s\n" % (cmdl))
+        if not debug:
+            if logserver:
+                com.run("update", [jobid, "LOG_SERVER", "%s" % logserver])
+            pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
+            com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
+
+    time.sleep(30)
+    if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
+        os.system("cd %s && hg revert --all" % (_rootdir))
+        # delete all files in the custom patch as some of these might be left as untracked
+        # when reverting. They need to be deleted so as to allow patches on these files in future.
+        os.system("cd %s && cat %s | lsdiff --strip 1 | xargs -I '{}' rm -f '{}'" % (_rootdir, custompatchtmp))
+        os.system("cd %s && hg update -C" % (_rootdir))
+        os.system("rm -f %s" % custompatchtmp)
+    
+    os.system("cd %s && hg qpop -a" % (_rootdir))
+    os.system("cd %s && hg qselect -n" % (_rootdir))
+    os.system("cd %s && make minimal-install" % (_rootdir))
+
+# Main prog
+if __name__ == '__main__':
+    optlist, arglist = getopt.getopt(sys.argv[1:], 's:dD:x:A:Sl:')
+    for argpair in optlist:
+        (flag, value) = argpair
+        if flag == "-d":
+            traceon = 1
+        if flag == "-s":
+            site = value
+        if flag == "-D":
+            domain = value
+        if flag == "-x":
+            _sharedir = value
+        if flag == "-A":
+            args = value
+        if flag == "-S":
+            debug = True
+        if flag == "-l":
+            lockfile = value
+
+    if not site:
+        sys.stderr.write("Must specify the site ID.\n")
+        sys.exit(1)
+
+    if not lockfile:
+        lockfile = "/tmp/xenrt-site-controller.pid"
+
+    # Determine if we need to run or not
+    if os.path.exists(lockfile):
+        try:
+            f = file(lockfile, 'r')
+            data = f.read().strip()
+            pid = None
+            try:
+                pid = int(data)
+            except:
+                # The lockfile doesn't contain a valid PID
+                trace("Invalid lockfile found, continuing.\n")
+            else:
+                # Check if this pid is still running
+                if os.path.exists("/proc/%d" % (pid)):
+                    trace("Valid lockfile found, aborting.\n")
+                    incrementfailcount()
+                    sys.exit(0)
+                else:
+                    trace("Old lockfile found, continuing.\n")
+        except Exception, e:
+            if isinstance(e, SystemExit):
+                raise e
+            sys.stderr.write("Exception checking lockfile, aborting.\n")
+            incrementfailcount()
+            sys.exit(1)
+
+    # Write out the lockfile
+    f = file(lockfile, 'w')
+    f.write(str(os.getpid()))
+    f.close()
+
+    f = file("%s/site-controller-fail-count" % _vardir, "w")
+    f.write("0\n")
+    f.close()
+
+    # Read in our recent job starting history to use for rate limiting
+    now = int(time.mktime(time.localtime()))
+    windowopens = now - ratewindow * 60
+    starttimes = []
+    if os.path.exists(ratehistoryfile):
+        f = file(ratehistoryfile, "r")
+        data = f.read()
+        f.close()
+        for starttime in map(int, data.split()):
+            # Only interested in starts within the rate limit window
+            if starttime >= windowopens:
+                starttimes.append(starttime)
+        trace("Read in recent job start times: %s\n" % (starttimes))
+    # Calculate how many jobs we are allowed to start this iteration
+    remainingwindow = ratejobs - len(starttimes)
+    if remainingwindow < 0:
+        maystart = 0
+    elif remainingwindow < burstjobs:
+        maystart = remainingwindow
+    else:
+        maystart = burstjobs
+
+    # Obtain the list of machines at our site
+    trace("Fetching list of machines.\n")
+    mlist = com.run("mlist2", ["-s", site, "-C"])
+
+    # For each machine, check whether we have a job running
+    newjobs = {}
+    ready = {}
+    deadjobs = []
+    for m in mlist:
+        trace("Checking machine %s..." % (m[0]))
+        if m[1] == "idle":
+            trace(" idle\n")
+        elif m[1] == "slaved":
+            # Check whether the job has been marked as completed
+            data = com.run("status", ["%s" % (m[2])])
+            if data.has_key("JOBSTATUS") and data["JOBSTATUS"] == "done":
+                trace(" completed jobid %s\n" % (m[2]))
+                com.run("mstatus", [m[0], "idle"])
+                com.run("event", ["JobEnd", m[0], m[2]])
+            else:
+                trace(" running jobid %s (slave)\n" % (m[2]))
+        elif m[1] == "scheduled":
+            trace(" scheduled to run %s\n" % (m[2]))
+            data = com.run("status", ["%s" % (m[2])])
+            if data.has_key("REMOVED") and data["REMOVED"] == "yes":
+                trace(" removed, so not starting job\n")
+                com.run("complete", [m[2]])
+                com.run("mstatus", [m[0], "idle"])
+            else:
+                if not newjobs.has_key(m[2]):
+                    newjobs[m[2]] = []
+                newjobs[m[2]].append(m[0])
+                ready[m[0]] = True
+        elif m[1] == "running":
+            # Check whether the job has been marked as completed
+            data = com.run("status", ["%s" % (m[2])])
+            if data.has_key("JOBSTATUS") and data["JOBSTATUS"] == "done":
+                trace(" completed jobid %s\n" % (m[2]))
+                com.run("mstatus", [m[0], "idle"])
+                com.run("event", ["JobEnd", m[0], m[2]])
+                os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", m[2])
+            else:
+                hpid = None
+                if data.has_key("HARNESS_PID") and os.path.exists("/proc/%s/stat" % data['HARNESS_PID']):
+                    hpid = data['HARNESS_PID']
+                if hpid:
+                    trace(" running jobid %s, process %s\n" % (m[2], hpid))
+                else:
+                    trace(" running jobid %s. ERROR - no process for job\n" % (m[2]))
+                    deadjobs.append(m[2])
+                if data.has_key("REMOVED") and data["REMOVED"] == "yes":
+                    trace("Job %s set as removed, killing job\n" % m[2])
+                    killJob(m[2])
+                    com.run("complete", [m[2]])
+                    com.run("mstatus", [m[0], "idle"])
+                    os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-temp-dirs", m[2])
+                    if not (data.has_key("OPTION_KEEP_NFS") and data["OPTION_KEEP_NFS"] == "yes"):
+                        os.spawnl(os.P_NOWAIT, "%s/exec/main.py" % _sharedir, "%s/exec/main.py" % _sharedir, "--cleanup-nfs-dirs", m[2])
+        else:
+            trace(" unknown status %s\n" % (m[1]))
+
+    f = open("%s/deadjobs" % _vardir, "w")
+    f.write("%s\n" % (", ".join(deadjobs)))
+    f.close()
+
+    # Sort the new job list by priority so that higher jobs get started
+    # first and lower priority jobs are more likely to be rate limited.
+    newjobprios = {}
+    for j in newjobs.keys():
+        data = com.run("status", ["%s" % (j)])
+        prio = 3
+        if data.has_key("JOBPRIO"):
+            try:
+                prio = int(data["JOBPRIO"])
+            except:
+                pass
+        sortkey = "P%03uJ%08u" % (prio, int(j))
+        newjobprios[sortkey] = j
+    newjobpriokeys = newjobprios.keys()
+    newjobpriokeys.sort()
+    newjoblist = [newjobprios[x] for x in newjobpriokeys]
+        
+    # If we have new jobs make sure we have all the machines ready then
+    # start the job
+
+    if len(newjoblist) > 0:
+        rc = os.system("if [ -d %s/../xenrt-internal.hg ]; then cd %s/../xenrt-internal.hg && hg qpop -a && hg pull && hg update -C && hg qpush -a; fi; cd %s && hg pull && hg update -C" % (_rootdir, _rootdir, _rootdir))
+        if rc > 0:
+            trace("WARNING: Failed to update controller with latest mercurial code\n")
+
+    for j in newjoblist:
+        trace("New job %s..." % (j))
+        notready = []
+        for m in newjobs[j]:
+            if not ready.has_key(m):
+                notready.append(m)
+        if len(notready) == 0:
+            if maystart > 0:
+                # Run the job and note that these machines are now busy
+                hosts = []
+                trace(" starting\n")
+                machines = []
+                for m in newjobs[j]:
+                    machines.append(m)
+                    del ready[m]
+                    com.run("mstatus", [m, "running"])
+                for machine in machines:
+                    com.run("event", ["JobStart", machine, j])
+                start_job(j)
+                starttimes.append(now)
+                maystart = maystart - 1
+            else:
+                trace(" not starting due to job rate limiting\n")
+        else:
+            trace(" %s not ready\n" % (string.join(notready,",")))
+
+    # Write out the recent scheduling history (including any within the
+    # rate window read in earlier) for use in rate limit calculations
+    # next time.
+    f = file(ratehistoryfile, "w")
+    f.write(string.join(map(str, starttimes), "\n"))
+    f.close()
+
+    # Erase the lock
+    os.unlink(lockfile)
+

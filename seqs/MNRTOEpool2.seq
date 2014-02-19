@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+    <!-- Enable the Common Criteria Restrictions for all hosts. -->
+    <ENFORCE_CC_RESTRICTIONS>true</ENFORCE_CC_RESTRICTIONS>
+    <NMAP_ALLOWED_PORTS>tcp/22 tcp/443</NMAP_ALLOWED_PORTS>
+  </variables>
+
+  <prepare>
+    <!-- The TOE -->
+    <pool ssl="true">
+      <storage type="nfs" name="shared" default="true"/>
+      <host id="0" license="platinum" usev6testd="false"/>
+      <host id="1" license="platinum" usev6testd="false"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VMS/>
+        </PHYSICAL>
+        <PHYSICAL network="IPRI">
+          <NIC/>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="EvaluationMultipleHosts">
+      <testcase id="xenserver.tc.cc.TC11228"/>
+    </serial>
+  </testsequence>  
+
+</xenrt>

@@ -1,0 +1,31 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="Marvin">
+        <distro>ubuntu1204</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="CS-MS">
+        <distro>rhel57</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="50" />
+      </vm>
+    </host>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence group="BasicCS">
+    <testcase id="testcases.xenserver.tc.cloudstack.TCBasicCloudStack"/>
+  </testsequence>
+
+</xenrt>

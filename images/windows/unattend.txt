@@ -1,0 +1,67 @@
+;SetupMgrTag
+[Data]
+    AutoPartition=1
+    MsDosInitiated="0"
+    UnattendedInstall="Yes"
+
+[SetupData]
+    OSLoadOptionsVar="/noexecute=AlwaysOff"
+
+[Unattended]
+    UnattendMode=FullUnattended
+    OemSkipEula=Yes
+    OemPreinstall=Yes
+    TargetPath=\WINDOWS
+    Repartition=Yes
+    DriverSigningPolicy=Ignore
+    UnattendSwitch=Yes
+
+[GuiUnattended]
+    AdminPassword=%PASSWORD%
+    AutoLogon=Yes
+    AutoLogonCount=99999
+    OEMSkipRegional=1
+    TimeZone=90
+    OemSkipWelcome=1
+
+[UserData]
+    ProductKey=%PRODUCTKEY%
+    FullName="XenRT"
+    OrgName="XenSource"
+    ComputerName=*
+
+[Display]
+    BitsPerPel=24
+    Xresolution=1024
+    YResolution=768
+    Vrefresh=60
+    AutoConfirm=1	
+
+[LicenseFilePrintData]
+    AutoMode=PerSeat
+
+[TerminalServices]
+    AllowConnections = 1
+
+[Identification]
+    JoinWorkgroup=UKXENSOURCE
+
+[Networking]
+    InstallDefaultComponents=Yes
+
+[WindowsFirewall]
+    Profiles=WindowsFirewall.StandardFirewall
+
+[WindowsFirewall.StandardFirewall]
+    Services=WindowsFirewall.RemoteDesktop
+    PortOpenings=WindowsFirewall.SSH
+
+[WindowsFirewall.SSH]
+    Protocol=6
+    Port=22
+    Name="SSH Server (Port 22)"
+    Mode=1
+    Scope=0
+
+[WindowsFirewall.RemoteDesktop]
+    Type=2

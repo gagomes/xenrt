@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- MNR defaultroute sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="DefaultRoute">
+      <testcase id="xenserver.tc.network.TC8358"/>
+      <testcase id="xenserver.tc.network.TC8359"/>
+      <testcase id="xenserver.tc.network.TC8360"/>
+      <testcase id="xenserver.tc.network.TC8364"/>
+      <testcase id="xenserver.tc.network.TC12453"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

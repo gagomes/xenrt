@@ -1,0 +1,5 @@
+select disk 0
+clean
+create partition primary
+assign letter=c
+format QUICK

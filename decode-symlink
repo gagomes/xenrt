@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# XRT-325: create a symlink from a definition file
+
+set -e
+
+decode() {
+    SYMLINKDEF=$1
+    
+    if [ -z "${SYMLINKDEF}" ]; then
+	echo "Need to provide a symlink definition path"
+	return 1
+    fi
+    
+    TARGET=`cat ${SYMLINKDEF}`
+    SYMLINK=`echo ${SYMLINKDEF} | sed -e's/-xenrt-symlink//'`
+    if ! [ -h ${SYMLINK} -a "`readlink ${SYMLINK}`" = "${TARGET}" ]; then
+	rm -f ${SYMLINK}
+	ln -s ${TARGET} ${SYMLINK}
+	echo "Creating symlink ${SYMLINK} -> ${TARGET}"
+    fi
+}
+
+decode $1

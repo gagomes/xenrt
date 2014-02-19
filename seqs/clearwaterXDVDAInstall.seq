@@ -1,0 +1,71 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <allhosts/>
+      <vm name="masterwin7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <network device="0" />
+      </vm>
+       <vm name="masterwin7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <network device="0" />
+      </vm>
+        <vm name="masterws08r2-x64">
+        <distro>ws08r2-x64</distro>
+        <network device="0" />
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence group="HostDrivers">
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers">
+    </testcase>
+  </testsequence>
+
+<!--for vgputype: K100=0, K140=1, K1PassThrough=2, K200=3, K240=4, K260=5, K2PassThrough=6 !-->
+
+  <testsequence group="Win7sp1x86K140">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
+      <arg>vmName=masterwin7sp1-x86</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x86K140Drivers">
+      <arg>vmName=masterwin7sp1-x86</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallXDVDABrokerless" name="Win7sp1x86K140DriversXD">
+      <arg>vmName=masterwin7sp1-x86</arg>
+    </testcase>
+  </testsequence>
+  
+  <testsequence group="Win7sp1x64K140">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x64K140VGPU">
+      <arg>vmName=masterwin7sp1-x64</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x64K140Drivers">
+      <arg>vmName=masterwin7sp1-x64</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallXDVDABrokerless" name="Win7sp1x64K140XD">
+      <arg>vmName=masterwin7sp1-x64</arg>
+    </testcase>
+  </testsequence>
+  
+  <testsequence group="WS08r2-x64K140">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="WS08r2-x64K140VGPU">
+      <arg>vmName=masterws08r2-x64</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="WS08r2-x64K140Drivers">
+      <arg>vmName=masterws08r2-x64</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallXDVDABrokerless" name="WS08r2-x64K140XD">
+      <arg>vmName=masterws08r2-x64</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

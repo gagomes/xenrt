@@ -1,0 +1,22 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <host id="0">
+        </host>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" host="RESOURCE_HOST_0">
+        <arg>guest=winxp</arg>
+        <arg>vmimage=winxpsp3-pv-nofirewall.img</arg>
+        <arg>numiters=20</arg>
+        <arg>useimportedvm</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

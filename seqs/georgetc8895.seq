@@ -1,0 +1,25 @@
+<xenrt>
+
+  <!-- George LVHD performance tests -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="LVHDPerf">
+      <testcase id="xenserver.tc.vhd.TC8895"/>
+      <testcase id="xenserver.tc.vhd.TC8908"/>
+      <testcase id="xenserver.tc.vhd.TC8909"/>
+      <testcase id="xenserver.tc.vhd.TC8910"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -x
+
+IMAGEDIR=`dirname $0`
+
+WORKDIR=${WORKDIR:-/tmp}
+if [ ! -d ${WORKDIR} ]; then
+    mkdir -p ${WORKDIR}
+fi
+WORKDIR=`mktemp -d ${WORKDIR}/XXXXXX`
+
+ISO=${1}
+BUILD=${2}
+OUTDIR=${3}
+
+mkdir -p ${OUTDIR}/${BUILD}
+
+sudo ${IMAGEDIR}/buildiso ${ISO} longhorn \
+    ${WORKDIR}/longhorn_${BUILD}_intermediate.iso WORKDIR=${WORKDIR}
+sudo ${IMAGEDIR}/buildzip \
+    ${WORKDIR}/longhorn_${BUILD}_intermediate.iso longhorn \
+    ${OUTDIR}/${BUILD}/autoinstall-x86-64.tar

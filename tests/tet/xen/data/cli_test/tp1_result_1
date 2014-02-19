@@ -1,0 +1,3 @@
+usage: xenman -c command [arguments...]
+
+xenman: error: must specify a command

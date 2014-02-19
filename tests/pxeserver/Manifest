@@ -1,0 +1,8 @@
+# Microsoft TFTP Server
+# Status: proprietary 
+# Obtaining:
+# Copy from i386 folder on w2k3eesp2.iso.
+e9e748e0a4809c1ffdd90132409ab83a  ./tftpd.exe
+6e6f6cd153dab41339d121bfea281b21  ./xensource.msg
+2420f5af340224da5e4ca19526b8608c  ./pxelinux.cfg/default
+2342aeaa26e08422b1cab89c512a855c  ./pxelinux.0

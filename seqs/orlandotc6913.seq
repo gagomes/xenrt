@@ -1,0 +1,95 @@
+<xenrt>
+
+  <!-- Orlando Linux suites test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host>
+      <vm name="rhel47">
+        <distro>rhel47</distro>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="rhel52">
+        <distro>rhel52</distro>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="rhel52x64">
+        <distro>rhel52</distro>
+        <vcpus>2</vcpus>
+        <arch>x86-64</arch>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="sles102">
+        <distro>sles102</distro>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="sles102x64">
+        <distro>sles102</distro>
+        <vcpus>2</vcpus>
+        <arch>x86-64</arch>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="sles94">
+        <distro>sles94</distro>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="rhel47" guest="rhel47">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7874" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7869" prio="3"/>
+      </serial>
+      <serial group="rhel52" guest="rhel52">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7875" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7870" prio="3"/>
+      </serial>
+      <serial group="rhel52x64" guest="rhel52x64">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7876" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7871" prio="3"/>
+      </serial>
+      <serial group="sles102" guest="sles102">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7872" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7867" prio="3"/>
+      </serial>
+      <serial group="sles102x64" guest="sles102x64">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7873" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7868" prio="3"/>
+      </serial>
+      <serial group="sles94" guest="sles94">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-7786" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-7788" prio="3"/>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

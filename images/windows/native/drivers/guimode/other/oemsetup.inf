@@ -1,0 +1,205 @@
+;
+; OEMSETUP.INF
+;
+; This is the INF file for Windows Server 2000 and Windows
+; 2003 (32-bit) for the PERC RAID family of Controllers
+;
+;********************************************************************
+;                                                                    *
+;   Copyright 2005 LSI Logic, Inc. All rights reserved.              *
+;                                                                    *
+;   This file is property of LSI Logic, Inc. and is licensed for     *
+;   use as is.  The receipt of or possession of this file does not   *
+;   convey any rights to modify its contents, in whole, or in part,  *
+;   without the specific written consent of LSI Logic, Inc.          *
+;                                                                    *
+;********************************************************************
+
+[version]
+Signature="$Windows NT$"
+Class=SCSIAdapter
+ClassGUID={4D36E97B-E325-11CE-BFC1-08002BE10318}
+Provider=%DELL%
+CatalogFile=percsas.cat
+CatalogFile.ntx86=percsas.cat
+DriverVer=02/17/2006,1.18.0.32
+
+     
+[DestinationDirs]
+DefaultDestDir = 12 ; DIRID_DRIVERS
+
+[SourceDisksNames]
+1 = %disk1%,megasas.sys,,
+
+[SourceDisksFiles]
+megasas.sys = 1
+
+[SourceDisksNames.x86]
+2 = %disk2%,percsas.sys,,
+
+[SourceDisksFiles.x86]
+percsas.sys = 2
+
+
+[ControlFlags]
+;
+; Exclude the following PnP devices from Select Device list.
+;
+
+ExcludeFromSelect = PCI\VEN_1028&DEV_0015&SUBSYS_1F011028
+ExcludeFromSelect = PCI\VEN_1028&DEV_0015&SUBSYS_1F021028
+ExcludeFromSelect = PCI\VEN_1028&DEV_0015&SUBSYS_1F031028
+     
+[Manufacturer]
+%DELL%=DELL, NT.5.1, NT.5.2
+
+[DELL]
+;----------- WINDOWS 2000 INSTALL SECTION ----------------------------------------------------------
+
+
+;PERC 5 controller family
+
+;PERC5/E Controller Family
+%perc5E.DeviceDesc% = megasas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F011028
+;PERC5/I Controller Family
+%perc5I.DeviceDesc% = megasas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F021028
+;PERC5/i Integrated Controller Family
+%perc5in.DeviceDesc% = megasas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F031028
+     
+[megasas_Inst]
+CopyFiles = @megasas.sys
+
+[megasas_Inst.HW]
+DelReg = LegacyScsiportValues
+AddReg = megasas_AddReg.HW
+
+[megasas_AddReg.HW]
+HKR, "ScsiPort", "NeedsSystemShutdownNotification", 0x00010001, 1
+     
+[megasas_Inst.Services]
+AddService = megasas, %SPSVCINST_ASSOCSERVICE%, megasas_Service_Inst,Miniport_EventLog_Inst
+
+
+[megasas_Service_Inst]
+ServiceType    = %SERVICE_KERNEL_DRIVER% 
+StartType      = %SERVICE_BOOT_START% 
+ErrorControl   = %SERVICE_ERROR_NORMAL% 
+ServiceBinary  = %12%\megasas.sys
+LoadOrderGroup = SCSI Miniport
+AddReg         = pnpsafe_W2Kpci_addreg
+AddReg         = WIN2K_CriticalDataBase
+
+[pnpsafe_W2Kpci_addreg]
+HKR, "Parameters\PnpInterface", "5", 0x00010001, 0x00000001
+HKR, "Parameters\Device", "NumberOfRequests", 0x00010001, 0xFA
+HKLM,"System\CurrentControlSet\Services\Disk","TimeOutValue",0x00010001,0x0000003C
+
+[DELL.NT.5.1]
+;----------- WINDOWS XP 32BIT INSTALL SECTION ----------------------------------------------------------
+
+
+;PERC 5 controller family
+
+;PERC5/E Controller Family
+%perc5E.DeviceDesc% = NODRV, PCI\VEN_1028&DEV_0015&SUBSYS_1F011028
+;PERC5/I Controller Family
+%perc5I.DeviceDesc% = NODRV, PCI\VEN_1028&DEV_0015&SUBSYS_1F021028
+;PERC5/i Integrated Controller Family
+%perc5in.DeviceDesc% = NODRV, PCI\VEN_1028&DEV_0015&SUBSYS_1F031028
+
+[NODRV] ;empty section
+
+[DELL.NT.5.2]
+;----------- WINDOWS 20003 32BIT INSTALL SECTION ----------------------------------------------------------
+
+
+;PERC 5 controller family
+
+;PERC5/E Controller Family
+%perc5E.DeviceDesc% = percsas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F011028
+;PERC5/I Controller Family
+%perc5I.DeviceDesc% = percsas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F021028
+;PERC5/i Integrated Controller Family
+%perc5in.DeviceDesc% = percsas_Inst, PCI\VEN_1028&DEV_0015&SUBSYS_1F031028
+
+
+[percsas_Inst.ntx86]
+CopyFiles = @percsas.sys
+
+[percsas_Inst.ntx86.HW]
+DelReg = LegacyScsiportValues
+AddReg = percsas_AddReg.ntx86.HW
+
+[percsas_AddReg.ntx86.HW]
+HKR, "ScsiPort", "NeedsSystemShutdownNotification", 0x00010001, 1
+     
+[percsas_Inst.ntx86.Services]
+AddService = percsas, %SPSVCINST_ASSOCSERVICE%, percsas_Service_Inst,Miniport_EventLog_Inst
+
+
+[percsas_Service_Inst]
+ServiceType    = %SERVICE_KERNEL_DRIVER% 
+StartType      = %SERVICE_BOOT_START% 
+ErrorControl   = %SERVICE_ERROR_NORMAL% 
+ServiceBinary  = %12%\percsas.sys
+LoadOrderGroup = SCSI Miniport
+AddReg         = pnpsafe_pci_addreg
+AddReg         = WIN2K3_CriticalDataBase
+
+
+;************************************************************* 
+;The EventLog entries are the same for all SCSI miniports. 
+[Miniport_EventLog_Inst]
+AddReg = Miniport_EventLog_AddReg
+     
+[pnpsafe_pci_addreg]
+HKR, "Parameters\PnpInterface", "5", 0x00010001, 0x00000001
+HKR, "Parameters\Device", "NumberOfRequests", 0x00010001, 0x000003e8
+HKLM,"System\CurrentControlSet\Services\Disk","TimeOutValue",0x00010001,0x0000003C
+
+[WIN2K_CriticalDataBase]
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F011028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F011028,Service,,%Service1%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F021028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F021028,Service,,%Service1%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F031028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F031028,Service,,%Service1%
+
+[WIN2K3_CriticalDataBase]
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F011028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F011028,Service,,%Service%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F021028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F021028,Service,,%Service%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F031028,ClassGUID,,%ClassGUID%
+HKLM,SYSTEM\CurrentControlSet\Control\CriticalDeviceDataBase\pci#ven_1028&dev_0015&subsys_1F031028,Service,,%Service%
+
+
+     
+[Miniport_EventLog_AddReg]
+HKR,,EventMessageFile,%REG_EXPAND_SZ%,%%SystemRoot%%\System32\IoLogMsg.dll 
+HKR,,TypesSupported,%REG_DWORD%,7
+
+[LegacyScsiportValues]
+HKR,Scsiport
+
+[Strings]
+;------------------MegaRAID----------------------------
+DELL="DELL"
+disk1 ="DELL PERC RAID Driver for Windows 2000"
+disk2 ="DELL PERC RAID Driver (Server 2003 32-bit)"
+perc5E.DeviceDesc = "DELL PERC 5/E Adapter RAID Controller"
+perc5I.DeviceDesc = "DELL PERC 5/I Adapter RAID Controller"
+perc5in.DeviceDesc = "DELL PERC 5/i Integrated RAID Controller"
+
+Service1 = "megasas"
+Service = "percsas"
+ClassGUID = "{4D36E97B-E325-11CE-BFC1-08002BE10318}"     
+     
+;******************************************* 
+;Handy macro substitutions (non-localizable) 
+SPSVCINST_ASSOCSERVICE = 0x00000002
+SERVICE_KERNEL_DRIVER  = 1
+SERVICE_BOOT_START     = 0
+SERVICE_ERROR_NORMAL   = 1
+REG_EXPAND_SZ          = 0x00020000
+REG_DWORD              = 0x00010001

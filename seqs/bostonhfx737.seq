@@ -1,0 +1,22 @@
+<xenrt>
+  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  
+   
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  
+  <prepare>
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <host id="1"/>
+  </prepare>
+
+  <testsequence>
+     <serial group="HAVmImport">
+      <testcase id="testcases.xenserver.tc.ha.TCHaVmImport" name="TC-19938" tc="TC-19938"/>
+     </serial>    
+  </testsequence>
+</xenrt>

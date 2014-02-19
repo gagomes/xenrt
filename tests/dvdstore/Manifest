@@ -1,0 +1,8 @@
+# Description: DVD store benchmark
+# Status: NDA
+d6185323dbb2167b00b67539b140ac4f  ./ds2_mysql.tar.gz
+6431f40d24f17fd2b50a2f51a5ef4ae7  ./ds2.tar.gz
+4c357305ea98447167c711e1f7dbbdd0  ./ds2webdriver.exe
+382ae9c930ec52d306bff39b55bd1956  ./setup.sh
+e080b017f470e11c5d99287740f87c34  ./cnfpatch
+c993e47e59b43f6f397859ab3a7a4356  ./my.cnf

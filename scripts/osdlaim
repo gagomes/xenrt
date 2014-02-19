@@ -1,0 +1,118 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# OSDL AIM
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin and Chris Thompson-Walsh, 21-27 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=14400
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_UNSUPPORTED_DISTROS="debian"
+BM_CHECK_COMMANDS="gcc make"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+set -e
+
+SOURCE_BASENAME=cu-osdl-aim7
+OSDL_WORKFILE_DIR=/usr/local/share/reaim
+OSDL_BINDIR=/usr/local/bin
+REAIM=${OSDL_BINDIR}/reaim
+STARTNUM=45
+
+install_aim() {
+
+    #yum -y install automake libtool gcc-c++ libaio-devel
+
+    tar -zxf ${SOURCE_BASENAME}.tar.gz
+    cd ${SOURCE_BASENAME}
+    ./bootstrap
+    ./configure
+    make
+    make install
+
+    mkdir -p /tmp/diskdir
+}
+BM_INSTALL=install_aim
+
+run_aim() {
+
+    HERE=`pwd`
+    CPUCOUNT=`grep -c ^processor /proc/cpuinfo`
+
+    cd ${WORKDIR}
+
+    ARGS=""
+    ARGS2="NO"
+    WORKFILES="-"
+    if [ "${TESTTYPE}" = "lite" ]; then
+	ARGSC="-c${HERE}/quickreaim.config"
+	ARGSC="${ARGSC} -i${CPUCOUNT} -s${STARTNUM} -e$[${STARTNUM} + ${CPUCOUNT}] -r1"
+	ARGS="${ARGSC}"
+	WORKFILES="workfile.new_dbase"
+    elif [ "${TESTTYPE}" = "quick" ]; then
+	ARGSC="-c${HERE}/quickreaim.config"
+	ARGSC="${ARGSC} -i${CPUCOUNT} -s${STARTNUM} -r1"
+	ARGS="${ARGSC} -q "
+	WORKFILES="workfile.new_dbase workfile.compute"
+    elif [ "${TESTTYPE}" = "benchmark" ]; then
+	ARGSC="-c${HERE}/thoroughreaim.config "
+	ARGSC="${ARGSC} -i${CPUCOUNT} -s${STARTNUM} -r3"
+	ARGS="${ARGSC} -q "
+	ARGS2="${ARGSC} -g "
+	WORKFILES="workfile.new_dbase workfile.compute"
+    elif [ "${TESTTYPE}" = "stress" ]; then
+	# TODO
+	ARGS="-c${HERE}/thoroughreaim.config"
+    fi
+
+    for wf in ${WORKFILES}; do
+	WARGS=""
+	if [ "${wf}" != "-" ]; then
+	    WARGS="-f${OSDL_WORKFILE_DIR}/${wf}"
+	    RESBASE=results-${SUBDIR}-${wf}
+	else
+	    RESBASE=results-${SUBDIR}
+	fi
+	${REAIM} ${ARGS} ${WARGS} -l ${RESBASE}-q
+	if [ "${ARGS2}" != "NO" ]; then
+	    ${REAIM} ${ARGS2} ${WARGS} -l ${RESBASE}-g
+	fi
+    done
+
+}
+BM_RUN=run_aim
+
+format_results() {
+    cat $1 | grep -v ^Forks | sed -e's/,/ /g' -e"s/^/Result: $2 $3 /"
+}
+
+process_aim() {
+    WORKFILES="-"
+    if [ "${TESTTYPE}" = "benchmark" ]; then
+	WORKFILES="workfile.new_dbase workfile.compute"
+    fi
+
+    for wf in ${WORKFILES}; do
+	if [ "${wf}" != "-" ]; then
+	    RESBASE=results-${SUBDIR}-${wf}
+	else
+	    RESBASE=results-${SUBDIR}
+	fi
+	AIMTEST=`echo ${wf} | sed -e's/workfile.//'`
+	if [ -e "${RESBASE}-q.csv" ]; then
+	    format_results ${RESBASE}-q.csv ${AIMTEST} quick
+	fi
+	if [ -e "${RESBASE}-g.csv" ]; then
+	    format_results ${RESBASE}-g.csv ${AIMTEST} guess
+	fi
+    done
+}
+BM_PROCESS=process_aim
+
+. ${SCRIPTDIR}/generic

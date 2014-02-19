@@ -1,0 +1,85 @@
+diff -ur a/installed/SPECjbb.props b/installed/SPECjbb.props
+--- a/installed/SPECjbb.props	2007-09-10 14:42:02.000000000 +0000
++++ b/installed/SPECjbb.props	2007-09-17 14:37:35.000000000 +0000
+@@ -73,9 +73,9 @@
+ 
+ input.jvm_instances=1
+ 
+-input.starting_number_warehouses=1
++#input.starting_number_warehouses=1
+ 
+-input.increment_number_warehouses=1
++#input.increment_number_warehouses=1
+ 
+ #input.ending_number_warehouses=2
+ 
+@@ -86,7 +86,7 @@
+ #input.expected_peak_warehouse =0
+ 
+ 
+-#input.sequence_of_number_of_warehouses=1 2 3 4 5 6 7 8
++input.sequence_of_number_of_warehouses=2
+ 
+ 
+ 
+@@ -208,4 +208,4 @@
+ 
+ # Time of measurement window
+ 
+-input.measurement_seconds=240
++input.measurement_seconds=10
+diff -ur a/installed/src/spec/jbb/Company.java b/installed/src/spec/jbb/Company.java
+--- a/installed/src/spec/jbb/Company.java	2007-09-10 14:42:05.000000000 +0000
++++ b/installed/src/spec/jbb/Company.java	2007-09-17 14:33:12.000000000 +0000
+@@ -45,7 +45,7 @@
+     // timing variables:
+     private long               rampup_time;
+ 
+-    private long               measurement_time;
++    public long                measurement_time;
+ 
+     private TimerData          companyTimerData;
+ 
+@@ -451,7 +451,7 @@
+             JBButil.getLog().info(msg);
+             System.out.println(msg); // display start time
+             // Wait while user threads do the recorded run
+-            JBButil.SecondsToSleep((int) measurement_time);
++            JBButil.SecondsToSleep(Long.MAX_VALUE/1000);
+         }
+         end_time = System.currentTimeMillis();
+         msg = "Timing Measurement ended " + new Date().toString();
+diff -ur a/installed/src/spec/jbb/DeliveryTransaction.java b/installed/src/spec/jbb/DeliveryTransaction.java
+--- a/installed/src/spec/jbb/DeliveryTransaction.java	2007-09-10 14:42:05.000000000 +0000
++++ b/installed/src/spec/jbb/DeliveryTransaction.java	2007-09-17 14:34:16.000000000 +0000
+@@ -163,6 +163,10 @@
+                 // get customer ptr with a write lock
+                 Customer customerPtr = matchingOrder.getCustomerPtr();
+                 customerPtr.adjustBalance(matchingOrder.getTotalAmount());
++                int timerCount = 0;
++                timerCount = (short)JBButil.random(1,100);
++                if (timerCount == 1)
++                    JBButil.milliSecondsToSleep(company.measurement_time);
+                 customerPtr.incrementDeliveryCount();
+                 // commit
+             } // if
+diff -ur a/installed/src/spec/jbb/TransactionManager.java b/installed/src/spec/jbb/TransactionManager.java
+--- a/installed/src/spec/jbb/TransactionManager.java	2007-09-10 14:42:05.000000000 +0000
++++ b/installed/src/spec/jbb/TransactionManager.java	2007-09-17 14:35:44.000000000 +0000
+@@ -229,8 +229,15 @@
+                 }
+             }
+             txntime = goManual(txntype, myTimerData);
+-            if (this.getrunMode() == Company.runModes.RECORDING)
++            if (this.getrunMode() == Company.runModes.RECORDING) {
+                 myTimerData.updateTimerData(txntype, txntime);
++                if (txntype == 0 && myTimerData.getTransactionCount(0)%1000 == 0) {
++                    int sum = 0;
++                    for (int k=0;k<=5;k++)
++                        sum += myTimerData.getTransactionCount(k);
++                    System.out.println("===="+this+":"+"===="+sum);
++                }
++            }
+             if (timed) {
+                 if ((this.getrunMode() == Company.runModes.RAMP_DOWN)
+                         && (!signaled_done)) {

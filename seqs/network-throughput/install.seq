@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <MANAGEMENT mode="static" />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_empty.TCEmpty" />
+  </testsequence>
+</xenrt>

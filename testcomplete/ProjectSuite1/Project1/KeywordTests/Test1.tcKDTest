@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE Nodes [
+
+<!ENTITY % NameValue "CDATA">
+<!ENTITY % PropType "(I|S|D|L|H|B)">
+<!ENTITY % VersionValue "CDATA">
+
+<!ELEMENT Prp (#PCDATA)>
+<!ELEMENT Node (Node|Prp)*>
+<!ELEMENT Nodes (Node)+>
+
+<!ATTLIST Nodes version CDATA "1">
+
+<!ATTLIST Node name CDATA #REQUIRED>
+
+<!ATTLIST Prp name CDATA #REQUIRED>
+<!ATTLIST Prp type CDATA #REQUIRED>
+<!ATTLIST Prp value CDATA #REQUIRED>
+]>
+<Nodes version="1">
+	<Node name="root">
+		<Node name="parameters">
+			<Prp name="key" type="S" value="{0AABEE7E-5E47-4BFB-88D9-A9A4CBBEFE94}"/>
+		</Node>
+		<Node name="settings">
+			<Prp name="settingsversion" type="S" value="7.52"/>
+		</Node>
+		<Node name="testdata">
+			<Node name="children">
+				<Node name="child0">
+					<Node name="data">
+						<Node name="parameters">
+							<Node name="parameter0">
+								<Prp name="defvaluetype" type="I" value="1"/>
+								<Prp name="defvaluevalue" type="I" value="-1"/>
+								<Prp name="defvartype" type="I" value="3"/>
+								<Prp name="name" type="S" value="Count"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="1"/>
+								<Prp name="valuevalue" type="I" value="-1"/>
+								<Prp name="vartype" type="I" value="3"/>
+							</Node>
+							<Node name="parameter1">
+								<Prp name="defvaluetype" type="I" value="7"/>
+								<Prp name="defvaluevalue" type="B" value="0"/>
+								<Prp name="defvartype" type="I" value="11"/>
+								<Prp name="name" type="S" value="IgnoreRunning"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="7"/>
+								<Prp name="valuevalue" type="B" value="0"/>
+								<Prp name="vartype" type="I" value="11"/>
+							</Node>
+							<Node name="parameter2">
+								<Prp name="defvaluetype" type="I" value="1"/>
+								<Prp name="defvaluevalue" type="I" value="-1"/>
+								<Prp name="defvartype" type="I" value="3"/>
+								<Prp name="name" type="S" value="Timeout"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="1"/>
+								<Prp name="valuevalue" type="I" value="-1"/>
+								<Prp name="vartype" type="I" value="3"/>
+							</Node>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Prp name="description" type="S" value="Runs the &quot;XenCenter&quot; tested application."/>
+						<Prp name="testedapp" type="S" value="XenCenter"/>
+					</Node>
+					<Prp name="type" type="S" value="{66F32D5F-A5DB-420E-9CB4-3DB7CADE2692}"/>
+				</Node>
+				<Node name="child1">
+					<Node name="data">
+						<Node name="objectsyntax">
+							<Prp name="code" type="S" value="Aliases.XenCenterMain.wndXenCenter.WindowsForms10Window8app0378734a.WindowsForms10Window8app0378734a;"/>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Node name="parameters">
+							<Node name="parameter0">
+								<Prp name="defvaluetype" type="I" value="1"/>
+								<Prp name="defvaluevalue" type="I" value="-1"/>
+								<Prp name="defvartype" type="I" value="3"/>
+								<Prp name="name" type="S" value="ClientX"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="1"/>
+								<Prp name="valuevalue" type="I" value="78"/>
+								<Prp name="vartype" type="I" value="3"/>
+							</Node>
+							<Node name="parameter1">
+								<Prp name="defvaluetype" type="I" value="1"/>
+								<Prp name="defvaluevalue" type="I" value="-1"/>
+								<Prp name="defvartype" type="I" value="3"/>
+								<Prp name="name" type="S" value="ClientY"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="1"/>
+								<Prp name="valuevalue" type="I" value="31"/>
+								<Prp name="vartype" type="I" value="3"/>
+							</Node>
+							<Node name="parameter2">
+								<Prp name="defvaluetype" type="I" value="1"/>
+								<Prp name="defvaluevalue" type="I" value="0"/>
+								<Prp name="defvartype" type="I" value="12"/>
+								<Prp name="name" type="S" value="Shift"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="1"/>
+								<Prp name="valuevalue" type="I" value="0"/>
+								<Prp name="vartype" type="I" value="3"/>
+							</Node>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Prp name="action" type="S" value="Click"/>
+						<Prp name="description" type="S" value="Clicks at point (78, 31) of the 'WindowsForms10Window8app0378734a' object."/>
+						<Prp name="descriptionedited" type="B" value="-1"/>
+					</Node>
+					<Prp name="type" type="S" value="{575D0372-CCEB-4D0F-AFE8-D2004F108913}"/>
+				</Node>
+				<Node name="child2">
+					<Node name="data">
+						<Node name="objectsyntax">
+							<Prp name="code" type="S" value="Aliases.XenCenterMain.wndXenCenter.WindowsForms10Window8app0378734a.WindowsForms10Window8app0378734a.WindowsForms10SysTabControl32app0378734a;"/>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Node name="parameters">
+							<Node name="parameter0">
+								<Prp name="defvartype" type="I" value="12"/>
+								<Prp name="name" type="S" value="Item"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="6"/>
+								<Prp name="valuevalue" type="S" value="Search"/>
+								<Prp name="vartype" type="I" value="8"/>
+							</Node>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Prp name="action" type="S" value="ClickTab"/>
+						<Prp name="description" type="S" value="Selects the 'Search' tab of the 'WindowsForms10SysTabControl32app0378734a' tab control."/>
+						<Prp name="descriptionedited" type="B" value="-1"/>
+					</Node>
+					<Prp name="type" type="S" value="{575D0372-CCEB-4D0F-AFE8-D2004F108913}"/>
+				</Node>
+				<Node name="child3">
+					<Node name="data">
+						<Node name="objectsyntax">
+							<Prp name="code" type="S" value="Aliases.XenCenterMain.wndXenCenter.WindowsForms10Window8app0378734a.WindowsForms10Window8app0378734a.WindowsForms10SysTabControl32app0378734a;"/>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Node name="parameters">
+							<Node name="parameter0">
+								<Prp name="defvartype" type="I" value="12"/>
+								<Prp name="name" type="S" value="Item"/>
+								<Prp name="paramtype" type="S" value="{EFBF9355-5127-43E4-B03E-D06E65C8181F}"/>
+								<Prp name="valuetype" type="I" value="6"/>
+								<Prp name="valuevalue" type="S" value="Home"/>
+								<Prp name="vartype" type="I" value="8"/>
+							</Node>
+							<Prp name="langid" type="S" value="{E42909F2-4390-4F5D-94B8-FABF59BABFCE}"/>
+						</Node>
+						<Prp name="action" type="S" value="ClickTab"/>
+						<Prp name="description" type="S" value="Selects the 'Home' tab of the 'WindowsForms10SysTabControl32app0378734a' tab control."/>
+						<Prp name="descriptionedited" type="B" value="-1"/>
+					</Node>
+					<Prp name="type" type="S" value="{575D0372-CCEB-4D0F-AFE8-D2004F108913}"/>
+				</Node>
+				<Prp name="childcount" type="I" value="4"/>
+			</Node>
+			<Node name="data">
+				<Node name="extenders">
+					<Node name="{800193e8-4656-48c9-a7dc-10ff396c56a4}">
+						<Node name="bitmap0">
+							<Prp name="bitmap" type="H" value="617162696E000000010000004202000078016D91B16AC3301086DD54430236F406193284E021D0BE403265F1DE3938835F200F60840B7E8DA0C7F096C12FE282E94318BC18D4FB6D5FDDB4D18FACD37D67DDE914BFC70B6F18317F5F79BE4CF389AD679089C3FC191F9EF7C570CB0E57884A354B7CB28264414DC7F018D69405D80B7345A9DA653F3070A8A776291123EDE9AF24A254963E1FC8124E2855B8B2D4E44D7EBE58B2D4A5B061590A57A8E3145832846AAA0CD4154D6E981A3A0D75266C41522FE8A88433942A997686AA0C31E7CB3D3F50A2A12E9513AA6CF41C86FF756034042AAB2BBAD468CDF97103F66E1E488F1DE2FEF836FAAFD6FFD541FFB6ABDF66DD7633455EDC63BFBE4688B846FBF5FDFB8C75C327929BB8E21B7964EFCF"/>
+							<Prp name="name" type="S" value="Aliases.XenCenterMain"/>
+						</Node>
+						<Node name="bitmap1">
+							<Prp name="bitmap" type="H" value="617162696E0000000100000042020000780173F275626200032720A901C40250CC0864318364A0F220261CD430303C004ACA0305E46B88813A92E81055D734AFA86CAB74CB6489F8EF7153FC049D7424D1E5ABB3112ABE47C14C83A99AE655935F9D0F53F1234E47725E7E5D36C294695E7B8BE7144355A44B26EB48EE2F9E978F2C3FCD0B1982E4F71723E441F64CF3FA5FFFBFFA3E0896DF2FDF5F8E551E49C5FD72887E985BA779ED2F9E9F3F2FBB2EBD2E3D2E190421F24073C1A6EE75BBE7B5CF6D9E5DAD55AC91AD9EAC96AC969511B2BD7BDD4070AE1350DE0C24FF4735C60C2E8F622FAADBC0EEAE07B91DD9F508BF21FB1BC146C883ECC00D013A02C993"/>
+							<Prp name="name" type="S" value="Aliases.XenCenterMain.wndXenCenter.WindowsForms10Window8app0378734a"/>
+						</Node>
+						<Node name="bitmap2">
+							<Prp name="bitmap" type="H" value="617162696E0000000100000042020000780173F275626200032720A901C40250CC0864318364A0F220261CD430303C004ACA0305E46B88813A92E81055D734AFA86CAB74CB6489F8EF7153FC049D7424D1E5ABB3112ABE47C14C83A99AE655935F9D0F53F1234E47725E7E5D36C294695E7B8BE7144355A44B26EB48EE2F9E978F2C3FCD0B1982E4F71723E441F64CF3FA5FFFBFFA3E0896DF2FDF5F8E551E49C5FD72887E985BA779ED2F9E9F3F2FBB2EBD2E3D2E190421F24073C1A6EE75BBE7B5CF6D9E5DAD55AC91AD9EAC96AC969511B2BD7BDD4070AE1350DE0C24FF4735C60C2E8F622FAADBC0EEAE07B91DD9F508BF21FB1BC146C883ECC00D013A02C993"/>
+							<Prp name="name" type="S" value="Aliases.XenCenterMain.wndXenCenter.WindowsForms10Window8app0378734a.WindowsForms10Window8app0378734a"/>
+						</Node>
+						<Node name="bitmap3">
+							<Prp name="bitmap" type="H" value="617162696E0000000100000042020000780173F275626200032720A901C40250CC0864318364A0F220261CD430303C004ACA0305E46B2885D3BC7424B14388C9D3BCEE57DF2F07C1FDE5FB8BF717EFCB9F975F975D97AE2389248FA2627FF1BCFC79D968F250153053E6E523E4FF57036D0041B02D301530F9E95EFFEBFF5743D520A980C9EFF003CA63510193BF19049647A880DA83218FA60226BFD76DAFDB5CA75ABB18331B2319AD3FAA7714EFC882E04CA8FFF7BAC907FFF7FBEF75DFEBBEDB7EA7F976F3ECEAACEACCE28C10F2101380665881CDD09351FB033683D29803E90700274AE253"/>
+							<Prp name="name" type="S" value="Aliases.XenCenterMain.wndXenCenter"/>
+						</Node>
+					</Node>
+				</Node>
+			</Node>
+			<Prp name="description" type="S" value=""/>
+			<Prp name="key" type="S" value="{9EA452BC-D05B-49D3-BC66-D7AA6FF22BE0}"/>
+			<Prp name="type" type="S" value="{79147B28-EE20-4294-B773-1D3787FBF37B}"/>
+		</Node>
+		<Node name="variables">
+			<Node name="datav3"/>
+			<Prp name="key" type="S" value="{B0F323D4-3E47-4F78-A35C-28553D8A46A2}"/>
+			<Prp name="version" type="I" value="3"/>
+		</Node>
+		<Prp name="signature" type="S" value="{B9D9273E-7266-43E0-BF02-97F168593604}"/>
+		<Prp name="version" type="S" value="7.0"/>
+	</Node>
+</Nodes>

@@ -1,0 +1,11 @@
+# Description: Windows Experience Index executables.
+# Status: proprietary
+# Obtain from: Copied from existing Windows system.
+053727478050ebbdeed888866f315346  ./win7-x64-WinSAT.exe
+ec7eb038ea11e0d04214d143e0cb6002  ./win7-x64-WinSATAPI.dll
+886b0eaa3b0fe76b3204e687c8da6f66  ./win7-x86-WinSAT.exe
+81c0fa250ef6dc1c6b3fa2bce81d6c2e  ./win7-x86-WinSATAPI.dll
+bf83b4a53bc11b7d73b3f71a67449f49  ./win8-x64-WinSAT.exe
+43988d0aacf7b38379c76b1e8aac1d23  ./win8-x64-WinSATAPI.dll
+860544837e91ba91c5cf75ebfe7bc096  ./win8-x86-WinSAT.exe
+36d125c1211e89c7253b55d85be0b6a3  ./win8-x86-WinSATAPI.dll

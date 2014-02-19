@@ -1,0 +1,77 @@
+<xenrt>
+
+  <!-- OVF/transferVM tests -->
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true"/>
+      <vm name="ToolLinux">
+        <distro>debian50</distro>
+        <disk device="0" size="60"/>
+        <network device="0"/>
+      </vm>
+      <vm name="ToolWin">
+        <distro>ws08sp2-x86</distro>
+        <disk device="0" size="60"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" />
+      <storage type="netapp" name="netappsr" />
+      <storage type="nfs" name="nfssr" />
+      <vm name="DemoLinux">
+        <distro>etch</distro>
+        <network device="0" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+      <vm name="DemoWin">
+        <distro>winxpsp3</distro>
+        <disk device="0" size="1" />
+        <network device="0" />
+        <postinstall action="installDrivers" />
+      </vm>
+    </host>
+    <host id="2">
+      <storage type="lvmoiscsi" name="lvmoiscsisr" />
+      <storage type="netapp" name="netappsr" />
+      <storage type="nfs" name="nfssr" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TransferVM">
+      <!--
+      <testcase id="testcases.xenserver.tc.appliance.TC11448"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11449"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11450"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11451"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11452"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11453"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11454"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11455"/>
+      -->
+      <testcase id="testcases.xenserver.tc.appliance.TC11456"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11457"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11458"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11459"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11460"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11461"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11462"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11463"/>
+      <!--
+      <testcase id="testcases.xenserver.tc.appliance.TC11493"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11494"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11495"/>
+      <testcase id="testcases.xenserver.tc.appliance.TC11496"/>
+      -->
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the SPEC JBB2000 and 2005 suites for performance testing
+#
+# (C) XenSource Inc., 2005
+# XenRT harness: James Bulpin, July-November 2005
+# SPEC invocation and data collection: Karsten Self, 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=7200
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+
+BM_INSTALL="mkdir -p /opt && cp -a specjbb/* /opt/"
+
+run_jbb() {
+    HERE=`pwd`
+    cd ${WORKDIR}/logs
+
+    ${HERE}/xen-run-specjbb > ${WORKDIR}/logs/${SUBDIR}.dat
+}
+BM_RUN=run_jbb
+
+BM_PROCESS=
+BM_PROCESS_ON_FAIL=yes
+
+. ${SCRIPTDIR}/generic

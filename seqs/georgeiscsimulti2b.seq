@@ -1,0 +1,39 @@
+<xenrt>
+
+  <!-- George 2 host iSCSI Multipath test sequence b -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8012">
+      <testcase id="xenserver.tc.multipath.TC8014"/>
+      <testcase id="xenserver.tc.multipath.TC8015"/>
+      <testcase id="xenserver.tc.multipath.TC8016"/>
+      <testcase id="xenserver.tc.multipath.TC8017"/>
+      <testcase id="xenserver.tc.multipath.TC8018"/>
+      <testcase id="xenserver.tc.multipath.TC8019"/>
+      <testcase id="xenserver.tc.multipath.TC8020"/>
+      <testcase id="xenserver.tc.multipath.TC8021"/>
+    </serial>
+    <serial group="TC-8013">
+      <testcase id="xenserver.tc.multipath.TC8025"/>
+      <testcase id="xenserver.tc.multipath.TC8026"/>
+      <testcase id="xenserver.tc.multipath.TC8027"/>
+      <testcase id="xenserver.tc.multipath.TC8028"/>
+      <testcase id="xenserver.tc.multipath.TC8029"/>
+    </serial>
+    <serial group="TC-8136">
+      <testcase id="xenserver.tc.multipath.TC8135"/>
+      <testcase id="xenserver.tc.multipath.TC8140"/>
+      <testcase id="xenserver.tc.multipath.TC8141"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

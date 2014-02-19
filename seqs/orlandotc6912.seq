@@ -1,0 +1,88 @@
+<xenrt>
+
+  <!-- Orlando Linux test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="w2k3eesp2">
+        <distro>w2k3eesp2</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="w2k3eesp2-x64">
+        <distro>w2k3eesp2-x64</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08-x86">
+        <distro>ws08-x86</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08-x64">
+        <distro>ws08-x64</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="vistaeesp1">
+        <distro>vistaeesp1</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="vistaeesp1-x64">
+        <distro>vistaeesp1-x64</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="winxpsp3">
+        <distro>winxpsp3</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="W2k3EESP2" guest="w2k3eesp2">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7884" prio="3"/>
+    </serial>
+    <serial group="W2k3EESP2x64" guest="w2k3eesp2-x64">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7885" prio="3"/>
+    </serial>
+    <serial group="WS08X86" guest="ws08-x86">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7886" prio="3"/>
+      <testcase id="benchmarks.func.TCsmbioshct" tc="TC-8185" prio="3"/>
+      <testcase id="benchmarks.func.TCndistest" tc="TC-7944" prio="3"/>
+    </serial>
+    <serial group="WS08X64" guest="ws08-x64">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7887" prio="3"/>
+      <testcase id="benchmarks.func.TCsmbioshct" tc="TC-8186" prio="3"/>
+      <testcase id="benchmarks.func.TCndistest" tc="TC-7945" prio="3"/>
+    </serial>
+    <serial group="VISTAEESP1" guest="vistaeesp1">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7888" prio="3"/>
+    </serial>
+    <serial group="WINXPSP3" guest="winxpsp3">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7890" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

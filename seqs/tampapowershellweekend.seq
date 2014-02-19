@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- MNR nightly PowerShell test sequence. -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <DOTNETVERSION>3.5</DOTNETVERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="PShell">
+      <testcase id="xenserver.gui.TC8302"/>
+      <testcase id="xenserver.gui.TC17780"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

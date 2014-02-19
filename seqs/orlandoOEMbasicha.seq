@@ -1,0 +1,42 @@
+<xenrt>
+
+  <!-- Orlando 'Quick' HA sequence for OEM parity testing -->
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+    <LOCAL_BASE>/tmp/local</LOCAL_BASE>
+    <OPTION_EMBEDDED>yes</OPTION_EMBEDDED>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+    <host id="2"/>
+    <host id="3"/>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="BasicFunctional">
+      <testcase id="xenserver.tc.ha.TC7507" blocker="yes"/>
+      <testcase id="xenserver.tc.ha.TC7508"/>
+    </serial>
+    <serial group="StartupShutdown">
+      <testcase id="xenserver.tc.ha.TC7509"/>
+      <testcase id="xenserver.tc.ha.TC7514"/>
+    </serial>
+    <serial group="StatefileFailures">
+      <testcase id="xenserver.tc.ha.TC7690"/>
+      <testcase id="xenserver.tc.ha.TC7694"/>
+    </serial>
+    <serial group="HeartbeatFailures">
+      <testcase id="xenserver.tc.ha.TC7704"/>
+      <testcase id="xenserver.tc.ha.TC7710"/>
+    </serial>
+    <serial group="HostFailures">
+      <testcase id="xenserver.tc.ha.TC7716"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235/"/>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.install.TCXenServerUpgrade" tc="TC-17761">
+        <arg>input=DEFAULT</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

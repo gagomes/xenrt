@@ -1,0 +1,21 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>  
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="XapiSessionLeak">
+     <testcase id="testcases.xenserver.tc.stress.TCXapiSessionLeakVMPR" name="TC-20978" tc="TC-20978"/>
+     <testcase id="testcases.xenserver.tc.rrd.TCXapiSessionLeak" name="TC-19937" tc="TC-19937"/> 
+    </serial>
+  </testsequence>
+</xenrt>

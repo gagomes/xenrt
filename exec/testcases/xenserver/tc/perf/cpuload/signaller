@@ -1,0 +1,33 @@
+#!/usr/bin/python
+
+import os
+import sched, time
+import signal
+import itertools
+import sys
+
+try:
+    pid = int(sys.argv[1])
+    if len(sys.argv) >= 3:
+        intervall = float(sys.argv[2])
+    else:
+        intervall = 1.0
+
+    if len(sys.argv) >= 4:
+        sig = int(sys.argv[3])
+    else:
+        sig = signal.SIGUSR1
+    
+except:
+    print """Usage:  signaller pid [intervall = 1.0[s]] [signal = 10]
+        Will send signal to process pid every intervall seconds.
+"""
+    raise
+
+
+s = sched.scheduler(time.time, time.sleep)
+t0 = time.time ()
+for i in itertools.count():
+    s.enterabs (t0 + i*intervall, 1, lambda: os.kill (pid, sig), ())
+    s.run ()
+

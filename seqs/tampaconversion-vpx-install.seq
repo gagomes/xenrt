@@ -1,0 +1,11 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.appliance.TC15638" />
+  </testsequence>
+</xenrt>

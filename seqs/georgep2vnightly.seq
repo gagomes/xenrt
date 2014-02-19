@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- George P2V test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <OPTION_LEGACY_XEN>yes</OPTION_LEGACY_XEN>
+  </variables>
+
+  <prepare>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="P2V">
+      <testcase id="xenserver.tc.p2v.TC8048"/>
+      <testcase id="xenserver.tc.p2v.TC8049"/>
+      <testcase id="xenserver.tc.p2v.TC8215"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

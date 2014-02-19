@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Long MNR automated manual test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <DEBUG_CA65062>yes</DEBUG_CA65062>
+  </variables>
+
+  <prepare>
+    <host license="platinum" />
+  </prepare> 
+
+  <testsequence group="AutoMan">
+    <testcase id="xenserver.tc.dr.EnableDbReplication"/>
+    <testcase id="xenserver.tc.manual.TC640"/>
+  </testsequence>
+
+</xenrt>

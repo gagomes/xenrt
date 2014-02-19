@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- George LVM storage GC/coalesce test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="LVM">
+      <testcase id="xenserver.tc.vhd.TC8577"/>
+      <testcase id="xenserver.tc.vhd.TC8583"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

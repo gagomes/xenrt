@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# memtest
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin and Chris Thompson-Walsh, July-August 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=7200
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+
+set -e
+
+TESTMEGS=100
+
+check_skip() {
+    #if [ "${XENOPTIONS}" == "x86-64" ]; then
+	BM_SKIP=true
+    #fi
+}
+BM_CHECKSKIP=check_skip
+
+install_memtest() {
+    
+    tar -zxf memtest*.tar.gz
+    ln -s `find memtest* -maxdepth 0 -type d` memtest
+    cd memtest
+    make
+}
+BM_INSTALL=install_memtest
+
+run_memtest() {
+
+    cd memtest
+
+    ./fillmem ${TESTMEGS}
+    run_process_for 120 ./misc001 ${TESTMEGS} 
+    killall misc001 || true
+    ./mmap001 ${TESTMEGS}
+    ./mmap002 ${TESTMEGS}
+    run_process_for 120 ./mtest -r 4 -w 4 -f
+    killall mtest || true
+    run_process_for 120 ./shm-stress
+    killall shm-stress || true
+    killall mtest || true
+}
+BM_RUN=run_memtest
+
+process_memtest() {
+    killall shm-stress || true
+    killall mtest || true
+    killall misc001 || true
+}
+BM_PROCESS=process_memtest
+
+. ${SCRIPTDIR}/generic

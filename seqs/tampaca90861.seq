@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.pvdrivers.CA90861Frequency">
+        <arg>distro=ws08sp2-x86</arg>
+        <arg>vcpus=2</arg>
+        <arg>memory=4096</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

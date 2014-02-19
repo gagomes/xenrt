@@ -1,0 +1,6 @@
+TARGETNAME=winwrite
+TARGETTYPE=PROGRAM
+TARGETPATH=.
+UMTYPE=console
+UMENTRY=main       
+SOURCES=winwrite.c

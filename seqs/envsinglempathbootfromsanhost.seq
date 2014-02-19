@@ -1,0 +1,14 @@
+<xenrt>
+  <!-- Single host booting from SAN with multipath enabled, no VMs -->
+    
+  <variables>
+    <OPTION_ROOT_MPATH>enabled</OPTION_ROOT_MPATH>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <allhosts />
+  </prepare>
+</xenrt>
+

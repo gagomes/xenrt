@@ -1,0 +1,41 @@
+#!/usr/bin/python
+#
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# A wrapper for the XML-RPC interface to a XenRT test process
+#
+# Copyright (c) 2007 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+import sys, string, xmlrpclib
+
+"""
+First arg is the 'session handle' given to the test script by XenRT (in
+reality this is host:port for the XML-RPC daemon.
+
+Second arg is the function to call.
+
+Any extra arguments are treated as string arguments to pass to the function.
+
+Results are returned on stdout
+"""
+
+if len(sys.argv) < 3:
+    sys.stderr.write("Invalid usage.\n")
+    sys.exit(1)
+
+s = xmlrpclib.Server("http://%s" % (sys.argv[1]))
+cmd = "s.%s(%s)" % (sys.argv[2], string.join(map(lambda x:"'%s'" % (x),
+                                                 sys.argv[3:]), ", "))
+data = eval(cmd)
+
+if type(data) == type(""):
+    print data
+elif type(data) == type(xmlrpclib.Binary()):
+    sys.stdout.write(data.data)
+elif type(data) == type([]):
+    print string.join(map(lambda x:str(x), data))
+else:
+    print `data`

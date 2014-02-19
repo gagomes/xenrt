@@ -1,0 +1,170 @@
+#!/bin/bash
+
+XSCRIPTDIR=`dirname $0`
+SCRIPTDIR=`dirname ${XSCRIPTDIR}`
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+SYSDIR=/dev/fs/C/WINDOWS/system32
+DCPROMO=${SYSDIR}/dcpromo.exe
+MSI=${SYSDIR}/msiexec.exe
+REG=${SYSDIR}/reg.exe
+
+run_on_reboot(){
+
+    WRAPPER=${1}
+
+    echo del \"C:\\Documents and Settings\\Administrator\\Start Menu\\Programs\\Startup\\`basename ${WRAPPER}`\" >> ${WRAPPER}
+
+    cp ${WRAPPER} /dev/fs/C/Documents\ and\ Settings/Administrator/Start\ Menu/Programs/Startup/
+    chmod a+x /dev/fs/C/Documents\ and\ Settings/Administrator/Start\ Menu/Programs/Startup/`basename ${WRAPPER}`   
+ 
+    ${SHUTDOWN} -f -r -t 30 
+
+}
+
+run_loadsim() {
+
+    set -x
+    echo \"C:\\Program Files\\LoadSim\\loadsim.exe\" /f `posixpath2nt ${WORKDIR}/run.sim` /t /x > ${WORKDIR}/runloadsim.bat
+    echo \"C:\\Program Files\\LoadSim\\loadsim.exe\" /f `posixpath2nt ${WORKDIR}/run.sim` /ip /x >> ${WORKDIR}/runloadsim.bat
+    echo \"C:\\Program Files\\LoadSim\\loadsim.exe\" /f `posixpath2nt ${WORKDIR}/run.sim` /r /x >> ${WORKDIR}/runloadsim.bat
+    run_on_glass ${WORKDIR}/runloadsim.bat
+
+}
+
+# Requires LoadSim installer in working directory.
+install_loadsim() {
+
+    set -x
+   
+    # Enable circular logging.
+    # cscript `posixpath2nt ${WORKDIR}/enable-circ-logging.vbs` /T:10 || true
+    chmod +rwx ${WORKDIR}/loadsim.msi 
+    ${MSI} /package `posixpath2nt ${WORKDIR}/loadsim.msi` /passive
+
+}
+
+# This requires the service pack and unattended install file.
+update_exchange() {
+
+    set -x
+
+    echo D:\\i386\\update.exe /UnattendFile `posixpath2nt ${WORKDIR}/exchangeupdate.txt` > ${WORKDIR}/updateexchange.bat
+   
+    net stop "Microsoft Exchange Management" /yes &> /dev/null
+    net stop "Microsoft Exchange Routing Engine" /yes &> /dev/null
+    net stop "Microsoft Exchange Information Store" /yes &> /dev/null
+    net stop "Microsoft Exchange MTA Stacks" /yes &> /dev/null
+    net stop "Microsoft Exchange System Attendant" /yes &> /dev/null
+ 
+    run_on_reboot ${WORKDIR}/updateexchange.bat
+    # run_on_glass ${WORKDIR}/updateexchange.bat
+
+}
+
+# This requires the Exchange cd to be in the drive and the unattended install file.
+install_exchange() {
+    # Random installer bug when running on glass. Might have to use reboot hack.
+    set -x
+
+    # Disable application compatibility checking.
+    ${REG} add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\windows\\AppCompat" /t REG_DWORD /v "DisableEngine" /d 1 /f &> /dev/null || true
+
+    echo D:\\setup\\i386\\setup.exe /UnattendFile `posixpath2nt ${WORKDIR}/exchangeinstall.txt` > ${WORKDIR}/installexchange.bat
+
+    run_on_reboot ${WORKDIR}/installexchange.bat
+    # run_on_glass ${WORKDIR}/installexchange.bat
+
+    # Reenable application compatibility checking.
+    #${REG} delete "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\windows\\AppCompat" /t REG_DWORD /v "DisableEngine" /f &> /dev/null || true
+
+}
+
+# This requires the windows install cd to be in the drive.
+install_iis() {
+
+    set -x
+
+    cat > ${WORKDIR}/componentinstall.txt <<EOF
+[Components]
+iis_common=ON
+iis_inetmgr=ON
+aspnet=ON
+iis_asp=ON
+iis_www=ON
+iis_smtp=ON
+iis_nntp=ON
+EOF
+    
+    echo sysocmgr /i:%windir%\\inf\\sysoc.inf /u:`posixpath2nt ${WORKDIR}/componentinstall.txt` > ${WORKDIR}/installiis.bat
+
+    run_on_glass ${WORKDIR}/installiis.bat
+
+}
+
+# This requires the windows install cd to be in the drive.
+install_support_tools() {
+
+    set -x
+  
+    ${MSI} /package d:\\support\\tools\\suptools.msi /passive
+
+}
+
+# This requires the windows install cd to be in the drive.
+install_active_directory() {
+ 
+    set -x
+
+    cat > ${WORKDIR}/dcinstall-auto.txt <<EOF
+[DCInstall]
+UserName=Administrator
+Password=xenroot
+UserDomain=UKXENSOURCE
+ReplicaOrNewDomain=Domain
+ChildOrTree=Tree
+CreateOrJoin=Create
+AutoConfigDNS=yes
+NewDomain=Forest
+DomainNetBiosName=XENTEST
+NewDomainDNSName=xentest.testdomain
+SetForestVersion=Yes
+SafeModeAdminPassword=xenroot
+DNSOnNetwork=no
+RebootOnSuccess=Yes
+EOF
+
+    unix2dos `posixpath2nt ${WORKDIR}/dcinstall-auto.txt` `posixpath2nt ${WORKDIR}/dcdos.txt` &> /dev/null || true
+    mv ${WORKDIR}/dcdos.txt ${WORKDIR}/dcinstall-auto.txt
+    chmod a+rwx ${WORKDIR}/dcinstall-auto.txt
+
+    cat >> ${WORKDIR}/installad.bat <<EOF
+netsh interface ip set address "Local Area Connection" static 172.31.32.120 255.255.240.0 172.31.32.1 1
+echo netsh interface ip set address "Local Area Connection" dhcp > "C:\Documents and Settings\Administrator\Start Menu\Programs\Startup\dhcp.bat"
+echo touch C:\adinstalled.txt >> "C:\Documents and Settings\Administrator\Start Menu\Programs\Startup\dhcp.bat"
+echo del "C:\Documents and Settings\Administrator\Start Menu\Programs\Startup\dhcp.bat" >> "C:\Documents and Settings\Administrator\Start Menu\Programs\Startup\dhcp.bat"
+echo reg add "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultDomainName /d XENTEST /f >> "C:\Documents and Settings\Administrator\Start Menu\Programs\Startup\dhcp.bat"
+dcpromo /answer:`posixpath2nt ${WORKDIR}/dcinstall-auto.txt`
+EOF
+
+    run_on_glass NOSIGNAL ${WORKDIR}/installad.bat
+}
+
+if [ "${1}" = "AD" ]; then
+    install_active_directory
+elif [ "${1}" = "IIS" ]; then
+    install_iis
+elif [ "${1}" = "SUPPORT" ]; then
+    install_support_tools
+elif [ "${1}" = "EXCHANGE" ]; then
+    install_exchange 
+elif [ "${1}" = "LOADSIM" ]; then
+    install_loadsim
+elif [ "${1}" = "EXCHANGE_UPDATE" ]; then
+    update_exchange
+elif [ "${1}" = "RUN_LOADSIM" ]; then
+    run_loadsim
+fi

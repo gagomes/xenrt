@@ -1,0 +1,316 @@
+#
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# Test-wide data storage
+#
+# Copyright (c) 2006 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+import sys, string, threading
+import xenrt
+
+__all__ = ["Registry"]
+
+class Registry:
+    """Test-wide data storage"""
+    def __init__(self):
+        self.data = {}
+        self.mylock = threading.Lock()
+
+    # Generic operations
+    def write(self, path, value):
+        self.mylock.acquire()
+        try:
+            self.data[path] = value
+        finally:
+            self.mylock.release()
+
+    def read(self, path):
+        self.mylock.acquire()
+        try:
+            if self.data.has_key(path):
+                r = self.data[path]
+            else:
+                r = None
+        finally:
+            self.mylock.release()
+        return r
+
+    def delete(self, path):
+        self.mylock.acquire()
+        try:
+            if self.data.has_key(path):
+                del self.data[path]
+        finally:
+            self.mylock.release()
+
+    def addToList(self, path, value):
+        self.mylock.acquire()
+        try:
+            if not self.data.has_key(path):
+                self.data[path] = []
+            if not value in self.data[path]:
+                self.data[path].append(value)
+        finally:
+            self.mylock.release()
+        
+    def deleteFromList(self, path, value):
+        self.mylock.acquire()
+        try:
+            if self.data.has_key(path):
+                self.data[path].remove(value)
+        finally:
+            self.mylock.release()        
+
+    # Specific operations
+    def hostPut(self, tag, host):
+        """Store a host object using a string tag"""
+        path = "/xenrt/specific/host/%s" % (tag)
+        self.write(path, host)
+        self.addToList("/xenrt/specific/hostlist", tag)
+
+    def hostGet(self, tag):
+        """Look up a host object by string tag"""
+        path = "/xenrt/specific/host/%s" % (tag)
+        return self.read(path)
+
+    def hostDelete(self, tag):
+        path = "/xenrt/specific/host/%s" % (tag)
+        self.delete(path)
+        self.deleteFromList("/xenrt/specific/hostlist", tag)
+
+    def hostReplace(self, oldHost, newHost):
+        """Try and find oldHost, and replace it with newHost"""
+        for hn in list(self.hostList()):
+            h = self.hostGet(hn)
+            if not h:
+                raise xenrt.XRTError("Cannot find old host object")
+            if h == oldHost:
+                self.hostDelete(hn)
+                self.hostPut(hn, newHost)
+
+    def hostList(self):
+        if not self.data.has_key("/xenrt/specific/hostlist"):
+            return []
+        return self.data["/xenrt/specific/hostlist"]
+    
+    def guestLookup(self, vcpus=None, 
+                          memory=None,
+                          distro=None,
+                          arch=None,
+                          method=None,
+                          disksize=None,
+                          varch=None):
+        """Fetch guests satisfying resource criteria"""
+        guestlist = []
+        for guest in self.guestList():
+            guestlist.append(guest)
+            config = self.configGet(guest)
+            if vcpus:
+                if config.has_key("vcpus"):
+                    if not config["vcpus"] == vcpus:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            if memory:
+                if config.has_key("memory"):
+                    if not config["memory"] == memory:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            if distro:
+                if config.has_key("distro"):
+                    if not config["distro"] == distro:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            if arch:
+                if config.has_key("arch"):
+                    if not config["arch"] == arch:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            if method:
+                if config.has_key("method"):
+                    if not config["method"] == method:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            if disksize:
+                if config.has_key("disksize"):
+                    if not config["disksize"] == disksize:
+                        guestlist.remove(guest)
+                        continue
+                else:
+                    guestlist.remove(guest)
+                    continue
+            # varch argument is ignored for now...
+        return guestlist
+
+    def configPut(self, tag, vcpus=None, 
+                             memory=None,
+                             distro=None,
+                             arch=None,
+                             method=None,
+                             disksize=None,
+                             varch=None):
+        """Store a guest configuration using a string tag"""
+        path = "/xenrt/specific/configuration/%s" % (tag)
+        if vcpus:
+            self.write(path + "/vcpus", vcpus)
+        if memory:
+            self.write(path + "/memory", memory)
+        if distro:
+            self.write(path + "/distro", distro)
+        if arch:
+            self.write(path + "/arch", arch)
+        if method:
+            self.write(path + "/method", method)
+        if disksize:
+            self.write(path + "/disksize", disksize)
+        if varch:
+            self.write(path + "/varch", varch)
+
+    def configGet(self, tag):
+        """Look up a guest configuration by string tag"""
+        config = {}
+        path = "/xenrt/specific/configuration/%s" % (tag)
+        vcpus = self.read(path + "/vcpus")
+        memory = self.read(path + "/memory")
+        distro = self.read(path + "/distro")
+        arch = self.read(path + "/arch")
+        method = self.read(path + "/method")
+        disksize = self.read(path + "/disksize")
+        varch = self.read(path = "/varch")
+        if vcpus:
+            config["vcpus"] = vcpus
+        if memory:
+            config["memory"] = memory
+        if distro:
+            config["distro"] = distro
+        if arch:
+            config["arch"] = arch
+        if method:
+            config["method"] = method
+        if disksize:
+            config["disksize"] = disksize
+        if varch:
+            config["varch"] = varch
+        return config
+
+    def guestPut(self, tag, guest):
+        """Store a guest object using a string tag"""
+        path = "/xenrt/specific/guest/%s" % (tag)
+        self.write(path, guest)
+        self.addToList("/xenrt/specific/guestlist", tag)
+
+    def guestGet(self, tag):
+        """Look up a guest object by string tag"""
+        path = "/xenrt/specific/guest/%s" % (tag)
+        return self.read(path)
+
+    def guestDelete(self, tag):
+        path = "/xenrt/specific/guest/%s" % (tag)
+        self.delete(path)
+        self.deleteFromList("/xenrt/specific/guestlist", tag)
+
+    def guestList(self):
+        if not self.data.has_key("/xenrt/specific/guestlist"):
+            return []
+        return self.data["/xenrt/specific/guestlist"]
+    
+    def bitsPut(self, tag, filename):
+        """Store a local path to a set of Xen bits"""
+        path = "/xenrt/specific/bits/%s" % (tag)
+        self.write(path, filename)
+
+    def bitsGet(self, tag):
+        """Look up a local path to a set of Xen bits"""
+        path = "/xenrt/specific/bits/%s" % (tag)
+        return self.read(path)
+
+    def bitsDelete(self, tag):
+        path = "/xenrt/specific/bits/%s" % (tag)
+        self.delete(path)
+        
+    def buildPut(self, tag, build):
+        """Store a build object using a string tag"""
+        path = "/xenrt/specific/build/%s" % (tag)
+        self.write(path, build)
+
+    def buildGet(self, tag):
+        """Look up a build object by string tag"""
+        path = "/xenrt/specific/build/%s" % (tag)
+        return self.read(path)
+
+    def buildDelete(self, tag):
+        path = "/xenrt/specific/build/%s" % (tag)
+        self.delete(path)
+
+    def buildServerPut(self, tag, buildserver):
+        """Store a build server object using a string tag"""
+        path = "/xenrt/specific/buildserver/%s" % (tag)
+        self.write(path, buildserver)
+
+    def buildServerGet(self, tag):
+        """Look up a build server object by string tag"""
+        path = "/xenrt/specific/buildserver/%s" % (tag)
+        return self.read(path)
+
+    def buildServerDelete(self, tag):
+        path = "/xenrt/specific/buildserver/%s" % (tag)
+        self.delete(path)
+
+    def poolPut(self, tag, pool):
+        """Store a pool object using a string tag"""
+        path = "/xenrt/specific/pool/%s" % (tag)
+        self.write(path, pool)
+
+    def poolGet(self, tag):
+        """Look up a pool object by string tag"""
+        path = "/xenrt/specific/pool/%s" % (tag)
+        return self.read(path)
+
+    def poolDelete(self, tag):
+        path = "/xenrt/specific/pool/%s" % (tag)
+        self.delete(path)
+
+    def poolReplace(self, oldPool, newPool):
+        """Try and find oldPool, and replace it with newPool"""
+        i = 0
+        while True:
+            p = self.poolGet("RESOURCE_POOL_%u" % (i))
+            if not p:
+                raise xenrt.XRTError("Cannot find old pool object")
+            if p == oldPool:
+                self.poolDelete("RESOURCE_POOL_%u" % (i))
+                self.poolPut("RESOURCE_POOL_%u" % (i), newPool)
+                break
+            i += 1
+
+    def resourcePut(self, tag, resource):
+        """Store a pool object using a string tag"""
+        path = "/xenrt/specific/resource/%s" % (tag)
+        self.write(path, resource)
+
+    def resourceGet(self, tag):
+        """Look up a pool object by string tag"""
+        path = "/xenrt/specific/resource/%s" % (tag)
+        return self.read(path)
+
+    def resourceDelete(self, tag):
+        path = "/xenrt/specific/resource/%s" % (tag)
+        self.delete(path)
+

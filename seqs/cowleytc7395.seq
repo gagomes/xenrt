@@ -1,0 +1,20 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="VM1G3C">
+      <testcase id="xenserver.tc.smoketest.TC7470" prio="4"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

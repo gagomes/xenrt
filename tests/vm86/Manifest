@@ -1,0 +1,6 @@
+e1ca3de455fa9cce1a238c96148effef  ./lrmi.c.orig
+52525a8612e7768b87bd3675f326684d  ./lrmi.c
+94d8a924fdd100cdc5dbdb86907bdb39  ./lrmi.h
+51ab1ad06a2c7204cc11ce95255a6dee  ./Makefile
+793663db8359129971737c9e9284c258  ./vm86.S
+7a3154a6f6b2c701e289fc75c4c011fb  ./main.c

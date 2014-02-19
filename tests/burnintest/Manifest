@@ -1,0 +1,42 @@
+# Description: PassMark BurnInTest
+# Status: proprietary
+# Obtaining:
+# http://www.passmark.com/products/bit.htm
+# Purchase BurnInTest Professional V6, install onto a Windows 32-bit installation, and copy
+# installed files into the test directory
+8400dbd28ddd8625519f965433ec0c37  ./bitadmin32.exe
+fad44b38bfdb6de5d237f305d0ac3fd2  ./rebooter.exe
+e16522d427ac72cad7e66f6cf8448e42  ./unins000.exe
+e0153511d8210dfcde2446b3306fe3d4  ./unins000.dat
+95b9959a8d7c2c58e9e909103aa50984  ./MemTest.exe
+1fa3b8bd911505e9be79a18926420083  ./Endpoint.exe
+7c7cc9feb1026678c48bbabe84ea57c2  ./dsetup32.dll
+d77fb9fb256b0c2ec0258c39b80dc513  ./DirectIo.sys
+fc127b8123b467c1aeb39657454c1128  ./Readme.txt
+3809e864b4886c1770e12f3a3557d991  ./Testsound.wav
+8f8bee045089e7497ff8502947baaacd  ./rebooter.exe.manifest
+ab3abd14576bd7c97d9ff4cd9642f232  ./bit.exe.manifest
+4d48dbe4d3a06c497435014e5c583f34  ./DSETUP.dll
+9c3f0ccb936558112334d57e9dc81f2a  ./OCT2006_d3dx9_31_x86.cab
+7cb666861eda3dc65c986f6dcc5fcc41  ./FTD2XX.DLL
+0afaaec3bec5eae68b6b280dc15b196f  ./Testsound.mp3
+45231acc42887dc93383802fcfada243  ./Testsound.mid
+539d57e79b0617bfcaf99d06de226a2b  ./BITCertificateTemplate.html
+11dd6e8ab9759d1ac91ffe0d0e4949cb  ./DXSETUP.exe
+779d8962893b07e0425fd0449ccbbb5c  ./CheckEnd.exe
+97d9034112df13b4b891256ec613dc8a  ./dxupdate.cab
+e4f9ef557e87e8e01e77b329b2c12091  ./BITErrorClassification.txt
+c17572848ecf367ab1b89199389eb4f6  ./BurnInTest.url
+0fdd6e4e5dfc5d913261355746402214  ./Mar2009_d3dx9_41_x86.cab
+87abbfed55e4f0b171f7311bc4bcb4e8  ./HP Printer file.pcl
+614ca79f463911681151317f85ecb794  ./bit.exe
+5d529189e9885451f70471c5a315756a  ./LastUsed.bitcfg
+35a67fc19116fe9a929ed855ff490efc  ./72hours.bitcfg
+f02bad15842a89fbdc1280289db8311a  ./24hours.bitcfg
+413b8412974e6f661628b80f924405e3  ./12hours.bitcfg
+5d529189e9885451f70471c5a315756a  ./1hour.bitcfg
+aeef1038f84955384f6baf1f5eb66466  ./15mins.bitcfg
+794580fcf81e24a0f06d8ebd3f99dfeb  ./48hours.bitcfg
+82fb6a3743436c0525a50703a66ef1e7  ./3DaysIncGraphics.bitcfg
+5d529189e9885451f70471c5a315756a  ./bit.bitcfg
+*                                 ./key.dat

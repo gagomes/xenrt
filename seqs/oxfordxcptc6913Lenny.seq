@@ -1,0 +1,34 @@
+<xenrt>
+
+  <!-- MNR Linux suites test sequence for Debian Lenny -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host>
+      <vm name="debian50">
+        <distro>debian50</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="debian50" guest="debian50">
+        <testcase id="benchmarks.micro.TClmbench" tc="TC-9043" prio="3">
+          <arg>quick</arg>
+        </testcase>
+        <testcase id="benchmarks.func.TCltp" tc="TC-9042" prio="3"/>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

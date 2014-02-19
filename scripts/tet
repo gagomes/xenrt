@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# TET harness for functionality tests.
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, October 2005
+# Commands suplied by Brian Lavender
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=7200
+. ${SCRIPTDIR}/functions
+
+set -e
+
+TET_INSTALL_BASE=/opt/tet
+
+install_tet() {
+    # We've already untarred the test bundle into the per-test
+    # directory. TET expects to live under /opt/tet so we'll create
+    # a symlink
+    ln -s `pwd` ${TET_INSTALL_BASE}
+}
+BM_INSTALL=install_tet
+
+run_tet() {
+
+    source ${TET_INSTALL_BASE}/xen/config.env
+
+    # Run TET itself - this seems to want to return true even if stuff failed.
+    tcc -p -e xen s1 > ${WORKDIR}/logs/${SUBDIR}.out
+    
+    # Get the most recent run
+    RESULTS=`perl -ne'if(/journal file is (\S+)/) {print "$1\n";}' < ${WORKDIR}/logs/${SUBDIR}.out | tail -1`
+    
+    if [ ! -e "${RESULTS}" ]; then
+	log_extra_data "Reason: journal file missing"
+	false
+    fi
+    log_extra_data "Comment: journal file is ${RESULTS}, see ${SUBDIR}.journal"
+
+    # Copy this to log directory for capture by XenRT
+    cp ${RESULTS} ${WORKDIR}/logs/${SUBDIR}.journal
+
+    # Put some formatted reports in the log directory for posterity
+    tetreport ${RESULTS} > ${WORKDIR}/logs/${SUBDIR}.summary || true
+    tetreport -e ${RESULTS} > ${WORKDIR}/logs/${SUBDIR}.errors || true
+
+    # Check for errors
+    if tetreport -q ${RESULTS}; then
+	# can't use ! because we want to return code
+	DONOTHING=true
+    else
+	FAILCOUNT=$?
+	log_extra_data "Comment: ${FAILCOUNT} errors reported"
+	false
+    fi
+}
+BM_RUN=run_tet
+
+process_tet() {
+    # Pull out a summary of errors
+    if [ -e ${WORKDIR}/logs/${SUBDIR}.errors ]; then
+	grep FAILED ${WORKDIR}/logs/${SUBDIR}.errors | cut -d '|' -f 3- | \
+	    sed -e's/^/Comment: /'
+    fi
+}
+BM_PROCESS=process_tet
+BM_PROCESS_ON_FAIL=yes
+
+. ${SCRIPTDIR}/generic

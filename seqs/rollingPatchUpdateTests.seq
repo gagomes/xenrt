@@ -1,0 +1,94 @@
+<xenrt>
+
+  <!-- Rolling patch apply tests -->
+  
+  <default name="TESTED_PRODUCT_VERSION" value="TestedVer-MustOverrideInSuite"/>
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+  <default name="VM_ACTION_ON_HOST_REBOOT" value="EVACUATE" />    <!-- EVACUATE | SUSPEND | SHUTDOWN-->
+
+  <variables>
+    <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <host id="0" >
+        <vm name="debian60">
+          <distro>debian60</distro>
+          <memory>128</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="rhel56">
+          <distro>rhel56</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="centos56">
+          <distro>centos56</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="winxpsp3">
+          <distro>winxpsp3</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <host id="1" >
+        <vm name="ubuntu1004">
+          <distro>ubuntu1004</distro>
+          <memory>128</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="win7-x86">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="sles111">
+          <distro>sles111</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="ws08r2sp1-x64">
+          <distro>ws08r2sp1-x64</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="nfs1" default="true" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RollingHfxTest">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="RollingPatchApply" tc="TC-20991">
+        <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+        <arg>applyAllHFXsBeforeApplyAction=True</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <CARBON_CD_IMAGE_NAME>bain.iso</CARBON_CD_IMAGE_NAME>
+  </variables>
+
+  <prepare>
+    <allhosts />
+  </prepare>
+  
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="dummy.TCFail" tc="TC-19998" />
+    </serial>
+
+  </testsequence>
+
+</xenrt>

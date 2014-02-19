@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Parse results file and insert relevant data in the database
+#
+# Args 1 to 4 become easyadd args 1 to 4
+# Arg 5 is the results file
+# Args 6 and 7 become easyadd args 5 and 6
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 8 August 2005
+#
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+EA="${SCRIPTDIR}/easyadd"
+
+grep "^Value:" $5 | awk '{print $2,$3}' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME V:X"
+grep "^Result:" $5 | sed -e's/Result: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME data \"X\""
+grep "^Comment:" $5 | sed -e's/Comment: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME comment \"X\""
+grep "^Reason:" $5 | sed -e's/Reason: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME reason \"X\""
+grep "^KernBase:" $5 | sed -e's/KernBase: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME kernbase \"X\""
+grep "^TestCase:" $5 | sed -e's/TestCase: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME testcase \"X\""
+grep "^PerfTag:" $5 | sed -e's/PerfTag: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME perftag \"X\""
+# Warning must come after result otherwise we overwrite it in the database
+grep "^Warning:" $5 | sed -e's/Warning: //' | perl -pe 's/\n/\000/g' | \
+    xargs -0 -n1 --replace=X sh -c \
+    "$EA $1 $2 $3 $4 $6 $7 $TESTTAG $TESTNAME warning \"X\""
+
+# See if the scripts have defined descriptions for any of the columns
+# The format is ColDesc: <columntype> <columnkey> <columndesc>
+# e.g. ColDesc: revision 20050923 cb9347989def
+COLDESC=`grep "^ColDesc:" $5 | sed -e's/ColDesc: //' | tail -1`
+if [ -n "${COLDESC}" ]; then
+    COLNAME=`echo ${COLDESC} | cut -d ' ' -f 1`
+    COLKEY=`echo ${COLDESC} | cut -d ' ' -f 2`
+    COLDESC=`echo ${COLDESC} | cut -d ' ' -f 3`
+    ${EA} $1 :edit: ${COLNAME} ${COLKEY} ${COLDESC}
+fi
+
+# Variable: <variable> <value> updates the local this_run.config file
+if grep -q "^Variable:" $5; then
+    grep "^Variable:" $5 | sed -re's/^Variable: (\S+) (.*)/\1="\2"/' >> \
+        this_run.config
+fi
+

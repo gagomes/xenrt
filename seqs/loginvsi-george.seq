@@ -1,0 +1,34 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>George</PRODUCT_VERSION>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCLoginVSI" host="RESOURCE_HOST_0">
+        <arg>xapi=xapi-george-mps</arg>
+        <arg>desktopimage=loginvsi.img</arg>
+        <arg>desktopvmname=loginvsi</arg>
+        <arg>numdesktops=160</arg>
+        <arg>vmsperlauncher=40</arg>
+        <arg>cleanupafter</arg>
+        <arg>cleanupbefore</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,109 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the Linux kernel build benchmark
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 8 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make time"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+# The preferred CPU pinning is grep'ed out by tunedom running in dom0,
+# it isn't really used directly here
+CPUPIN=COMPUTE
+
+MY_ARCH=`arch`
+if [ "${MY_ARCH}" = "x86_64" ]; then
+    KERNEL_ARCH="x86_64"
+else
+    KERNEL_ARCH="i386"
+fi
+KERNEL_MAKE_ARGS="ARCH=${KERNEL_ARCH}"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+install_kernbench() {
+    tar -zxf linux-*.tar.gz
+    ln -s `find linux* -maxdepth 0 -type d` linux
+}
+BM_INSTALL=install_kernbench
+
+run_kernbench() {
+
+    ## XXX WTF is this here? legacy from cut-n-paste?
+    ITERATIONS=5
+    if [ "$TESTTYPE" = "quick" ]; then
+        ITERATIONS=3
+    fi
+
+    cd linux
+
+    KBOPTS="-F ${WORKDIR}/logs/${SUBDIR}.log"
+    if [ "${TESTTYPE}" = "quick" ]; then
+	KBOPTS="${KBOPTS} -n 1 -o 8 -H -M -f"
+	# A fast run (-f) doesn't do this...
+	ARCH=${KERNEL_ARCH} make mrproper
+	ARCH=${KERNEL_ARCH} make defconfig
+	#make dep
+    elif [ "${TESTTYPE}" = "benchmark" ]; then
+	KBOPTS="${KBOPTS}"
+    elif [ "${TESTTYPE}" = "stress" ]; then
+	KBOPTS="${KBOPTS}"
+    fi
+
+    ARCH=${KERNEL_ARCH} ${WORKDIR}/${THISSCRIPT}/kernbench \
+	${KBOPTS} > ${WORKDIR}/logs/kernbench-${SUBDIR}.out
+    if [ '!' -e arch/${KERNEL_ARCH}/boot/bzImage ]; then
+        echo "No bzImage built"
+        exit ${RC_ERROR}
+    fi
+
+    #touch ${WORKDIR}/.xenrt-success
+}
+BM_RUN=run_kernbench
+
+parse_result() {
+    NAME=$1
+    shift
+    TMP=`mktemp /tmp/xenrtXXXXXX`
+    while true; do
+	if [ -z $1 ]; then
+	    break;
+	fi
+	echo $1 >> ${TMP}
+	shift
+    done
+    stats ${TMP} ${NAME} 0
+    rm -f ${TMP}    
+}
+
+#BM_CHECK=${WORKDIR}/${THISSCRIPT}/linux/kernbench.out
+
+process_kernbench() {
+
+    cd ${THISSCRIPT}/linux
+    
+    # Note that this next few lines require the locally patched version of
+    # kernbench
+    for entry in `grep "^MKLINUX:" ${WORKDIR}/logs/kernbench-${SUBDIR}.out | tr ' ' /`; do
+	DATA=`echo $entry | tr / ' '`
+	RES=`parse_result ${DATA}`
+	echo "Result:" ${RES}
+	NUMBER=`echo ${RES} | cut -d ' ' -f 1,3`
+    echo "Value:" ${NUMBER} "s" 
+    done
+}
+BM_PROCESS=process_kernbench
+
+. ${SCRIPTDIR}/generic

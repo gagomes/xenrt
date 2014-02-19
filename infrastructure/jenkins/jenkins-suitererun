@@ -1,0 +1,77 @@
+#!/usr/bin/python -u
+
+import os,urllib,sys,re,jirarest.client
+os.system("make -C /home/xenrtd/xenrt.hg update install")
+
+sr = eval(urllib.urlopen("%sapi/python" % os.environ['SuiteRun']).read())
+
+runparts = sr['description'].split(" ")
+srid = filter(lambda x:x['name'] == "Suite run ID", sr['actions'][0]['parameters'])[0]['value']
+
+for i in range(0,len(runparts)):
+    if runparts[i] == "--rerun" or runparts[i] == "--rerun-all":
+        runparts[i] = ""  
+    if runparts[i] == "--suite-seqs" or runparts[i] == "--suite-tcs" or runparts[i] == "--delay-for":
+        runparts[i] = ""
+        if i < len(runparts) - 1:
+            runparts[i+1] = ""
+
+if os.environ['Rerun all'] == "true":
+    runparts.append("--rerun-all")
+else:
+    runparts.append("--rerun")
+
+    if not os.environ.has_key("Sequences") and not os.environ.has_key("TCs") and not os.environ.has_key("Ticket"):
+        print "You must specify sequences or TCs to rerun"
+        sys.exit(1)
+
+    if os.environ.has_key("Ticket"):
+        runparts.append("--suite-seqs")
+        j = jirarest.client.JIRA(options={'server':"https://jira.uk.xensource.com"}, basic_auth=("xenrt", "xensource"))
+        reruns = []
+        for t in os.environ['Ticket'].split(","):
+            i = j.issue(t)
+            jobs = [x.body for x in i.fields.comment.comments]
+            jobs.append(i.fields.environment)
+            found = False
+            for jj in jobs:
+                jobname = None
+                rerun = False
+                if jj:
+                    for l in jj.splitlines():
+                        m = re.match("^(\S+)&(\S+)$", l)
+                        if m:
+                            jobname = m.group(1)
+                        if l.strip() == ("TestRun Suite Run ID: %s" % srid):
+                            rerun = True
+                if jobname and rerun:
+                    reruns.append(jobname)
+                    found = True
+            if found:
+                j.add_comment(t, "Rerunning testcases on suite run %s" % srid)
+        runparts.append(",".join(reruns))
+
+        
+    elif os.environ.has_key("Sequences"):
+        runparts.append("--suite-seqs")
+        runparts.append(os.environ['Sequences'])
+    elif os.environ.has_key("TCs"):
+        runparts.append("--suite-tcs")
+        runparts.append(os.environ['TCs'])
+
+cmd = " ".join(runparts)
+print cmd
+os.system("%s" % cmd)
+
+# Get the console output to find the SR number
+u = urllib.urlopen("%sconsoleText" % os.environ["BUILD_URL"])
+suite = None
+for l in u.readlines():
+    m = re.match("^SUITE (\d+)$",l)
+    if m:
+        suite = m.group(1)
+        break
+
+if not suite:
+    os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-result unstable" % (os.environ["JENKINS_URL"]))
+    sys.exit(1)

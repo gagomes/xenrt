@@ -1,0 +1,116 @@
+#!/bin/bash
+
+# Mostly stolen from trunk/build/hypervisor/build-hypervisor.sh
+
+set -e
+set -x
+
+mnt=$1
+
+if [ -z "${mnt}" ]; then
+    echo "You really want to pass an argument to this script"
+    exit 1
+fi
+
+# XenRT tree
+shift
+ROOT=$1
+shift
+IMAGEFILES=$1
+shift
+
+umount_on_error() {
+    if ( mount | grep -q $mnt/proc ); then
+	umount $mnt/proc || true
+    fi
+}
+trap umount_on_error EXIT INT HUP KILL
+
+mount -obind /proc $mnt/proc
+
+cat trim.dat | xargs -n1 -iX_X rm -rf ${mnt}X_X
+mkdir -p ${mnt}/root/.ssh
+chmod 700 ${mnt}/root/.ssh
+cp ${ROOT}/scripts/keys/id_dsa_xenrt.pub ${mnt}/root/.ssh/authorized_keys
+chmod 644 ${mnt}/root/.ssh/authorized_keys
+chown root.root ${mnt}/root/.ssh/authorized_keys
+/usr/sbin/chroot $mnt /sbin/MAKEDEV console
+/usr/sbin/chroot $mnt /sbin/MAKEDEV zero
+/usr/sbin/chroot $mnt /sbin/MAKEDEV ram0
+/usr/sbin/chroot $mnt /sbin/MAKEDEV null
+
+# Install extra RPMs
+while [ -n "$1" ]; do
+    args="--install"
+    filename=$1
+    if [ "${1:0:2}" = "D:" ]; then
+        args="--oldpackage --upgrade"
+        filename=${1##D:}
+    fi
+    cp $filename $mnt/tmp/
+    rpm=`basename $filename`
+    /usr/sbin/chroot $mnt rpm $args /tmp/$rpm
+    rm -f $mnt/tmp/$rpm
+    shift
+done
+
+# Hack to downgrade the mount version to work with our kernel
+UTILLINUX=${IMAGEFILES}/util-linux-2.12p-9.3.i386.rpm
+rpm2cpio ${UTILLINUX} | /usr/sbin/chroot $mnt cpio -idvu '*mount'
+
+#cat > $mnt/etc/sysconfig/readonly-root <<EOF
+#READONLY=yes
+#EOF
+
+cat > $mnt/etc/fstab <<EOF
+/dev/ram0 / ext2 defaults 0 0
+none /dev/pts devpts gid=5,mode=620 0 0
+none /dev/shm tmpfs defaults 0 0
+none /proc proc defaults 0 0
+EOF
+
+cat > $mnt/etc/sysconfig/network <<EOF
+NETWORKING=yes
+EOF
+
+for intf in eth0 eth1 eth2 eth3; do
+   cat > $mnt/etc/sysconfig/network-scripts/ifcfg-$intf <<EOF
+modprobe e1000
+DEVICE=$intf
+BOOTPROTO=dhcp
+ONBOOT=yes
+TYPE=Ethernet
+check_link_down() { return 1 ; }
+EOF
+done
+
+echo "ttyS0" >> $mnt/etc/securetty
+mv $mnt/etc/passwd $mnt/etc/passwd.orig
+sed -e's/root:\*:/root:xxxxxxxx:/' < $mnt/etc/passwd.orig > $mnt/etc/passwd 
+echo "xensource" | /usr/sbin/chroot $mnt /usr/bin/passwd root --stdin
+echo "co:2345:respawn:/sbin/agetty ttyS0 115200 vt100-nav" >> $mnt/etc/inittab
+
+echo "netperf 12865/tcp" >> $mnt/etc/services
+cat > $mnt/etc/xinetd.d/netperf <<EOF
+service netperf
+{
+        disable                 = no
+        socket_type             = stream
+        protocol                = tcp
+        wait                    = no
+        user                    = root
+        server                  = /usr/bin/netserver
+}
+EOF
+
+rm -f $mnt/etc/mtab
+ln -s /proc/mounts $mnt/etc/mtab
+
+if [ -e $mnt/etc/init.d/firstboot ]; then
+    /usr/sbin/chroot $mnt /sbin/chkconfig firstboot off || true
+fi
+if [ -e $mnt/etc/init.d/kudzu ]; then
+    /usr/sbin/chroot $mnt /sbin/chkconfig kudzu off || true
+fi
+
+umount $mnt/proc

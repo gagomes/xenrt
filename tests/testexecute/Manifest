@@ -1,0 +1,11 @@
+# Status: proprietary
+# Obtaining:
+# http://smartbear.com/products/qa-tools/automated-testing-tools
+5a427257d41410124f5b7b6e238fdd30  ./Data1.cab
+c0b49cc50b9669602949d45578a1d7df  ./Install.exe
+bd0fbf7267cb5d9790619f2f8ff8b161  ./ISSetup.dll
+b5396a5535220faafb72a538b7a95461  ./setup.exe
+8e3114fdd92bf0b0a186e3c6eec5265e  ./setup.iss
+10638efb7bde927a720079e5b332c389  ./testexecute870.exe
+18c6028aeed4fb33eec5b253b3480433  ./TestExecute.msi
+

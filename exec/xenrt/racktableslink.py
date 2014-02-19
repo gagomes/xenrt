@@ -1,0 +1,270 @@
+import re,socket
+import xenrt
+from racktables import RackTables
+
+__all__ = ["getRackTablesInstance", "readMachineFromRackTables"]
+
+_rackTablesInstance = None
+
+BMC_ADDRESSES = ("IPMI", "BMC", "IDRAC", "DRAC", "IRMC", "IRMCS2", "ILO")
+
+def getRackTablesInstance():
+    global _rackTablesInstance
+    if not _rackTablesInstance:
+        rtHost = xenrt.GEC().config.lookup("RACKTABLES_DB_HOST", None)
+        rtUser = xenrt.GEC().config.lookup("RACKTABLES_DB_USER", None)
+        rtDB = xenrt.GEC().config.lookup("RACKTABLES_DB_NAME", None)
+        rtPassword = xenrt.GEC().config.lookup("RACKTABLES_DB_PASSWORD", None)
+        _rackTablesInstance = RackTables(rtHost, rtDB, rtUser, rtPassword)
+    return _rackTablesInstance
+
+def readMachineFromRackTables(machine,kvm=False):
+    global BMC_ADDRESSES
+    rt = getRackTablesInstance()
+    o = rt.getObject(machine)
+    ipDict = o.getIPAddrs()
+    ip6Dict = o.getIP6Addrs()
+    ports = o.getPorts()
+    primaryInterface = None
+    # For some infrastructure setup, we'll proceed without knowing the MAC addresses
+    ignoreMissingMACs = xenrt.TEC().lookup("RACKTABLES_IGNORE_MISSING_MACS", False, boolean=True)
+
+    # Get the main MAC address
+    if not xenrt.GEC().config.lookupHost(machine, "MAC_ADDRESS", None):
+        optionNets = xenrt.GEC().config.lookupHost(machine, "OPTION_CARBON_NETS", None)
+        if optionNets:
+            availablePorts = [p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0] == optionNets]
+        else:
+            availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "FORCE_NIC_ORDER"], "yes")
+        if len(availablePorts) > 0:
+            mac = availablePorts[0][2]
+            if availablePorts[0][1].startswith("10G"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "NIC_SPEED"],"10G")
+            primaryInterface = availablePorts[0][0]
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "MAC_ADDRESS"],mac)
+
+    # Get the main IP address
+    if not xenrt.GEC().config.lookupHost(machine, "HOST_ADDRESS", None):
+        ip = None
+        interfaceIPs = [x for x in ipDict.keys() if ipDict[x] == primaryInterface] 
+        ips = [x for x in ipDict.keys() if ipDict[x].upper() not in BMC_ADDRESSES] 
+        if len(interfaceIPs) > 0:
+            ip = interfaceIPs[0]
+        elif len(ips) > 0:
+            ip = ips[0]
+        else:
+            try:
+                ip = xenrt.getHostAddress("%s.%s" % (machine, xenrt.GEC().config.lookup("MACHINE_DOMAIN")))
+            except:
+                pass
+        if ip:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "HOST_ADDRESS"],ip)
+
+    # Get the main IPv6 address
+    if not xenrt.GEC().config.lookupHost(machine, "HOST_ADDRESS6", None):
+        interfaceIPs = [x for x in ip6Dict.keys() if ip6Dict[x] == primaryInterface] 
+        if len(interfaceIPs) > 0:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "HOST_ADDRESS6"],interfaceIPs[0])
+
+    # Get IPMI info
+    ipmi = False
+    ipmiUser = o.getAttribute("IPMI Username")
+    ipmiPassword = o.getAttribute("IPMI Password")
+    if ipmiUser and not xenrt.GEC().config.lookupHost(machine, "IPMI_USERNAME", None):
+        xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_USERNAME"], ipmiUser)
+    if ipmiPassword and not xenrt.GEC().config.lookupHost(machine, "IPMI_PASSWORD", None):
+        xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_PASSWORD"], ipmiPassword)
+    bmcips = [x for x in ipDict.keys() if ipDict[x].upper() in BMC_ADDRESSES]
+    if len(bmcips) > 0 and not xenrt.GEC().config.lookupHost(machine, "BMC_ADDRESS", None):
+        xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_ADDRESS"], bmcips[0])
+
+    # Figure out power control - rules are:
+    # 1. Use the config file by default
+    # 2. Use IPMI if we have IPMI IP, username and password (with fallback to PDU if we have PDU info)
+    # 3. If we don't have IPMI, use PDU
+    if not xenrt.GEC().config.lookupHost(machine, "POWER_CONTROL", None):
+        if len(bmcips) > 0:
+            ipmiAddress = bmcips[0]
+            ipmiInterface = o.getAttribute("IPMI Interface")
+            if not ipmiInterface:
+                ipmiInterface = "lanplus"
+            if ipmiUser and ipmiPassword:
+                ipmi = True
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "IPMI_INTERFACE"], ipmiInterface)
+            intf = ipDict[ipmiAddress]
+            ipmiPorts = [p for p in ports if p[0] == intf]
+            if len(ipmiPorts) > 0:
+                ipmiMAC = ipmiPorts[0][2]
+                if ipmiMAC:
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "BMC_MAC"], ipmiMAC)
+        powerports = [p for p in ports if (p[1] == "AC-in" and p[4])]
+        i = 0
+        for p in powerports:
+            if len(powerports) == 1:
+                index = ""
+            else:
+                index = str(i)
+            pdu = p[4]
+            try:
+                pduport = re.findall(r'\d+', p[5])[0]
+            except Exception, e:
+                continue
+            ips = pdu.getIPAddrs()
+            if len(ips) > 0:
+                address = ips.keys()[0]
+            else:
+                address = "%s.%s" % (pdu.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN"))
+            oidbase = pdu.getAttribute("Base SNMP OID")
+            comm = pdu.getAttribute("SNMP Community")
+            if not comm:
+                comm = "private"
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_ADDRESS" % index], address)
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_COMMUNITY_STRING" % index], comm)
+            if oidbase:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_OID_BASE" % index], oidbase)
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_PORT" % index], pduport)
+            vendor = pdu.getAttribute("HW type")
+            if not vendor:
+                pass
+            elif vendor.startswith("APC"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_VENDOR" % index], "APC")
+            elif vendor.startswith("Raritan"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "PDU%s_VENDOR" % index], "RARITAN")
+            i += 1
+
+        if ipmi and i > 0:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "POWER_CONTROL"], "ipmipdufallback")
+        elif ipmi:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "POWER_CONTROL"], "ipmi")
+        elif i > 0:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "POWER_CONTROL"], "PDU")
+
+    # Console. Use IPMI if we have it
+    if not xenrt.GEC().config.lookupHost(machine, "CONSOLE_TYPE", None):
+        serialports = [p for p in ports if (p[1].startswith("RS-232") and p[4] and (not p[3] or p[3] != "Unused"))]
+        if len(serialports) > 0:
+            serport = serialports[0]
+            ser = serport[4]
+            try:
+                port = re.findall(r'\d+', serport[5])[0]
+            except Exception, e:
+                pass
+            else:
+                ips = ser.getIPAddrs()
+                if len(ips) > 0:
+                    address = ips.keys()[0]
+                else:
+                    address = "%s.%s" % (ser.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN"))
+                portbase = ser.getAttribute("Serial Base TCP Port")
+                if not portbase:
+                    portbase = 4000
+                port = int(port) + portbase
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"CONSOLE_TYPE"], "basic")
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"CONSOLE_ADDRESS"], address)
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"CONSOLE_PORT"], port)
+        elif ipmi:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "CONSOLE_TYPE"], "ipmi")
+
+    # Switch port
+    if not xenrt.GEC().config.lookupHost(machine,"NETPORT", None):
+        pp = [p for p in ports if p[0] == primaryInterface]
+        if len(pp) > 0:
+            p = pp[0]
+            netport = getNetPortNameForPort(p)
+            if netport:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "NETPORT"], netport)
+                
+    # Secondary NICs
+    if not xenrt.TEC().lookupHost(machine,"NICS",None):
+        i = 1
+        availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e") and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+        for p in availablePorts:
+            netport = getNetPortNameForPort(p)
+            nicinfo = p[3].split("/")
+            network = nicinfo[0]
+            if "RSPAN" in nicinfo[1:]:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"RSPAN"],"yes")
+            mac = p[2]
+            ip = [x for x in ipDict.keys() if ipDict[x] == p[0]]
+            if len(ip) > 0:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"IP_ADDRESS"],ip[0])
+            ip6 = [x for x in ip6Dict.keys() if ip6Dict[x] == p[0]]
+            if len(ip6) > 0:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"IP_ADDRESS6"],ip6[0])
+            if p[1].startswith("10G"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"SPEED"],"10G")
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETPORT"],netport)
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETWORK"],network)
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"MAC_ADDRESS"],mac)
+            i += 1
+
+    # Disks
+    if not xenrt.TEC().lookupHost(machine,"OPTION_CARBON_DISKS", None):
+        installDisk = o.getAttribute("Installation disk path")
+        if installDisk:
+            setDiskConfig(installDisk, ["HOST_CONFIGS",machine,"OPTION_CARBON_DISKS"])
+        guestDisk = o.getAttribute("Data disk path")
+        if guestDisk:
+            setDiskConfig(guestDisk, ["HOST_CONFIGS",machine,"OPTION_GUEST_DISKS"])
+
+    if not xenrt.TEC().lookupHost(machine, "PXE_CHAIN_LOCAL_BOOT", None):
+        pxechain = o.getAttribute("PXE chain boot disk")
+        if pxechain:
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"PXE_CHAIN_LOCAL_BOOT"], pxechain)
+
+    if not xenrt.TEC().lookupHost(machine, "OPTION_ROOT_MPATH", None):
+        if o.getAttribute("Multipath Root Disk") == "Yes":
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"OPTION_ROOT_MPATH"], "enabled")
+            if not xenrt.TEC().lookupHost(machine, "LOCAL_SR_POST_INSTALL", None) \
+                    and xenrt.TEC().lookupHost(machine, "OPTION_CARBON_DISKS", None) != xenrt.TEC().lookupHost(machine, "OPTION_GUEST_DISKS", None):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
+
+    # KVM (useful for DNS)
+    if kvm:
+        kvmports = [p for p in o.getPorts() if p[0] == "kvm" and p[4]]
+        if len(kvmports) > 0:
+            kvmport = kvmports[0]
+            uplinkports = [p for p in kvmport[4].getPorts() if p[4] and p[4].getType() == "KVM switch" and (kvmport[4].getType() != "KVM switch" or len(kvmport[4].getPorts()) < len(p[4].getPorts()))]
+            if len(uplinkports) > 0:
+                kvm = uplinkports[0][4]
+            else:
+                kvm = kvmport[4]
+            ips = kvm.getIPAddrs().keys()
+            if len(ips) > 0:
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ips[0])
+            else:
+                if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
+                    ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+                
+
+
+def setDiskConfig(diskstring, path):
+    m = re.match("CCISS:/dev/(.*) SCSI:/dev/(.*)", diskstring)
+    if m:
+        xenrt.GEC().config.setVariable(path + ["SCSI"], m.group(2))
+        xenrt.GEC().config.setVariable(path + ["CCISS"], m.group(1))
+    m = re.match("SCSI:/dev/(.*) CCISS:/dev/(.*)", diskstring)
+    if m:
+        xenrt.GEC().config.setVariable(path + ["SCSI"], m.group(1))
+        xenrt.GEC().config.setVariable(path + ["CCISS"], m.group(2))
+    m = re.match("/dev/(.*)", diskstring)
+    if m:
+        xenrt.GEC().config.setVariable(path, m.group(1))
+
+def getNetPortNameForPort(port):
+    netport = None
+    portNums = re.findall(r'\d+', port[5])
+    if len(portNums) == 1:
+        portNum = portNums[0]
+        switch = port[4]
+        stacks = [x for x in switch.getParents() if x.getType() == "Network Switch Stack"]
+        if len(stacks) > 0:
+            stack = stacks[0]
+            netport = "%s-%d/%s" % (stack.getName(), switch.getAttribute("Stack Member"), portNum)
+        else:
+            netport = "%s-1/%s" % (switch.getName(), portNum)
+    return netport
+
+    

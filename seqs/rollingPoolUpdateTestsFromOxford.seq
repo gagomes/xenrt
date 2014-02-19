@@ -1,0 +1,89 @@
+<xenrt>
+
+  <!-- Rolling pool update tests -->
+
+  <default name="TESTED_PRODUCT_VERSION" value="TestedVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_VERSION" value="FromVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_INPUTDIR" value=""/>
+  <default name="TO_PRODUCT_VERSION" value="ToVer-MustOverrideInSuite"/>
+  <default name="TO_PRODUCT_INPUTDIR" value=""/>
+  <default name="VM_ACTION_ON_HOST_REBOOT" value="EVACUATE" />    <!-- EVACUATE | SUSPEND | SHUTDOWN-->
+  <default name="SKIP_HFX_INITIAL_VERSION" value="yes"/>
+  <default name="SKIP_HFX_FINAL_VERSION" value="yes"/>
+  
+  <variables>
+    <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
+        <vm name="rhel54">
+          <distro>rhel54</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="centos54">
+          <distro>centos54</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="winxpsp3">
+          <distro>winxpsp3</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <host id="1" productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
+        <vm name="win7-x86">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="sles111">
+          <distro>sles111</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="ws08r2sp1-x64">
+          <distro>ws08r2sp1-x64</distro>
+          <memory>1024</memory>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="nfs1" default="true" />
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="RPU">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="AddHFXtoOldVersion">
+        <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+        <arg>skipApplyRequiredPatches=${SKIP_HFX_INITIAL_VERSION}</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" name="TCRPUWithHFX">
+        <arg>FINAL_VERSION=${TO_PRODUCT_VERSION}</arg>
+        <arg>vmActionIfHostRebootRequired=${VM_ACTION_ON_HOST_REBOOT}</arg>
+        <arg>skipApplyRequiredPatches=${SKIP_HFX_FINAL_VERSION}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

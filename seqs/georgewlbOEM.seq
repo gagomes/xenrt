@@ -1,0 +1,21 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+      <storage type="nfs" name="NFS" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="BasicFunctional" blocker="yes">
+      <testcase id="xenserver.tc.kirkwood.TC8513"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

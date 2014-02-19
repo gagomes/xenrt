@@ -1,0 +1,547 @@
+#!/bin/bash
+# XenRT: Xen Regression Testing
+#
+# Test P2V. 
+#
+# (C) XenSource UK Ltd, 2006
+# Karl Spalding, October 2006
+
+# Protocol to use for getting at distribution source.
+# OPTION_NATIVE_DISTRO_PROTOCOL
+
+# Where to get DISTRO using PROTOCOL.
+# DISTRO_INSTALL${PROTOCOL}_${DISTRO}
+
+# Where to get the input kickstart file.
+# OPTION_KS_CONFIG
+
+# Interface used by XEN_P2V_HOST
+# OPTION_CARBON_NETS
+
+# Interface kickstart should use.
+# OPTION_NATIVE_NETS
+
+# Password for the newly installed host.
+# NATIVE_PASSWORD
+ 
+# Host running Zurich. Assuming this has the relevant keys, dhcp, etc..
+# XEN_P2V_HOST
+
+# Root password on XEN_P2V_HOST.
+# P2V_HOST_PASSWORD
+
+# Same as always.
+# CARBON_CD_IMAGE
+
+# Local path to NFS directory. 
+# P2V_NFS_LOCAL_PATH
+
+# NFS server.
+# P2V_NFS_HOST
+
+# Path on NFS server.
+# P2V_NFS_PATH
+
+# Same as always.
+# OPTION_NATIVE_TZ
+
+# Local path to tarball root.
+# DIST_TARBALL_ROOT
+
+# Local path to NFS signal location.
+# NFS_SIGNAL_PATH
+
+# URL to NFS signal location.
+# NFS_SIGNAL_URL
+
+# Where to get the input autoyast file.
+# OPTION_AY_CONFIG 
+
+# Usage p2v <domindex> <distro> <mode> <source>
+# mode is the p2v mode to use; ssh or nfs.
+# source is where to get the zurich files, CD only right now.
+
+SCRIPTDIR=`dirname $0`
+CLEANSCRIPTDIR=${SCRIPTDIR}/clean
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/blessguest
+
+# Where to mount the carbon ISO.
+MOUNT_POINT=${OPTION_MOUNT_ROOT:-/mnt}
+MOUNTBASE="${MOUNT_POINT}/xenrt/p2v/${XENMACHINE}"
+
+# Location of the 'xe' executable.
+XE=/opt/xensource/bin/xe
+
+TIMEOUT=8000
+
+umount_on_error() {
+    cd /tmp
+    sudo umount ${MOUNTBASE}/iso >/dev/null 2>&1 || true
+}
+
+trap umount_on_error EXIT INT HUP KILL
+
+# get_root_dev <host>
+# Get the name of the device which is mounted as root on 'host'.
+get_root_dev() {
+    HOSTNAME=${1}
+    ${SSH} root@${HOSTNAME} mount | grep " / " | cut -d " " -f 1
+}
+
+# get_dev_type <host> <device>
+# Get the filesystem type of 'device' on 'host'.
+get_dev_type() {
+    HOSTNAME=${1}
+    DEV=${2}
+    ${SSH} root@${HOSTNAME} mount | grep "${DEV}" | cut -d " " -f 5
+}
+
+# get_dev_used <host> <device>
+# Get the number of bytes in use on 'device' on 'host'.
+get_dev_used() {
+    HOSTNAME=${1}
+    DEV=${2}
+    echo $[ `${SSH} root@${HOSTNAME} df | grep "${DEV}" | awk '{print $3}'` * 1024 ]
+}
+
+# get_dev_total <host> <device>
+# Get the total number of bytes on 'device' on 'host'.
+get_dev_total() {
+    HOSTNAME=${1}
+    DEV=${2}
+    echo $[ `${SSH} root@${HOSTNAME} df | grep "${DEV}" | awk '{print $2}'` * 1024 ]
+}
+
+# vendor_install <distro>
+# Install 'distro' on XENMACHINE.
+vendor_install() {
+    local DISTRO=${1}
+    local RETVAL=0
+
+    set -x
+
+    # Which type of repo to use.
+    PROTOCOL=HTTP
+    if [ -n "${OPTION_NATIVE_DISTRO_PROTOCOL}" ]; then
+        PROTO=${OPTION_NATIVE_DISTRO_PROTOCOL}
+    fi
+    log_extra_data "Comment: using repo protocol ${PROTOCOL}."
+    if [ "${PROTOCOL}" = "HTTP" ]; then
+        PROTOCOL=""
+    else
+        PROTOCOL="_${PROTOCOL}"
+    fi
+
+    # Check we have a distro URL.
+    DISTROURL=`eval echo \$\`echo DISTRO_INSTALL${PROTOCOL}_${DISTRO}\``
+    if [ -z "${DISTROURL}" ]; then
+        log_extra_data "Reason: no distro URL specified, need variable" \
+            "DISTRO_INSTALL${PROTOCOL}_${DISTRO}."
+        return ${RC_ERROR}
+    fi
+
+    HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    IPADDR=`dig +short ${XENMACHINE}.${DNSDOMAIN}`
+    if [ -z "${IPADDR}" ]; then
+        echo "Could not resolve ${XENMACHINE}."
+        return ${RC_ERROR}
+    fi
+
+    if echo ${DISTRO} | grep "rhel"; then
+        mkdir -p ${DIST_TARBALL_ROOT}/native/${XENMACHINE}
+        SIGNAL_MOUNT=${NFS_SIGNAL_URL}/${THISSCRIPT}/${XENMACHINE}
+        SIGNAL_PATH=${NFS_SIGNAL_PATH}/${THISSCRIPT}/${XENMACHINE}
+        sudo rm -rf ${SIGNAL_PATH}
+        sudo mkdir -p ${SIGNAL_PATH}
+    
+        # Create a kickstart config.
+        KSETH=`echo ${OPTION_NATIVE_NETS} | awk '{print $1}'`
+        KSFILE="${WORKDIR}/ks_${DISTRO}_xenrt.cfg"
+        ROOTPASS=`perl -e "print crypt('${NATIVE_PASSWORD}', 'Xa');"p`
+    
+        if [ ! -e ${SCRIPTDIR}/data/kickstart/${OPTION_KS_CONFIG} ]; then
+            log_extra_data "Reason: Could not find kickstart config file '${OPTION_KS_CONFIG}'"
+            return ${RC_ERROR}
+        fi
+    
+        if [ "${DISTRO}" = "rhel36" ] || [ "${DISTRO}" = "rhel38" ]; then
+            sed -e"s#%DISTROURL%#${DISTROURL}#g" \
+                -e"s#%ETHDEVICE%#${KSETH}#g" \
+                -e"s#%ROOTPASS%#${ROOTPASS}#g" \
+                -e"s#%TIMEZONE%#${OPTION_NATIVE_TZ}#g" \
+                -e"s#%SIGNALMOUNT%#${SIGNAL_MOUNT}#g" \
+                < ${SCRIPTDIR}/data/kickstart/${OPTION_KS_CONFIG} | \
+                grep -v selinux | \
+                grep -v lvm2 > ${KSFILE}
+        elif [ "${DISTRO}" = "rhel41" ] || [ "${DISTRO}" = "rhel44" ]; then
+            sed -e"s#%DISTROURL%#${DISTROURL}#g" \
+                -e"s#%ETHDEVICE%#${KSETH}#g" \
+                -e"s#%ROOTPASS%#${ROOTPASS}#g" \
+                -e"s#%TIMEZONE%#${OPTION_NATIVE_TZ}#g" \
+                -e"s#%SIGNALMOUNT%#${SIGNAL_MOUNT}#g" \
+                < ${SCRIPTDIR}/data/kickstart/${OPTION_KS_CONFIG} > ${KSFILE}
+        else
+            echo "Unsupported distribution."
+            return ${RC_ERROR}
+        fi   
+        
+        cp ${KSFILE} ${DIST_TARBALL_ROOT}/native/${XENMACHINE}/ks.cfg
+    else
+        AYETH=`echo ${OPTION_NATIVE_NETS} | awk '{print $1}'`
+        AYFILE="${WORKDIR}/ay_${DISTRO}_xenrt.xml"
+
+        sed -e"s#%ROOTPASS%#${NATIVE_PASSWORD}#g" \
+            -e"s#%TIMEZONE%#${OPTION_NATIVE_TZ}#g" \
+            < ${SCRIPTDIR}/data/autoyast/${OPTION_AY_CONFIG} > ${AYFILE}
+
+        cp ${AYFILE} ${DIST_TARBALL_ROOT}/native/${XENMACHINE}/ay.xml
+    fi
+
+    # Configure PXE to boot installer.
+    echo "Configuring PXE for installer boot..."
+    if [ -n "${OPTION_PXE_FILENAME_MACHINE}" ]; then
+        PXE_FILE=${XENMACHINE}
+    else
+        PXE_FILE=`pxelinux_ip ${IPADDR}`
+    fi
+    pxe_backup ${PXE_FILE}
+    NEW_PXE=${WORKDIR}/pxeconfig-new
+
+    if echo ${DISTRO} | grep "rhel"; then
+        echo "SERIAL ${SERIAL_CONSOLE_PORT} ${SERIAL_CONSOLE_BAUD}" > ${NEW_PXE}
+        echo "DEFAULT ksinstall" >> ${NEW_PXE}
+        echo "LABEL ksinstall" >> ${NEW_PXE}
+        echo "  KERNEL ${DISTRO}/vmlinuz" >> ${NEW_PXE}
+        echo "  APPEND serial console=ttyS0,115200 initrd=${DISTRO}/initrd.img root=/dev/ram0" \
+              " ksdevice=${KSETH} ks=http://${DIST_TARBALL_BASE}/native/${XENMACHINE}/ks.cfg" >> ${NEW_PXE}
+    else
+        echo "SERIAL ${SERIAL_CONSOLE_PORT} ${SERIAL_CONSOLE_BAUD}" > ${NEW_PXE}
+        echo "DEFAULT ayinstall" >> ${NEW_PXE}
+        echo "LABEL ayinstall" >> ${NEW_PXE}
+        echo "  KERNEL ${DISTRO}/linux" >> ${NEW_PXE}
+        echo "  APPEND serial console=ttyS0,115200 load_ramdisk=1 initrd=${DISTRO}/initrd" \
+              " autoyast=http://${DIST_TARBALL_BASE}/native/${XENMACHINE}/ay.xml" \
+              " splash=silent showopts netdevice=${AYETH} install=${DISTROURL}" >> ${NEW_PXE}
+    fi
+
+    pxe_install ${NEW_PXE} ${PXE_FILE}
+    hard_reboot ${XENMACHINE}
+
+    # Wait for the guest to signal installation is complete.
+    if echo ${DISTRO} | grep "rhel"; then
+        CHECKS=0
+        while true; do
+            if [ -e ${SIGNAL_PATH}/.install-success ]; then
+                break
+            fi
+            CHECKS=$[${CHECKS} + 1]
+            if [ ${CHECKS} -gt 360 ]; then
+                log_extra_data "Reason: install timed out."
+                return ${RC_ERROR}
+            fi
+            sleep 5
+        done
+    else
+        sleep 120
+    fi
+
+    echo "Configuring PXE for local boot..."
+    NEW_PXE=${WORKDIR}/pxeconfig-local
+   
+    echo "SERIAL ${SERIAL_CONSOLE_PORT} ${SERIAL_CONSOLE_BAUD}" > ${NEW_PXE}
+    echo "DEFAULT local" >> ${NEW_PXE}
+    echo "LABEL local" >> ${NEW_PXE} 
+    echo "  LOCALBOOT 0" >> ${NEW_PXE}    
+
+    pxe_install ${NEW_PXE} ${PXE_FILE}
+    if echo ${DISTRO} | grep "rhel"; then
+         hard_reboot ${XENMACHINE}
+         sleep 120
+    fi
+
+    CARBON_DOM0_PASSWORD=${NATIVE_PASSWORD}
+    CHECKS=0
+    while true; do
+        if ssh_password_wrapper ssh root@${XENMACHINE} /bin/true; then
+            break
+        fi
+        CHECKS=$[${CHECKS} + 1]
+        if [ ${CHECKS} -gt 360 ]; then
+            log_extra_data "Reason: boot timed out."
+            return ${RC_ERROR}
+        fi
+        sleep 5
+    done
+
+    # Set up host with keys and test scripts.
+    ROOT_PASSWORDS="${ROOT_PASSWORDS} ${NATIVE_PASSWORD}"
+    bless_guest ${XENMACHINE} ${DISTRO}
+
+    return ${RETVAL}
+}
+
+p2v() {
+    DOMINDEX=${1}
+    DISTRO=${2}
+    MODE=${3}
+    SOURCE=${4}
+
+    set -x
+
+    HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    IPADDR=`dig +short ${XENMACHINE}.${DNSDOMAIN}`
+    
+    GUESTNAME=`get_guest_hostname ${XEN_P2V_HOST} ${DOMINDEX}`
+    GUESTIPADDR=`get_guest_ipaddr ${XEN_P2V_HOST} ${DOMINDEX}`
+    MACADDR=`make_static_mac ${GUESTIPADDR}`
+    XEUID=f364a46f-950a-4fb7-87e9-`echo ${MACADDR} | sed -e's/://g'`
+    if [ "${DISTRO}" = "rhel36" ]; then
+        OSNAME="Red Hat"
+        OSVERSION="3.6"
+    elif [ "${DISTRO}" = "rhel38" ]; then
+        OSNAME="Red Hat"
+        OSVERSION="3.8"
+    elif [ "${DISTRO}" = "rhel41" ]; then
+        OSNAME="Red Hat"
+        OSVERSION="4.1"
+    elif [ "${DISTRO}" = "rhel44" ]; then
+        OSNAME="Red Hat"
+        OSVERSION="4.4"
+    elif [ "${DISTRO}" = "sles9sp2" ]; then
+        OSNAME="SLES"
+        OSVERSION="9.2"
+    elif [ "${DISTRO}" = "sles9sp3" ]; then
+        OSNAME="SLES"
+        OSVERSION="9.3"
+    fi
+    ROOTDEV=`get_root_dev ${HOSTNAME}`
+    ROOTTYPE=`get_dev_type ${HOSTNAME} ${ROOTDEV}`
+    FSUSED=`get_dev_used ${HOSTNAME} ${ROOTDEV}`
+    FSTOTAL=`get_dev_total ${HOSTNAME} ${ROOTDEV}`
+
+    # Hack.
+    #if echo ${DISTRO} | grep "sles"; then
+    #    ROOTDEV=`echo ${ROOTDEV} | sed -e 's/h/s/'`    
+    #fi
+
+    # Create P2V answerfile.
+    P2VFILE=${WORKDIR}/p2v.xml
+    echo '<?xml version="1.0"?>' > ${P2VFILE}
+    echo "<p2v>" >> ${P2VFILE}
+    if [ "${MODE}" = "nfs" ]; then
+        sudo rm -rf ${P2V_NFS_LOCAL_PATH}/${THISSCRIPT}/${XENMACHINE}
+        sudo mkdir -p ${P2V_NFS_LOCAL_PATH}/${THISSCRIPT}/${XENMACHINE} 
+        echo "  <xen-target>nfs</xen-target>" >> ${P2VFILE}
+        echo "  <nfshost>${P2V_NFS_HOST}.${DNSDOMAIN}</nfshost>" >> ${P2VFILE}
+        echo "  <nfspath>${P2V_NFS_PATH}/${THISSCRIPT}/${XENMACHINE}</nfspath>" >> ${P2VFILE}
+    elif [ "${MODE}" = "ssh" ]; then
+        echo "  <xen-target>ssh</xen-target>" >> ${P2VFILE}
+        echo "  <xehost>${XEN_P2V_HOST}</xehost>" >> ${P2VFILE}    
+    fi
+    echo "  <root-password>${P2V_HOST_PASSWORD}</root-password>" >> ${P2VFILE}
+    echo "  <osinstall>" >> ${P2VFILE}
+    echo "    <uuid>${XEUID}</uuid>" >> ${P2VFILE}
+    echo "    <description>XenRT P2V</description>" >> ${P2VFILE}
+    echo "    <hostname>${HOSTNAME}.${DNSDOMAIN}</hostname>" >> ${P2VFILE}
+    echo "    <osname>${OSNAME}</osname>" >> ${P2VFILE}
+    echo "    <osversion>${OSVERSION}</osversion>" >> ${P2VFILE}
+    echo "    <fs_used_size>${FSUSED}</fs_used_size>" >> ${P2VFILE}
+    echo "    <fs_total_size>${FSTOTAL}</fs_total_size>" >> ${P2VFILE}
+    echo "    <dev_name>${ROOTDEV}</dev_name>" >> ${P2VFILE}
+    echo "    <dev_attrs>" >> ${P2VFILE}
+    echo "      <type>${ROOTTYPE}</type>" >> ${P2VFILE}
+    echo "    </dev_attrs>" >> ${P2VFILE}
+    echo "    <mac>${MACADDR}</mac>" >> ${P2VFILE}
+    echo "  </osinstall>" >> ${P2VFILE}
+    echo "</p2v>" >> ${P2VFILE}
+
+    mkdir -p ${DIST_TARBALL_ROOT}/native/${XENMACHINE}
+    cp ${P2VFILE} ${DIST_TARBALL_ROOT}/native/${XENMACHINE}/p2v.xml
+
+    # Pull apart an install CD to get the bits we need to install.
+    if [ "${SOURCE}" = "CD" ]; then
+
+        if [ -z "${CARBON_CD_IMAGE}" ]; then
+            log_extra_data "Reason: No CD image file specified."
+            echo "No CD image file specified."
+            return ${RC_ERROR}
+        fi
+
+        # This is where boot files go.
+        sudo rm -rf ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}
+        sudo mkdir -p ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}
+        sudo chown `whoami` ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}
+
+        sudo mkdir -p ${MOUNTBASE}
+        sudo mkdir -p ${MOUNTBASE}/iso
+ 
+        # We can point CARBON_CD_IMAGE to an unpacked ISO image directory.
+        if [ -d ${CARBON_CD_IMAGE} ]; then
+            log_extra_data \
+            "Comment: Using unpacked CD directory ${CARBON_CD_IMAGE}."
+            ISO_BASE=${CARBON_CD_IMAGE}
+        else
+            echo "Mounting ISO image..."
+            log_extra_data "Comment: Using ISO ${CARBON_CD_IMAGE}."
+            if ! sudo mount -oloop,ro ${CARBON_CD_IMAGE} ${MOUNTBASE}/iso; then
+                log_extra_data "Reason: Failed to mount ISO image"
+                return ${RC_ERROR}
+            fi
+            ISO_BASE=${MOUNTBASE}/iso
+        fi
+
+        cp -a ${ISO_BASE}/boot/* ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}/
+        cd ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}/
+        ln -s `ls vmlinuz-* | tail -n1` vmlinuz
+        if [ ! -e xen.gz ]; then
+            ln -s `find -type f -name "xen*" | tail -n1` xen.gz
+        fi
+        if [ -e ${ISO_BASE}/install.img ]; then
+            cp ${ISO_BASE}/install.img \
+                ${PXE_ROOTDIR}/xenrt/p2v/${XENMACHINE}/
+        else
+            log_extra_data "Reason: ${ISO_BASE}/install.img does" \
+                "not exist"
+            if [ "${ISO_BASE}" != "${CARBON_CD_IMAGE}" ]; then
+                sudo umount ${ISO_BASE} || true
+            fi
+            return ${RC_ERROR}
+        fi
+    else
+        echo "Oops. I only do CD installs I'm afraid."
+        return ${RC_ERROR}
+    fi
+
+    echo "Configuring PXE for P2V boot..."
+    if [ -n "${OPTION_PXE_FILENAME_MACHINE}" ]; then
+        PXE_FILE=${XENMACHINE}
+    else
+        PXE_FILE=`pxelinux_ip ${IPADDR}`
+    fi
+    pxe_backup ${PXE_FILE}
+    NEW_PXE=${WORKDIR}/pxeconfig-p2v
+
+    echo "SERIAL ${SERIAL_CONSOLE_PORT} ${SERIAL_CONSOLE_BAUD}" > ${NEW_PXE}
+    echo "DEFAULT p2v" >> ${NEW_PXE}
+    echo "LABEL p2v" >> ${NEW_PXE}
+    echo "  KERNEL mboot.c32" >> ${NEW_PXE}
+    echo "  APPEND xenrt/p2v/${XENMACHINE}/xen.gz noreboot com1=115200,8n1 console=com1,tty" \
+          " --- xenrt/p2v/${XENMACHINE}/vmlinuz console=ttyS0,115200n8 output=ttyS0 root=/dev/ram0" \
+          " ramdisk_size=32758 p2v answerfile=http://${DIST_TARBALL_BASE}/native/${XENMACHINE}/p2v.xml" \
+          " --- xenrt/p2v/${XENMACHINE}/install.img" >> ${NEW_PXE}
+
+    pxe_install ${NEW_PXE} ${PXE_FILE}
+    if ! reboot_machine ${HOSTNAME}; then
+        hard_reboot ${XENMACHINE}
+    fi
+
+    # Wait for P2V to get started. I'm assuming that the P2V will take more than
+    # 3 minutes. If it doesn't we may run into problems. 
+    sleep 180
+  
+    # Don't really care what happens to this machine but we don't
+    # want P2V to kick off again. 
+    echo "Configuring PXE for local boot..."
+    NEW_PXE=${WORKDIR}/pxeconfig-local
+
+    echo "SERIAL ${SERIAL_CONSOLE_PORT} ${SERIAL_CONSOLE_BAUD}" > ${NEW_PXE}
+    echo "DEFAULT local" >> ${NEW_PXE}
+    echo "LABEL local" >> ${NEW_PXE}
+    echo "  LOCALBOOT 0" >> ${NEW_PXE}
+
+    pxe_install ${NEW_PXE} ${PXE_FILE}
+    
+    # Wait for XGT to turn up somewhere.
+    if [ "${MODE}" = "nfs" ]; then
+        XGT="${P2V_NFS_LOCAL_PATH}/${THISSCRIPT}/${XENMACHINE}/p2v${XENMACHINE}.`echo ${ROOTDEV} | sed -e's/\/dev\///'`.xgt"
+        CHECKS=0
+        while true; do
+            if [ -e ${XGT} ]; then
+                break
+            fi
+            CHECKS=$[${CHECKS} + 1]
+            if [ ${CHECKS} -gt 720 ]; then
+                log_extra_data "Reason: P2V timed out."
+                return ${RC_ERROR}
+            fi
+            sleep 5 
+        done
+    elif [ "${MODE}" = "ssh" ]; then
+        CHECK=0
+        while true; do        
+            if ${SSH} root@${XEN_P2V_HOST} ${XE} host-vm-list \
+                -u root | grep -A 2 ${XENMACHINE} | grep state | grep DOWN; then
+                break
+            fi
+            CHECKS=$[${CHECKS} + 1]
+            if [ ${CHECKS} -gt 720 ]; then
+                log_extra_data "Reason: P2V timed out."
+                return ${RC_ERROR}
+            fi
+            sleep 5
+        done 
+    fi  
+
+    # Install XGT in the NFS case.
+    if [ "${MODE}" = "nfs" ]; then
+        # Get some details.    
+        MEMORY_IN_BYTES=`cat ${XGT}/template.dat | sed -e 's/\(.*\)\(total-mem \)\([0-9]*\)\(.*\)/\3/'`
+        MEMORY=$[ ${MEMORY_IN_BYTES} / 1024 ]
+        VCPUS=`cat ${XGT}/template.dat | sed -e 's/\(.*\)\(cpu-count \)\([0-9]*\)\(.*\)/\3/'`
+        # Mount the NFS directory containing the XGT.
+        ${SSH} root@${XEN_P2V_HOST} mount \
+            ${P2V_NFS_HOST}.${DNSDOMAIN}:${P2V_NFS_PATH}/${THISSCRIPT}/${XENMACHINE} \
+            /var/opt/xen/xgt_import
+        # Get the name of the new template.
+        TEMPLATE_NAME=`${SSH} root@${XEN_P2V_HOST} ${XE} host-template-list -u root | grep ${HOSTNAME}`
+        # And install it.
+        ${SSH} root@${XEN_P2V_HOST} ${XE} vm-install -u root \
+            template-name=\"${TEMPLATE_NAME}\" name="XenRTGuest${DOMINDEX}" \
+            auto_poweron=false vcpus=${VCPUS} memory_set=${MEMORY}
+        ${SSH} root@${XEN_P2V_HOST} umount /var/opt/xen/xgt_import
+    fi 
+
+    # Sort out bridging.
+    if ! [ -z "${OPTION_CARBON_NETS}" ]; then
+        ETH=`echo ${OPTION_CARBON_NETS} | awk '{print $1}'`
+        BRIDGE=xenbr`echo ${ETH} | sed -e 's/eth//'`
+        ${SSH} root@${XEN_P2V_HOST} ${XE} \
+            vm-vif-remove -u root vm-id=\"${XEUID}\" vif-name=eth0
+        ${SSH} root@${XEN_P2V_HOST} ${XE} \
+            vm-vif-add -u root vm-id=\"${XEUID}\" vif-name=eth0 mac=\"${MACADDR}\" bridge-name=${BRIDGE}
+    fi
+
+    if [ "${MODE}" = "nfs" ]; then
+        ${SSH} root@${XEN_P2V_HOST} ${XE} \
+            vm-start -u root vm-name="XenRTGuest${DOMINDEX}"   
+    else
+        ${SSH} root@${XEN_P2V_HOST} ${XE} \
+            vm-start -u root vm-id=\"${XEUID}\"
+    fi
+    if ! wait_for_boot ${GUESTNAME}; then
+        return ${RC_ERROR}
+    fi 
+
+}
+
+run() {
+    DOMINDEX=${1}
+    DISTRO=${2}
+    MODE=${3}
+    SOURCE=${4}
+
+    # Supported distros: rhel36, rhel38, rhel41, rhel44, sles9sp2, sles9sp3.
+
+    vendor_install ${DISTRO}
+    p2v ${DOMINDEX} ${DISTRO} ${MODE} ${SOURCE}    
+
+}
+
+BM_RUN=run_this
+
+run $@
+
+. ${SCRIPTDIR}/generic

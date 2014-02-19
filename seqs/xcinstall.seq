@@ -1,0 +1,5 @@
+<xenrt>
+  <testsequence>
+    <testcase id="xenserver.manualenvironments.TCInstallXenCenter"/>
+  </testsequence>
+</xenrt>

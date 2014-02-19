@@ -1,0 +1,29 @@
+diff -r 106e2748c41a overlay.xenrt/etc/rc.local
+--- a/overlay.xenrt/etc/rc.local	Mon Jan 12 11:00:23 2009 +0000
++++ b/overlay.xenrt/etc/rc.local	Mon Jan 12 11:12:20 2009 +0000
+@@ -35,6 +35,17 @@ if [ ! -e /.configdone ]; then
+     chmod 755 /var/log/httpd
+     echo "host xenrt xenrtd 127.0.0.1 255.255.255.255 trust" >> /var/lib/pgsql/data/pg_hba.conf
+     /etc/init.d/postgresql restart
++    # Configure the iscsi target daemon    
++    cp -fR /local/inputs/tests/iscsitarget /tmp/
++    cd /tmp/iscsitarget && make
++    cd /tmp/iscsitarget && make install
++    /sbin/depmod -a
++    # Remove the default config file
++    echo '' > /etc/ietd.conf
++    # Start iscsitarget, and set it to start on boot
++    service iscsi-target start
++    /sbin/chkconfig --add iscsi-target
++    /sbin/chkconfig iscsi-target on
+ 
+     if grep -q "noninteractive" /proc/cmdline; then
+         echo "Setting up default config files"
+diff -r 106e2748c41a packages.xenrt
+--- a/packages.xenrt	Mon Jan 12 11:00:23 2009 +0000
++++ b/packages.xenrt	Mon Jan 12 14:42:11 2009 +0000
+@@ -41,3 +41,4 @@ gnuplot
+ gnuplot
+ vim-common
+ vim-enhanced
++openssl-devel

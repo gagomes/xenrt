@@ -1,0 +1,31 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts license="platinum"/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-40">
+        <arg>numdesktops=40</arg>
+        <arg>novifs</arg>
+        <arg>parallelboot</arg>
+      </testcase>
+
+    </testsequence>
+  </xenrt>

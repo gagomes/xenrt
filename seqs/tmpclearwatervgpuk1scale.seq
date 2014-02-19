@@ -1,0 +1,51 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Win7-x86-BenchInst">
+      <testcase tc="TC-20724" id="testcases.xenserver.tc.vgpu.TCGPUBenchmarkInstall">
+        <arg>guest=win7</arg>
+        <arg>benchmark=SPECViewPerf11</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K100Scale">
+      <testcase tc="TC-20733" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+      </testcase>
+      <testcase tc="TC-20750" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K100</arg>
+        <arg>clones=64</arg>
+      </testcase>
+      <testcase tc="TC-20779" id="testcases.xenserver.tc.vgpu.TCGPUBootstorm">
+        <arg>guest=win7</arg>
+        <arg>clones=64</arg>
+        <arg>vgpuconfig=K100</arg>
+      </testcase> 
+      <testcase tc="TC-20757" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win7</arg>
+        <arg>clones=64</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

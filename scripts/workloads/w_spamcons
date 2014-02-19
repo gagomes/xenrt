@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# XenRT: Xen Regression Testing
+#
+# Workload: Spam the guest console.
+#
+# (C) XenSource UK Ltd, 2007
+# Karl Spalding, July 2007
+
+THISSCRIPT=`basename $0`
+
+run() {
+    touch /tmp/${THISSCRIPT}.running
+    while [ -e /tmp/${THISSCRIPT}.running ]; do
+        for LINE in `cat /etc/passwd`; do
+        	echo "[`date`] SPAM ${LINE}" > /dev/console
+        done
+        sleep 1
+    done
+}
+
+stop() {
+    rm -f /tmp/${THISSCRIPT}.running
+}
+
+case "$1" in
+    start)
+    	shift
+        $0 run "$@" > /dev/null 2>&1 &
+    ;;
+    stop)
+    	shift
+	    stop
+	;;
+    run)
+    	shift
+	    run "$@"
+	;;
+esac

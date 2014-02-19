@@ -1,0 +1,15 @@
+  <xenrt>
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCLoginVSI" host="RESOURCE_HOST_0">
+        <arg>xapi=xapi-george-mps</arg>
+        <arg>desktopimage=loginvsi.img</arg>
+        <arg>desktopvmname=loginvsi</arg>
+        <arg>numdesktops=50</arg>
+        <arg>vmsperlauncher=10</arg>
+        <arg>noprov</arg>
+        <arg>machines=q7,q8,q9</arg>
+        <arg>cleanupbefore</arg>
+        <arg>cleanupafter</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

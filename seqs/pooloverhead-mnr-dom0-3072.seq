@@ -1,0 +1,30 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCPoolOverhead" name="PoolOverhead10">
+        <arg>vmsperhost=10</arg>
+        <arg>minnumhosts=all</arg>
+        <arg>memorytarget=3072</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

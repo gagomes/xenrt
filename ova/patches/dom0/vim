@@ -1,0 +1,23 @@
+diff -r 24715d04fd6a packages.xenrt
+--- a/packages.xenrt	Mon Apr 21 11:13:08 2008 +0100
++++ b/packages.xenrt	Mon Apr 21 11:13:29 2008 +0100
+@@ -39,3 +39,5 @@ vconfig
+ vconfig
+ perl-libwww-perl
+ gnuplot
++vim-common
++vim-enhanced
+diff -r 24715d04fd6a patches.xenrt/patch-etc_vimrc
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patches.xenrt/patch-etc_vimrc	Mon Apr 21 11:20:03 2008 +0100
+@@ -0,0 +1,10 @@
++diff -ur dom0-pure/etc/vimrc dom0-staging/etc/vimrc
++--- dom0-pure/etc/vimrc	2008-04-21 10:19:38.000000000 +0000
+++++ dom0-staging/etc/vimrc	2008-04-21 10:20:47.000000000 +0000
++@@ -49,3 +49,6 @@
++      set t_Sb=[4%dm
++      set t_Sf=[3%dm
++ endif
+++
+++set tabstop=4
+++set expandtab

@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Check a HVM domain has started properly. 
+#
+# Args: <index> <domainname> 
+#
+# (C) XenSource UK Ltd, 2006
+# Karl Spalding Wall, June 2006
+#
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=1800
+VNCBASEPORT=5900
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+install() {
+    DOMINDEX=${1:0}
+    DOMNAME=${2:newdomain}
+
+    mkdir -p ${WORKDIR}/logs
+    cd ${WORKDIR}
+    rm -f ${WORKDIR}/.xenrt-success
+    reset_extra_data
+
+    touch ${WORKDIR}/.setupcomplete
+}
+
+# Check for open VNC port. Try a port based on domid and DOMINDEX
+# (if QEMU supports it we use the vncdisplay=DOMINDEX)
+TC_vncportopen() {
+    local VNCPORT=$1
+    local VNCPORTALT=$2
+    if ! ${SCRIPTDIR}/utils/vnccheck.py ${XENMACHINE} ${VNCPORT}; then
+        if ! ${SCRIPTDIR}/utils/vnccheck.py ${XENMACHINE} ${VNCPORTALT}; then
+            echo "VNC server port not listening"
+	    return 1
+        fi
+    fi	
+}
+
+run() {
+    DOMINDEX=${1:0}
+    DOMNAME=${2:newdomain}
+set -x
+    cd ${WORKDIR}
+
+    DOMID=`xm domid ${XENMACHINE}${DOMNAME}` 	
+    VNCPORT=$[ ${VNCBASEPORT} + ${DOMID} ]
+    VNCPORTALT=$[ ${VNCBASEPORT} + ${DOMINDEX} ]
+
+    testcase TC_vncportopen ${VNCPORT} ${VNCPORTALT}
+
+    if [ ${TCFAILCOUNT} = 0 ]; then
+        touch ${WORKDIR}/.xenrt-success
+    fi
+    return ${TCFAILCOUNT}	    	
+}
+
+process() {
+    DOMINDEX=${1:0}
+    DOMNAME=${2:newdomain}
+
+    if [ -e ${WORKDIR}/.xenrt-success ]; then
+        echo "Test: passed"
+    else
+        echo "Test: failed"
+    fi
+
+    get_extra_data
+
+}
+
+EXTRA_LOG_FILES=""
+
+getlogs() {
+    capture_core_files ${WORKDIR}/logs
+    fetch_extra_log_files
+    tar -jcf - -C ${WORKDIR}/logs .
+}
+
+usage() {
+    echo $"Usage: $0 {install|start|stop|waitfor|process} [testtype]"
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+	shift
+        install "$@"
+        ;;
+  start)
+	shift
+        start_run "$@"
+        ;;
+  stop)
+        stop_run
+        ;;
+  run)
+	shift
+	run "$@"
+	;;
+  waitfor)
+	waitfor
+        ;;
+  process)
+	shift
+        process "$@"
+        ;;
+  getlogs)
+	getlogs
+	;;
+  cleanup)
+	cleanup_working_directory
+	;;
+  *)
+        usage
+        exit 1
+esac
+
+exit $RETVAL

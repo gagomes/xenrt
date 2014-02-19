@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing. Tailors a image for running XenRT.
+#
+# (C) XenSource UK Ltd. 2006
+# James Bulpin, Mar-Sep 2006
+
+SCRIPTDIR=`dirname $0`/..
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+DEBIAN_MODULES="gcc binutils make patch flex bzip2 time"
+DEBIAN_MODULES2="g++ libc6-dev"
+
+run_on_guest() {
+    DISTRO=$1
+
+    if [ -z "${DISTRO}" ]; then
+	if [ -e /etc/redhat-release ]; then
+	    if ( cat /etc/redhat-release | grep -q "Fedora Core release 4" ); then
+		DISTRO=fc4
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 1)'); then
+		DISTRO=rhel41
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 2)'); then
+		DISTRO=rhel42
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 3)'); then
+		DISTRO=rhel43
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 4)'); then
+		DISTRO=rhel44
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 5)'); then
+		DISTRO=rhel45
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 5)'); then
+		DISTRO=rhel35
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 6)'); then
+		DISTRO=rhel36
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 7)'); then
+		DISTRO=rhel37
+	    elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 8)'); then
+		DISTRO=rhel38
+	    fi
+	elif [ -e /etc/debian_version ]; then
+	    DISTRO=debian
+	elif [ -e /etc/SuSE-release ]; then
+	    DISTRO=sles9sp2
+	fi
+	
+	if [ -z "${DISTRO}" ]; then
+	    echo "Warning: Cannot determine distro"
+	    DISTRO=unknown
+	fi
+    fi
+
+    if ! uname -o &> /dev/null; then
+	UNAME="uname -H"
+    else
+	UNAME="uname -o"
+    fi
+    
+    if [ `${UNAME}` = Cygwin -o `${UNAME}` = Windows ]; then
+	ISWINDOWS=yes
+        . ${SCRIPTDIR}/lib/windows
+    fi
+
+    # Set up /local/scratch mount
+    if [ "${ISWINDOWS}" != "yes" ]; then
+	# If we're running on a guest created from a Debian XGT then
+	# use sdc as our /local/scratch
+	if [ "${DISTRO}" = "debian" -a -e /sys/block/sdc ]; then
+	    echo "/dev/sdc /local/scratch ext3 defaults 0 0" >> /etc/fstab
+	    mkfs -t ext3 /dev/sdc
+	    mkdir -p /local/scratch
+	    mount /local/scratch
+	else
+	    mkdir -p /local/scratch
+	fi
+    fi
+
+    if [ -d /root ]; then
+	cd /root
+    else
+	cd /
+    fi
+
+    if [ ! -d carbonguest ]; then
+	get_test_tarball tailorimage
+	tar -zxf tailorimage.tgz
+    fi
+    cd tailorimage
+
+    # Install any RPMs we have (this will skip distros without RPMs)
+    RPMARGS=""
+    if [ -d RPMS/${DISTRO}/install ]; then
+	RPMARGS="--install RPMS/${DISTRO}/install/*.rpm"
+    fi
+    if [ -d RPMS/${DISTRO}/upgrade ]; then
+	RPMARGS="${RPMARGS} --upgrade RPMS/${DISTRO}/upgrade/*.rpm"
+    fi
+    if [ -n "${RPMARGS}" ]; then
+	rpm ${RPMARGS}
+    fi
+
+    if [ "${DISTRO}" = "debian" ]; then
+	
+	set -x
+
+	if [ -n "${APT_CACHER}" ]; then
+	    mv /etc/apt/sources.list /etc/apt/sources.list.orig
+	    sed -re"s#http[^ ]+debian.org[^ ]+#${APT_CACHER}#" \
+                < /etc/apt/sources.list.orig > /etc/apt/sources.list
+	fi
+
+	# If apt-get commands fail, wait a bit and retry.
+        if ! apt-get update; then
+	    sleep 60
+	    apt-get update
+	fi
+
+        # CA-4626 Install libc6-dev from the packages dir in dom0
+        if ! apt-get install -y --force-yes linux-kernel-headers; then
+            sleep 60
+            apt-get install -y --force-yes linux-kernel-headers
+        fi
+        if ls /tmp/copydeb/*.deb; then
+            dpkg -i /tmp/copydeb/*.deb
+        fi
+
+        if ! apt-get install -y --force-yes ${DEBIAN_MODULES}; then
+	    sleep 60
+	    apt-get install -y --force-yes ${DEBIAN_MODULES}
+	fi
+
+	apt-get install -y --force-yes ${DEBIAN_MODULES2}
+    fi
+}
+
+run_on_guest "$@"

@@ -1,0 +1,340 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# ttcp bandwidth tests. One end is the domain under test, the other
+# is a native box somewhere. We allow only one ttcp test to the server
+# box at a time.
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 21 July 2005
+# Karl Spalding, 26 July 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=10000
+
+SERVER_TTCP_BINARY=${SERVER_TTCP_BINARY:-${XENRT_LOCAL_BINARIES}/ttcp}
+TTCP_SERVER_USER=${TTCP_SERVER_USER:-root}
+TTCP_NUM=${TTCP_NUM:-50000}
+TTCP_SIZE=${TTCP_SIZE:-8192}
+TTCP_MTUS=${TTCP_MTUS:-"1496 552"}
+TTCP_SOCKS=${TTCP_SOCKS:-"131072"}
+
+# The preferred CPU pinning is grep'ed out by tunedom running in dom0,
+# it isn't really used directly here
+CPUPIN=SPLIT
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+if [ `${UNAME}` = Cygwin ]; then 
+    NETSH="netsh"
+else
+    NETSH="/dev/fs/C/WINDOWS/system32/netsh.exe"
+fi
+
+set -e
+
+ttcpinstall() {
+
+    # Build the program if we're on Linux. Use the precompiled Windows
+    # version on Windows.
+    if iswindows; then
+        cp -p PCATTCP.exe ttcp
+    else
+        make
+    fi
+
+    rm -f ${WORKDIR}/.orig-mtu
+
+}
+
+BM_INSTALL=ttcpinstall
+
+on_server() {
+    ${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} "$@"
+}
+
+#send_ttcp_to_server() {
+#    ${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} mkdir -p /tmp/${XENMACHINE}
+#    ${SCP} ./ttcp ${TTCP_SERVER_USER}@${TTCP_SERVER}:/tmp/${XENMACHINE}/ttcp
+#}
+
+parse_rate() {
+    local RESFILE=$1
+
+    if ( grep '+++' ${RESFILE} | grep -q 'Mbit/sec' ); then
+        # Linux output format
+	local REPLY=`grep '+++' ${RESFILE} | perl -pe's!.*seconds = ([0-9.]+) Mbit/sec \+\+\+.*!$1!'`
+    elif ( grep '+++' ${RESFILE} | grep -q 'KB/sec' ); then
+        # PCATTCP format
+	local REPLY=`grep '+++' ${RESFILE} | perl -pe's!.*seconds = ([0-9.]+) KB/sec \+\+\+.*!$1/128!e'`
+    elif grep -q 'KB/sec' ${RESFILE}; then
+	# Windows output format, KBytes/sec
+	local REPLY=`grep 'KB/sec' ${RESFILE} | perl -pe's!.*seconds = ([0-9.]+) [MK]B/sec!$1/128!e'`
+    elif grep -q 'MB/sec' ${RESFILE}; then
+	# Windows output format, MBytes/sec
+	local REPLY=`grep 'MB/sec' ${RESFILE} | perl -pe's!.*seconds = ([0-9.]+) [MK]B/sec!$1*8!e'`
+    fi
+
+    echo ${REPLY}
+}
+
+hasfirewallcmd() {
+
+    local VERSION=`win_version`
+    if [ "${VERSION}" = "w2k3se" ] || [ "${VERSION}" = "w2k3ee" ]; then
+        return 1
+    fi
+    return 0
+
+}
+
+ttcprun() {
+
+    set -x
+
+    # Read command line arguments
+    while [ -n "$1" ]; do
+	case $1 in
+	    server)
+		shift
+		TTCP_SERVER=$1
+		if [ `echo ${TTCP_SERVER} | cut -d - -f 1` = Domain ]; then
+		    # If this is native linux then bail
+		    if [ "${XENVERSION}" = "linux" ]; then
+			log_extra_data \
+			    "Comment: native linux run, no other domain"
+			return 0;
+		    fi
+		    TTCP_SERVER=`domain_to_hostname ${XENMACHINE} ${TTCP_SERVER}`
+                    SERVER_TTCP_BINARY=`pwd`/ttcp
+		fi
+                ;;
+	    winserver)
+		# We'll talk to a Windows guest
+		shift
+		TTCP_SERVER=$1
+		if [ `echo ${TTCP_SERVER} | cut -d - -f 1` = Domain ]; then
+		    TTCP_SERVER=`domain_to_hostname ${XENMACHINE} ${TTCP_SERVER}`
+		    
+		fi
+		# Copy the Windows ttcp executable to the peer
+		TMPTT=`${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} LD_LIBRARY_PATH=/usr/local/lib mktemp /tmp/ttcpXXXXXX`
+		${SCP} -p ${WORKDIR}/${THISSCRIPT}/ttcp-win \
+		    ${TTCP_SERVER_USER}@${TTCP_SERVER}:${TMPTT}
+		SERVER_TTCP_BINARY=${TMPTT}
+		WINPEER=yes
+		;;
+	    mtu)
+		shift
+		TTCP_MTUS=`echo $1 | sed -e's/:/ /g'`
+		;;
+	    buffers)
+		shift
+		TTCP_NUM=$1
+		;;
+	    size)
+		shift
+		TTCP_SIZE=$1
+		;;
+	esac
+	shift	    
+    done
+
+    # If we have no server configured then skip the run
+    if [ -z "${TTCP_SERVER}" ]; then
+        log_extra_data "Comment: skipping test, no server available"
+        touch ${WORKDIR}/.autoskip
+        return 0
+    fi
+
+    log_extra_data "Comment: ${TTCP_NUM} buffers of ${TTCP_SIZE} bytes"
+    log_extra_data "Comment: MTUs ${TTCP_MTUS}"
+    log_extra_data "Comment: Peer ${TTCP_SERVER}"
+
+    echo "Server: $TTCP_SERVER" > /tmp/ttcpbw.debug
+    echo "MTUs: $TTCP_MTUS" >> /tmp/ttcpbw.debug
+
+    #send_ttcp_to_server
+    
+    if ! iswindows; then
+        echo 1048576 > /proc/sys/net/core/rmem_max
+    fi
+
+    # Get details of both ends
+    OS1=`on_server "/bin/uname -a" | cut -d' ' -f3`
+    OS2=`/bin/uname -a | cut -d' ' -f3`
+    SHOST1=`on_server "/bin/hostname"`
+    SHOST2=`/bin/hostname`
+    LKCL1=`on_server "cat /proc/cmdline"`
+    
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep nosmp` && KCL1=$KCL1:$FOO
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep noht` && KCL1=$KCL1:$FOO
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep ifname` && KCL1=$KCL1:$FOO
+    
+    # This isn't worth the effort to implement for Windows at the moment.
+    if ! iswindows; then
+        LKCL2=`cat /proc/cmdline`
+        FOO=`echo $LKCL2 | tr ' ' '\n' | grep nosmp` && KCL2=$KCL2:$FOO
+        FOO=`echo $LKCL2 | tr ' ' '\n' | grep noht` && KCL2=$KCL2:$FOO
+        FOO=`echo $LKCL2 | tr ' ' '\n' | grep ifname` && KCL2=$KCL2:$FOO
+    fi
+
+    if iswindows; then
+        MYADDR=`ipconfig | grep "IP Address" | awk '{ print $15 }'`
+    else
+        MYADDR=`ip addr show dev eth0 | egrep '^ *inet ' | sed -e "s@ *inet \([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)/[0-9]\+.*@\1@"`
+        MYMTU=`ip addr show dev eth0 | grep 'mtu' | sed -e "s@^.* *mtu \([0-9]\+\).*@\1@"`
+        echo ${MYMTU} > ${WORKDIR}/.orig-mtu
+    fi    
+
+    # Get the lock for the server
+    STARTEDLOCK=`date +%s`
+    while true; do
+	if on_server mkdir /tmp/ttcpmutex; then
+	    break
+	fi
+	sleep 60
+
+        # Check for stale lock - there is a potential race here
+	LOCKTIME=`on_server stat -c %Z /tmp/ttcpmutex || true`
+	if [ -n "${LOCKTIME}" ]; then
+	    local X=$[${LOCKTIME} + 3600]
+	    if [ ${X} -lt `date +%s` ]; then
+		echo "Removing stale lock /tmp/ttcpmutex"
+		on_server rmdir /tmp/ttcpmutex || true
+	    fi
+	fi
+    done
+
+    if iswindows; then
+        win_killall ttcp 
+    else
+        killall ttcp || true
+    fi
+    if [ "${WINPEER}" != "yes" ]; then
+	on_server killall ttcp || true
+    fi
+   
+    # Unset firewall (Windows only).
+    if iswindows && hasfirewallcmd; then
+	${NETSH} firewall set allowedprogram \
+	    program=`winify_path ${WORKDIR}/${THISSCRIPT}/ttcp` \
+	    mode=enable profile=all || true
+        # Actually, turn the whole sodding thing off
+        ${NETSH} firewall set opmode DISABLE || true
+    fi
+    if [ "${WINPEER}" = "yes" ]; then
+	${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} \
+	    /dev/fs/C/WINDOWS/system32/netsh.exe firewall set \
+	    allowedprogram program=`winify_path ${SERVER_TTCP_BINARY}` \
+	    mode=enable profile=all || true
+        ${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} \
+            /dev/fs/C/WINDOWS/system32/netsh.exe firewall set opmode DISABLE \
+            || true
+    fi
+
+    for MTU in ${TTCP_MTUS}; do
+	if ! iswindows; then
+            /sbin/ifconfig eth0 mtu ${MTU}
+        fi
+	for sock in ${TTCP_SOCKS}; do
+	    RESULTS_TX=""
+	    RESULTS_RX=""
+	    for i in 1 2 3 4 5 6 7 8; do
+
+		LOGTAG="${MTU}_${sock}_${i}"
+	
+		if [ "${WINPEER}" = "yes" ]; then
+		    PEER_RX_ARGS="-r -n${TTCP_NUM} -l ${TTCP_SIZE} -b ${sock}"
+		    PEER_TX_ARGS="-t -n${TTCP_NUM} -l ${TTCP_SIZE} -b ${sock} ${MYADDR}"
+		else
+		    PEER_RX_ARGS="-r -fm -s -n ${TTCP_NUM} -b ${sock} -l ${TTCP_SIZE}"
+		    PEER_TX_ARGS="-t ${MYADDR} -fm -s -n ${TTCP_NUM} -b ${sock} -l ${TTCP_SIZE}"
+		fi
+
+		# Run with us as TX, server as RX		    
+		set +x
+		on_server "${SERVER_TTCP_BINARY} ${PEER_RX_ARGS} 2>&1" > \
+		    ${WORKDIR}/logs/${TTCP_SERVER}.${LOGTAG}.RX.log 2>&1 &
+		set -x
+		sleep 15
+		set +x
+		if iswindows; then
+                    ./ttcp -t -n${TTCP_NUM} -l ${TTCP_SIZE} -b ${sock} \
+			${TTCP_SERVER} > \
+			${WORKDIR}/logs/local.${LOGTAG}.TX.log 2>&1
+                else
+                    ./ttcp -t ${TTCP_SERVER} -fm -s -n ${TTCP_NUM} -b ${sock} \
+		        -l ${TTCP_SIZE} > \
+			${WORKDIR}/logs/local.${LOGTAG}.TX.log 2>&1
+		fi
+		set -x
+		sleep 5
+                RES=`parse_rate ${WORKDIR}/logs/${TTCP_SERVER}.${LOGTAG}.RX.log`
+		log_extra_data "Result: TCP rx $OS1:$SHOST1$KCL1 tx $OS2:$SHOST2$KCL2 sock $sock mtu $MTU res $RES"
+		RESULTS_TX="${RESULTS_TX} $RES"
+
+		# Run with us as RX, server as TX
+		if iswindows; then
+                    ./ttcp -r -n${TTCP_NUM} -l ${TTCP_SIZE} -b ${sock} > \
+			${WORKDIR}/logs/local.${LOGTAG}.RX.log 2>&1 & 
+                else
+                    ./ttcp -r -fm -s -n ${TTCP_NUM} -b ${sock} -l ${TTCP_SIZE} \
+		        > ${WORKDIR}/logs/local.${LOGTAG}.RX.log 2>&1 &
+                fi
+		sleep 15
+                set +x
+		on_server "${SERVER_TTCP_BINARY} ${PEER_TX_ARGS} " > \
+		    ${WORKDIR}/logs/${TTCP_SERVER}.${LOGTAG}.TX.log 2>&1
+                set -x
+		#RES=`cat ${WORKDIR}/logs/${TTCP_SERVER}.test2.log 2>  ${WORKDIR}/logs/${TTCP_SERVER}.test2.err | grep '+++' | sed -e's!.*seconds = \([0-9.]\+\) Mbit/sec +++.*!\1!'`
+		RES=`parse_rate ${WORKDIR}/logs/${TTCP_SERVER}.${LOGTAG}.TX.log`
+		log_extra_data "Result: TCP tx $OS1:$SHOST1$KCL1 rx $OS2:$SHOST2$KCL2 sock $sock mtu $MTU res $RES"
+		RESULTS_RX="${RESULTS_RX} $RES"
+	    done
+	    log_extra_data "Value: TX:${sock}:${MTU}" `median ${RESULTS_TX}`
+	    log_extra_data "Value: RX:${sock}:${MTU}" `median ${RESULTS_RX}`
+	done
+    done
+
+    # put things back...
+    if ! iswindows; then
+        /sbin/ifconfig eth0 mtu ${MYMTU}
+    fi
+
+    # Reset firewall (Windows only).
+    if iswindows && hasfirewallcmd; then
+        ${NETSH} firewall set opmode ENABLE || true
+    fi
+    if [ "${WINPEER}" = "yes" ]; then
+        ${SSH} ${TTCP_SERVER_USER}@${TTCP_SERVER} \
+            /dev/fs/C/WINDOWS/system32/netsh.exe firewall set opmode ENABLE \
+            || true
+    fi
+
+    # Relase the server lock
+    on_server rmdir /tmp/ttcpmutex || true
+}
+BM_RUN=ttcprun
+
+ttcpprocess() {
+
+    # Hack to ensure we put the MTU back in case of a failure
+    if [ -e ${WORKDIR}/.orig-mtu ]; then
+        OLDMTU=`cat ${WORKDIR}/.orig-mtu`
+        if iswindows; then
+            continue
+        else
+            /sbin/ifconfig eth0 mtu ${OLDMTU}
+        fi
+    fi
+
+}
+BM_PROCESS=ttcpprocess
+
+BM_PROCESS_ON_FAIL=yes
+
+. ${SCRIPTDIR}/generic

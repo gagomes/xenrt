@@ -1,0 +1,129 @@
+<xenrt>
+  <!-- Storage Xen Motion Manual Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+
+      <storage type="nfs" name="nfs_SR00" default="true"/>
+      <storage type="nfs" name="nfs_SR01"/>
+      <storage type="fc" name="lvmohba_SR00" options="LUN0"/>
+      <storage type="fc" name="lvmohba_SR01" options="LUN1"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_SR00"/>
+      
+      <host id="0" installsr="ext">
+        <vm name="P-Windows-VM-with-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="P-Linux-VM-with-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="P-Windows-VM-without-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="P-Linux-VM-without-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+
+      <host id="1" installsr="lvm">
+        <vm name="P-Windows-VM-with-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="P-Linux-VM-with-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="P-Windows-VM-without-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="P-Linux-VM-without-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+    </pool>
+    
+    <pool id="1">
+
+      <storage type="nfs" name="nfs_SR10" default="true"/>
+      <storage type="lvmoiscsi" name="lvmoiscsi_SR10"/>
+      <storage type="fc" name="lvmohba_SR10" options="LUN2"/>
+
+      <host id="2" installsr="lvm">
+        <vm name="S-Windows-VM-with-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="S-Linux-VM-with-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="S-Windows-VM-without-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="S-Linux-VM-without-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+
+      <host id="3" installsr="ext">
+        <vm name="S-Windows-VM-with-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="S-Linux-VM-with-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="S-Windows-VM-without-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="S-Linux-VM-without-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+    </pool> 
+    
+  </prepare>
+
+</xenrt>
+

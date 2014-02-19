@@ -1,0 +1,18 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+  <prepare>
+  <pool>
+    <host id="0" license="platinum"/>
+    <host id="1" license="platinum"/>
+    <storage type="nfs" name="nfs_targetSR" default="true"/>
+  </pool>
+  </prepare>
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TC6870"/>
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TC6869"/>
+    <testcase id="testcases.xenserver.tc.vmlifecycle.TC17439"/>
+  </testsequence>
+</xenrt>

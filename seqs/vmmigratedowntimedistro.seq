@@ -1,0 +1,35 @@
+  <xenrt>
+
+    <default name="DISTRO" value="win7sp1-x86"/>
+    <default name="GUESTMEMORY" value="2048"/>
+    <default name="GUESTVCPUS" value="1"/>
+
+    <variables>
+      <!-- # use suite file do decide the product version
+       <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      -->
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <host id="0">
+          <vm name="${DISTRO}">
+            <distro>${DISTRO}</distro>
+            <memory>${GUESTMEMORY}</memory>
+            <vcpus>${GUESTVCPUS}</vcpus>
+            <!-- <disk device="0" size="20"/> -->
+            <network device="0"/>
+            <postinstall action="installDrivers"/>
+          </vm>
+        </host>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vmmigratedowntime.TCTimeVMMigrateDowntime" host="RESOURCE_HOST_0">
+        <arg>guest=${DISTRO}</arg>
+        <arg>numiters=20</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

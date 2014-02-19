@@ -1,0 +1,19 @@
+<xenrt>
+  <!-- Pool of 2 Clearwater hosts (v6d post-SKU flattening) with a licence server VM on NFS -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" id="0">
+        <vm name="License Server">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer" />
+        </vm>
+      </host>
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" usev6testd="false" id="1" />
+    </pool>
+  </prepare>
+</xenrt>

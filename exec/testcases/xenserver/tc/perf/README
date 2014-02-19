@@ -1,0 +1,3 @@
+tc_vlan_scalability.py, tc_ssh_test.py, and tc_cpuload.py are
+automatically generated via make, because they contain embedded
+scripts.  Please have a look at the Makefile for details.

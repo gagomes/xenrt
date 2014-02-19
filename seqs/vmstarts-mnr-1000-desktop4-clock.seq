@@ -1,0 +1,32 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCTimeVMStarts" host="RESOURCE_HOST_0">
+        <arg>numdesktops=1000</arg>
+        <arg>desktopimage=desktop4.img</arg>
+        <arg>desktopvmname=desktop4</arg>
+        <arg>date=Fri Mar 19 23:43:27 2010 UTC</arg>
+        <arg>novifs</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,18 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_manysrs_xapirestart.TCManySRs" host="RESOURCE_HOST_0">
+        <arg>numsrs=500</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

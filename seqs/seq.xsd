@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:simpleType name="xbool">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="yes|no|true|false"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="groupType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".{1,32}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="licenseType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="no|false|free|advanced|enterprise|platinum|FG Free|FG Paid|XE Enterprise|XE Express"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="storageType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="installsrType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="lvm|ext"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="ipv6Type">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="autoconf"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="paramType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[\w_/\-]+=.+"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="tcIdType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="TC-\d+|.*$.*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="resourceType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(\w+(&lt;|&gt;|&lt;=|&gt;=|=)\w+/{0,1})+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="tcClassPathType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".*phoronix.*|[^\.]+|.+\.[^\.]{1,32}"/>
+    </xs:restriction>
+  </xs:simpleType>
+  
+  <xs:simpleType name="tcNameType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value=".{1,32}"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:group name="pool">
+    <xs:sequence>
+      <xs:element name="pool">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
+            <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
+            <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+            <xs:element name ="host" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:choice minOccurs="1" maxOccurs="unbounded">
+                  <xs:group minOccurs="0" maxOccurs ="1" ref="vmgroup"/>
+                  <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
+                  <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
+                  <xs:element name="bridge" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                      <xs:attribute name="name" use="optional">
+                      </xs:attribute>
+                    </xs:complexType>
+                  </xs:element>
+                </xs:choice>
+                <xs:attribute name="id" use="optional" type="xs:string" />
+                <xs:attribute name="noisos" use="optional" type="xbool"/>
+                <xs:attribute name="license" use="optional" type="licenseType"/>
+                <xs:attribute name="productType" use="optional" type="xs:string" />
+                <xs:attribute name="productVersion" use="optional" type="xs:string" />
+                <xs:attribute name="version" use="optional" type="xs:string" />
+                <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
+                <xs:attribute name="usev6testd" use="optional" type="xbool" />
+                <xs:attribute name="installsr" use="optional" type="installsrType" />
+                <xs:attribute name="suppackcds" use="optional" type="xs:string" />
+                <xs:attribute name="alias" use="optional" type="xs:string" />
+                <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:attribute name="id" use="optional" type="xs:string"/>
+          <xs:attribute name="master" use="optional" type="xs:string" />
+          <xs:attribute name="ssl" use="optional" type="xbool" />
+          <xs:attribute name="name" use="optional" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="host">
+    <xs:sequence>
+      <xs:element name ="host">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="storage"/>
+            <xs:group minOccurs="0" maxOccurs="unbounded" ref="vm"/>
+            <xs:group minOccurs="0" maxOccurs="1" ref="network"/>
+            <xs:element name="bridge" minOccurs="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:attribute name="name" use="optional">
+                </xs:attribute>
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:attribute name="id" use="optional" type="xs:string" />
+          <xs:attribute name="noisos" use="optional" type="xbool"/>
+          <xs:attribute name="license" use="optional" type="licenseType"/>
+          <xs:attribute name="productType" use="optional" type="xs:string" />
+          <xs:attribute name="productVersion" use="optional" type="xs:string" />
+          <xs:attribute name="version" use="optional" type="xs:string" />
+          <xs:attribute name="diskCount" use="optional" type="xs:positiveInteger" />
+          <xs:attribute name="usev6testd" use="optional" type="xbool" />
+          <xs:attribute name="installsr" use="optional" type="installsrType" />
+          <xs:attribute name="suppackcds" use="optional" type="xs:string" />
+          <xs:attribute name="alias" use="optional" type="xs:string" />
+          <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="sharedhost">
+    <xs:sequence>
+      <xs:element name="sharedhost" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:group ref ="vm" minOccurs="1" maxOccurs="1"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name ="vm">
+    <xs:sequence>
+      <xs:element name ="vm" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name ="bootparams" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="guestparams" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="file" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="distro" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="memory" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="vcpus" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="corespersocket" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="arch" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="storage" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="network" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:attribute name ="device" use="optional" type="xs:string"/>
+                <xs:attribute name ="bridge" use="optional" type="xs:string"/>
+              </xs:complexType>
+            </xs:element>
+            <xs:element name ="disk" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:attribute name ="device" use="optional" />
+                <xs:attribute name ="size" use="optional" />
+                <xs:attribute name ="format" use="optional" type="xbool" />
+              </xs:complexType>
+            </xs:element>
+            <xs:element name ="postinstall" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:attribute name="action" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:attribute name="name" use="optional" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name ="storage">
+    <xs:sequence>
+      <xs:element name ="storage" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="type" use ="required" type="storageType"/>
+          <xs:attribute name="name" use ="optional" type="xs:string" />
+          <xs:attribute name="default" use ="optional" type="xbool"/>
+          <xs:attribute name="options" use ="optional" type="xs:string" />
+          <xs:attribute name="network" use ="optional" type="xs:string" />
+          <xs:attribute name="size" use ="optional" type="xs:string" />
+          <xs:attribute name="vmhost" use ="optional" type="xs:string" />
+          <xs:attribute name="blkbackpoolsize" use ="optional" type="xs:integer" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="vmgroup">
+    <xs:sequence>
+      <xs:element name="vmgroup">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="distro" minOccurs="1" maxOccurs="1"/>
+          </xs:sequence>
+          <xs:attribute name="basename" use ="required" type="xs:string"/>
+          <xs:attribute name="number" use="required" type="xs:positiveInteger"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="network">
+    <xs:sequence>
+      <xs:element name="NETWORK" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="PHYSICAL" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:choice minOccurs="1" maxOccurs="unbounded">
+                  <xs:element name="VMS" minOccurs="0" maxOccurs="1"/>
+                  <xs:element name="STORAGE" minOccurs="0" maxOccurs="1"/>
+                  <xs:element name="NIC" minOccurs="0" maxOccurs="unbounded"/>
+                  <xs:element name ="VLAN" minOccurs="0" maxOccurs="unbounded">
+                    <xs:complexType>
+                      <xs:choice minOccurs="0" maxOccurs="1">
+                        <xs:element name="STORAGE" minOccurs="0" maxOccurs="1"/>
+                        <xs:element name="VMS" minOccurs="0" maxOccurs="1"/>
+                      </xs:choice>
+                      <xs:attribute name="network" use="required"/>
+                    </xs:complexType>
+                  </xs:element>
+                  <xs:element name="MANAGEMENT"/>
+                </xs:choice>
+                <xs:attribute name="network" use ="optional" type="xs:string"/>
+                <xs:attribute name="name" use ="optional" type="xs:string"/>
+                <xs:attribute name="jumbo" use ="optional" type="xbool"/>
+                <xs:attribute name="bond-mode" use ="optional" type="xs:string"/>
+                <xs:attribute name="speed" use ="optional" type="xs:string"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+          <xs:attribute name="controller" use="optional" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name ="testcase">
+    <xs:sequence>
+      <xs:element name="testcase">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="arg" type="xs:string"/>
+          </xs:choice>
+          <xs:attribute name="host" use="optional" type="xs:string"/>
+          <xs:attribute name="group" use="optional" type="groupType"/>
+          <xs:attribute name="guest" use="optional" type="xs:string"/>
+          <xs:attribute name="blocker" use="optional" type="xbool"/>
+          <xs:attribute name="prio" use="optional" type="xs:positiveInteger"/>
+          <xs:attribute name="tc" use="optional" type="tcIdType"/>
+          <xs:attribute name="id" use="required" type="tcClassPathType"/>
+          <xs:attribute name="name" use="optional" type="tcNameType"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="serial">
+    <xs:sequence>
+      <xs:element name="serial">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group ref="ifnoteq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifeq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="for" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifnotin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="action" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="finally" minOccurs ="0" maxOccurs="1">
+              <xs:complexType>
+                <xs:group ref="testcase"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:attribute name="blocker" use="optional"  type="xbool"/>
+          <xs:attribute name ="group" use="optional" type="groupType"/>
+          <xs:attribute name ="guest" use="optional" type="xs:string"/>
+          <xs:attribute name ="host" use="optional" type="xs:string"/>
+          <xs:attribute name ="tc" use="optional" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="parallel">
+    <xs:sequence>
+      <xs:element name="parallel">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group ref="ifnoteq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifeq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="for" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifnotin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:choice>
+          <xs:attribute name="blocker" use="optional"  type="xbool"/>
+          <xs:attribute name ="group" use="optional" type="groupType"/>
+          <xs:attribute name ="guest" use="optional" type="xs:string"/>
+          <xs:attribute name ="workers" use="optional" type="xs:string" />
+          <xs:attribute name ="tc" use="optional" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="for">
+    <xs:sequence>
+      <xs:element name="for">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group ref="ifnoteq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifeq" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="for" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="ifnotin" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="action" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:choice>
+          <xs:attribute name="iter" use="required"/>
+          <xs:attribute name="values" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="include">
+    <xs:sequence>
+      <xs:element name="include" minOccurs="0" maxOccurs="1">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="param">
+              <xs:complexType>
+                <xs:attribute name="name" use="required"/>
+                <xs:attribute name="value" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:choice>
+          <xs:attribute name="collection" use ="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="ifin">
+    <xs:sequence>
+      <xs:element name="ifin">
+        <xs:complexType>
+          <xs:group ref="include"/>
+          <xs:attribute name="item" use="required"/>
+          <xs:attribute name="list" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="ifnotin">
+    <xs:sequence>
+      <xs:element name="ifnotin">
+        <xs:complexType>
+          <xs:group ref="include"/>
+          <xs:attribute name="item" use="required"/>
+          <xs:attribute name="list" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="ifeq">
+    <xs:sequence>
+      <xs:element name="ifeq">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group ref="testcase"/>
+          </xs:choice>
+          <xs:attribute name="x" use="required"/>
+          <xs:attribute name="y" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="ifnoteq">
+    <xs:sequence>
+      <xs:element name="ifnoteq">
+        <xs:complexType>
+          <xs:choice minOccurs="1" maxOccurs="unbounded">
+            <xs:group ref="testcase"/>
+          </xs:choice>
+          <xs:attribute name="x" use="required"/>
+          <xs:attribute name="y" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="action">
+    <xs:sequence>
+      <xs:element name="action" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="action" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:element name="xenrt">
+    <xs:complexType>
+      <xs:choice minOccurs="1" maxOccurs="unbounded">
+        <xs:element name="default" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:attribute name="name" type="xs:string" use="required" />
+            <xs:attribute name="value" type="xs:string" use="required" />
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="variables" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:sequence>
+              <xs:any processContents ="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="preprepare" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="unbounded">
+              <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="scheduler" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+              <xs:element name ="pool" minOccurs="1" maxOccurs="1" type="xs:string"/>
+              <xs:element name ="resources" minOccurs="0" maxOccurs="1" type="resourceType"/>
+              <xs:element name ="resources1" minOccurs="0" maxOccurs="1" type="resourceType"/>
+              <xs:element name="param" minOccurs="1" maxOccurs="unbounded" type="paramType"/>
+              <xs:element name="flags" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="prepare" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="unbounded">
+              <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="testsequence" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="unbounded">
+              <xs:group ref="ifnoteq" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="ifeq" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="for" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="ifin" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="ifnotin" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="action" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+            <xs:attribute name="group" type="groupType" use ="optional" />
+            <xs:attribute name="blocker" type="xbool" use ="optional" />
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="collection" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="unbounded">
+              <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:choice>
+            <xs:attribute name="name" type="xs:string" use ="optional" />
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="perfcheck" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:choice minOccurs="1" maxOccurs="1">
+              <xs:element name="limits" minOccurs="1" maxOccurs="1">
+                <xs:complexType>
+                  <xs:choice minOccurs="1" maxOccurs="unbounded">
+                    <xs:element name="testcase" minOccurs="1" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:choice minOccurs="1" maxOccurs="unbounded">
+                          <xs:element name="metric" minOccurs="1" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:attribute name="name" use ="required" type="xs:string"/>
+                              <xs:attribute name="min" use="required" type="xs:integer"/>
+                              <xs:attribute name="max" use="required" type="xs:integer"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:choice>
+                        <xs:attribute name="name" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:choice>
+                </xs:complexType>
+              </xs:element>
+            </xs:choice>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="semaphores" minOccurs="0" maxOccurs="1" >
+          <xs:complexType>
+            <xs:sequence>
+              <xs:any processContents ="skip" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

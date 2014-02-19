@@ -1,0 +1,15 @@
+#!/bin/sh
+
+sed 's/PermitRootLogin no/PermitRootLogin yes/g' /a/etc/ssh/sshd_config > /tmp/sshd_config.new && cp /tmp/sshd_config.new /a/etc/ssh/sshd_config
+
+# force Solaris to boot using 32-bit kernel
+eeprom boot-file=kernel/unix
+sed 's/i86pc\/multiboot/i86pc\/multiboot kernel\/unix/g' /a/boot/grub/menu.lst > /tmp/menu.lst.new && cp /tmp/menu.lst.new /a/boot/grub/menu.lst
+
+mkdir /tmp/xenrttmpmount
+mount -f nfs %SIGNALDIR% /tmp/xenrttmpmount
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%EXTRAPOSTINSTALL%
+(sleep 120; /usr/sbin/reboot) > /dev/null 2>&1 &
+

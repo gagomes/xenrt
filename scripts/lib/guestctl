@@ -1,0 +1,188 @@
+#
+# xenrt: Xen regression Testing
+#
+# Guest control library
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, July 2006
+
+if touch /etc/xen/xenrt-readonly-check 2>/dev/null ; then
+    rm -f /etc/xen/xenrt-readonly-check
+    LIB_GUESTCTL_CONF_DIR=/etc/xen
+else
+    LIB_GUESTCTL_CONF_DIR=/tmp
+fi
+
+# Guest config management
+guest_config_filename() {
+    local DOMINDEX=$1
+    echo "${LIB_GUESTCTL_CONF_DIR}/xm-xenrt-domindex-${DOMINDEX}"
+}
+
+guest_config_init() {
+    local DOMINDEX=$1
+    echo "" > `guest_config_filename ${DOMINDEX}`
+}
+
+guest_config_add_verbatim() {
+    local DOMINDEX=$1
+    local LINE=$2
+    echo "${LINE}" >> `guest_config_filename ${DOMINDEX}`
+}
+
+guest_config_add_string() {
+    local DOMINDEX=$1
+    local VAR=$2
+    shift
+    shift
+    local VALUE=$@
+    echo "${VAR} = '${VALUE}'" >> `guest_config_filename ${DOMINDEX}`
+}
+
+guest_config_add_raw() {
+    local DOMINDEX=$1
+    local VAR=$2
+    shift
+    shift
+    local VALUE=$@
+    echo "${VAR} = ${VALUE}" >> `guest_config_filename ${DOMINDEX}`
+}
+
+guest_config_add_int() {
+    local DOMINDEX=$1
+    local VAR=$2
+    local VALUE=$3
+    echo "${VAR} = ${VALUE}" >> `guest_config_filename ${DOMINDEX}`
+}
+
+guest_config_remove() {
+    local DOMINDEX=$1
+    local VAR=$2
+    local TMP=`mktemp /tmp/xrtgctlXXXXXX`
+    local GCONF=`guest_config_filename ${DOMINDEX}`
+    grep -v "^${VAR} =" ${GCONF} > ${TMP}
+    cat ${TMP} > ${GCONF}
+    rm -f ${TMP}
+}
+
+# Build disk and network device lists in here
+unset VBDS
+VBD_COUNT=0
+unset VIFS
+VIF_COUNT=0
+
+vbds_append() {
+    VBDS[${VBD_COUNT}]=$1
+    VBD_COUNT=$[${VBD_COUNT} + 1]
+}
+
+vifs_append() {
+    VIFS[${VIF_COUNT}]=$1
+    VIF_COUNT=$[${VIF_COUNT} + 1]
+}
+
+vbds_remove() {
+    local S=0
+    for (( i=0;i<${VBD_COUNT};i++ )); do
+	if [ $S = 0 ]; then
+	    if [ "${VBDS[$i]}" = "$1" ]; then
+		S=1
+	    fi
+	fi
+	if [ $S = 1 ]; then
+	    if [ $i = $[${VBD_COUNT} - 1] ]; then
+		unset VBDS[$[$i + 1]]
+		VBD_COUNT=$[${VBD_COUNT} - 1]
+	    else
+		VBDS[$i]=${VBDS[$[$i + 1]]}
+	    fi
+	fi
+    done
+}
+
+vifs_remove() {
+    local S=0
+    for (( i=0;i<${VIF_COUNT};i++ )); do
+	if [ $S = 0 ]; then
+	    if [ "${VIFS[$i]}" = "$1" ]; then
+		S=1
+	    fi
+	fi
+	if [ $S = 1 ]; then
+	    if [ $i = $[${VIF_COUNT} - 1] ]; then
+		unset VIFS[$[$i + 1]]
+		VIF_COUNT=$[${VIF_COUNT} - 1]
+	    else
+		VIFS[$i]=${VIFS[$[$i + 1]]}
+	    fi
+	fi
+    done
+}
+
+vbd_list() {
+    local REPLY="["
+    for (( i=0;i<$[${VBD_COUNT} - 1];i++ )); do
+	local REPLY="${REPLY} '${VBDS[$i]}', "	
+    done
+    if [ ${VBD_COUNT} -gt 0 ]; then
+	local REPLY="${REPLY} '${VBDS[$[${VBD_COUNT} - 1]]}'"
+    fi
+    local REPLY="${REPLY} ]"
+    echo "${REPLY}"
+}
+
+vif_list() {
+    local REPLY="["
+    for (( i=0;i<$[${VIF_COUNT} - 1];i++ )); do
+	local REPLY="${REPLY} '${VIFS[$i]}', "	
+    done
+    if [ ${VIF_COUNT} -gt 0 ]; then
+	local REPLY="${REPLY} '${VIFS[$[${VIF_COUNT} - 1]]}'"
+    fi
+    local REPLY="${REPLY} ]"
+    echo "${REPLY}"
+}
+
+# Parse startdom/installvm command line. Sets KERNELURL, GMEMORY and GCPUS.
+parse_vm_config() {
+    local DOMINDEX=$1
+    shift
+
+    # We start with defaults
+    if [ -n "${GUEST_DOM_MEM_DOMAIN[${DOMINDEX}]}" ]; then
+	GMEMORY=${GUEST_DOM_MEM_DOMAIN[${DOMINDEX}]}
+    else
+	GMEMORY=${GUEST_DOM_MEM}
+    fi
+    GCPUS=1
+    while true; do
+	if [ -z "$1" ]; then
+	    break;
+	fi
+        # if a memory= config has been supplied on the command line, don't
+        # don't set another one.
+	if ( echo "$1" | grep -q "^memory=max" ); then
+	    GMEMORY=`free_memory`		
+	    log_extra_data "Comment: using all free memory ${GMEMORY}MB"
+	elif ( echo "$1" | grep -q "^memory=maxgap" ); then
+	    GMEMORY=`free_memory`
+	    GMEMORY=$[90 * ${GMEMORY} / 100]
+	    log_extra_data "Comment: using 90% of free memory ${GMEMORY}MB"
+	elif ( echo "$1" | grep -q "^memory=" ); then
+	    GMEMORY=`echo $1 | cut -d = -f 2`
+	    log_extra_data "Comment: memory size by arg ${GMEMORY}MB"
+	elif ( echo "$1" | grep -q "^vcpus=all" ); then
+	    GCPUS=`cpu_count`
+	    log_extra_data "Comment: using all ${GCPUS} VCPUs"
+	elif ( echo "$1" | grep -q "^vcpus=" ); then
+	    GCPUS=`echo $1 | cut -d = -f 2`
+	    log_extra_data "Comment: using ${GCPUS} VCPUs"
+	elif ( echo "$1" | grep -q "^kernel=http" ); then
+	    KERNELURL=`echo $1 | sed -e's/^kernel=//'`
+	else
+	    # Unknown arg, add to the config
+	    guest_config_add_verbatim ${DOMINDEX} "$1"
+	fi		
+	shift
+    done
+}

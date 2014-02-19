@@ -1,0 +1,34 @@
+install
+text
+url --url %DISTROURL%
+lang en_UK.UTF-8
+langsupport --default=en_UK.UTF-8 en_UK.UTF-8
+keyboard uk
+mouse --device=genericps/2
+network --device %ETHDEVICE% --bootproto dhcp
+rootpw --iscrypted %ROOTPASS% 
+firewall --disabled
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %TIMEZONE%
+bootloader --location=mbr --append="console=ttyS0,115200n8"
+clearpart --all --drives=sda
+part /boot --fstype "ext3" --size=100 --ondisk=sda
+part / --fstype "ext3" --size=10000 --ondisk=sda
+
+%packages
+@ admin-tools
+@ text-internet
+@ dialup
+@ server-cfg
+@ development-tools
+@ development-libs
+lvm2
+lilo
+e2fsprogs
+
+%post
+mkdir /tmp/signal
+mount -t nfs %SIGNALMOUNT% /tmp/signal
+touch /tmp/signal/.install-success
+umount /tmp/signal

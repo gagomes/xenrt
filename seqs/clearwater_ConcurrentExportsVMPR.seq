@@ -1,0 +1,22 @@
+<xenrt>
+  <!-- Clearwater test sequence PR1566-->
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <host id="0" >
+      </host>
+      <host id="1" >
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMPP">
+      <testcase id="xenserver.tc.maxima.TC18847"/>
+    </serial>
+  </testsequence>
+</xenrt>

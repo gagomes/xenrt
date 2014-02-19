@@ -1,0 +1,15 @@
+#!/bin/bash
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=30
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+BM_INSTALL_SKIP_TARBALL=yes
+BM_INSTALL=true
+BM_RUN="sleep 200"
+
+. ${SCRIPTDIR}/generic

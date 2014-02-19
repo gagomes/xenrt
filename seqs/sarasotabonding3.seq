@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Multiple nic tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="ActivePassiveBonding">
+      <testcase id="xenserver.tc.bonding.TC12519"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

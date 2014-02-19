@@ -1,0 +1,50 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <default name="OLD_PRODUCT_VERSION" value="George"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.5.0-Update2"/>
+  <default name="GUESTDISTRO" value="debian50"/>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iSCSI" options="iet"/>
+      <storage type="nfs" name="NFS" default="true"/>
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="VM0">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0"/>
+        </vm>
+      </host>
+      <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="VM1">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0"/>
+        </vm>
+      </host>
+      <host id="2" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="VM2">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0"/>
+        </vm>
+      </host>
+      <host id="3" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="VM3">
+          <distro>${GUESTDISTRO}</distro>
+          <network device="0"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9169">
+      <testcase id="xenserver.tc.ha.TC9169"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

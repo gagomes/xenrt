@@ -1,0 +1,83 @@
+<xenrt>
+
+  <!-- OS functional test sequence: w2k3eesp2pae -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="w2k3eesp2pae">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-15526">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>distro=w2k3eesp2pae</arg>
+        <arg>memory=8000</arg>
+      </testcase>
+      
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-15527">
+        <arg>guest=w2k3eesp2pae</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-15528">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-15529">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-15530">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-15531">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-15532">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCHibernate" tc="TC-15533">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-15534">
+        <arg>N/A</arg>
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-15535">
+        <arg>N/A</arg>
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-15536">
+        <arg>guest=w2k3eesp2pae</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        
+    </serial>
+    
+  </testsequence>
+
+</xenrt>

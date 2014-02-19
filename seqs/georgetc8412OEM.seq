@@ -1,0 +1,32 @@
+<xenrt>
+
+  <!-- George Active Directory Subject Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1">
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Security">
+      <testcase id="xenserver.tc.security.TC8470"/>
+      <testcase id="xenserver.tc.security.TC8401"/>
+      <testcase id="xenserver.tc.security.TC8405"/>
+      <testcase id="xenserver.tc.security.TC8718"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,34 @@
+<xenrt>
+
+  <!-- George update 1 fixes test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <TC10666_INSTALL_AD_VMS>yes</TC10666_INSTALL_AD_VMS>
+    <INSTALL_AUTHSERVER>yes</INSTALL_AUTHSERVER>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="Fixes">
+    <testcase id="xenserver.tc.vmlifecycle.TC10555" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC10556" prio="3"/>
+    <testcase id="xenserver.tc.security.TC10557" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC10615" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10619" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10620" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10621" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10622" prio="3"/>
+    <testcase id="xenserver.tc.security.TC10179" prio="3"/>
+    <testcase id="xenserver.tc.regression.TC10189" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10623" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC10626" prio="3"/>
+    <testcase id="xenserver.tc.security.TC10666" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC9314" prio="3"/>
+    <testcase id="xenserver.tc.host.TC10171" prio="3"/>
+    <testcase id="xenserver.tc.security.TC9323"/>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,36 @@
+<xenrt>
+
+  <!-- MNR RBAC CLI Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" license="platinum"/>
+    </pool>
+    <host id="1" license="platinum">
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10183"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10184"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10185"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10186"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10187"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC10188"/>        
+    </serial>
+  </testsequence>
+
+</xenrt>

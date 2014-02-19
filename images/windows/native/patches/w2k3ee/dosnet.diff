@@ -1,0 +1,52 @@
+--- old/dosnet.inf	2007-02-05 11:32:32.000000000 +0000
++++ new/dosnet.inf	2007-02-05 11:31:03.000000000 +0000
+@@ -117,6 +117,24 @@
+ d1,storport.sys
+ 
+ [FloppyFiles.2]
++d1,FASTTX2K.sys
++d1,INIC162X.sys
++d1,AARICH.sys
++d1,Si3112r.sys
++d1,vmscsi.sys
++d1,adp94xx.sys
++d1,ultra.sys
++d1,percsas.sys
++d1,lsi_sas.sys
++d1,ql2300.sys
++d1,ql40xx.sys
++d1,perc2.sys
++d1,adpu160m.sys
++d1,mraid35x.sys
++d1,nfrd960.sys
++d1,a320raid.sys
++d1,iastor.sys
++d1,arcsas.sys
+ d1,disk1,disk103
+ d1,cpqarray.sys
+ d1,atapi.sys
+@@ -190,6 +208,24 @@
+ 
+ 
+ [Files]
++d1,FASTTX2K.sys
++d1,INIC162X.sys
++d1,AARICH.sys
++d1,Si3112r.sys
++d1,vmscsi.sys
++d1,adp94xx.sys
++d1,ultra.sys
++d1,percsas.sys
++d1,lsi_sas.sys
++d1,ql2300.sys
++d1,ql40xx.sys
++d1,perc2.sys
++d1,adpu160m.sys
++d1,mraid35x.sys
++d1,nfrd960.sys
++d1,a320raid.sys
++d1,iastor.sys
++d1,arcsas.sys
+ d1,usetup.exe,system32\smss.exe
+ d1,ntdll.dll,system32\ntdll.dll
+ 

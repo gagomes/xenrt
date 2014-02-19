@@ -1,0 +1,42 @@
+# Unigine Tropics Benchmark
+# Status: downloadable
+# Downloaded from: http://unigine.com/
+fd432891d69a11ba8a03b4edc5805edf  ./AxSHDocVw.dll
+b33b21db610116262d906305ce65c354  ./d3dcompiler_42.dll
+501ac862517c5445742bee8a2b88414e  ./d3dx10_42.dll
+c6a44fc3cf2f5801561804272217b14d  ./d3dx9_42.dll
+a1bd6b9b1dd309f0cfd53505e3ddd1f9  ./data/core.ung
+8e7fe8ab72b17ce29bc6b58ec1418c71  ./data/scripts.ung
+5dc64e10f615cdd30481e7988a8ace54  ./data/unigine.cfg
+1d05fac05ae7a482b2a8fedbbfee9a64  ./data/demos/tropics.zip
+4dbbcd02e9bf56dcbc400a12c6afaeb6  ./html/background.jpg
+214fa44641bbc768744749c4ee584fbe  ./html/run.gif
+1aa10898571b8be1b7c035f3535de853  ./html/styles.css
+9729ac4607fe0cc636e8696a00e923e3  ./html/utils.js
+45747a1e1013e366f9d2a02914e6187f  ./launchers/d3d10_fullscreen_1280x1024.bat
+854e563dcfbbbc50f05d3c8fbeb8fb95  ./launchers/d3d10_windowed_1024x768.bat
+2baf80cd8ab569bc37079c24c7ceac05  ./launchers/d3d11_fullscreen_1280x1024.bat
+abbaddaa9665055f7792940f4410c2ac  ./launchers/d3d11_windowed_1024x768.bat
+c3f339164c88c2f44884111a417b60a8  ./launchers/d3d9_fullscreen_1280x1024.bat
+de1f33f162bf9115332946ede6c10abd  ./launchers/d3d9_windowed_1024x768.bat
+9b96f461e3cbc833a06e1faabc7f0d07  ./launchers/gl_fullscreen_1280x1024.bat
+f4b54e3a63337f83684a9804137ca16d  ./launchers/gl_windowed_1024x768.bat
+4a8bc195abdc93f0db5dab7f5093c52f  ./msvcm90.dll
+6de5c66e434a9c1729575763d891c6c2  ./msvcp90.dll
+e7d91d008fe76423962b91c43c88e4eb  ./msvcr90.dll
+75ca10b6d41ed18fc653461e63d247cf  ./redist/alredist.exe
+ad219aed0b029ddf8c8075af0ead73a0  ./SHDocVw.dll
+ec0d04f506ef8a9e0db9bc1faefea448  ./Tropics_d3d10.bat
+0a39875c510d139bbc9c3b6594a8080c  ./Tropics_d3d10_cpu.bat
+1850a6e065850a9f9541154afc607330  ./Tropics_d3d10_gs.bat
+01ab07595065dccca2ebfbef1f8871bc  ./Tropics_d3d11.bat
+dfb7f9c578121c8d8c751d1b07bb5d63  ./Tropics_d3d11_cpu.bat
+046aa62b47c531b2dd0dba12a70ad8fd  ./Tropics_d3d11_gs.bat
+492cd4f06690f6a6559a42dfa39495d4  ./Tropics_d3d9.bat
+56193ea9b20707f1af10a2a51af339d4  ./Tropics.exe
+4ff0e6cc686c5459fb83fcac055c2a49  ./Tropics_gl.bat
+f698361c00d0692c3e8a685426590fd8  ./Tropics_gl_cpu.bat
+410b4a6d01b83ea5ce53c725fe20ff3b  ./Tropics_gl_gs.bat
+10fa068b89a4ae8317047b12625fa2e9  ./Unigine.exe
+1afadf607ddb01568e0d597a6b308c82  ./Unigine_x86.dll
+f3ba5111e7d303351218c36fe8eca2b8  ./unigine.xml

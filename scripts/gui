@@ -1,0 +1,80 @@
+#!/bin/bash
+#
+# XenRT: Xen Regression Testing
+#
+# Test the GUI. 
+#
+# (C) XenSource UK Ltd, 2006
+# Ewan Mellor, based upon carboncli, by Karl Spalding.
+# December 2006.
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/carboncommon
+
+TIMEOUT=30
+BUILD_DIR=`dirname ${CARBON_CD_IMAGE}`
+
+BM_INSTALL_SKIP_TARBALL=yes
+
+set -e
+
+run_this()
+{
+    set -x
+
+    eval $(ls "$BUILD_DIR/client_install/"*-client-jars-*.rpm |
+           sed -ne 's#^.*/\(.*\)-client.*$#CLIENT_NAME=\1#p')
+    D="$WORKDIR/$THISSCRIPT"
+    C="$D/opt/xensource/$CLIENT_NAME-client"
+
+    cd "$D"
+    for rpm in "$BUILD_DIR/client_install/"*-client-*.rpm
+    do
+        rpm2cpio "$rpm" | cpio -idv;
+    done
+    tar xvf "$BUILD_DIR/$CLIENT_NAME-client-tests.tar"
+
+    ANT_HOME="$D/ext/ant"
+    JAVA_HOME="$C/jre"
+    export ANT_HOME
+    export JAVA_HOME
+    "$ANT_HOME/bin/ant" -v                                                   \
+               -buildfile "projects/gui.hg/build.xml"                        \
+               -DCLIENT_LOCATION="$C/runtime"                                \
+               -Dtests.builddir="$D/javatree/test"                           \
+               -Dtests.formatter=plain                                       \
+               -Dtests.results.dir="$WORKDIR/logs"                           \
+               -DLOGDIR="$WORKDIR/logs"                                      \
+               prebuilttests
+}
+
+BM_RUN=run_this
+
+process_this()
+{
+    reason=''
+    for file in "$WORKDIR/logs/TEST-"*.txt
+    do
+        suite=$(sed -ne 's#Testsuite: .*$#\1#p' "$file")
+        failures=$(($(sed -ne 's#Tests run: .*, Failures: \(.*\), Errors: \(.*\),.*$#\1 + \2#p' "$file")))
+        if [ "$failures" != "0" ]
+        then
+            reason="$reason Suite $suite: $failures failures. "
+        fi
+    done
+    if [ "$reason" ]
+    then
+        echo "Reason: $reason"
+        echo "Test: failed"
+    else
+        echo "Test: passed"
+    fi
+}
+
+BM_PROCESS=process_this
+
+BM_NO_DEFAULT_LOGS=yes
+
+. ${SCRIPTDIR}/generic

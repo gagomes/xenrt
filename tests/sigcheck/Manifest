@@ -1,0 +1,5 @@
+# Description: Microsoft Windows Sysinternals Sigcheck v1.92
+# Status: downloadable
+# Obtain from http://technet.microsoft.com/en-us/sysinternals/bb897441.aspx
+d22ff2cc70fa2eec94aaa6c6f49e6eb0  ./Eula.txt
+4e3938b743016ab71ced77f1ada26367  ./sigcheck.exe

@@ -1,0 +1,24 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the supplied command after the specified number of seconds have elapsed
+#
+# Args: <delay> <command and args>
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, December 2005
+
+dolater() {
+    DELAY=$1
+    shift
+    COMMAND=$1
+    shift
+    
+    sleep ${DELAY}
+
+    ${COMMAND} "$@"
+}
+
+dolater "$@" < /dev/null > /dev/null 2> /dev/null &
+

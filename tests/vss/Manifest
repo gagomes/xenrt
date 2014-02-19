@@ -1,0 +1,10 @@
+# Description: Mircosoft VSS tools
+# Status: proprietary
+# Obtaining:
+# http://www.microsoft.com/downloads/details.aspx?FamilyID=0B4F56E4-0CCC-4626-826A-ED2C4C95C871&displaylang=en
+# Download "Volume Shadow Copy Service SDK 7.2", install somewhere and extract
+# C:\Program Files\Microsoft\VSSSDK72\TestApps\vshadow\bin\release-server\vshadow.exe
+# vshadow-x64.exe was built locally from the VSS SDK
+cd82ea3f01f34ab1a19933fe58a91494  ./vshadow.exe
+a0f6a2d0eebe300de1dfd17278a2b25e  ./vshadow-x64.exe
+

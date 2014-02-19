@@ -1,0 +1,46 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="winguest">
+        <distro>w2k3eesp2</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="winguest2">
+        <distro>w2k3eesp2</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="rhel47">
+        <distro>rhel47</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+      </vm>
+      <vm name="sles102">
+        <distro>sles102</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.network.TCInterVMNetworking" group="Networking" tc="TC-7299">
+      <arg>RESOURCE_HOST_0</arg>
+      <arg>guests=winguest,winguest2,rhel47,sles102</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

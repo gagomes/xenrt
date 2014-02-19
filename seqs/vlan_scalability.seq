@@ -1,0 +1,24 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <allhosts>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+      </allhosts>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_vlan_scalability.TCVlanScalability" host="RESOURCE_HOST_0" />
+  </testsequence>
+</xenrt>
+
+

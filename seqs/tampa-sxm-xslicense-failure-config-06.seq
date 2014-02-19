@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various negative Cross Pool Storage Migration scenarios as given below:
+
+        TC17109 - Cross Pool Storage Migration test when the destination host lacks required XenServer license
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" license="platinum"/>
+    </pool>
+
+    <!-- <pool id="1" name="sourceSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="lvm" license="FG Free"/>
+    </pool>
+  </prepare>
+  
+  <testsequence>
+
+    <serial group="NegCrossPoolSXM">
+      <!-- cross-pool sxm migration from sr-type ext to lvm. -->
+      
+      <!-- TC17109 - Cross Pool Storage Migration test when the destination host lacks required XenServer license. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC17109" tc="TC-17109">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>immediate_failure</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

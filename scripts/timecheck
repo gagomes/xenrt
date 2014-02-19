@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# timecheck: Tests of time related functionality
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, May 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=3600
+. ${SCRIPTDIR}/functions
+
+BM_INSTALL_SKIP_TARBALL=yes
+
+set -e
+
+# XRT-75: Check hwclock and date both advance at the same rate (Bugzilla 630)
+TC_Bugzilla_630() {
+    local HWCLOCK=`hwclock | sed -re's/ *[-0-9\.]+ seconds$//'`
+    local DATESTR=`date`
+    sleep 60
+    local HWCLOCK2=`hwclock | sed -re's/ *[-0-9\.]+ seconds$//'`
+    local DATESTR2=`date`
+
+    local DATE=`date +%s -d "${DATESTR}"`
+    local DATEHW=`date +%s -d "${HWCLOCK}"`
+    local DATE2=`date +%s -d "${DATESTR2}"`
+    local DATEHW2=`date +%s -d "${HWCLOCK2}"`
+
+    local ELAPSEDHW=$[${DATEHW2} - ${DATEHW}]
+    local ELAPSED=$[${DATE2} - ${DATE}]
+    local DIFF=$[${ELAPSEDHW} - ${ELAPSED}]
+
+    if [ ${DIFF} -lt -1 -o ${DIFF} -gt 1 ]; then
+        echo "elapsed hwclock (${ELAPSEDHW}) and date (${ELAPSED}) differ"
+        return 1
+    fi
+}
+
+runtime() {
+    testcase TC_Bugzilla_630
+    log_extra_data "Comment: Test cases FAIL:${TCFAILCOUNT} PASS:${TCPASSCOUNT}"
+    if [ ${TCFAILCOUNT} -gt 0 ]; then
+        return 1;
+    fi
+}
+
+BM_RUN=runtime
+
+. ${SCRIPTDIR}/generic

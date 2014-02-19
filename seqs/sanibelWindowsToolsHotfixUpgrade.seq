@@ -1,0 +1,74 @@
+<xenrt>
+
+  <!-- Tools ISO hotfix: static ipv4 tests -->
+
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host>
+      <bridge name="internal"/>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08sp2-x64">
+        <distro>ws08sp2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="w2k3eesp2-x64">
+        <distro>w2k3eesp2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="testpeer">
+        <distro>etch</distro>
+        <network device="0" />
+        <network device="1" bridge="internal"/>
+        <postinstall action="preCloneTailor"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="ApplyRequiredPatches" blocker="yes">
+      <testcase id="xenserver.install.TCApplyReqdPatches"/>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC18505"/>
+      <testcase id="xenserver.tc.upgrade.TC18506"/>
+      <testcase id="xenserver.tc.upgrade.TC18507"/>
+      <testcase id="xenserver.tc.upgrade.TC18508"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

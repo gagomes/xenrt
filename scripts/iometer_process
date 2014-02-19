@@ -1,0 +1,53 @@
+#!/bin/bash
+
+INPUT=$1
+if [ "$2" = "preprocess" ]; then
+    PREPROC=yes
+    STEM=`basename ${INPUT} | sed -e's/\.csv$//'`
+else
+    PREPROC=no
+fi
+
+# Find the line numbers for the results
+RESHEAD=`grep -n "'Results" ${INPUT} | cut -d : -f 1 | head -n1`
+
+# Extract the results names and values
+NAMES=`head -n$[${RESHEAD} + 1] ${INPUT}| tail -n1 | tr '\r' ' '`
+VALUES=`head -n$[${RESHEAD} + 2] ${INPUT}| tail -n1 | tr '\r' ' '`
+
+COUNT=1
+TIMESTAMPCOUNT=`cat ${INPUT} | grep -c "Time Stamp"`
+
+# Apparently the appearance of two time stamps indicates a pass.
+if [ "${TIMESTAMPCOUNT}" -eq "2" ]; then
+    RC=0
+else
+    RC=1
+fi
+
+while true; do
+
+    NAME=`echo ${NAMES} | cut -d "," -f ${COUNT} | sed -e's/ /_/g'`
+    VALUE=`echo ${VALUES} | cut -d "," -f ${COUNT}`
+
+    COUNT=$[ ${COUNT} + 1 ]
+    
+    # Check if we've run out of values.
+    if [ -z "${NAME}" ]; then
+        break
+    fi
+
+    # Skip entries which don't have a numerical value.
+    if [ -z "${VALUE}" ] || ! echo ${VALUE} | grep -q "[[:digit:]+]"; then
+        continue
+    fi
+
+    if [ "${PREPROC}" = "yes" ]; then
+	echo "${STEM} ${NAME} ${VALUE}"
+    else
+	echo Value: ${NAME} ${VALUE}
+    fi
+
+done
+
+exit ${RC}

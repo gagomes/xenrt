@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- Tampa / Clearwater Dom-0 tuning tests  -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Dom0Tuning">
+      <testcase id="xenserver.tc.host.TC18005"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

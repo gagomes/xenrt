@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+  </variables>
+  <scheduler>
+  </scheduler>
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.hg/exec/ -->
+    <testcase id="testcases.xenserver.tc.host.TCDriverDisk"/>
+    
+  </testsequence>
+</xenrt>

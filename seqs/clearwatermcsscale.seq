@@ -1,0 +1,61 @@
+<xenrt>
+
+  <default name="VMSPERHOST" value="150"/>
+  <default name="THREADS" value="4"/>
+  <default name="DISTRO" value="win7sp1-x86"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <EXTRA_TIME>yes</EXTRA_TIME>   
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <BUGTOOL_MODE_STRESS>yes</BUGTOOL_MODE_STRESS>
+    <NO_LOGS_ON_PASS>yes</NO_LOGS_ON_PASS>
+    <QUICKLOGS>yes</QUICKLOGS>
+    <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfs1" default="true" />
+      <allhosts/>
+      
+      <vm name="gold">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs1</storage>
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+   <serial group="Phase 99">
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs" tc="TC-19026">
+      <arg>vmsperhost=${VMSPERHOST}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-19027">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopReboot" tc="TC-19028">
+      <arg>threads=${THREADS}</arg>
+      <arg>iterations=2</arg>
+    </testcase>
+   </serial>
+   <serial group="StopStart">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-19029">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-19030">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+   </serial>
+  </testsequence>
+</xenrt>

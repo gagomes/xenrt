@@ -1,0 +1,31 @@
+install
+text
+%DISTROURL%
+lang en_UK.UTF-8
+langsupport --default=en_UK.UTF-8 en_UK.UTF-8
+keyboard uk
+mouse --device=genericps/2
+network --device %ETHDEVICE% --bootproto dhcp
+rootpw --iscrypted %ROOTPASS% 
+firewall --disabled
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %TIMEZONE%
+bootloader --location=mbr --append="console=ttyS0,115200n8 %KARG%"
+clearpart --all --drives=%MAINDISK%
+part /boot --fstype "ext3" --size=%BOOTDISKSIZE% --ondisk=%MAINDISK%
+part / --fstype "ext3" --size=10000 --ondisk=%MAINDISK%
+%MORE%
+
+%packages
+@ admin-tools
+@ text-internet
+@ dialup
+@ server-cfg
+@ development-tools
+@ development-libs
+lvm2
+lilo
+e2fsprogs
+%EXTRA%
+

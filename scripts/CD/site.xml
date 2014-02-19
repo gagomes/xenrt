@@ -1,0 +1,5 @@
+<xenrt>
+  <XENRT_BASE>/mnt/xenrt/share</XENRT_BASE>
+  <LOCALURL>http://${XENRT_SERVER_ADDRESS}:88</LOCALURL>
+  <WORKING_DIR_BASE>/tmp/xenrt</WORKING_DIR_BASE>
+</xenrt>

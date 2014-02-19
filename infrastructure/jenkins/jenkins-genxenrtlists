@@ -1,0 +1,58 @@
+#!/usr/bin/python -u
+
+import glob, libxml2, os
+
+default = "TC-18013"
+deftext = ""
+
+files = glob.glob("/etc/xenrt/suites/*")
+
+suites = []
+skus = []
+
+for f in files:
+    try:
+        if not os.path.isfile(f):
+            continue
+        if os.path.islink(f):
+            continue
+        doc = libxml2.parseFile(f)
+        ctxt = doc.xpathNewContext()
+        id = ctxt.xpathEval("/suite")[0].prop("id")
+        title = ctxt.xpathEval("/suite/title")[0].getContent()
+        suites.append("%s - %s" % (title.replace(",", ""), f))
+        if default == id:
+            deftext = "defaultsuite: %s - %s" % (title.replace(",", ""), f)
+    except:
+        continue
+
+for f in files:
+    try:
+        if not os.path.isfile(f):
+            continue
+        doc = libxml2.parseFile(f)
+        ctxt = doc.xpathNewContext()
+        id = ctxt.xpathEval("/sku")[0].prop("id")
+        title = ctxt.xpathEval("/sku/title")[0].getContent()
+        skus.append("%s - %s" % (title.replace(",", ""), f))
+    except:
+        continue
+
+out = "suite: %s\n" % ",".join(sorted(set(suites)))
+
+out += "%s\n" % deftext
+
+out += "sku: Default,%s\n" % ",".join(sorted(set(skus)))
+
+
+f = open("/etc/xenrt/suitelist", "w")
+f.write(out)
+f.close()
+
+machines = [x.split(" ")[0] for x in os.popen("xenrt mlist2 -q").readlines()]
+
+out = "machine: %s\n" % (",".join(machines))
+
+f = open("/etc/xenrt/machinelist", "w")
+f.write(out)
+f.close()

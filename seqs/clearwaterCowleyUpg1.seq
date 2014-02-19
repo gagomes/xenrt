@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- Boston single host upgrade test from Cowley with all the hotfixes on upto Oxford-->
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PIDIR_COWLEY>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</PIDIR_COWLEY>
+    <CARBON_PATCHES_COWLEY>
+      <XS56EFP1001>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1001/41063/hotfix-XS56EFP1001/hotfix.xsupdate</XS56EFP1001>
+      <XS56EFP1002>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1002/hotfix-XS56EFP1002/hotfix.xsupdate</XS56EFP1002>
+      <XS56EFP1004>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1004/45836/hotfix-XS56EFP1004/XS56EFP1004.xsupdate</XS56EFP1004>
+      <XS56EFP1005>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1005/43712/hotfix-XS56EFP1005/XS56EFP1005.xsupdate</XS56EFP1005>
+      <XS56EFP1006>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1006/46680/hotfix-XS56EFP1006/XS56EFP1006.xsupdate</XS56EFP1006>
+      <XS56EFP1007>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1007/47081/hotfix-XS56EFP1007/XS56EFP1007.xsupdate</XS56EFP1007>
+      <XS56EFP1008>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1008/49645/hotfix-XS56EFP1008/XS56EFP1008.xsupdate</XS56EFP1008>
+      <XS56EFP1009>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1009/52693/hotfix-XS56EFP1009/XS56EFP1009.xsupdate</XS56EFP1009>
+      <XS56EFP1010>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1010/55262/hotfix-XS56EFP1010/XS56EFP1010.xsupdate</XS56EFP1010>
+      <XS56EFP1011>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1011/56475/hotfix-XS56EFP1011/XS56EFP1011.xsupdate</XS56EFP1011>
+      <OXFHF>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101/hotfix/XS56ESP2.xsupdate</OXFHF>
+    </CARBON_PATCHES_COWLEY>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="1">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+          
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC15022"/>
+  </testsequence>
+    
+    </xenrt>

@@ -1,0 +1,50 @@
+import os, xml.dom.minidom, re, string
+
+cfg = {}
+
+cfg['masterurl'] ="@masterurl@"
+basedir ="@sharedir@/control"
+confdir = "@confdir@"
+netdata = os.popen("/sbin/ip addr show dev eth0").read()
+r = re.search(r"inet ([0-9\.]+)", netdata)
+if r:
+    addr = r.group(1)
+else:
+    addr = "127.0.0.1"
+
+cfg['url_base'] = "http://%s/share/control" % (addr)
+cfg['tmp_base'] = "/tmp"
+# Parse a site config file
+cf = "%s/site.xml" % (confdir)
+if os.path.exists(cf):
+    dom = xml.dom.minidom.parse(cf)
+    for i in dom.childNodes:
+        if i.nodeType == i.ELEMENT_NODE:
+            if i.localName == "xenrt":
+                for var in i.childNodes:
+                    if var.nodeType == var.ELEMENT_NODE:
+                        for t in var.childNodes:
+                            if t.nodeType == t.TEXT_NODE and t.data and \
+                                   string.strip(t.data) != "":
+                                data = string.strip(str(t.data))
+                                name = str(var.localName)
+                                if name == "SMTP_SERVER":
+                                    cfg['smtp_server'] = data
+                                elif name == "SMTP_SENDER":
+                                    cfg['email_sender'] = data
+                                elif name == "CGI_URL_BASE":
+                                    cfg['url_base'] = data
+                                elif name == "JOBSCHED_BASE_DIR":
+                                    basedir = data
+                                elif name == "DATABASE_CONNECT_STRING":
+                                    cfg['dbConnectString'] = data
+                                elif name == "TEMP_DIR_BASE":
+                                    cfg['tmp_base'] = data
+
+
+cfg['results'] = "%s/results" % basedir
+cfg['sharedir'] = "@sharedir@"
+
+for c in cfg.keys():
+    print "%s = \"\"\"%s\"\"\"" % (c, cfg[c])
+

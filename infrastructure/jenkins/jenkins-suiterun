@@ -1,0 +1,63 @@
+#!/usr/bin/python -u
+
+import os,urllib,re,sys
+
+suite = os.environ['Suite'].split(" ")[-1]
+
+if not os.environ.has_key("Update Mercurial") or os.environ["Update Mercurial"] == "true":
+    os.system("make -C /home/xenrtd/xenrt.hg update install")
+
+cmd = "xrt --run-suite %s -b %s -r %s" % (suite, os.environ['Branch'], os.environ['Version'])
+
+if os.environ.has_key("sku") and os.environ["sku"] != "Default" and os.environ['sku'] != "":
+    cmd += " --sku %s" % os.environ["sku"].split(" ")[-1]
+
+try:
+    if os.environ["Delay"] != "":
+        cmd += " --delay-for %d" % (int(os.environ["Delay"]) * 3600)
+except:
+    pass
+
+if os.environ.has_key("Additional_Args"):
+    cmd += " %s" % os.environ["Additional_Args"]
+
+if os.environ.has_key('Email'):
+    cmd += " -D JENKINS_EMAIL=%s" % os.environ["Email"]
+
+if os.environ['Dev Run'] == "true":
+    cmd += " --devrun"
+
+for i in range(2):
+    print cmd
+    os.system("%s" % cmd)
+    os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-description '%s' '%s' '%s'" % (os.environ["JENKINS_URL"], os.environ["JOB_NAME"], os.environ["BUILD_NUMBER"], cmd))
+    os.system("env")
+    # Get the console output to find the SR number
+    u = urllib.urlopen("%sconsoleText" % os.environ["BUILD_URL"])
+    suite = None
+    tryAgain = False
+    for l in u.readlines():
+        m = re.match("^SUITE (\d+)$",l)
+        if m:
+            suite = m.group(1)
+            break
+        if re.search("already exists!", l):
+            if os.environ.has_key("Attempt Rerun") and os.environ["Attempt Rerun"] == "true":
+                cmd += " --rerun-all"
+                tryAgain = True
+    
+    if not tryAgain:
+        break
+        
+
+if not suite:
+    os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-result unstable" % (os.environ["JENKINS_URL"]))
+    sys.exit(1)
+
+u = urllib.urlopen("http://testrun.uk.xensource.com/tools.cgi?action=suiterunname&suiterun=%s" % suite)
+
+np = u.read().split(",")
+
+srtext = "%s - %s (%s), %s (%s)" % (np[0], np[1], np[2], np[3], suite)
+
+os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-display-name '%s' '%s' '%s'" % (os.environ["JENKINS_URL"], os.environ["JOB_NAME"], os.environ["BUILD_NUMBER"], srtext))

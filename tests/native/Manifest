@@ -1,0 +1,10 @@
+# Status: downloadable
+# Obtaining:
+# See http://etherboot.org/wiki/winpe
+eb3af7133c0cc0d228a1d84b3befb40e  ./pe/makepart.txt
+c4c2f2b4af57aabf2afb35c402519f4a  ./pe/perun.cmd
+57113b2babb9ac4025506ca30d909a28  ./pxe/pxeboot.0
+0db801dbd6ca1983768e7f97146d48fe  ./pxe/bootmgr.exe
+1a2366928a6985957a367147c8037d82  ./pxe/64/BCD
+d94e617142b5b6e8c3f4bece21df54ff  ./pxe/32/BCD
+22d9945b4aae36dd59620a918f2e65f4  ./pxe/boot.sdi

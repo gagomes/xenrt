@@ -1,0 +1,11 @@
+5159a06946f8745200e93beecbeb6ecf  ./ltp-full-20061222.tgz
+fe1f3fc695f9ccf2b18957c5f838ff95  ./config/SKIP.conf
+a5d3fa671ead550fa02635f4ceaa62c4  ./config/EXEMPT.conf
+fc756e5271955d27105f362353d30058  ./config/AVOID.conf
+4cd789f02ca841b42e3771f841346a2f  ./config/README
+41b7af1976a183d0e3fbafdd747d8173  ./patches/50_no-OPEN_MAX.patch
+26185d1db16ae1c1d647187e9f81af42  ./patches/ltp-full-20090430-splice02.patch
+991848a496d7dc52abe4d29da3f8fe04  ./patches/ltp-full-20090430-taskstat.patch
+b03874461fd3dd353711b6fdb241f715  ./patches/ltp-full-20090430-pec01.patch
+f7e3f2564f40a900025bb6da9d0c852d  ./patches/ltp-full-20090430-accept4.patch
+bc65188bb2d134efcfc499317967dd45  ./ltp-full-20090430.tgz

@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.0.2 -->
+
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <CC_ENABLE_SSH>yes</CC_ENABLE_SSH>
+    <TAILOR_CLEAR_IPTABLES>yes</TAILOR_CLEAR_IPTABLES>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <PIDIR_SANIBELCC>/usr/groups/release/XenServer-6.x/sweeney/internal/TD-58523</PIDIR_SANIBELCC>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_SANIBELCC">
+    <testcase id="xenserver.tc.hotfix.TC18488" />
+  </testsequence>
+
+</xenrt>

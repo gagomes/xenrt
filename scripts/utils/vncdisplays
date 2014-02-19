@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# Look up domid to VNC port mapping.
+#
+# Copyright (c) 2007 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+DOMIDS=`xenstore-list /local/domain`
+
+for d in ${DOMIDS}; do
+    if VNCPORT=`xenstore-read /local/domain/$d/console/vnc-port 2>/dev/null`; then
+        DISPLAY=$[${VNCPORT} - 5900]
+        echo $d $DISPLAY
+    elif VNCPORT=`xenstore-read /local/domain/$d/serial/0/vnc-port 2>/dev/null`; then
+        DISPLAY=$[${VNCPORT} - 5900]
+        echo $d $DISPLAY
+    fi
+done

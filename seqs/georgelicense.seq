@@ -1,0 +1,55 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host license="no" id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Default">
+      <testcase id="xenserver.tc.license.TC9054"/>
+    </serial>
+    <serial group="Free">
+      <testcase id="xenserver.tc.license.TC8788"/>
+      <testcase id="xenserver.tc.license.TC8789"/>
+      <testcase id="xenserver.tc.license.TC8790"/>
+      <testcase id="xenserver.tc.license.TC8791"/>
+      <testcase id="xenserver.tc.license.TC8792"/>
+      <testcase id="xenserver.tc.license.TC8794"/>
+      <testcase id="xenserver.tc.license.TC8795"/>
+      <testcase id="xenserver.tc.license.TC8796"/>
+      <testcase id="xenserver.tc.license.TC9055"/>
+      <testcase id="xenserver.tc.license.TC8817"/>
+    </serial>
+    <serial group="Paid">
+      <testcase id="xenserver.tc.license.TC8797"/>
+      <testcase id="xenserver.tc.license.TC8798"/>
+      <testcase id="xenserver.tc.license.TC8799"/>
+      <testcase id="xenserver.tc.license.TC8800"/>
+      <testcase id="xenserver.tc.license.TC8801"/>
+      <testcase id="xenserver.tc.license.TC8803"/>
+      <testcase id="xenserver.tc.license.TC8804"/>
+      <testcase id="xenserver.tc.license.TC8805"/>
+      <testcase id="xenserver.tc.license.TC9056"/>
+      <testcase id="xenserver.tc.license.TC8818"/>
+    </serial>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.license.TC8863"/>
+      <testcase id="xenserver.tc.license.TC8864"/>
+    </serial>
+    <serial group="Report">
+      <testcase id="xenserver.tc.license.TC8866"/>
+      <testcase id="xenserver.tc.license.TC8867"/>
+      <testcase id="xenserver.tc.license.TC8868"/>
+      <testcase id="xenserver.tc.license.TC8869"/>
+    </serial>
+    <!-- Tests after this point are destructive -->
+    <serial group="Boot">
+      <testcase id="xenserver.tc.license.TC8873"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

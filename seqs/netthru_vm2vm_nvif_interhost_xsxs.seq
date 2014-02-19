@@ -1,0 +1,2845 @@
+<?xml version="1.0"?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <NETWORK>
+          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+            <MANAGEMENT/>
+            <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+      </host>
+
+      <host id="1">
+        <NETWORK>
+          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_B">
+            <MANAGEMENT/>
+            <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+          </PHYSICAL>
+        </NETWORK>
+        <vm name="debian60-1-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_B"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+      </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <!-- gro on -->
+
+    <!-- dom0vcpus=4/vmpairs=1 -->
+    <serial group="debian60/d0v04/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=2 -->
+    <serial group="debian60/d0v04/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=4 -->
+    <serial group="debian60/d0v04/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=8 -->
+    <serial group="debian60/d0v04/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=12 -->
+    <serial group="debian60/d0v04/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=16 -->
+    <serial group="debian60/d0v04/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=4/vmpairs=20 -->
+    <serial group="debian60/d0v04/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v04/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=1 -->
+    <serial group="debian60/d0v06/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=2 -->
+    <serial group="debian60/d0v06/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=4 -->
+    <serial group="debian60/d0v06/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=8 -->
+    <serial group="debian60/d0v06/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=12 -->
+    <serial group="debian60/d0v06/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=16 -->
+    <serial group="debian60/d0v06/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=6/vmpairs=20 -->
+    <serial group="debian60/d0v06/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v06/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=6</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=1 -->
+    <serial group="debian60/d0v08/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=2 -->
+    <serial group="debian60/d0v08/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=4 -->
+    <serial group="debian60/d0v08/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=8 -->
+    <serial group="debian60/d0v08/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=12 -->
+    <serial group="debian60/d0v08/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=16 -->
+    <serial group="debian60/d0v08/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=8/vmpairs=20 -->
+    <serial group="debian60/d0v08/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v08/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=1 -->
+    <serial group="debian60/d0v12/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=2 -->
+    <serial group="debian60/d0v12/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=4 -->
+    <serial group="debian60/d0v12/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=8 -->
+    <serial group="debian60/d0v12/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=12 -->
+    <serial group="debian60/d0v12/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=16 -->
+    <serial group="debian60/d0v12/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=12/vmpairs=20 -->
+    <serial group="debian60/d0v12/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v12/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=12</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=1 -->
+    <serial group="debian60/d0v15/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=2 -->
+    <serial group="debian60/d0v15/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=4 -->
+    <serial group="debian60/d0v15/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=8 -->
+    <serial group="debian60/d0v15/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=12 -->
+    <serial group="debian60/d0v15/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=16 -->
+    <serial group="debian60/d0v15/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=15/vmpairs=20 -->
+    <serial group="debian60/d0v15/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v15/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=15</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=1 -->
+    <serial group="debian60/d0v20/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=2 -->
+    <serial group="debian60/d0v20/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=4 -->
+    <serial group="debian60/d0v20/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=8 -->
+    <serial group="debian60/d0v20/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=12 -->
+    <serial group="debian60/d0v20/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=16 -->
+    <serial group="debian60/d0v20/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=20/vmpairs=20 -->
+    <serial group="debian60/d0v20/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v20/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=20</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=1 -->
+    <serial group="debian60/d0v24/vmp01/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp01/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp01/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp01/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp01/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=1</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=2 -->
+    <serial group="debian60/d0v24/vmp02/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp02/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp02/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp02/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp02/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=2</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=4 -->
+    <serial group="debian60/d0v24/vmp04/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp04/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp04/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp04/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp04/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=4</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=8 -->
+    <serial group="debian60/d0v24/vmp08/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp08/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp08/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp08/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp08/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=8</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=12 -->
+    <serial group="debian60/d0v24/vmp12/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp12/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp12/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp12/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp12/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=12</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=16 -->
+    <serial group="debian60/d0v24/vmp16/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp16/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp16/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp16/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp16/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=16</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+    <!-- dom0vcpus=24/vmpairs=20 -->
+    <serial group="debian60/d0v24/vmp20/t01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp20/t02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp20/t04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp20/t08/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/d0v24/vmp20/t16/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>dom0vcpus=24</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>gro=on</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+</xenrt>

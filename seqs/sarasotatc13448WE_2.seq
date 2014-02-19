@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>
+      Sarasota
+    </PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxvCPUs_2" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC18433" prio="4" tc="TC-18433"/>
+      <testcase id="xenserver.tc.smoketest.TC18434" prio="4" tc="TC-18434"/>
+      <testcase id="xenserver.tc.smoketest.TC18435" prio="4" tc="TC-18435"/>
+      <testcase id="xenserver.tc.smoketest.TC18436" prio="4" tc="TC-18436"/>
+      <testcase id="xenserver.tc.smoketest.TC19687" prio="4" tc="TC-19687"/>
+      <testcase id="xenserver.tc.smoketest.TC19689" prio="4" tc="TC-19689"/>
+      <testcase id="xenserver.tc.smoketest.TC19691" prio="4" tc="TC-19691"/>
+      <testcase id="xenserver.tc.smoketest.TC19693" prio="4" tc="TC-19693"/>
+      <testcase id="xenserver.tc.smoketest.TC19695" prio="4" tc="TC-19695"/>
+      <testcase id="xenserver.tc.smoketest.TC19697" prio="4" tc="TC-19697"/>
+    </parallel>
+  </testsequence>
+</xenrt>

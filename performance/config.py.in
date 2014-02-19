@@ -1,0 +1,137 @@
+#!/usr/bin/env python
+
+#
+# config.py
+#
+# Configuration settings for performance report generator. 
+#
+# Copyright (c) 2008 Citrix Systems, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by Citrix Systems, Inc. All other rights reserved.
+#
+
+# Location of XenRT database.
+server = "@webcontrdir@/queue.cgi"
+
+# Template directory.
+templatedir = "@template@"
+
+# Benchmarks where a lower score is better.
+smallgood = ["s"]
+
+# Long names for various units.
+unitlookup = {"s":"Time (s)",
+              "units":"Score",
+              "None":"Score",
+              "kb/s":"Throughput (KB/s)",
+              "MB/s":"Throughput (MB/s)"}
+
+# Bar chart parameters.
+
+# The width of a bar.
+width = 0.35
+# Colour of insignificant bars.
+colour = "blue"
+# Colour of significantly worse bars.
+worsecolour = "red"
+# Colour of significantly better bars.
+bettercolour = "green"
+# Colour of the reference bars.
+referencecolour = "yellow"
+errorcolour = "black"
+# Width of the bar outlines.
+linewidth = 1.0
+bottomjustified = 0.1
+# Size of labels.
+blabelpointsize = 10
+
+# Forest plot parameters.
+
+# Label on the x-axis.
+fxlabel = "Effect Size"
+# Label on the y-axis.
+fylabel = "Metric"
+leftjustified = 0.25
+# Style of insignifcant points.
+pointstyle = "bo"
+# Style of significantly worse points.
+worsepointstyle = "ro"
+# Style of significantly better points.
+betterpointstyle = "go"
+# Size of labels.
+flabelpointsize = 10
+
+# This list corresponds to the CSV output of the performance
+# explorer in the XenRT web interface.
+columns = ["productversion",
+           "storagetype",
+           "guestversion",
+           "vcpus",
+           "extradisks",
+           "memory",
+           "guestnumber",
+           "benchmark",
+           "metric",
+           "units",
+           "mean",
+           "values",
+           "jobids",
+           "count",
+           "stddev",
+           "refmean",
+           "refcount",
+           "refstddev",
+           "refvalues",
+           "refids"]
+
+# Possible delimiters dependent on web interface output.
+delimiters = "[;,]"
+subdelimiters = "[:]"
+
+# Benchmarks using forest plots.
+forests = ["SQLIO", "iozone", "netperf"]
+
+# All the variables we consider when distinguishing between configurations. 
+# The values are the units we use for each variable.
+configvariables = {"benchmark":"", 
+                   "guestversion":"", 
+                   "storagetype":"", 
+                   "guestnumber":"VM(s)", 
+                   "vcpus":"vCPU(s)", 
+                   "extradisks":"Extra Disks",
+                   "metric":""}
+
+# Configurations to omit.
+omit = [{"benchmark":"SQLIO", "vcpus":2.0},
+        {"benchmark":"SQLIO", "vcpus":4.0},
+        {"benchmark":"iozone", "vcpus":2.0},
+        {"benchmark":"iozone", "vcpus":4.0}]
+
+# Sort order for output.
+displayorder = ["guestversion", "benchmark", "storagetype", "guestnumber", "vcpus", "extradisks", "metric"]
+
+# Columns to separate forest plots across.
+fgraphs = ["benchmark", "guestversion", "storagetype", "guestnumber", "vcpus", "extradisks"]
+
+# Columns to separate bar charts across.
+graphs = ["benchmark", "guestversion", "storagetype", "guestnumber", "metric"]
+
+# Variables to split the chapters into. Changing the length of this requires
+# a change to the latex source document.
+documentsections = ["guestversion", "benchmark"]
+
+# Order to display bars in.
+bars = ["vcpus", "extradisks"]
+
+# Order to display forests in.
+leaves = ["metric"]
+
+# Keys sufficient to distinguish between configurations.
+keys = ["guestversion", "vcpus", "storagetype", "guestnumber", "extradisks"]
+
+# All tested configurations.
+configurations = {"guestversion":["ws08-x86"],
+                  "vcpus":[1, 2, 4],
+                  "storagetype":["lvm"],
+                  "guestnumber":[1, 2, 4],
+                  "extradisks":[0]}

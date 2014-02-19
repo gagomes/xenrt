@@ -1,0 +1,353 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Generic test harness
+#
+# source this file having defined:
+#
+#   SCRIPTDIR=`dirname $0`
+#   TIMEOUT=<seconds>
+#   BM_RUN=<command to run benchmark>
+#   BM_INSTALL=<command to install benchmark>
+#   BM_PROCESS=<command to process benchmark result>
+#
+# and already included functions and config
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, July 2005-March 2006
+
+if [ -z "${TIMEOUT}" ]; then
+    TIMEOUT=7200
+fi
+
+SYNC_DELAY=300
+
+RETVAL=0
+
+set -e
+
+generic_log() {
+    local GDATE=`date`
+    echo "[${GDATE}]" "$@" >> ${WORKDIR}/logs/generic.log
+}
+
+tarball_version() {
+    if [ -e ${WORKDIR}/${THISSCRIPT}/.version ]; then
+	cat ${WORKDIR}/${THISSCRIPT}/.version
+    else
+	echo 1
+    fi
+}
+
+install() {
+    set -x
+    TESTTYPE=${1:-default}
+    TAGNAME=${2:-default}
+    SUBDIR="${TESTTYPE}-${TAGNAME}"
+
+    generic_log "Entered install wrapper"
+
+    RETVAL=1
+
+    # Remove old extra data files that may be left over from previous runs
+    reset_extra_data
+
+    cd ${WORKDIR}
+    rm -f ${WORKDIR}/.xenrt-success*
+    rm -f ${WORKDIR}/.xenrt-partial*
+
+    if [ -n "${BM_CHECKSKIP}" ]; then
+	eval ${BM_CHECKSKIP}
+    fi
+
+    # XRT-545 Check for skip request
+    if [ -z "${BM_SKIP}" ]; then
+	local SKIP_CHECK=`eval echo \$\`echo SKIP_${THISSCRIPT}\``
+	if [ "${SKIP_CHECK}" = "yes" ]; then
+	    log_extra_data "Reason: skipping on request"
+	    BM_SKIP=yes
+	fi
+    fi
+
+    # Skip if we're not running on a supported platform (XRT-276)
+    if [ -n "${BM_SUPPORTED_PLATFORMS}" -a -z "${BM_SKIP}" ]; then
+        if ! uname -o &> /dev/null; then
+            local MYPLATFORM=`uname -H`
+        else
+            local MYPLATFORM=`uname -o`
+        fi
+        if [ "${MYPLATFORM}" = "Windows" ]; then
+            # SFU
+            if ( echo "${BM_SUPPORTED_PLATFORMS}" | grep -q SFU ); then
+                DONOTHING=true
+            elif ( echo "${BM_SUPPORTED_PLATFORMS}" | grep -q Windows ); then
+                DONOTHING=true
+            else
+                log_extra_data "Reason: test does not support SFU"
+                BM_SKIP=yes
+            fi
+        elif [ "${MYPLATFORM}" = "Cygwin" ]; then
+            if ( echo "${BM_SUPPORTED_PLATFORMS}" | grep -q Cygwin ); then
+                DONOTHING=true
+            elif ( echo "${BM_SUPPORTED_PLATFORMS}" | grep -q Windows ); then
+                DONOTHING=true
+            else
+                log_extra_data "Reason: test does not support Cygwin"
+                BM_SKIP=yes
+            fi
+        else
+            # Linux
+            if ! ( echo "${BM_SUPPORTED_PLATFORMS}" | grep -q Linux ); then
+                log_extra_data "Reason: test does not support Linux"
+                BM_SKIP=yes
+            fi
+        fi
+    fi
+
+    # Skip if we're not running on a supported platform (XRT-276)
+    if [ -n "${BM_SUPPORTED_DISTROS}" -a -z "${BM_SKIP}" ]; then
+        MYDISTRO=`get_my_distro`
+        if ! ( echo ${BM_SUPPORTED_DISTROS} | grep -q ${MYDISTRO} ); then
+            log_extra_data "Reason: test does not support ${MYDISTRO}"
+            BM_SKIP=yes
+        fi
+    fi
+    if [ -n "${BM_UNSUPPORTED_DISTROS}" -a -z "${BM_SKIP}" ]; then
+        MYDISTRO=`get_my_distro`
+        if ( echo ${BM_UNSUPPORTED_DISTROS} | grep -q ${MYDISTRO} ); then
+            log_extra_data "Reason: test does not support ${MYDISTRO}"
+            BM_SKIP=yes
+        fi
+    fi
+
+    if [ -z "${BM_SKIP}" ]; then
+        if [ ! -e ${WORKDIR}/.setupcomplete -o -n "${BM_INSTALL_ALWAYS}" ]; then
+	    if [ -z "${BM_INSTALL_SKIP_TARBALL}" ]; then
+	        get_test_tarball ${THISSCRIPT}
+	        tar -zxf ${THISSCRIPT}.tgz
+	    else
+	        mkdir -p ${THISSCRIPT}
+	    fi
+	    if iswindows 2>/dev/null; then
+	        # Fix permissions
+	        chmod 777 ${THISSCRIPT}
+	    fi
+	    cd ${THISSCRIPT}
+	
+	    if [ -n "${BM_INSTALL}" ]; then
+		generic_log "About to run BM_INSTALL"
+	        if eval ${BM_INSTALL} "$@"; then
+		    generic_log "Returned from BM_INSTALL (OK)"
+		else
+		    generic_log "Returned from BM_INSTALL (ERROR)"
+		    return ${RC_ERROR}
+		fi
+	    fi
+        fi
+    else
+	mkdir -p ${THISSCRIPT}
+	cd ${THISSCRIPT}
+	touch ${WORKDIR}/.autoskip
+    fi
+
+    generic_log "Leaving install wrapper"
+
+    touch ${WORKDIR}/.setupcomplete
+    RETVAL=0
+}
+
+run() {
+    TESTTYPE=${1:-default}
+    TAGNAME=${2:-default}
+    SUBDIR="${TESTTYPE}-${TAGNAME}"
+
+    generic_log "Entered run wrapper"
+
+    rm -f ${WORKDIR}/.xenrt-success-${SUBDIR}
+    rm -f ${WORKDIR}/.xenrt-partial-${SUBDIR}
+    rm -f ${WORKDIR}/.xenrt-error-${SUBDIR}
+
+    # Wait for the signal to say that waitfor is ready to monitor us
+    while [ -e ${WORKDIR}/.await_monitoring${TESTPHASE} ]; do
+	sleep 2
+    done
+
+    generic_log "Monitoring started"
+
+    cd ${WORKDIR}
+    cd ${THISSCRIPT}
+
+    if [ ! -e ${WORKDIR}/.autoskip ]; then
+	generic_log "Checking commands"
+	if [ -n "${BM_CHECK_COMMANDS}" ]; then
+	    for c in ${BM_CHECK_COMMANDS}; do
+		if ! check_command_exists "${c}"; then
+		    test_error
+		fi
+	    done
+	fi
+	generic_log "Checking files"
+	if [ -n "${BM_CHECK_FILES}" ]; then
+	    for c in ${BM_CHECK_FILES}; do
+		if ! check_file_exists "${c}"; then
+		    test_error
+		fi
+	    done
+	fi
+	generic_log "About to run BM_RUN"
+	if eval ${BM_RUN} "$@"; then
+	    generic_log "Returned from BM_RUN (OK)"
+	else
+	    generic_log "Returned from BM_RUN (ERROR)"
+	    return ${RC_ERROR}
+	fi
+    fi
+
+    generic_log "Leaving run wrapper"
+
+    touch ${WORKDIR}/.xenrt-success-${SUBDIR}
+}
+
+partial_pass() {
+    touch ${WORKDIR}/.xenrt-partial-${SUBDIR}
+}
+
+test_error() {
+    touch ${WORKDIR}/.xenrt-error-${SUBDIR}
+}
+
+process() {
+    TESTTYPE=${1:-default}
+    TAGNAME=${2:-default}
+    SUBDIR="${TESTTYPE}-${TAGNAME}"
+
+    if ! uname -o &> /dev/null; then
+        UNAME="uname -H"
+    else
+        UNAME="uname -o"
+    fi
+
+    cd ${WORKDIR}
+
+    if [ `${UNAME}` != Cygwin -a `${UNAME}` != Windows ]; then
+	echo "KernBase:" `uname -r | sed -r -e's/^([0-9]+.[0-9]+.[0-9]+).*$/\1/'`
+    fi
+    if [ -n "${PERFTAG}" ]; then
+	echo "PerfTag: ${PERFTAG}"
+    fi
+
+    if [ -n "${BM_CHECK}" -a ! -e ${WORKDIR}/.autoskip ]; then
+	for file in ${BM_CHECK}; do
+	    if [ '!' -e $file ]; then
+		RETVAL=${RC_FAIL}
+	    fi
+	done
+    fi
+
+    if [ -e ${WORKDIR}/.autoskip ]; then
+	echo "Test: skipped"
+    elif [ "${BM_PROCESS_NO_DEFAULT_PASS}" = "yes" ]; then
+	if [ -n "${BM_PROCESS}" ]; then
+	    eval ${BM_PROCESS} "$@" || true
+        fi
+    elif [ -e ${WORKDIR}/.xenrt-error-${SUBDIR} ]; then
+        echo "Test: error"
+        if [ -n "${BM_PROCESS}" ]; then
+	    eval ${BM_PROCESS} "$@" || true
+        fi
+    elif [ -e ${WORKDIR}/.xenrt-partial-${SUBDIR} -a "${RETVAL}" = "0" ]; then
+        echo "Test: partial"
+        if [ -n "${BM_PROCESS}" ]; then
+	    eval ${BM_PROCESS} "$@" || true
+        fi
+    elif [ -e ${WORKDIR}/.xenrt-success-${SUBDIR} -a "${RETVAL}" = "0" ]; then
+        echo "Test: passed"
+        if [ -n "${BM_PROCESS}" ]; then
+	    eval ${BM_PROCESS} "$@" || true
+        fi
+    else
+        echo "Test: failed"
+	RETVAL=${RC_FAIL}
+	if [ -n "${BM_PROCESS_ON_FAIL}" ]; then
+	    if [ -n "${BM_PROCESS}" ]; then
+                eval ${BM_PROCESS} "$@" || true
+            fi
+	fi
+    fi
+    get_extra_data
+
+    # Check for Oops etc. in dmesg
+    ${SCRIPTDIR}/utils/dmesg_check
+
+    # XXX - fucks up the makefile otherwise
+    RETVAL=0
+}
+
+getlogs() {
+    if [ -d ${WORKDIR}/logs ]; then
+	if [ "${BM_NO_DEFAULT_LOGS}" != "yes" ]; then
+	    if which dmesg > /dev/null 2>&1 ; then
+		dmesg -s 1048576 > ${WORKDIR}/logs/dmesg-`date +%s`
+	    fi
+	    if [ -e /var/log/messages ]; then
+		cp /var/log/messages ${WORKDIR}/logs/syslog-`date +%s`
+	    fi
+	    capture_core_files ${WORKDIR}/logs
+	fi
+	fetch_extra_log_files
+        tar -jcf - -C ${WORKDIR}/logs .
+    else
+	RETVAL=${RC_ERROR}
+    fi
+}
+
+usage() {
+    echo $"Usage: $0 {install|start|stop|waitfor|process} [testtype]"
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+	shift
+	mkdir -p ${WORKDIR}/logs
+        install "$@" 2>&1 | tee ${WORKDIR}/logs/install.out
+        ;;
+  start)
+	shift
+        start_run "$@"
+        ;;
+  stop)
+	shift
+        stop_run "$@"
+        ;;
+  run)
+	shift
+	run "$@"
+	;;
+  waitfor)
+	shift
+	waitfor "$@"
+        ;;
+  process)
+	shift
+        process "$@"
+        ;;
+  getlogs)
+	shift
+	getlogs "$@"
+	;;
+  cleanup)
+	# Tests using this harness run on the test machine which we'll
+	# reinstall on the next run anyway - no point in cleaning up
+    cleanup_working_directory
+	;;
+  *)
+        usage
+        exit 1
+esac
+
+exit $RETVAL

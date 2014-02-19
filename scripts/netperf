@@ -1,0 +1,176 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# netperf: UDP and TCP tests
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, February 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=10000
+
+# The preferred CPU pinning is grep'ed out by tunedom running in dom0,
+# it isn't really used directly here
+CPUPIN=SPLIT
+
+. ${SCRIPTDIR}/functions
+
+set -e
+
+check_skip() {
+    if [ -z "${NETPERF_SERVER}" ]; then
+	BM_SKIP=true
+    fi
+}
+BM_CHECKSKIP=check_skip
+
+npinstall() {
+    STEM=`ls netperf-*.tar.gz | sed -e 's/.tar.gz$//' | tail -1`
+    log_extra_data "Comment: netperf version ${STEM}"
+
+    tar -zxf ${STEM}.tar.gz
+    ln -s ${STEM} src
+    cd src
+    ./configure --prefix=/usr
+    make
+    make install
+}
+BM_INSTALL=npinstall
+
+on_server() {
+    ${SSH} ${NETPERF_SERVER_USER}@${NETPERF_SERVER} "$@"
+}
+
+nprun() {
+
+    MYADDR=`ip addr show dev eth0 | egrep '^ *inet ' | sed -e "s@ *inet \([0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+\)/[0-9]\+.*@\1@"`
+    MYMTU=`ip addr show dev eth0 | grep 'mtu' | sed -e "s@^.* *mtu \([0-9]\+\).*@\1@"`
+
+    MTUS="${MYMTU}"
+    NPSERVER=${NETPERF_SERVER}
+
+    # Read command line arguments
+    while [ -n "$1" ]; do
+	case $1 in
+	    server)
+		shift
+		NPSERVER=$1
+		#if [ `echo ${NPSERVER} | cut -d - -f 1` = Domain ]; then
+		#    # If this is native linux then bail
+		#    if [ "${XENVERSION}" = "linux" ]; then
+		#	log_extra_data \
+		#	    "Comment: native linux run, no other domain"
+		#	return 0;
+		#    fi
+		#    NPSERVER=`domain_to_hostname ${XENMACHINE} ${NPSERVER}`
+		#fi
+		;;
+	    mtu)
+		shift
+		MTUS=`echo $1 | sed -e's/:/ /g'`
+	esac
+	shift	    
+    done
+    
+    echo "Server: $NPSERVER" > /tmp/netperf.debug
+    echo "MTUs: $MTUS" >> /tmp/netperf.debug
+
+    echo 1048576 > /proc/sys/net/core/rmem_max
+
+    # Get details of both ends
+    OS1=`on_server "/bin/uname -a" | cut -d' ' -f3`
+    OS2=`/bin/uname -a | cut -d' ' -f3`
+    SHOST1=`on_server "/bin/hostname"`
+    SHOST2=`/bin/hostname`
+    LKCL1=`on_server "cat /proc/cmdline"`
+    LKCL2=`cat /proc/cmdline`
+    
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep nosmp` && KCL1=$KCL1:$FOO
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep noht` && KCL1=$KCL1:$FOO
+    FOO=`echo $LKCL1 | tr ' ' '\n' | grep ifname` && KCL1=$KCL1:$FOO
+    
+    FOO=`echo $LKCL2 | tr ' ' '\n' | grep nosmp` && KCL2=$KCL2:$FOO
+    FOO=`echo $LKCL2 | tr ' ' '\n' | grep noht` && KCL2=$KCL2:$FOO
+    FOO=`echo $LKCL2 | tr ' ' '\n' | grep ifname` && KCL2=$KCL2:$FOO
+
+    echo ${MYMTU} > ${WORKDIR}/.orig-mtu
+
+    # Get the lock for the server - we share this with ttcpbw
+    STARTEDLOCK=`date +%s`
+    while true; do
+	if on_server mkdir /tmp/ttcpmutex; then
+	    break
+	fi
+	sleep 60
+
+        # Check for stale lock - there is a potential race here
+	LOCKTIME=`on_server stat -c %Z /tmp/ttcpmutex || true`
+	if [ -n "${LOCKTIME}" ]; then
+	    local X=$[${LOCKTIME} + 3600]
+	    if [ ${X} -lt `date +%s` ]; then
+		echo "Removing stale lock /tmp/ttcpmutex"
+		on_server rmdir /tmp/ttcpmutex || true
+	    fi
+	fi
+    done
+
+    # Just to make sure we don't compete with an errant ttcp process on the
+    # server
+    on_server killall ttcp || true
+
+    for mtu in ${MTUS}; do
+	#XXX/sbin/ifconfig eth0 mtu ${mtu}
+	for sock in ${NETPERF_SOCKS}; do
+	    
+	    # Run with us as TX, server as RX
+	    # -l 20  : 20 seconds per iteration
+	    # -i 9,3 : max 9, min 3 iterations for a 5% confidence interval
+	    # -f m   : report mbits/sec            
+	    netperf -H ${NPSERVER} -l 20 -f m -i 9,3 -- \
+		-s ${sock} -S ${sock} > \
+		${WORKDIR}/logs/TCP-TX-${mtu}-${sock}.log
+	    #Recv   Send    Send                          
+	    #Socket Socket  Message  Elapsed              
+	    #Size   Size    Size     Time     Throughput  
+	    #bytes  bytes   bytes    secs.    10^6bits/sec  
+	    #
+	    #262142 262142 262142    10.01     923.26   
+	    RES=`tail -n1 ${WORKDIR}/logs/TCP-TX-${mtu}-${sock}.log | awk '{print $5}'`
+	    log_extra_data "Result: TCP rx $OS1:$SHOST1$KCL1 tx" \
+		"$OS2:$SHOST2$KCL2 sock $sock mtu $mtu res $RES"
+	    log_extra_data "Value: TCP:TX:${sock}:${mtu} ${RES} MB/s"
+
+	    netperf -H ${NPSERVER} -t UDP_STREAM -l 20 -f m -i 9,3 -- \
+		-s ${sock} -S ${sock} > \
+		${WORKDIR}/logs/UDP-TX-${mtu}-${sock}.log
+	    # Note the subtle difference in results layout (extra NL etc.)
+	    RES=`tail -n2 ${WORKDIR}/logs/UDP-TX-${mtu}-${sock}.log | head -n1 | awk '{print $4}'`
+	    log_extra_data "Result: UDP rx $OS1:$SHOST1$KCL1 tx" \
+		"$OS2:$SHOST2$KCL2 sock $sock mtu $mtu res $RES"
+	    log_extra_data "Value: UDP:TX:${sock}:${mtu} ${RES} MB/s"
+
+
+	    # Run with us as RX, server as TX
+	    netperf -t TCP_MAERTS -H ${NPSERVER} -l 20 -f m -i 9,3 -- \
+		-s ${sock} -S ${sock} > \
+		${WORKDIR}/logs/TCP-RX-${mtu}-${sock}.log
+	    RES=`tail -n1 ${WORKDIR}/logs/TCP-RX-${mtu}-${sock}.log | awk '{print $5}'`
+	    log_extra_data "Result: TCP tx $OS1:$SHOST1$KCL1 rx" \
+		"$OS2:$SHOST2$KCL2 sock $sock mtu $mtu res $RES"
+	    log_extra_data "Value: TCP:RX:${sock}:${mtu} ${RES} MB/s"
+
+	done
+    done
+
+    # put things back...
+    # XXX /sbin/ifconfig eth0 mtu ${MYMTU}
+
+    # Relase the server lock
+    on_server rmdir /tmp/ttcpmutex || true
+}
+BM_RUN=nprun
+
+. ${SCRIPTDIR}/generic
+

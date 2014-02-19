@@ -1,0 +1,7 @@
+usage: xenman -c command [arguments...]
+
+options:
+  -cCOMMAND, --command=COMMAND
+                        Command to execute
+  --list-commands       Show list of commands
+  -h, --help            show this help message and exit

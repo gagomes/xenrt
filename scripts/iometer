@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the iometer benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+# iometer invocation based on the work from Disha Technologies, modified
+# by XS for use on non-canned images.
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=7200
+BM_SUPPORTED_PLATFORMS="Windows"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+
+    set -x
+
+    if iswindows; then
+	chmod a+x iometer.exe
+	chmod a+x dynamo.exe
+
+	# IOmeter registry settings - this prevents the license agreement
+	# dialog from causing the test to hang.
+	reg IMPORT iometer.reg
+
+	# Let iometer through the firewall.
+	reg ADD "HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile\AuthorizedApplications\List" /v "`winify_path ${WORKDIR}/${THISSCRIPT}/iometer.exe`" /t REG_SZ /d "`winify_path ${WORKDIR}/${THISSCRIPT}/iometer.exe`:*:Enabled:Iometer Control/GUI" /f >> ${WORKDIR}/logs/reg.log 2>&1
+	reg ADD "HKLM\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile\AuthorizedApplications\List" /v "`winify_path ${WORKDIR}/${THISSCRIPT}/dynamo.exe`" /t REG_SZ /d "`winify_path ${WORKDIR}/${THISSCRIPT}/dynamo.exe`:*:Enabled:Iometer Workload Generator" /f >> ${WORKDIR}/logs/reg.log 2>&1
+
+    fi
+    
+    # Remove any old results files that may confuse our results
+    rm -f ${WORKDIR}/logs/${SUBDIR}
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+    set -x
+
+    if [ ! -d ${WORKDIR}/${THISSCRIPT}/${TESTTYPE} ]; then
+	log_extra_data "Reason: no config file(s) for test type ${TESTTYPE}"
+	return ${RC_ERROR}
+    fi
+
+    mkdir -p ${WORKDIR}/logs/${SUBDIR}
+
+    C=0
+    for icf in ${WORKDIR}/${THISSCRIPT}/${TESTTYPE}/*.icf; do
+	STEM=`basename ${icf} | sed -e's/\.icf$//'`
+	rm -f run.bat
+	echo "`winify_path ${WORKDIR}/${THISSCRIPT}/iometer.exe` \
+           /c `winify_path ${icf}` \
+           /r `winify_path ${WORKDIR}/logs/${SUBDIR}/${STEM}.csv`" > run.bat
+	cmd /c run.bat
+	C=$[${C} + 1]
+    done
+
+    rm -f ${WIN_UNIX_DRIVE_C}/iobw.tst
+}
+BM_RUN=run_this
+
+process_this() {
+    PASS=1
+    rm -f ${WORKDIR}/logs/${SUBDIR}/collated.dat
+    for csv in ${WORKDIR}/logs/${SUBDIR}/*.csv; do
+	if [ -e ${WORKDIR}/${THISSCRIPT}/${TESTTYPE}/fields.cfg ]; then
+	    # We gather the values then select the ones defined by fields.cfg
+	    if ! ${SCRIPTDIR}/iometer_process ${csv} preprocess >> \
+		${WORKDIR}/logs/${SUBDIR}/collated.dat;
+		then
+		PASS=0
+	    fi
+	else
+	    if ! ${SCRIPTDIR}/iometer_process ${csv}; then
+		PASS=0
+	    fi
+	fi
+    done
+    if [ -e ${WORKDIR}/logs/${SUBDIR}/collated.dat -a \
+	-e ${WORKDIR}/${THISSCRIPT}/${TESTTYPE}/fields.cfg ];
+	then
+	# Select the values required by fields.cfg
+	cat ${WORKDIR}/${THISSCRIPT}/${TESTTYPE}/fields.cfg | (
+	    while read X Y VALUE; do
+		grep "$X $Y" ${WORKDIR}/logs/${SUBDIR}/collated.dat | \
+		    awk "{print \"Value:\", \"$VALUE\", \$3}"
+	    done
+	)
+    fi
+    if [ ${PASS} = 1 ]; then
+        echo "Test: passed"
+    else
+	echo "Test: failed"
+    fi
+    if iswindows; then
+	win_systeminfo
+    fi
+}
+BM_PROCESS=process_this
+BM_PROCESS_NO_DEFAULT_PASS=yes
+
+. ${SCRIPTDIR}/generic

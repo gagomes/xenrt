@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- Boston single host upgrade check from Boston beta builds -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PIDIR_BOSTONBETA1>/usr/groups/release/XenServer-6.x/XS-5.9.950-beta/beta-47207</PIDIR_BOSTONBETA1>
+    <PIDIR_BOSTONBETA3>/usr/groups/release/XenServer-6.x/XS-5.9.960-beta/beta-48618</PIDIR_BOSTONBETA3>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="1">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+          
+  <testsequence group="BostonUpgrade">
+    <testcase id="xenserver.tc.hotfix.TC14973"/>
+    <testcase id="xenserver.tc.hotfix.TC14974"/>
+  </testsequence>
+    
+    </xenrt>

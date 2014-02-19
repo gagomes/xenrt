@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+###
+# GUEST INSTALLER
+# Perform initial filesystem creation for RPM-based distributions.
+#
+# Written by Andrew Peace, November 2005
+# Copyright (C) XenSource UK Ltd.
+
+import sys
+from xgi.util import _log
+import xgi.install
+import xgi.repo
+import getopt
+import re
+
+def usage():
+    print """
+./rpmchroot [--test] [-v <verbosity>] [-c] [--rpm <rpm>] [--sudo <sudo>]
+       [-g <group-1> [-g <group-2> [...]]] [-P <package-list-file>]
+       [-p <package-1> [-p <package-2> [...]]] [-m <manifest file>]
+       -r <repo-1> [-r <repo-2> [...]]  <destination>
+
+  Installs group-1..n, package-1..n and all packages listed in the newline-
+  separated file <package-list-file> into <destination>.
+
+  Packages are NOT RPM filenames, but simply the name of the package that an
+  RPM provides - the internal rules will solve dependencies and decides which
+  RPM to install to get the named package.
+
+  -c specifies that we should operate in clean (initialise) mode rather
+  than attempting to update a chroot that already exists.
+
+  -v specifies verbosity:
+      1: just basic progress messages
+      2: more detailed progress messages (recommended)
+      3: all output (including wanrings about missing packages that can
+         usually be ignored)
+
+  --rpm allows you to specify the rpm binary to use.
+
+  --sudo allows you to specify the sudo binary to use.  If not specified, sudo
+  is not used.
+
+  -m allows you to specify a file that will get a list of all the RPMs used
+  in the operation written to it, each followed by a space, and the exit
+  code of the RPM command used to install that RPM.
+
+./rpmchroot -l -r <repo-1> [-r [<repo-2> [...]]
+
+   Lists available groups in repositories repo-1...repo-n
+
+./rpmchroot --graph
+       [-g <group-1> [-g <group-2> [...]]]
+       [-p <package-1> [-p <package-2> [...]]]
+       [-P <package-list file>]
+       -r <repo-1> [-r <repo-2> [...]]
+
+   Outputs a dependency graph in 'dot' format of the RPMs you chose to install.
+
+./rpmchroot -h | --help
+
+   Print this message.
+   """
+
+#######
+# MAIN
+
+def main():
+    # parse args:
+    try:
+        (opts, args) = getopt.getopt(
+            sys.argv[1:], "hlcg:v:r:p:P:m:",
+            ["help", "no-cache", "test", "rpm=", "sudo=", "graph"])
+
+    except Exception, e:
+        print "Incorrect usage: %s" % (e)
+        usage
+        sys.exit(1)
+
+    if ("-h", "") in opts or ("--help", "") in opts:
+        usage()
+        sys.exit()
+
+    test = False
+    listmode = False
+
+    repoPaths = []
+    installdef = []
+
+    # quick function to get the lines of a file by filename, stripping the newlines.
+    def filelines(fname):
+        f = open(fname, 'r')
+        comments = re.compile("#.*")
+        lines = [ comments.sub("", x).strip() for x in f ]
+        lines = filter(lambda x: len(x) != 0, lines)
+        f.close()
+        return lines
+
+    clean = False
+    rpm = "rpm"
+    sudo = ""
+    manifest_fname = None
+    graphmode = False
+    for (opt, val) in opts:
+        if opt == "-g": installdef.append(("group", val))
+        if opt == "-p": installdef.append(("package", val))
+        if opt == "-P": installdef.extend(map(lambda x: ("package", x),
+                                              filter(lambda x: x != "", filelines(val))))
+        if opt == "-c": clean = True
+        if opt == "-v": xgi.util.verbosity = int(val)
+        if opt == "-r": repoPaths.append(val)
+        if opt == "-m": manifest_fname = val
+        if opt == "-l": listmode = True
+        if opt == "--test": test = True
+        if opt == "--rpm": rpm = val
+        if opt == "--sudo": sudo = val
+        if opt == "--graph": graphmode = True
+
+    if not graphmode and not listmode:
+        root = args[0]
+    
+    if not graphmode and not listmode and len(args) != 1:
+        print "Incorrect number of arguments!"
+        usage()
+        sys.exit(1)
+
+    if len(repoPaths) == 0:
+        print "You must specify at least one repository."
+        usage()
+        sys.exit(1)
+
+    if not listmode and len(installdef) == 0:
+        print "You must specify at least one thing to install."
+        usage()
+        sys.exit(1)
+
+    if not graphmode and not listmode and  not args[0].startswith('/'):
+        print "You must specify an absolute path to install to."
+        usage()
+        sys.exit(1)
+
+    if manifest_fname:
+        manifest_file = open(manifest_fname, 'w')
+    else:
+        manifest_file = None
+
+    _log(1, "Accessing repositories...")
+    repos = [xgi.repo.parseRepo(path) for path in repoPaths]
+
+    if graphmode:
+        xgi.install.graph(installdef, repos)
+    elif listmode:
+        for (groups, rpmset) in repos:
+            for g in groups.keys():
+                print g
+            print
+    else:
+        _log(1, "Starting installation...")
+        if clean:
+            xgi.install.doInstall([ ('package', 'rpm') ], root, repos, test, clean,
+                                  rpm, sudo, manifest_file, True)
+        xgi.install.doInstall(installdef, root, repos, test, clean,
+                              rpm, sudo, manifest_file, False)
+
+    if manifest_file:
+        manifest_file.close()
+    
+if __name__ == "__main__":
+    main()
+

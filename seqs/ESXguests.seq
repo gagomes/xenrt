@@ -1,0 +1,32 @@
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host productVersion="5.0.0.update01" productType="esx" id="0">
+      <vm name="ESX-VM0">
+        <distro>generic-linux</distro>
+      </vm>
+      <vm name="ESX-VM1">
+        <distro>centos64</distro>
+        <memory>1024</memory>
+        <vcpus>1</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+      <vm name="ESX-VM2">
+        <distro>win7</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="dummy.TCDummySleep" host="RESOURCE_HOST_0">
+    </testcase>
+  </testsequence>
+</xenrt>

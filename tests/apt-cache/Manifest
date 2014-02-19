@@ -1,0 +1,3 @@
+# Type: nobuild
+# Status: downloadable
+# This is to ensure the OVA apt-cache data gets copied to the OVA at build time.

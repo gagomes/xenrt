@@ -1,0 +1,53 @@
+# Description: Extra RPMs to be installed in VMs after OS installation
+# Status: downloadable
+# Type: directory
+# Obtaining:
+# Obtain RPMs from appropriate OS distribution vendors
+d800448d71946f3d5124d3eefc30cda3  ./sles11/x86-32/stunnel-4.14-14.2.i586.rpm
+6ba49c04313d04d2f38de7e8b396ea96  ./sles11/x86-32/kernel-source-2.6.27.42-0.1.1.i586.rpm
+f6b2e9af791f4b003048c3dfcff4665e  ./sles11/x86-32/kernel-xen-2.6.27.42-0.1.1.i586.rpm
+e5d713ba06670e041b6815b5b5484180  ./sles11/x86-32/kernel-xen-base-2.6.27.42-0.1.1.i586.rpm
+10898ea405a52c1a224b4e8ae7c675ac  ./sles11/x86-32/module-init-tools-3.4-70.6.1.i586.rpm
+5fe044785d5a778b91dc22cbcc9542ba  ./sles11/x86-64/stunnel-4.14-14.2.x86_64.rpm
+455236a007da48add2f14d3a114d6526  ./sles11/x86-64/kernel-xen-2.6.27.39-0.3.1.x86_64.rpm
+39b527502cf66b03e266fcb0ed1bb90b  ./sles11/x86-64/kernel-xen-base-2.6.27.39-0.3.1.x86_64.rpm
+77ca8e0cc16696c3a14a5650dd587ef6  ./sles11/x86-64/kernel-source-2.6.27.39-0.3.1.x86_64.rpm
+788b573ab030a2bf68b22390d75d4a5c  ./sles11/x86-64/module-init-tools-3.4-70.6.1.x86_64.rpm
+e2d88006fb1bae1964a6c0698f425bf5  ./sles11/stunnel-4.14-14.2.src.rpm
+2a2f569d328b67894251f4675d4f381d  ./sles94/x86-32/kernel-xenpae-2.6.5-7.319.i586.rpm
+46116b223577712545612a5a1994080a  ./rhel5/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./rhel5/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./rhel5/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./rhel5/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./rhel51/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./rhel51/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./rhel51/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./rhel51/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./rhel52/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./rhel52/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./rhel52/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./rhel52/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./rhel53/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./rhel53/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./rhel53/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./rhel53/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./centos5/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./centos5/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./centos5/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./centos5/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./centos51/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./centos51/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./centos51/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./centos51/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./centos52/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./centos52/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./centos52/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./centos52/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./centos53/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./centos53/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./centos53/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./centos53/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm
+46116b223577712545612a5a1994080a  ./oel53/x86-32/kernel-xen-2.6.18-164.el5.i686.rpm
+8787bcb2652226f41be9d3e14220c0cc  ./oel53/x86-32/kernel-headers-2.6.18-164.el5.i386.rpm
+f03bbbe40c031b71f05e70886980e94f  ./oel53/x86-64/kernel-headers-2.6.18-164.el5.x86_64.rpm
+72c2ec208117d1ab1d2f4a3e9d91f74a  ./oel53/x86-64/kernel-xen-2.6.18-164.el5.x86_64.rpm

@@ -1,0 +1,25 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    <SUPPLEMENTAL_PACK_CDS>/usr/groups/release/XenServer-6.x/XS-6.1.0/supp-packs/PerfMon/74189/xe-phase-2/XenServer-6.1-perf-monitoring.iso</SUPPLEMENTAL_PACK_CDS>
+  </variables>
+
+
+  <prepare>
+    <host id="0">
+      <storage type="lvmoiscsi" name="ISCSI Storage Repository 1" size="25" options="ietvm" />
+      <storage type="lvmoiscsi" name="ISCSI Storage Repository 2" size="25" options="ietvm" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="HFX-501">
+      <testcase id="xenserver.tc.rrd.TC18873"/>
+    </serial>
+    <serial group="Supp pack Abacus">
+      <testcase tc="TC-20671" id="xenserver.tc.rrd.SRIOMetrics"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

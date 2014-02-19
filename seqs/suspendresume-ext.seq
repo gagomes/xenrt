@@ -1,0 +1,19 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_suspendresume.TCSuspendResume" host="RESOURCE_HOST_0">
+        <arg>numiters=10</arg>
+        <arg>memsizes=128,256,512,1024,2048,4096</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>
+      Boston
+    </PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="VM1G2C_3" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC15439" prio="4" tc="TC-15439"/>
+    </parallel>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,18 @@
+<xenrt>
+  <!-- Example site configuration file -->
+  <WORKING_DIR_BASE>/local/scratch/working</WORKING_DIR_BASE>
+
+  <!-- This example uses a second network interface which is connected
+       to the dedicated test network -->
+  <NETWORK_CONFIG>
+    <DEFAULT>
+       <SUBNET>10.0.0.0</SUBNET>
+       <SUBNETMASK>255.255.0.0</SUBNETMASK>
+       <GATEWAY>10.0.0.1</GATEWAY>
+       <!-- We'll statically allocate test servers in 10.0.1.* -->
+       <!-- and leave 10.0.2-255.* for dynamic XenVM addresses -->
+       <POOLSTART>10.0.2.1</POOLSTART>
+       <POOLEND>10.0.255.254</POOLEND>
+    </DEFAULT>
+  </NETWORK_CONFIG>
+</xenrt>

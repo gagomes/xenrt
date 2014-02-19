@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- George bonding sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Failover">
+      <testcase id="xenserver.tc.bonding.TC8200" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC8202" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC8210" blocker="yes"/>
+    </serial>
+    <serial group="Balancing">
+      <testcase id="xenserver.tc.bonding.TC8310" blocker="yes"/>
+    </serial>
+    <serial group="Regression">
+      <testcase id="xenserver.tc.bonding.TC8224" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC8323" blocker="yes"/>
+      <testcase id="xenserver.tc.network.TC8351" blocker="yes"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,59 @@
+<xenrt>
+
+  <!-- MNR supplemental packs test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.5.0-Update2</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>George</OLD_PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="SupplementalPacks">
+    <!-- Install packs on a running system -->
+    <testcase id="xenserver.tc.suppacks.TC10634" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10635" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10636" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10637" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10638" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10639" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10640" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10641" prio="3"/>
+
+    <!-- Bugtool testcases -->
+    <testcase id="xenserver.tc.suppacks.TC10643" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10644" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10645" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10646" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10647" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10648" prio="3"/>
+
+    <!-- Dom0 memory on running system -->
+    <testcase id="xenserver.tc.suppacks.TC10656" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10657" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10658" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10659" prio="3"/>
+    
+    <!-- Web page test cases -->
+    <testcase id="xenserver.tc.suppacks.TC10662" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10663" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10664" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10665" prio="3"/>
+
+    <!-- Host installation with supplemental packs -->
+    <testcase id="xenserver.tc.suppacks.TC10631" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10632" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10633" prio="3"/>
+
+    <!-- Dom0 memory on host installation with supplemental packs -->
+    <testcase id="xenserver.tc.suppacks.TC10660" prio="3"/>
+    <testcase id="xenserver.tc.suppacks.TC10661" prio="3"/>
+
+    <!-- Host upgrade with supplemental packs -->
+    <testcase id="xenserver.tc.suppacks.TC10655" prio="3"/>
+  </testsequence>
+
+</xenrt>

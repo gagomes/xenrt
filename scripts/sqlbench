@@ -1,0 +1,127 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# MySQL sql-bench Benchmark
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, December 2005-February 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=10800
+. ${SCRIPTDIR}/functions
+
+set -e
+
+install_dbi() {
+    DBISRC=`ls DBI-*.tar.gz | tail -n1 | sed -e's/.tar.gz//'`
+    rm -rf ${DBISRC}
+    tar -zxf ${DBISRC}.tar.gz
+    cd ${DBISRC}
+    perl Makefile.PL
+    make
+    make install
+}
+
+install_dbd_mysql() {
+    DBDSRC=`ls DBD-mysql-*.tar.gz | tail -n1 | sed -e's/.tar.gz//'`
+    rm -rf ${DBDSRC}
+    tar -zxf ${DBDSRC}.tar.gz
+    cd ${DBDSRC}
+    PATH=$PATH:/usr/local/mysql/bin perl Makefile.PL
+    make
+    make install
+}
+
+install_mysql() {
+    HERE=`pwd`
+
+    # Set up users etc.
+    if ! grep -q mysql /etc/passwd; then
+	groupadd mysql
+	if which adduser > /dev/null; then
+	    adduser -g mysql mysql
+	else
+	    useradd -g mysql mysql
+	fi
+    fi
+
+    # Build and install MySQL database
+    SRCDIR=`ls mysql*.tar.gz | tail -n1 | sed -e's/.tar.gz//'`
+    rm -rf ${SRCDIR}
+    tar -zxf ${SRCDIR}.tar.gz
+    ln -s ${SRCDIR} src
+    cd ${SRCDIR}
+    ./configure --prefix=/usr/local/mysql
+    make
+    if [ ! -e /usr/local/mysql/bin/mysql ]; then
+	make install
+	cp support-files/my-medium.cnf /etc/my.cnf
+	cd /usr/local/mysql
+	./bin/mysql_install_db --user=mysql
+	chown -R root .
+	chown -R mysql var
+	chgrp -R mysql .
+	./bin/mysqld_safe --user=mysql > ${WORKDIR}/logs/mysqld.log 2>&1 \
+            < /dev/null &
+	sleep 10
+    else
+	log_extra_data "Comment: mysql already installed"
+    fi
+
+    # Install required libraries
+    cd ${HERE}
+    if ! install_dbi; then
+	log_extra_data "Comment: Error installing DBI, maybe already exists?"
+    fi
+    cd ${HERE}
+    if ! install_dbd_mysql; then
+	log_extra_data "Comment: Error installing DBD, maybe already exists?"
+    fi
+
+}
+BM_INSTALL=install_mysql
+
+run_sqlbench() {
+    cd src/sql-bench    
+    LD_LIBRARY_PATH=/usr/local/mysql/lib/mysql \
+	./run-all-tests --server=mysql --cmp=mysql,pg,solid \
+	--user=root --log --dir=${WORKDIR}/logs | tee stdout.txt
+    OUTFILE=`tail -n1 stdout.txt`
+    rm -f latest-result
+    if [ -e "${OUTFILE}" ]; then
+	ln -s ${OUTFILE} latest-result
+	if ! grep -q "test executed successfully" latest-result; then
+	    log_extra_data "Reason: non-successful test(s)"
+	    return ${RC_FAIL}
+	fi
+    else
+	log_extra_data "Reason: unable to find results file"
+	return ${RC_ERROR}
+    fi
+}
+BM_RUN=run_sqlbench
+
+process_sqlbench() {
+    cd ${THISSCRIPT}/src/sql-bench
+    if [ -e latest-result ]; then
+	ELAPSED=`awk '{if($1 == "TOTALS"){print $2;}}' < latest-result`
+	CPUTIME=`awk '{if($1 == "TOTALS"){print $5;}}' < latest-result`
+	NUMTESTS=`awk '{if($1 == "TOTALS"){print $6;}}' < latest-result`
+	if [ -n "${ELAPSED}" ]; then
+	    echo "Value: Elapsed ${ELAPSED}"
+	fi
+	if [ -n "${CPUTIME}" ]; then
+	    echo "Value: CPUtime ${CPUTIME}"
+	fi
+	if [ -n "${NUMTESTS}" ]; then
+	    echo "Comment: ${NUMTESTS} tests performed"
+	fi
+	grep -e '^Limits from:' -e '^Server version:' -e '^Optimization:' \
+	    < latest-result | sed -e's/^/Comment: /'
+    fi
+}
+BM_PROCESS=process_sqlbench
+
+. ${SCRIPTDIR}/generic

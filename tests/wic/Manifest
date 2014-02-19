@@ -1,0 +1,6 @@
+# Description: Microsoft Windows Imaging Component
+# Status: downloadable
+# Obtain from http://www.microsoft.com/downloads/en/details.aspx?FamilyID=8e011506-6307-445b-b950-215def45ddd8&displaylang=en
+# and http://www.microsoft.com/downloads/en/details.aspx?familyid=F64654AC-6E26-41D9-A90A-0E7783B864EE&displaylang=en
+2eb787be1deb373efc259d1f42146419  ./wic_x64_enu.exe
+53f5ccbe5fe06c3b40cc9e34ac909df7  ./wic_x86_enu.exe

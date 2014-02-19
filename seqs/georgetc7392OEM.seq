@@ -1,0 +1,20 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="HVM5G2C">
+      <testcase id="xenserver.tc.smoketest.TC9000" prio="3"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

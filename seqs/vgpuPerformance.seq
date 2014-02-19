@@ -1,0 +1,26 @@
+<xenrt>
+  <!-- vGPU Benchmarking tests -->
+  
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.vgpu.SingleBenchmark"/> 
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x86K100"  tc="TC-20576"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x64K140"  tc="TC-20577"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x64K200"  tc="TC-20578"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x86K240"  tc="TC-20579"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWS2k8x64K260"  tc="TC-20580"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x86K100VNC"  tc="TC-20581"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x64K200VNC"  tc="TC-20582"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x64K140BreadthFirst"  tc="TC-20583"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x86K240BreadthFirst"  tc="TC-20584"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x64K1PT"  tc="TC-20585"/>
+    <testcase id="testcases.xenserver.tc.vgpu.VGPUWin7x86K2PT"  tc="TC-20586"/>
+  </testsequence>
+</xenrt>

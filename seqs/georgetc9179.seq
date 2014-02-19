@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- George Linux kernel update (xs-tools.iso) test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="ToolsISO">
+
+    <parallel workers="${PARALLEL}">
+
+      <testcase id="xenserver.tc.pvdrivers.TC9181"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9182"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9183"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9184"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9185"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9204"/>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

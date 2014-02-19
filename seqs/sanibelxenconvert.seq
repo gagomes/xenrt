@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- XenConvert tests -->
+  
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  
+  <prepare>
+    <host id="0"/>
+  </prepare>
+  
+  <testsequence>
+    <parallel workers="2">
+      
+      <!-- XenConvert 2.5 tests -->
+      <testcase id="testcases.xenserver.tc.interop.TC15472"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15474"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15475"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15476"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15477"/>
+      
+      <!-- XenConvert 2.4 tests -->
+      <testcase id="testcases.xenserver.tc.interop.TC15722"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15723"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15724"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15725"/>
+      <testcase id="testcases.xenserver.tc.interop.TC15726"/>
+      
+    </parallel>
+  </testsequence>
+</xenrt>

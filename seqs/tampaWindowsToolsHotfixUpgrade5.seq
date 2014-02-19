@@ -1,0 +1,58 @@
+<xenrt>
+
+  <!-- Tools ISO hotfix: static ipv6 tests -->
+
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host>
+      <bridge name="internal"/>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08sp2-x64">
+        <distro>ws08sp2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="ApplyRequiredPatches" blocker="yes">
+      <testcase id="xenserver.install.TCApplyReqdPatches"/>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC18559"/>
+      <testcase id="xenserver.tc.upgrade.TC18560"/>
+      <testcase id="xenserver.tc.upgrade.TC18562"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

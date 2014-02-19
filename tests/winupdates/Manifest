@@ -1,0 +1,13 @@
+# Description: Files necessary to determine and apply Windows Updates
+# Status: downloadable
+# Obtaining:
+# The WindowsUpdateAgents are available at the following URLs:
+# x86: http://go.microsoft.com/fwlink/?LinkId=43264
+# x64: http://go.microsoft.com/fwlink/?LinkId=43265
+# The WindowsInstaller file is available at http://www.microsoft.com/downloads/details.aspx?FamilyID=889482FC-5F56-4A38-B838-DE776FD4138C&displaylang=en
+# You also need to download the Microsoft Baseline Security Analyzer 2.1 (beta) from http://www.microsoft.com/technet/Security/tools/mbsahome.mspx and install it. You then need to extract the mbsacli.exe and wusscan.dll files from "C:\Program Files\Microsoft Baseline Security Analyzer 2"
+342f79337765760ad4e392eb67d5ed2c  ./WindowsInstaller-KB893803-v2-x86.exe
+dd37365506c65e91fe49925307ca5adb  ./WindowsUpdateAgent20-x64.exe
+ba3b68136c3e251eb0a0e91447988b13  ./WindowsUpdateAgent20-x86.exe
+847a6954f94b002032a7694d3eaf8149  ./mbsacli.exe
+1abcb17accb1b8f6b13a3ab20946b71a  ./wusscan.dll

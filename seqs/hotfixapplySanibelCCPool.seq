@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.0.2 CC (pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>SanibelCC</PRODUCT_VERSION>
+    <PIDIR_SANIBELCC>/usr/groups/release/XenServer-6.x/sweeney/internal/TD-58523</PIDIR_SANIBELCC>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_SANIBELCC_Pool">
+    <testcase id="xenserver.tc.hotfix.TC18396" />
+  </testsequence>
+
+</xenrt>

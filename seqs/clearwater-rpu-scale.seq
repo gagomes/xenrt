@@ -1,0 +1,46 @@
+<xenrt>
+
+  <default name="VMSPERHOST" value="5"/>
+  <default name="THREADS" value="50"/>
+  <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>16</PREPARE_WORKERS>
+    <EXTRA_TIME>yes</EXTRA_TIME>   
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <NTHREADS>50</NTHREADS>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfs1" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      
+      <vm name="gold0">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs1</storage>
+      </vm>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.scalability.TCXenDesktopCloneVMs">
+      <arg>vmsperhost=${VMSPERHOST}</arg>
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart">
+      <arg>threads=${THREADS}</arg>
+    </testcase>
+    <!-- testcase id="xenserver.tc.scalability.TCScaleXenDesktopRpu" / -->
+  </testsequence>
+</xenrt>

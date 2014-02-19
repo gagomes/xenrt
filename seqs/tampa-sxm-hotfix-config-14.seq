@@ -1,0 +1,49 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the Hotfix application on Tampa base release and then storage xen migration.
+
+        TC17352 - Verifying Cross Pool Storage Migration on a Tampa build with an hotfix applied.
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PIDIR_TAMPA>/usr/groups/release/XenServer-6.x/XS-6.1.0/RTM-12345</PIDIR_TAMPA> <!-- Update the path once finalysed  -->
+
+    <CARBON_PATCHES_TAMPA>
+      <XS610E001>/usr/groups/release/XenServer-6.x/XS-6.1.0/hotfixes/XS610E001/56789/hotfix-XS610E001/XS610E001.xsupdate</XS610E001>
+      <XS610E002>/usr/groups/release/XenServer-6.x/XS-6.1.0/hotfixes/XS610E002/56789/hotfix-XS610E002/XS610E002.xsupdate</XS610E002>
+      <!-- The path above requires an update once finalysed Now it is an example -->
+    </CARBON_PATCHES_TAMPA>
+
+    <PATCH_DESCRIPTIONS>
+      <HFNEW>*</HFNEW>
+    </PATCH_DESCRIPTIONS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" license="platinum"/>
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="lvm" license="platinum"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="HotfixCrossPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvm. -->
+      <testcase id="xenserver.tc.sxm.HotFixStorageMigration" name="TC17352" tc="TC-17352">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

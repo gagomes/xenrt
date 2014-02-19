@@ -1,0 +1,33 @@
+diff -r 378c4d38fa30 overlay.xenrt/sbin/update-issue
+--- a/overlay.xenrt/sbin/update-issue	Mon Sep 10 17:05:50 2007 +0100
++++ b/overlay.xenrt/sbin/update-issue	Mon Sep 10 17:05:50 2007 +0100
+@@ -3,7 +3,7 @@
+ [ -e /etc/boottime.stamp ] || touch /etc/boottime.stamp
+ 
+ cat > $mnt/etc/issue <<EOF
+-@PRODUCT_BRAND@ XenRT @PRODUCT_VERSION@-@BUILD_NUMBER@
++@COMPANY@ XenRT @PRODUCT_VERSION@-@BUILD_NUMBER@
+ 
+ System Booted: `date -r /etc/boottime.stamp +"%F %R"`
+ 
+diff -r 378c4d38fa30 xenrt.ova.xml.in
+--- a/xenrt.ova.xml.in	Mon Sep 10 17:05:50 2007 +0100
++++ b/xenrt.ova.xml.in	Mon Sep 10 17:05:50 2007 +0100
+@@ -2,7 +2,7 @@
+ <appliance version="0.1">
+         <vm name="vm">
+                 <label>
+-                        @PRODUCT_BRAND@ XenRT @PRODUCT_VERSION@-@BUILD_NUMBER@
++                        @COMPANY@ XenRT @PRODUCT_VERSION@-@BUILD_NUMBER@
+                 </label>
+                 <shortdesc>
+ 			
+diff -r 378c4d38fa30 patches.xenrt/patch-etc_redhat_release
+--- a/patches.xenrt/patch-etc_redhat_release	Mon Sep 10 17:05:50 2007 +0100
++++ b/patches.xenrt/patch-etc_redhat_release	Wed Sep 12 13:47:37 2007 +0100
+@@ -2,4 +2,4 @@
+ +++ dom0-staging/etc/redhat-release	2006-09-23 06:18:59.000000000 -0400
+ @@ -1 +1 @@
+ -CentOS release 5 (Final)
+-+@PRODUCT_BRAND@ XenRT release @PRODUCT_VERSION@-@BUILD_NUMBER@ (@PRODUCT_NAME@)
+++@COMPANY@ XenRT release @PRODUCT_VERSION@-@BUILD_NUMBER@ (@PRODUCT_NAME@)

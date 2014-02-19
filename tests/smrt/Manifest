@@ -1,0 +1,6 @@
+# Status: proprietary
+88805a1062775b74a9a12e622313e138  ./fsx/fsx
+35daf82549b346bfbd32e61b657957f9  ./biotest
+61d4724ed9f2fc2163b92c5355b2529a  ./pmark/postmark.c
+531a3059817601f116bf0f626c4abba1  ./pmark/postmark
+0c8f2621338149513afc3f6b315b6935  ./pmark/stress_test

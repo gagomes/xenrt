@@ -1,0 +1,155 @@
+#!/bin/bash
+#
+# Build unattended ISO
+#
+# usage: buildiso <origiso> <winversion> <newiso>
+#
+# e.g. buildiso /misc/scratch/images/winxpsp2.iso winxpsp2 /tmp/autoxp.iso
+#
+# Assumes SFU ISO is in the same directory as origiso and is called sfu.iso
+#
+# Needs to be run as root
+set -x
+set -e
+
+# Windows password.
+PASSWORD="xensource"
+
+# Versions using SSH instead of SFU.
+NOSFU=${NOSFU:-"longhorn vistaee vistaeesp1 w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64"}
+
+# Versions using the new XML style autoinstall scripts.
+XML="longhorn vistaee vistaeesp1 vistaee-x64 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64"
+
+VIRIDIAN="070417 070306"
+
+# Versions using a UDF filesystem on the ISO.
+UDF="vistaee vistaee-x64 vistaeesp1 vistaeesp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 win7-x86 win7-x64 win7sp1-x86 win7sp1-x64 win8-x86 win8-x64 win81-x86 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2 vistaeesp2-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64"
+
+# 64-bit versions.
+AMD64="longhorn w2k3ee-x64 w2k3eesp2-x64 vistaee-x64 vistaeesp1-x64 ws08-x64 ws08dc-x64 winxpsp2-x64 win7-x64 win7sp1-x64 win8-x64 win81-x64 ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 vistaeesp2-x64 ws08sp2-x64 ws08dcsp2-x64 ws08r2dcsp1-x64 ws12-x64 ws12core-x64 ws12r2-x64 ws12r2core-x64"
+
+MULTIACTIVATIONKEY="ws08r2-x64 ws08r2sp1-x64 ws08r2dc-x64 ws08r2dcsp1-x64 ws08-x86 ws08-x64 ws08dc-x86 ws08dc-x64 ws08sp2-x86 ws08sp2-x64 ws08dcsp2-x86 ws08dcsp2-x64 win8-x86 win8-x64"
+
+# Default confdir location
+CONFDIR=${CONFDIR:-"/etc/xenrt"}
+
+isin() {
+    LIST=${1}
+    ITEM=${2}
+
+    if [ "${LIST}" = "ALL" ]; then
+    	return 0
+    fi
+
+    for V in ${LIST}; do
+        if echo ${V} | grep -x ${ITEM}; then
+            return 0 
+        fi
+    done    
+    return 1 
+}
+
+# Parse parameters (arg4 onwards)
+i=1
+for arg in $@
+do
+    if [ "$i" -gt "3" ]; then
+        # Parse it
+        variable=`echo "${arg}" | awk 'BEGIN{ FS="=" } { print $1 }'`
+        value=`echo "${arg}" | awk 'BEGIN{ FS="=" } { print $2 }'`
+        if [ "${#value}" -gt "0" ]; then
+            eval "${variable}=${value}"
+        fi
+    fi
+    i=$(( $i + 1 ))
+done    
+
+# Set up paths.
+IMAGEDIR=`dirname $0`
+ROOTDIR=`dirname ${IMAGEDIR}`
+SCRIPTDIR=${ROOTDIR}/scripts
+TESTDIR=${ROOTDIR}/tests
+
+# Create workspace.
+WORKDIR=${WORKDIR:-/tmp}
+if [ ! -d ${WORKDIR} ]; then
+    mkdir -p ${WORKDIR}
+fi
+TEMPDIR=`mktemp ${WORKDIR}/XXXXXX`
+
+# Load libraries.
+. ${SCRIPTDIR}/lib/unattended
+
+# Process arguments.
+CALLEDAS=`basename ${0}`
+ORIGISO=${1}
+WINVERSION=${2}
+OUTFILE=${3}
+
+SFUISO=${SFUISO:-`dirname ${ORIGISO}`/sfu.iso}
+
+if [ -z "${ORIGISO}" ]; then
+    echo "Error: Specify an input ISO"
+    exit 1
+elif ! [ -e ${ORIGISO} ]; then
+    echo "Error: Input ISO does not exist"
+    exit 1
+fi
+if [ -z "${WINVERSION}" ]; then
+    echo "Error: Specify Windows version"
+    exit 1
+fi
+if [ -z "${OUTFILE}" ]; then
+    echo "Error: Specify output location"
+    exit 1
+fi
+if [ -z "${TESTDIR}" ]; then
+    echo "Error: Test directory not specified"
+    exit 1
+fi
+if [ -z "${TEMPDIR}" ]; then
+    echo "Error: Temporary directory not specified"
+    exit 1
+fi
+if ! isin "${NOSFU}" ${WINVERSION} && \
+    [ "${CALLEDAS}" == "buildiso" ]; then
+    if [ -z "${SFUISO}" ]; then
+        echo "Error: SFU ISO not set"
+        exit 1
+    elif ! [ -e ${SFUISO} ]; then
+        echo "Error: Can't find SFU ISO"
+        exit 1
+    fi
+fi
+
+umount_on_error() {
+    cd /tmp
+    if [ -n "${TOUMOUNT}" ]; then
+    	umount ${TOUMOUNT} >/dev/null 2>&1 || true
+    fi
+    if [ -n "${TOUMOUNT2}" ]; then
+	    umount ${TOUMOUNT2} >/dev/null 2>&1 || true
+    fi
+}
+
+trap umount_on_error EXIT INT HUP KILL
+
+if [ "${CALLEDAS}" == "buildiso" ]; then
+    build_iso_common ${ORIGISO} ${WINVERSION} ${OUTFILE} \
+        ${IMAGEDIR} ${TEMPDIR} ${SFUISO} ${SCRIPTDIR} ${CONFDIR} \
+        ${PASSWORD}
+elif [ "${CALLEDAS}" == "buildzip" ]; then
+    if [ "${WINVERSION}" == "longhorn" ]; then
+        # Create unattended file.
+        build_zip_vista ${ORIGISO} ${OUTFILE} ${TEMPDIR} \
+            ${IMAGEDIR} ${CONFDIR} ${PASSWORD}
+    else
+        # Create unattended file.
+        build_zip_windows ${ORIGISO} ${OUTFILE} ${TEMPDIR} \
+            ${IMAGEDIR} ${WINVERSION} ${CONFDIR} ${PASSWORD}
+    fi
+else
+    echo "Error: Call as buildzip or buildiso"
+    exit 1
+fi

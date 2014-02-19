@@ -1,0 +1,28 @@
+# Xen test suite
+#
+## NOTE: scenario entries must be at beginning of the line
+##       lines under that scenario must be 1 tab over
+#
+## NOTE: When running on a Unix variant, uncomment
+##       the applicable tests below
+#
+
+all
+        "starting full test suite"
+        ^s1
+        "completed Full test suite"
+
+s1
+	^cli_test
+	^arg_test
+
+cli_test
+        "start tests for xenman cli on the ctlr"
+        /testcase/cli/cli_test 
+        "completed tests for xenman cli on the ctlr"
+
+arg_test
+        "start tests for arg test"
+        /testcase/cli/arg_test 
+        "completed tests for arg"
+

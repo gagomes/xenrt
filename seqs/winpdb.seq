@@ -1,0 +1,32 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <!--<PREPARE_WORKERS>1</PREPARE_WORKERS>-->
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="myVM0">
+          <distro>rhel61</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+        </vm>
+        <vm name="myVM1">
+          <distro>rhel61</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+       </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+      <testcase id="xenserver.tc.winpdb.TCWinPDB" tc="TCWinPDB"/>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,50 @@
+<xenrt>
+  <!-- CCP Interop Smoke Tests:  CCP Version: 4.2 (Campo) -->
+
+  <!-- Use Clearwater RTM for infrastructure host -->
+  <default name="INFRA_HOST_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="INFRA_HOST_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUD_RELEASE>ccp-latest</CLOUD_RELEASE>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+  </variables>
+  <scheduler>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>nfs,staticip</flags>
+  </scheduler>
+
+  <prepare>
+    <host id="0" productVersion="${INFRA_HOST_PRODUCT_VERSION}" version="${INFRA_HOST_PRODUCT_INPUTDIR}">
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+      <vm name="CS-TC">
+        <distro>ubuntu1204</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="10" />
+      </vm>
+    </host>
+
+    <pool id="0">
+      <host id="1" />
+      <storage type="nfs" name="CS-PRI" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Cloud">
+      <testcase id="xenserver.tc.cloud.TCBasicCloudStack" tc="TC-991199"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

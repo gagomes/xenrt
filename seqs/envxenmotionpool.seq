@@ -1,0 +1,65 @@
+<xenrt>
+  <!-- XenMotion Manual Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="SharedNFS" default="true"/>
+      <host id="0">
+        <vm name="Windows-VM-with-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="Linux-VM-with-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="Windows-VM-without-drivers(M)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="Linux-VM-without-drivers(M)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+
+      <host id="1">
+        <vm name="Windows-VM-with-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="Linux-VM-with-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="installDrivers"/>
+        </vm>
+        <vm name="Windows-VM-without-drivers(S)">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0"/>
+        </vm>
+        <vm name="Linux-VM-without-drivers(S)">
+          <distro>debian60</distro>
+          <network device="0" />
+        </vm>
+      </host>
+    </pool> 
+  </prepare>
+
+</xenrt>
+

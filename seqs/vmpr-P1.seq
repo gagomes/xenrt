@@ -1,0 +1,100 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+
+  <testsequence>
+    <serial group="vmpr-P1">
+        <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup">
+           <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+           <arg>storageType=nfs,cifs</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12065" name="TC-12065">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12065</arg>
+            <arg>TC12065</arg>
+            <arg>12065</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12081" name="TC-12081">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12081</arg>
+            <arg>TC12081</arg>
+            <arg>12081</arg>
+        </testcase> 
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12082" name="TC-12082">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12082</arg>
+            <arg>TC12082</arg>
+            <arg>12082</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12083" name="TC-12083">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12083</arg>
+            <arg>TC12083</arg>
+            <arg>12083</arg>
+        </testcase> 
+        <serial>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12100" name="TC-12100" blocker="yes">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12100</arg>
+            <arg>TC12100</arg>
+            <arg>12100</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12099" name="TC-12099">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12099</arg>
+            <arg>TC12099</arg>
+            <arg>12099</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12101" name="TC-12101">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12101</arg>
+            <arg>TC12101</arg>
+            <arg>12101</arg>
+            <arg>postRun=true</arg>
+        </testcase> 
+        </serial>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12105" name="TC-12105">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12105</arg>
+            <arg>TC12105</arg>
+            <arg>12105</arg>
+            <arg>postRun=true</arg>
+        </testcase> 
+        <testcase id="testcases.xenserver.tc.gui.TestCompleteDistroSetup">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>rhel5</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12092" name="TC-12092">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12092</arg>
+            <arg>TC12092</arg>
+            <arg>12092</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-12138" name="TC-12138">
+            <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+            <arg>TC_12138</arg>
+            <arg>TC12138</arg>
+            <arg>12138</arg>
+            <arg>postRun=true</arg>
+        </testcase>
+</serial>
+</testsequence>
+</xenrt>

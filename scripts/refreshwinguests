@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/games:/usr/games
+
+for i in `xenrt mlist -qs $1 -P winguest | awk '{print $1; }'`
+do
+    xrt --setup-static-guest $i --max-age $2
+done

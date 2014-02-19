@@ -1,0 +1,61 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+    <host id="3" noisos="yes" license="no" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Limited License">
+      <testcase id="testcases.xenserver.tc.gui.TCLimitedLicense" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+      </testcase>      
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10099" name="TC-10099">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10099</arg>
+       <arg>TC10099</arg>
+       <arg>10099</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10100" name="TC-10100">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10100</arg>
+       <arg>TC10100</arg>
+       <arg>10100</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10101" name="TC-10101">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10101</arg>
+       <arg>TC10101</arg>
+       <arg>10101</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10102" name="TC-10102">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10102</arg>
+       <arg>TC10102</arg>
+       <arg>10102</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10103" name="TC-10103">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10103</arg>
+       <arg>TC10103</arg>
+       <arg>10103</arg>
+      </testcase> 
+    </serial>
+  </testsequence>
+</xenrt>

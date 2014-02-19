@@ -1,0 +1,29 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="VMX1G2C">
+      <testcase id="xenserver.tc.smoketest.TC6893" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC6894" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC7634" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11908" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11909" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC11907" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9095" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9096" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9097" prio="3"/>
+      <testcase id="xenserver.tc.smoketest.TC9098" prio="3"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

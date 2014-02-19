@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- Cowley VMPP PR1031 Test Sequence -->
+  <variables>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <host id="0" license="platinum">
+        <vm name="linux">
+          <distro>linux</distro>
+          <disk device="0" size="2"/>
+          <network device="0"/>
+          <postinstall action="preCloneTailor"/>
+          <postinstall action="shutdown"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VMPP">
+      <testcase id="xenserver.tc.upgrade.TC14930"/>
+    </serial>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the SYSmark 2004 SE benchmark 
+# (this script runs on the Windows guest itself)
+#
+# (C) XenSource UK Ltd, 2006
+# Alex Brett, August 2006
+
+SCRIPTDIR=`dirname $0`/..
+. ${SCRIPTDIR}/config
+
+RETVAL=0
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install() {
+  # Assume the install files are mounted on the virtual drive D. Run the
+  # install and return instantly, since it will reboot when done and that's
+  # what dom0 is watching for...
+  
+  # Grab the tarball containing setup script and soon.exe
+  cd /dev/fs/C
+  get_test_tarball sm2004se 
+  tar -zxf /local/sm2004se.tgz
+
+  chmod 777 /dev/fs/C/sm2004se
+
+  schtasks /create /ru Administrator /rp xenroot /tn sm2004se_inst \
+    /sc once /st 00:00:00 /tr "D:\\setup.exe -s -f1C:\\sm2004se\\xen.iss"
+  schtasks /run /tn sm2004se_inst
+ 
+}
+
+waitforreboot() {
+
+  # Sit in a sleep loop, when we reboot we'll get terminated, the SSH
+  # connection should then close in dom0 to indicate this...
+
+  while [ "1" ]
+  do
+    sleep 600
+  done
+
+}
+
+run() {
+
+  # Start the tests going...
+
+ 
+  rm -f "/dev/fs/C/Program\ Files/SYSmark\ 2004\ SE/Reports/XENRT.wmr" || true
+ 
+  echo "cd \"C:\\Program Files\\BAPCo\\SYSmark 2004 SE\\Benchmgr\"" > \
+    /dev/fs/C/sm2004se/sm_wrapper
+  echo "Sysmgr.exe STDSUITE=1 PROJNAME=XenRT" >> /dev/fs/C/sm2004se/sm_wrapper 
+  unix2dos C:\\sm2004se\\sm_wrapper C:\\sm2004se\\sm_wrapper.bat
+ 
+  schtasks /create /ru Administrator /rp xenroot /tn sm2004se /sc once \
+    /st 00:00:00 /tr "C:\\sm2004se\\sm_wrapper.bat"
+  schtasks /run /tn sm2004se 
+}
+
+case "$1" in
+  install)
+        shift
+        install "$@"
+        ;;
+  run)
+        shift
+        run "$@"
+        ;;
+  waitforreboot)
+        shift
+        waitforreboot "$@"
+        ;;
+  *)
+        exit 1
+esac
+
+exit $RETVAL

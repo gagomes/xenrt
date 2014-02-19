@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="OEMMisc">
+    <testcase id="xenserver.tc.host.TC6859"/>
+    <testcase id="xenserver.cli.TCQuicktest" group="FunctionalTests" tc="TC-5797"/>
+    <testcase id="xenserver.tc.pvdrivers.TC8369"/>
+    <testcase id="xenserver.tc.host.TC8450"/>
+  </testsequence>
+
+</xenrt>

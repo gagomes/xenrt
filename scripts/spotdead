@@ -1,0 +1,136 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Monitor STDIN for liveness. Return RC_DEAD if we get nothing back
+# for LIVENESS_INTERVAL seconds.
+#
+# The input should be either "Running" or "Done" or "Timeout"
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 7 July 2005
+#
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+LIVENESS_INTERVAL=15
+LIVENESS_TIMEOUT=300
+WAITFOR_RETRY_LIMIT=10
+ERROR_COUNT_LIMIT=10
+
+watch() {
+    OUTFILE=$1
+    TAG=$2
+
+    local DBLOGFILE=/tmp/xenrt_watch.log-`whoami`-${TAG}
+
+    LASTALIVE=`date +%s`
+    ERROR_COUNT=0
+
+    while true; do
+	read -t ${LIVENESS_INTERVAL} INPUTLINE
+	echo `date` "$INPUTLINE" >> ${DBLOGFILE}
+	if [ -z "$INPUTLINE" ]; then
+	    TIMENOW=`date +%s`
+	    XTIMEOUT=$[${LASTALIVE} + ${LIVENESS_TIMEOUT}]
+	    if [ ${TIMENOW} -gt ${XTIMEOUT} ]; then
+		echo "Script death detected."
+		echo "Script death detected." >> ${DBLOGFILE}
+		echo ${RC_DEAD} > ${OUTFILE}
+		kill -s SIGUSR2 $PPID
+		return ${RC_DEAD}
+	    fi
+	elif [ "$INPUTLINE" = "Done" ]; then
+	    echo "Done" >> ${DBLOGFILE}
+	    echo ${RC_OK} > ${OUTFILE}
+	    return ${RC_OK}
+	elif [ "$INPUTLINE" = "Running" ]; then
+	    INPUTLINE=""
+	    LASTALIVE=`date +%s`
+	    ERROR_COUNT=0
+	elif [ "$INPUTLINE" = "Dead" ]; then
+	    echo "Benchmark death detected."
+	    echo "Benchmark death detected." >> ${DBLOGFILE}
+	    echo ${RC_BMDEAD} > ${OUTFILE}
+	    kill -s SIGUSR2 $PPID
+	    return ${RC_BMDEAD}
+	elif [ "$INPUTLINE" = "Timeout" ]; then
+	    echo "Benchmark timeout."
+	    echo "Benchmark timeout." >> ${DBLOGFILE}
+	    echo ${RC_TIMEOUT} > ${OUTFILE}
+	    kill -s SIGUSR2 $PPID
+	    return ${RC_TIMEOUT}
+	else
+	    echo "Unknown value: $INPUTLINE"
+	    echo "Unknown value: $INPUTLINE" >> ${DBLOGFILE}
+	    ERROR_COUNT=$[${ERROR_COUNT} + 1]
+	    if [ ${ERROR_COUNT} -gt ${ERROR_COUNT_LIMIT} ]; then
+		echo ${RC_ERROR} > ${OUTFILE}
+		kill -s SIGUSR2 $PPID
+		return ${RC_ERROR}
+	    fi
+	fi
+    done
+}
+
+handle_trap() {
+    kill -HUP ${CHILDPID} || true
+}
+
+trap handle_trap SIGUSR2
+
+case $1 in
+    -watch)
+	watch $2 $3
+	;;
+    
+    *)
+	JOBID=$2
+	MACHINE=$7
+	
+	WAITFOR_RETRIES=0
+
+	while [ ${WAITFOR_RETRIES} -lt ${WAITFOR_RETRY_LIMIT} ]; do
+
+	    WAITFOR_RETRIES=$[${WAITFOR_RETRIES} + 1]
+
+	    # Create a fifo
+	    TMPNAME=`mktemp /tmp/xenrtspotdeadXXXXXX`
+	    FIFO=${TMPNAME}-fifo
+	    mkfifo ${FIFO}
+	    
+	    # Start the watcher
+	    $0 -watch ${TMPNAME} ${JOBID}-${MACHINE} < ${FIFO} &
+	    WATCHER=$!
+
+	    # Start the child task
+	    CHILD=$1
+	    shift
+	    #echo "Running ${CHILD} $@"
+	    ${CHILD} "$@" > ${FIFO} &
+	    CHILDPID=$!
+	    #echo "...PID=${CHILDPID}"
+
+ 	    # Wait for the watcher to end
+	    wait ${WATCHER} 2>/dev/null || true
+	    WATCHER_RET=`cat ${TMPNAME}`
+	    #echo "Watcher returned ${WATCHER_RET}"
+
+	    # Tidy up
+	    rm -f ${FIFO}
+	    rm -f ${TMPNAME}
+
+	    # If the watcher returned RC_DEAD then we can try again up to
+	    # WAITFOR_RETRY_LIMIT times. Anything else (including RC_OK),
+	    # we exit
+	    if [ ${WATCHER_RET} != ${RC_DEAD} ]; then
+		break
+	    fi
+
+	    sleep 60
+	done
+
+	exit ${WATCHER_RET}
+	;;
+esac

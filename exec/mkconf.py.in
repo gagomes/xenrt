@@ -1,0 +1,195 @@
+# XenRT Regression Testing
+#
+# (C) XenSource UK Ltd 2006
+# Karl Spalding, August 2006
+#
+
+import fileinput
+import re
+import sys
+import getopt
+import os
+
+from common import *
+
+DEFCONF="@confdir@/default.conf"
+
+class Configuration:
+
+    def __init__(self, cmdline):
+
+        self.environment = {}
+    
+        try: self.readOptionsFile(DEFCONF)
+        except IOError: pass
+        except ConfigParseError, e: print str(e)
+    
+        try: self.readOptionsFile(self.get("XENRTCONF"))
+        except IOError: pass
+        except ConfigParseError, e: print str(e)
+    
+        try: self.readOptionsFile(self.get("SITECONF"))
+        except IOError: pass
+        except ConfigParseError, e: print str(e)
+
+        argmap = {
+            '-m': 'MACHINE',
+            '-v': 'VERSION',
+            '-r': 'REVISION',
+            '-o': 'OPTIONS',
+            '-n': 'DEPS',
+            '-S': 'SERIAL',
+            '-R': 'REPO',
+            '-T': 'REVSET',
+            '-U': 'UNTARLOGS',
+            '-D': 'RESULT_DIR',
+            '-W': 'WORKING_DIR'
+        }
+        argmapbool = {
+            '-P': 'PUBLISH'
+        }
+
+        optlist, args = getopt.getopt(cmdline, 'm:v:r:o:n:S:R:T:U:D:W:PU:F:p:Lc:C')
+        for flag,value in optlist:
+            if argmap.has_key(flag):
+                self.set(argmap[flag], value)
+            elif argmapbool.has_key(flag):
+                self.set(argmapbool[flag], "yes")
+            elif flag == "-F":
+                self.readOptionsFile(value)
+            elif flag == "-p":
+                self.set("OPTION_XEN_PACKAGE", "rpm")
+                self.set("RPMARG", value)
+	    elif flag == "-L":
+            	pass
+	    elif flag == "-c":
+                self.set("CLEANUP", "onsuccess")
+            elif flag == "-C":    
+                self.set("CLEANUP", "always")
+
+        if not self.get("MACHINE"):
+            sys.stdout.write("A test machine has to be specified.\n")
+            sys.exit(1)
+        if not self.get("DEPS"):
+            sys.stdout.write("A test sequence has to be specified.\n")
+            sys.exit(1)
+
+        try: self.readOptionsFile("%s/%s" % (self.get("MACHINECONFDIR"),
+                                             self.get("MACHINE") + ".conf"))
+        except IOError: pass
+        except ConfigParseError, e: print str(e)
+
+        try: self.readOptionsFile("%s/%s" % (self.get("SEQUENCECONFDIR"),
+                                             self.get("DEPS") + ".conf"))
+        except IOError: pass
+        except ConfigParseError, e: print str(e)
+
+	# Replace variables. Fails silently at the moment.
+	for key,value in self.environment.items():
+	    vars = re.finditer("(%)(?P<key>[^%]+)(%)", value)
+	    for v in vars:
+		if self.get(v.group("key")):
+                    self.set(key, re.sub("(%)(" + v.group("key") + ")(%)", 
+	                                 self.get(v.group("key")), self.get(key)))
+
+        if self.get("PUBLISH") == "yes":
+            self.set("DBMETHOD", self.get("DBMETHODTYPE"))
+        else:
+            self.set("DBMETHOD", "file")
+
+        if self.get("OPTION_XEN_PACKAGE") == "rpm":
+            if not self.get("RPMARG"):
+                    self.set("RPMARG", "1")
+                    if self.get("ROOT_DISTRO") == "rhel41" or not self.get("ROOT_DISTRO"):
+			self.set("RPMDISTRO", "rhel4.1")
+		    else: 
+			self.set("RPMDISTRO", self.get("ROOT_DISTRO"))
+                    self.set("RPMPATH", self.get("RPM_PATH_FORMAT[%s]" % self.get("RPMARG"))) 
+        
+            self.set("XEN_RPM_BASE_PATH", self.get("RPMPATH"))
+        elif self.get("OPTION_XEN_PACKAGE") == "tarball":
+            self.set("REPO", "prebuilt")
+
+        if self.get("OPTION_GUEST_ROOT") == "nfs":
+            self.set("OPTION_SEP_DOMU", "yes")
+
+        if self.get("OPTION_GNBD_SERVE_FOR"):
+            self.set("OPTION_USE_GNBD", "yes")
+            self.set("DEPS", "gnbdserver")
+        elif self.get("OPTION_GNBD_SERVER"):
+            self.set("OPTION_USE_GNBD", "yes")
+
+        if self.get("OPTION_ONLY_DOMU"):
+            self.set("OPTION_SEP_DOMU", "yes") 
+            self.set("OPTION_BUILD_COMPONENTS", "kernels") 
+            self.set("OPTION_SECONDARY_REPO_VERSION", "xen-3.0-testing") 
+            self.set("XEN_BUILD_OPTIONS2", "KERNELS=linux-2.6-xen0") 
+            self.set("EXTRA_BUILD_OPTIONS", "KERNELS=linux-2.6-xenU") 
+
+        if self.get("OPTION_CLEAR_BUILDOPTS") == "yes":
+            del environment["XEN_BUILD_OPTIONS"]
+
+        if self.get("CARBON_CD_IMAGE"):
+            self.set("OPTION_KERNEL_IN_IMAGE", "yes")
+            self.set("REPO", "prebuilt")
+
+        if not self.get("RESULT_DIR"):               
+            if self.get("JOBID"):
+                self.set("SUBDIRS", "jobs/" + self.get("JOBID"))
+            elif not self.get("REVSET"):
+                self.set("SUBDIRS", self.get("MACHINE") + "/" + \
+                                    self.get("VERSION") + "/" + \
+                                    self.get("REVISION") + "/" + \
+                                    self.get("OPTIONS") + "/" + \
+                                    self.get("DEPS"))
+            else:  
+                self.set("SUBDIRS", self.get("MACHINE") + "/" + \
+                                    self.get("VERSION") + "/" + \
+                                    self.get("REVSET") + "/" + \
+                                    self.get("OPTIONS") + "/" + \
+                                    self.get("DEPS"))
+            self.set("RESULT_DIR", self.get("TESTBASE") + "/" + \
+                                   self.get("SUBDIRS"))
+
+        for key,value in self.environment.items():
+            if re.search("_32", key):
+                if self.get("OPTIONS") == "x86-32":
+                    self.set(re.sub("_32", "", key), value)
+            elif re.search("_64", key):
+                if self.get("OPTIONS") == "x86-64":
+                    self.set(re.sub("_64", "", key), value)
+
+        if self.get("BUILD_LOCAL") == "yes":
+            self.set("BUILD_HOST", "localhost")
+
+        if self.get("OPTION_DEBUG") == "yes":
+            for item in self.environment.items():
+                sys.stderr.write("DEBUG - %s=%s\n" % item)
+
+
+    def readOptionsFile(self, filename):
+        for line in fileinput.input(filename):
+            if re.match("#.*", line) or re.match("\n", line): continue
+            m = re.match("(?P<key>[^=]*)(?:=)(?P<value>.*)", line.strip())
+            if not m:
+                raise ConfigParseError("Invalid line in '%s':\n%s" % (filename, line))
+            else:
+                # Strip quotes if required.
+                n = re.match("(?:[\"\'])(?P<value>.*)(?:[\"\'])", m.group("value"))
+                if n:
+                    self.set(m.group("key"), n.group("value"))
+                else:
+                    self.set(m.group("key"), m.group("value"))
+
+    def get(self, name):
+        if name in self.environment:
+            if self.environment[name] != "":
+                return self.environment[name]
+        return None
+
+    def set(self, name, value):
+        if self.get("OPTION_DEBUG") == "yes":
+            if self.get(name):
+                sys.stderr.write("DEBUG - Overwriting %s:%s with %s:%s\n" %
+                                (name, self.get(name), name, value))
+        self.environment[name] = value  

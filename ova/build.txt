@@ -1,0 +1,23 @@
+How to build the XenRT OVA
+==========================
+
+1) Clone build.hg somewhere
+
+2) Go to build.hg/myrepos, and clone dom0.hg
+
+3) Run: ln -s /path/to/xenrt.hg/ova/patches/build /path/to/build.hg/.hg/patches
+
+4) Run: ln -s /path/to/xenrt.hg/ova/patches/dom0 \
+              /path/to/build.hg/myrepos/dom0.hg/.hg/patches
+
+5) Go to build.hg, and type hg qpush -a
+
+6) Go to dom0.hg, and type hg qpush -a
+
+You now have a copy of the build system with the XenRT changes applied.
+
+7) Go to build.hg, and type (replacing # with the build number):
+   make OVA_DISK_G=20 OVA_MEM_MB=2048 BUILD_NUMBER=# xenrt-build
+
+This should go away and build you a xenrt.iso, which will be placed in 
+output/xenrt/xenrt.iso

@@ -1,0 +1,23 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

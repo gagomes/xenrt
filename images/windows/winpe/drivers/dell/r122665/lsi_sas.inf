@@ -1,0 +1,167 @@
+;
+; LSI_SAS.INF - version S2003.2 (Windows 2000/Server 2003)
+;
+; This is the INF file for Windows 2000/Server 2003 for the
+; SYMMPI/LSI_SAS based PCI MPT environment (Serial Attached SCSI devices)
+;
+; ********************************************************************
+;                                                                    *
+;   Copyright 2005 LSI Logic, Inc. All rights reserved.              *
+;                                                                    *
+;   This file is property of LSI Logic, Inc. and is licensed for     *
+;   use as is.  The receipt of or possession of this file does not   *
+;   convey any rights to modify its contents, in whole, or in part,  *
+;   without the specific written consent of LSI Logic, Inc.          *
+;                                                                    *
+; ********************************************************************
+
+[version]
+signature="$Windows NT$"
+Class=SCSIAdapter
+ClassGUID={4D36E97B-E325-11CE-BFC1-08002BE10318}
+Provider=%DELL%
+DriverVer=11/17/2005,1.21.08.00
+CatalogFile.ntx86=lsi_sas.cat
+
+[DestinationDirs]
+DefaultDestDir = 12 ; DIRID_DRIVERS
+CoCopyINF.CopyFiles = 11
+
+[SourceDisksFiles.x86]
+lsi_sas.sys = 1
+symmpi.sys = 1
+cocpyinf.dll = 1
+
+[SourceDisksNames]
+1 = %DiskDesc%,,
+
+[Manufacturer]
+%DELL%=DELL, NT.5.1, NT.5.2
+
+[DELL]
+%DevDescD1% = SYMMPI_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F041028
+%DevDescD3% = SYMMPI_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F061028
+%DevDescD4% = SYMMPI_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F071028
+%DevDescD5% = SYMMPI_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F081028
+%DevDescD6% = SYMMPI_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F091028
+
+[DELL.NT.5.1]
+%DevDescD1% = NO_DRV, PCI\VEN_1000&DEV_0054&SUBSYS_1F041028
+%DevDescD3% = NO_DRV, PCI\VEN_1000&DEV_0054&SUBSYS_1F061028
+%DevDescD4% = NO_DRV, PCI\VEN_1000&DEV_0054&SUBSYS_1F071028
+%DevDescD5% = NO_DRV, PCI\VEN_1000&DEV_0054&SUBSYS_1F081028
+%DevDescD6% = NO_DRV, PCI\VEN_1000&DEV_0054&SUBSYS_1F091028
+
+[DELL.NT.5.2]
+%DevDescD1% = LSI_SAS_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F041028
+%DevDescD3% = LSI_SAS_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F061028
+%DevDescD4% = LSI_SAS_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F071028
+%DevDescD5% = LSI_SAS_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F081028
+%DevDescD6% = LSI_SAS_Inst, PCI\VEN_1000&DEV_0054&SUBSYS_1F091028
+
+[ControlFlags]
+ExcludeFromSelect = *
+
+[NO_DRV]
+
+
+[SYMMPI_Inst]
+CopyFiles = SYMMPI_CopyFiles
+AddReg = SYMMPI_AddReg
+CopyINF = delpseud.inf
+
+[SYMMPI_Inst.CoInstallers]
+AddReg = CoCopyINF.AddReg
+CopyFiles = CoCopyINF.CopyFiles
+
+[SYMMPI_Inst.HW]
+DelReg = LegacyScsiportValues
+
+[SYMMPI_Inst.Services]
+AddService = SYMMPI, %SPSVCINST_ASSOCSERVICE%, SYMMPI_Service_Inst, Miniport_EventLog_Inst
+
+[SYMMPI_Service_Inst]
+ServiceType    = %SERVICE_KERNEL_DRIVER%
+StartType      = %SERVICE_BOOT_START%
+ErrorControl   = %SERVICE_ERROR_NORMAL%
+ServiceBinary  = %12%\symmpi.sys
+LoadOrderGroup = SCSI Miniport
+AddReg         = pnpsafe_pci_addreg
+AddReg         = bus_type_sas
+
+[SYMMPI_CopyFiles]
+symmpi.sys,,,1
+
+[SYMMPI_AddReg]
+HKLM,SYSTEM\CurrentControlSet\Services\Symmpi\Parameters\Device,DriverParameter,,"EnablePseudoDevice=1;"
+HKLM,SYSTEM\CurrentControlSet\Services\Symmpi\Parameters\Device,MaximumSGList,0x00010001,0xFF
+HKLM,SYSTEM\CurrentControlSet\Services\Symmpi\Parameters\Device,NumberOfRequests,0x00010001,0xFF
+
+[CoCopyINF.AddReg]
+HKR,,CoInstallers32,0x10000,"cocpyinf.DLL,CoCopyINF"
+
+[CoCopyINF.CopyFiles]
+cocpyinf.dll,,,0x10
+
+[LSI_SAS_Inst]
+CopyFiles = LSI_SAS_CopyFiles
+AddReg = LSI_SAS_AddReg
+
+[LSI_SAS_Inst.HW]
+DelReg = LegacyScsiportValues
+
+[LSI_SAS_Inst.Services]
+AddService = LSI_SAS, %SPSVCINST_ASSOCSERVICE%, LSI_SAS_Service_Inst, Miniport_EventLog_Inst
+
+[LSI_SAS_Service_Inst]
+ServiceType    = %SERVICE_KERNEL_DRIVER%
+StartType      = %SERVICE_BOOT_START%
+ErrorControl   = %SERVICE_ERROR_NORMAL%
+ServiceBinary  = %12%\lsi_sas.sys
+LoadOrderGroup = SCSI Miniport
+AddReg         = pnpsafe_pci_addreg
+AddReg         = bus_type_sas
+
+[LSI_SAS_CopyFiles]
+lsi_sas.sys,,,1
+
+[LSI_SAS_AddReg]
+HKLM,SYSTEM\CurrentControlSet\Services\Lsi_sas\Parameters\Device,DriverParameter,0x00000002,"PlaceHolder=0;"
+HKLM,SYSTEM\CurrentControlSet\Services\Lsi_sas\Parameters\Device,MaximumSGList,0x00010001,0xFF
+HKLM,SYSTEM\CurrentControlSet\Services\Lsi_sas\Parameters\Device,NumberOfRequests,0x00010001,0xFF
+
+[LegacyScsiportValues]
+HKR,Scsiport,BusNumber
+HKR,Scsiport,LegacyInterfaceType
+HKR,Scsiport,SlotNumber
+
+[pnpsafe_pci_addreg]
+HKR, "Parameters\PnpInterface", "5", 0x00010001, 0x00000001
+
+[bus_type_sas]
+HKR, "Parameters", "BusType", 0x00010001, 0x0000000B
+
+[Miniport_EventLog_Inst]
+AddReg = Miniport_EventLog_AddReg
+
+[Miniport_EventLog_AddReg]
+HKR,,EventMessageFile,%REG_EXPAND_SZ%,"%%SystemRoot%%\System32\IoLogMsg.dll"
+HKR,,TypesSupported,%REG_DWORD%,7
+
+[Strings]
+DELL = "Dell Inc."
+DiskDesc = "Dell SAS 5x Controller Driver (Windows 2000/Server 2003 32-bit)"
+DevDescD1 = "Dell SAS 5/E Adapter Controller"
+DevDescD3 = "Dell SAS 5/i Integrated Controller"
+DevDescD4 = "Dell SAS 5/iR Integrated Controller"
+DevDescD5 = "Dell SAS 5/iR Integrated Controller"
+DevDescD6 = "Dell SAS 5/iR Adapter Controller"
+
+;*******************************************
+;Handy macro substitutions (non-localizable)
+SPSVCINST_ASSOCSERVICE = 0x00000002
+SERVICE_KERNEL_DRIVER  = 1
+SERVICE_BOOT_START     = 0
+SERVICE_ERROR_NORMAL   = 1
+REG_EXPAND_SZ          = 0x00020000
+REG_DWORD              = 0x00010001

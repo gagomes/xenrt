@@ -1,0 +1,13 @@
+diff -rup lmbench-3.0-a4-orig/scripts/config-run lmbench-3.0-a4/scripts/config-run
+--- lmbench-3.0-a4-orig/scripts/config-run	2004-08-10 06:43:22.000000000 -0400
++++ lmbench-3.0-a4/scripts/config-run	2007-01-05 16:44:52.000000000 -0500
+@@ -132,6 +132,9 @@ The bigger the range, the more accurate 
+ take somewhat longer to run the benchmark.
+ 
+ EOF
++if [ $MB -gt 1024 ]
++then	MB=1024
++fi
+ echo $ECHON "MB [default $MB] $ECHOC"
+ read TMP
+ if [ X$TMP != X ]

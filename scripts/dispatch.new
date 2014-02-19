@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Dispatch script, initiates local actions.
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 6 July 2005
+# Karl Spalding, August 2006
+#
+
+set -e
+
+set -x
+
+SCRIPTDIR=`dirname $0`
+
+# We need this early on SFU. The script will return without 
+# action if we're not running on Windows.
+. ${SCRIPTDIR}/lib/windows
+
+shopt -s huponexit
+
+JOBID=$1
+shift
+DATE=$1
+shift
+XENVERSION=$1
+shift
+XENREVISION=$1
+shift
+XENOPTIONS=$1
+shift
+XENMACHINE=$1
+shift
+TESTNAME=$1
+shift
+PHASE=$1
+shift
+ACTION=$1
+shift
+
+# This is to make sure that monitoring scripts get to run.
+if [ "${ACTION}" = "waitfor" -a \
+     `${UNAME}` != Cygwin -a \
+     `${UNAME}` != Windows ]; then
+
+    renice -10 $$ &> /dev/null || true
+    # And our parent sshd as well.
+    if [ `ps -p $PPID -o comm=` = "sshd" ]; then
+	renice -10 $PPID &> /dev/null || true
+    fi
+fi
+
+PER_RUN_CONFIG=`mktemp /tmp/xenrtconfXXXXXX`
+cat > ${PER_RUN_CONFIG}
+
+cleanup() {
+    if [ -n "${PER_RUN_CONFIG}" ]; then
+        rm -f ${PER_RUN_CONFIG}
+    fi
+}
+
+trap cleanup EXIT
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+if [ "${JOBID}" = "-" ]; then
+    JOBID=""
+fi
+
+if [ -n "${WORKING_DIR}" ]; then
+    WORKDIR=${WORKING_DIR}/${TESTNAME}/${PHASE}
+else
+    if [ -n "${JOBID}" ]; then
+        WORKDIR=${TESTBASE}/`printf "job%08u" ${JOBID}`/${TESTNAME}/${PHASE}
+    else
+        WORKDIR=${TESTBASE}/${DATE}/${TESTNAME}/${PHASE}
+    fi
+fi
+
+JOBID="${JOBID}" DATE=${DATE} WORKDIR=${WORKDIR} XENVERSION=${XENVERSION} XENREVISION=${XENREVISION} XENOPTIONS=${XENOPTIONS} XENMACHINE=${XENMACHINE} PER_RUN_CONFIG=${PER_RUN_CONFIG} ${SCRIPTDIR}/${TESTNAME} "${ACTION}" "$@"

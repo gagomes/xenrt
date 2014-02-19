@@ -1,0 +1,12 @@
+# Status: proprietary
+14c3678896f81074de51fa8a66a3463c  ./Boston/rbac_static.csv
+5cae41d5365bc3c4dd548cadb4e62052  ./MNR/cli2api
+a17d883345de8ccd605bca57f7a5f7d4  ./MNR/permissions
+5e110a29c651e4e08456d0de2eed349a  ./current/cli2api
+ef9a50d450437f21ea28246bb90797e6  ./current/permissions
+ef9a50d450437f21ea28246bb90797e6  ./current/rbac_static.csv
+e70fc78c1a45ac04f89a9443aed177cc  ./Tampa/rbac_static.csv
+5e110a29c651e4e08456d0de2eed349a  ./cli2api
+26e6f83ea2f7314a99e3f807df141604  ./permissions
+6785369377682d9597c4ff71d6f6268c  ./Sarasota/rbac_static.csv
+0dda2e4abde8a0ddd283b047f8aa08e4  ./Clearwater/rbac_static.csv

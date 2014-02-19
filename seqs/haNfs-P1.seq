@@ -1,0 +1,95 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+  <testsequence>
+    <serial group="haNfs-P1">
+     <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>storageType=iscsi,nfs</arg>
+     </testcase>
+     <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-13761" name="TC-13761" blocker="yes">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_13761</arg>
+       <arg>TC13761</arg>
+       <arg>13761</arg>
+     </testcase> 
+     <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-13770" name="TC-13770">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_13770</arg>
+       <arg>TC13770</arg>
+       <arg>13770</arg>
+     </testcase> 
+    </serial>
+    <serial group= "poolHa-P1" >
+     <!--Blocked as they require plink-putty for Wake-On-Lan and Due to Tampa Outgoing Bug CA-89396 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11988" name="TC-11988">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_11988</arg>
+       <arg>TC11988</arg>
+       <arg>11988</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11989" name="TC-11989">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_11989</arg>
+       <arg>TC11989</arg>
+       <arg>11989</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1724" name="TC-1724">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1724</arg>
+       <arg>TC1724</arg>
+       <arg>1724</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1725" name="TC-1725">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1725</arg>
+       <arg>TC1725</arg>
+       <arg>1725</arg>
+       <arg>postRun=true</arg>
+      </testcase>-->
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1720" name="TC-1720">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1720</arg>
+       <arg>TC1720</arg>
+       <arg>1720</arg>
+       <arg>postRun=true</arg>
+      </testcase>      
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1727" name="TC-1727">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1727</arg>
+       <arg>TC1727</arg>
+       <arg>1727</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1729" name="TC-1729">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1729</arg>
+       <arg>TC1729</arg>
+       <arg>1729</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+   </serial>
+</testsequence>
+</xenrt>
+

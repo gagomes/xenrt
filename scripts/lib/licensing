@@ -1,0 +1,66 @@
+carbon_get_good_key() {
+    local FORMAT=${1:-sxp}
+    if [ "${FORMAT}" = "sxp" ]; then
+	local LGEN_ARGS="-x"
+	local LKEYFILE=""
+    else
+	local LKEYFILE=`mktemp /tmp/lkXXXXXX`
+	local LGEN_ARGS=""
+    fi
+    local LIC_KEY=""
+    if [ "${OPTION_GENERATE_LICENSE}" = "yes" ]; then
+        # Burbank (3.0.x) and Zurich up to 0.2.4-722 use one generator
+        # and later Zurichs use another
+        if [ -e `dirname ${CARBON_CD_IMAGE}`/xlicense ]; then
+            # Use the license generator for this specific build
+            local LGEN="`dirname ${CARBON_CD_IMAGE}`/xlicense ${LGEN_ARGS}"
+        elif [ "${XENREVISION}" '<' "0.2.4-724" ]; then
+            # Early Zurich
+            local LGEN=${CARBON_LICENSE_GEN}
+        elif [ "${XENREVISION}" = "3.1.0" -o "${XENREVISION}" '>' "3.1.0" ]; then
+            # Zurich GA
+            local LGEN="${CARBON_LICENSE_GEN}-724 ${LGEN_ARGS}"
+        elif [ "${XENREVISION}" = "3.0.0" -o "${XENREVISION}" '>' "3.0.0" ]; then
+            # Burbank GA
+            local LGEN=${CARBON_LICENSE_GEN}
+        else
+            # Later Zurich
+            local LGEN="${CARBON_LICENSE_GEN}-724 ${LGEN_ARGS}"
+        fi
+        log_extra_data "Comment: Using license generator '${LGEN}'"
+        if ( ${LGEN} -f | grep -q 'Unknown option' ); then
+            # No -f support
+	    local TMPF=`mktemp /tmp/lkXXXXXX`
+	    echo "${CARBON_LICENSE_BLANK}" > ${TMPF}
+	    if [ -n "${LKEYFILE}" ]; then
+	        ${LGEN} ${TMPF} > ${LKEYFILE}
+	    else
+	        local LIC_KEY=`${LGEN} ${TMPF}`
+	    fi
+	    rm -f ${TMPF}
+        else
+            # Use -f to get a maximal license
+            if [ -n "${LKEYFILE}" ]; then
+                ${LGEN} -f | grep -v 'Generating full license' > ${LKEYFILE}
+            else
+                local LIC_KEY=`${LGEN} -f | grep -v 'Generating full license'`
+            fi
+        fi
+    elif [ "${OPTION_LATEST_LICENSE}" = "yes" ]; then
+	local LIC_KEY=${CARBON_LICENSE_GOOD}
+    elif ( echo ${XENREVISION} | grep -q "^0" ); then
+	local LIC_KEY=${CARBON_LICENSE_GOOD_PRE_B2A4}
+    elif ( echo ${XENREVISION} | grep -q "^1\\." ); then
+	local LIC_KEY=${CARBON_LICENSE_GOOD_PRE_B2A4}
+    elif ( echo ${XENREVISION} | grep -q "^2\\.0\\.[0123]" ); then
+	local LIC_KEY=${CARBON_LICENSE_GOOD_PRE_B2A4}
+    else
+	local LIC_KEY=${CARBON_LICENSE_GOOD}
+    fi
+    if [ -n "${LKEYFILE}" ]; then
+	cat ${LKEYFILE}
+	rm -f ${LKEYFILE}
+    else
+	echo ${LIC_KEY}
+    fi
+}

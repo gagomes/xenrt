@@ -1,0 +1,38 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    <CVSM_INPUTDIR>/usr/groups/xenrt/cvsm/</CVSM_INPUTDIR>
+  </variables>
+
+  <prepare>
+
+    <pool id="0">
+
+      <storage type="nfs" name="nfssr" default="true" />
+      <storage type="lvmoiscsi" name="iSCSI" options="iet" />
+
+      <host id="0" />
+      <host id="1" />
+      <host id="2" />
+      <host id="3" />
+      <vm name="CVSMSERVER">
+        <distro>ws08-x86</distro>
+        <memory>1024</memory>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+        <postinstall action="installCVSM" />
+        <postinstall action="installCVSMCLI" />
+      </vm>
+    </pool>
+
+  </prepare>
+
+  <testsequence>
+    <serial group="TC11845">
+      <testcase id="xenserver.tc.ha.TC11845" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,42 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+
+    <pool id="0">
+      <storage type="nfs" name="fastStoreSR" default="true" />
+      <host id="0">
+        <!-- This is ghoul1 on which we measure VM start-times. -->
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC />
+            <NIC />
+            <NIC />
+            <NIC />
+            <MANAGEMENT mode="static" />
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+    </pool>
+  </prepare>
+
+  <!-- Note: to turn localstoragecaching on and off, add/remove the arg from all the test cases. -->
+
+  <testsequence>
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+      <arg>novifs</arg>
+      <arg>numdesktops=2</arg>
+    </testcase>
+
+    <for iter="I" values="10,20,30,40,50,01,03,05,07,15,25,35,45,55">
+      <action action="prepare" />
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-${I}">
+        <arg>novifs</arg>
+        <arg>numdesktops=${I}</arg>
+      </testcase>
+    </for>
+  </testsequence>
+</xenrt>

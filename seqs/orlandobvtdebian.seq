@@ -1,0 +1,49 @@
+<xenrt>
+
+  <!-- Orlando basic Debian check -->
+
+  <default name="GUESTMEMORY" value="512"/>
+  <default name="GUESTVCPUS" value="1"/>
+  <default name="CLITESTLIST" value="ALL"/>
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall"/>
+      <testcase id="xenserver.cli.TCQuicktest"/>
+
+      <testcase id="xenserver.cli.TCCLI" group="FunctionalTests">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>tests=${CLITESTLIST}</arg>
+        <arg>guests=debian-pv</arg>
+      </testcase>
+
+      <serial group="DebianGuest">
+        <testcase id="xenserver.guest.TCXenServerDebianInstall" name="TCDebianInstall">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=debianguest</arg>
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;etch&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;etch&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;etch&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=2</arg>
+          <arg>live</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;etch&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+      </serial>
+
+      <testcase id="xenserver.tc.storage.TC6824" group="FunctionalTests" tc="TC-6824"/>
+      <testcase id="xenserver.tc.storage.TC6825" group="FunctionalTests" tc="TC-6825"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

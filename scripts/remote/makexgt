@@ -1,0 +1,31 @@
+#!/bin/bash
+
+EXISTINGTNAME="$1"
+NEWNAME="$2"
+DISK1SIZE="$3"
+
+OLDNAME=""
+for i in /opt/xensource/packages/xgt/*.xgt; do
+    if ( /opt/xensource/xenagentd/bin/xgt -f $i -i | \
+         egrep -q "XGT Name[[:space:]]*:[[:space:]]*${EXISTINGTNAME}$" );
+        then
+        OLDNAME=`basename $i`
+    fi
+done
+
+if [ -z "${OLDNAME}" ]; then
+    echo "Unable to locate existing template ${EXISTINGTNAME}"
+    exit 1
+fi
+
+if [ -e /opt/xensource/packages/xgt/xenrt-${NEWNAME}.xgt ]; then
+    rm -rf /opt/xensource/packages/xgt/xenrt-${NEWNAME}.xgt
+fi
+
+mkdir /opt/xensource/packages/xgt/xenrt-${NEWNAME}.xgt
+
+/opt/xensource/xenagentd/bin/xgt -f /opt/xensource/packages/xgt/${OLDNAME} -m \
+    | sed -r -e"s/total_size [[:digit:]]+/total_size ${DISK1SIZE}/" \
+    -e"s/name '.*'/name '${NEWNAME}'/" \
+    > /opt/xensource/packages/xgt/xenrt-${NEWNAME}.xgt/template.dat
+

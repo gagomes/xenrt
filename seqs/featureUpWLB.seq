@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- Feature operation after upgrade test: Workload Balancing (WLB) -->
+
+  <!-- This sequence must be run with suitably configured PRODUCT_VERSION
+       (for the version being updated/upgraded to), INITIAL_VERSION_PATH
+       for the George or later version being used as the starting point,
+       and THIS_UPDATE for the path to the hotfix or OEM update or the
+       string "UPGRADE" to upgrade using normal files in the input
+       directory. -->
+
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC10753"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

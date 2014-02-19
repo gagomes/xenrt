@@ -1,0 +1,3 @@
+re bootmgr\.exe xenrt/native/bootmgr.exe
+rg \\Boot\\ xenrt/native/
+rg \\boot\\ xenrt/native/

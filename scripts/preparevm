@@ -1,0 +1,113 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing. Sets up a non-blesssed filesystem for
+# XenRT use.
+#
+# (C) XenSource UK Ltd. 2006
+# James Bulpin, Mar-Sep 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=3600
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/blessguest
+
+install() {
+    DOMINDEX=${1:0}
+    SUBDIR=${DOMINDEX}
+    shift
+
+    mkdir -p ${WORKDIR}/logs/${SUBDIR}
+    cd ${WORKDIR}
+    rm -f ${WORKDIR}/.xenrt-success-${SUBDIR}
+    reset_extra_data
+
+    # The per-run config is only a temporary file that will be removed
+    # once "install", or "start", has returned. Make a copy to use
+    # later when we copy it to the guests for chroot running.
+    if [ -n "${PER_RUN_CONFIG}" ]; then
+	cp ${PER_RUN_CONFIG} ${WORKDIR}/per-run-config
+    fi
+    
+    touch ${WORKDIR}/.setupcomplete
+}
+
+run() {
+    DOMINDEX=${1:0}
+    SUBDIR=${DOMINDEX}
+
+    set -x
+
+    GUESTHOSTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+
+    bless_guest ${GUESTHOSTNAME}
+
+    touch ${WORKDIR}/.xenrt-success-${SUBDIR}
+}
+
+
+getlogs() {
+    fetch_extra_log_files
+    tar -jcf - -C ${WORKDIR}/logs .
+}
+
+process() {
+    DOMINDEX=${1:0}
+    SUBDIR=${DOMINDEX}
+
+    if [ -e ${WORKDIR}/.xenrt-success-${SUBDIR} ]; then
+        echo "Test: passed"
+    else
+        echo "Test: failed"
+    fi
+    
+    get_extra_data
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+	shift
+        install "$@"
+        ;;
+  start)
+	shift
+        start_run "$@"
+        ;;
+  stop)
+        stop_run
+        ;;
+  run)
+	shift
+	run "$@"
+	;;
+  waitfor)
+	waitfor
+        ;;
+  process)
+	shift
+        process "$@"
+        ;;
+  getlogs)
+	getlogs
+	;;
+  cleanup)
+	cleanup_working_directory
+	;;
+  get_free_memory)
+	get_free_memory "$@"
+	;;
+  *)
+        exit 1
+esac
+
+exit $RETVAL

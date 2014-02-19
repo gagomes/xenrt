@@ -1,0 +1,31 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+  </variables>
+
+  <default name="GUESTMEMORY" value="4096"/>
+
+  <prepare>
+    <host id="0">
+      <vm name="test">
+        <distro>win7-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <disk device="0" size="30"/> 
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+    </pool>
+  </prepare>
+
+  <testsequence group="WSMANKVPTest">
+    <testcase id="xenserver.tc.cimserver.TC18037"/>
+  </testsequence>
+
+</xenrt>

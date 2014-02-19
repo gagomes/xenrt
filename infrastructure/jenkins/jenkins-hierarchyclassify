@@ -1,0 +1,29 @@
+#!/usr/bin/python -u
+
+import glob, libxml2, os,jira,re
+
+default = "TC-14978"
+deftext = ""
+
+j = jira.Jira("http://jira.uk.xensource.com","xenrt","xensource")
+
+parent = j.getIssue(os.environ['Hierarchy'].split(" ")[-1])
+
+parent.getLinks()
+links = parent.getLinks()
+tickets = filter(lambda x: links[x] == "contains", links.keys())
+cmps = j.getProject("TC").getComponents()
+cmpid = None
+for c in cmps:
+    if c.name == os.environ['Component']:
+        cmpid = c.id
+if not cmpid:
+    raise xenrt.XRTError("Could not find component for %s" % comp)
+for t in tickets:
+    i = j.getIssue(t)
+    if i.getType() == "Test Case":
+        if len(i.getComponents()) == 0:
+            print "Setting component of %s to %s" % (t, os.environ['Component'])
+            i.setComponents([cmpid])
+        else:
+            print "%s already has a component set - skipping" % t

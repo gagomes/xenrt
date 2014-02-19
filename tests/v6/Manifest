@@ -1,0 +1,16 @@
+# Status: NDA
+44214bdd270a57f9c999cb0c98ae474e  ./windows/resource/ja/CTX_LicensingUI.mst
+b0a09824f08799d02796d35890fcbe42  ./windows/resource/fr/CTX_LicensingUI.mst
+83297f0d1861f5d718dd1642a28aa601  ./windows/resource/es/CTX_LicensingUI.mst
+09881b294ed8eacdeb051dbeced935b2  ./windows/resource/de/CTX_LicensingUI.mst
+db701f843dee080490279b4865a8e04a  ./windows/CTX_Licensing.msi
+88a6412712597def422c69ecf1b898f4  ./conf
+87cf95378fdc88d86bc5e43283441b67  ./linux/LS/lmstat
+87cf95378fdc88d86bc5e43283441b67  ./linux/LS/lmdown
+e82a606176de59dbddff310722719456  ./linux/LS/CITRIX
+87cf95378fdc88d86bc5e43283441b67  ./linux/LS/lmutil
+7069f29be7a91a251838f576b95731f1  ./linux/LS/lmgrd
+cdca5f3a03891f5c2996a4fa3beba5ac  ./linux/run.sh
+9a6bb94c2e2f2a59b3b79aa4729830e5  ./linux/stat.sh
+c138329760156eda2092c173eee7c173  ./linux/stop.sh
+ae90978e5a2137a8a7ff3a5d1bfd0ea0  ./linux/licenses/citrix_startup.lic

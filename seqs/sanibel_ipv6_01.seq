@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- Basic IPv6 tests -->
+
+  <default name="NETWORK_BACKEND" value="vswitch" />
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="nfs" name="nfssr" default="true" />
+      <host id="0" license="platinum" />
+      <host id="1" license="platinum" />
+
+      <NETWORK>
+        <PHYSICAL network="NSEC">
+          <NIC />
+          <MANAGEMENT />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="IPv6">
+      <testcase id="xenserver.tc.ipv6.IPv6TC1pt1" tc="TC-15298" />
+      <testcase id="xenserver.tc.ipv6.IPv6TC1pt2" tc="TC-15299" />
+      <testcase id="xenserver.tc.ipv6.IPv6TC3" tc="TC-15300" />
+      <testcase id="xenserver.tc.ipv6.IPv6TC4pt1" tc="TC-15301" />
+      <testcase id="xenserver.tc.ipv6.IPv6TC4pt2" tc="TC-15302" />
+      <ifeq x="${NETWORK_BACKEND}" y="vswitch">
+        <!-- 
+        <testcase id="xenserver.tc.ipv6.IPv6TC5" tc="TC-15303"/>  
+        Need to automate IPv6 router setup 
+        -->
+        <testcase id="xenserver.tc.ipv6.IPv6TC9" tc="TC-15304" />
+      </ifeq>
+    </serial>
+  </testsequence>
+
+</xenrt>

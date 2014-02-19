@@ -1,0 +1,47 @@
+#!/usr/bin/python
+#
+# xenrt: Xen regression Testing
+#
+# Check whether we need to build a new tarball
+#
+# Expected usage: checktarball TEST OUTDIR INPUTDIR
+#
+# (C) Citrix Systems, Inc. 2008
+# Alex Brett, March 2008
+
+import sys,os,os.path
+
+def findMostRecentMtime(dir):
+    mr = 0
+    for f in os.listdir(dir):
+        path = "%s/%s" % (dir,f)
+        if os.path.isdir(path):
+            sd = findMostRecentMtime(path)
+            if sd > mr:
+                mr = sd
+        else:
+            s = os.stat(path)
+            if s.st_mtime > mr:
+                mr = s.st_mtime
+
+    return mr
+
+test = sys.argv[1]
+outdir = sys.argv[2]
+indir = sys.argv[3]
+
+
+# Check if we need to run (compare the .stamp)
+if os.path.exists("%s/.%s.stamp" % (outdir,test)):
+    # Get its timestamp
+    s = os.stat("%s/.%s.stamp" % (outdir,test))
+    stamp_mtime = s.st_mtime
+    mostRecent = findMostRecentMtime(indir)
+    if mostRecent >= stamp_mtime:
+        # Its changed, so rebuild
+        sys.exit(0)
+    # No changes
+    sys.exit(1)
+
+# No stamp so build
+sys.exit(0)

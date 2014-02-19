@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+
+<xenrt>
+
+  <!-- Windows guests NIC preserving after PVdrivers installation test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <default name="PARALLEL" value="2"/>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}" group="TC9275">
+      <testcase id="xenserver.tc.pvdrivers.TC10758"/>
+      <testcase id="xenserver.tc.pvdrivers.TC10760"/>
+      <testcase id="xenserver.tc.pvdrivers.TC10762"/>
+      <testcase id="xenserver.tc.pvdrivers.TC10764"/>
+    </parallel>
+    <parallel workers="${PARALLEL}" group="TC9275">
+      <testcase id="xenserver.tc.pvdrivers.TC10761"/>
+      <testcase id="xenserver.tc.pvdrivers.TC10763"/>
+      <testcase id="xenserver.tc.pvdrivers.TC10765"/>
+    </parallel>
+  </testsequence>
+</xenrt>
+

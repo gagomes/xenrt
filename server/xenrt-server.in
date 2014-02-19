@@ -1,0 +1,62 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          xenrt-server
+# Required-Start:    $remote_fs $syslog $network
+# Required-Stop:     $remote_fs $syslog $network
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start xenrt-server at boot time
+# Description:       Controls the XenRT WSGI server.
+### END INIT INFO
+
+DAEMON=/usr/bin/uwsgi
+ARGS=@sharedir@/server/uwsgi.ini
+PIDFILE=/var/run/xenrt-server.pid
+
+set -e
+
+case "$1" in
+  start)
+    echo "Starting server"
+    /sbin/start-stop-daemon --start --pidfile $PIDFILE \
+        --user xenrtd --group xenrtd \
+        -b --make-pidfile \
+        --chuid xenrtd \
+        --exec $DAEMON $ARGS
+    ;;
+  stop)
+    echo "Stopping server"
+    /sbin/start-stop-daemon --stop --signal INT --pidfile $PIDFILE --verbose
+    ;;
+  restart)
+    echo "Stopping server"
+    /sbin/start-stop-daemon --stop --signal INT --pidfile $PIDFILE --verbose || true
+    sleep 5
+    echo "Starting server"
+    /sbin/start-stop-daemon --start --pidfile $PIDFILE \
+        --user xenrtd --group xenrtd \
+        -b --make-pidfile \
+        --chuid xenrtd \
+        --exec $DAEMON $ARGS
+    ;;
+  reload)
+    echo "Reloading server"
+    /sbin/start-stop-daemon --stop --signal HUP --pidfile $PIDFILE --verbose
+    ;;
+  force-reload)
+    echo "Force Reloading server"
+    /sbin/start-stop-daemon --stop --signal TERM --pidfile $PIDFILE --verbose
+    ;;
+  status)
+    echo "xenrt-server status"
+    /sbin/start-stop-daemon --status --pidfile $PIDFILE --verbose
+    echo $?
+    ;;
+  *)
+    echo "Usage: /etc/init.d/xenrt-server {start|stop|restart|reload|force-reload|status}"
+    exit 1
+    ;;
+esac
+
+exit 0

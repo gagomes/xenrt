@@ -1,0 +1,178 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the ltp suite
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 8-19 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+if [ -z "${TIMEOUT}" ]; then
+    TIMEOUT=12600
+fi
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make flex"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+xentest_03_extract() {
+    grep -E "[0-9]+\ \ (PASS|FAIL|INFO|BROK|CONF|WARN)\ \ :\ \ " $1 | awk '{if (($3 == "FAIL") || ($3 == "BROK") || ($3 == "WARN")) {print "Result:", $1, $2, $3}}'
+}
+
+
+install_ltp() {
+
+    #yum -y install flex
+
+    LTP_STEM=`ls ltp-*.tgz | sed -e 's/.tgz$//' | tail -1`
+    log_extra_data "Comment: LTP version ${LTP_STEM}"
+
+    tar -zxf ${LTP_STEM}.tgz
+    ln -s ${LTP_STEM} src
+    cd src
+    if [ -d ../patches ]; then
+	if which patch > /dev/null 2>&1; then
+	    for i in ../patches/${LTP_STEM}*.patch; do
+		if [ -e $i ]; then
+		    patch -p1 < $i
+		fi
+	    done
+	else
+	    log_extra_data "Comment: not patching LTP, no patch command"
+	fi
+    fi
+    if [ ! -e /usr/include/linux/dirent.h ]; then
+        # SLES 11 hack
+	for x in ./testcases/kernel/syscalls/getdents/getdents*.c; do
+	    sed -i -e's/linux\/dirent.h/dirent.h/' $x;
+	done
+    fi
+    ./configure
+    make all
+    yes | make install
+}
+BM_INSTALL=install_ltp
+
+run_ltp() {
+
+    set -x
+
+    KBASE=`uname -r | sed -r -e's/^([0-9]+.[0-9]+.[0-9]+).*$/\1/'`
+
+    mkdir -p ${WORKDIR}/xenrt-final-${SUBDIR}
+    RESDIR=${WORKDIR}/xenrt-final-${SUBDIR}
+    cd src
+
+    if [ -e /proc/sys/xen/independent_wallclock ]; then
+        echo 1 > /proc/sys/xen/independent_wallclock
+    fi
+
+    mkdir -p ${WORKDIR}/tmp
+
+
+    AVOID_TEST_PATT=^$
+    SKIP_TEST_PATT=^$
+    EXEMPT_TEST_PATT=^$
+    
+    for conf in AVOID SKIP EXEMPT; do
+	conf_file=../config/$conf".conf"
+	conf_patt=$conf"_TEST_PATT"
+	IFS=$'\n'
+	for rule in `cat $conf_file | grep -v ^#`; do
+	    command=`echo -E $rule | awk -F "[\t]+" '{ print $1 }'`
+	    expect=`echo -E $rule | awk -F "[\t]+" '{ print $2 }'`
+	    eval eval $command \| grep -E $expect > /dev/null && { pattern=`echo -e $rule | awk -F "[\t]+" '{ print $3 }'`; pattern=`eval echo $pattern | sed -e's/\,/\|/g' | sed -e's/\ //g'`; eval $conf_patt=\$$conf_patt\"\|$pattern\"; }
+	done			
+    done
+
+    DONT_TEST_PATT="$AVOID_TEST_PATT|$SKIP_TEST_PATT"
+
+    WORK_LOG="${WORKDIR}/logs/${SUBDIR}.log"
+    RES_LOG="${RESDIR}/ltp.out"
+    TMP_DIR="${WORKDIR}/tmp"
+
+    LTP_RUN="./runltp"
+    if [ "$TESTTYPE" = "lite" ]; then
+				LTP_RUN=./runltplite.sh
+        # Allow more stuff to fail for minitests using ltp lite
+    elif [ "$TESTTYPE" = "fp" ]; then
+	if [ "${TAGNAME}" = "default" ]; then
+	    DURATION=300
+	else
+	    DURATION=${TAGNAME}
+	fi
+	DONT_TEST_PATT="^[^f][^p][^t][^e][^s][^t]|${DONT_TEST_PATT}"
+	LTP_RUN="./runltp -t ${DURATION}s"
+    fi
+		
+    DONT_TEST_ARGS="-E -v ${DONT_TEST_PATT}"
+    
+    if ${LTP_RUN} -s ${DONT_TEST_ARGS} -l ${WORK_LOG} -o ${RES_LOG} -d ${TMP_DIR}; then
+	log_extra_data "Comment: LTP returned success"
+    else
+	log_extra_data "Comment: LTP returned fail"
+    fi
+
+
+  # Process the results and look to see if we failed anything
+  # the Native linux doesn't fail
+    if [ -e "${WORKDIR}/xenrt-final-${SUBDIR}/ltp.out" ]; then
+	xentest_03_extract ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.out > \
+	    ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary
+
+	ALLFAIL=`cat ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary | grep -c FAIL | cat`
+	FAILNUM=`grep -v -E ${EXEMPT_TEST_PATT} ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary | grep -c FAIL | cat`
+ 
+	# the final cat is required to disregard the return code from grep
+	# in the case the line count is zero
+	if [ ${FAILNUM} = 0 ]; then
+	    # All OK
+	    log_extra_data "Comment: ${ALLFAIL} allowed tests(s) failed"
+	    if [ ${ALLFAIL} != 0 ]; then
+		partial_pass
+	    fi
+	else
+	    # Other failures
+	    FAILLIST=`grep -v -E ${EXEMPT_TEST_PATT} ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary | grep FAIL | perl -pe's/\n/ /g'`
+	    log_extra_data "Comment: ${FAILLIST}"
+	    # Determine just test names for failure message
+	    failedtests=`grep -v -E ${EXEMPT_TEST_PATT} ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary | grep FAIL | awk '{ print $2 }' | sort -u | perl -pe's/\n/ /g'`
+	    log_extra_data "Reason: disallowed test(s) ${failedtests} failed"
+	    return ${RC_FAIL}
+	fi
+    else
+	echo "No results file"
+	return ${RC_ERROR}
+    fi    
+}
+BM_RUN=run_ltp
+
+process_ltp() {
+    if [ -e ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.out ]; then
+        cp ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.out \
+            ${WORKDIR}/logs/ltp-${SUBDIR}.out
+	if ( tail -n1 ${WORKDIR}/logs/ltp-${SUBDIR}.out | grep -q test_output ); then
+	    if ( tail -n7 ${WORKDIR}/logs/ltp-${SUBDIR}.out | grep -q nptl01 ); then
+		echo "Reason: CA-7831"
+	    fi
+	fi
+    fi
+    if [ -e ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary ]; then
+        cp ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary \
+            ${WORKDIR}/logs/ltp-${SUBDIR}.summary
+	grep FAIL ${WORKDIR}/xenrt-final-${SUBDIR}/ltp.summary
+    fi
+}
+BM_PROCESS=process_ltp
+BM_PROCESS_ON_FAIL=yes
+
+. ${SCRIPTDIR}/generic

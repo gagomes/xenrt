@@ -1,0 +1,26 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <LINUX_DISTRO>rhel54</LINUX_DISTRO>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+  </variables>
+
+  <prepare>
+    <host>
+     <storage type="nfs" name="shared" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence group="VM">
+        <testcase id="xenserver.tc.scalability.TC6848">
+                <arg>dom0mem=2940</arg>
+                <arg>max=150</arg>
+        </testcase> 
+        <testcase id="xenserver.tc.scalability.TC7336">
+                <arg>dom0mem=2940</arg>
+                <arg>max=150</arg>
+        </testcase>
+  </testsequence>
+</xenrt>

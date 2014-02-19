@@ -1,0 +1,22 @@
+<xenrt>
+  
+  <!-- Run xstest and friends from XenRT -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="TC9361">
+      <testcase id="xenserver.tc.pvdrivers.TC9362">
+        <arg>distro=winxpsp3</arg>
+      </testcase>
+      <testcase id="xenserver.tc.pvdrivers.TC9363" />
+    </serial>
+  </testsequence>
+
+</xenrt>

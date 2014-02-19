@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- Hotfix application tests for hotfixes to XenServer 5.5.0 Update 2 -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <PIDIR_RIO>/usr/groups/release/rio-4.0.1-ga</PIDIR_RIO>
+    <PIDIR_ORLANDO>/usr/groups/release/xenserver-5.0.0</PIDIR_ORLANDO>
+    <PIDIR_ORLANDOHF3>/usr/groups/release/XenServer-5.0.0-Update3RC1</PIDIR_ORLANDOHF3>
+    <PIDIR_GEORGE>/usr/groups/release/XenServer-5.5.0</PIDIR_GEORGE>
+    <PIDIR_GEORGEHF1>/usr/groups/release/XenServer-5.5.0-Update1</PIDIR_GEORGEHF1>
+    <PIDIR_GEORGEHF2>/usr/groups/release/XenServer-5.5.0-Update2</PIDIR_GEORGEHF2>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="U2">
+    <testcase id="xenserver.tc.hotfix.TC11501" />
+    <testcase id="xenserver.tc.hotfix.TC11502" />
+    <testcase id="xenserver.tc.hotfix.TC10545" />
+    <testcase id="xenserver.tc.hotfix.TC10546" />
+    <testcase id="xenserver.tc.hotfix.TC10547" />
+    <testcase id="xenserver.tc.hotfix.TC10723" />
+    <testcase id="xenserver.tc.hotfix.TC10605" />
+    <testcase id="xenserver.tc.hotfix.TC11505" />
+    <testcase id="xenserver.tc.hotfix.TC11506" />
+    <testcase id="xenserver.tc.hotfix.TC11507" />
+    <testcase id="xenserver.tc.hotfix.TC17964" />
+  </testsequence>
+
+</xenrt>

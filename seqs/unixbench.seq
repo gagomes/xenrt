@@ -1,0 +1,17 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_unixbench.TCUnixBench" host="RESOURCE_HOST_0">
+        <arg>runs=1</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

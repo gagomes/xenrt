@@ -1,0 +1,158 @@
+#!/bin/bash
+#############################################################################
+# Guest console logging XRT-515, XRT-516                                    #
+#############################################################################
+
+# On a dom0 we run a daemon (of sorts) that keeps logs of all guest console
+# output. This is done for new guest creations which covers us for reboots,
+# resumes, restarts etc..
+
+if [ -n "${TESTBASE}" ]; then
+    if [ -n "${JOBID}" ]; then
+	GUEST_CONSOLE_LOGDIR=${TESTBASE}/`printf "job%08u" ${JOBID}`/guest_console_logs
+    else
+	GUEST_CONSOLE_LOGDIR=${TESTBASE}/${XENVERSION}-${XENREVISION}-${XENMACHINE}-${XENOPTIONS}/guest_console_logs
+    fi
+fi
+
+guest_console_logger() {
+    case "$1" in
+	start)
+	    if [ ! -e ${GUEST_CONSOLE_LOGDIR}/.run ]; then
+		mkdir -p ${GUEST_CONSOLE_LOGDIR}
+		touch ${GUEST_CONSOLE_LOGDIR}/.run
+		nohup ${SCRIPTDIR}/lib/console run ${GUEST_CONSOLE_LOGDIR} \
+		    < /dev/null >> ${GUEST_CONSOLE_LOGDIR}/debug.log 2>&1 &
+		nohup ${SCRIPTDIR}/lib/console watchdog ${GUEST_CONSOLE_LOGDIR} \
+		    < /dev/null > /dev/null 2>&1 &
+	    fi
+	    ;;
+	stop)
+	    rm -f ${GUEST_CONSOLE_LOGDIR}/.run
+	    ;;
+    esac
+}
+
+# This is run on e.g. BUILDHOST to connect to dom0 to get the logs
+guest_console_getlogs() {
+    local HOSTNAME=$1
+    local LOGBASE=$2
+    mkdir -p ${LOGBASE}/guest_console_logs
+    ${SSH} root@${HOSTNAME} ${REMOTE_SCRIPTDIR}/lib/console getlogs \
+	${GUEST_CONSOLE_LOGDIR} | tar -jxf - -C \
+	${LOGBASE}/guest_console_logs || true
+}
+
+# This is run on the host to tar up the logs
+guest_console_getlogs_dom0() {
+    tar -jcf - -C ${GUEST_CONSOLE_LOGDIR} .
+}
+
+# This is the daemon loop
+guest_console_daemon() {
+    local LOGDIR=$1
+    set -x
+    echo $$ > ${LOGDIR}/.pid
+    while [ -e ${LOGDIR}/.run ]; do
+	date +%s > ${LOGDIR}/.keepalive
+	# For each running VM:
+	for domid in `xenstore-list /local/domain`; do
+	    if [ "${domid}" = "0" ]; then
+		# Don't try to log Domain-0
+		continue
+	    fi
+	    # See if we're logging it already
+	    if [ -z "${GUEST_CONSOLE_LOGGER_PID[${domid}]}" ]; then
+		# No, start a logger
+		DOMNAME=`xenstore-read /local/domain/${domid}/name`
+		if [ -n "${DOMNAME}" ]; then
+    		    # The sleep time encodes the domid, we'll use this later to
+		    # figure out which sleep to kill (which also kills the
+		    # logger)
+		    nohup sleep $[${domid} + 1000000] | xm console ${domid} \
+			>> ${LOGDIR}/console.out.${DOMNAME}.${domid} &
+		    sleep 2
+		    GUEST_CONSOLE_LOGGER_PID[${domid}]=`ps ax | grep "[s]leep $[${domid} + 1000000]" | awk '{print $1}'`
+		fi
+	    fi
+	done
+	sleep 20
+    done
+
+    # Kill all logging processes by killing the sleep that feeds them
+    for pid in ${GUEST_CONSOLE_LOGGER_PID[*]}; do
+	if [ -e /proc/${pid} ]; then
+	    if ( cat /proc/${pid}/status | grep -q sleep ); then
+		kill ${pid}
+	    fi
+	fi
+    done    
+}
+
+# Watchdog daemon for the console logger daemon (XRT-587)
+guest_console_watchdog() {
+    local LOGDIR=$1
+    sleep 600
+    while [ -e ${LOGDIR}/.run ]; do
+	# See if the keepalive signal is more than 30 minutes old
+	if [ -e ${LOGDIR}/.keepalive ]; then
+	    local NOW=`date +%s`
+	    local KA=`cat ${LOGDIR}/.keepalive`
+	    local DEADLINE=$[${KA} + 1800]
+	    if [ ${NOW} -gt ${DEADLINE} ]; then
+		# kill the logger and restart
+		kill `cat ${LOGDIR}/.pid`
+		# try to kill the xenconsole processes
+		local PIDLIST=`ps ax | grep "[x]enconsole " | awk '{print $1}'`
+		for pid in ${PIDLIST}; do
+		    kill ${pid}
+		    sleep 1
+		done
+		local PIDLIST=`ps ax | grep "[s]leep 1000" | awk '{print $1}'`
+		for pid in ${PIDLIST}; do
+		    kill ${pid}
+		    sleep 1
+		done
+		sleep 10
+		echo "WATCHDOG restart" `date` >> ${LOGDIR}/debug.log
+		${SCRIPTDIR}/lib/console stop ${LOGDIR}
+		sleep 10
+		${SCRIPTDIR}/lib/console start ${LOGDIR}
+		
+		# And we exit because another watchdog will start
+		return 0
+	    fi
+	fi
+	sleep 600
+    done
+}
+
+# If we're called directly, rather than being sourced, then treat as a
+# daemon script or control script. This can be run from elsewhere with
+# the start or stop actions and a further argument specifying the
+# log directory.
+if [ `basename $0` = console ]; then
+    LIBSCRIPTDIR=`dirname $0`
+    SCRIPTDIR=`dirname ${LIBSCRIPTDIR}`
+    case "$1" in
+	start|stop)
+	    ACTION=$1
+	    shift
+	    GUEST_CONSOLE_LOGDIR=$1
+	    guest_console_logger ${ACTION}
+	    ;;
+	run)
+	    shift
+	    guest_console_daemon "$@"
+	    ;;
+	watchdog)
+	    shift
+	    guest_console_watchdog "$@"
+	    ;;
+	getlogs)
+	    shift
+	    GUEST_CONSOLE_LOGDIR=$1
+	    guest_console_getlogs_dom0
+	    ;;
+    esac
+fi

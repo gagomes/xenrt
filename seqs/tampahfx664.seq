@@ -1,0 +1,34 @@
+<xenrt>
+
+  <default name="DISTRO" value="ws08sp2-x86"/>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host installsr="lvm" id="0">
+      <vm name="${DISTRO}">
+        <distro>${DISTRO}</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="200" />
+        <postinstall action="installDrivers" />
+      </vm>
+    </host>
+
+  </prepare>
+
+  <testsequence>
+    <!-- Hotfix: Hammonds - 664 -->
+    <serial group="HFX-664">
+      <testcase id="xenserver.tc.snapshot.TC18784" name="TC18784" tc="TC-18784">
+        <arg>guest=${DISTRO}</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

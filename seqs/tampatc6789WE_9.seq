@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="VMs_9" workers="2">
+      <testcase id="xenserver.tc.smoketest.TC17243" prio="4" tc="TC-17243"/>
+      <testcase id="xenserver.tc.smoketest.TC17244" prio="4" tc="TC-17244"/>
+      <testcase id="xenserver.tc.smoketest.TC17245" prio="4" tc="TC-17245"/>
+      <testcase id="xenserver.tc.smoketest.TC17246" prio="4" tc="TC-17246"/>
+      <testcase id="xenserver.tc.smoketest.TC17247" prio="4" tc="TC-17247"/>
+      <testcase id="xenserver.tc.smoketest.TC17248" prio="4" tc="TC-17248"/>
+      <testcase id="xenserver.tc.smoketest.TC17745" prio="4" tc="TC-17745"/>
+      <testcase id="xenserver.tc.smoketest.TC17746" prio="4" tc="TC-17746"/>
+      <testcase id="xenserver.tc.smoketest.TC18409" prio="4" tc="TC-18409"/>
+      <testcase id="xenserver.tc.smoketest.TC18410" prio="4" tc="TC-18410"/>
+      <testcase id="xenserver.tc.smoketest.TC18411" prio="4" tc="TC-18411"/>
+      <testcase id="xenserver.tc.smoketest.TC18412" prio="4" tc="TC-18412"/>
+    </parallel>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,49 @@
+h1 { font-family:sans;
+     margin : 0px;
+     text-align : center;}
+
+h2 { margin : 0px;
+     font-family:sans}
+
+#header {
+	background-color: #ddccff; 
+        padding : 10px;
+	margin-top : 10px;
+	}
+
+tbody {
+	border : 5px;
+}
+
+div.results {
+	    font-family:sans;
+}
+
+div.spacer {
+	   clear: both;
+}
+
+td.Success {
+	   background-color: #00ff00;
+}
+
+td.Warnings_issued {
+       background-color: #ffff00;
+}
+
+td.Failed {
+       background-color: #ff0000;
+}
+
+div.resultblock {
+		background-color: #ddddff;
+		padding : 10px;
+		margin : 10px;
+		float: left;
+		border:10px;
+}
+
+div.log {
+	display:none;
+	background-color: #dddddd
+}

@@ -1,0 +1,61 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Postmark filesystem test
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 21-26 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=7200
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+set -e
+
+BM_INSTALL=make
+
+run_postmark() {
+    echo run | ./postmark postmark.cfg > ${WORKDIR}/logs/postmark-${SUBDIR}.out
+}
+BM_RUN=run_postmark
+
+process_postmark() {
+    cd ${THISSCRIPT}
+    
+    NUM=`grep "seconds total" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+	     sed -e's/^\s*\([0-9]\+\).*$/\1/'`
+    echo "Value: Total ${NUM} s"
+    
+    NUM=`grep "seconds of transactions" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+	     sed -e's/^\s*\([0-9]\+\).*$/\1/'`
+    echo "Value: InTrans ${NUM} s"
+    
+    if grep "megabytes read" ${WORKDIR}/logs/postmark-${SUBDIR}.out | grep -q "kilobytes"; then
+        NUM=`grep "megabytes read" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+             sed -e's/^.*(\([0-9.]\+\) kilobytes per second.*$/\1/'`
+    else
+        NUM=`grep "megabytes read" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+             sed -e's/^.*(\([0-9.]\+\) megabytes per second.*$/\1/'`
+        NUM=`echo ${NUM} | awk '{print $1*1024}'`
+    fi
+    echo "Value: Read ${NUM} KB"
+
+    if grep "megabytes written" ${WORKDIR}/logs/postmark-${SUBDIR}.out | grep -q "kilobytes"; then
+        NUM=`grep "megabytes written" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+             sed -e's/^.*(\([0-9.]\+\) kilobytes per second.*$/\1/'`
+    else
+        NUM=`grep "megabytes written" ${WORKDIR}/logs/postmark-${SUBDIR}.out | \
+             sed -e's/^.*(\([0-9.]\+\) megabytes per second.*$/\1/'`
+        NUM=`echo ${NUM} | awk '{print $1*1024}'`
+    fi
+    echo "Value: Write ${NUM} KB"
+}
+BM_PROCESS=process_postmark
+
+. ${SCRIPTDIR}/generic

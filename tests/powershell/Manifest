@@ -1,0 +1,9 @@
+# Description Microsoft PowerShell 1.0 
+# Status: downloadable
+# Obtaining:
+# Available from http://www.microsoft.com/windowsserver2003/technologies/management/powershell/download.mspx
+e6d6411876c255ac75e41dd96774c554  ./amd64/powershell.msu
+dee3a6d32772c5bcb15beb0747338c3b  ./amd64/powershell.exe
+5dec374b7b81234e709a4a6ee4fd573d  ./x86/powershell-xp.exe
+d22a9b83676761fe407586827e1fc195  ./x86/powershell.msu
+dba9b24ee58f211b741bfe35b54e98c5  ./x86/powershell.exe

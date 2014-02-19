@@ -1,0 +1,593 @@
+<xenrt>
+<!--SVVP Test Bed Automation-->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="15"/>
+  <default name="PARALLEL_VMS" value="5"/>
+
+  <prepare>
+    <host id="0">
+      <vm name="AUTHSERVERWHQL">
+        <distro>ws08r2dc-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+    <host id="1"/>
+    <host id="2"/>
+    <host id="3"/>
+    <host id="4"/>
+    <host id="5"/>
+    <host id="6"/>
+    <host id="7"/>
+    <host id="8"/>
+    <host id="9"/>
+    <host id="10"/>
+    <host id="11"/>
+    <host id="12"/>
+    <host id="13"/>
+    <host id="14"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="SERVER_SETUP">
+      <testcase id="xenserver.whql.ADServerSetup" name="ADServerSetup" >
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>adVMName=AUTHSERVERWHQL</arg>
+        <arg>winHostName=whql1234</arg>
+      </testcase>
+      <testcase id="xenserver.whql.DTMServerSetup" name="DTMServerSetup" >
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guestName=DTMServer</arg>
+        <arg>winHostName=DTMSERVER</arg>
+        <arg>DTMServerName=DTMSERVER</arg>
+        <arg>memory=2048</arg>
+      </testcase>
+    </serial>
+
+    <parallel group="CLIENT_SETUP" workers="${PARALLEL}">
+      <serial group="HOST_0_CLIENT_SETUP">
+        <parallel group="HOST_0" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMMasterClientSetup1" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-MAS-1</arg>
+            <arg>winHostName=HCT-MAS-1</arg>
+            <arg>memory=4096</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-1</arg>
+            <arg>winHostName=HCT-SUB-1</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-2</arg>
+            <arg>winHostName=HCT-SUB-2</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-3</arg>
+            <arg>winHostName=HCT-SUB-3</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-4</arg>
+            <arg>winHostName=HCT-SUB-4</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_1_CLIENT_SETUP">
+        <parallel group="HOST_1" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMMasterClientSetup2" >
+            <arg>RESOURCE_HOST_1</arg>
+            <arg>guestName=HCT-MAS-3</arg>
+            <arg>winHostName=HCT-MAS-3</arg>
+            <arg>memory=4096</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_1</arg>
+            <arg>guestName=HCT-SUB-5</arg>
+            <arg>winHostName=HCT-SUB-5</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_1</arg>
+            <arg>guestName=HCT-SUB-6</arg>
+            <arg>winHostName=HCT-SUB-6</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_1</arg>
+            <arg>guestName=HCT-SUB-7</arg>
+            <arg>winHostName=HCT-SUB-7</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-8</arg>
+            <arg>winHostName=HCT-SUB-8</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial> 
+
+      <serial group="HOST_2_CLIENT_SETUP">
+        <parallel group="HOST_2" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMMasterClientSetup3" >
+            <arg>RESOURCE_HOST_2</arg>
+            <arg>guestName=HCT-MAS-5</arg>
+            <arg>winHostName=HCT-MAS-5</arg>
+            <arg>memory=4096</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_2</arg>
+            <arg>guestName=HCT-SUB-9</arg>
+            <arg>winHostName=HCT-SUB-9</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_2</arg>
+            <arg>guestName=HCT-SUB-10</arg>
+            <arg>winHostName=HCT-SUB-10</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_2</arg>
+            <arg>guestName=HCT-SUB-11</arg>
+            <arg>winHostName=HCT-SUB-11</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-12</arg>
+            <arg>winHostName=HCT-SUB-12</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial> 
+
+      <serial group="HOST_3_CLIENT_SETUP">
+        <parallel group="HOST_3" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMMasterClientSetup4" >
+            <arg>RESOURCE_HOST_3</arg>
+            <arg>guestName=HCT-MAS-7</arg>
+            <arg>winHostName=HCT-MAS-7</arg>
+            <arg>memory=4096</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_3</arg>
+            <arg>guestName=HCT-SUB-13</arg>
+            <arg>winHostName=HCT-SUB-13</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_3</arg>
+            <arg>guestName=HCT-SUB-14</arg>
+            <arg>winHostName=HCT-SUB-14</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_3</arg>
+            <arg>guestName=HCT-SUB-15</arg>
+            <arg>winHostName=HCT-SUB-15</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guestName=HCT-SUB-16</arg>
+            <arg>winHostName=HCT-SUB-16</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_4_CLIENT_SETUP">
+        <parallel group="HOST_4" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_4</arg>
+            <arg>guestName=HCT-SUB-17</arg>
+            <arg>winHostName=HCT-SUB-17</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_4</arg>
+            <arg>guestName=HCT-SUB-18</arg>
+            <arg>winHostName=HCT-SUB-18</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_4</arg>
+            <arg>guestName=HCT-SUB-19</arg>
+            <arg>winHostName=HCT-SUB-19</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_4</arg>
+            <arg>guestName=HCT-SUB-20</arg>
+            <arg>winHostName=HCT-SUB-20</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_5_CLIENT_SETUP">
+        <parallel group="HOST_5" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_5</arg>
+            <arg>guestName=HCT-SUB-21</arg>
+            <arg>winHostName=HCT-SUB-21</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_5</arg>
+            <arg>guestName=HCT-SUB-22</arg>
+            <arg>winHostName=HCT-SUB-22</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_5</arg>
+            <arg>guestName=HCT-SUB-23</arg>
+            <arg>winHostName=HCT-SUB-23</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_5</arg>
+            <arg>guestName=HCT-SUB-24</arg>
+            <arg>winHostName=HCT-SUB-24</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_6_CLIENT_SETUP">
+        <parallel group="HOST_6" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_6</arg>
+            <arg>guestName=HCT-SUB-25</arg>
+            <arg>winHostName=HCT-SUB-25</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_6</arg>
+            <arg>guestName=HCT-SUB-26</arg>
+            <arg>winHostName=HCT-SUB-26</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_6</arg>
+            <arg>guestName=HCT-SUB-27</arg>
+            <arg>winHostName=HCT-SUB-27</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_6</arg>
+            <arg>guestName=HCT-SUB-28</arg>
+            <arg>winHostName=HCT-SUB-28</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_7_CLIENT_SETUP">
+        <parallel group="HOST_7" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_7</arg>
+            <arg>guestName=HCT-SUB-29</arg>
+            <arg>winHostName=HCT-SUB-29</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_7</arg>
+            <arg>guestName=HCT-SUB-30</arg>
+            <arg>winHostName=HCT-SUB-30</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_7</arg>
+            <arg>guestName=HCT-SUB-31</arg>
+            <arg>winHostName=HCT-SUB-31</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_7</arg>
+            <arg>guestName=HCT-SUB-32</arg>
+            <arg>winHostName=HCT-SUB-32</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_8_CLIENT_SETUP">
+        <parallel group="HOST_8" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_8</arg>
+            <arg>guestName=HCT-SUB-33</arg>
+            <arg>winHostName=HCT-SUB-33</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_8</arg>
+            <arg>guestName=HCT-SUB-34</arg>
+            <arg>winHostName=HCT-SUB-34</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_8</arg>
+            <arg>guestName=HCT-SUB-35</arg>
+            <arg>winHostName=HCT-SUB-35</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_8</arg>
+            <arg>guestName=HCT-SUB-36</arg>
+            <arg>winHostName=HCT-SUB-36</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_9_CLIENT_SETUP">
+        <parallel group="HOST_9" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_9</arg>
+            <arg>guestName=HCT-SUB-37</arg>
+            <arg>winHostName=HCT-SUB-37</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_9</arg>
+            <arg>guestName=HCT-SUB-38</arg>
+            <arg>winHostName=HCT-SUB-38</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_9</arg>
+            <arg>guestName=HCT-SUB-39</arg>
+            <arg>winHostName=HCT-SUB-39</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_9</arg>
+            <arg>guestName=HCT-SUB-40</arg>
+            <arg>winHostName=HCT-SUB-40</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_10_CLIENT_SETUP">
+        <parallel group="HOST_10" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_10</arg>
+            <arg>guestName=HCT-SUB-41</arg>
+            <arg>winHostName=HCT-SUB-41</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_10</arg>
+            <arg>guestName=HCT-SUB-42</arg>
+            <arg>winHostName=HCT-SUB-42</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_10</arg>
+            <arg>guestName=HCT-SUB-43</arg>
+            <arg>winHostName=HCT-SUB-43</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_10</arg>
+            <arg>guestName=HCT-SUB-44</arg>
+            <arg>winHostName=HCT-SUB-44</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_11_CLIENT_SETUP">
+        <parallel group="HOST_11" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_11</arg>
+            <arg>guestName=HCT-SUB-45</arg>
+            <arg>winHostName=HCT-SUB-45</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_11</arg>
+            <arg>guestName=HCT-SUB-46</arg>
+            <arg>winHostName=HCT-SUB-46</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_11</arg>
+            <arg>guestName=HCT-SUB-47</arg>
+            <arg>winHostName=HCT-SUB-47</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_11</arg>
+            <arg>guestName=HCT-SUB-48</arg>
+            <arg>winHostName=HCT-SUB-48</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_12_CLIENT_SETUP">
+        <parallel group="HOST_12" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup1" >
+            <arg>RESOURCE_HOST_12</arg>
+            <arg>guestName=HCT-SUB-49</arg>
+            <arg>winHostName=HCT-SUB-49</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup2" >
+            <arg>RESOURCE_HOST_12</arg>
+            <arg>guestName=HCT-SUB-50</arg>
+            <arg>winHostName=HCT-SUB-50</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup3" >
+            <arg>RESOURCE_HOST_12</arg>
+            <arg>guestName=HCT-SUB-51</arg>
+            <arg>winHostName=HCT-SUB-51</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTMSubordinateClientSetup4" >
+            <arg>RESOURCE_HOST_12</arg>
+            <arg>guestName=HCT-SUB-52</arg>
+            <arg>winHostName=HCT-SUB-52</arg>
+            <arg>memory=2048</arg>
+            <arg>vcpus=2</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_13_CLIENT_SETUP">
+        <parallel group="HOST_13" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MaxTest_Client1" >
+            <arg>RESOURCE_HOST_13</arg>
+            <arg>guestName=MAX-INT-64</arg>
+            <arg>winHostName=MAX-INT-64</arg>
+            <arg>memory=65536</arg>
+            <arg>vcpus=16</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client1" >
+            <arg>RESOURCE_HOST_13</arg>
+            <arg>guestName=MULT-INT-64-1</arg>
+            <arg>winHostName=MULT-INT-64-1</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client2" >
+            <arg>RESOURCE_HOST_13</arg>
+            <arg>guestName=MULT-INT-64-2</arg>
+            <arg>winHostName=MULT-INT-64-2</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client3" >
+            <arg>RESOURCE_HOST_13</arg>
+            <arg>guestName=MULT-INT-64-3</arg>
+            <arg>winHostName=MULT-INT-64-3</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client4" >
+            <arg>RESOURCE_HOST_13</arg>
+            <arg>guestName=MULT-INT-64-4</arg>
+            <arg>winHostName=MULT-INT-64-4</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+      <serial group="HOST_14_CLIENT_SETUP">
+        <parallel group="HOST_14" workers="${PARALLEL_VMS}">
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MaxTest_Client2" >
+            <arg>RESOURCE_HOST_14</arg>
+            <arg>guestName=MAX-AMD-64</arg>
+            <arg>winHostName=MAX-AMD-64</arg>
+            <arg>memory=65536</arg>
+            <arg>vcpus=16</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client1" >
+            <arg>RESOURCE_HOST_14</arg>
+            <arg>guestName=MULT-AMD-64-1</arg>
+            <arg>winHostName=MULT-AMD-64-1</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client2" >
+            <arg>RESOURCE_HOST_14</arg>
+            <arg>guestName=MULT-AMD-64-2</arg>
+            <arg>winHostName=MULT-AMD-64-2</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client3" >
+            <arg>RESOURCE_HOST_14</arg>
+            <arg>guestName=MULT-AMD-64-3</arg>
+            <arg>winHostName=MULT-AMD-64-3</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+          <testcase id="xenserver.whql.DTMClientSetup" name="DTM_SUT_MultipleTests_Client4" >
+            <arg>RESOURCE_HOST_14</arg>
+            <arg>guestName=MULT-AMD-64-4</arg>
+            <arg>winHostName=MULT-AMD-64-4</arg>
+            <arg>memory=16384</arg>
+            <arg>vcpus=4</arg>
+          </testcase>
+        </parallel>
+      </serial>
+
+    </parallel>
+  </testsequence>
+</xenrt>

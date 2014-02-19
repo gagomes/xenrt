@@ -1,0 +1,288 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Tune a guest domain for maximum performance.
+#
+# Args: <index> <domainname> <benchmark>
+#  where <benchmark> is optionally the benchmark to tune for
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, October 2005-February 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=600
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+install() {
+    DOMINDEX=${1:-0}
+    DOMNAME=${2:-newdomain}
+    TUNEBM=${3:-BASELINE}
+
+    mkdir -p ${WORKDIR}/logs
+    cd ${WORKDIR}
+    rm -f ${WORKDIR}/.xenrt-success ${WORKDIR}/.outcome
+    reset_extra_data
+
+    touch ${WORKDIR}/.setupcomplete
+}
+
+# SEDF currently does not let dom0's vcpu 0 be pinned. This isn't a problem
+# for the configs we're using because it won't migrate.
+CANNOT_PIN_DOM0_VCPU0=yes
+
+# Get CPU heirarchy - this is number per layer above
+NODES=`xm info | awk '{if($1 == "nr_nodes"){print $3;}}'`
+SOCKETS=`xm info | awk '{if($1 == "sockets_per_node"){print $3;}}'`
+CORES=`xm info | awk '{if($1 == "cores_per_socket"){print $3;}}'`
+THREADS=`xm info | awk '{if($1 == "threads_per_core"){print $3;}}'`
+
+# Totals
+CPUS=`xm info | awk '{if($1 == "nr_cpus"){print $3;}}'`
+NSOCKETS=$[${NODES} * ${SOCKETS}]
+NCORES=$[${NSOCKETS} * ${CORES}]
+
+# Pin one VCPU to each logical CPU
+pin_all() {
+    echo "Setting vcpu number to maximum (${CPUS})"
+    xm vcpu-set ${DOMNAME} ${CPUS}
+    echo "Pinning to all logical CPUs"
+    for (( i=0;i<${CPUS};i++ )); do
+	xm vcpu-pin ${DOMNAME} $i $i
+    done
+}
+
+# Pin one VCPU to each logical CPU except the first
+pin_all_not0() {
+    GCPUS=$[${CPUS} - 1]
+    echo "Setting vcpu number to one less than max (${GCPUS})"
+    xm vcpu-set ${DOMNAME} ${GCPUS}
+    echo "Pinning to all logical CPUs except 0"
+    for (( i=0;i<${GCPUS};i++ )); do
+	xm vcpu-pin ${DOMNAME} $i $[$i + 1]
+    done
+}
+
+# Pin one VCPU to the first hyperthread on each core
+pin_ht0() {
+    echo "Setting vcpu number to the number of cores (${NCORES})"
+    xm vcpu-set ${DOMNAME} ${NCORES}
+    echo "Pinning to the first HT on each core"
+    for (( i=0;i<${NCORES};i++ )); do
+	HT0=$[$i * ${THREADS}]
+	xm vcpu-pin ${DOMNAME} $i ${HT0}
+    done
+}
+
+# Pin one VCPU to the second hyperthread on each core
+pin_ht1() {
+    echo "Setting vcpu number to the number of cores (${NCORES})"
+    xm vcpu-set ${DOMNAME} ${NCORES}
+    echo "Pinning to the second HT on each core"
+    for (( i=0;i<${NCORES};i++ )); do
+	HT0=$[$i * ${THREADS}]
+	xm vcpu-pin ${DOMNAME} $i $[${HT0} + 1]
+    done
+}
+
+# Pin one VCPU to the first hyperthread on each core other than core0
+pin_ht0_not0() {
+    GCORES=$[${NCORES} - 1]
+    echo "Setting vcpu number to the number of cores - 1 (${GCORES})"
+    xm vcpu-set ${DOMNAME} ${GCORES}
+    echo "Pinning to each core"
+    for (( i=1;i<${NCORES};i++ )); do
+	xm vcpu-pin ${DOMNAME} $[$i - 1] $[$i * ${THREADS}]
+    done
+}
+
+# Pin dom0 to the first logical CPU
+pin_dom0_cpu0() {
+    echo "Setting dom0 vcpus to 1"
+    xm vcpu-set Domain-0 1
+    if [ "${CANNOT_PIN_DOM0_VCPU0}" != "yes" ]; then
+	echo "Pinning dom0 to CPU 0"
+	xm vcpu-pin Domain-0 0 0
+    fi
+}
+
+# Pin dom0 to the second first on the first core (if not HT then first
+# logical CPU)
+pin_dom0_0ht0() {
+    echo "Setting dom0 vcpus to 1"
+    xm vcpu-set Domain-0 1
+    if [ "${CANNOT_PIN_DOM0_VCPU0}" != "yes" ]; then
+	echo "Pinning dom0 to CPU 0"
+	xm vcpu-pin Domain-0 0 0
+    fi
+}
+
+run() {
+    DOMINDEX=${1:0}
+    DOMNAME=${XENMACHINE}${2:newdomain}
+    TUNEBM=${3:-BASELINE}
+    HOSTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+
+    cd ${WORKDIR}
+
+    OUTCOME=${RC_OK}
+
+    if [ "${XENVERSION}" != "linux" ]; then
+	log_extra_data "Comment: Tuning guest ${DOMNAME} for ${TUNEBM}"
+
+        # If this is a benchmark then look for its script and grep
+        # out the CPUPIN variable
+
+        if [ -e "${SCRIPTDIR}/${TUNEBM}" ]; then
+            CPUPIN=`awk -F = '{if(/^CPUPIN=/){print $2;}}' < ${SCRIPTDIR}/${TUNEBM}`
+            if [ -n "${CPUPIN}" ]; then
+                TUNEBM=${CPUPIN}
+            fi
+        fi
+	
+	case "${TUNEBM}" in
+	    BASELINE | LOWIO | COMPUTE)
+		log_extra_data "Comment: ${TUNEBM} tune, using all CPUS"
+		pin_all
+		pin_dom0_cpu0
+		;;
+	    HTSPLIT)
+		if [ "${THREADS}" = "1" ]; then
+		    log_extra_data "Comment: ${TUNEBM} but no HT. Using " \
+			"BASELINE tune"
+		    pin_all
+		    pin_dom0_cpu0
+		else
+		    log_extra_data "Comment: ${TUNEBM} tune, one vcpu per " \
+			"core, dom0 on first HT"
+		    pin_ht1
+		    pin_dom0_0ht0
+		fi
+		;;
+	    SPLIT)
+		if [ "${NCORES}" = "1" ]; then
+		    log_extra_data "Comment: ${TUNEBM} but only one core. Using " \
+			"core for dom0 and guest"
+		    pin_all
+		    pin_dom0_cpu0
+		else
+		    log_extra_data "Comment: ${TUNEBM} tune, one vcpu per " \
+			"thread except cpu 0, dom0 on first cpu"
+		    pin_all_not0
+		    pin_dom0_cpu0
+		fi
+		;;
+	    NOHT)
+		log_extra_data "Comment: ${TUNEBM} tune, using only one thread " \
+		    "per core, dom0 sharing first core"
+		pin_ht0
+		pin_dom0_cpu0
+		;;
+	    NOHTSPLIT)
+		if [ "${NCORES}" = "1" ]; then
+		    log_extra_data "Comment: ${TUNEBM} but only one core. " \
+			"Using first hyperthread for dom0 and guest"
+		    pin_ht0
+		    pin_dom0_cpu0
+		else
+		    log_extra_data "Comment: ${TUNEBM} tune, using only one " \
+			"thread per core, dom0 has first core, guest all " \
+			"others"
+		    pin_ht0_not0
+		    pin_dom0_cpu0
+		fi
+		;;
+	    *)
+		# Unknown, use baseline
+		log_extra_data "Comment: Unknown tune $TUNEBM}, using " \
+                    "BASELINE tune, using all CPUS"
+		pin_all
+		pin_dom0_cpu0
+		;;
+	esac
+	echo "Outcome:"
+	xm vcpu-list
+    else
+        DONOTHING=yes
+    fi
+
+    echo ${OUTCOME} > ${WORKDIR}/.outcome
+    if [ "${OUTCOME}" = "${RC_OK}" ]; then
+        touch ${WORKDIR}/.xenrt-success
+    fi
+}
+
+process() {
+    DOMINDEX=${1:0}
+    DOMNAME=${2:newdomain}
+    TUNEBM=${3:-BASELINE}
+
+    if [ "${XENVERSION}" = "linux" ]; then
+	echo "Comment: done nothing"
+    fi
+    if [ -e ${WORKDIR}/.xenrt-success ]; then
+        echo "Test: passed"
+    else
+        echo "Test: failed"
+    fi
+    
+    get_extra_data
+}
+
+EXTRA_LOG_FILES="${DOM0_EXTRA_LOG_FILES}"
+
+getlogs() {
+    fetch_extra_log_files
+    tar -jcf - -C ${WORKDIR}/logs .
+}
+
+usage() {
+    echo $"Usage: $0 {install|start|stop|waitfor|process} [testtype]"
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+	shift
+        install "$@"
+        ;;
+  start)
+	shift
+        start_run "$@"
+        ;;
+  stop)
+        stop_run
+        ;;
+  run)
+	shift
+	run "$@"
+	;;
+  waitfor)
+	waitfor
+        ;;
+  process)
+	shift
+        process "$@"
+        ;;
+  getlogs)
+	getlogs
+	;;
+  cleanup)
+	cleanup_working_directory
+	;;
+  *)
+        usage
+        exit 1
+esac
+
+exit $RETVAL

@@ -1,0 +1,52 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="K1Config">
+      <testcase tc="TC-20818" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
+      </testcase>
+
+      <testcase tc="TC-20820" id="testcases.xenserver.tc.vgpu.TCAssignK2vGPUToVMhasGotvGPU">
+      </testcase>
+
+      <testcase tc="TC-20824" id="testcases.xenserver.tc.vgpu.TCOpsonK2vGPUToVMhasGotvGPU">
+      </testcase>
+
+      <testcase tc="TC-20822" id="testcases.xenserver.tc.vgpu.TCRevertvGPUSnapshot">
+      </testcase>
+
+      <testcase tc="TC-20823" id="testcases.xenserver.tc.vgpu.TCRevertnonvGPUSnapshot">
+      </testcase>
+
+      <testcase tc="TC-20829" id="testcases.xenserver.tc.vgpu.TCReuseK2PGPU">
+      </testcase>
+
+      <testcase tc="TC-20826" id="testcases.xenserver.tc.vgpu.TCCheckPerfModeAllVMs">
+      </testcase>
+
+      <testcase tc="TC-20871" id="testcases.xenserver.tc.vgpu.TCExportImportK2GPU">
+      </testcase>
+
+      <testcase tc="TC-20835" id="testcases.xenserver.tc.vgpu.TCAddPassthroughToFullGPUK200">
+      </testcase>
+
+      <testcase tc="TC-20836" id="testcases.xenserver.tc.vgpu.TCAddvGPUToFullyPTGPUK260">
+      </testcase>
+
+      <testcase tc="TC-20873" id="testcases.xenserver.tc.vgpu.TCChangeK2vGPUType">
+      </testcase>
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK2" name="TC20890" tc="TC-20890" />
+
+    </serial>
+  </testsequence>
+
+</xenrt>

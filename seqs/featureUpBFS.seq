@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Feature operation after upgrade test: Boot from SAN (FC) -->
+
+  <!-- This sequence must be run with suitably configured PRODUCT_VERSION
+       (for the version being updated/upgraded to), INITIAL_VERSION_PATH
+       for the George or later version being used as the starting point,
+       and THIS_UPDATE for the path to the hotfix or OEM update or the
+       string "UPGRADE" to upgrade using normal files in the input
+       directory. -->
+
+  <prepare>
+    <host>
+      <storage type="fc" name="fcsr" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC10721"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 5.6.1 FP1 (pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PIDIR_COWLEY>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</PIDIR_COWLEY>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_COWLEY_Pool">
+    <testcase id="xenserver.tc.hotfix.TC12696" />
+  </testsequence>
+
+</xenrt>

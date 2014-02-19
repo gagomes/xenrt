@@ -1,0 +1,10 @@
+# UNCONFIGURED FSTAB FOR BASE SYSTEM
+proc            /proc         proc   defaults       0      0
+/dev/nfs        /             nfs    defaults       0      0
+none            /tmp            tmpfs   defaults 0 0
+none            /var/run        tmpfs   defaults 0 0
+none            /var/lock       tmpfs   defaults 0 0
+none            /var/tmp        tmpfs   defaults 0 0
+none            /media          tmpfs   defaults 0 0
+none		/var/log	tmpfs	defaults 0 0
+

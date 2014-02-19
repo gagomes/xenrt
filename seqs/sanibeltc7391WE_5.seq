@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>
+      Boston
+    </PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="VM1G2C_5" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC11806" prio="4" tc="TC-11806"/>
+      <testcase id="xenserver.tc.smoketest.TC11807" prio="4" tc="TC-11807"/>
+      <testcase id="xenserver.tc.smoketest.TC11808" prio="4" tc="TC-11808"/>
+      <testcase id="xenserver.tc.smoketest.TC11809" prio="4" tc="TC-11809"/>
+      <testcase id="xenserver.tc.smoketest.TC11810" prio="4" tc="TC-11810"/>
+      <testcase id="xenserver.tc.smoketest.TC11919" prio="4" tc="TC-11919"/>
+    </parallel>
+  </testsequence>
+</xenrt>

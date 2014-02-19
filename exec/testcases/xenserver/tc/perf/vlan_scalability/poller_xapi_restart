@@ -1,0 +1,47 @@
+#!/usr/bin/python
+import time
+import os
+import sys
+
+resolution = 0.1 #seconds
+
+cmd = 'xe host-list enabled=true --minimal'
+def normal_form (s):
+    """Set of comma-separated components of string"""
+    import string
+    return set(map(string.strip, s.split(',')))
+
+def update ():
+    return os.popen (cmd).read().strip(), time.time()
+
+(s0,t0) = update ()
+
+while not s0:
+    sys.stderr.write('-1: waiting for xapi to start\n')
+    time.sleep (resolution)
+    (s0, t0) = update ()
+
+s1 = s0
+
+if not s0:
+    # exit with error.
+    sys.stderr.write("No hosts enabled to begin with, or `xe host-list' not working.\n")
+    sys.exit (1)
+    sys.stderr.write('0: %s\n'% str(s0))
+# update () should go blank.
+while s1:
+    time.sleep (resolution)
+    (s1, t1) = update ()
+    sys.stderr.write('1: %s\n'% str(s1))
+
+s2 = s1
+# and back again
+while normal_form(s2) != normal_form(s0):
+    time.sleep (resolution)
+    (s2, t2) = update ()
+    sys.stderr.write('2: %s\n'% str((normal_form(s0), normal_form(s2))))
+
+print t2 - t1
+sys.exit (0)
+
+#can we trust dom0 with the times?  I guess so.

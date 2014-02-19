@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.2 SP1 (pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PIDIR_CLEARWATER>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446</PIDIR_CLEARWATER>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_CLRSP1_Pool">
+    <testcase id="xenserver.tc.hotfix.TC20946" />
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,164 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# OSDB Benchmark
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, December 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=10800
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make m4"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+set -e
+
+check_skip() {
+    if [ -e /etc/redhat-release ]; then
+	if ( grep -q 'Red Hat Enterprise Linux Server release 4.9' \
+	    /etc/redhat-release ); then
+	    BM_SKIP=true
+	elif ( grep -q 'Red Hat Enterprise Linux Server release 5' \
+	    /etc/redhat-release ); then
+	    BM_SKIP=true
+	fi
+    elif [ -e /etc/SuSE-release ]; then
+	if ( grep -q "VERSION = 10" /etc/SuSE-release ); then
+	    BM_SKIP=true
+	fi
+    fi
+}
+BM_CHECKSKIP=check_skip
+
+install_osdb() {
+    HERE=`pwd`
+
+    set -x
+
+    if which gmake >/dev/null 2>&1; then
+        MAKE=gmake
+    else
+        MAKE=make
+    fi
+
+    # Build postgresql database
+    PGDIR=`ls postgresql*.tar.gz | tail -n1 | sed -e's/.tar.gz//'`
+    tar -zxf ${PGDIR}.tar.gz
+    ln -s ${PGDIR} pgsrc
+    cd ${PGDIR}
+    ./configure --without-readline --without-zlib
+    ${MAKE}
+    ${MAKE} install
+    cat /etc/passwd
+    if ! grep -q postgres /etc/passwd; then
+	if which useradd > /dev/null; then
+	    if ! useradd postgres; then
+            log_extra_data "Failed to add user postgres (${?})."   
+            return ${RC_FAIL} 
+        fi
+	else
+	    if ! adduser postgres; then
+            log_extra_data "Failed to add user postgres (${?})."    
+            return ${RC_FAIL}
+        fi
+	fi
+    fi
+    cat /etc/passwd
+    rm -rf /usr/local/pgsql/data
+    mkdir /usr/local/pgsql/data
+    chown postgres /usr/local/pgsql/data
+    chmod 700 /usr/local/pgsql/data
+    su -s /bin/bash -c "/usr/local/pgsql/bin/initdb -D /usr/local/pgsql/data" \
+	postgres
+    touch ${WORKDIR}/logs/postgresql.log
+    chown postgres ${WORKDIR}/logs/postgresql.log
+    su -s /bin/bash -c "/usr/local/pgsql/bin/postmaster -D /usr/local/pgsql/data >${WORKDIR}/logs/postgresql.log 2>&1 &" postgres
+    sleep 10
+    su -s /bin/bash -c "/usr/local/pgsql/bin/createuser --createdb --adduser root" postgres
+    
+    # Build OSDB benchmark
+    cd ${HERE}
+    SRCDIR=`ls osdb*.tgz | tail -n1 | sed -e's/.tgz//'`
+    tar -zxf ${SRCDIR}.tgz
+    ln -s ${SRCDIR} src
+    cd ${SRCDIR}
+    for patch in ${HERE}/*.patch; do
+	if [ "${patch}" != "${HERE}/*.patch" ]; then
+	    patch -p2 < ${patch}
+	fi
+    done
+
+    ./configure --with-postgresql=/usr/local/pgsql
+    ${MAKE}
+    ${MAKE} install
+
+    cd ${HERE}
+    tar -zxf data-4mb.tgz
+    tar -zxf data-40mb.tgz
+
+    # I despair
+    chmod 755 data-*
+
+    #PATH=$PATH:/usr/local/pgsql/bin LD_LIBRARY_PATH=/usr/local/pgsql/lib osdb-pg --generate-files --size 4m --datadir data/
+    
+}
+BM_INSTALL=install_osdb
+
+run_osdb() {
+
+    set -x
+
+    if ! grep -q postgres /etc/passwd; then
+	log_extra_data "Reason: postgres user does not exist"
+	return ${RC_ERROR}
+    fi
+
+    su -s /bin/bash -c "/usr/local/pgsql/bin/dropdb osdb" postgres || true
+    sleep 5
+    su -s /bin/bash -c "/usr/local/pgsql/bin/createdb osdb" postgres
+    sleep 2
+
+    if [ "$TESTTYPE" = "quick" ]; then
+	DATAFILE="data-4mb"
+	log_extra_data "Comment: Using 4MB data file"
+    elif [ "$TESTTYPE" = "benchmark" ]; then
+	DATAFILE="data-40mb"
+	log_extra_data "Comment: Using 40MB data file"
+    elif [ "$TESTTYPE" = "default" ]; then
+	DATAFILE="data-40mb"
+	log_extra_data "Comment: Using 40MB data file (default)"
+    else
+        # Custom size, specified in MB
+        if [ ! -d data-custom-${TESTTYPE}mb ]; then
+            mkdir data-custom-${TESTTYPE}mb
+            PATH=$PATH:/usr/local/pgsql/bin \
+                LD_LIBRARY_PATH=/usr/local/pgsql/lib \
+                osdb-pg --generate-files --size ${TESTTYPE}m \
+                --datadir data-custom-${TESTTYPE}mb
+            su -s /bin/bash -c "/usr/local/pgsql/bin/dropdb osdb" postgres \
+                || true
+            sleep 5
+            su -s /bin/bash -c "/usr/local/pgsql/bin/createdb osdb" postgres
+            sleep 2
+            log_extra_data "Comment: Using ${TESTTYPE}MB data file"
+        fi
+        DATAFILE="data-custom-${TESTTYPE}mb"
+    fi
+
+    LD_LIBRARY_PATH=/usr/local/pgsql/lib \
+	osdb-pg --short --logfile ${WORKDIR}/logs/${SUBDIR}.log \
+	--datadir `pwd`/${DATAFILE}
+}
+BM_RUN=run_osdb
+
+process_osdb() {
+    perl -ne'if (/^(Multi-User)\s+Test\s+([0-9\.]+)\s+seconds/){print "Value: $1 $2\n"}' < ${WORKDIR}/logs/${SUBDIR}.log
+}
+BM_PROCESS=process_osdb
+
+. ${SCRIPTDIR}/generic

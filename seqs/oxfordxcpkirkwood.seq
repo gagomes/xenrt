@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- MNR WLB integration test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <WLB_INPUTDIR>/usr/groups/xen/WLB</WLB_INPUTDIR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+    </pool>
+    <host id="1">
+      <vm name="KIRKWOOD">
+        <distro>w2k3eesp2</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installSQLServer2005"/>
+        <postinstall action="installSQLServer2005CompatibilityPack"/>
+        <postinstall action="installDotNet35"/>
+        <postinstall action="installKirkwood"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="WLB">
+    <testcase id="xenserver.tc.kirkwood.TC8982"/>
+  </testsequence>
+
+</xenrt>

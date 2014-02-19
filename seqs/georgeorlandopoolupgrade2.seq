@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Orlando to George NFS pool rolling upgrade (with suspend) test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Orlando"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.0.0-Update3-GA"/>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <RPU_WINDOWS_VERSION>ws08-x86</RPU_WINDOWS_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765"/>
+  </testsequence>
+
+</xenrt>

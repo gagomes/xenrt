@@ -1,0 +1,24 @@
+<xenrt>
+  <!-- Upgraded Oxford Host with VMs on old tools -->
+  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101"/>
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="0">
+      <vm name="win7sp-x86"> 
+        <distro>win7sp1-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

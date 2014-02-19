@@ -1,0 +1,25 @@
+<Profile>
+<Name>1 CSU</Name>
+<CSUNum>1</CSUNum>
+<Servers>
+
+<DB>
+<OS>Linux</OS>
+<Host>%DB%</Host>
+</DB>
+
+<Loadsim>
+<Host>%LS%</Host>
+</Loadsim>
+
+<Java>
+<OS>Linux</OS>
+<Host>%Java%</Host>
+</Java>
+
+<WebBench>
+<Host>%WB%</Host>
+</WebBench>
+
+</Servers>
+</Profile>

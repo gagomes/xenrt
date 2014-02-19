@@ -1,0 +1,35 @@
+#!/usr/bin/python
+
+import os
+import sched, time
+import signal
+import itertools
+import sys
+
+
+
+try:
+    do_at = float (sys.argv[1])
+    command = ' '.join(sys.argv[2:])
+    if len(sys.argv) > 3:
+        sys.argv[0]
+except:
+    print """Usage: at.py time command
+  Executes command at time given in seconds since the epoch,
+  i.e. like `date +%s', but we allow floating point.
+  Quote command, if more than one word.
+
+You gave:"""
+    print sys.argv
+    sys.exit ()
+
+sys.stderr.write("it's now %s, will start cmd %s at %s\n" % (time.time(), command, do_at))
+
+def do(cmd):
+    sys.stderr.write("doing: cmd %s at %s\n" % (cmd, time.time()))
+    os.system(cmd)
+
+s = sched.scheduler(time.time, time.sleep)
+
+s.enterabs (do_at, 1, do, (command,))
+s.run ()

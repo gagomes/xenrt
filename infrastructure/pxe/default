@@ -1,0 +1,12 @@
+SERIAL 0 115200
+PROMPT 1
+TIMEOUT 20
+DEFAULT local
+DISPLAY banner
+
+LABEL local
+    LOCALBOOT 0
+
+LABEL razor
+    KERNEL ipxe.lkrn
+    INITRD razor.ipxe

@@ -1,0 +1,23 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>    
+      <host id="0">
+        <vm name="lin01">
+          <distro>rhel61</distro>
+          <memory>1024</memory>
+          <vcpus>4</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+        </vm>        
+      </host>    
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="testcases.xenserver.tc.host.TC20920" name = "TC20920" tc ="TC-20920"/>
+    
+  </testsequence>
+</xenrt>

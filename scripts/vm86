@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# VM86: simple check that VM86 mode works OK.
+#
+# The test doesn't apply to x86/64 as there is no hardware support in
+# that mode.
+#
+# Uses LRMI (from http://sourceforge.net/projects/lrmi/)
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin and Ian Campbell, January 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=7200
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+set -e
+
+check_skip() {
+    if [ "`arch`" == "x86_64" ]; then
+        BM_SKIP=true
+    fi
+}
+BM_CHECKSKIP=check_skip
+BM_INSTALL=make
+BM_RUN=./vm86test
+
+. ${SCRIPTDIR}/generic

@@ -1,0 +1,31 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host license="no" id="0"/>
+    <host license="no" id="1" noisos="yes"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Default">
+      <testcase id="xenserver.tc.license.TC8784"/>
+    </serial>
+    <serial group="Free">
+      <testcase id="xenserver.tc.license.TC8793"/>
+    </serial>
+    <serial group="Advanced">
+      <testcase id="xenserver.tc.license.TC11269"/>
+    </serial>
+    <serial group="Enterprise">
+      <testcase id="xenserver.tc.license.TC10002"/>
+    </serial>
+    <serial group="Platinum">
+      <testcase id="xenserver.tc.license.TC10013"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if which dmesg > /dev/null 2>&1 ; then
+    TMPFILE=`mktemp /tmp/dmesgXXXXXX`
+    dmesg -s 1048576 > ${TMPFILE}
+    if grep -q BUG ${TMPFILE}; then
+        echo "Warning: BUG found in dmesg"
+    fi
+    if grep -q Oops ${TMPFILE}; then
+        echo "Warning: Oops found in dmesg"
+    fi
+    rm -f ${TMPFILE}
+fi
+

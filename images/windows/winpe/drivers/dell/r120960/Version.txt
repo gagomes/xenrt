@@ -1,0 +1,9 @@
+Title      : SAS RAID:Dell PERC 5/E Adapter, PERC 5/i Adapter, PERC 5/i Integrated Driver
+Version    : A02
+OEM Name   : Dell
+OEM Ver    : 1.18.0.32
+Computers  : 1850, 2850; 
+PowerEdge - 1850, PowerEdge - 1900, 1950, PowerEdge - 2850, 2900, 2950, 6800, 6850, 840, 860, ES3140, ES3140L, SC1430
+Oses       : Windows 2000 Advanced Server, Windows 2000 Server, Windows 2000 Small Business Server, Windows Server 2003 Enterprise Edition, Windows Server 2003 Small Business Server Standard EditionWindows Server 2003 Standard EditionWindows Server 2003 Web Edition
+Languages  : Chinese-S, English, French, German, Japanese, Korean, Spanish
+Created    : Mon Mar 27 16:41:59 CST 2006

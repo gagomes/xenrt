@@ -1,0 +1,39 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="test">
+        <distro>debian70</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0" bridge="NPRI_A"/>
+        <network device="1" bridge="NPRI_B"/>
+        <network device="2" bridge="NSEC"/>
+      </vm>
+      <vm name="test1">
+        <distro>debian70</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI" name="NPRI_A">
+          <NIC />
+          <MANAGEMENT />
+          <VMS />
+        </PHYSICAL>
+        <PHYSICAL network="NPRI" name="NPRI_B">
+          <NIC />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+  </prepare>
+</xenrt>

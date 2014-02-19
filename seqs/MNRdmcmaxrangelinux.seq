@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- MNR memory balloon driver max range stability tests -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Linux1">
+      <testcase id="xenserver.tc.balloon.TC9341"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

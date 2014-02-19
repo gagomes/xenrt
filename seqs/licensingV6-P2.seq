@@ -1,0 +1,78 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+  <testsequence>
+    <serial group= "licensingV6-P2" >
+       <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>storageType=iscsi</arg>
+       </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11440" name="TC-11440">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_11440</arg>
+        <arg>TC11440</arg>
+        <arg>11440</arg>
+       </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11441" name="TC-11441">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_11441</arg>
+        <arg>TC11441</arg>
+        <arg>11441</arg>
+       <arg>postRun=true</arg>
+      </testcase> 
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11435" name="TC-11435">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_11435</arg>
+       <arg>TC11435</arg>
+       <arg>11435</arg>
+      </testcase>
+     </serial>   
+     <serial group= "License-Key-P2" >
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1868" name="TC-1868">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_1868</arg>
+        <arg>TC1868</arg>
+        <arg>1868</arg>
+        <arg>postRun=true</arg>
+      </testcase> 
+     </serial>
+     <serial group= "Advanced_License-P2" >
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-11443" name="TC-11443">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_11443</arg>
+        <arg>TC11443</arg>
+        <arg>11443</arg>
+        <arg>postRun=true</arg>
+      </testcase> 
+     </serial>
+     <serial group= "licenseDowngrade-P2" >
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10105" name="TC-10105">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_10105</arg>
+        <arg>TC10105</arg>
+        <arg>10105</arg>
+        <arg>postRun=true</arg>
+      </testcase> 
+     </serial>
+</testsequence>
+</xenrt>
+
+        

@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC18591"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

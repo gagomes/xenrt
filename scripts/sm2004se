@@ -1,0 +1,176 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the SYSmark 2004 SE benchmark
+# (This script runs in dom0, NOT the guest!)
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+# Alex Brett, August 2006
+
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+# This is a LONG test, so 5 hours seems reasonable
+TIMEOUT=18000
+
+RETVAL=0
+
+# Don't pass by default, we'll deal with that
+BM_PROCESS_NO_DEFAULT_PASS="yes"
+
+# Don't extract the tarball, that only contains things needed in the guest
+BM_INSTALL_SKIP_TARBALL="yes"
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+    DOMINDEX=$1
+    GUESTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+    
+    # TODO: Get the ISO in the correct place 
+    # (somehow needs to be set up as the domU CD drive!)
+    
+    # Install sm on the guest
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote install
+   
+    echo "Waiting for install to complete (this is indicated by a reboot)..."
+ 
+    # Wait for the guest to reboot
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote waitforreboot || true
+
+    # Wait for guest to boot
+    eval wait_for_boot ${GUESTNAME}
+
+    echo "Guest rebooted, install complete."
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+    DOMINDEX=$1
+    GUESTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+
+    # Start the benchmark on the guest
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote run
+
+    echo "Waiting for initial reboot..."
+
+    # Wait for initial reboot
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote waitforreboot || true
+ 
+    # Once we get here, guest has gone for reboot, wait for it to boot
+    eval wait_for_boot ${GUESTNAME}
+    
+    echo "Now performing ICC run, waiting for reboot to indicate end..."
+
+    # Now wait for it to reboot again, this will be the end of the ICC run
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote waitforreboot || true
+    
+    # Wait for it to boot again, when it will start the OP run
+    eval wait_for_boot ${GUESTNAME}
+   
+    echo "Now performing OP run, waiting for reboot to indicate end..."
+ 
+    # Now wait for it to reboot for the final time, this will be the end
+    # of the OP run
+    ${SSH} root@${GUESTNAME} ${SCRIPTDIR}/remote/sm2004se.remote waitforreboot || true
+    
+    # Wait for it to boot, once this happens, it's done
+    eval wait_for_boot ${GUESTNAME}    
+
+    echo "Run complete."
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/XENRT.wmr"
+
+process_this() {
+    DOMINDEX=$1
+    GUESTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+      
+    # Pull back the logfile, and process it
+    if ${SCP} root@${GUESTNAME}:"/dev/fs/C/Program\ Files/BAPCo/SYSmark\ 2004\ SE/Reports/XENRT.wmr" ${WORKDIR}/${THISSCRIPT}/
+    then          
+      # Extract result values          
+      iccoverall=`grep 'Internet Content Creation Overall=' \
+        ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+      
+      if [ "${iccoverall}" ]; then      
+        icc3d=`grep 'Internet Content Creation, 3D Creation=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        icc2d=`grep 'Internet Content Creation, 2D Creation=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        iccweb=`grep 'Internet Content Creation, Web Publication=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        
+        icc=yes
+      else
+        icc=no
+      fi
+      
+      opoverall=`grep 'Office Productivity Overall=' \
+        ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+      if [ "${opoverall}" ]; then      
+        opcomms=`grep 'Office Productivity, Communication=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        opdocs=`grep 'Office Productivity, Document Creation=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        opdata=`grep 'Office Productivity, Data Analysis=' \
+          ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+        
+        op=yes
+      else
+        op=no
+      fi
+      
+      overall=`grep 'SYSmark 2004 SE Overall Rating=' \
+        ${WORKDIR}/${THISSCRIPT}/XENRT.wmr | awk -F= '{ print $2 }'`
+
+      if [ "${icc}" == "yes" -a "${op}" == "yes" ]; then 
+        # Both suites ran, so we passed :)
+        echo "Test: passed"
+        
+        # Return overall score as the numerical result
+        echo "Value: ${overall}"        
+      else      
+        if [ "${icc}" = "yes" -o "${op}" = "yes" ]; then
+          # One of them ran, so we partially passed :|
+          echo "Test: partial"
+        else
+          # Neither of them ran :(
+          echo "Test: failed"
+        fi
+      fi
+      
+      # Return the rest as comments (if possible)
+      if [ "${icc}" = "yes" ]; then
+        echo "Comment: ICC_Overall: ${iccoverall}"
+        echo "Comment: ICC_3D: ${icc3d}"
+        echo "Comment: ICC_2D: ${icc2d}"
+        echo "Comment: ICC_Web: ${iccweb}"
+      fi
+      
+      if [ "${op}" = "yes" ]; then
+        echo "Comment: OP_Overall: ${opoverall}"
+        echo "Comment: OP_Comms: ${opcomms}"
+        echo "Comment: OP_Docs: ${opdocs}"
+        echo "Comment: OP_Data: ${opdata}"      
+      fi
+            
+    else
+      echo "Test: failed"
+    fi
+        
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

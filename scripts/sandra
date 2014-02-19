@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Install and run the SiSoft Sandra benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=7200
+BM_SUPPORTED_PLATFORMS="Windows"
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+check_skip() {
+
+    WINVERSION=`win_version`
+    if [ "${WINVERSION}" = "w2k3ee" ] || [ "${WINVERSION}" = "w2k3se" ]; then
+        BM_SKIP=true
+    fi
+    if [ "${WINVERSION}" = "w2k" ]; then
+        BM_SKIP=true
+    fi
+
+}
+
+BM_CHECKSKIP=check_skip
+
+winify_path() {
+    echo "C:/SFU$1" | sed -e's#/#\\#g'
+}
+
+install_this() {
+
+    set -x
+
+    windows_install_dotnet
+
+    ${WORKDIR}/${THISSCRIPT}/sandra_installer.exe /VERYSILENT /SUPRESSMSGBOXES /LOG="`winify_path ${WORKDIR}/${THISSCRIPT}/install.log`" \
+    /NOCANCEL /DIR="`winify_path ${WORKDIR}/${THISSCRIPT}/sandra`"
+
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+    set -x
+
+    ${WORKDIR}/${THISSCRIPT}/sandra/sandra.exe /r "`winify_path ${WORKDIR}/${THISSCRIPT}/auto.sis`"
+
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/install.log ${WORKDIR}/${THISSCRIPT}/sandra.txt"
+
+BM_PROCESS=
+
+. ${SCRIPTDIR}/generic

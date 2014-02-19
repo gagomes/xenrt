@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile SYSTEM "/usr/share/autoinstall/dtd/profile.dtd">
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <configure>
+    <networking>
+      <dns>
+        <dhcp_hostname config:type="boolean">false</dhcp_hostname>
+        <dhcp_resolv config:type="boolean">false</dhcp_resolv>
+      </dns>
+      <routing>
+        <ip_forward config:type="boolean">false</ip_forward>
+      </routing>
+    </networking>
+    <printer>
+      <cups_installation config:type="symbol">server</cups_installation>
+      <default></default>
+      <printcap config:type="list"/>
+      <server_hostname></server_hostname>
+      <spooler>cups</spooler>
+    </printer>
+    <runlevel>
+      <default>3</default>
+    </runlevel>
+    <security>
+      <console_shutdown>reboot</console_shutdown>
+      <cracklib_dict_path>/usr/lib/cracklib_dict</cracklib_dict_path>
+      <cwd_in_root_path>no</cwd_in_root_path>
+      <cwd_in_user_path>no</cwd_in_user_path>
+      <displaymanager_remote_access>no</displaymanager_remote_access>
+      <enable_sysrq>no</enable_sysrq>
+      <fail_delay>3</fail_delay>
+      <faillog_enab>yes</faillog_enab>
+      <gid_max>60000</gid_max>
+      <gid_min>1000</gid_min>
+      <kdm_shutdown>auto</kdm_shutdown>
+      <lastlog_enab>yes</lastlog_enab>
+      <obscure_checks_enab>yes</obscure_checks_enab>
+      <pass_max_days>99999</pass_max_days>
+      <pass_max_len>8</pass_max_len>
+      <pass_min_days>0</pass_min_days>
+      <pass_min_len>5</pass_min_len>
+      <pass_warn_age>7</pass_warn_age>
+      <passwd_encryption>des</passwd_encryption>
+      <passwd_use_cracklib>yes</passwd_use_cracklib>
+      <permission_security>easy</permission_security>
+      <run_updatedb_as>nobody</run_updatedb_as>
+      <system_gid_max>499</system_gid_max>
+      <system_gid_min>100</system_gid_min>
+      <system_uid_max>499</system_uid_max>
+      <system_uid_min>100</system_uid_min>
+      <uid_max>60000</uid_max>
+      <uid_min>1000</uid_min>
+      <useradd_cmd>/usr/sbin/useradd.local</useradd_cmd>
+      <userdel_postcmd>/usr/sbin/userdel-post.local</userdel_postcmd>
+      <userdel_precmd>/usr/sbin/userdel-pre.local</userdel_precmd>
+    </security>
+    <sound>
+      <configure_detected config:type="boolean">false</configure_detected>
+      <modules_conf config:type="list"/>
+      <rc_vars/>
+      <volume_settings config:type="list"/>
+    </sound>
+    <users config:type="list">
+      <user>
+        <encrypted config:type="boolean">false</encrypted>
+        <user_password>%ROOTPASS%</user_password>
+        <username>root</username>
+      </user>
+    </users>
+  </configure>
+  <install>
+    <bootloader>
+      <activate config:type="boolean">true</activate>
+      <device_map config:type="list">
+        <device_map_entry>
+          <firmware>(hd0)</firmware>
+          <linux>/dev/sda</linux>
+        </device_map_entry>
+      </device_map>
+      <global config:type="list">
+        <global_entry>
+          <key>color</key>
+          <value>white/blue black/light-gray</value>
+        </global_entry>
+        <global_entry>
+          <key>default</key>
+          <value config:type="integer">0</value>
+        </global_entry>
+        <global_entry>
+          <key>timeout</key>
+          <value config:type="integer">8</value>
+        </global_entry>
+      </global>
+      <loader_device>/dev/sda</loader_device>
+      <loader_type>grub</loader_type>
+      <location>mbr</location>
+      <repl_mbr config:type="boolean">true</repl_mbr>
+      <sections config:type="list">
+        <section config:type="list">
+          <section_entry>
+            <key>title</key>
+            <value>Linux</value>
+          </section_entry>
+          <section_entry>
+            <key>root</key>
+            <value>(hd0,0)</value>
+          </section_entry>
+          <section_entry>
+            <key>kernel</key>
+            <value>/boot/vmlinuz root=/dev/sda2 selinux=0 serial console=ttyS0,115200 load_ramdisk=1 splash=silent showopts elevator=cfq</value>
+          </section_entry>
+          <section_entry>
+            <key>initrd</key>
+            <value>/boot/initrd</value>
+          </section_entry>
+        </section>
+      </sections>
+    </bootloader>
+    <general>
+      <clock>
+        <hwclock>localtime</hwclock>
+        <timezone>%TIMEZONE%</timezone>
+      </clock>
+      <keyboard>
+        <keymap>english-uk</keymap>
+      </keyboard>
+      <language>en_GB</language>
+      <mode>
+        <confirm config:type="boolean">false</confirm>
+        <forceboot config:type="boolean">false</forceboot>
+      </mode>
+      <mouse>
+        <id>none</id>
+      </mouse>
+      <signature-handling>
+        <accept_verification_failed config:type="boolean">true</accept_verification_failed>
+        <accept_file_without_checksum config:type="boolean">true</accept_file_without_checksum> 
+      </signature-handling>  
+    </general>
+    <partitioning config:type="list">
+      <drive>
+        <device>/dev/sda</device>
+        <initialize config:type="boolean">false</initialize>
+        <partitions config:type="list">
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/boot</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>100M</size>
+          </partition>
+          <partition>
+            <filesystem config:type="symbol">ext2</filesystem>
+            <format config:type="boolean">true</format>
+            <loop_fs config:type="boolean">false</loop_fs>
+            <mount>/</mount>
+            <partition_id config:type="integer">131</partition_id>
+            <partition_type>primary</partition_type>
+            <size>10G</size>
+          </partition>
+        </partitions>
+        <use>all</use>
+      </drive>
+    </partitioning>
+    <software>
+      <addons config:type="list">
+        <addon>Base-System</addon>
+        <addon>Basis-Sound</addon>
+        <addon>Kde-Desktop</addon>
+        <addon>Linux-Tools</addon>
+        <addon>Print-Server</addon>
+        <addon>SuSE-Documentation</addon>
+        <addon>X11</addon>
+        <addon>YaST2</addon>
+        <addon>auth</addon>
+      </addons>
+      <base>default</base>
+    </software>
+  </install>
+</profile>

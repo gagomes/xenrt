@@ -1,0 +1,184 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Check basic network functionality between guest, dom0 and outside world
+#
+# This test is run on dom0 and makes SSH connections to guests to start
+# relevant bits of the test there. For stuff that need running from an
+# external host an SSH connection is made to it in the same was as the
+# ttcpbw test (i.e. root trust is needed).
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, April 2006
+
+set -e
+
+# Connectivity test pairs:
+#  1. dom0 -> ext
+#  2. ext -> dom0
+#  3. dom0 -> guest1
+#  4. guest1 -> dom0
+#  5. guest1 -> ext
+#  6. ext -> guest1
+#  7. guest1 -> guest2
+
+# Connectivity tests
+#  A. ping (small packet)
+#  B. ping (large packet)
+
+# This runs the specified test and returns a code for outcome
+# 
+# The first argument is the test id (A, B, ...).
+# The second argument is the test peer
+runtest() {
+    local TESTID=$1
+    local PEER=$2
+
+    if [ "${TESTID}" = "A" ]; then
+	ping -c 3 -w 10 ${PEER}
+    elif [ "${TESTID}" = "B" ]; then
+	ping -c 3 -w 10 -s 1500 ${PEER}
+    fi
+}
+
+# We copy this script to a temporary location on a peer before running it
+# using SSH. The environment will not be full-XenRT so we can't do the usual
+# config stuff. If we run remotely then the first argument will be "--remote"
+if [ "$1" = "--remote" ]; then
+    shift
+    runtest "$@"
+    exit 0
+fi
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=10000
+
+# The preferred CPU pinning is grep'ed out by tunedom running in dom0,
+# it isn't really used directly here
+CPUPIN=SPLIT
+
+. ${SCRIPTDIR}/functions
+
+BM_INSTALL_SKIP_TARBALL=yes
+
+# How to run a test fragment elsewhere
+runon() {
+    local REMOTE=$1
+    local TESTID=$2
+    local PEER=$3
+    local RETVAL=${RC_OK}
+
+    if [ "${REMOTE}" = "localhost" ]; then
+	runtest "${TESTID}" "${PEER}"
+        RETVAL=$?
+    else
+	if [ "${REMOTE}" = "${EXTPEER}" -a -n "${EXTUSER}" ]; then
+	    REMOTE="${EXTUSER}@${EXTPEER}"
+	fi
+
+        # Create a copy of this script on the remote machine
+	TMPSCRIPT=`${SSH} ${REMOTE} mktemp /tmp/netcheckXXXXXX`
+	${SCP} -p $0 ${REMOTE}:${TMPSCRIPT}
+
+        # Run the test itself
+	${SSH} ${REMOTE} ${TMPSCRIPT} --remote "${TESTID}" "${PEER}"
+	RETVAL=$?
+
+	${SSH} ${REMOTE} rm -f ${TMPSCRIPT}
+    fi
+
+    return ${RETVAL}
+}
+
+runandlog() {
+    local CONFIGID="$1"
+    local DESC="$2"
+    local REMOTE="$3"
+    local TESTID="$4"
+    local PEER="$5"
+
+    if runon "${REMOTE}" "${TESTID}" "${PEER}"; then
+	log_extra_data "Comment: ${CONFIGID}/${TESTID}/${DESC} passed"
+    else
+	log_extra_data "Reason: ${CONFIGID}/${TESTID}/${DESC} failed"
+	FAILCOUNT=$[${FAILCOUNT} + 1]
+    fi
+}
+
+# Run the specified test/action on all pairs
+runonall() {
+    local CONFIGID=$1
+    local TESTID=$2
+
+    #  1. dom0 -> ext
+    runandlog ${CONFIGID} "dom0->ext" localhost ${TESTID} ${EXTPEER}
+
+    #  2. ext -> dom0
+    runandlog ${CONFIGID} "ext->dom0" ${EXTPEER} ${TESTID} localhost
+
+    #  3. dom0 -> guest1
+    runandlog ${CONFIGID} "dom0->guest1" localhost ${TESTID} ${GUEST1}
+
+    #  4. guest1 -> dom0
+    runandlog ${CONFIGID} "guest1->dom0" ${GUEST1} ${TESTID} localhost
+
+    #  5. guest1 -> ext
+    runandlog ${CONFIGID} "guest1->ext" ${GUEST1} ${TESTID} ${EXTPEER}
+
+    #  6. ext -> guest1
+    runandlog ${CONFIGID} "ext->guest1" ${EXTPEER} ${TESTID} ${GUEST1}
+
+    #  7. guest1 -> guest2
+    runandlog ${CONFIGID} "guest1->guest2" ${GUEST1} ${TESTID} ${GUEST2}
+    
+}
+
+# Run all tests on all pairs
+runall() {
+    local CONFIGID=$1
+
+    for testid in A B; do
+	runonall ${CONFIGID} ${testid}
+    done
+}
+
+bmrun() {
+set -x
+    FAILCOUNT=0
+
+    # The external is the same as we configured for ttcpbw
+    EXTUSER="${TTCP_SERVER_USER}"
+    EXTPEER="${TTCP_SERVER}"
+
+    # The two guests can be specified as command line args
+    GUEST1=`domain_to_hostname ${XENMACHINE} ${1:-Domain-1}`
+    GUEST2=`domain_to_hostname ${XENMACHINE} ${2:-Domain-2}`
+
+    # Do a basic test
+    runall "Basic"
+
+    # Run with IP connection tracking enabled
+    modprobe ip_conntrack || true
+    sleep 2
+    if [ ! -e /proc/net/ip_conntrack ]; then
+	log_extra_data "Reason: could not start IP connection tracking"
+	FAILCOUNT=$[${FAILCOUNT} + 1]
+    else
+	runall "ConnTrack"
+    fi
+
+    # Turn connection tracking back off
+    rmmod ip_conntrack || true
+    sleep 2
+    if [ -e /proc/net/ip_conntrack ]; then
+	log_extra_data "Reason: could not disable IP connection tracking"
+	partial_pass
+    fi
+    
+    [ ${FAILCOUNT} = 0 ]
+}
+BM_RUN=bmrun
+
+. ${SCRIPTDIR}/generic

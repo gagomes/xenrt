@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- Boston single host upgrade test from Oxford with all the hotfixes on -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PIDIR_OXFORD>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101</PIDIR_OXFORD>
+    <CARBON_PATCHES_OXFORD>
+      <XS56ESP2001>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2001/47929/hotfix-XS56ESP2001/XS56ESP2001.xsupdate</XS56ESP2001>
+      <XS56ESP2002>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2002/48993/hotfix-XS56ESP2002/XS56ESP2002.xsupdate</XS56ESP2002>
+      <XS56ESP2003>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2003/48937/hotfix-XS56ESP2003/XS56ESP2003.xsupdate</XS56ESP2003>
+      <XS56ESP2004>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2004/49768/hotfix-XS56ESP2004/XS56ESP2004.xsupdate</XS56ESP2004>
+      <XS56ESP2005>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2005/50891/hotfix-XS56ESP2005/XS56ESP2005.xsupdate</XS56ESP2005>
+      <XS56ESP2006>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2006/51232/hotfix-XS56ESP2006/XS56ESP2006.xsupdate</XS56ESP2006>
+      <XS56ESP2007>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2007/52141/hotfix-XS56ESP2007/XS56ESP2007.xsupdate</XS56ESP2007>
+      <XS56ESP2008>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2008/52820/hotfix-XS56ESP2008/XS56ESP2008.xsupdate</XS56ESP2008>
+    </CARBON_PATCHES_OXFORD>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="1">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+          
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC15000"/>
+  </testsequence>
+    
+    </xenrt>

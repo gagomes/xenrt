@@ -1,0 +1,35 @@
+# Unigine Sanctuary Benchmark
+# Status: downloadable
+# Downloaded from: http://unigine.com/
+fd432891d69a11ba8a03b4edc5805edf  ./AxSHDocVw.dll
+b33b21db610116262d906305ce65c354  ./d3dcompiler_42.dll
+501ac862517c5445742bee8a2b88414e  ./d3dx10_42.dll
+c6a44fc3cf2f5801561804272217b14d  ./d3dx9_42.dll
+a1bd6b9b1dd309f0cfd53505e3ddd1f9  ./data/core.ung
+c6e13e1272a20d37a41897e84c4e3690  ./data/unigine.cfg
+5e6e2b14dcb0d272e6d9be7b63c6e296  ./data/demos/sanctuary.zip
+e020eac0906ea717391e299de3be43e6  ./html/background.jpg
+214fa44641bbc768744749c4ee584fbe  ./html/run.gif
+34ad24fecf6fb4a4b8c97e743824b4fd  ./html/styles.css
+d035f971db37dd479fca1f91f05e42f9  ./html/utils.js
+c13ca85c9325a67349bba7b4ec7e975b  ./launchers/d3d10_fullscreen_1280x1024.bat
+a0be99ee001b793d6a9fa11d4812f541  ./launchers/d3d10_windowed_1024x768.bat
+32e623c1828aa50e5daed6e2cd86d55e  ./launchers/d3d11_fullscreen_1280x1024.bat
+3c7a5b4860154ffcb7d35897442f43b6  ./launchers/d3d11_windowed_1024x768.bat
+ba5937cfd426f3962f26600cad162e43  ./launchers/d3d9_fullscreen_1280x1024.bat
+f5628c276f7f46c83af51d103f1fdb41  ./launchers/d3d9_windowed_1024x768.bat
+9ca9e3571cd4ea1b8bf77b04b38253e8  ./launchers/gl_fullscreen_1280x1024.bat
+758c2a992881bd74700d9c516923ef67  ./launchers/gl_windowed_1024x768.bat
+4a8bc195abdc93f0db5dab7f5093c52f  ./msvcm90.dll
+6de5c66e434a9c1729575763d891c6c2  ./msvcp90.dll
+e7d91d008fe76423962b91c43c88e4eb  ./msvcr90.dll
+75ca10b6d41ed18fc653461e63d247cf  ./redist/alredist.exe
+f091d7512df627863ccdaf205cb8561b  ./Sanctuary_d3d10.bat
+bc4f9feee4d5c5db99449f84cc51d720  ./Sanctuary_d3d11.bat
+b1542f83743485b34bc494c5757c3808  ./Sanctuary_d3d9.bat
+59eba1091d432f8d0f15a931110594e3  ./Sanctuary.exe
+22db15084ee0621071cb71cc63f1c7e0  ./Sanctuary_gl.bat
+ad219aed0b029ddf8c8075af0ead73a0  ./SHDocVw.dll
+10fa068b89a4ae8317047b12625fa2e9  ./Unigine.exe
+1afadf607ddb01568e0d597a6b308c82  ./Unigine_x86.dll
+c1a30e7cb0a0e01530b7c5c7bfb47597  ./unigine.xml

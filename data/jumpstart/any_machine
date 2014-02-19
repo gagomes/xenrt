@@ -1,0 +1,10 @@
+install_type	initial_install
+fdisk all solaris all
+system_type	standalone
+partitioning	default
+cluster		SUNWCuser
+cluster		SUNWCxgl delete
+package		SUNWaudmo add
+geo		W_Europe
+locale		C
+

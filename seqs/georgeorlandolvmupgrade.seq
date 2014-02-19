@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- Orlando to George LVM upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Orlando"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.0.0-Update3-GA"/>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+  </prepare>
+
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.upgrade.TC8667" blocker="yes"/>
+    <testcase id="xenserver.tc.vhd.TC8668"/>
+  </testsequence>
+
+</xenrt>

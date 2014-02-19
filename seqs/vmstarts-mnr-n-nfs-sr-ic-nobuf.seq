@@ -1,0 +1,63 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <!-- SR type is needed so localstoragecaching will work -->
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+
+    <pool id="0">
+      <host id="0">
+        <!-- This is ghoul1 on which we measure VM start-times. -->
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC />
+            <NIC />
+            <NIC />
+            <NIC />
+            <MANAGEMENT mode="static" />
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+    </pool>
+
+    <pool id="1">
+      <host id="1">
+        <!-- This is q17 or similar to act as cheap nfs server. -->
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC />
+            <NIC />
+            <NIC />
+            <NIC />
+            <MANAGEMENT mode="static" />
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+    </pool>
+
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-01">
+      <arg>novifs</arg>
+      <arg>localstoragecaching</arg>
+      <arg>nfsserverhost=RESOURCE_HOST_1</arg>
+      <arg>numdesktops=1</arg>
+    </testcase>
+
+    <for iter="I" values="10,20,30,40,50,05,15,25,35,45,55">
+      <action action="prepare" />
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-${I}">
+        <arg>novifs</arg>
+        <arg>localstoragecaching</arg>
+        <arg>nfsserverhost=RESOURCE_HOST_1</arg>
+        <arg>numdesktops=${I}</arg>
+      </testcase>
+    </for>
+
+  </testsequence>
+</xenrt>

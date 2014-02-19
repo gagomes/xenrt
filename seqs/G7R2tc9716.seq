@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- George VM clock stability test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2-x64</distro>
+        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="VMClockStability">
+    <parallel>
+      <testcase id="xenserver.tc.vmlifecycle.TC9716" prio="3"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

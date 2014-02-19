@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Workload: forktest2
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, November-December 2005
+
+THISSCRIPT=`basename $0`
+
+run() {
+    /tmp/forktest2
+}
+
+stop() {
+    killall forktest2 || true
+    sleep 5
+    killall forktest2 || true
+}
+
+case "$1" in
+    start)
+	shift
+	rm -f /tmp/forktest2 /tmp/forktest2.c
+        cp `dirname $0`/forktest2.c /tmp/
+	cd /tmp
+	gcc -O2 -o forktest2 forktest2.c
+        $0 run "$@" > /dev/null 2>&1 &
+        ;;
+    stop)
+	shift
+	stop
+	;;
+    run)
+	shift
+	run "$@"
+	;;
+esac

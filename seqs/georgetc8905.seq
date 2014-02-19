@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+    </pool>
+  </prepare>
+
+  <testsequence group="Patch">
+    <testcase id="xenserver.tc.pool.TC8905"/>
+  </testsequence>
+
+</xenrt>

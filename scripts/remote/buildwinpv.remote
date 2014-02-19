@@ -1,0 +1,97 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Script for retrieving and building the Windows PV drivers. This script
+# gets copied over to the build server by the windrivers test which then
+# runs functions from here using SSH.
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, June 2006
+
+RETVAL=0
+
+set -e
+
+DRIVERS_SUBDIR=windows
+INSTALLER_SUBDIR=windows/install
+WINHG=hg
+DDK="c:\\WINDDK\\3790"
+DDKENV=free
+DDKTYPE=WNET
+
+winify_path() {
+    echo "c:/cygwin$1" | sed -e's#/#\\#g'
+}
+
+install_local() {
+    local REPO=$1
+    local WORKDIR=$2
+
+    set -x
+
+    mkdir -p ${WORKDIR}
+    mkdir -p ${WORKDIR}/patches
+    cd ${WORKDIR}
+    
+    # Check out the repository
+    rm -rf build
+    ${WINHG} clone ${REPO} build
+}
+
+
+run_local() {
+    local WORKDIR=$1
+    cd ${WORKDIR}
+
+    set -x
+
+    # Apply any patches we have (ignore any errors from patch application)
+    for patch in ${WORKDIR}/patches/*; do
+	if [ -e ${patch} ]; then
+	    if ! ( cd build; /usr/bin/patch -p1 < ${patch} ); then
+		echo "Unable to apply patch `basename ${patch}`"
+	    fi
+	fi
+    done
+
+    # Build the drivers
+    cmd /c "${DDK}\\bin\\setenv.bat ${DDK} ${DDKENV} ${DDKTYPE} && c: && cd `winify_path ${WORKDIR}/build/${DRIVERS_SUBDIR}` && build -c"
+
+    # Create an environment for the installer
+    echo "set PATH=%PATH%;c:\\Program Files\\NSIS" >> env.bat
+
+    # Build the installer
+    cmd /c "${DDK}\\bin\\setenv.bat ${DDK} ${DDKENV} ${DDKTYPE} && `winify_path ${WORKDIR}/env.bat` && c: && cd `winify_path ${WORKDIR}/build/${INSTALLER_SUBDIR}` && makensis xensetup.nsi"
+    mv ${WORKDIR}/build/${INSTALLER_SUBDIR}/xensetup.exe ${WORKDIR}/
+
+}
+
+clean_local() {
+    local WORKDIR=$1
+
+    rm -rf ${WORKDIR}
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install_local)
+	shift
+        install_local "$@"
+        ;;
+  run_local)
+	shift
+	run_local "$@"
+	;;
+  clean_local)
+	shift
+	clean_local "$@"
+	;;
+  *)
+        exit 1
+esac
+
+exit $RETVAL

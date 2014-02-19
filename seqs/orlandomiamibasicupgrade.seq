@@ -1,0 +1,242 @@
+<xenrt>
+
+  <!-- Miami to Orlando Basic Upgrade Tests -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Miami"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-4.x/XS-4.1.0/xenserver-4.1.0"/>
+  <default name="OLD_PRODUCT_EXTRA_CDS" value="linux.iso"/>
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="1"/>
+  <default name="VMOPSITER" value="10"/>
+  <default name="SRMWORKLOADS" value="workloads"/>
+
+  <variables>
+    <PRODUCT_VERSION>Orlando</PRODUCT_VERSION>
+  </variables>
+
+  <collection name="guest">
+      <serial>
+        <testcase id="guestops.basic.TCStartStop" name="TCStartStopPre">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.drivers.TCDriverUpgrade">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStart">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>${SRMWORKLOADS}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>live</arg>
+          <arg>${SRMWORKLOADS}</arg>
+        </testcase>
+        <ifnoteq x="${GUESTNAME}" y="w2kassp4">
+          <testcase id="guestops.srm.TCHibernate">
+            <arg>guest=${GUESTNAME}</arg>
+            <arg>loops=${VMOPSITER}</arg>
+          </testcase>
+        </ifnoteq>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCUninstall">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=${GUESTNAME}</arg>
+          </testcase>
+        </finally>
+      </serial>
+  </collection>
+
+  <testsequence>
+
+    <!-- Install the previous version -->
+
+    <serial group="HostInstallation" blocker="yes">
+      <testcase id="xenserver.install.TCXenServerInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>${OLD_PRODUCT_VERSION}</arg>
+        <arg>input=${OLD_PRODUCT_INPUTDIR}</arg>
+        <arg>extracds=${OLD_PRODUCT_EXTRA_CDS}</arg>
+      </testcase>
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS"/>
+    </serial>
+
+    <!-- Install guests -->
+    
+    <serial group="W2000ASSP4.PREV">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=w2kassp4</arg>
+        <arg>version=w2kassp4</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall">
+        <arg>guest=w2kassp4</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=w2kassp4</arg>
+      </testcase>
+    </serial>
+
+    <serial group="W2K3EESP2.PREV">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=w2k3eesp2</arg>
+        <arg>version=w2k3eesp2</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall">
+        <arg>guest=w2k3eesp2</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=w2k3eesp2</arg>
+      </testcase>
+    </serial>
+    
+    <serial group="W2K3EESP2-X64.PREV">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=w2k3eesp2-x64</arg>
+        <arg>version=w2k3eesp2-x64</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall">
+        <arg>guest=w2k3eesp2-x64</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=w2k3eesp2-x64</arg>
+      </testcase>
+    </serial>
+
+    <serial group="ETCH.PREV">
+      <testcase id="xenserver.guest.TCXenServerDebianInstall" name="TCDebianInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=etch</arg>
+        <arg>distro=etch</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=etch</arg>
+      </testcase>
+    </serial>
+
+    <serial group="RH44.PREV">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel44</arg>
+        <arg>version=rhel44</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=rhel44</arg>
+      </testcase>
+    </serial> 
+
+    <serial group="RH51.PREV">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel51</arg>
+        <arg>version=rhel51</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=rhel51</arg>
+      </testcase>
+    </serial> 
+
+    <serial group="SLES10SP1.PREV">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=sles10sp1</arg>
+        <arg>version=sles101</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+      <testcase id="guestops.basic.TCShutdown">
+        <arg>guest=sles10sp1</arg>
+      </testcase>
+    </serial> 
+
+    <!-- Upgrade to current version -->
+
+    <serial tc="TC-6725">
+
+      <serial group="HostInstallation" blocker="yes">
+        <testcase id="xenserver.install.TCXenServerUpgrade">
+          <arg>input=DEFAULT</arg>
+        </testcase>
+      </serial>
+
+      <!-- Test the guests -->
+    
+      <serial group="ETCH">
+        <include collection="guest">
+          <param name="GUESTNAME" value="etch"/>
+        </include>
+      </serial>
+
+      <serial group="RH44">
+        <include collection="guest">
+          <param name="GUESTNAME" value="rhel44"/>
+        </include>
+      </serial>
+
+      <serial group="RH51">
+        <include collection="guest">
+          <param name="GUESTNAME" value="rhel51"/>
+        </include>
+      </serial>
+
+      <serial group="SLES10SP1">
+        <include collection="guest">
+          <param name="GUESTNAME" value="sles10sp1"/>
+        </include>
+      </serial>
+
+      <serial group="W2000ASSP4">
+        <include collection="guest">
+          <param name="GUESTNAME" value="w2kassp4"/>
+        </include>
+      </serial>
+    
+      <serial group="W2K3EESP2">
+        <include collection="guest">
+          <param name="GUESTNAME" value="w2k3eesp2"/>
+        </include>
+      </serial>
+    
+      <serial group="W2K3EESP2-X64">
+        <include collection="guest">
+          <param name="GUESTNAME" value="w2k3eesp2-x64"/>
+        </include>
+      </serial>
+    
+    </serial>
+
+  </testsequence>
+
+</xenrt>

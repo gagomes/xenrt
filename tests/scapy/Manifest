@@ -1,0 +1,3 @@
+# Scapy 2.2 (packet sending tool)...
+# wget scapy.net -O scapy-latest.zip
+d68903c5d877820026dc544caa0b5d3c  ./scapy2.2.zip

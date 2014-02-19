@@ -1,0 +1,7 @@
+#!/bin/bash
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+update_test_tarball xenrt ${SCRIPTDIR}

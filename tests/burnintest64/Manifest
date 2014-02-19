@@ -1,0 +1,39 @@
+# Description: PassMark BurnInTest 64-bit
+# Status: proprietary
+# Obtaining:
+# http://www.passmark.com/products/bit.htm
+# Get BurnInTest V6 Professional 64-bit version, install onto a Windows 64-bit
+# installation, and copy installed files into the test directory.
+# This is covered by the same license as BurnInTest Professional 32-bit
+bafcb78262f6c28c67f13d7cc4c49f3b  ./LastUsed.bitcfg
+6ee461e360a8071705f2d8eaf6421ffb  ./72hours.bitcfg
+11396e5faffc2f41ad689de40aaa3fcc  ./24hours.bitcfg
+9a14a5f4cf2ba7e62023edf3d70f1cd1  ./12hours.bitcfg
+bafcb78262f6c28c67f13d7cc4c49f3b  ./1hour.bitcfg
+cc810b6ea6046f921e8d5c7ea04e2fdc  ./15mins.bitcfg
+769b726d876353c68ae0b1fe5d967090  ./48hours.bitcfg
+82fb6a3743436c0525a50703a66ef1e7  ./3DaysIncGraphics.bitcfg
+fad44b38bfdb6de5d237f305d0ac3fd2  ./rebooter.exe
+e16522d427ac72cad7e66f6cf8448e42  ./unins000.exe
+cefacfe75447d206647d6cb10eafbf65  ./unins000.dat
+05398962a6c86c634b37e78fda036a6c  ./MemTest.exe
+df155d9fd1334425effb65125cd0e68b  ./Mar2009_d3dx9_41_x64.cab
+b585220cf8755a660c326b7e71f838a8  ./Endpoint.exe
+7c7cc9feb1026678c48bbabe84ea57c2  ./dsetup32.dll
+45663703a09681f168baf2956fc05f0c  ./DirectIo.sys
+fc127b8123b467c1aeb39657454c1128  ./Readme.txt
+3809e864b4886c1770e12f3a3557d991  ./Testsound.wav
+8f8bee045089e7497ff8502947baaacd  ./rebooter.exe.manifest
+c911a292fbd4b6493dbedb4d7fac0042  ./bitadmin64.exe
+8697b307085ba3828ad8e770a4b8758d  ./bit.exe.manifest
+4d48dbe4d3a06c497435014e5c583f34  ./DSETUP.dll
+0afaaec3bec5eae68b6b280dc15b196f  ./Testsound.mp3
+45231acc42887dc93383802fcfada243  ./Testsound.mid
+539d57e79b0617bfcaf99d06de226a2b  ./BITCertificateTemplate.html
+11dd6e8ab9759d1ac91ffe0d0e4949cb  ./DXSETUP.exe
+97d9034112df13b4b891256ec613dc8a  ./dxupdate.cab
+e4f9ef557e87e8e01e77b329b2c12091  ./BITErrorClassification.txt
+c17572848ecf367ab1b89199389eb4f6  ./BurnInTest.url
+87abbfed55e4f0b171f7311bc4bcb4e8  ./HP Printer file.pcl
+361546d3e3466a9f12c430464d541e93  ./bit.exe
+*                                 ./key.dat

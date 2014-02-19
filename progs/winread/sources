@@ -1,0 +1,6 @@
+TARGETNAME=winread
+TARGETTYPE=PROGRAM
+TARGETPATH=.
+UMTYPE=console
+UMENTRY=main       
+SOURCES=winread.c

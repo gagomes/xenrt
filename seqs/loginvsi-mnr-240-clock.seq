@@ -1,0 +1,35 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>7</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCLoginVSI" host="RESOURCE_HOST_0">
+        <arg>numhostsfordesktops=6</arg>
+        <arg>desktopimage=loginvsi.img</arg>
+        <arg>desktopvmname=loginvsi</arg>
+        <arg>numdesktops=240</arg>
+        <arg>vmsperlauncher=40</arg>
+        <arg>cleanupbefore</arg>
+        <arg>cleanupafter</arg>
+        <arg>date=Fri Jan  8 12:00:00 2010 UTC</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,59 @@
+<xenrt>
+
+  <!-- MNR 4 host multipath test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <VLAN network="VR01">
+            <STORAGE/>
+          </VLAN>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VLAN network="VR02">
+            <STORAGE/>
+          </VLAN>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+    <pool>
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <VLAN network="VR01">
+            <STORAGE/>
+          </VLAN>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <VLAN network="VR02">
+            <STORAGE/>
+          </VLAN>
+          <STORAGE/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-7803">
+      <testcase id="xenserver.tc.multipath.TC9088"/>
+      <testcase id="xenserver.tc.multipath.TC9084"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

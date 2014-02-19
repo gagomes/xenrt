@@ -1,0 +1,62 @@
+<xenrt>
+
+  <!-- MNR CVSM storage test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNRXenCloud</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <CVSM_INPUTDIR>/usr/groups/xenrt/cvsm/</CVSM_INPUTDIR>
+  </variables>
+
+  <preprepare>
+    <host id="2" />
+    <host id="3" />
+    <host id="1">
+      <vm name="CVSMSERVER">
+        <distro>ws08-x86</distro>
+        <memory>512</memory>
+        <network device="0" />
+        <postinstall action="installDrivers" />
+        <postinstall action="installCVSM" />
+        <postinstall action="installCVSMCLI" />
+      </vm>
+    </host>
+  </preprepare>
+
+  <prepare>
+    <pool>
+      <host id="0" />
+      <storage type="cvsmfc" name="cvsmsr" default="true" />
+    </pool>
+  </prepare>
+
+  <testsequence group="CVSM">
+    <testcase id="xenserver.tc.storage.TC9930" />
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC9936" prio="3" />
+    </serial>
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC9933" prio="3" />
+      <testcase id="xenserver.tc.storage.TC9932" prio="3" />
+      <testcase id="xenserver.tc.storage.TC9935" prio="3" />
+      <testcase id="xenserver.tc.storage.TC9934" prio="3" />
+    </serial>
+
+    <serial group="VDISnap">
+      <testcase id="xenserver.tc.snapshot.TC9921" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9924" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9925" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9922" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9923" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9928" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9929" prio="3" />
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC9937" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9938" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC9939" prio="3" />
+    </serial>
+    <testcase id="xenserver.cli.TCCLI" tc="TC-8024" prio="3" />
+  </testsequence>
+
+</xenrt>

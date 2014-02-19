@@ -1,0 +1,7 @@
+rescan
+list disk
+select disk 1
+clean
+create partition primary
+assign letter=E
+

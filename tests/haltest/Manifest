@@ -1,0 +1,30 @@
+# Description: Microsoft HCT haltest
+# Status: downloadable
+# Obtaining:
+# This test is part of the Microsoft HCTs. If you have access to the HCTs then you
+# should be able to extract this particular test. A list of the required files is
+# available in the Manifest
+ca57772cda9f72a699692f3d54073859  ./haltest32/haltest.sys
+2e0adaffe9946edf2ac6a6f64cf37ce7  ./haltest32/haltest.inf
+3815592ae295f05b4ecbba4162b5b2f0  ./haltest32/delta.cat
+7dafb8676a1ee9cccd50e5e7215eb8c6  ./haltest32/restorepwr.vbs
+e4f10cf8a5491c5483e1ce9c0c5cdd62  ./haltest32/help.txt
+eefec79de534b29e57bf832ac56a7fa9  ./haltest32/WTTLog.dll
+a8d984a3c679f836bac74732e67b995f  ./haltest32/getactpwr.vbs
+d01e0deb43bf001b6024e50a7b2c4d69  ./haltest32/haltest.exe
+1e094e12cbd377d6debd58dfd63fe4c2  ./haltest32/htsym.sys
+46ba2cb7e3f89ea49e9696ab1df4c6d8  ./haltest32/cxdis.vbs
+fe206d9669ace7dfa3aba39efcc31c2c  ./haltest32/htsym.inf
+a13ecb5f6bb5b8df9d4011ccac6cb341  ./haltest32/htinst.dll
+d17f8daad2af80b116c9535002e2edbf  ./haltest64/haltest.sys
+2e0adaffe9946edf2ac6a6f64cf37ce7  ./haltest64/haltest.inf
+6752e75043da6b740fb38bac1bc4be9d  ./haltest64/delta.cat
+7dafb8676a1ee9cccd50e5e7215eb8c6  ./haltest64/restorepwr.vbs
+e4f10cf8a5491c5483e1ce9c0c5cdd62  ./haltest64/help.txt
+94b2f1a070e4c9ed25a681e336cdaa11  ./haltest64/WTTLog.dll
+a8d984a3c679f836bac74732e67b995f  ./haltest64/getactpwr.vbs
+98c4894bf0cb4d5a8d2aff970480d606  ./haltest64/haltest.exe
+e42ee930b9ebfb4945c2f3faf9207c7f  ./haltest64/htsym.sys
+46ba2cb7e3f89ea49e9696ab1df4c6d8  ./haltest64/cxdis.vbs
+fe206d9669ace7dfa3aba39efcc31c2c  ./haltest64/htsym.inf
+e330d87bf9180d92c382321a4d6ae554  ./haltest64/htinst.dll

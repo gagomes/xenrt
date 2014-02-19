@@ -1,0 +1,88 @@
+#!/usr/bin/python
+#
+# xenrt: Xen regression Testing
+#
+# Copy in tests and generate documentation on what needs downloading
+#
+# (C) XenSource Inc. 2007
+# Alex Brett, September 2007
+
+import sys, os, os.path, string, shutil
+
+# Expecting three parameters, the path to xenrt.hg/tests, the distmaster dir,
+# and the new tests dir. A document will be generated at the root of the tests
+# dir specifying what needs downloading etc.
+if len(sys.argv) <> 4:
+    sys.stderr.write("Incorrect number of arguments\n")
+    sys.exit(1)
+
+xrt_tests = sys.argv[1]
+dm_dir = sys.argv[2]
+tests_dir = sys.argv[3]
+
+# Go through each folder in xenrt.hg/tests, and review the Manifest
+# If the Manifest has a status that isn't distributable, then don't copy it
+# If status is proprietary or downloadable, then append the Obtaining 
+# instructions to the document.
+
+tests = os.listdir(xrt_tests)
+tests.sort()
+
+docs = """XenRT tests directory
+=====================
+
+Due to licensing restrictions, we are not allowed to distribute certain 3rd
+party packages. Some of these packages are available as free downloads, and
+some require licenses to be purchased. The list below has been automatically
+generated, and should contain information on where to download/purchase the
+additional packages from, and how to put the files into XenRT.
+
+"""
+for test in tests:
+    f = file("%s/%s/Manifest" % (xrt_tests,test),"r")
+    manifest = f.read()
+    f.close()
+
+    # Get the headers
+    description = None
+    status = "distributable"
+    obtaining = None
+    getObtaining = False
+
+    entries = manifest.split("\n")
+    for entry in entries:
+        if not entry.startswith("#"):
+            break
+
+        if getObtaining:
+            obtaining += entry[2:]
+            obtaining += "\n"
+            continue
+
+        if entry.startswith("# Description: "):
+            description = entry.replace("# Description: ","")
+        elif entry.startswith("# Status: "):
+            status = entry.replace("# Status: ","")
+        elif entry.startswith("# Obtaining:"):
+            obtaining = ""
+            getObtaining = True
+
+    # Check status
+    if status == "distributable":
+        # Copy it in
+        if os.path.exists("%s/%s" % (dm_dir,test)):
+            shutil.copytree("%s/%s" % (dm_dir,test),"%s/%s" % (tests_dir,test),True)
+    else:
+        # See what it is
+        if status == "proprietary" or status == "downloadable":
+            if obtaining:
+                # Add to the documentation
+                docs += "tests/%s: %s\n" % (test,description)
+                docs += obtaining
+                docs += "\n"
+
+f = file("%s/README" % (tests_dir),"w")
+f.write(docs)
+f.close()
+
+sys.exit(0)

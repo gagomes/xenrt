@@ -1,0 +1,53 @@
+<xenrt>
+
+  <!-- George Active Directory Subject Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1">
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Security">
+      <testcase id="xenserver.tc.security.TC8399"/>
+      <testcase id="xenserver.tc.security.TC8400"/>
+      <testcase id="xenserver.tc.security.TC8470"/>
+      <testcase id="xenserver.tc.security.TC8473"/>
+      <testcase id="xenserver.tc.security.TC8401"/>
+      <testcase id="xenserver.tc.security.TC8402"/>
+      <testcase id="xenserver.tc.security.TC8403"/>
+      <testcase id="xenserver.tc.security.TC8404"/>
+      <testcase id="xenserver.tc.security.TC8405"/>
+      <testcase id="xenserver.tc.security.TC8416"/>
+      <testcase id="xenserver.tc.security.TC8418"/>
+      <testcase id="xenserver.tc.security.TC8417"/>
+      <testcase id="xenserver.tc.security.TC8511"/>
+      <testcase id="xenserver.tc.security.TC8637"/>
+      <testcase id="xenserver.tc.security.TC8638"/>
+      <testcase id="xenserver.tc.security.TC8640"/>
+      <testcase id="xenserver.tc.security.TC8717"/>
+      <testcase id="xenserver.tc.security.TC8718"/>
+      <testcase id="xenserver.tc.security.TC8719"/>
+      <testcase id="xenserver.tc.security.TC9067"/>
+      <testcase id="xenserver.tc.security.TC9073"/>
+      <testcase id="xenserver.tc.security.TC9218"/>
+      <testcase id="xenserver.tc.security.TC9219"/>
+      <testcase id="xenserver.tc.security.TC10206"/>
+      <testcase id="xenserver.tc.security.TC10630"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

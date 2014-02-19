@@ -1,0 +1,32 @@
+The Windows native install framework uses WinPE to bootstrap
+the installation process. To create the files needed to PXE
+boot WinPE perform the following steps:
+
+1. Install a copy of Windows Longhorn or Windows Vista.
+
+2. Install the Windows AIK.
+
+3. Copy the files and sub-directories in this directory to
+   the c:\winpe on the Windows machine.
+
+4. Edit startnet-x86.cmd in the tools directory.
+
+5. Run winpe.cmd on the Windows machine, supplying an 
+   output directory and architecture.
+
+   e.g. c:\winpe\winpe.cmd c:\x86 x86
+
+   To create the x86 WinPE files.
+
+6. Perform step 4 for both x86 and amd64 architectures.
+
+7. Copy boot.sdi, bootmgr.exe and pxeboot.0 to the pxe
+   subdirectory of the native test directory. These files
+   are the same for both x86 and amd64 architectures.
+
+8. Copy the BCD file from the x86 and amd64 output 
+   directories to pxe/32 and pxe/64 respectively.
+
+9. Copy the winpe.wim image files to winpe32.wim and
+   winpe64.wim in the XenRT images directory. 
+

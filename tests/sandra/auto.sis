@@ -1,0 +1,381 @@
+;;
+;; File: "Report Script.sis" - Sample batch-mode report settings example file for SiSoftware Sandra
+;;
+;; Syntax: sandra /r <full path report script>
+;; 
+;; For this example: "sandra /r script.sis"
+;; Note: Use quotes if the file has spaces in it, e.g. "c:\Program Files\Script.sis"
+;;
+;; Warning: Include the FULL PATH to the script file, e.g. "c:\temp\script.sis" not just
+;;          "script.sis" even if the script file is in Sandra's own directory!
+;;
+;; You can create a script like this one by running the Create a Report Wizard and
+;; specifying "Save the settings in a script file for later use" at step 1.
+;; It's far easier to specify options this way.
+;;
+
+
+[General]
+;; Version - decimal value
+Program Version=2658
+
+
+;; Type of report:
+;;   2 - to print/fax the report
+;;   3 - to save to disk in a format (see 'Report File Type' for file format) (default)
+;;   4 - to e-mail it using MAPI (see 'Report File Type' for file format)
+;;   5 - to e-mail it using SMTP (see 'Report File Type' for file format)
+;;   6 - to post it to a newsgroup using NNTP (see 'Report File Type' for file format)
+;;   7 - to upload it to a FTP/HTTP server
+;;   9 - to insert into any ODBC data source
+;;  10 - to insert into any ADO supported database/SQL Server
+;;  11 - to post to a queue (MSMQ)
+Report Type=3
+
+
+;; if save:
+;; Full name & path of report file (comment it out if email)
+;; you can also use fields that will be replaced with their values at runtime
+;; fields:
+;;   $HOST$   - computer/host name
+;;   $DOMAIN$ - domain/workgroup name
+;;   $USER$   - user name
+;;   $DATE$   - date report created
+;;   $TIME$   - time report created
+Report File=sandra.txt
+
+;; If $DATE$ is specified, you can over-ride its format here.
+;; See the Platform SDK - GetDateFormat for more information
+;; (NOTE: some characters are NOT valid in a filename!!!)
+Date Format=ddd MMM dd yyyy
+
+;; If $TIME$ is specified, you can over-ride its format here.
+;; See the Platform SDK - GetTimeFormat for more information
+;; (NOTE: some characters are NOT valid in a filename!!!)
+Time Format=hh mm ss tt
+
+;; File Type:
+;;  0 - "normal" (TXT) (default)
+;;  1 - "hierarchical" (RPT)
+;;  2 - "web" (HTML)
+;;  3 - "SMS" (DMI/MIF)
+;;  4 - "XML" (XML)
+Report File Type=0
+
+;; Source System
+;;  0 - Null (do note use)
+;;  1 - Local System (or local PDA / Smart Phone) (default)
+;;  2 - Remote System (connect through DCOM)
+Generator Type=1
+
+;; Tested Device Type (for local system only)
+;;  0 - Desktop/Laptop/Server (default)
+;;  1 - PDA / Smart Phone (WinCE)
+;;  2 - PDA / Smart Phone (Palm)
+Device Type=0
+
+;; Remote System Connection, server name (Lite/Legacy/Professional/Engineer)
+Gen DCOM Server=hostname
+
+;; Remote System Connection, servers list (Enterprise)
+Gen DCOM Server List=server1,server2,server3
+
+;; Remote protocol to be used (see Help or spec.)
+;;  ncalrpc      - local connection
+;;  ncacn_np     - named pipes (default)
+;;  ncacn_ip_tcp - TCP/IP (recommended if it works)
+;;  ncacn_http   - HTTP connection through IIS (Internet over firewalls)
+Gen DCOM Protocol=ncacn_np
+
+;; Remote security to be used (see Help or spec.)
+;;  0 - default
+;;  1 - none (not recommended)
+;;  2 - on connect
+;;  3 - on call
+;;  4 - packet
+;;  5 - packet integrity
+;;  6 - packet encryption (recommended, default)
+Gen DCOM Security=6
+
+;; Remote authentication to be used (see Help or spec.)
+;;  0 - none (not recommended)
+;;  9 - Negotiate (recommended, default)
+;; 10 - Windows (good if nothing else works)
+;; 14 - SChannel (use with a certificate)
+;; 16 - Kerberos (best if you have it working)
+Gen DCOM Authentication=9
+
+;; How to log-in to the server
+;;  0 - use impersonation (recommended)
+;;  1 - log in with user/password as below
+Gen DCOM LogInAsUser=0
+;; Log-in with credentials below (Windows/Kerberos/Negotiate)
+Gen DCOM UserName=user
+Gen DCOM Domain=domain
+Gen DCOM Password=pass
+;; Log-in with SChannel credentials below 
+Gen DCOM Cert Store=Root
+Gen DCOM Cert Name=certificate
+
+
+;; Push service to remote server (Enterprise)
+;;  0 - Don't push (default)
+;;  1 - Push if not installed
+Gen DCOM Rem Push=0
+;; Install or Run the service on the remote server?
+;;  0 - Don't install, just run (default)
+;;  1 - Install service
+Gen DCOM Rem Install=0
+;; Use Sandra or WMI Agent to push service to remote server?
+;;  0 - Use Sandra Agent (default)
+;;  1 - Use WMI Agent
+Gen DCOM Rem Use WMI=0
+
+
+;; File Encoding:
+;;  0 - ANSI (code page as system)
+;;  1 - Unicode (recommended)
+File Encoding Unicode=0
+
+;; Encrypt the report file? (CRY format) (do NOT specify with append)
+;;  0 - No (default)
+;;  1 - Yes
+Encrypt=0
+
+;; Encryption key string - to encrypt the report with
+Encrypt Key=the key string
+
+;; Compress the report file (CAB format) (do NOT specify with append)
+;;  0 - No
+;;  1 - Yes (recommended)
+Compress=0
+
+;; Append report to report file?
+;;  0 - No (default)
+;;  1 - Yes
+Append=0
+
+;; If multiple copies of Sandra use the same file for the report, turn this on
+;; to synchronise access to the file (each copy will wait for it to become
+;; available rather than exiting)
+;;  0 - Don't wait
+;;  1 - Do wait
+Wait If File Taken=1
+
+; Set the number of characters per line, between 10 to 200 (default 80)
+External Line Size=80
+
+
+;; if email: Address of user(s) to send to, subject, e.g.:
+Email Send To=to@sisoftware.net
+Email Send Cc=carbon.copy@sisoftware.net
+Email Send Bcc=blind.copy@sisoftware.net
+Email Subject=SiSoftware Sandra Report
+;; address/account of sender
+Email Sender=user@server
+;; SMTP server information
+Email SMTP Host=post.server.com
+Email SMTP Port=25
+;; SMTP server authentication
+Email SMTP SSL Auth=0
+EMail Login User=user
+EMail Login Password=pass
+;; if you want to encrypt the login, use the following 2 fields instead
+;EMail Login User Encrypted=00000000
+;EMail Login Password Encrypted=00000000
+
+
+;; if post: News server details
+News NewsGroup=public.test
+News Host=news.server.com
+News Port=119
+;; address/account of sender
+News Sender=user@server
+;; News server authentication
+News SSL Auth=0
+News Login User=user
+News Login Password=pass
+;; if you want to encrypt the login, use the following 2 fields instead
+;News Login User Encrypted=00000000
+;News Login Password Encrypted=00000000
+
+
+;; if print: the printer/device name (verbatim!!!)
+Printer Name=Canon BJ-20
+
+
+;; if insert into ODBC database: enter the data source details, e.g.:
+ODBC DSN=SandraReport
+ODBC UserName=Test
+ODBC Password=sql
+;; if you want to encrypt the login, use the following 2 fields instead
+;ODBC UserName Encrypted=00000000
+;ODBC Password Encrypted=00000000
+;; 1 if identity/autoincrement is supported (e.g. SQL Server/Access); 0 if not
+ODBC Identity Support=1
+;; 1 if sequences are supported (e.g. Oracle); 0 if not
+ODBC Sequence Support=0
+;; 1 if client cursors; 0 if server cursors
+ODBC Client Cursors=0
+
+;; if insert into ADO database: enter database details, e.g.:
+;; SQLOLEDB (SQL Server); MSDAORA (Oracle); MSDASQL (ODBC); Microsoft.Jet.OLEDB.X.XX (Access)
+;ADO Provider=SQLOLEDB
+;; Database host server
+ADO Server=LocalHost
+;; SQL Server database; Oracle (schema); ODBC DSN
+ADO Database=SandraDB
+;; Only useful if using the ADO-to-ODBC bridge. Enter the verbatim name of the ODBC driver
+ADO Driver=Microsoft Access Driver (*.mdb)
+;; 1 if identity/autoincrement is supported (e.g. SQL Server/Access); 0 if not
+ADO Identity Support=1
+;; 1 if sequences are supported (e.g. Oracle); 0 if not
+ADO Sequence Support=0
+;; 1 if client cursors (e.g. Oracle); 0 if server cursors (e.g. SQL Server)
+ADO Client Cursors=0
+;; 0 for database security (specify username/password); 1 for NT authentication
+ADO NT Security=0
+;; only if database security specified
+ADO UserName=user
+ADO Password=pass
+;; if you want to encrypt the login, use the following 2 fields instead
+;ADO UserName Encrypted=00000000
+;ADO Password Encrypted=00000000
+
+
+;; if ftp upload: enter the server connection (inc path), e.g.:
+Upload URL=http://www.sireport.co.uk/sandra_report/
+Upload URL=ftp://ftp.sireport.co.uk/sandra_report/
+;; 1 if anonymous; 0 specify user/password
+Upload Anonymous=1
+Upload User=user
+Upload Password=pass
+;; if you want to encrypt the login, use the following 2 fields instead
+;Upload User Encrypted=00000000
+;Upload Password Encrypted=00000000
+
+
+;; if post to queue/MSMQ: enter queue path, e.g.:
+MSMQ Queue=\\computer\public\SandraReports
+;; 1 if transactional; 0 if not
+MSMQ Transactional=0
+;; 1 if accessible to all; 0 only to creator
+MSMQ Public Access=1
+;; 0 if plain; 1 encrypt message body (not needed if file already encrypted)
+MSMQ Encrypted=0
+;; 1 to use current user login credentials; 0 specify user/password
+MSMQ Default Credentials=1
+MSMQ User=guest
+MSMQ Password=pass
+;; if you want to encrypt the login, use the following 2 fields instead
+;MSMQ User Encrypted=00000000
+;MSMQ Password Encrypted=00000000
+
+
+;; Enter your comments here - one line only!
+Comments=This is a test batch-mode report.
+
+;; Display progress dialog? "0"-No or "1"-Yes (default)
+Progress Dialog=0
+
+;; Exit after report is done? "0"-No or "1"-Yes (default)
+Exit After Done=1
+
+
+[Modules]
+;; Module List "0"-To exclude(default) or "1"-To include module
+;; Use Help to find out the command-line switch for a particular module.
+
+General=1
+
+SummaryInfo=1
+CPUInfo=1
+VideoInfo=1
+WinMemInfo=1
+OLEInfo=1
+
+;; For options, add "Option" to the module name, e.g.
+;SummaryInfoOptions=4
+
+;; Some modules support EXtended options, add "ExOptions" to the module name, e.g.
+;SummaryInfoExOptions=4
+
+;; etc.
+
+;; Uncomment this line to include all available modules
+AllModules=0
+InfoModules=0
+BenchmarkModules=0
+ListModules=0
+TestModules=0
+n/a=1
+System=1
+CPUAABench=1
+CPUMMBench=1
+CPUPowerBench=1
+FSBench=1
+DiskBench=1
+FlashBench=1
+CDROMBench=1
+MemBwBench=1
+MemLatencyBench=1
+CacheBwBench=1
+LANBwBench=1
+InetConnBench=1
+InetPeerBench=1
+Mainboard=1
+PnP=1
+BIOS=1
+CPU=1
+Buses=1
+Power=1
+SystemResources=1
+Displays=1
+Disks=1
+SCSI=1
+Printers=1
+Ports=1
+Mouse=1
+Keyboard=1
+NetworkCard=1
+LAN=1
+IPNetwork=1
+OS=1
+KeyApps=1
+StartApps=1
+OSMemory=1
+Processes=1
+Modules=1
+Services=1
+InstalledApps=1
+InstalledProgs=1
+OLE=1
+Fonts=1
+MCI=1
+DirectX=1
+OpenGL=1
+Drives=1
+AppScan=1
+ODBC=1
+FileTypes=1
+WebPackages=1
+EnvVar=1
+EventLog=1
+ConfigFiles=1
+DumpRegistry=1
+DumpHWRegs=1
+
+;; Uncomment this line to include all information modules
+;InfoModules=1
+;; Uncomment this line to include all benchmarking modules
+;BenchmarkModules=1
+;; Uncomment this line to include all listing modules
+;ListModules=1
+;; Uncomment this line to include all testing modules
+;TestModules=1
+
+
+;; That's it - good luck & good hunting!
+;;
+;; If you have issues or comments, please contact us.
+;;

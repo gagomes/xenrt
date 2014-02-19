@@ -1,0 +1,9 @@
+898cfc5ff7920a8c396ebe898ac2eaa5  ./memtest86+-4.00.tar.gz
+bb3c68022b1e96f4a36aa0bf1fd486f1  ./memtest86+.patch
+c6cecc1de412aae393ca707101992f78  ./memtest86+-4.20.patch
+ef62c2f5be616676c8c62066dedc46b3  ./memtest86+-4.20.tar.gz
+9f70a12fba1fb7d3f70554a41e821538  ./linux/balloon_write_pattern.patch
+9580c14aa1f24eb9af4e7972d3625583  ./linux/readme
+b4443550219b8d32bcc1b6b1bc0c36bf  ./linux/linux-base_2.6.32-48_all.deb
+dd0ba78e9e8f6997e877836d84765783  ./linux/linux-image-2.6.32-5-686-bigmem_balloon-pattern.deb
+f1c670f20d37a7987efb882a445c297d  ./linux/LICENSE

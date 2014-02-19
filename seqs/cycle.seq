@@ -1,0 +1,27 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=5G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <vm name="guest">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>4096</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.guest.TCCycle" />
+
+  </testsequence>
+
+</xenrt>

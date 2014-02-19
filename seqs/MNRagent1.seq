@@ -1,0 +1,25 @@
+<xenrt>
+
+  <!-- MNR xapi specific Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="VBDPause">
+      <testcase id="xenserver.tc.agent.TC8709"/>
+      <testcase id="xenserver.tc.agent.TC8710"/>
+      <testcase id="xenserver.tc.agent.TC8711"/>
+      <testcase id="xenserver.tc.agent.TC8708"/>
+      <testcase id="xenserver.tc.agent.TC8714"/>
+      <testcase id="xenserver.tc.agent.TC8715"/>
+      <testcase id="xenserver.tc.agent.TC8716"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

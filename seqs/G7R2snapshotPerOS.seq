@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- George Win7/R2 VM snapshot per OS test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VMSnapshot">
+    <testcase id="xenserver.tc.snapshot.TC9707" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9987" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9745" prio="3"/>
+    <testcase id="xenserver.tc.snapshot.TC9746" prio="3"/>
+  </testsequence>
+
+</xenrt>

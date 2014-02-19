@@ -1,0 +1,163 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Dispatch script, runs on supervisor, initiates local actions or ssh
+# to remote machines to control tests.
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 6 July 2005
+#
+
+set -e
+
+SCRIPTDIR=`dirname $0`
+
+# We need this early on SFU. The script will return without action if we're
+# not running on Windows
+. ${SCRIPTDIR}/lib/windows
+
+shopt -s huponexit
+
+JOBID=$1
+shift
+DATE=$1
+shift
+XENVERSION=$1
+shift
+XENREVISION=$1
+shift
+XENOPTIONS=$1
+shift
+XENMACHINE=$1
+shift
+PER_RUN_CONFIG=$1
+shift
+LOCATION=$1
+shift
+TESTNAME=$1
+shift
+TESTPHASE=$1
+shift
+ACTION=$1
+shift
+
+if ! uname -o &> /dev/null; then
+    UNAME="uname -H"
+else
+    UNAME="uname -o"
+fi
+
+# This is to make sure that monitoring scripts get to run
+if [ "${ACTION}" = "waitfor" -a \
+    `${UNAME}` != Cygwin -a \
+    `${UNAME}` != Windows ]; then
+
+    renice -10 $$ > /dev/null  2>&1 || true
+    # and our parent sshd as well
+    if [ `ps -p $PPID -o comm=` = "sshd" ]; then
+	renice -10 $PPID > /dev/null  2>&1 || true
+    fi
+fi
+
+# We pass per-run configuration using PER_RUN_CONFIG. This can be
+# a named file or "-" for stdin. When calling over the network we use
+# stdin to pass the config file. At the ultimate test location the
+# config is written to a temporary file which global-config imports.
+if [ "${PER_RUN_CONFIG}" = "-" ]; then
+    PER_RUN_CONFIG=`mktemp /tmp/xenrtconfXXXXXX`
+    PER_RUN_CONFIG_TMP=${PER_RUN_CONFIG}
+    cat > ${PER_RUN_CONFIG}
+elif [ -z "${PER_RUN_CONFIG}" ]; then
+    # Create an empty config
+    PER_RUN_CONFIG=`mktemp /tmp/xenrtconfXXXXXX`
+    PER_RUN_CONFIG_TMP=${PER_RUN_CONFIG}
+else
+    unset PER_RUN_CONFIG_TMP
+fi
+
+cleanup_tmp() {
+    if [ -n "${PER_RUN_CONFIG_TMP}" ]; then
+        rm -f ${PER_RUN_CONFIG_TMP}
+    fi
+}
+
+trap cleanup_tmp EXIT
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+# Where to run the script  - TODO how to get to domUs
+
+if [ "$LOCATION" = "BUILDHOST" ]; then
+    if [ "${BUILD_LOCAL}" = "yes" ]; then
+        LOCATION=local
+    else
+        case ${XENOPTIONS} in
+	    x86-64)
+	        LOCATION=NETWORK
+	        HOSTNAME=${BUILD_HOST_64}
+	        ;;
+	    *)
+	        LOCATION=NETWORK
+	        HOSTNAME=${BUILD_HOST_32}
+	        ;;
+        esac
+        if [ "${HOSTNAME}" = "localhost" ]; then
+	    LOCATION=local
+        fi
+    fi
+fi
+
+# Hack to use the startdom script for native linux runs - this runs
+# startdom on the controller/buildhost so it can reboot the test machine
+# with the requisite resources
+if [ "$LOCATION" = "Domain-0" -a "$XENVERSION" = "linux" -a "$TESTNAME" = "startdom" ]; then
+    LOCATION=local
+fi
+
+if [ -z "${JOBID}" ]; then
+    JOBID="-"
+fi
+
+if [ "$LOCATION" = "local" ]; then
+    if [ "${JOBID}" = "-" ]; then
+        JOBID=""
+    fi
+    if [ -n "${WORKING_DIR}" ]; then
+        WORKDIR=${WORKING_DIR}/${TESTNAME}
+    else
+        if [ -n "${JOBID}" ]; then
+	    WORKDIR=${TESTBASE}/`printf "job%08u" ${JOBID}`/${TESTNAME}
+        else
+	    WORKDIR=${TESTBASE}/${XENVERSION}-${XENREVISION}-${XENMACHINE}-${XENOPTIONS}/${TESTNAME}
+        fi
+    fi
+    JOBID="${JOBID}" DATE=${DATE} WORKDIR=${WORKDIR} XENVERSION=${XENVERSION} XENREVISION=${XENREVISION} XENOPTIONS=${XENOPTIONS} XENMACHINE=${XENMACHINE} TESTPHASE=${TESTPHASE} PER_RUN_CONFIG=${PER_RUN_CONFIG} ${SCRIPTDIR}/${TESTNAME} "${ACTION}" "$@"
+elif [ "$LOCATION" = "NETWORK" ]; then
+    cat ${PER_RUN_CONFIG} | ${SSHNET} ${NET_USER}@${HOSTNAME} ${SCRIPTDIR}/dispatch "${JOBID}" ${DATE} ${XENVERSION} ${XENREVISION} ${XENOPTIONS} ${XENMACHINE} "-" local ${TESTNAME} ${TESTPHASE} ${ACTION} "$@"
+elif [ "$LOCATION" = "Domain-0" ]; then
+    HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    cat ${PER_RUN_CONFIG} | ${SSHTO} ${SSHCONNTIMEOUT} ${REMOTE_USER}@${HOSTNAME} ${REMOTE_SCRIPTDIR}/dispatch "${JOBID}" ${DATE} ${XENVERSION} ${XENREVISION} ${XENOPTIONS} ${XENMACHINE} "-" local ${TESTNAME} ${TESTPHASE} ${ACTION} "$@"
+elif [ "$LOCATION" = "Native" ]; then
+    HOSTNAME=`get_native_hostname ${XENMACHINE}`
+    cat ${PER_RUN_CONFIG} | ${SSHTO} ${SSHCONNTIMEOUT} ${REMOTE_USER}@${HOSTNAME} ${DOM0_SETUP_MOUNT}${REMOTE_SCRIPTDIR}/dispatch "${JOBID}" ${DATE} ${XENVERSION} ${XENREVISION} ${XENOPTIONS} ${XENMACHINE} "-" local ${TESTNAME} ${TESTPHASE} ${ACTION} "$@"
+elif [ "`echo $LOCATION | cut -d - -f 1`" = "Domain" ]; then
+    DOMINDEX=`echo $LOCATION | cut -d - -f 2`
+    # If we're running on a guest then we can override XENOPTIONS if that
+    # guest is a different architecture to the host
+    GUESTARCH=`get_guest_arch ${DOMINDEX}`
+    if [ "$XENVERSION" = "linux" ]; then
+	HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    else
+	HOSTNAME=`get_guest_hostname ${XENMACHINE} ${DOMINDEX}`
+    fi
+    cat ${PER_RUN_CONFIG} | ${SSHTO} ${SSHCONNTIMEOUT} ${REMOTE_USER}@${HOSTNAME} ${REMOTE_SCRIPTDIR}/dispatch "${JOBID}" ${DATE} ${XENVERSION} ${XENREVISION} ${GUESTARCH} ${XENMACHINE} "-" local ${TESTNAME} ${TESTPHASE} ${ACTION} "$@"
+fi
+
+
+
+#export WORKDIR XENVERSION XENREVISION XENOPTIONS XENMACHINE
+
+# Run the script
+#${RUNPREFIX}

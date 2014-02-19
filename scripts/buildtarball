@@ -1,0 +1,152 @@
+#!/usr/bin/python
+#
+# xenrt: Xen regression Testing
+#
+# Build a test tarball
+#
+# Expected usage: buildtarball TEST TARBALL WORKDIR INPUT1 INPUT2 INPUT3
+# WORKDIR will be created and removed by this script
+# INPUT1 must exist and hold the Manifest
+# INPUT2 and INPUT3 need not necessarily exist
+#
+# (C) XenSource Inc. 2007
+# Alex Brett, September 2007
+
+import sys, os, string, md5, shutil, tarfile
+
+def md5sum(fname):
+    f = file(fname,"rb")
+    m = md5.new()
+    while True:
+        d = f.read(8096)
+        if not d:
+            break
+        m.update(d)
+    return m.hexdigest()
+
+def cleanup():
+    # Get rid of the build dir
+    shutil.rmtree(workdir)
+
+if len(sys.argv) <> 8:
+    sys.stderr.write("Incorrect number of arguments\n")
+    sys.exit(1)
+
+test = sys.argv[1]
+outdir = sys.argv[2]
+workdir = sys.argv[3]
+input1 = sys.argv[4]
+input2 = sys.argv[5]
+input3 = sys.argv[6]
+if sys.argv[7] == "yes":
+    buildall = True
+else:
+    buildall = False
+
+# Check that there is a Manifest in input1
+if not os.path.exists("%s/Manifest" % (input1)):
+    sys.stderr.write("Cannot find Manifest at %s" % (input1))
+    sys.exit(1)
+
+# Check if we need to run (compare the .stamp)
+if os.path.exists("%s/.%s.stamp" % (outdir,test)):
+    # Get its timestamp
+    s = os.stat("%s/.%s.stamp" % (outdir,test))
+    stamp_mtime = s.st_mtime
+    # Check the mtime of the manifest
+    s = os.stat("%s/Manifest" % (input1))
+    if s.st_mtime < stamp_mtime:
+        # Manifest not modified, check in input2
+        # (this is to handle files in distmaster that are deliberately not in manifests)
+        rebuild = False
+        for f in os.listdir(input2):
+            s = os.stat("%s/%s" % (input2,f))
+            if s.st_mtime >= stamp_mtime:
+                # Its changed, so rebuild
+                rebuild = True
+                break
+        if not rebuild:
+            sys.stderr.write("Won't build %s (no changes found)\n" % (test))
+            sys.exit(0)
+
+# Cleanup any failed previous runs
+if os.path.exists("%s/%s" % (workdir,test)):
+    cleanup()
+
+os.makedirs("%s/%s" % (workdir,test))
+
+# Combine the 3 inputs (if they exist)
+if os.path.exists(input2):
+    os.system("cp -a %s %s" % (input2,workdir))
+if os.path.exists(input3):
+    os.system("cp -a %s %s" % (input3,workdir))
+os.system("cp -a %s %s" % (input1,workdir))
+
+# Check the manifest
+f = file("%s/%s/Manifest" % (workdir,test),"r")
+manifest = f.read()
+f.close()
+
+files = manifest.split("\n")
+status = "distributable"
+for entry in files:
+    if entry.startswith("#"):
+        if entry.startswith("# Status: "):
+            status = entry.replace("# Status: ","")
+            if not buildall and status != "distributable":
+                break
+        elif entry.startswith("# Type: "):
+            type = entry.replace("# Type: ","")
+        continue
+    entries = entry.split(" ",1)
+    if len(entries) < 2:
+        continue
+    manmd5 = string.strip(entries[0])
+    fname = string.strip(entries[1])
+    if not os.path.exists("%s/%s/%s" % (workdir,test,fname)):
+        sys.stderr.write("Won't build %s (cannot find %s/%s)\n" % (test,test,fname))
+        cleanup()
+        sys.exit(0) # 0 as not finding a file means we don't build the tarball
+
+    # Check the md5sum
+    if manmd5 != "*":
+        realmd5 = md5sum("%s/%s/%s" % (workdir,test,fname))
+        if manmd5 != realmd5:
+            sys.stderr.write("md5sum mismatch on %s (expecting %s, got %s)\n" % (fname,manmd5,realmd5))
+            cleanup()
+            sys.exit(1)
+
+if not buildall and status != "distributable":
+    sys.stderr.write("Won't build %s (not distributable)\n" % (test))
+    cleanup()
+    sys.exit(0)
+
+# If we get here then the files check out, so build the tarball
+
+# Remove the manifest
+os.unlink("%s/%s/Manifest" % (workdir,test))
+
+if type == "directory":
+    # Don't build a tarball, copy the files to a subdir
+    if os.path.exists("%s/%s" % (outdir,test)):
+        shutil.rmtree("%s/%s" % (outdir,test))
+    os.system("cp -aR %s/%s %s/" % (workdir,test,outdir))
+elif type == "nobuild":
+    # Don't build anything - this is just to get files onto OVA
+    cleanup()
+    sys.exit(0)
+else:
+    f = tarfile.open("%s/%s.tgz" % (outdir,test),"w:gz")
+    f.add("%s/%s" % (workdir,test),test)
+    f.close()
+
+sys.stderr.write("Built %s\n" % (test))
+# Update / create stamp file
+if os.path.exists("%s/.%s.stamp" % (outdir,test)):
+    os.utime("%s/.%s.stamp" % (outdir,test),None)
+else:
+    f = file("%s/.%s.stamp" % (outdir,test),"w")
+    f.write("")
+    f.close()
+
+cleanup()

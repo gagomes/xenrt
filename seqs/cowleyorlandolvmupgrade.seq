@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Orlando to Cowley LVM upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Orlando"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.0.0-Update3-GA"/>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <PIDIR_GEORGE>/usr/groups/release/XenServer-5.5.0-Update2</PIDIR_GEORGE>
+    <PIDIR_MNR>/usr/groups/release/XenServer-5.6.0</PIDIR_MNR>
+    <UPGRADE_TC_VIA>George,MNR</UPGRADE_TC_VIA>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+  </prepare>
+
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.upgrade.TC8667" blocker="yes"/>
+    <testcase id="xenserver.tc.vhd.TC8668"/>
+  </testsequence>
+
+</xenrt>

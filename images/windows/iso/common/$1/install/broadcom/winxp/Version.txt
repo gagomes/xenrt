@@ -1,0 +1,935 @@
+                        ============================
+                         V E R S I O N    N O T E S
+                        ============================
+
+                Broadcom NetXtreme II GigE Driver Installer 
+            For Windows 2000, Windows XP and Windows Server 2003                               
+                Copyright (c)2004-2007 Broadcom Corporation
+                             All rights reserved.
+
+This version.txt shows the version of the installer, 
+as well as the component versions included within the installer.
+Please see the release.txt for changes to the installer.
+
+Version 10.32.01 (10/30/07)
+------------------------------
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.23        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.32a     Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.5         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.8         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.31.02 (10/18/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.23        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.32      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.5         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.8         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.31.01 (10/11/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.21        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.31      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.5         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.8         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.30.02 (10/9/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.20        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.29      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.4         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.8         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.30.01 (10/9/07)
+------------------------------
+   - Certified cats included for bxdiag, b06bdrv, win2k, and Win2k3 drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.19        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.29      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.4         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.7         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.29.01 (10/4/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.2         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.18        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.19        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.19        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.19        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.29      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.4         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.7         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.28.01 (9/24/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.16        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.15        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.15        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.15        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.26      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.2         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.5         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.27.03 (9/18/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.16        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.15        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.15        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.15        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.26      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.2         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.4         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.27.02 (9/14/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.15        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.15        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.15        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.25      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.2         Broadcom NetXtreme II Offload Filter Driver
+   bnx2cd      v3.7.4         Broadcom NetXtreme II iSCSI Crash Dump Driver
+
+Version 10.27.01 (9/11/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.15        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.15        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.15        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.21      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.1         Broadcom NetXtreme II Offload Filter Driver
+
+Version 10.26.01 (9/5/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.14        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.14        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.14        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.14        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.21      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.1         Broadcom NetXtreme II Offload Filter Driver
+
+Version 10.25.01 (8/30/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.14        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.14        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.14        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.14        NDIS 6.0 driver for Windows Longhorn/Vista
+   bxois       v3.7.1.21      Broadcom NetXtreme II Offload iSCSI (ois)
+   bxftsk      v3.7.1         Broadcom NetXtreme II Offload Filter Driver
+
+Version 10.24.01 (8/29/07)
+------------------------------
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.5.10        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.5.8         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.5.8         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.5.8         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.23.01 (8/16/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.13        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.10        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.10        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.11        NDIS 6.0 driver for Windows Longhorn/Vista
+
+
+Version 10.22.02 (8/01/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.5.8         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.5.8         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.5.8         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.5.8         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.22.01 (7/26/07)
+------------------------------
+   *** Engineering test version ***
+
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.7.1         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.7.8         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.7.6         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.7.6         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.7.6         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.21.03 (7/13/07)
+------------------------------
+   *** Engineering test version ***
+
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.5.5         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.5.5         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.5.5         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.5.5         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.21.02 (7/10/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.5.5         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.5.4         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.5.4         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.5.4         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.21.01 (6/28/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.5.4         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.5.2a        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.5.2a        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.5.2a        NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.20.01 (6/25/07)
+------------------------------
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.10        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.10        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.10        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.10        NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.19.04 (5/31/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.10        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.10        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.10        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.10        NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.19.03 (5/24/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.10        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.9         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.9         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.9         NDIS 6.0 driver for Windows Longhorn/Vista
+
+
+Version 10.19.02 (5/7/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.8         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.6         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.6         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.6         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.19.01 (5/4/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.4.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.7         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.6         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.6         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.6         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.18.01 (5/2/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.7         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.6         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.6         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.6         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.17.01 (4/16/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.3         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.3         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.3         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.3         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.16.01 (4/11/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.3         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.3         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.3         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.3         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.15.02 (4/03/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.4.1         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.4.0         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.4.0         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.4.1         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.15.01 (3/22/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.1.6         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.1.6         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.1.6         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   WinLH       v3.1.7         NDIS 6.0 driver for Windows Longhorn/Vista
+
+Version 10.14.01 (3/7/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.1.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.1.5         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.1.5         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.1.5         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.13.01 (3/2/07)
+------------------------------
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.0.5         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.0.9         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.0.5         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.0.5         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.12.01 (1/30/07)
+------------------------------
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.0.5         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.0.7         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.0.5         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.0.5         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.11.01 (1/11/07)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.0.5         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.0.7         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.0.5         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.0.5         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.10.01 (11/16/06)
+------------------------------
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v3.0.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v3.0.0         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v3.0.0         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v3.0.0         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.03.01 (11/01/06)
+------------------------------
+   - Using MSM project v1.10.4.
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.9.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.9.6         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.9.3         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.9.3         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.02.01 (10/11/06)
+------------------------------
+   - Using MSM project v1.10.3.
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 10.01.01 (10/9/06)
+------------------------------
+   - Using MSM project v1.10.2.
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.08.01 (8/28/06)
+------------------------------
+   - Using MSM project v1.1.11.
+   - Certified cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.9.0         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.9.3         VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.9.3         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.9.3         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.07.02 (8/2/06)
+------------------------------
+   - Using MSM project v1.1.9.
+   - Certified cats included for all drivers.
+   - Using bwininst v9.0.15.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.07.01 (7/14/06)
+------------------------------
+   - Using MSM project v1.1.9.
+   - Test cats included for all drivers.
+   - Using bwininst v9.0.15.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.15        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.06.02 (7/11/06)
+------------------------------
+   - Using MSM project v1.1.8.
+   - Test cats included for all drivers.
+   - Using bwininst v9.0.14.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.14        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.06.01 (7/6/06)
+------------------------------
+   - Using MSM project v1.1.8.
+   - Test cats included for all drivers.
+   - Using bwininst v9.0.14.
+   - Removed FTSK and IWARP drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.13        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.13        NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.13        NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.05.01 (6/21/06)
+------------------------------
+   - Using MSM project v1.1.7.
+   - Test cats included for all drivers.
+   - Using bwininst v9.0.13.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.11        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.9         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.9         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   FTSK        v2.8.5         Offload Filter Driver.
+   iWarp       v2.5.60607.0   WSD kernel wrapper
+   iWarp       v1.0.2005.809  WSD user wrapper
+   HP WSD      v9.16.14.0     Broadcom branded hp WSD files.
+
+Version 9.04.03 (6/20/06)
+------------------------------
+   - Using Experimental MSM project v1.1.6 plus.
+   - Test cats included for all drivers.
+   - Included updated test cat for ISCSI.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.11        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.9         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.9         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   bxiscsi     v3.01.04       iSCSI Host Adapter Driver.
+   FTSK        v2.8.5         Offload Filter Driver.
+   iWarp       v2.5.60607.0   WSD kernel wrapper
+   iWarp       v1.0.2005.809  WSD user wrapper
+   HP WSD      v9.16.14.0     Broadcom branded hp WSD files.
+
+Version 9.04.02 (6/20/06)
+------------------------------
+   - Using Experimental MSM project v1.1.6 plus.
+   - Test cats included for all drivers.
+   - Corrected error with wrong version of VBD driver.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.11        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.9         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.9         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   bxiscsi     v3.01.04       iSCSI Host Adapter Driver.
+   FTSK        v2.8.5         Offload Filter Driver.
+   iWarp       v2.5.60607.0   WSD kernel wrapper
+   iWarp       v1.0.2005.809  WSD user wrapper
+   HP WSD      v9.16.14.0     Broadcom branded hp WSD files.
+
+
+Version 9.04.01 (6/19/06)
+------------------------------
+   - Using Experimental MSM project v1.1.6 plus.
+   - Test cats included for all drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.8.9         Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.11        VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.9         NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.9         NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+   bxiscsi     v3.01.04       iSCSI Host Adapter Driver.
+   FTSK        v2.8.5         Offload Filter Driver.
+   iWarp       v2.5.60607.0   WSD kernel wrapper
+   iWarp       v1.0.2005.809  WSD user wrapper
+   HP WSD      v9.16.14.0     Broadcom branded hp WSD files.
+
+Version 9.03.01 (6/1306)
+------------------------------
+   - Using MSM project v1.1.6.
+   - Test cats included for NDIS and VBD drivers. Real cat for bxdiag.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.16  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.8   VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.8   NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.8   NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.02.03 (6/6/06)
+------------------------------
+   - Engineering Release to test co-installer.
+   - Test cats included for NDIS and VBD drivers. Real cat for bxdiag.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.16  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.8   VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.8   NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.8   NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.02.02 (5/11/06)
+------------------------------
+   - Test cats included for NDIS and VBD drivers. Real cat for bxdiag.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.16  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.8.6   VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.8.5   NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.8.5   NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.02.01 (5/10/06)
+------------------------------
+   - All drivers certified in this release.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.16  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.17  VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.6.14d NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.6.14d NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 9.01.01 (4/13/06)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.15 VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.6.14 NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.6.14 NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 8.21.03 (4/10/06)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.14 VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.6.14 NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.6.14 NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+
+Version 8.21.02 (4/4/06)
+------------------------------
+   - Corrected a multi-nic issue where one of more NIC's would be disabled upon running a silent install twice.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.13 VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.6.13 NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.6.13 NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 8.20.01 (3/3/06)
+------------------------------
+   - Modified installer to install the NDIS5.2 driver for WinXP, Win2K3, Win2K3SNP. 
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.11 VBD driver for Windows 2003 and Windows 2000.
+   Win2k       v2.6.11 NDIS 5.0 driver for Windows 2000.
+   Win2k3      v2.6.11 NDIS 5.2 driver for Windows 2003 and Windows 2003 SNP.
+
+Version 8.12.03 (2/27/06)
+------------------------------
+   - Added certified cat files for v2.6.2 drivers.  l4 driver is NOT certified in this release.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+
+Version 8.12.02 (2/16/06)
+------------------------------
+   - Issue: CQ20614: Popup message upon reboot after uninstall of NetXtreme II drivers.
+     Cause: Registry entry being left behind upon uninstall.
+     Change: Building with BWinInst v8.0.43 which removes registry entry on uninstall of drivers.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.12.01 (2/8/06)
+------------------------------
+   - Corrected issue with bxdiag loading on x64 system. 
+     Change: Added a backslash to end of property value for CopyFuncDrvInf function in NetX II driver installer.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.11.02 (2/7/06)
+------------------------------
+   - Building with BWinInst v8.0.42, Changed the registry string from "128" to "80" for function BInstDisableOffloadSupport.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.11.01 (2/6/06)
+------------------------------
+   - Added custom action SetDrvSrcList to handle installation from removeable media (already in legacy installers).
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.10.01 (2/2/06)
+------------------------------
+   - Now building with BWinInst v8.0.40, which includes new function BInstDisableOffloadSupport.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.09.02 (1/31/06)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.2 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.2 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.2 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.2 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.2 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.09.01 (1/24/06)
+------------------------------
+   - Added BRCMMAJORUPGRADE property. 
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.0 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.1 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.1 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.1 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.1 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.08.01 (1/20/06)
+------------------------------
+   - Issue: CQ22217 - Driver/Mgmt Installer fails to reinstall drivers for 5706/5708 if they had been removed from device manager manually.
+     Cause: The nested NetXtreme II installer was not reinstalling the drivers.
+     Change: Modified custom actions to reinstall drivers during reinstall mode.
+   - This release is built with test cat files. 
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.0 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.1 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.1 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.1 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.1 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.07.02 (1/18/06)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.0 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.1 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.1 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.1 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.1 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.07.01 (1/10/06)
+------------------------------
+   - Issue: CQ14672 - A Full Uninstall Leaves Behind Teton L2 NDIS, Diagnostic, and VBD INF Files
+     Cause: Installer was checking for the driver node before removing inf's.
+     Change: Removed condition to check node, now uninstalling and removing inf OK.
+  
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.6.0 Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.6.0 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.6.0 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.6.0 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.6.0 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.06.03 (11/28/05)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.5  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.18 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.18 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.18 NDIS 5.1 driver for Windows 2003.
+   l4nd_xp     v2.5.18 NDIS 5.2 driver for Windows 2003 SNP.
+
+Version 8.05.06 (10/27/05)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.5  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.17 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.16 NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.16 NDIS 5.1 driver for Windows 2003.
+
+Version 8.05.05 (10/12/05)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.5  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.10 VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.5  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.5  NDIS 5.1 driver for Windows 2003.
+
+Version 8.05.04 (10/11/05) (This release includes test cats files)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.5  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.7  VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.5  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.5  NDIS 5.1 driver for Windows 2003.
+
+Version 8.05.03 (9/28/05)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.4  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.4  VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.4  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.4  NDIS 5.1 driver for Windows 2003.
+
+Version 8.05.02 (9/15/05)
+------------------------------
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.1  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.3  VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.3  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.3  NDIS 5.1 driver for Windows 2003.
+
+Version 8.05.01 (9/1/05)
+------------------------------
+   - Added custom actions for NIC Check.  Implementing per OEM request.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.5.0  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.5.2  VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.5.1  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.5.1  NDIS 5.1 driver for Windows 2003.
+
+Version 8.04.01 (08/12/05)
+------------------------------
+   - Updated installer, defining IA32 and AMD64 components.  Removed WSD and iSCSI components and actions temporaraly.
+   Drivers in this release include:
+   ********************************   
+   bxdiag      v2.0.5  Broadcom NetXtreme II GigE Diagnostic Driver
+   b06bdrv     v2.1.7  VBD driver for Windows 2003 and Windows 2000.
+   l2nd_w2k    v2.1.6  NDIS 5.0 driver for Windows 2000.
+   l2nd_xp     v2.1.6  NDIS 5.1 driver for Windows 2003.
+
+Version 8.03.01 (07/19/05)
+------------------------------
+   - Updated installer project with latest files and file structure.
+
+Version 8.02.02 (May 02, 2005)
+------------------------------
+   Enhancement:
+   ===========
+   1.  Request:  
+                 Install L2NDIs51 for W2K3.
+       Change:
+                 Modify installer to install correct driver.
+       Impact:
+                 BCM5706 Driver Installer.
+
+Version 8.02.01 (April 29, 2005)
+--------------------------------
+   Enhancement:
+   ===========
+   1.  Request:  
+                 Support Windows XP.
+       Change:
+                 Modify the installer to support Windows XP.
+       Impact:
+                 BCM5706 Driver Installer.
+
+   2.  Request:  
+                 Support new driver names.
+       Change:
+                 Modify the installer to support new driver 
+                 names.
+       Impact:
+                 BCM5706 Driver Installer.
+
+   Fixes:
+   =====
+   1.  Request:  (CQ #TO00000550)
+                 B5706 Driver Installer v8.00.00 unable to upgrade 
+                 driver when previous driver exists
+       Cause:
+                 Installer does not support reinstallation.               
+       Change:
+                 Modify to support reinstallation with 
+                 Setup /v"REINSTALL=ALL" command.
+       Impact:
+                 BCM5706 Driver Installer.
+
+
+Version 8.00.01 (September 10, 2004)
+------------------------------------
+
+   Fixes:
+   =====
+   1. Request: 
+               WSD device does not install correctly
+      Cause:
+               The package include a wrong inf file
+      Change:
+               Update the package with a correct inf file
+      Impact:
+               None.
+
+
+Version 8.00.00 (September 02, 2004)
+------------------------------------
+
+   - Initial Release
+
+

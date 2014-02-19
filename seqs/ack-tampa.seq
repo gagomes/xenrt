@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- HCL - Auto Certification Kit for Tampa release run on Tampa-->
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+      <storage type="nfs" name="nfssr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="AutoCertKit">
+      <testcase id="xenserver.tc.autocert.XSAutoCertKit" tc="TC-17781"/>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

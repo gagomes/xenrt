@@ -1,0 +1,18 @@
+Metadata-Version: 1.1
+Name: jira-python
+Version: 0.13
+Summary: A library to ease use of the JIRA 5 REST APIs.
+Home-page: http://bitbucket.org/bspeakmon/jira-python
+Author: Ben Speakmon
+Author-email: ben.speakmon@gmail.com
+License: BSD
+Description: UNKNOWN
+Keywords: jira
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Topic :: Internet :: WWW/HTTP
+Provides: jira

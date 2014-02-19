@@ -1,0 +1,136 @@
+# Wrapper for running a CLI command on dom0
+CLI_XEUSER=root
+
+xe_binary() {
+    local HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    if ${SSHTO} root@${HOSTNAME} [ -e /opt/xensource/bin/xe ]; then
+        local XEBINTMP=`mktemp /tmp/xebinXXXXXX`
+        ${SCP} root@${HOSTNAME}:/opt/xensource/bin/xe ${XEBINTMP}
+        chmod 755 ${XEBINTMP}
+        local XEBIN=${XEBINTMP}
+    else
+        local XEBIN=${XENRT_LOCAL_BINARIES}/xe
+    fi
+    echo ${XEBIN}
+}
+
+xe() {
+    local COMMAND=$1
+    shift
+    local HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    if [ "${CLI_OFF_BOX}" = "yes" ]; then
+	if ${SSHTO} root@${HOSTNAME} [ -e /opt/xensource/bin/xe ]; then
+	    local XEBINTMP=`mktemp /tmp/xebinXXXXXX`
+	    ${SCP} root@${HOSTNAME}:/opt/xensource/bin/xe ${XEBINTMP}
+	    chmod 755 ${XEBINTMP}
+	    local XEBIN=${XEBINTMP}
+	else
+	    local XEBIN=${XENRT_LOCAL_BINARIES}/xe
+	fi
+	local XEBINARGS="-h ${HOSTNAME}"
+    elif ${SSHTO} root@${HOSTNAME} [ -e /opt/xensource/bin/xe ]; then
+        local XEBIN=/opt/xensource/bin/xe
+	local XEBINPREF="${SSH} root@${HOSTNAME}"
+    else
+        local XEBIN=/tmp/xe
+	local XEBINPREF="${SSH} root@${HOSTNAME}"
+    fi
+    local RC=0
+    if ! ${XEBINPREF} ${XEBIN} ${COMMAND} \
+	username=${CLI_XEUSER} password=${CARBON_DOM0_PASSWORD} ${XEBINARGS} \
+	"$@";
+	then
+	RC=1
+    fi
+    if [ -n "${XEBINTMP}" ]; then
+	rm -f ${XEBINTMP}
+    fi
+    return ${RC}
+}
+
+# Puts a file in a suitable place for the CLI to use. If the CLI is running
+# from the same place we are this does nothing and returns the path to the
+# original file on stdout. If the CLI is run over SSH from somewhere else
+# we'll copy the file to a temporary file on the target machine and return
+# the path to that on stdout.
+xe_place_file() {
+    local FILENAME=$1
+    if [ "${CLI_OFF_BOX}" = "yes" ]; then
+	echo ${FILENAME}
+    else
+	local HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+	local TMPFILE=`${SSH} root@${HOSTNAME} mktemp /tmp/cliXXXXXX`
+	${SCP} ${FILENAME} root@${HOSTNAME}:${TMPFILE}
+	echo ${TMPFILE}
+    fi
+}
+
+xe_upload() {
+    local HOSTNAME=`get_dom0_hostname ${XENMACHINE}`
+    if ! ${SSH} root@${HOSTNAME} [ -e /tmp/xe ]; then
+	${SCP} ${XENRT_LOCAL_BINARIES}/xe root@${HOSTNAME}:/tmp/xe
+    fi
+}
+
+xe_arg_memory_set() {
+    if [ "${OPTION_CLI_KB}" = "yes" ]; then
+	echo $[$1 * 1024]
+    else
+	echo $1
+    fi
+}
+
+xe_arg_memory_get() {
+    if [ "${OPTION_CLI_KB}" = "yes" ]; then
+	echo $[$1 / 1024]
+    else
+	echo $1
+    fi
+}
+
+xe_poll_status() {
+    # Poll a VM for a specified status
+    VMID=$1
+    STATUS=$2
+    
+    local POLL_START=`date +%s`
+    local POLL_DEADLINE=$[${POLL_START} + 600]
+    while true; do	    
+	CURRENT=`xe host-vm-list | perl -e"\\$found=0;while(<>){if(/uuid:\\s+${VMID}/){\\$found=1;}elsif(\\$found && /state:\\s+(\\w+)/){print \\$1;exit 0;}}"`
+	if [ "${CURRENT}" = "${STATUS}" ]; then
+	    break
+	fi
+	local NOW=`date +%s`
+	if [ ${NOW} -gt ${POLL_DEADLINE} ]; then
+	    log_extra_data \
+		"Reason: wating for status to become ${STATUS} timed out"
+	    echo "Timed out waiting for status ${STATUS}"
+	    return ${RC_TIMEOUT}
+	fi
+	echo "waiting for status ${STATUS}..."
+	sleep 30; 
+    done
+}
+
+xe_wait_for_guest_agent() {
+    # Wait for some kind of indication that the guest agent is running
+    VMID=$1
+
+    local POLL_START=`date +%s`
+    local POLL_DEADLINE=$[${POLL_START} + 600]
+    while true; do
+	if DATA=`xe vm-vif-list vm-id=${VMID}`; then
+	    if ! ( echo ${DATA} | grep -q 'ip: (null)' ); then
+		break
+	    fi
+	fi
+	local NOW=`date +%s`
+	if [ ${NOW} -gt ${POLL_DEADLINE} ]; then
+	    log_extra_data "Reason: timed out waiting for guest agent"
+	    echo "Timed out waiting for guest agent"
+	    return ${RC_TIMEOUT}
+	fi
+	echo "waiting for guest agent..."
+	sleep 30; 
+    done
+}

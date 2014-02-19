@@ -1,0 +1,7 @@
+# Description: Microsoft .NET 2 SP0 an SP2 installers
+# Status: downloadable
+# Obtain from http://www.microsoft.com/NET/
+93a13358898a54643adbca67d1533462  ./dotnetfx.exe
+1f383f3a372dcdd89cd40bc65af05b37  ./NetFx64.exe
+ad55ad64b69fed73807429859291db8c  ./NetFx20SP2_x64.exe
+c64fd1f972822ed84378c7058fea0744  ./NetFx20SP2_x86.exe

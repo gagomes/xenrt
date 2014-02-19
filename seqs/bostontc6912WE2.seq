@@ -1,0 +1,37 @@
+<xenrt>
+
+  <!-- MNR Linux test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="vistaeesp1">
+        <distro>vistaeesp1</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="winxpsp3">
+        <distro>winxpsp3</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="VISTAEESP1" guest="vistaeesp1">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7888" prio="3"/>
+    </serial>
+    <serial group="WINXPSP3" guest="winxpsp3">
+      <testcase id="benchmarks.func.TCdevpath" tc="TC-7890" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

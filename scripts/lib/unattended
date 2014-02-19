@@ -1,0 +1,306 @@
+# Library file for Windows unattended installations.
+
+# Create a local copy of an ISO
+extract_iso() {
+    ORIGISO=${1}
+    OUTDIR=${2}
+
+    # Create the ISO mount point.
+    MOUNTPOINT=`mktemp -d /tmp/winisoXXXXXX`
+    # Create the output directory, if required.
+    if ! [ -d ${OUTDIR} ]; then
+        mkdir -p ${OUTDIR}
+    fi
+
+    # Try to mount the ISO as udf first in case it's Vista.
+    if ! mount -o loop,ro -t udf ${ORIGISO} ${MOUNTPOINT} &> /dev/null; then
+        mount -o loop,ro ${ORIGISO} ${MOUNTPOINT}
+    fi
+    TOUMOUNT=${MOUNTPOINT}
+
+    # Copy the files...
+    cp -aR ${MOUNTPOINT}/* ${OUTDIR}
+
+    # Clean up.
+    umount ${MOUNTPOINT}
+    unset TOUMOUNT
+    rm -rf ${MOUNTPOINT}
+}
+
+# How to build a Windows ZIP file from an autoinstall ISO.
+build_zip_windows() {
+    AUTOISO=${1}
+    ZIP=${2}
+    TEMPDIR=${3}
+    IMAGEDIR=${4}
+    VERSION=${5}
+    CONFDIR=${6}
+    PASSWORD=${7}
+
+    TEXTMODE=${IMAGEDIR}/windows/native/drivers/textmode
+    GUIMODE=${IMAGEDIR}/windows/native/drivers/guimode
+    PATCHES=${IMAGEDIR}/windows/native/patches
+    POST=${IMAGEDIR}/windows/native/drivers/post    
+
+    rm -rf ${TEMPDIR}
+
+    # Get a local copy of the ISO.
+    extract_iso ${AUTOISO} ${TEMPDIR}/iso
+
+    if [ -e ${TEMPDIR}/iso/i386 ]; then
+        LOCATION="i386"
+    else
+        LOCATION="I386"
+    fi
+    
+    # Copy textmode RAID drivers.
+    cp ${TEXTMODE}/* ${TEMPDIR}/iso/${LOCATION}/
+
+    # Move OEM directory.
+    mv ${TEMPDIR}/iso/\$OEM\$ ${TEMPDIR}/iso/${LOCATION}/
+
+    # Create post install directory.
+    mkdir -p ${TEMPDIR}/iso/post
+    cp -R ${POST}/* ${TEMPDIR}/iso/post/
+
+    # Add GUI drivers.
+    mkdir -p ${TEMPDIR}/iso/${LOCATION}/\$OEM\$/\$1/Drivers
+    cp -R ${GUIMODE}/* \
+        ${TEMPDIR}/iso/${LOCATION}/\$OEM\$/\$1/Drivers/
+
+    # Enable Broadcom post install.
+    if [ "${VERSION}" == "winxpsp2" ]; then
+        touch ${TEMPDIR}/iso/${LOCATION}/\$OEM\$/\$1/install/broadcom-xp.xrt
+    else
+        touch ${TEMPDIR}/iso/${LOCATION}/\$OEM\$/\$1/install/broadcom.xrt
+    fi
+
+    # TXTSETUP.SIF
+    if [ -e ${TEMPDIR}/iso/${LOCATION}/txtsetup.sif ]; then
+        patch ${TEMPDIR}/iso/${LOCATION}/txtsetup.sif ${PATCHES}/${VERSION}/txtsetup.diff
+    else
+        patch ${TEMPDIR}/iso/${LOCATION}/TXTSETUP.SIF ${PATCHES}/${VERSION}/txtsetup.diff
+    fi
+
+    # DOSNET.INF
+    if [ -e ${TEMPDIR}/iso/${LOCATION}/dosnet.inf ]; then
+        patch ${TEMPDIR}/iso/${LOCATION}/dosnet.inf ${PATCHES}/${VERSION}/dosnet.diff
+    else
+        patch ${TEMPDIR}/iso/${LOCATION}/DOSNET.INF ${PATCHES}/${VERSION}/dosnet.diff
+    fi
+    
+    cp ${TEMPDIR}/iso/${LOCATION}/\$OEM\$/runonce.cmd ${TEMPDIR}/runonce.cmd
+    ${IMAGEDIR}/windows/mkunattend -p ${PASSWORD} -v ${VERSION} -t native -d ${GUIMODE} \
+        -k ${CONFDIR}/keys/windows -a x86 -u ${IMAGEDIR}/windows/unattend.txt \
+        > ${TEMPDIR}/unattend.txt
+
+    mv ${TEMPDIR}/iso ${TEMPDIR}/win
+    cd ${TEMPDIR}
+    zip -r -q -0 ${ZIP} win/ unattend.txt runonce.cmd
+
+    rm -rf ${TEMPDIR}
+}
+
+# How to build a Vista ZIP file from an autoinstall ISO.
+build_zip_vista() {
+    AUTOISO=${1}
+    ZIP=${2}
+    TEMPDIR=${3}
+    IMAGEDIR=${4}
+    CONFDIR=${5}
+    PASSWORD=${6}
+
+    rm -rf ${TEMPDIR}
+
+    # Copy the autoinstall ISO to a directory.
+    extract_iso ${AUTOISO} ${TEMPDIR}/iso 
+
+    # Separate out install.wim; it's too big.
+    mkdir -p ${TEMPDIR}/wrapper
+    mv ${TEMPDIR}/iso/sources/install.wim ${TEMPDIR}/install.wim
+    split -b 1000m ${TEMPDIR}/install.wim ${TEMPDIR}/part
+    I=1
+    for P in ${TEMPDIR}/part*; do
+        mv ${P} ${TEMPDIR}/wrapper/install.part${I}
+        I=$[ ${I} + 1]
+    done
+
+    # Set architecture.   
+    if isin "${AMD64}" ${WINVERSION}; then
+        ARCH="amd64"
+    else
+        ARCH="x86"
+    fi
+    
+    BUILD=`echo \`basename ${AUTOISO}\` | sed -e 's/longhorn_//' -e 's/_intermediate.iso//'`
+
+    if isin "${VIRIDIAN}" ${BUILD}; then
+        UNATTEND="viridianunattend.xml"
+    elif isin "${MULTIACTIVATIONKEY}" ${WINVERSION}; then
+        UNATTEND="makunattend.xml"
+    else
+        UNATTEND="unattend.xml"
+    fi
+    
+    # Add in unattend.xml.
+    ${IMAGEDIR}/windows/mkunattend -v ${WINVERSION} \
+        -t native -p ${PASSWORD} -k ${CONFDIR}/keys/windows \
+        -a ${ARCH} -u ${IMAGEDIR}/windows/${UNATTEND} \
+        > ${TEMPDIR}/wrapper/unattend.xml
+
+    mv ${TEMPDIR}/iso/\$OEM\$/\$1/install ${TEMPDIR}/install
+    mv ${TEMPDIR}/iso ${TEMPDIR}/win
+    cd ${TEMPDIR}
+    zip -r -q -0 ${TEMPDIR}/wrapper/install.zip win/ install/
+    rm -rf ${TEMPDIR}/install
+    mv ${TEMPDIR}/wrapper ${TEMPDIR}/install
+    tar cf ${ZIP} install/    
+
+    rm -rf ${TEMPDIR}
+}
+
+# How to build a Windows autoinstall ISO from a standard install ISO.
+build_iso_common() {
+    ORIGISO=$1
+    WINVERSION=$2
+    OUTFILE=$3
+    IMAGEDIR=$4
+    TEMPDIR=$5
+    SFUISO=$6
+    SCRIPTDIR=$7
+    CONFDIR=$8
+    PASSWORD=$9
+
+    rm -rf ${TEMPDIR}
+
+    extract_iso ${ORIGISO} ${TEMPDIR}/iso
+
+    ${IMAGEDIR}/bootsect.py -i ${ORIGISO} \
+        -o ${TEMPDIR}/iso/${WINVERSION}.img
+
+    if isin "${UDF}" ${WINVERSION}; then
+        MKISOFLAGS="-d -udf"
+    else
+        MKISOFLAGS=""
+    fi
+
+    if isin "${AMD64}" ${WINVERSION}; then
+        ARCH="amd64"
+    else
+        ARCH="x86"
+    fi
+
+    BUILD=`echo \`basename ${OUTFILE}\` | sed -e 's/longhorn_//' -e 's/_intermediate.iso//'`
+
+    if isin "${VIRIDIAN}" ${BUILD}; then
+        UNATTEND="viridianunattend.xml"
+        UNATTENDLOCATION="Autounattend.xml"
+    elif isin "${MULTIACTIVATIONKEY}" ${WINVERSION}; then
+        UNATTEND="makunattend.xml"
+        UNATTENDLOCATION="Autounattend.xml"
+    elif isin "${XML}" ${WINVERSION}; then
+        UNATTEND="unattend.xml"
+        UNATTENDLOCATION="Autounattend.xml"
+    else
+        UNATTEND="unattend.txt"
+        if [ "${ARCH}" == "amd64" ]; then
+            if [ -e ${TEMPDIR}/iso/amd64 ]; then
+                UNATTENDLOCATION="amd64/WINNT.SIF" 
+            else
+                UNATTENDLOCATION="AMD64/WINNT.SIF"
+            fi
+        else
+            if [ -e ${TEMPDIR}/iso/i386 ]; then
+                UNATTENDLOCATION="i386/WINNT.SIF"
+            else
+                UNATTENDLOCATION="I386/WINNT.SIF"
+            fi
+        fi
+    fi
+
+    if isin "${NOSFU}" ${WINVERSION}; then
+        SFU="--nosfu"
+    fi
+
+    ${IMAGEDIR}/windows/mkunattend \
+        -p ${PASSWORD} \
+        -v ${WINVERSION} \
+        -t iso \
+        -k ${CONFDIR}/keys/windows \
+        -a ${ARCH} ${SFU} \
+        -u ${IMAGEDIR}/windows/${UNATTEND} \
+        > ${TEMPDIR}/unattend
+    if ! cp ${TEMPDIR}/unattend ${TEMPDIR}/iso/${UNATTENDLOCATION}; then
+        # Sometime the ISOs have upper case directories. Windows doesn't care
+        # so neither should we.
+        cp ${TEMPDIR}/unattend \
+            ${TEMPDIR}/iso/`echo ${UNATTENDLOCATION} | tr [:lower:] [:upper:]`
+    fi
+ 
+    # Copy over common files.
+    mkdir -p ${TEMPDIR}/iso/\$OEM\$
+    cp -aR ${IMAGEDIR}/windows/iso/common/* ${TEMPDIR}/iso/\$OEM\$/
+    cp -p ${SCRIPTDIR}/utils/execdaemon.* \
+        ${TEMPDIR}/iso/\$OEM\$/\$1/install/python/
+
+    # Python is used to install everything but SFU.
+    echo yes > \
+        ${TEMPDIR}/iso/\$OEM\$/\$1/install/python.xrt
+
+    echo yes > \
+        ${TEMPDIR}/iso/\$OEM\$/\$1/install/rdp.xrt
+
+    echo yes > \
+        ${TEMPDIR}/iso/\$OEM\$/\$1/install/xmlrpc.xrt 
+
+    echo yes > \
+        ${TEMPDIR}/iso/\$OEM\$/\$1/install/ipv6.xrt 
+
+    # W2K hack.
+    if [ "${WINVERSION}" = "w2kassp4" ]; then
+        echo yes > \
+            ${TEMPDIR}/iso/\$OEM\$/\$1/install/w2kfix.xrt
+    fi
+    # Windows 2003 SP1/R2/SP2 hack.
+    if echo ${WINVERSION} | grep w2k3 | grep -q -e sp1 -e sp2 -e r2; then
+    	echo yes > \
+	        ${TEMPDIR}/iso/\$OEM\$/\$1/install/kb899522.xrt
+    fi
+    # Vista hack
+    if echo ${WINVERSION} | grep -q -e vistaee -e ws08 -e win7 -e win8 -e ws12; then
+        echo yes > \
+            ${TEMPDIR}/iso/\$OEM\$/\$1/install/vistafix.xrt
+    fi
+    
+
+#    if isin "${NOSFU}" ${WINVERSION}; then
+#        if ! echo ${WINVERSION} | grep -q "vistaee\|ws08.*"; then
+#            echo yes > \
+#                ${TEMPDIR}/iso/\$OEM\$/\$1/install/ssh.xrt
+#        fi
+#    else  
+#        # Add in Unix Tools.
+#        extract_iso ${SFUISO} ${TEMPDIR}/iso/\$OEM\$/\$1/install/SFU
+#        echo yes > \
+#            ${TEMPDIR}/iso/\$OEM\$/\$1/install/sfu.xrt
+#    fi
+
+    mkisofs \
+        -quiet \
+        -b ${WINVERSION}.img \
+        ${MKISOFLAGS} \
+        -no-emul-boot \
+        -boot-load-seg 1984 \
+        -iso-level 2 \
+        -J \
+        -joliet-long \
+        -l \
+        -D \
+	    -relaxed-filenames \
+        -N \
+        -V AUTOWIN \
+        -o ${OUTFILE} \
+    	${TEMPDIR}/iso/
+    
+    rm -rf ${TEMPDIR}
+}

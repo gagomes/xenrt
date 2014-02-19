@@ -1,0 +1,19 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true" />
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="dom0CPUUtilize">
+      <testcase id="xenserver.tc.host.IdleVMsDom0CPUUtilize" name="IdleVMsDom0CPUUtilize" tc="TC-20881" />
+    </serial>
+  </testsequence>
+
+</xenrt>

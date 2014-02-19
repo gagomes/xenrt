@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0" suppackcds="xs-nicaea.iso"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC14931"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

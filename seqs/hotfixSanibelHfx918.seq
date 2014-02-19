@@ -1,0 +1,29 @@
+<xenrt> 
+
+  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456/"/>
+
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456/</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>Sanibel</OLD_PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+  
+  <prepare>
+     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" > 
+          <vm name="Win7">
+           <distro>win7-x86</distro>
+           <network device="0" />
+           <postinstall action="installDrivers"/>
+          </vm> 
+     </host>      
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.hg/exec/ -->
+    <testcase id="testcases.xenserver.tc.guest.TC20919" name = "TC20919" tc ="TC-20919"/>
+    
+  </testsequence>
+</xenrt>

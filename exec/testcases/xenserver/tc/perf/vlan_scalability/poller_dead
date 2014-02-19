@@ -1,0 +1,9 @@
+#!/usr/bin/python
+
+import sys
+
+pid = int(sys.argv[1])
+
+f = str(sys.argv[2])
+
+open(f, 'r')

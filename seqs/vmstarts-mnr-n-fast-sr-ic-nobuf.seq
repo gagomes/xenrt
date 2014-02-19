@@ -1,0 +1,43 @@
+<xenrt>
+  <variables>
+
+    <!-- SR type is needed so localstoragecaching will work -->
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="fastStoreSR" default="true" />
+      <allhosts license="platinum" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <NIC />
+          <NIC />
+          <NIC />
+          <MANAGEMENT mode="static" />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+      <arg>numdesktops=1</arg>
+      <arg>novifs</arg>
+      <arg>localstoragecaching</arg>
+    </testcase>
+
+    <for iter="I" values="10,20,30,40,50,05,15,25,35,45">
+      <action action="prepare" />
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-${I}">
+        <arg>numdesktops=${I}</arg>
+        <arg>novifs</arg>
+        <arg>localstoragecaching</arg>
+      </testcase>
+    </for>
+
+  </testsequence>
+</xenrt>

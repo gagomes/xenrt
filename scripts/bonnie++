@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Bonnie++
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin and Chris Thompson-Walsh, 21-28 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+TIMEOUT=7200
+. ${SCRIPTDIR}/functions
+
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make g++"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+set -e
+
+BONNIE_BUFFERED=yes
+BONNIE_PARALLEL=1
+
+install_bonnie() {
+    
+    #yum -y install gcc-c++
+
+    tar -zxf bonnie++*.tgz
+    ln -s `find bonnie++* -maxdepth 0 -type d` bonnie++
+    cd bonnie++
+    ./configure
+    make
+}
+BM_INSTALL=install_bonnie
+
+run_bonnie() {
+
+    mkdir -p ${WORKDIR}/${SUBDIR}
+
+    cd bonnie++
+
+    local ARGS="-u 0"
+    if [ "${BONNIE_BUFFERED}" = "yes" ]; then
+	ARGS="${ARGS} -b"
+    fi
+    ARGS="${ARGS} -d ${WORKDIR}/${SUBDIR}"
+
+    # We need to make sure we have enough disk space. bonnie wants to
+    # create a file(s) twice as large as the RAM size.
+    DISKFREE=`df -P -m ${WORKDIR}/${SUBDIR} | tail -n1 | awk '{print $4;}'`
+    DISKFREE=$[${DISKFREE} - 128]
+    MEMMEGS=`awk '{if(/^MemTotal:/){print int($2/1024)}}' < /proc/meminfo`
+    DMEMMEGS=$[${MEMMEGS} + ${MEMMEGS}]
+    if [ ${DMEMMEGS} -gt ${DISKFREE} ]; then
+        if [ "${BONNIE_NO_MEMLIE}" = "yes" ]; then
+            log_extra_data "Reason: Insufficient disk space for test"
+	    return ${RC_ERROR}
+	fi
+	# Lie about the amount of memory we have to make this fit
+	MEMLIE=$[${DISKFREE} / 2]
+	ARGS="${ARGS} -r ${MEMLIE}"
+	log_extra_data "Comment: Forcing bonnie memory to ${MEMLIE}M"
+    fi
+    
+    ./bonnie++ ${ARGS} > ${WORKDIR}/${SUBDIR}.result
+}
+BM_RUN=run_bonnie
+
+process_bonnie() {
+    local RES=`tail -n1 ${WORKDIR}/${SUBDIR}.result`
+    log_extra_data "Result:" ${RES}
+    RESWRITE=`echo ${RES} | cut -d , -f 5`
+    RESREAD=`echo ${RES} | cut -d , -f 11`
+    log_extra_data "Value:" "Write" `normalise_bytes ${RESWRITE}` "kb/s"  
+    log_extra_data "Value:" "Read" `normalise_bytes ${RESREAD}` "kb/s" 
+}
+BM_PROCESS=process_bonnie
+
+. ${SCRIPTDIR}/generic

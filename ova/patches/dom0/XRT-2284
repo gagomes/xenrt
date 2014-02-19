@@ -1,0 +1,8 @@
+diff -r 90e71c594dc7 packages.xenrt
+--- a/packages.xenrt	Tue Feb 19 15:03:15 2008 +0000
++++ b/packages.xenrt	Wed Feb 27 12:23:48 2008 +0000
+@@ -36,3 +36,4 @@ libjpeg-devel
+ libjpeg-devel
+ perl-IO-Socket-SSL
+ perl-Net-SSLeay
++vconfig

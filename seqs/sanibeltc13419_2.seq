@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>
+      Boston
+    </PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="MaxMem_2" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC15456" prio="3" tc="TC-15456"/>
+      <testcase id="xenserver.tc.smoketest.TC15457" prio="3" tc="TC-15457"/>
+      <testcase id="xenserver.tc.smoketest.TC15458" prio="3" tc="TC-15458"/>
+      <testcase id="xenserver.tc.smoketest.TC15459" prio="3" tc="TC-15459"/>
+    </parallel>
+  </testsequence>
+</xenrt>

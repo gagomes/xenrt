@@ -1,0 +1,11 @@
+# Description: Microsoft SQLIOSim Tool
+# Status: downloadable
+# Obtaining:
+# Obtain the three versions (ia64,x64,x86) of sqliosim.com from http://support.microsoft.com/kb/231619
+# Place these each into a subfolder, i.e. create ia64/sqliosim.com, x86/sqliosim.com, and x64/sqliosim.com
+# Place the ErrorLog.xslt file in the root
+8b2a7d44d9deb92671047880b2068283  ./ia64/sqliosim.com
+f624fff2324494320aeca66b29a46e1c  ./x86/sqliosim.com
+2fd0690c116b54abd81b83acbb18c28e  ./x64/sqliosim.com
+388b449572740af3417d0ee7e148724a  ./ErrorLog.xslt
+e0b42f913b17f382c8b72e9749cf270c  ./sqliosim.cfg.ini

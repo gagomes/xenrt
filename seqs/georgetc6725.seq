@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Orlando to George host upgrade test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.0.0-Update3RC1</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>Orlando</OLD_PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC6725" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

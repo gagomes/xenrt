@@ -1,0 +1,46 @@
+--- orig/dosnet.inf	2007-02-05 10:09:25.000000000 +0000
++++ new/dosnet.inf	2007-02-05 11:02:06.000000000 +0000
+@@ -127,6 +127,21 @@
+ 
+ 
+ [FloppyFiles.2]
++d1,FASTTX2K.sys
++d1,INIC162X.sys
++d1,AARICH.sys
++d1,NVATA.sys
++d1,NVATABUS.sys
++d1,NVRAID.sys
++d1,Si3112r.sys
++d1,vmscsi.sys
++d1,adp94xx.sys
++d1,ultra.sys
++d1,symmpi.sys
++d1,ql2300.sys
++d1,a320raid.sys
++d1,iastor.sys
++d1,aacsas.sys
+ d1,disk1,disk103
+ d1,cpqarray.sys
+ d1,aha154x.sys
+@@ -194,6 +209,21 @@
+ ntldr
+ 
+ [Files]
++d1,FASTTX2K.sys
++d1,INIC162X.sys
++d1,AARICH.sys
++d1,NVATA.sys
++d1,NVATABUS.sys
++d1,NVRAID.sys
++d1,Si3112r.sys
++d1,vmscsi.sys
++d1,adp94xx.sys
++d1,ultra.sys
++d1,symmpi.sys
++d1,ql2300.sys
++d1,a320raid.sys
++d1,iastor.sys
++d1,aacsas.sys
+ d5,I386\iepeers.dll
+ d5,I386\mshtml.dll
+ d5,I386\urlmon.dll

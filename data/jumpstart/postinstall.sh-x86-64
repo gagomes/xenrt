@@ -1,0 +1,11 @@
+#!/bin/sh
+
+sed 's/PermitRootLogin no/PermitRootLogin yes/g' /a/etc/ssh/sshd_config > /tmp/sshd_config.new && cp /tmp/sshd_config.new /a/etc/ssh/sshd_config
+
+mkdir /tmp/xenrttmpmount
+mount -f nfs %SIGNALDIR% /tmp/xenrttmpmount
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%EXTRAPOSTINSTALL%
+(sleep 120; /usr/sbin/reboot) > /dev/null 2>&1 &
+

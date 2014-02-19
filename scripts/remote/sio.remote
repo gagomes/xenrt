@@ -1,0 +1,31 @@
+#!/bin/bash
+
+XSCRIPTDIR=`dirname $0`
+SCRIPTDIR=`dirname ${XSCRIPTDIR}`
+. ${SCRIPTDIR}/config
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+set -x
+set -e
+
+NETCMD="/dev/fs/C/WINDOWS/system32/net.exe"
+NETSH="/dev/fs/C/WINDOWS/system32/netsh.exe"
+
+echo PATH=$PATH
+
+if [ "$1" = "server" ]; then
+    ${NETSH} firewall set service type=fileandprint mode=enable profile=all \
+	> /tmp/sio.remote.log 2>&1 < /dev/null || true
+    mkdir -p /dev/fs/C/share
+    ${NETCMD} share siotest=C:\\share /GRANT:Administrator,FULL \
+	>> /tmp/sio.remote.log 2>&1 < /dev/null || true
+elif [ "$1" = "serverpost" ]; then
+    set +e
+    ${NETCMD} share siotest /delete \
+	> /tmp/sio.remote-post.log 2>&1 < /dev/null || true
+    rm -rf /dev/fs/C/share
+    ${NETSH} firewall set service type=fileandprint mode=disable profile=all \
+	>> /tmp/sio.remote-post.log 2>&1 < /dev/null || true
+fi

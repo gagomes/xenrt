@@ -1,0 +1,30 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}" group="VM1G2C">
+      <!-- Will always fail due to EXT-55 -->
+      <!--<testcase id="xenserver.tc.smoketest.TC7649" prio="4"/>-->
+      <testcase id="xenserver.tc.smoketest.TC8984" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC9559" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC11386" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC11387" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC11751" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC11752" prio="4"/>
+      <testcase id="xenserver.tc.smoketest.TC11798" prio="4"/>    
+      <testcase id="xenserver.tc.smoketest.TC11799" prio="4"/>
+
+</parallel>
+  </testsequence>
+
+</xenrt>

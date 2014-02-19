@@ -1,0 +1,35 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <host id="0">
+        <vm name="w2k3-x64">
+          <distro>w2k3eesp2-x64</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+      </host>
+      <host id="1" />
+    </pool>
+  </prepare>
+  
+  <testsequence>
+      <serial group="WindowsGuest">
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-14992">
+          <arg>guest=w2k3-x64</arg>
+          <arg>loops=6000</arg>
+          <arg>live</arg>
+          <arg>to=RESOURCE_HOST_1</arg>
+        </testcase>
+      </serial>
+
+  </testsequence>
+
+</xenrt>

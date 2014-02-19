@@ -1,0 +1,9 @@
+# Description Microsoft PowerShell 2.0 
+# Status: downloadable
+# Obtaining:
+# Available from http://www.microsoft.com/windowsserver2003/technologies/management/powershell/download.mspx
+76721ddccf7ed1d5ed4ae3d222f68e4d  ./Windows6.0-KB968930-x64.msu
+80a19b7788747efb04bae146115b450b  ./Windows6.0-KB968930-x86.msu
+01dddf73c260b550809736cd3b662935  ./WindowsServer2003-KB968930-x64-ENG.exe
+6daec2be77c20817705348cd4097dbf1  ./WindowsServer2003-KB968930-x86-ENG.exe
+9859a26d5e72bbb0685af813b409d99d  ./WindowsXP-KB968930-x86-ENG.exe

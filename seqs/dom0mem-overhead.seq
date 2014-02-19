@@ -1,0 +1,29 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>    
+
+    <prepare>
+      <pool>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_dom0mem_pervm.TCDom0Mem" host="RESOURCE_HOST_0">
+        <arg>numvms=50</arg>
+        <arg>dontusemps</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

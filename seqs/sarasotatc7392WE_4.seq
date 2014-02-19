@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>
+      Sarasota
+    </PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host/>
+  </prepare>
+  <testsequence>
+    <parallel group="HVM5G2C_4" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC20603" prio="4" tc="TC-20603"/>
+      <testcase id="xenserver.tc.smoketest.TC20604" prio="4" tc="TC-20604"/>
+      <testcase id="xenserver.tc.smoketest.TC20605" prio="4" tc="TC-20605"/>
+      <testcase id="xenserver.tc.smoketest.TC20606" prio="4" tc="TC-20606"/>
+    </parallel>
+  </testsequence>
+</xenrt>

@@ -1,0 +1,15 @@
+# Description: Microsoft Exchange Loadsim
+# Status: downloadable
+# Obtaining:
+# Download loadsim.msi from http://www.microsoft.com/downloads/details.aspx?FamilyId=92EB2EDC-3433-47CA-A5F8-0483C7DDEA85
+e01f863b2d032f14ba11fd6de9660044  ./readme.txt
+592086bb4e45a834d86beb897613ae66  ./adfind.exe
+d7f0b7de314a98b69c3e31089d144e36  ./loadsim.msi
+3e2ae3a2d51585829f4c27c9b52d8908  ./joindomain.vbs
+18c7108f7fd51d6be30c684d65937892  ./template.sim
+9cf9a6e8b0e64bfa5648eb04a8952eac  ./dcinstall-auto.txt
+b6f17ce2edb25e875c4543e78e3d8e43  ./exchangeupdate.txt
+5f9f974d3f7e51c96ac49813de882e5d  ./exchangeinstall.txt
+a106c27896645188d0733816f9afb650  ./iisinstall.txt
+28ff4d1148c9744e20540d6665f9ed39  ./checkfinished.bat
+940223fcd8d70f8b0274ddc2477f08c8  ./watch_reboot.py

@@ -1,0 +1,2207 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+      <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+
+      <!-- 4 dom0 vcpus, 1 vm -->
+
+      <serial group="debian60/d0v04/01vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/01vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 4 dom0 vcpus, 5 vms -->
+
+      <serial group="debian60/d0v04/05vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/05vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 4 dom0 vcpus, 10 vms -->
+
+      <serial group="debian60/d0v04/10vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/10vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 4 dom0 vcpus, 15 vms -->
+
+      <serial group="debian60/d0v04/15vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/15vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 4 dom0 vcpus, 20 vms -->
+
+      <serial group="debian60/d0v04/20vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v04/20vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=4</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 8 dom0 vcpus, 1 vm -->
+
+      <serial group="debian60/d0v08/01vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/01vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=1</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 8 dom0 vcpus, 5 vms -->
+
+      <serial group="debian60/d0v08/05vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/05vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=5</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 8 dom0 vcpus, 10 vms -->
+
+      <serial group="debian60/d0v08/10vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/10vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=10</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 8 dom0 vcpus, 15 vms -->
+
+      <serial group="debian60/d0v08/15vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/15vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=15</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+      <!-- 8 dom0 vcpus, 20 vms -->
+
+      <serial group="debian60/d0v08/20vm/512b/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/512b/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=512</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/01K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/01K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=1024</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/02K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/02K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=2048</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/04K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/04K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=4096</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/08K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/08K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=8192</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/16K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/16K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=16384</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/32K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/32K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=32768</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/64K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/64K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=65536</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/128K/read">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=read</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+      <serial group="debian60/d0v08/20vm/128K/write">
+      <testcase id="xenserver.tc.perf.tc_diskconc.TCDiskConcurrent" host="RESOURCE_HOST_0">
+        <arg>numvms=20</arg>
+        <arg>writefirst=true</arg>
+        <arg>bufsize=131072</arg>
+        <arg>op=write</arg>
+        <arg>distro=debian60</arg>
+        <arg>arch=x86-32</arg>
+        <arg>dom0vcpus=8</arg>
+        <arg>scheduler=noop</arg>
+      </testcase>
+      </serial>
+
+    </testsequence>
+  </xenrt>

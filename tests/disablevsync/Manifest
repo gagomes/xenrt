@@ -1,0 +1,13 @@
+# Disable vsync
+# Status: proprietary
+# Obtaining: Source in http://developer.download.nvidia.com/NVAPI/PG-5116-001_v01_public.pdf 
+dbed44c0744af5b1b3c6aa7fda48c282  ./disablevsync.exe
+fc954ee7b9d7b7e5abef01cdf9e8f329  ./src/disablevsync/disablevsync.sln
+bfcde63cf5e6c224be523212100eed7c  ./src/disablevsync/disablevsync/disablevsync.vcproj
+ea5d00bc4ee431a63a7d6fe3f7f1b30d  ./src/disablevsync/disablevsync/nvapi.h
+713a17d774ee7404ea8174ad52288541  ./src/disablevsync/disablevsync/NvApiDriverSettings.c
+810f77b0645d67f44e31aa6bb64ae123  ./src/disablevsync/disablevsync/NvApiDriverSettings.h
+b50aa2bba160dcbb53b72463e476ed04  ./src/disablevsync/disablevsync/Sync_Configuration.cpp
+495e1daeaeae87bffc875ba5e67cc9c5  ./src/disablevsync/disablevsync/targetver.h
+ce43826e250094e52ab2500dc5dbb8ca  ./src/disablevsync/disablevsync/amd64/nvapi64.lib
+752c7854d834188cbeda490853bf372a  ./src/disablevsync/disablevsync/x86/nvapi.lib

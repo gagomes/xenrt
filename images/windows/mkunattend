@@ -1,0 +1,236 @@
+#!/usr/bin/env python
+#
+# Script to convert unattended script files suitable for ISO installs
+# to ones suitable for native WinPE installs.
+#
+
+import sys, re, os, xml.dom.minidom, getopt
+
+def processSIF(unattend):
+    # The native installer runs winnt32.exe.
+    unattend = re.sub("MsDosInitiated=\"0\"", 
+                      "MsDosInitiated=\"1\"", unattend)
+    # We make the partitions manually in native mode.
+    unattend = re.sub("Repartition=Yes",
+                      "Repartition=No", unattend)
+    # We might need some drivers.
+    drivers = ""
+    for d in os.listdir(driverdir):
+        drivers += "Drivers\\\\%s;" % (d)
+    drivers = drivers.strip(";")
+    unattend = re.sub("UnattendSwitch=Yes",
+                      "UnattendSwitch=Yes\n    " +
+                      "OemPnPDriversPath = \"%s\"" % (drivers), unattend) 
+    return unattend 
+
+def processXML(unattend):
+    # Parse XML 
+    dom = xml.dom.minidom.parseString(unattend)
+    # We make the partitions manually in native mode. 
+    for node in dom.getElementsByTagName("DiskConfiguration"):
+        node.parentNode.removeChild(node)
+    # The install image needs to be specified.
+    for node in dom.getElementsByTagName("InstallFrom"):
+        node.appendChild(\
+            dom.createElement("Path")).appendChild(\
+                dom.createTextNode("c:\\win\\sources\\install.wim")) 
+    # The location of our post-install script is different.
+    for node in dom.getElementsByTagName("CommandLine"):
+        parent = node.parentNode
+        parent.removeChild(node) 
+        parent.appendChild(\
+            dom.createElement("CommandLine")).appendChild(\
+                dom.createTextNode("c:\\install\\python\\python.cmd"))
+    return dom.toxml()
+
+def mkunattend():
+    # Load template.
+    if xmlfile:
+        f = file("%s" % (xmlfile))
+    else:
+        f = file("%s" % (siffile))
+    unattend = f.read()
+    f.close()
+
+    # Subsitute common variables.
+    vars = {}
+    vars["PRODUCTKEY"] = keys[version]
+    vars["ARCH"] = arch 
+    vars["VERSIONNAME"] = image 
+    vars["PASSWORD"] = password 
+    for k in vars:
+        unattend = re.sub("%%%s%%" % (k), vars[k], unattend)
+    # Do we really need to disable DEP?
+    if nosfu:
+        unattend = re.sub("OSLoadOptionsVar=\"/noexecute=AlwaysOff\"", "", unattend)
+    if version == "w2kassp4":
+        unattend = re.sub("ProductKey", "ProductID", unattend) 
+
+    # We install some versions with no key and rely on the grace period
+    if keys[version] == "NO-KEY":
+        unattend = re.sub("\s+\<ProductKey\>[\s\S]+\<\/ProductKey\>", "", unattend)
+
+    # We've done the ISO unattend.
+    if type == "native":
+        if xmlfile: 
+            unattend = processXML(unattend)
+        else: 
+            unattend = processSIF(unattend)    
+    
+    # Job done.
+    return unattend
+
+#################################################################
+#                                                               #
+#                         Entry Point                           #
+#                                                               #
+#################################################################
+
+# Print usage.
+def usage():
+    print """Usage:  %s [options] 
+
+    -v | --version <version>        Windows version
+    -t | --type <iso|native>        Type of unattended script
+    -k | --keyfile <keyfile>        File containing (version, key) pairs
+    -d | --driverdir <dir>          Directory containing Windows drivers
+    -a | --arch <x86|amd64>         Unattend file architecture
+    -p | --password <password>      Windows password
+    -u | --unattend <file>          Input unattended file
+         --nosfu                    Don't disable DEP
+         --sfu                      Disable DEP
+""" % (sys.argv[0])
+
+# Set defaults.
+password = None
+version = None
+type = "iso"
+keyfile = ""
+driverdir = ""
+arch = "x86"
+image = ""
+siffile = None
+xmlfile = None
+nosfu = True
+
+description = {}
+description["vistaee"] = "Windows Vista ENTERPRISE"
+description["vistaee-x64"] = "Windows Vista ENTERPRISE"
+description["vistaeesp1"] = "Windows Vista ENTERPRISE"
+description["vistaeesp1-x64"] = "Windows Vista ENTERPRISE"
+description["vistaeesp2"] = "Windows Vista ENTERPRISE"
+description["vistaeesp2-x64"] = "Windows Vista ENTERPRISE"
+description["longhorn"] = "Windows Longhorn SERVERENTERPRISE"
+description["ws08-x86"] = "Windows Longhorn SERVERENTERPRISEV"
+description["ws08-x64"] = "Windows Longhorn SERVERENTERPRISEV"
+description["ws08sp2-x86"] = "Windows Longhorn SERVERENTERPRISE"
+description["ws08sp2-x64"] = "Windows Longhorn SERVERENTERPRISE"
+description["ws08r2-x64"] = "Windows Server 2008 R2 SERVERENTERPRISE"
+description["ws08r2sp1-x64"] = "Windows Server 2008 R2 SERVERENTERPRISE"
+description["ws08dc-x86"] = "Windows Longhorn SERVERDATACENTERV"
+description["ws08dc-x64"] = "Windows Longhorn SERVERDATACENTERV"
+description["ws08dcsp2-x86"] = "Windows Longhorn SERVERDATACENTER"
+description["ws08dcsp2-x64"] = "Windows Longhorn SERVERDATACENTER"
+description["ws08r2dc-x64"] = "Windows Server 2008 R2 SERVERDATACENTER"
+description["ws08r2dcsp1-x64"] = "Windows Server 2008 R2 SERVERDATACENTER"
+description["win7-x86"] = "Windows 7 ULTIMATE"
+description["win7-x64"] = "Windows 7 ULTIMATE"
+description["win7sp1-x86"] = "Windows 7 ULTIMATE"
+description["win7sp1-x64"] = "Windows 7 ULTIMATE"
+description["win8-x86"] = "Windows 8 Enterprise"
+description["win8-x64"] = "Windows 8 Enterprise"
+description["win81-x86"] = "Windows 8.1 Pro"
+description["win81-x64"] = "Windows 8.1 Pro"
+description["ws12-x64"] = "Windows Server 2012 SERVERDATACENTER"
+description["ws12core-x64"] = "Windows Server 2012 SERVERDATACENTERCORE"
+description["ws12r2-x64"] = "Windows Server 2012 R2 SERVERDATACENTER"
+description["ws12r2core-x64"] = "Windows Server 2012 R2 SERVERDATACENTERCORE"
+
+# Parse arguments.
+try:
+    optlist, optargs = getopt.getopt(sys.argv[1:],
+                                     'v:t:k:d:a:u:p:',
+                                     ['version=',
+                                      'type=',
+                                      'keyfile=',
+                                      'driverdir=',
+                                      'arch=',
+                                      'unattend=',
+                                      'nosfu',
+                                      'sfu',
+                                      'password='])
+    for argpair in optlist:
+        (flag, value) = argpair
+        if flag in ("-v", "--version"):
+            version = value
+            if version in description:
+                image = description[version]
+        elif flag in ("-t", "--type"):
+            type = value
+        elif flag in ("-k", "--keyfile"):
+            keyfile = value
+        elif flag in ("-d", "--driverdir"):
+            driverdir = value
+        elif flag in ("-a", "--arch"):
+            arch = value
+        elif flag in ("-u", "--unattend"):
+            if re.search("xml", value):
+                xmlfile = value
+            else:
+                siffile = value
+        elif flag == "--nosfu":
+            nosfu = True
+        elif flag == "--sfu":
+            nosfu = False
+        elif flag in ("-p", "--password"):
+            password = value
+
+except getopt.GetoptError:
+    print "Error: Unknown argument exception."
+    usage()
+    sys.exit(1) 
+
+# Check arch argument.
+if arch != "x86" and arch != "amd64":
+    usage()
+    sys.exit(1)
+
+# Check type argument.
+if type != "iso" and type != "native":
+    usage()
+    sys.exit(1)
+
+# Read key file.
+try:
+    keys = {}
+    f = file(keyfile, "r")
+    k = f.read()
+    f.close()
+    for v in re.findall(".* .*\n", k):
+        m = re.match("(?P<version>[^ ]+) (?P<key>[A-Z0-9-]+)", v)
+        keys[m.group("version")] = m.group("key")
+except Exception, e:
+    print e
+    usage()
+    sys.exit(1)
+
+if not password:
+    usage()
+    sys.exit(1)
+
+if not version:
+    usage()
+    sys.exit(1)
+
+# Check version argument.
+if not version in keys:
+    print "Error: Could not find key for %s." % (version)
+    sys.exit(1) 
+
+if xmlfile: 
+    if not image:
+        usage()
+        sys.exit(1)
+
+unattend = mkunattend()
+print unattend

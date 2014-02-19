@@ -1,0 +1,5 @@
+# Status: proprietary
+# NetBSD Kernel for crashing xen - CA-53626
+7adbead062b66a9e1eacc0bf34829a7f  ./netbsd-domU-crashxen
+f4d84f421c73acfd768700ec7d4a66d6  ./README
+

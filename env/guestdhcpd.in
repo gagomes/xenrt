@@ -1,0 +1,52 @@
+#!/bin/bash
+
+ENVDIR=`dirname $0`
+XENRTBASE=`dirname ${ENVDIR}`
+SCRIPTDIR=${XENRTBASE}/scripts
+
+if [ -e @confdir@/site.conf ]; then
+    . @confdir@/site.conf
+fi
+
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+
+ip2int() {
+    local IP=$1
+    local OCT1=`echo ${IP} | cut -d . -f 1`
+    local OCT2=`echo ${IP} | cut -d . -f 2`
+    local OCT3=`echo ${IP} | cut -d . -f 3`
+    local OCT4=`echo ${IP} | cut -d . -f 4`
+    OCT1=$[${OCT1} * 16777216]
+    OCT2=$[${OCT2} * 65536]
+    OCT3=$[${OCT3} * 256]
+    echo $[${OCT1} + ${OCT2} + ${OCT3} + ${OCT4}]
+}
+
+int2ip() {
+    local N=$1
+    local OCT1=$[${N} & 0xff000000]
+    local OCT2=$[${N} & 0x00ff0000]
+    local OCT3=$[${N} & 0x0000ff00]
+    local OCT4=$[${N} & 0x000000ff]
+    OCT1=$[${OCT1} >> 24]
+    OCT2=$[${OCT2} >> 16]
+    OCT3=$[${OCT3} >> 8]
+    echo ${OCT1}.${OCT2}.${OCT3}.${OCT4}
+}
+
+LOW=`ip2int ${NET_NETWORK}`
+NMINT=`ip2int ${NET_NETMASK}`
+BCASTX=$[${NMINT} ^ 0xffffffff]
+HIGH=$[${BCASTX} | ${LOW}]
+
+for (( i=$[${LOW} + 1];i<${HIGH};i++ )); do
+    IP=`int2ip ${i}`
+    MAC=`make_static_mac ${IP}`
+    cat <<EOF
+host xenrtguest-${i} {
+  fixed-address ${IP};
+  hardware ethernet ${MAC};
+}
+EOF
+done

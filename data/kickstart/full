@@ -1,0 +1,27 @@
+install
+text
+%DISTROURL%
+lang en_US.UTF-8
+langsupport --default=en_US.UTF-8 en_US.UTF-8
+keyboard us
+network --device %ETHDEVICE% --bootproto dhcp
+rootpw --iscrypted %ROOTPASS%
+firewall --enabled --ssh
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %TIMEZONE%
+bootloader --location=mbr --append="console=ttyS0,115200n8"
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --linux --all --initlabel
+part /boot --fstype "ext3" --size=%BOOTDISKSIZE% --ondisk=%MAINDISK%
+part pv.8 --size=0 --grow --ondisk=%MAINDISK% --maxsize=12000
+volgroup VolGroup00 --pesize=32768 pv.8
+logvol / --fstype ext3 --name=LogVol00 --vgname=VolGroup00 --size=1024 --grow
+logvol swap --fstype swap --name=LogVol01 --vgname=VolGroup00 --size=1000 --grow --maxsize=2000
+%MORE%
+
+%packages
+@ Everything

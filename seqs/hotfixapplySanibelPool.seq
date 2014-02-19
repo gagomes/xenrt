@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.0.2 (pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PIDIR_SANIBEL>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_SANIBEL>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_SANIBEL_Pool">
+    <testcase id="xenserver.tc.hotfix.TC16629" />
+  </testsequence>
+
+</xenrt>

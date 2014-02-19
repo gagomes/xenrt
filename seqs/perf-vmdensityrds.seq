@@ -1,0 +1,30 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <host id="0"/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity">
+        <arg>EXPERIMENT="vmrun_rds"</arg>
+        <!--<arg>VMTYPES=["ws08dcsp2-x86", "ws08r2dcsp1-x64", "ws12dc-x64"]</arg>-->
+        <arg>VMTYPES=["ws08dcsp2-x86"]</arg>
+        <arg>VMCRON=["0:25:waitvmstart"]</arg>
+        <arg>RUNS=[1]</arg>
+        <arg>XSVERSIONS=['Clearwater/69728']</arg>
+        <arg>LOADSPERVM=[5]</arg>
+        <arg>VMS=range(1,4)</arg>
+        <arg>VMLOADS=["loginvsi_rds"]</arg>
+        <arg>THRESHOLD=500.0</arg>
+        <arg>VMRAM=[16384]</arg>
+        <arg>VMVCPUS=["6"]</arg>
+        <arg>MEASURE="loginvsi_rds"</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

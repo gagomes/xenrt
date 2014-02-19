@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Regression tests for HFX513 (SCTX-1156) -->
+
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.network.TCWinGuestMTUW2k3x64" tc="TC-18495"/>
+    <testcase id="testcases.xenserver.tc.network.TCWinGuestMTUW2k3" tc="TC-18501"/>
+  </testsequence>
+</xenrt>

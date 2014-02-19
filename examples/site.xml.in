@@ -1,0 +1,4 @@
+<xenrt>
+  <!-- Example site configuration file -->
+  <WORKING_DIR_BASE>/local/scratch/working</WORKING_DIR_BASE>
+</xenrt>

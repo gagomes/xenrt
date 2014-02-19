@@ -1,0 +1,14 @@
+#!/bin/bash
+
+GUESTNAME=${1}
+GUESTMAC=`xm list --long ${GUESTNAME} | grep mac | sed -e 's/^ *(mac //' -e 's/)$//'`
+DUMP=`tcpdump -c 1 -n -e -i xenbr0 -t ether dst ${GUESTMAC} or ether src ${GUESTMAC} and ip and not ip src 0.0.0.0 2> /dev/null` 
+
+if echo ${DUMP} | grep -q "> ${GUESTMAC}"; then
+    GUESTIP=`echo ${DUMP} | sed -e 's/^.*IP.* > \([0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*$/\1/'`
+else
+    GUESTIP=`echo ${DUMP} | sed -e 's/^.*IP \([[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\).*$/\1/'`
+fi
+
+echo GUEST IP: ${GUESTIP} 
+

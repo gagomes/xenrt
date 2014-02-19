@@ -1,0 +1,2 @@
+#!/bin/bash
+@@SHAREDIR@@/control/site-controller -d -s `cat @@CONFDIR@@/siteid`

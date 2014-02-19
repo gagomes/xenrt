@@ -1,0 +1,9 @@
+# This file contains a list of modules to add to an initrd when a certain
+# module exists in /etc/modprobe.conf. This is a hack, originally put in
+# place to workaround the missing mptscsih module in systems with MPT
+# Fusion SCSI controllers (only mptbase was being loaded)
+#
+# Format is:
+# <existingmodulebasename>: <extramodule1> <extramodule2> ...
+mptbase: mptscsih
+

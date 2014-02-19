@@ -1,0 +1,369 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+    <serial group="rhel58">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19389">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel58</arg>
+        <arg>distro=rhel58</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel58">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19390">
+        <arg>guest=rhel58</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19391">
+        <arg>guest=rhel58</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19392">
+        <arg>guest=rhel58</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19393">
+        <arg>guest=rhel58</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19394">
+        <arg>guest=rhel58</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19395">
+        <arg>N/A</arg>
+        <arg>guest=rhel58</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19396">
+        <arg>N/A</arg>
+        <arg>guest=rhel58</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19397">
+        <arg>guest=rhel58</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel58</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="rhel58x86-64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19399">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel58x86-64</arg>
+        <arg>distro=rhel58</arg>
+        <arg>arch=x86-64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel58x86-64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19400">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19401">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19402">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19403">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19404">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19405">
+        <arg>N/A</arg>
+        <arg>guest=rhel58x86-64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19406">
+        <arg>N/A</arg>
+        <arg>guest=rhel58x86-64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19407">
+        <arg>guest=rhel58x86-64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel58x86-64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="rhel59">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19409">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel59</arg>
+        <arg>distro=rhel59</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel59">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19410">
+        <arg>guest=rhel59</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19411">
+        <arg>guest=rhel59</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19412">
+        <arg>guest=rhel59</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19413">
+        <arg>guest=rhel59</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19414">
+        <arg>guest=rhel59</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19415">
+        <arg>N/A</arg>
+        <arg>guest=rhel59</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19416">
+        <arg>N/A</arg>
+        <arg>guest=rhel59</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19417">
+        <arg>guest=rhel59</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel59</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="rhel59x86-64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19419">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel59x86-64</arg>
+        <arg>distro=rhel59</arg>
+        <arg>arch=x86-64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel59x86-64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19420">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19421">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19422">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19423">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19424">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19425">
+        <arg>N/A</arg>
+        <arg>guest=rhel59x86-64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19426">
+        <arg>N/A</arg>
+        <arg>guest=rhel59x86-64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19427">
+        <arg>guest=rhel59x86-64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel59x86-64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+      
+    <serial group="rhel64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19449">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel64</arg>
+        <arg>distro=rhel64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19450">
+        <arg>guest=rhel64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19451">
+        <arg>guest=rhel64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19452">
+        <arg>guest=rhel64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19453">
+        <arg>guest=rhel64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19454">
+        <arg>guest=rhel64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19455">
+        <arg>N/A</arg>
+        <arg>guest=rhel64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19456">
+        <arg>N/A</arg>
+        <arg>guest=rhel64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19457">
+        <arg>guest=rhel64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="rhel64x86-64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19459">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel64x86-64</arg>
+        <arg>distro=rhel64</arg>
+        <arg>arch=x86-64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel64x86-64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-19460">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-19461">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19462">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-19463">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19464">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19465">
+        <arg>N/A</arg>
+        <arg>guest=rhel64x86-64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19466">
+        <arg>N/A</arg>
+        <arg>guest=rhel64x86-64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19467">
+        <arg>guest=rhel64x86-64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel64x86-64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+</xenrt>

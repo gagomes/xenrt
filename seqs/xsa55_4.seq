@@ -1,0 +1,26 @@
+<xenrt>
+  <default name="PARALLEL" value="5" />
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+
+      <testcase id="xenserver.tc.vminstall.TC17236" />
+      <testcase id="xenserver.tc.vminstall.TC6879" />
+      <testcase id="xenserver.tc.vminstall.TC6881" />
+      <testcase id="xenserver.tc.vminstall.TC7774" />
+      <testcase id="xenserver.tc.vminstall.TC9564" />
+      <testcase id="xenserver.tc.vminstall.TC6883" />
+      <testcase id="xenserver.tc.vminstall.TC6885" />
+      <testcase id="xenserver.tc.vminstall.TC6887" />
+      <testcase id="xenserver.tc.vminstall.TC6889" />
+      <testcase id="xenserver.tc.vminstall.TC7761" />
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

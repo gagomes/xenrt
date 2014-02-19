@@ -1,0 +1,322 @@
+[Version]
+Signature="$Windows NT$"
+Provider="Microsoft Exchange"
+
+[CompleteComponentList]
+exsetdata.dll
+srchcomp.dll
+
+
+[PreInstallOrder]
+gfn_mid microsoft search
+gfn_mid microsoft exchange
+gfn_mid microsoft exchange forest preparation
+gfn_mid microsoft exchange domain preparation
+gfn_mid microsoft exchange server component
+gfn_mid microsoft exchange system management tools
+
+
+[InstallOrder]
+gfn_mid microsoft search
+gfn_mid microsoft exchange
+gfn_mid microsoft exchange forest preparation
+gfn_mid microsoft exchange domain preparation
+gfn_mid microsoft exchange server component
+gfn_mid microsoft exchange system management tools
+
+
+[PostInstallOrder]
+gfn_mid microsoft search
+gfn_mid microsoft exchange
+gfn_mid microsoft exchange forest preparation
+gfn_mid microsoft exchange domain preparation
+gfn_mid microsoft exchange server component
+gfn_mid microsoft exchange system management tools
+
+
+[Component Error List]
+
+[gfn_mid microsoft search]
+gfn_pid stockprop hidden=1
+gfn_pid stockprop required=0
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=1
+InstallDirectory=C:\Program Files\Common Files\System\MSSearch
+InstallActionInteger=2
+[gfn_mid microsoft exchange]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=1
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={4896cd5a-5f81-4205-9ff8-5721ec9c3945}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={c38a1037-c4f3-46e8-9a8c-f3d66d66615e}
+gfn_pid microsoft exchange use specific mpc=1
+gfn_pid microsoft exchange mpc value=73404
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallDirectory=C:\Program Files\Exchsrvr
+InstallActionInteger=61960
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange forest preparation]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=1
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=1
+gfn_pid microsoft exchange install type=0
+gfn_pid microsoft exchange organization name=XenRT
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=XenRT
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=%DOMAIN%\Administrator
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=1
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61953
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange domain preparation]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=1
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=1
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61953
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange server component]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=First Administrative Group
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=First Administrative Group
+gfn_pid microsoft exchange ag containing routing group=First Administrative Group
+gfn_pid microsoft exchange routing group=First Routing Group
+gfn_pid microsoft exchange accept licensing=1
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=1
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61953
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange server component\gfn_mid microsoft exchange connector for lotus notes]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61952
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange server component\gfn_mid microsoft exchange connector for novell groupwise]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61952
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange server component\gfn_mid microsoft exchange calendar connector]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61952
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange system management tools]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61953
+[gfn_mid microsoft exchange\gfn_mid microsoft exchange system management tools\gfn_mid microsoft exchange 5.5 administrator]
+gfn_pid stockprop suitebaseline=0
+gfn_pid stockprop scenariobaseline=0
+gfn_pid stockprop shared=0
+gfn_pid stockprop required=0
+gfn_pid stockprop hidden=0
+gfn_pid microsoft exchange install type=
+gfn_pid microsoft exchange organization name=
+{CDC92A5E-3E10-448C-A609-9E0D41943F00}=
+{599AD9B5-707B-4CC1-A4E3-24614A619F2B}=
+gfn_pid microsoft exchange 5.5 server name (in site)=
+gfn_pid microsoft exchange admin group=
+{0EF92510-DB5E-45F3-8F02-815CE7B79A06}=
+gfn_pid microsoft exchange ag containing routing group=
+gfn_pid microsoft exchange routing group=
+gfn_pid microsoft exchange accept licensing=
+gfn_pid microsoft exchange show custom actions=0
+gfn_pid microsoft exchange show licensing=0
+{907EA70F-F59B-424F-A422-C358C1F0E55F}={00000000-0000-0000-0000-000000000000}
+{E03A1AEB-BAB5-424C-ABAD-EBA67BE1E358}={00000000-0000-0000-0000-000000000000}
+gfn_pid microsoft exchange use specific mpc=0
+gfn_pid microsoft exchange mpc value=
+{27AD2AB2-DA27-4006-8789-7F5496A039CA}=0
+{862C3790-73EE-4245-9CEC-F6687CA89593}=0
+InstallActionInteger=61952
+
+[Additional Global Property Names]
+{DF8FF64A-1967-4871-9E32-CA2F819BAB81},HWNDForLoadingDialog,0,0
+
+[Global Properties]
+gfn_pid core password=
+gfn_pid core autologon=0
+gfn_pid core autologon previously enabled=0
+gfn_pid core user name=XenRT
+gfn_pid core organization=XenSource
+gfn_pid core pid 20=111-1111111
+gfn_pid core pid 30=PWTHD-YHRXY-C37Y3-HMGTD-J8433
+gfn_pid core license file=eula.txt
+gfn_pid core suite directory=C:\Program Files\Microsoft Integration
+gfn_pid core post reboot=0
+gfn_pid core suite name=Microsoft Exchange
+gfn_pid core disk requirement=31457280
+gfn_pid core progress show subs=1
+gfn_pid core progress show tasks=0
+gfn_pid core ask for pre install=0
+gfn_pid core ask for post install=0
+gfn_pid core suite mode=0
+gfn_pid core suite baseline=0
+gfn_pid core install scenario baseline=0
+gfn_pid core force disk space ok=0
+gfn_pid core ignore final disk space check=0
+gfn_pid core registry=Software\Microsoft\Microsoft Integration\F95DE19F-CF69-4b03-81B6-9EC050D20D3B\SetupData
+gfn_pid core no error log=0
+gfn_pid core no event log=0
+gfn_pid core system drive=C:
+gfn_pid core program files=C:\Program Files\
+gfn_pid encrypted mode=0
+{E0C022B6-2029-11D3-8DFC-00C04F797FB8}=10
+{1B3F6DC3-205F-11D3-A824-00C04FB1799F}=
+{706A51B7-2593-11D3-A825-00C04FB1799F}=
+{CDD00162-2E69-11D3-A829-00C04FB1799F}=F95DE19F-CF69-4b03-81B6-9EC050D20D3B
+{CDD00163-2E69-11D3-A829-00C04FB1799F}=
+{D4896336-2E69-11D3-A829-00C04FB1799F}=
+{71C3DBCB-91B9-4B99-88B6-932125B38DAB}=
+{D58BDB69-97E8-4644-9CF0-66B07E57EF7F}=
+{AA62DF98-3F2C-11D3-887B-00C04F8ECDD6}=0
+{383F0141-C682-4665-A69B-756E719C968D}=
+{1109E7E9-D862-400B-8414-F099175475D1}=0
+{F11BC22E-07EC-44E3-987D-081E0406C98E}=0
+{F24FCE05-8B5C-472F-9F53-9C9BB3DE50AF}=7
+gfn_pid core dont install suite files=0
+{9843461C-2F7A-4000-B91C-2DDD224C9E91}=C:\SFU\exchangeinstall.txt
+{DF8FF64A-1967-4871-9E32-CA2F819BAB81}=0
+[Scenario Factory]
+ActiveScenario={8BED5C7A-CDC9-11D2-92F4-00C04F79F1A8}

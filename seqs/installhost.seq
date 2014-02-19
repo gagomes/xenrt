@@ -1,0 +1,5 @@
+<xenrt>
+  <prepare>
+    <allhosts />
+  </prepare>
+</xenrt>

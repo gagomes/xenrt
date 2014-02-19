@@ -1,0 +1,1005 @@
+# xenrt: Xen regression Testing
+#
+# Common functions.
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 7 July 2005
+
+THISSCRIPT=`basename $0`
+
+# logging
+append_extra_data() {
+    cat >> ${WORKDIR}/.extra-data-${TESTPHASE}
+}
+
+log_extra_data() {
+    if [ -n "${WORKDIR}" -a -d "${WORKDIR}" ]; then
+        echo "$@" >> ${WORKDIR}/.extra-data-${TESTPHASE}
+    fi
+}
+
+get_extra_data() {
+    if [ -e ${WORKDIR}/.extra-data-${TESTPHASE} ]; then
+	cat ${WORKDIR}/.extra-data-${TESTPHASE}
+    fi
+}
+
+reset_extra_data() {
+    if [ -e ${WORKDIR}/.extra-data-${TESTPHASE} ]; then
+	mv ${WORKDIR}/.extra-data-${TESTPHASE} \
+	    ${WORKDIR}/.extra-data-${TESTPHASE}.`date +%s`
+    fi
+}
+
+# Locking
+ensure_lockdir_exists() {
+    mkdir -p ${XENRT_LOCKDIR}
+}
+
+get_lock() {
+    local MYLOCK=$1
+    ensure_lockdir_exists
+
+    # Check for stale lock - there is a potential race here
+    if [ -d ${XENRT_LOCKDIR}/${MYLOCK} ]; then
+	local NOW=`date +%s`
+	local LASTMOD=`stat -c %Z ${XENRT_LOCKDIR}/${MYLOCK}`
+	local LOCK_LOST=$[${LASTMOD} + ${LOCK_TIMEOUT}]
+	if [ ${LOCK_LOST} -lt ${NOW} ]; then
+	    echo "Removing stale lock ${XENRT_LOCKDIR}/${MYLOCK} " \
+		"NOW ${NOW} LOCK_LOST ${LOCK_LOST}"
+	    rmdir ${XENRT_LOCKDIR}/${MYLOCK}
+	fi
+
+	# Check for lock set way in the future (to detect if this or another
+        # machine has an incorrect clock or timezone)
+	local FUTURE=$[${NOW} + 3500]
+	if [ ${LASTMOD} -gt ${FUTURE} ]; then
+	    echo "Lock ${XENRT_LOCKDIR}/${MYLOCK} appears to be set in" \
+		"the future, removing"
+	    rmdir ${XENRT_LOCKDIR}/${MYLOCK}
+	fi
+    fi
+
+    
+
+    # Try to acquire
+    local cnt=0
+    while true; do
+	if mkdir ${XENRT_LOCKDIR}/${MYLOCK}; then
+	    return 0;
+	fi
+	cnt=$[$cnt + 1]
+	if [ $cnt -gt ${LOCK_RETRIES} ]; then
+	    return 1;
+	fi
+	echo "Waiting for lock ${XENRT_LOCKDIR}/${MYLOCK}"
+	sleep ${LOCK_WAIT}
+    done
+}
+
+release_lock() {
+    local MYLOCK=$1
+    rmdir ${XENRT_LOCKDIR}/${MYLOCK} || \
+	echo "Lock ${MYLOCK} did not exist on release!"
+}
+
+# These lock functions operate on the mutex dir supplied
+get_lock_local() {
+    local MYLOCK=$1
+
+    # Check for stale lock - there is a potential race here
+    if [ -d ${MYLOCK} ]; then
+	local NOW=`date +%s`
+	local LASTMOD=`stat -c %Z ${MYLOCK}`
+	local LOCK_LOST=$[${LASTMOD} + ${LOCK_TIMEOUT}]
+	if [ ${LOCK_LOST} -lt ${NOW} ]; then
+	    echo "Removing stale lock ${MYLOCK} " \
+		"NOW ${NOW} LOCK_LOST ${LOCK_LOST}"
+	    rmdir ${MYLOCK}
+	fi
+
+	# Check for lock set way in the future (to detect if this or another
+        # machine has an incorrect clock or timezone)
+	local FUTURE=$[${NOW} + 3500]
+	if [ ${LASTMOD} -gt ${FUTURE} ]; then
+	    echo "Lock ${MYLOCK} appears to be set in the future, removing"
+	    rmdir ${MYLOCK}
+	fi
+    fi
+
+    
+
+    # Try to acquire
+    local cnt=0
+    while true; do
+	if mkdir ${MYLOCK}; then
+	    return 0;
+	fi
+	cnt=$[$cnt + 1]
+	if [ $cnt -gt ${LOCK_RETRIES} ]; then
+	    return 1;
+	fi
+	echo "Waiting for lock ${MYLOCK}"
+	sleep ${LOCK_WAIT}
+    done
+}
+
+release_lock_local() {
+    local MYLOCK=$1
+    rmdir ${MYLOCK} || echo "Lock ${MYLOCK} did not exist on release!"
+}
+
+# Async
+waitfor() {
+    TESTTYPE=${1:-default}
+    TAGNAME=${2:-default}
+    SUBDIR="${TESTTYPE}-${TAGNAME}"
+   
+    local DBLOGFILE=/tmp/xenrt_waitfor.log-`whoami | sed -e's/\\\\//'`-${THISSCRIPT}${TESTPHASE}
+
+    # Allow the test's install action to specify a timeout value (XRT-149)
+    if [ -e ${WORKDIR}/.timeout-value${TESTPHASE} ]; then
+	local TIMEOUT=`cat ${WORKDIR}/.timeout-value${TESTPHASE}`
+    elif [ -e ${WORKDIR}/.timeout-value ]; then
+	local TIMEOUT=`cat ${WORKDIR}/.timeout-value`
+    fi
+
+    cd ${WORKDIR}
+    if [ -e .started${TESTPHASE} ]; then
+	local START=`cat .started${TESTPHASE}`
+    else
+	local START=`cat .started`
+    fi
+    local DEADLINE=$[$START + $TIMEOUT]
+    if [ -e .pid${TESTPHASE} ]; then
+	local PID=`cat .pid${TESTPHASE}`
+    else
+	local PID=`cat .pid`
+    fi
+    echo "Starting ${START}, deadline ${DEADLINE}, pid ${PID}" >> ${DBLOGFILE}
+
+    rm -f ${WORKDIR}/.await_monitoring${TESTPHASE}
+
+    while true; do
+	echo "Starting waitfor loop iteration" >> ${DBLOGFILE}
+	if [ '!' -d /proc/${PID} ]; then
+	    echo "Done"
+	    if [ -e ${WORKDIR}/.xenrt-success ]; then
+		echo "Exit OK" >> ${DBLOGFILE}
+		exit ${RC_OK}
+	    elif [ -e ${WORKDIR}/.xenrt-success-${SUBDIR} ]; then
+		echo "Exit OK" >> ${DBLOGFILE}
+		exit ${RC_OK}
+	    else
+		echo "Exit with error" >> ${DBLOGFILE}
+		exit ${RC_ERROR}
+	    fi
+	fi
+	echo "Getting date" >> ${DBLOGFILE}
+	local NOW=`date +%s`
+	echo "Checking deadline" >> ${DBLOGFILE}
+	if [ $NOW -gt $DEADLINE ]; then
+	    echo "Exit with timeout" >> ${DBLOGFILE}
+	    echo "Timeout"
+	    exit ${RC_TIMEOUT}
+	fi
+	echo "Running"
+	echo "Running" `date` >> ${DBLOGFILE} 
+	sleep 2
+	echo "Ending loop iteration" >> ${DBLOGFILE}
+    done
+    echo "Fell off end" >> ${DBLOGFILE}
+}
+
+# Set a timeout value (called from install action if required)
+set_test_timeout() {
+    local TIMEOUT=$1
+
+    echo ${TIMEOUT} > ${WORKDIR}/.timeout-value
+}
+
+# Generic start function for when the stuff to do is in the run
+# function of this script. We instantiate the script again and background
+start_run() {
+
+    # Take a copy of the per-run config in case it goes away
+    if [ -n "${PER_RUN_CONFIG}" ]; then
+	local TMPF=`mktemp ${WORKDIR}/.xenrtrunperrunXXXXXX`
+        cat ${PER_RUN_CONFIG} > ${TMPF}
+        PER_RUN_CONFIG=${TMPF}
+	export PER_RUN_CONFIG
+    fi
+
+    touch ${WORKDIR}/.await_monitoring${TESTPHASE}
+    mkdir -p ${WORKDIR}/logs
+    date +%s > ${WORKDIR}/.started${TESTPHASE}
+    rm -f ${WORKDIR}/.extra-data-${TESTPHASE}
+    ${SCRIPTDIR}/${THISSCRIPT} run "$@" < /dev/null \
+	> ${WORKDIR}/logs/xenrt-run${TESTPHASE}.out \
+	2> ${WORKDIR}/logs/xenrt-run${TESTPHASE}.err &
+    echo $! > ${WORKDIR}/.pid${TESTPHASE}
+}
+
+stop_run() {
+    if [ -e ${WORKDIR}/.pid${TESTPHASE} ]; then
+      kill -9 `cat ${WORKDIR}/.pid${TESTPHASE}`
+    fi
+}
+
+# translate a dotted-quad IP address to a pxelinux.cfg hex string
+pxelinux_ip() {
+    local DQ=$1
+    echo $DQ | perl -pe's/(\d+)/sprintf("%02X",$1)/eg;s/\.//g;'
+}
+
+# Retrieve files for tests
+get_test_tarball() {
+    local TESTNAME=$1
+    wget -nv ${TEST_TARBALL_BASE}${TESTNAME}${TEST_TARBALL_TAIL} -O ${TESTNAME}.tgz
+}
+
+get_dist_tarball_name() {
+    if [ -n "${JOBID}" ]; then
+	echo `printf "job%08u" ${JOBID}`-dist.tgz
+    else
+	echo ${DATE}-${XENVERSION}-${XENREVISION}-${XENMACHINE}-${XENOPTIONS}-dist.tgz
+    fi
+}
+
+get_dist_tarball() {
+    local DOMINDEX=$1
+    if [ -n "${INSTALLATION_TARBALL[${DOMINDEX}]}" ]; then
+        wget ${INSTALLATION_TARBALL[${DOMINDEX}]} -O $2
+    else
+        wget ${DIST_TARBALL_BASE}`get_dist_tarball_name` -O $2
+    fi
+}
+
+get_distro() {
+    local DOMINDEX=$1
+    local DISTRO="default"
+    if [ -n "${ROOT_DISTRO}" ]; then
+	DISTRO="${ROOT_DISTRO}"
+    fi
+    if [ -n "${ROOT_DISTRO_DOM[$DOMINDEX]}" ]; then
+	DISTRO="${ROOT_DISTRO_DOM[$DOMINDEX]}"
+    fi    
+    echo ${DISTRO}
+}
+
+get_my_distro() {
+    local DISTRO=unknown
+    if [ -e /etc/redhat-release ]; then
+        if ( cat /etc/redhat-release | grep -q "Fedora Core release 4" ); then
+	    local DISTRO=fc4
+	elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 4 (Nahant Update 1)'); then
+	    local DISTRO=rhel41
+	elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 5)'); then
+	    local DISTRO=rhel35
+	elif ( cat /etc/redhat-release | grep -q  'Red Hat Enterprise Linux AS release 3 (Taroon Update 6)'); then
+	    local DISTRO=rhel36
+        fi
+    elif [ -e /etc/debian_version ]; then
+        if (cat /etc/debian_version | grep -q "4.0" ); then
+            local DISTRO=etch
+        else
+            local DISTRO=debian
+        fi
+    elif [ -e /etc/SuSE-release ]; then
+	local DISTRO=sles9sp2
+    fi
+    echo ${DISTRO}
+}
+
+get_install_type() {
+    local DOMINDEX=$1
+    local ITYPE="none"
+    if [ -n "${OPTION_XEN_PACKAGE[$DOMINDEX]}" ]; then
+	ITYPE="${OPTION_XEN_PACKAGE[$DOMINDEX]}"    
+    elif [ ${DOMINDEX} -gt 0 -a -n "${OPTION_XEN_PACKAGE_G}" ]; then
+	ITYPE="${OPTION_XEN_PACKAGE_G}"
+    fi
+    echo ${ITYPE}
+}
+
+get_image_format() {
+    local DOMINDEX=$1
+    local FORMAT="tgz"
+    if [ -n "${GUEST_IMAGE_FORMAT[$DOMINDEX]}" ]; then
+	FORMAT="${GUEST_IMAGE_FORMAT[$DOMINDEX]}"
+    fi    
+    echo ${FORMAT}
+}
+
+get_root_stream() {
+    local DOMINDEX=$1
+    local EXT=$2
+    local IMAGE_DIR=""
+    local GUESTARCH=`get_guest_arch ${DOMINDEX}`
+    if [ -n "${USE_THIS_DOMROOT}" ]; then
+	wget ${IMAGE_BASE}${USE_THIS_DOMROOT} -O -
+    else
+        if [ -n "${ROOT_DISTRO}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO}"
+        fi
+        if [ -n "${ROOT_DISTRO_DOM[$DOMINDEX]}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO_DOM[$DOMINDEX]}"
+        fi
+        if [ -n "${IMAGE_DIR}" ]; then
+            log_extra_data "Comment: using distro ${IMAGE_DIR} for dom ${DOMINDEX}"
+            IMAGE_DIR="${IMAGE_DIR}/"
+        fi
+	wget ${IMAGE_BASE}${IMAGE_DIR}domroot-${GUESTARCH}.${EXT} -O -
+    fi
+}
+
+get_root_autoisofile() {
+    local DOMINDEX=$1
+    local EXT=iso
+    local IMAGE_DIR=""
+    local GUESTARCH=`get_guest_arch ${DOMINDEX}`
+    if [ -n "${USE_THIS_DOMROOT}" ]; then
+	echo "${IMAGE_BASE}${USE_THIS_DOMROOT}"
+    else
+        if [ -n "${ROOT_DISTRO}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO}"
+        fi
+        if [ -n "${ROOT_DISTRO_DOM[$DOMINDEX]}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO_DOM[$DOMINDEX]}"
+        fi
+        if [ -n "${IMAGE_DIR}" ]; then
+            IMAGE_DIR="${IMAGE_DIR}/"
+        fi
+	echo "${IMAGE_BASE}${IMAGE_DIR}autoinstall-${GUESTARCH}.${EXT}"
+    fi    
+}
+
+get_root_isofile() {
+    local DOMINDEX=$1
+    local EXT=iso
+    local IMAGE_DIR=""
+    local GUESTARCH=`get_guest_arch ${DOMINDEX}`
+    if [ -n "${USE_THIS_DOMROOT}" ]; then
+	echo "${IMAGE_BASE}${USE_THIS_DOMROOT}"
+    else
+        if [ -n "${ROOT_DISTRO}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO}"
+        fi
+        if [ -n "${ROOT_DISTRO_DOM[$DOMINDEX]}" ]; then
+            IMAGE_DIR="${ROOT_DISTRO_DOM[$DOMINDEX]}"
+        fi
+        if [ -n "${IMAGE_DIR}" ]; then
+            IMAGE_DIR="${IMAGE_DIR}/"
+        fi
+	echo "${IMAGE_BASE}${IMAGE_DIR}install-${GUESTARCH}.${EXT}"
+    fi    
+}
+
+get_misc_image_file() {
+    echo "${IMAGE_BASE}misc/$1"
+}
+
+get_root_tarstream() {
+    get_root_stream $1 tgz
+}
+
+# Create test tarballs
+update_test_tarball() {
+    local TESTNAME=$1
+    local BASEDIR=$2
+    get_lock ${LOCK_TARBALLS}
+    tar -zcf ${TEST_TARBALL_ROOT}/${TESTNAME}${TEST_TARBALL_TAIL} \
+	-C `dirname ${BASEDIR}` `basename ${BASEDIR}`
+    release_lock ${LOCK_TARBALLS}
+}
+
+# Data postprocessing
+stats () {
+    # $1 file
+    # $2 name
+    # $3 is the number of primary keys for median
+
+    local NUM=`cat $1 | wc -l`
+    local MED=`cat $1 | ${MEDIAN} $3`
+    local MIN=`cat $1 | sort -n | head -1`
+    local MAX=`cat $1 | sort -rn | head -1`
+    
+    echo $2 $NUM $MED $MIN $MAX
+}
+
+stats2 () {
+    # $1 name
+    # $2 is the number of primary keys for median
+    # $3 onwards, values
+    local NAME=$1
+    local MEDPK=$2
+    shift
+    shift
+
+    local NUM=`echo "$@" | sed -e's/ /\n/g' | wc -l`
+    local MED=`echo "$@" | sed -e's/ /\n/g' | ${MEDIAN} $MEDPK`
+    local MIN=`echo "$@" | sed -e's/ /\n/g' | sort -n | head -1`
+    local MAX=`echo "$@" | sed -e's/ /\n/g' | sort -rn | head -1`
+    
+    echo $NAME $NUM $MED $MIN $MAX    
+}
+
+# XXX need to improve this and deal with floating point
+median() {
+    local COUNT=`echo $@ | wc -w`
+    local MID=$[${COUNT} >> 1]
+    local VALUES=`echo $@ | sed -e's/\.[0-9]*//g' | tr ' ' '\n' | sort -k1n -t ' '`
+    if [ $[${COUNT} & 1] = 1 ]; then
+	# odd
+	echo ${VALUES} | cut -d ' ' -f $[${MID} + 1]
+    else
+	# even
+	local X=`echo ${VALUES} | cut -d ' ' -f ${MID}`
+	local Y=`echo ${VALUES} | cut -d ' ' -f $[${MID} + 1]`
+	local XY=$[${X} + ${Y}]
+	echo $[${XY} / 2]
+    fi
+}
+
+# networking
+ns_lookup() {
+    if [ "${OPTION_NO_DNS}" = "yes" ]; then
+        local IP=`${SCRIPTDIR}/progs/dnslookup $1`
+    elif which dig > /dev/null 2>&1 ; then
+        local IP=`dig +search +short $1 | tail -n1`
+    else
+        local IP=`${SCRIPTDIR}/progs/dnslookup $1`
+    fi
+    if [ -z "${IP}" ]; then
+	return 1;
+    fi
+    echo ${IP}
+}
+
+get_native_hostname() {
+    echo $1
+}
+
+get_dom0_hostname() {
+    echo $1${DOM0_HOSTNAME_SUFFIX}
+}
+get_dom0_ipaddr() {
+    ns_lookup `get_dom0_hostname $1`.${DNSDOMAIN}
+}
+get_dom0_netmask() {
+    echo ${NET_NETMASK}
+}
+get_dom0_gateway() {
+    echo ${NET_GATEWAY}
+}
+
+# Get address for the Nth guest domain of HOST (N from 1)
+get_guest_hostname() {
+    local HOST=$1
+    local N=$2
+    
+    if [ -n "${GUEST_HOSTNAME[$2]}" ]; then
+        echo ${GUEST_HOSTNAME[$2]}
+    else
+        echo ${HOST}-${N}${GUEST_HOSTNAME_SUFFIX}
+    fi
+}
+get_guest_ipaddr() {
+    if [ -n "${GUEST_IP_ADDR[$2]}" ]; then
+	echo ${GUEST_IP_ADDR[$2]}
+    elif [ -n "${GUEST_HOSTNAME[$2]}" ]; then
+        ns_lookup ${GUEST_HOSTNAME[$2]}.${DNSDOMAIN}
+    else
+        ns_lookup `get_guest_hostname $1 $2`.${DNSDOMAIN}
+    fi
+}
+get_guest_netmask() {
+    echo ${NET_NETMASK}
+}
+get_guest_gateway() {
+    echo ${NET_GATEWAY}
+}
+domain_to_hostname() {
+    local N=`echo $2 | sed -e's/Domain-//'`
+    get_guest_hostname $1 $N
+}
+
+# Reboot a machine
+if which perl > /dev/null 2>&1 ; then
+    OPENSSHVER=`ssh -V  2>&1 | perl -pe's/^OpenSSH_([0-9.]+).*$/($1<3.9)?"old":"new"/e'`
+else
+    # Hack
+    OPENSSHVER=new
+fi
+if [ "${OPENSSHVER}" = "new" ]; then
+    SSHCONNTIMEOUT="-oConnectTimeout=30"
+    SSHKEEPALIVE="-oServerAliveInterval=60"
+else
+    SSHCONNTIMEOUT=""
+    SSHKEEPALIVE=""
+fi
+
+# Wrap SSH/SCP with a copy and chown of the private key. This will allow
+# users other than the user owning the key to use it.
+ssh_wrapper() {
+    local COMMAND=$1
+    shift
+    if [ "${COMMAND}" = "nannyssh" ]; then
+        COMMAND="${SCRIPTDIR}/nanny ssh"
+    fi
+    local TMPKEY=`mktemp /tmp/xenrtkeyXXXXXX`
+    cp ${SCRIPTDIR}/${KEYBASE} ${TMPKEY}
+    chmod 600 ${TMPKEY}
+    if ${COMMAND} -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null \
+        ${SSHKEEPALIVE} -i ${TMPKEY} "$@"; then
+        rm -f ${TMPKEY}
+        return 0;
+    else
+        RC=$?
+    fi
+    rm -f ${TMPKEY}
+    return $RC;
+}
+
+# An alternative wrapper using a password, CARBON_DOM0_PASSWORD, to login. To
+# be used if a trusted key isn't available.
+ssh_password_wrapper() {
+    local COMMAND=$1
+    shift
+
+    if [ "${COMMAND}" = "nannyssh" ]; then
+        COMMAND="${SCRIPTDIR}/nanny ssh"
+    fi
+
+    local EXPECT_SCRIPT=`mktemp /tmp/sshexpectXXXX`
+
+    echo "#!/usr/bin/expect --" >> ${EXPECT_SCRIPT}
+    echo "" >> ${EXPECT_SCRIPT}
+    echo "spawn ${COMMAND} -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -oPubkeyAuthentication=no $@"  >> ${EXPECT_SCRIPT}
+    echo "expect \"*assword:*\"" >> ${EXPECT_SCRIPT}
+    echo "send \"${CARBON_DOM0_PASSWORD}\\r\"" >> ${EXPECT_SCRIPT}
+    echo "interact" >> ${EXPECT_SCRIPT}
+
+    chmod +x ${EXPECT_SCRIPT}
+    if ! expect ${EXPECT_SCRIPT}; then
+        return 1
+    fi
+
+    # Clean up.
+    rm ${EXPECT_SCRIPT}
+
+}
+
+reboot_machine() {
+    ${SSHTO} ${SSHCONNTIMEOUT} root@${1} "/sbin/reboot"
+}
+
+# wait for a machine to boot
+wait_for_boot() {
+    local HOST=$1
+    if [ -z "${REBOOT_TIMEOUT}" ]; then
+	local REBOOT_TIMEOUT=600
+    fi
+    local REBOOT_START=`date +%s`
+    local DEADLINE=$[${REBOOT_START} + ${REBOOT_TIMEOUT}]
+    while true; do	    
+	if $DB ${SSHTO} ${SSHCONNTIMEOUT} root@${HOST} /bin/true; then
+	    break;
+	fi
+	local NOW=`date +%s`
+	if [ ${NOW} -gt ${DEADLINE} ]; then
+	    log_extra_data "Reason: boot timed out"
+	    echo "Timed out waiting for reboot"
+	    return ${RC_TIMEOUT}
+	fi
+	echo "waiting for reboot to complete..."
+	sleep 30; 
+    done
+}
+
+hard_reboot() {
+    local HOST=$1
+    ${HARD_REBOOT} ${HOST}
+}
+
+# Run a process for the specified number of seconds and then kill
+# If it was already dead then return an error
+run_process_for() {
+    local SECONDS=$1
+    shift
+    local PROG=$1
+    shift
+
+    ${PROG} "$@" &
+    local PID=$!
+
+    sleep ${SECONDS}
+    kill ${PID}
+}
+
+# Normalise to bytes: $1 is numeric value, $2 is one of the matched strings
+normalise_bytes() {
+    local VAL=$1
+    local UNIT=`echo $2 | tr [A-Z] [a-z]`
+
+    local MULT=1
+    if [ "${UNIT}" = "bytes" ]; then
+	MULT=1
+    elif [ "${UNIT}" = "b" ]; then
+	MULT=1
+    elif [ "${UNIT}" = "kilobytes" ]; then
+	MULT=1024
+    elif [ "${UNIT}" = "kbytes" ]; then
+	MULT=1024
+    elif [ "${UNIT}" = "kb" ]; then
+	MULT=1024
+    elif [ "${UNIT}" = "k" ]; then
+	MULT=1024
+    elif [ "${UNIT}" = "megabytes" ]; then
+	MULT=1048576
+    elif [ "${UNIT}" = "mbytes" ]; then
+	MULT=1048576
+    elif [ "${UNIT}" = "mb" ]; then
+	MULT=1048576
+    elif [ "${UNIT}" = "m" ]; then
+	MULT=1048576
+    elif [ "${UNIT}" = "gigabytes" ]; then
+	MULT=1073741824
+    elif [ "${UNIT}" = "gbytes" ]; then
+	MULT=1073741824
+    elif [ "${UNIT}" = "gb" ]; then
+	MULT=1073741824
+    elif [ "${UNIT}" = "g" ]; then
+	MULT=1073741824
+    elif [ -z "${UNIT}" ]; then
+	MULT=1
+    else
+	echo "Unknown multiplier: ${UNIT}"
+	false
+    fi
+    
+    awk "BEGIN {print $VAL*$MULT;}"
+}
+
+log_serial_console_tcp() {
+    local MACHINE=$1
+    local LOGFILE=$2
+    # TODO - edit the following to find the "host port" of the serial
+    # console server for this test machine
+    local ME=`${XENUSE} --kport | grep ${MACHINE}`
+    local HOST=`echo ${ME} | cut -d ' ' -f 3`
+    local PORT=`echo ${ME} | cut -d ' ' -f 4`
+    local PORT3=$[$PORT + 3]
+    ( echo r > /dev/tcp/${HOST}/${PORT3} 2> /dev/null | true ) \
+        > /dev/null 2>&1
+    sleep 2
+    cat < /dev/tcp/${HOST}/${PORT} >> $LOGFILE &
+    echo $!
+}
+
+log_serial_console_conserver() {
+    local MACHINE=$1
+    local LOGFILE=$2
+    sleep 100000 | ${CONSERVER} -s ${MACHINE} > ${LOGFILE} &
+    echo $!
+}
+
+log_serial_console() {
+    if [ "${SERIAL_CONSOLE_CONSERVER}" = "yes" ]; then
+        log_serial_console_conserver $1 $2
+    elif [ -n "${XENUSE}" -a "${XENUSE}" != "echo" ]; then
+        log_serial_console_tcp $1 $2
+    fi
+}
+
+fetch_extra_log_files() {
+    if [ -n "${EXTRA_LOG_FILES}" ]; then
+	for f in ${EXTRA_LOG_FILES}; do
+            if [ -d $f ]; then
+                cp -r $f ${WORKDIR}/logs/
+	    elif [ -e $f ]; then
+		cp $f ${WORKDIR}/logs/
+	    fi
+	done
+    fi
+}
+
+# wait until the time specifed (as seconds since the epoch)
+wait_until() {
+    local TARGET=$1
+    while true; do
+	local NOW=`date +%s`
+	if [ ! ${TARGET} -gt ${NOW} ]; then
+	    return 0
+	fi
+	sleep 0.1
+    done
+}
+
+# Find and core files in / and copy them, and the corresponding executables
+# to the log directory
+capture_core_files() {
+    local LOGDIR=$1
+    if ls /core* >&/dev/null ; then
+	cp /core* ${LOGDIR}/ >/dev/null 2>&1 || true
+	chmod a+r ${LOGDIR}/core* 
+	mkdir -p ${LOGDIR}/binaries
+	(
+	    for file in /core*; do
+		file "$file" | sed -e "s/.* from '\(.*\)'/\1/g"
+	    done
+	) | sort -u | xargs which | \
+	    xargs cp --target-directory=${LOGDIR}/binaries || true	    
+    fi
+}
+
+capture_core_files_remote() {
+    local HOSTNAME=$1
+    local LOGDIR=$2
+    if ${SSH} root@${HOSTNAME} "ls /core* >&/dev/null" ; then
+	${SCP} "root@${HOSTNAME}:/core*" ${LOGDIR}/ >/dev/null 2>&1 || true
+	chmod a+r ${LOGDIR}/core* 
+	mkdir -p ${LOGDIR}/binaries
+	local TMPDIR=`${SSH} root@${HOSTNAME} mktemp -d /tmp/coreXXXXXX`
+	(
+	    for file in ${LOGDIR}/core*; do
+		file "$file" | sed -e "s/.* from '\(.*\)'/\1/g"
+	    done
+	) | tee /tmp/foo | sort -u | ${SSH} root@${HOSTNAME} \
+	    "PATH=${PATH}:/opt/xensource/xenagentd/bin xargs -n1 which | \
+            xargs cp --target-directory=${TMPDIR}" || true
+	${SCP} "root@${HOSTNAME}:${TMPDIR}/*" ${LOGDIR}/binaries || true
+    fi
+}
+
+# Cleanup a working directory. If there is nothing left in the parent then
+# remove that as well
+cleanup_working_directory() {
+    rm -rf ${WORKDIR}
+    cd `dirname ${WORKDIR}`
+    X=`ls -A | wc -l`
+    if [ "${X}" = "0" ]; then
+	cd ..
+	rm -rf `dirname ${WORKDIR}`
+    fi
+}
+
+# build RPM URL
+rpm_urlpath_form() {
+    local FMT="$1"
+    local DISTRO="$2"
+    local VERSION="$3"
+    local BUILD="$4"
+    echo "${FMT}" | sed -e"s/%DISTRO%/${DISTRO}/" -e"s/%BUILD%/${BUILD}/" -e"s/%VERSION%/${VERSION}/"
+}
+
+rpm_url() {
+    rpm_urlpath_form "${RPM_URL_FMT[${1}]}" "$2" "$3" "$4"
+}
+
+rpm_path() {
+    rpm_urlpath_form "${RPM_PATH_FMT[${1}]}" "$2" "$3" "$4"
+}
+
+# Make a static MAC for the specified IP address
+# dotted-quad -> colon-separated 6-tuple
+make_static_mac() {
+    local IP=$1
+    local OCT1=`echo ${IP} | cut -d . -f 1`
+    local OCT2=`echo ${IP} | cut -d . -f 2`
+    local OCT3=`echo ${IP} | cut -d . -f 3`
+    local OCT4=`echo ${IP} | cut -d . -f 4`
+    local N=$[${OCT1} ^ ${OCT2}]
+    local N=$[${N} | 128]
+    local HEX4=`printf "%02x" ${N}`
+    local HEX5=`printf "%02x" ${OCT3}`
+    local HEX6=`printf "%02x" ${OCT4}`
+
+    echo "${XENSOURCE_MAC_PREFIX}:${HEX4}:${HEX5}:${HEX6}"
+}
+
+# Report to the console
+report() {
+    logger -p EMERG -t ${THISSCRIPT} "$@"
+}
+
+create_dhcp_conf() {
+    local DNSSERVER=`awk '{if($1 == "nameserver"){print $2;}}' < /etc/resolv.conf | head -n1`
+    cat <<EOF
+use-host-decl-names on;
+
+allow booting;
+allow bootp;
+
+boot-unknown-clients off;
+ddns-update-style none;
+
+option domain-name "${DNSDOMAIN}";
+option domain-name-servers ${DNSSERVER};
+
+subnet ${NET_NETWORK} netmask ${NET_NETMASK} {
+  option subnet-mask            ${NET_NETMASK};
+  option routers                ${NET_GATEWAY};
+  authoritative;
+
+EOF
+
+    for (( i=1;i<=${MAX_GUESTS};i++ )); do
+	local IPADDR=`get_guest_ipaddr ${XENMACHINE} ${i}`
+	local HOSTNAME=`get_guest_hostname ${XENMACHINE} ${i}`
+	local MACADDR=`make_static_mac ${IPADDR}`
+	cat <<EOF
+  host ${HOSTNAME} {
+    hardware ethernet ${MACADDR};
+    fixed-address ${HOSTNAME};
+  }
+EOF
+    done
+cat <<EOF
+}
+EOF
+}
+
+get_guest_arch() {
+    local DOMINDEX=$1
+    if [ -n "${GUEST_ARCH[${DOMINDEX}]}" ]; then
+	echo ${GUEST_ARCH[${DOMINDEX}]}
+    else
+	echo ${XENOPTIONS}
+    fi
+}
+
+# Try to make a backup of the existing PXE config file
+pxe_backup() {
+    local PXE_Old_File_Name_Suffix=`date +%s`
+    local PXE_File_Name=$1
+    if ${PXE_COMMAND_PREFIX} [ -e ${PXE_Conf_Directory}/${PXE_File_Name} ]; then
+        if ${PXE_COMMAND_PREFIX} mkdir -p ${PXE_Conf_Directory}/backups; then
+            if ! $DB ${PXE_COMMAND_PREFIX} \
+                mv ${PXE_Conf_Directory}/${PXE_File_Name} \
+                ${PXE_Conf_Directory}/backups/${PXE_File_Name}.${PXE_Old_File_Name_Suffix}; then
+                echo "Unable to create PXE config backup, continuing anyway"
+            fi
+        else
+            echo "Unable to create PXE config backup directory," \
+                "continuing anyway"
+        fi
+        # Also make a copy in our log directory
+        if ! ${PXE_COMMAND_PREFIX} cat ${PXE_Conf_Directory}/${PXE_File_Name} \
+            > ${WORKDIR}/logs/pxelinux.cfg-backup; then
+            echo "Unable to create PXE config backup, continuing anyway"
+        fi
+    fi
+}
+
+# Install config file on PXE TFTP server
+pxe_install() {
+    local New_PXE_Config=$1
+    local PXE_File_Name=$2
+    if ! ${PXE_COMMAND_PREFIX} rm -f ${PXE_Conf_Directory}/${PXE_File_Name}; then
+        log_extra_data "Reason: Unable to remove old PXE config file"
+        return 1
+    fi
+    if ! pxe_copy_to_confdir ${New_PXE_Config} ${PXE_File_Name}; then
+        log_extra_data "Reason: Unable to create new PXE config file"
+        return 1
+    fi
+}
+
+# Test case handling
+TCFAILCOUNT=0
+TCPASSCOUNT=0
+TCLAST=0
+
+# Run a test case
+testcase() {
+    local TC=$1
+    shift
+    if [ -z "$2" ]; then
+        local TAG=${TC}
+    else
+        local TAG=$1
+        shift
+    fi
+    if ! REASON=`${TC} "$@"`; then
+        TCFAILCOUNT=$[${TCFAILCOUNT} + 1]
+	TCLAST=1
+        log_extra_data "TestCase: ${TAG} FAIL ${REASON}"
+    else
+        TCPASSCOUNT=$[${TCPASSCOUNT} + 1]
+	TCLAST=0
+        log_extra_data "TestCase: ${TAG} PASS"
+    fi
+}
+
+# Run a test case only if all previous test cases in this test have paased
+testcasecond() {
+    if [ ${TCFAILCOUNT} = 0 ]; then
+	testcase "$@"
+    fi
+}
+
+# Run a test case only if the most recent test case passed
+testcasecondlast() {
+    if [ ${TCLAST} = 0 ]; then
+	testcase "$@"
+    fi
+}
+
+# Return status if most recently executed test case
+tclast() {
+    return ${TCLAST}
+}
+
+# This checks the health of dom0. It can be called at the end of every dom0
+# test that uses xm commands. (xm, startdom,...)
+dom0_health_check() {
+    local USED_DISK=`df -m / | awk '{if ($4 != "Available") {print $4}}'`
+    if [ "${USED_DISK}" = "100%" ]; then
+	log_extra_data "Warning: Root filesystem is full"
+    fi
+
+    if [ -e /var/run/xenstore.pid ];then
+	local XSPID=`cat /var/run/xenstore.pid`
+	if [ -d /proc/${XSPID} ]; then
+	    XSCPU=`ps -p ${XSPID} -o pcpu --no-headers | sed -e's/\..*//'`
+	    if [ -n "${XSCPU}" ]; then
+		if [ ${XSCPU} -gt 40 ]; then
+		    log_extra_data "Warning: xenstore using ${XSCPU}% CPU"
+		fi
+	    fi
+	else
+	    log_extra_data "Warning: xenstore PID ${XSPID} not running"
+	fi
+    fi
+}
+
+xsleep() {
+    if ! sleep $1; then
+	log_extra_data "Warning: sleep returned non-zero"
+    fi
+}
+alias sleep=xsleep
+
+get_guest_uuid() {
+    DOMINDEX=${1}
+    if [ -n "${CARBON_REAL_UUID[${DOMINDEX}]}" ]; then
+        # If we created the guest in such as way that it got a random
+        # UUID then we would have recorded that as a shared job
+        # variable.
+        XEUID=${CARBON_REAL_UUID[${DOMINDEX}]}
+    else
+        IPADDR=`get_guest_ipaddr ${XENMACHINE} ${DOMINDEX}`
+        MACADDR=`make_static_mac ${IPADDR}`
+        XEUID=f364a46f-950a-4fb7-87e9-`echo ${MACADDR} | sed -e's/://g'`
+    fi
+    echo ${XEUID}
+}
+
+check_command_exists() {
+    # Checks that the command given exists and is on the path, logs
+    # a reason and exists with an error if it is not
+    local CMD=$1
+    if ! which ${CMD} > /dev/null 2>&1; then
+	log_extra_data "Reason: Command '${CMD}' is not on the path"
+	return ${RC_ERROR}
+    fi
+}
+
+check_file_exists() {
+    # Checks that the file given exists, logs
+    # a reason and exists with an error if it is not
+    local FILE=$1
+    if [ ! -e ${FILE} ]; then
+	log_extra_data "Reason: Required file '${FILE}' does not exist"
+	return ${RC_ERROR}
+    fi
+}
+
+case "$1" in
+   log_serial_console)
+       shift
+       log_serial_console $1 $2
+       ;;
+esac

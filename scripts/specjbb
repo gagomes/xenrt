@@ -1,0 +1,125 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the SPEC JBB2002 suite
+#
+# (C) XenSource UK Ltd, 2005-2006
+# James Bulpin, July 2005-March 2006
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+if [ -z "${TIMEOUT}" ]; then
+    TIMEOUT=7200
+fi
+
+MINHEAP=256M
+MAXHEAP=256M
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_jbb() {
+    set -x
+    if iswindows; then
+	windows_install_java
+	echo ${JAVAEXE} > ${WORKDIR}/.javaexe
+    fi
+}
+BM_INSTALL=install_jbb
+
+run_jbb() {
+
+    set -x
+    set -e
+
+    if ! iswindows; then
+	J2RE_BASE=${WORKDIR}/${THISSCRIPT}/j2re
+	J2RE_BIN=${J2RE_BASE}/bin
+    
+        # Need java on the path
+	PATH=${J2RE_BIN}:$PATH
+	export PATH
+	
+	CPPREFIX=""
+    else
+        if [ -e ${WORKDIR}/.javaexe ]; then
+            JAVAEXE=`cat ${WORKDIR}/.javaexe`
+            PATH="`dirname \"${JAVAEXE}\"`":$PATH
+            export PATH
+        fi
+    fi
+    
+    JBB_BASE=${WORKDIR}/${THISSCRIPT}/installed
+
+    JOBFILE=SPECjbb.props
+    
+    CLASSPATH=${CPPREFIX}${JBB_BASE}/jbb.jar:${CPPREFIX}${JBB_BASE}/jbb_no_precompile.jar:${CPPREFIX}${JBB_BASE}/check.jar:${CPPREFIX}${JBB_BASE}/reporter.jar:$CLASSPATH
+    export CLASSPATH
+
+    mkdir -p ${WORKDIR}/${SUBDIR}
+    cd ${WORKDIR}/${SUBDIR}
+
+    cp ${JBB_BASE}/*.props ./
+
+    log_extra_data "Comment: JRE `java -version 2>&1 | head -n1`"
+
+    if iswindows; then
+	rm -f run.bat
+	echo "set CLASSPATH=`echo ${CLASSPATH} | sed -e's/:/;/g' -e's/#/:/g' -e's#/#\\\\#g'`" > run.bat
+	echo "java -ms${MINHEAP} -mx${MAXHEAP} spec.jbb.JBBmain -propfile ${JOBFILE}" >> run.bat
+	cmd /c run.bat
+    else
+	java -ms${MINHEAP} -mx${MAXHEAP} spec.jbb.JBBmain -propfile ${JOBFILE}
+    fi
+
+    cp results/SPECjbb.001.raw ${WORKDIR}/logs/SPECjbb.001.${SUBDIR}.raw
+    cp results/SPECjbb.001.results \
+	${WORKDIR}/logs/SPECjbb.001.${SUBDIR}.results
+
+    SCORE=`awk '{if ($1 == "Throughput") {print $2;}}' ${WORKDIR}/${SUBDIR}/results/SPECjbb.001.asc`
+
+    if [ "${SCORE}" = "Invalid," ]; then
+	log_extra_data "Reason: Invalid SPEC run"
+	SCORE=`perl -ne'if(/but estimate is (\d+)/){print $1;exit 0;}' < results/SPECjbb.001.asc`
+	if [ -n "${SCORE}" ]; then
+	    log_extra_data "Comment: Estimated score ${SCORE}"
+	fi
+	partial_pass
+    else
+	log_extra_data "Value: Score ${SCORE}"
+    fi
+}
+BM_RUN=run_jbb
+
+process_jbb() {
+    # Look for JRE error
+    if [ -e ${WORKDIR}/logs/xenrt-run.out ]; then
+        if grep -q "hs_err_" ${WORKDIR}/logs/xenrt-run.out; then
+            EDESC=`grep "Internal Error" ${WORKDIR}/logs/xenrt-run.out | sed -e's/^#//'`
+	    if [ -z "${EDESC}" ]; then
+		if grep -q "SIGSEGV" ${WORKDIR}/logs/xenrt-run.out; then
+		    EDESC="SIGSEGV"
+		else
+		    EDESC="error"
+		fi
+	    fi
+            EFILE=`perl -ne'if(/(hs_err_.*\.log)/){print $1;}' < ${WORKDIR}/logs/xenrt-run.out`
+            echo "Reason: JVM ${EDESC} see ${EFILE}"
+            echo "Result: error"
+        fi
+    fi
+    cp ${WORKDIR}/${SUBDIR}/hs_err*.log ${WORKDIR}/logs/ 2> /dev/null || true
+    if iswindows; then
+	    win_systeminfo
+    fi
+}
+BM_PROCESS=process_jbb
+BM_PROCESS_ON_FAIL=yes
+
+. ${SCRIPTDIR}/generic

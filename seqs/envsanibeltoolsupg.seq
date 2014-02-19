@@ -1,0 +1,24 @@
+<xenrt>
+  <!-- Upgraded Sanibel Host with VMs on old tools -->
+  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
+  <variables>
+    <OPTION_AD_ENABLE>yes</OPTION_AD_ENABLE>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="0">
+      <vm name="ws08sp2-x86">
+        <distro>ws08sp2-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+  <testsequence>
+    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

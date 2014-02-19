@@ -1,0 +1,24 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="shared" default="true"/>
+      <allhosts license="FG Free"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolExpiry">
+      <testcase id="xenserver.tc.license.TC8836"/>
+      <testcase id="xenserver.tc.license.TC10056"/>
+      <testcase id="xenserver.tc.license.TC10057"/>
+      <testcase id="xenserver.tc.license.TC10058"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

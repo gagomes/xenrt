@@ -1,0 +1,50 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+    <host id="3" noisos="yes" license="no" />
+    <host id="4" noisos="yes" license="no" />
+    <host id="5" noisos="yes" license="no" />
+  </prepare>
+  <testsequence>
+    <serial group="MultipleHosts-P2">
+       <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>        
+       </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TCMultipleHostSetup" >
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>        
+       </testcase> 
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-677" name="TC-677">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_677</arg>
+        <arg>TC677</arg>
+        <arg>677</arg>
+        <arg>postRun=true</arg>
+       </testcase>
+       <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1080" name="TC-1080">
+        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        <arg>TC_1080</arg>
+        <arg>TC1080</arg>
+        <arg>1080</arg>
+        <arg>postRun=true</arg>
+       </testcase>
+   </serial>
+</testsequence>
+</xenrt>
+

@@ -1,0 +1,31 @@
+<xenrt>
+
+    <!-- Note: it's only safe to use this provided that all other hosts are guaranteed to be doing *nothing*. -->
+
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <host id="0">
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </host>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCTimeVMClones" host="RESOURCE_HOST_0">
+        <arg>numclones=800</arg>
+      </testcase>
+    </testsequence>
+
+</xenrt>

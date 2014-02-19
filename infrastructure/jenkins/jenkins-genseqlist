@@ -1,0 +1,41 @@
+#!/usr/bin/python -u
+
+import glob, libxml2, os,jira,re,urllib
+
+files = glob.glob("/usr/share/xenrt/seqs/tampa*.seq")
+
+j = jira.Jira("http://jira.uk.xensource.com","xenrt","xensource")
+
+seqs = []
+cmps = []
+
+for f in files:
+    if not os.path.isfile(f):
+        continue
+    if os.path.islink(f):
+        continue
+    m = re.match(".*tampa[-_]*(.*)\.seq", f)
+    if m:
+        seqs.append("%s (%s)"% (m.group(1), f.split("/")[-1]))
+
+jcmps = j.getProject("TC").getComponents()
+for c in jcmps:
+    cmps.append(c.name)
+
+u = urllib.urlopen("http://jira.uk.xensource.com/sr/jira.issueviews:searchrequest-printable/temp/SearchRequest.html?&type=14&pid=10140&sorter/field=issuekey&sorter/order=ASC&tempMax=5000&os_username=xenrt&os_password=xensource")
+hierarchies = []
+for l in u.readlines():
+    m = re.search("<a href=\"http://jira.uk.xensource.com/browse/(TC-\d+)\" style=\"text-decoration: none; \">(.*?)</a>", l)
+    if m and m.group(2) != "Reserved for Testlink Hierarchy":
+        hierarchies.append("%s - %s" % (m.group(2), m.group(1).replace(",","")))
+u.close()
+
+out = "seq: %s\n" % ",".join(sorted(set(seqs), key=lambda x: str.lower(x)))
+
+out += "cmp: %s\n" % ",".join(sorted(set(cmps), key=lambda x: str.lower(x)))
+
+out += "hierarchy: %s\n" % ",".join(sorted(hierarchies, key=lambda x: str.lower(x)))
+
+f = open("/etc/xenrt/seqlist", "w")
+f.write(out)
+f.close()

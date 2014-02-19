@@ -1,0 +1,22 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_disktp_dom0.TCDiskThroughput" host="RESOURCE_HOST_0">
+        <arg>XSVERSIONS=['Boston-50762']</arg>
+        <arg>PRODUCT_VERSION=Boston</arg>
+        <arg>INPUTDIR=/usr/groups/xen/carbon/boston/50762</arg>
+        <arg>MACHINES_REQUIRED=1</arg>
+        <arg>XENRT_PQ_NAME=xenrt.perf-pq.hg</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

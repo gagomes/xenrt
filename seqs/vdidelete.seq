@@ -1,0 +1,18 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vdidelete.TCVDIDelete" host="RESOURCE_HOST_0">
+        <arg>numvdis=500</arg>
+        <arg>nfsserverhost=RESOURCE_HOST_1</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

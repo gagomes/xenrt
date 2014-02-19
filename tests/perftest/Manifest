@@ -1,0 +1,11 @@
+# Description: PassMark PerformanceTest
+# Status: proprietary
+# Obtaining:
+# http://www.passmark.com/products/pt.htm
+# Purchase PerformanceTest, install onto a Windows installation, and copy 
+# installed files into the test directory
+f94cf18967353209ee1088c0bc9f021c  ./readme.txt
+0f2597b5a12edb21b470a4ced512caa2  ./pt1.exe
+119ca79ff3094e2d291d2d2adeb3a2e4  ./pt.exe
+e56fe73eeaf03ea5c75c403514010215  ./script.txt
+*                                 ./key.dat

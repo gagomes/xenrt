@@ -1,0 +1,12 @@
+This directory contains kickstart template files that the carbonguest
+test can use to generate a kickstart config for vendor guest installs.
+The test will also add a "%post" section for its own use so don't
+use one in these files as well.
+
+A number of variables can be filled in by the test. These are:
+
+%DISTROURL% - The URL for the distribution
+%ETHDEVICE% - Ethernet device to use (usually eth0)
+%ROOTPASS%  - root password
+%TIMEZONE%  - TImezone 
+

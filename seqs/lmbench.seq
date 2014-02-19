@@ -1,0 +1,18 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_lmbench.TCLMBench" host="RESOURCE_HOST_0">
+        <arg>mb=256</arg>
+        <arg>runs=4</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

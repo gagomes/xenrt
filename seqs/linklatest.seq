@@ -1,0 +1,11 @@
+<xenrt>
+
+  <default name="TAG" value="test"/>
+
+  <testsequence group="${TAG}">
+    <testcase id="TCLinkLatest">
+      <arg>${TAG}</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

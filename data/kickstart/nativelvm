@@ -1,0 +1,34 @@
+install
+text
+%DISTROURL%
+lang en_UK.UTF-8
+langsupport --default=en_UK.UTF-8 en_UK.UTF-8
+keyboard uk
+mouse --device=genericps/2
+network --device %ETHDEVICE% --bootproto dhcp
+rootpw --iscrypted %ROOTPASS% 
+firewall --disabled
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %TIMEZONE%
+bootloader --location=mbr --append="console=ttyS0,115200n8"
+clearpart --all --drives=%MAINDISK%
+part /boot --fstype "ext3" --size=%BOOTDISKSIZE% --ondisk=%MAINDISK%
+part pv.8 --size=0 --grow --ondisk=%MAINDISK%
+volgroup VolGroup00 --pesize=32768 pv.8
+logvol / --fstype ext3 --name=LogVol00 --vgname=VolGroup00 --size=10240
+logvol swap --fstype swap --name=LogVol01 --vgname=VolGroup00 --size=1000
+%MORE%
+
+%packages
+@ admin-tools
+@ text-internet
+@ dialup
+@ server-cfg
+@ development-tools
+@ development-libs
+lvm2
+lilo
+e2fsprogs
+%EXTRA%
+

@@ -1,0 +1,16 @@
+[DCInstall]
+UserName=Administrator
+Password=%PASSWORD%
+UserDomain=UKXENSOURCE
+ReplicaOrNewDomain=Domain
+ChildOrTree=Tree
+CreateOrJoin=Create
+AutoConfigDNS=yes
+NewDomain=Forest
+DomainNetBiosName=%DOMAIN%
+NewDomainDNSName=%DOMAIN%.testdomain
+SetForestVersion=Yes
+SafeModeAdminPassword=%PASSWORD%
+DNSOnNetwork=no
+RebootOnSuccess=Yes
+

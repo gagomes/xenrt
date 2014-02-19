@@ -1,0 +1,38 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Workload: memtest
+#
+# (C) XenSource UK Ltd, 2005-2007
+
+THISSCRIPT=`basename $0`
+
+run() {
+    /tmp/memtest 400
+}
+
+stop() {
+    killall memtest || true
+    sleep 5
+    killall memtest || true
+}
+
+case "$1" in
+    start)
+	shift
+	rm -f /tmp/memtest /tmp/memtest.c
+        cp `dirname $0`/memtest.c /tmp/
+	cd /tmp
+	gcc -o memtest memtest.c
+        $0 run "$@" > /dev/null 2>&1 &
+        ;;
+    stop)
+	shift
+	stop
+	;;
+    run)
+	shift
+	run "$@"
+	;;
+esac

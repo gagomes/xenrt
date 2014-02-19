@@ -1,0 +1,5 @@
+# Status: proprietary
+# Obtaining:
+# http://test.winehq.org/data/
+46d7a5917be063db43705f1240d0e9b8  ./baseline
+4f78e98d32c25f7df998d66c4ed63625  ./winetest.exe

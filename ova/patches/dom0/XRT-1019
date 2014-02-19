@@ -1,0 +1,27 @@
+diff -r 65e159fc9adc overlay.xenrt/tftpboot/banner
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/overlay.xenrt/tftpboot/banner	Thu Jan 17 16:40:32 2008 +0000
+@@ -0,0 +1,11 @@
++
++                   #     #  #######  #     #  ######   #######
++                    #   #   #        ##    #  #     #     #
++                     # #    #        # #   #  #     #     #
++                      #     #####    #  #  #  ######      #
++                     # #    #        #   # #  #   #       #
++                    #   #   #        #    ##  #    #      #
++                   #     #  #######  #     #  #     #     #
++
++   ========================= Citrix XenRT PXE boot =========================
++
+diff -r 65e159fc9adc overlay.xenrt/tftpboot/pxelinux.cfg/default
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/overlay.xenrt/tftpboot/pxelinux.cfg/default	Thu Jan 17 16:39:41 2008 +0000
+@@ -0,0 +1,8 @@
++SERIAL 0 115200
++PROMPT 1
++TIMEOUT 20
++DEFAULT local
++DISPLAY banner
++
++LABEL local
++    LOCALBOOT 0

@@ -1,0 +1,52 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Windows">
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup" blocker="yes">
+         <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+         <arg>storageType=nfs</arg>
+        </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-13896" name="TC-13896">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_13896</arg>
+       <arg>TC13896</arg>
+       <arg>13896</arg> 
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-13897" name="TC-13897">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_13897</arg>
+       <arg>TC13897</arg>
+       <arg>13897</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+    </serial>
+    <serial group="Destroy Domain">
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10389" name="TC-10389">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10389</arg>
+       <arg>TC10389</arg>
+       <arg>10389</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

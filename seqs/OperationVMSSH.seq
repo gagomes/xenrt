@@ -1,0 +1,32 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+        <pool name="Pool">
+                <host id="0" license="platinum">
+                        <vm name="VM1">
+                        <distro>rhel53</distro>
+                        <memory>256</memory>
+                        <network device="0"/>
+                        </vm>
+                        
+                        <vm name="VM2">
+                        <distro>rhel53</distro>
+                        <memory>256</memory>
+                        <network device="0"/>
+                        </vm>
+                </host>
+                <host id="1" license="platinum">
+                        <vm name="VM3">
+                                <distro>rhel53</distro>
+                                <memory>256</memory>
+                                <network device="0"/>
+                        </vm>
+                </host>
+        </pool>
+  </prepare>
+  <testsequence>
+    <testcase id="xenserver.tc.opvmssh.TCRPP2" />
+  </testsequence>
+</xenrt>

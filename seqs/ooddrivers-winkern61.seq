@@ -1,0 +1,182 @@
+<xenrt>
+
+  <!-- Windows Out-of-date Driver tests for Windows Kernel 6.1 (x86/x64) -->
+
+  <!-- These defaults are mandatory to allow the version / inputdir parameters to be passed from a suite file.  The default values are dummy values. -->
+  <default name="TESTED_PRODUCT_VERSION" value="TestedVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_VERSION" value="FromVer-MustOverrideInSuite"/>
+  <default name="FROM_PRODUCT_INPUTDIR" value="FromInputDir-MustOverrideInSuite"/>
+  <default name="TO_PRODUCT_VERSION" value="ToVer-MustOverrideInSuite"/>
+  <default name="TO_PRODUCT_INPUTDIR" value="ToInputDir-MustOverrideInSuite"/>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <variables>
+    <PRODUCT_VERSION>${TESTED_PRODUCT_VERSION}</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
+  </variables>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host productVersion="${FROM_PRODUCT_VERSION}" version="${FROM_PRODUCT_INPUTDIR}">
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="HostUpgrade" blocker="yes">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=${TO_PRODUCT_INPUTDIR}</arg>
+        <arg>newProductVersion=${TO_PRODUCT_VERSION}</arg>
+        <arg>suspendDuringUpgrade</arg>
+      </testcase>
+    </serial>
+
+    <parallel workers="${PARALLEL}">
+      <serial group="win7sp1-x86">
+        <serial guest="win7sp1-x86">
+          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20642">
+            <arg>guest=win7sp1-x86</arg>
+          </testcase>          
+          <testcase id="guestops.basic.TCStartStop" tc="TC-11877">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-11878">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-11879">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-11880">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>workloads</arg>
+            <arg>loops=5</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-11881">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-11883">
+            <arg>N/A</arg>
+            <arg>guest=win7sp1-x86</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-11884">
+            <arg>N/A</arg>
+            <arg>guest=win7sp1-x86</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-11885">
+            <arg>guest=win7sp1-x86</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <testcase id="xenserver.tc.checkpoint.TC12557">
+            <arg>guest=win7sp1-x86</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC12560">
+            <arg>guest=win7sp1-x86</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=win7sp1-x86</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+
+      <serial group="ws08r2sp1-x64">
+        <serial guest="ws08r2sp1-x64">
+          <testcase id="guestops.drivers.TCVerifyDriversOutOfDate" tc="TC-20643">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCStartStop" tc="TC-9655">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-9656">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9657">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-9658">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=5</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9659">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9661">
+            <arg>N/A</arg>
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9662">
+            <arg>N/A</arg>
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9663">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <testcase id="xenserver.tc.checkpoint.TC12556">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC12559">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC20689">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC20688">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=ws08r2sp1-x64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

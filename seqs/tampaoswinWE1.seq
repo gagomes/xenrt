@@ -1,0 +1,87 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+    <serial group="w2k3eesp1">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-7024">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=w2k3eesp1</arg>
+        <arg>distro=w2k3eesp1</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="w2k3eesp1">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-7025">
+        <arg>guest=w2k3eesp1</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-7026">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-7027">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-7028">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-7029">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-7030">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-7032">
+        <arg>N/A</arg>
+        <arg>guest=w2k3eesp1</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-7033">
+        <arg>N/A</arg>
+        <arg>guest=w2k3eesp1</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-7034">
+        <arg>guest=w2k3eesp1</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=w2k3eesp1</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

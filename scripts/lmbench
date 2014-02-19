@@ -1,0 +1,179 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the lmbench benchmark
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, 8 July 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=9000
+BM_SUPPORTED_PLATFORMS="Linux"
+BM_CHECK_COMMANDS="gcc make"
+BM_CHECK_FILES="/usr/include/stdio.h"
+
+RETVAL=0
+
+LMBENCH_VER="lmbench-3.0-a4"
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+install_lmbench() {
+    #rm -f bin/i686-pc-linux-gnu/CONFIG.`hostname`
+    #rm -f results/i686-pc-linux-gnu/`hostname`.*
+    #cp -a bin/i686-pc-linux-gnu/CONFIG.default bin/i686-pc-linux-gnu/CONFIG.`hostname`
+
+    set -x
+    
+    tar -zxf ${LMBENCH_VER}.tgz
+    cd ${LMBENCH_VER}
+    if [ -d ../patches ]; then
+	if which patch > /dev/null 2>&1; then
+	    for i in ../patches/*.patch; do
+		if [ -e $i ]; then
+		    patch -p1 < $i
+		fi
+	    done
+	else
+	    log_extra_data "Comment: not patching lmbench, no patch command"
+	fi
+    fi
+    make build
+}
+BM_INSTALL=install_lmbench
+
+run_lmbench() {
+
+    set -x
+
+    cd ${LMBENCH_VER}
+
+    cd src
+    OS=`../scripts/os`
+    CONFFILE=`../scripts/config`
+    cd ..
+    RESULTS=results/${OS}
+    
+    rm -f ${RESULTS}/*
+
+    ITERATIONS=5
+    CONFIGIN=config.in
+    if [ "$TESTTYPE" = "quick" ]; then
+        ITERATIONS=3
+    elif [ "$TESTTYPE" = "lite" ]; then
+        ITERATIONS=3
+	CONFIGIN=config.in.lite
+    elif [ "$TESTTYPE" = "withnet" ]; then
+        ITERATIONS=3
+        if [ `tarball_version` -gt 1 ]; then
+	    CONFIGIN=config.in.withnet
+	fi
+    fi
+
+    mkdir -p ${WORKDIR}/xenrt-final-${SUBDIR}
+    rm -f ${WORKDIR}/xenrt-final-${SUBDIR}/*
+
+    # Configure
+    cd src
+    ../scripts/config-run < ../../${CONFIGIN}
+    cd ..
+
+    grep '=' ../tweaks | cut -d = -f 1 | sed -e's/^/\^/' -e's/$/=/' | \
+	grep -vf - bin/${OS}/${CONFFILE} > bin/${OS}/${CONFFILE}.new
+    cat bin/${OS}/${CONFFILE}.new ../tweaks > bin/${OS}/${CONFFILE}
+
+    # Run
+    for (( i=0; i<${ITERATIONS}; i++ ))
+      do
+      
+      #if [ $i = 0 ]; then
+      #	  make results < ../config.in
+      #else
+      make rerun
+      #fi
+      mv ${RESULTS}/`uname -n`.0 ${WORKDIR}/xenrt-final-${SUBDIR}/lmbench.$i
+      cp ${WORKDIR}/xenrt-final-${SUBDIR}/lmbench.$i ${WORKDIR}/logs/
+      echo Completed lmbench iteration $i
+    done
+
+    # this is a temp file that needs blasting away
+    rm -f /local/scratch/XXX
+
+    # Copy the config file
+    cp bin/${OS}/${CONFFILE} ${WORKDIR}/logs/${CONFFILE}-${SUBDIR}
+}
+BM_RUN=run_lmbench
+
+extract-lm-int () {
+    if ( cat lmbench.* | grep -q "^$1" ); then
+	TMP=`mktemp /tmp/xenrtXXXXXX`
+	cat lmbench.* | grep "^$1" | sed -e 's!^.* \([0-9.]\+\) .*$!\1!' \
+	    >${TMP}
+	if ! stats ${TMP} $2 0 ; then
+	    echo "Comment: WARNING stats processing error on $2"
+	fi
+	rm -f ${TMP}
+    fi
+}
+
+extract-lm () {
+    local TMP=`mktemp /tmp/xenrtXXXXXX`
+
+    extract-lm-int 'Simple syscall:' LM_SYSCALL
+    extract-lm-int 'Protection fault:' LM_PROTFLT
+    extract-lm-int 'Process fork+exit:' LM_FORK_EXIT
+    extract-lm-int 'Process fork+execve:' LM_FORK_EXEC 
+    extract-lm-int 'Pagefaults on /local/scratch/XXX:' LM_PGFLT
+
+    extract-lm-int 'Simple read:' LM_OSREAD
+    extract-lm-int 'Simple write:' LM_OSWRITE
+    extract-lm-int 'Simple stat:' LM_OSSTAT
+    extract-lm-int 'Simple fstat:' LM_OSFSTAT
+    extract-lm-int 'Simple open/close:' LM_OSOPENCLOSE
+    extract-lm-int 'Signal handler installation:' LM_SIGINSTALL
+    extract-lm-int 'Signal handler overhead:' LM_SIGOVERHEAD
+    extract-lm-int 'AF_UNIX sock stream latency:' LM_UNIXLAT
+    extract-lm-int 'Process fork+/bin/sh -c:' LM_FORK_SH
+    extract-lm-int 'File /local/scratch/XXX write bandwidth:' LM_FILE_WRITE
+    extract-lm-int 'UDP latency using localhost:' LM_UDPLAT
+    extract-lm-int 'TCP latency using localhost:' LM_TCPLAT
+    extract-lm-int 'RPC/udp latency using localhost:' LM_RPCUDPLAT
+    extract-lm-int 'RPC/tcp latency using localhost:' LM_RPCTCPLAT
+    extract-lm-int 'TCP/IP connection cost to localhost:' LM_TCPCONN
+    extract-lm-int 'AF_UNIX sock stream bandwidth:' LM_UNIXBW
+    
+    cat lmbench.* | awk '/^"size=32k/ {catch=1} /^96/ {if (catch==1) {print $2; catch=0}}' >${TMP}
+    stats ${TMP} LM_CX_32k_96 0
+
+    cat lmbench.* | awk '/^"size=0k/ {catch=1} /^2 / {if (catch==1) {print $2; catch=0}}' >${TMP}
+    stats ${TMP} LM_CX_0k_2 0
+    cat lmbench.* | awk '/^"size=16k/ {catch=1} /^2 / {if (catch==1) {print $2; catch=0}}' >${TMP}
+    stats ${TMP} LM_CX_16k_2 0
+    cat lmbench.* | awk '/^"size=16k/ {catch=1} /^8 / {if (catch==1) {print $2; catch=0}}' >${TMP}
+    stats ${TMP} LM_CX_16k_8 0
+
+    cat lmbench.* | awk '/^"File system latency/ {catch=1} /^0k/ {if (catch==1) {print 1000000.0/$3; catch=0}}' >${TMP}
+    stats ${TMP} LM_FILE_CREATE_0k 0
+    cat lmbench.* | awk '/^"File system latency/ {catch=1} /^10k/ {if (catch==1) {print 1000000.0/$3; catch=0}}' >${TMP}
+    stats ${TMP} LM_FILE_CREATE_10k 0
+
+
+    rm -f ${TMP}
+}
+
+process_lmbench() {
+    cd ${WORKDIR}/xenrt-final-${SUBDIR}
+    local TMP=`mktemp /tmp/xenrtXXXXXX`
+    extract-lm > ${TMP}
+    cat ${TMP} | sed -e's/^/Result: /'
+    cat ${TMP} | cut -d ' ' -f 1,3 | sed -e's/^/Value: /'
+    rm -f ${TMP}
+}
+BM_PROCESS=process_lmbench
+
+. ${SCRIPTDIR}/generic

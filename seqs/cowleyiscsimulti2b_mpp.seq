@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- MNR 2 host iSCSI Multipath test sequence b -->
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-10768">
+      <testcase id="xenserver.tc.multipath.TC10775"/>
+      <testcase id="xenserver.tc.multipath.TC10776"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

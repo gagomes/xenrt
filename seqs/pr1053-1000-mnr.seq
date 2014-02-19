@@ -1,0 +1,34 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+      <PREPARE_WORKERS>4</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.custom.TCTimeVMCycles" host="RESOURCE_HOST_0">
+        <arg>numdesktops=1000</arg>
+        <arg>desktopimage=pr1053-winxp-withshutdown.img</arg>
+        <arg>desktopvmname=pr1053-winxp</arg>
+        <arg>dontusemps</arg>
+        <arg>date=Fri Jul  2 17:51:12 BST 2010</arg>
+        <arg>novifs</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

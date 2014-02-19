@@ -1,0 +1,24 @@
+--- lmbench-3.0-a4.orig/scripts/config-run	2004-08-10 03:43:22.000000000 -0700
++++ lmbench-3.0-a4/scripts/config-run	2006-02-10 06:14:17.000000000 -0800
+@@ -205,6 +205,13 @@ if [ X$BENCHMARK_DEVELOPMENT = XYES ]; t
+ 	    *)		BENCHMARK_SYSCALL=YES;;
+ 	esac
+ 
++        echo $ECHON "SIG [default yes] $ECHOC"
++        read bench
++        case "$bench" in
++            [nN]*)      BENCHMARK_SIG=NO;;
++            *)          BENCHMARK_SIG=YES;;
++        esac
++
+ 	echo $ECHON "SELECT [default yes] $ECHOC"
+ 	read bench
+ 	case "$bench" in
+@@ -707,6 +714,7 @@ echo VERSION=$VERSION >> $C
+ echo BENCHMARK_HARDWARE=$BENCHMARK_HARDWARE >> $C
+ echo BENCHMARK_OS=$BENCHMARK_OS >> $C
+ echo BENCHMARK_SYSCALL=$BENCHMARK_SYSCALL >> $C
++echo BENCHMARK_SIG=$BENCHMARK_SIG >> $C
+ echo BENCHMARK_SELECT=$BENCHMARK_SELECT >> $C
+ echo BENCHMARK_PROC=$BENCHMARK_PROC >> $C
+ echo BENCHMARK_CTX=$BENCHMARK_CTX >> $C

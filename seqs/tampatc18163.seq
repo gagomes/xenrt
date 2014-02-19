@@ -1,0 +1,22 @@
+<xenrt>
+  <!-- Test xen-crashdump-analyser + IPMI drivers tool -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+  
+  <testsequence>
+    <serial group="CrashDump Analyser+IPMI">
+      <testcase id="xenserver.tc.ns.TCNsSuppPack"/>
+      <testcase id="xenserver.tc.ns.TC18849"/>
+      <testcase id="xenserver.tc.host.XenCrashDump" tc="TC-18163" name="TC-18163">
+        <arg>trigger_nmi</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

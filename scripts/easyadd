@@ -1,0 +1,180 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# tempory HACK to wrap Tom's xenrt database tool
+#
+# args: $(MACHINE) $(OPTIONS) $(VERSION) $(REVISION) Phase Test Key Value
+#
+# (C) XenSource UK Ltd, 2005
+# James Bulpin, August-September 2005
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+XENRT=${SCRIPTDIR}/../db/xenrt
+
+XENRT_DB_VERSION=5
+
+CONTROL=${SCRIPTDIR}/../control/xenrt
+
+# phase test key value
+update_control() {
+    if [ -n "${JOBID}" ]; then
+        # Only allow V:* keys if the value is numeric (XRT-289)
+        if [ "`echo $3 | cut -d : -f 1`" = "V" ]; then
+            if [ -n "`echo $4 | sed -re's/[0-9.]//g'`" ]; then
+                return 0
+            fi
+        fi
+	${CONTROL} logdata "${JOBID}" "Phase $1" "$2"  "$3" "$4"
+    fi
+}
+
+do_easyadd() {
+    if [ "$1" = "easyaddtest" ]; then
+	echo 1: $1
+	echo 2: $2
+	echo 3: $3
+	echo 4: $4
+	echo 5: $5
+	echo 6: $6
+	echo 7: $7
+	echo 8: $8
+    elif [ "${DBMETHOD}" = "file" ]; then
+	echo [`date`] "$@" >> database.txt
+	if [ "$1" != ":new:" -a "$2" != ":edit" -a "$2" != ":new" ]; then
+	    update_control "$5" "$6" "$7" "$8"
+	fi
+    elif [ "${DBMETHOD}" = "ssh" ]; then
+	echo [`date`] "$@" >> database.txt
+	if [ "$1" != ":new:" -a "$2" != ":edit" -a "$2" != ":new" ]; then
+	    update_control "$5" "$6" "$7" "$8"
+	fi
+	echo "$@" | ${SSHDB} ${DBUSER}@${DBSERVER} /bin/true
+    elif [ "${DBMETHOD}" = "local" ]; then 
+	echo [`date`] "$@" >> database.txt
+	if [ "$1" != ":new:" -a "$2" != ":edit" -a "$2" != ":new" ]; then
+	    update_control "$5" "$6" "$7" "$8"
+	fi
+
+	LOGFILE=/tmp/xenrteasyadd.log-`whoami`
+
+        if [ "$1" = ":new:" ]; then
+
+            shift
+            X1=$1
+            X2=$2
+
+            if [ ${XENRT_DB_VERSION} -lt 5 ]; then
+                ${XENRT} add $X1 $X2 "" 0 >> ${LOGFILE} 2>&1
+            fi
+
+	elif [ "$2" = ":new:" ]; then
+	    
+	    shift
+	    shift
+	    X1=$1
+	    X2=$2
+
+	    if [ ${XENRT_DB_VERSION} -lt 5 ]; then
+		${XENRT} add $X1 $X2 "" 0 >> ${LOGFILE} 2>&1
+	    fi
+
+	elif [ "$2" = ":edit:" ]; then
+
+	    shift
+	    shift
+	    X1=$1
+	    X2=$2
+	    shift
+	    shift
+
+	    ${XENRT} editdesc $X1 $X2 "$*" >> ${LOGFILE} 2>&1
+
+	else
+
+	    #DONEFILE=/tmp/xenrteasyadd.done-`whoami`
+
+	    echo "EASYADD host: $1" >> ${LOGFILE}
+	    echo "EASYADD config: $2" >> ${LOGFILE}
+	    echo "EASYADD version: $3" >> ${LOGFILE}
+	    echo "EASYADD revision: $4" >> ${LOGFILE}
+	    echo "EASYADD phase: $5" >> ${LOGFILE}
+	    echo "EASYADD test: $6" >> ${LOGFILE}
+	    echo "EASYADD key: $7" >> ${LOGFILE}
+	    echo "EASYADD value: $8" >> ${LOGFILE}
+	    
+	    if false; then
+		if grep -q "Host:$1" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add host "$1" "$1" >> ${LOGFILE} 2>&1
+		    echo "Host:$1" >> ${DONEFILE};
+		fi
+		if grep -q "Config:$2" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add config "$2" "$2" >> ${LOGFILE} 2>&1
+		    echo "Config:$2" >> ${DONEFILE};
+		fi
+		if grep -q "Version:$3" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add version "$3" "$3" >> ${LOGFILE} 2>&1
+		    echo "Version:$3" >> ${DONEFILE};
+		fi
+		if grep -q "Revision:$4" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add revision "$4" "$4" >> ${LOGFILE} 2>&1
+		    echo "Revision:$4" >> ${DONEFILE};
+		fi
+		if grep -q "Phase:$5" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add phase "Phase $5" "Phase $5" >> ${LOGFILE} 2>&1
+		    echo "Phase:$5" >> ${DONEFILE};
+		fi
+		if grep -q "Test:$6" ${DONEFILE}; then
+		    FOO=bar
+		else
+		    ${XENRT} add test "$6" "$6" >> ${LOGFILE} 2>&1
+		    echo "Test:$6" >> ${DONEFILE};
+		fi
+	    fi
+	    
+	    X1=$1
+	    X2=$2
+	    X3=$3
+	    X4=$4
+	    X5=$5
+	    X6=$6
+	    X7=$7
+	    shift; shift; shift; shift; shift; shift; shift;
+
+	    if [ ${XENRT_DB_VERSION} -lt 5 ]; then
+		${XENRT} adddata "Phase $X5" "$X6" "$X1" "$X2" "$X3" "$X4" \
+		    "$X7" "$*" >> ${LOGFILE} 2>&1
+	    else
+		${XENRT} adddata phase="Phase $X5" test="$X6" \
+		    host="$X1" config="$X2" version="$X3" revision="$X4" \
+		    key="$X7" value="$*" >> ${LOGFILE} 2>&1
+	    fi
+	fi
+    fi
+}
+
+# Are we receiving the output of a cat over SSH?
+if [ "$1" = ":easyadd:" ]; then
+    DBMETHOD=local
+    read ARGS
+    do_easyadd ${ARGS}
+else
+    config_overrides $1 || true
+    do_easyadd "$@"
+fi
+
+
+
+

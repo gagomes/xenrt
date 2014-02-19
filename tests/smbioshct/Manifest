@@ -1,0 +1,10 @@
+# Description: Microsoft HCT smbios 
+# Status: downloadable
+# Obtaining:
+# This test is part of the Microsoft HCTs. If you have access to the HCTs then you
+# should be able to extract this particular test. A list of the required files is
+# available in the Manifest
+893f22785427656ab9edf459f48dab4c  ./smbioshct32/smbioshct.exe
+eefec79de534b29e57bf832ac56a7fa9  ./smbioshct32/WTTLog.dll
+81766081447d2d67b9fc096f0c17b3d0  ./smbioshct64/smbioshct.exe
+94b2f1a070e4c9ed25a681e336cdaa11  ./smbioshct64/WTTLog.dll

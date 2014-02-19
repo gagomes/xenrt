@@ -1,0 +1,5 @@
+# Description: Microsoft SQL Server Express 
+# Status: downloadable
+# Obtain from http://www.microsoft.com/express/2005/sql/download/default.aspx
+f281780917d1b0f0932c898924a9eaff  ./SQLEXPR32.EXE
+b05247a32ca9a6f66c59a528fc1a00e2  ./SQLEXPR.EXE

@@ -1,0 +1,20 @@
+<xenrt>
+  <!-- Example site configuration file -->
+  <WORKING_DIR_BASE>/local/scratch/working</WORKING_DIR_BASE>
+  <EXPORT_ISO_NFS>10.80.244.12:/vol/xenrtdata/iso</EXPORT_ISO_NFS>
+  <EXPORT_ISO_NFS_STATIC>10.80.244.12:/vol/xenrtdata/linux/iso</EXPORT_ISO_NFS_STATIC>
+  <RPM_SOURCE_NFS>10.80.244.12:/vol/xenrtdata/linux/distros</RPM_SOURCE_NFS>
+  <RPM_SOURCE_HTTP>http://10.80.244.11/vol/xenrtdata/linux/distros</RPM_SOURCE_HTTP>
+  <FORCE_HTTP_FETCH>http://10.219.64.80/root</FORCE_HTTP_FETCH>
+  <ROOT_PASSWORDS>xenroot xensource</ROOT_PASSWORDS>
+  <EXTERNAL_NFS_SERVERS>
+    <sv550>
+      <ADDRESS>10.80.244.12</ADDRESS>
+      <BASE>/vol/exports</BASE>
+      <NOLOGIN>yes</NOLOGIN>
+    </sv550>
+  </EXTERNAL_NFS_SERVERS>
+  <XENRT_SERVER_ADDRESS>10.80.238.183</XENRT_SERVER_ADDRESS>
+  <JIRA_URL>http://jira.uk.xensource.com</JIRA_URL>
+  <XD_XVA_SOURCE_NFS>10.70.30.13:/vol/xdbvt_xvas</XD_XVA_SOURCE_NFS>
+</xenrt>

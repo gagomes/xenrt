@@ -1,0 +1,85 @@
+<xenrt>
+  <!-- TestComplete GUI Tests -->
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="TestComplete">
+        <distro>win7-x86</distro>
+        <memory>2048</memory>
+        <network device="0"/>
+        <disk device="0" size="20"/>
+        <disk device="1" size="30"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="AUTHSERVER">
+        <distro>ws08-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host>
+    <host id="1" noisos="yes" license="no" />
+    <host id="2" noisos="yes" license="no" />
+  </prepare>
+
+      <!--<testcase id="testcases.xenserver.tc.gui.TestComplete" name="RBACSetup">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>Setup</arg>
+       <arg>RBACSetup</arg>
+       <arg>RBACSetup</arg>
+      </testcase>-->
+  <testsequence>
+    <serial group="DMC">
+      <!--<parallel group="Setup" workers="2">
+        <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup" blocker="yes">
+         <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+         <arg>storageType=nfs,cifs,iscsi</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.gui.TestCompleteADSetup" blocker="yes">
+         <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+        </testcase>
+      </parallel>-->
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteSetup" blocker="yes">
+         <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+         <arg>storageType=nfs,cifs,iscsi</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestCompleteDistroSetup">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>rhel57</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10391" name="TC-10391">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10391</arg>
+       <arg>TC10391</arg>
+       <arg>10391</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10392" name="TC-10392">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10392</arg>
+       <arg>TC10392</arg>
+       <arg>10392</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10422" name="TC-10422">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_10422</arg>
+       <arg>TC10422</arg>
+       <arg>10422</arg>
+       <arg>postRun=true</arg>
+      </testcase>
+    </serial>
+    <!--<serial group="LVMoiSCSI">
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-1143" name="TC-1143">
+       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
+       <arg>TC_1143</arg>
+       <arg>TC1143</arg>
+       <arg>1143</arg>
+      </testcase>
+    </serial>-->
+   </testsequence>
+</xenrt>

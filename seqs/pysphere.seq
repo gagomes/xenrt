@@ -1,0 +1,13 @@
+<xenrt>
+  <variables>
+    <!-- specify the XenServer release here: -->
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.hg/exec/ -->
+    <testcase id="testcases.xenserver.tc.pyspheretest"/>
+    
+  </testsequence>
+</xenrt>

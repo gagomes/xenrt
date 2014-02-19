@@ -1,0 +1,137 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Run the BurnInTest Pro Benchmark
+#
+# (C) XenSource UK Ltd, 2006
+# James Bulpin, March 2006
+# Karl Spalding, July 2006
+# Alex Brett, July 2006
+
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+# Test is set up to last 1 hour, so 2 hour timeout
+TIMEOUT=7200
+BM_SUPPORTED_PLATFORMS="Windows"
+
+RETVAL=0
+
+# Don't pass by default, we'll deal with that
+BM_PROCESS_NO_DEFAULT_PASS="yes"
+
+set -e
+
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+install_this() {
+  # Permissions fixes
+  chmod 777 ${WORKDIR}/${THISSCRIPT} 
+  chmod 666 ${WORKDIR}/${THISSCRIPT}/LastUsed.bitcfg
+}
+
+BM_INSTALL=install_this
+
+run_this() {
+
+    set -x
+
+    # This script uses SOON to start it, since it needs to interact with
+    # the desktop...
+    echo "cd `winify_path ${WORKDIR}/${THISSCRIPT}`" > \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    cat >> ${WORKDIR}/${THISSCRIPT}/wrapper <<EOF
+move bit.exe bittemp.exe
+EOF
+    echo "bittemp.exe -C `winify_path ${WORKDIR}/${THISSCRIPT}/bit.bitcfg` -R" \
+	>> ${WORKDIR}/${THISSCRIPT}/wrapper 
+    echo "del `winify_path ${WORKDIR}/${THISSCRIPT}/running`" >> \
+	${WORKDIR}/${THISSCRIPT}/wrapper
+    unix2dos `winify_path ${WORKDIR}/${THISSCRIPT}/wrapper` \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/wrapper.bat`
+     
+    echo 1 > ${WORKDIR}/${THISSCRIPT}/running
+    
+    # PATH hack to make SOON find the win32 at.exe and not the unix at command
+    PATH=/dev/fs/C/WINDOWS/system32:$PATH
+    if ${WORKDIR}/${THISSCRIPT}/soon.exe 60 /INTERACTIVE \
+	`winify_path ${WORKDIR}/${THISSCRIPT}/wrapper.bat` 
+	then
+        # Deal with the fact soon.exe returns an error...
+	echo
+    fi
+   
+    # Job has completed once running file disappears (this is to make
+    # waitfor work correctly)
+    while [ -e ${WORKDIR}/${THISSCRIPT}/running ]
+      do
+      sleep 60
+    done
+}
+
+BM_RUN=run_this
+
+EXTRA_LOG_FILES="${WORKDIR}/${THISSCRIPT}/results_*.log"
+
+process_this() {
+
+    RESULT_FILE=`ls -tr ${WORKDIR}/${THISSCRIPT}/results_*.log | tail -n1`
+    FAIL=no    
+
+    # Did we pass or fail?
+    if [ "`grep -c 'TEST RUN PASSED' ${RESULT_FILE}`" -gt "0" ]; then
+        DONOTHING=yes
+    else
+        FAIL=yes
+        # Extract reason.
+        grep ", SERIOUS" ${RESULT_FILE} | cut -d " " -f 8- | \
+            sed -e 's/^/Reason: /'
+        if ! ( grep -q 'Test run stopped' ${RESULT_FILE} ); then
+            echo "Reason: Test did not complete properly"
+        fi
+    fi
+    
+    # Extract numerical results
+    CPUM=`grep 'CPU - Maths' ${RESULT_FILE} | grep 'No errors' | awk '{ print "Cycles: " $4 ", Operations: " $5 " " $6 ", Result: " $7 ", Errors: " $8}'`
+    CPUS=`grep 'CPU - SIMD' ${RESULT_FILE} | grep 'No errors' | awk '{ print "Cycles: " $4 ", Operations: " $5 " " $6 ", Result: " $7 ", Errors: " $8}'`
+    MEM=`grep 'Memory (RAM)' ${RESULT_FILE} | grep 'No errors' | awk '{ print "Cycles: " $3 ", Operations: " $4 " " $5 ", Result: " $6 ", Errors: " $7}'`
+    DSK=`grep 'Disk (C: )' ${RESULT_FILE} | grep 'No errors' | awk '{ print "Cycles: " $4 ", Operations: " $5 " " $6 ", Result: " $7 ", Errors: " $8}'`
+    NETW=`grep 'Network 1' ${RESULT_FILE} | grep 'No errors' | awk '{ print "Cycles: " $3 ", Operations: " $4 ", Result: " $5 ", Errors: " $6}'`
+
+    for x in "CPU - Maths" "CPU - SIMD" "Memory (RAM)" "Disk (C: )" "Network 1"; do
+        if ( grep "$x" ${RESULT_FILE} | grep -q 'FAIL' ); then
+            FAIL=yes
+            REASON=`grep -E "^[[:space:]]+$x" ${RESULT_FILE} | cut -c 70-`
+            echo "Reason: $x failed: ${REASON}"
+        fi
+    done
+
+    if [ -n "${CPUM}" ]; then
+	echo "Comment: CPU_Maths: ${CPUM}"
+    fi
+    if [ -n "${CPUS}" ]; then
+	echo "Comment: CPU_SIMD: ${CPUS}"
+    fi
+    if [ -n "${MEM}" ]; then
+	echo "Comment: Memory: ${MEM}"
+    fi
+    if [ -n "${DSK}" ]; then
+	echo "Comment: Disk_C: ${DSK}"
+    fi
+    if [ -n "${NETW}" ]; then
+	echo "Comment: Network_1: ${NETW}"
+    fi
+
+    if [ "${FAIL}" = "yes" ]; then
+        echo "Test: failed"
+    else
+        echo "Test: passed"
+    fi
+}
+
+BM_PROCESS=process_this
+
+. ${SCRIPTDIR}/generic

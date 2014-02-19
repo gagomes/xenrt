@@ -1,0 +1,159 @@
+#!/bin/bash
+#
+# XenRT: Xen Regression Testing
+#
+# Install a native copy of Windows. 
+#
+# (C) XenSource UK Ltd, 2007
+# Karl Spalding, January 2007
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+. ${SCRIPTDIR}/functions
+. ${SCRIPTDIR}/lib/windows
+
+BM_NO_DEFAULT_LOGS=yes
+LOCKHELD=no
+
+on_error() {
+    if [ "${LOCKHELD}" = "yes" ]; then
+    	release_lock native
+    fi
+}
+trap on_error EXIT INT HUP KILL
+
+set -x
+
+run_this() {
+    VERSION=${1}
+   
+    get_lock native
+    LOCKHELD=yes
+
+    # Set up PXE config.
+    echo "Configuring PXE..."
+    MACHINE_IP=`ns_lookup ${XENMACHINE}`
+    if [ -z "${MACHINE_IP}" ]; then
+        echo "Could not resolve ${XENMACHINE}."
+        exit ${RC_ERROR}
+    fi
+    if [ -n "${OPTION_PXE_FILENAME_MACHINE}" ]; then
+        PXE_FILENAME=${XENMACHINE}
+    else
+        PXE_FILENAME=`pxelinux_ip ${MACHINE_IP}`
+    fi  
+    pxe_backup ${PXE_FILENAME}
+    PXE_INSTALL=${WORKDIR}/pxe-install
+    PXE_LOCAL=${WORKDIR}/pxe-local
+
+    cat > ${PXE_INSTALL} << EOF
+SERIAL 0 115200
+DEFAULT winpe 
+
+LABEL winpe
+    KERNEL xenrt/native/pxeboot.0
+EOF
+
+    cat > ${PXE_LOCAL} << EOF
+SERIAL 0 115200
+DEFAULT local
+
+LABEL local
+    LOCALBOOT 0
+EOF
+    sudo rm -rf ${PXE_ROOTDIR}/xenrt/native/
+    sudo mkdir -p ${PXE_ROOTDIR}/xenrt/native/
+    sudo cp ${WORKDIR}/${THISSCRIPT}/files/pxe/32/* \
+        ${PXE_ROOTDIR}/xenrt/native/
+    sudo cp ${IMAGE_ROOT}/winpe32.wim \
+        ${PXE_ROOTDIR}/xenrt/native/winpe.wim
+   
+    sudo rm -rf ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}
+    sudo mkdir -p ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}
+    
+    sudo cp ${WORKDIR}/${THISSCRIPT}/files/pe/makepart.txt \
+        ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/
+
+    if [ "${VERSION}" = "longhorn" ]; then
+
+        sudo cp ${WORKDIR}/${THISSCRIPT}/versions/${VERSION}/unattend.xml \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/
+        sudo ln -s ../../../../images/${VERSION}/install.zip \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/win.zip
+        sudo ln -s ../../../../images/${VERSION}/install.part1 \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/install.part1
+        sudo ln -s ../../../../images/${VERSION}/install.part2 \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/install.part2
+        sudo ln -s ../../../../images/${VERSION}/install.part3 \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/install.part3
+        cat ${WORKDIR}/${THISSCRIPT}/files/pe/perun-lh.cmd |\
+            sed -e "s#%FILES%#${DIST_TARBALL_BASE}/xenrt/native/${XENMACHINE}/#g" \
+            > ${WORKDIR}/perun.cmd
+        sudo cp ${WORKDIR}/perun.cmd \
+            /usr/groups/xenrt/production/share/dists/xenrt/native/perun.cmd
+
+        pxe_install ${PXE_INSTALL} ${PXE_FILENAME}
+        ${HARD_REBOOT} ${XENMACHINE}
+
+        sleep 1800
+
+        sudo cp ${WORKDIR}/${THISSCRIPT}/files/pxe/64/* \
+            ${PXE_ROOTDIR}/xenrt/native/
+        sudo cp ${IMAGE_ROOT}/winpe64.wim \
+            ${PXE_ROOTDIR}/xenrt/native/winpe.wim
+
+        ${HARD_REBOOT} ${XENMACHINE}
+
+        sleep 300
+   
+        pxe_install ${PXE_LOCAL} ${PXE_FILENAME}
+    else
+        # Set up installation scripts.
+        sudo cp ${WORKDIR}/${THISSCRIPT}/versions/${VERSION}/unattend.txt \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/
+        sudo ln -s ../../../../images/${VERSION}/install.zip \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/win.zip
+
+        cat ${WORKDIR}/${THISSCRIPT}/files/pe/perun.cmd |\
+            sed -e "s#%FILES%#${DIST_TARBALL_BASE}/xenrt/native/${XENMACHINE}/#g" \
+            > ${WORKDIR}/perun.cmd
+
+        if [ "${BROADCOM_POSTINSTALL}" = "yes" ]; then
+            cat >> ${WORKDIR}/${THISSCRIPT}/postinst.cmd << EOF
+REG ADD %KEY%\\050 /VE /D "Broadcom Driver" /f
+REG ADD %KEY%\\050 /V 1 /D "%systemdrive%\\win\\post\\Broadcom\\setup.exe /s /v/qn" /f 
+EOF
+            cat ${WORKDIR}/${THISSCRIPT}/files/pe/runonceex.cmd \
+                ${WORKDIR}/${THISSCRIPT}/postinst.cmd |\
+                sed -e 's/EXIT//' \
+                > ${WORKDIR}/runonceex.cmd
+            echo "EXIT" >> ${WORKDIR}/runonceex.cmd
+        else
+            cat ${WORKDIR}/${THISSCRIPT}/files/pe/runonceex.cmd \
+                > ${WORKDIR}/runonceex.cmd
+        fi
+
+        sudo cp ${WORKDIR}/perun.cmd ${DIST_TARBALL_ROOT}/xenrt/native/perun.cmd
+        sudo cp ${WORKDIR}/runonceex.cmd \
+            ${DIST_TARBALL_ROOT}/xenrt/native/${XENMACHINE}/runonceex.cmd
+
+        # Start install.
+        pxe_install ${PXE_INSTALL} ${PXE_FILENAME}
+        ${HARD_REBOOT} ${XENMACHINE}
+        # Wait for first PXE boot.
+        sleep 240
+        pxe_install ${PXE_LOCAL} ${PXE_FILENAME}
+    fi
+
+    release_lock native
+    LOCKHELD=no
+
+    # Wait for Windows to boot.
+    REBOOT_TIMEOUT=7200
+    wait_for_boot_win ${XENMACHINE} Administrator
+
+}
+
+BM_RUN=run_this
+
+. ${SCRIPTDIR}/generic

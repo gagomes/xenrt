@@ -1,0 +1,821 @@
+
+import xenrt, xenrt.lib.xenserver
+import time
+import datetime
+import os
+import json
+import IPy
+from lxml import etree
+import re
+
+use_jenkins_api = True
+try:
+    import jenkinsapi
+    from jenkinsapi.jenkins import Jenkins
+except ImportError:
+    use_jenkins_api = False
+
+
+class CSStorage():
+    MS_NFS = 'MS-NFS'
+    EXT_NFS = 'EXT-NFS'
+
+    def _createMsNfsExport(self, manSvrVM, name):
+        path = '/export/%s' % (name)
+
+        # Check if NFS server is already installed and running
+        if not manSvrVM.execguest('service nfs-kernel-server status').strip().endswith('running'):
+            manSvrVM.execguest('apt-get install nfs-kernel-server')
+            manSvrVM.execguest('mkdir -p /export')
+            manSvrVM.execguest('echo "/export  *(rw,async,no_root_squash)" >> /etc/exports')
+            manSvrVM.execguest('exportfs -a')
+            manSvrVM.execguest('service nfs-kernel-server start')
+
+        # If the directory exists - destroy it
+        if manSvrVM.execguest('test -e %s' % (path), retval="code") == 0:
+            manSvrVM.execguest('rm -rf %s' % (path))
+
+        manSvrVM.execguest('mkdir -p %s' % (path))
+        return '%s:%s' % (manSvrVM.getIP(), path)
+
+    def __init__(self, storageType=EXT_NFS, manSvrVM=None, name=None):
+        self.storageType = storageType
+
+        if self.storageType == self.EXT_NFS:
+            self.refObj = xenrt.ExternalNFSShare()
+            self.serverAndPath = self.refObj.getMount()
+        elif self.storageType == self.MS_NFS:
+            self.refObj = manSvrVM
+            self.serverAndPath = self._createMsNfsExport(self.manSvrVM, name)            
+
+    def release(self):
+        if self.storageType == self.EXT_NFS:
+            self.refObj.release()
+        elif self.storageType == self.MS_NFS:
+            pass
+
+
+class MarvinConfig():
+
+    def __init__(self, manSvrVMAddr):
+        self.marvinCfg = {}
+        self.marvinCfg['dbSvr'] = {}
+        self.marvinCfg['dbSvr']['dbSvr'] = manSvrVMAddr
+        self.marvinCfg['dbSvr']['passwd'] = 'cloud'
+        self.marvinCfg['dbSvr']['db'] = 'cloud'
+        self.marvinCfg['dbSvr']['port'] = 3306
+        self.marvinCfg['dbSvr']['user'] = 'cloud'
+
+        self.marvinCfg['logger'] = []
+        self.marvinCfg['logger'].append({'name': 'TestClient', 'file': '/tmp/testclient.log'})
+        self.marvinCfg['logger'].append({'name': 'TestCase', 'file': '/tmp/testcase.log'})
+
+        self.marvinCfg['globalConfig'] = [
+            { "name": "network.gc.wait", "value": "60" },
+            { "name": "storage.cleanup.interval", "value": "300" },
+            { "name": "vm.op.wait.interval", "value": "5" },
+            { "name": "default.page.size", "value": "10000" },
+            { "name": "network.gc.interval", "value": "60" },
+#            { "name": "instance.name", "value": "QA" },
+            { "name": "workers", "value": "10" },
+            { "name": "account.cleanup.interval", "value": "600" },
+#            { "name": "guest.domain.suffix", "value": "sandbox.simulator" },
+            { "name": "expunge.delay", "value": "60" },
+            { "name": "vm.allocation.algorithm", "value": "random" },
+            { "name": "expunge.interval", "value": "60" },
+            { "name": "expunge.workers", "value": "3" },
+            { "name": "check.pod.cidrs", "value": "true" },
+#            { "name": "secstorage.allowed.internal.sites", "value": "10.147.28.0/24" },
+            { "name": "direct.agent.load.size", "value": "1000" } ]
+
+        self.marvinCfg['mgtSvr'] = []
+        self.marvinCfg['mgtSvr'].append({'mgtSvrIp': manSvrVMAddr, 'port': 8096})
+
+        self.marvinCfg['zones'] = []
+
+    def createJSONMarvinConfigFile(self):
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        json.dump(self.marvinCfg, fh)
+        fh.close()
+        return fn
+
+    def addBasicZone(self, name, dnsAddr, secondaryStoragePath):
+        zone = { 'name': name, 'networktype': 'Basic', 'pods': [], 'dns1': dnsAddr, 'internaldns1': dnsAddr }
+        zone['secondaryStorages'] = [ { 'url': 'nfs://%s' % (secondaryStoragePath), 'provider': 'NFS' } ]
+        trafficTypes = [ { 'typ': 'Guest' }, { 'typ': 'Management' } ]  
+        providers = [ { 'name': 'VirtualRouter', 'broadcastdomainrange': 'Zone' }, { 'name': 'SecurityGroupProvider', 'broadcastdomainrange': 'Pod' } ]  
+        zone['physical_networks'] = [ { 'name': 'basicPyhNetwork', 'traffictypes': trafficTypes, 'providers': providers } ]
+        zone['pods'] = []
+        self.marvinCfg['zones'].append(zone)
+        return zone
+
+    def addPod(self, name, zoneRef, netmask, gateway, sharedNetworkIPRange, managementIPRange):
+        pod = { 'name': name, 'netmask': netmask, 'gateway': gateway, 'startip': managementIPRange[0], 'endip': managementIPRange[1], 'clusters': [] }
+        pod['guestIpRanges'] = [ { 'netmask': netmask, 'gateway': gateway, 'startip': sharedNetworkIPRange[0], 'endip': sharedNetworkIPRange[1] } ]
+        zoneRef['pods'].append(pod)
+        return pod
+
+    def addCluster(self, name, podRef, hostAddrList, primaryStoragePath = None, primaryStorageSRName = None):
+        cluster = { 'clustername': name, 'hypervisor': 'XenServer', 'clustertype': 'CloudManaged' }
+        cluster['hosts'] = map(lambda x: { 'username': 'root', 'password': xenrt.TEC().lookup("ROOT_PASSWORD"), 'url': 'http://%s' % (x) }, hostAddrList)
+        if not primaryStoragePath:
+            primaryStoragePath = 'presetup://localhost/%s' % (primaryStorageSRName)
+        cluster['primaryStorages'] = [ { 'name': 'priStor1', 'url': primaryStoragePath } ]
+        podRef['clusters'].append(cluster)
+        return cluster 
+
+
+class CitrixCloudBase(xenrt.TestCase):
+    CS_MAN_SVR_VM_NAME = 'CS-MS'
+    TEST_CONTROLLER_VM_NAME = 'CS-TC'
+
+    EXCLUDED_MARVIN_TESTS = ['test_primary_storage']
+
+    CS_GIT_REPO = 'https://git-wip-us.apache.org/repos/asf/cloudstack.git'
+
+    CLOUD_CONFIG = {
+        "mgtSvrIpAddr":     None,
+        "dnsAddr":          None,
+        "gateway":          None,
+        "netmask":          None,
+        "publicRange":      None,
+        "managementRange":  None,
+        "storageRange":     None,
+        "infraNetwork":     None,
+        "guestNetwork":     None,
+        "storageNetwork":   None,
+        "guestCIDR":        "192.168.200.0/24",
+        "guestVLANRange":   None,
+        "hostAddr":         None,
+        "priStor":          None,
+        "secStor":          None
+    }
+
+    CLOUD_ARTIFACTS = {
+        'ccp-latest': {
+            'release':  'CCP',
+            'mansvr':   'http://repo-ccp.citrix.com/releases/release_builds/4.2.0/CloudPlatform-4.2.0-2-rhel6.3.tar.gz',
+            'systemvm': 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2',
+            'marvin':   'http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz',
+            'cmdprefix': 'cloudstack',
+            'distro':   'rhel63'
+            },
+        'ccp-campo': {
+            'release':  'CCP',
+            'mansvr':   'http://repo-ccp.citrix.com/releases/release_builds/4.2.0/CloudPlatform-4.2.0-2-rhel6.3.tar.gz',
+            'systemvm': 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2',
+            'marvin':   'http://repo-ccp.citrix.com/releases/Marvin/4.2-forward/Marvin-master-asfrepo-current.tar.gz',
+            'tcbranch': '4.2-forward',
+            'cmdprefix': 'cloudstack',
+            'distro':   'rhel63'
+            },
+        'ccp-307kt': {
+            'release':  'CCP',
+            'mansvr':   'http://download.cloud.com/support/kt/CloudStack-PATCH_C-Beta-3.0.7-4-rhel5.tar.gz',
+            'systemvm': 'http://download.cloud.com/templates/acton/acton-systemvm-02062012.vhd.bz2',
+            'marvin':   'http://repo-ccp.citrix.com/releases/Marvin/4.2-forward/Marvin-master-asfrepo-current.tar.gz',
+            'tcbranch': '4.2-forward',
+            'cmdprefix': 'cloud',
+            'distro':   'rhel59'
+            },
+        'ccp-acton': {
+            'release':  'CCP',
+            'systemvm': 'http://download.cloud.com/templates/acton/acton-systemvm-02062012.vhd.bz2',
+            'cmdprefix': 'cloud'
+            },
+        'acs-42-latest': {
+            'release':  'ACS-prerelease',
+            'mansvr':    { 'jenkinsurl': 'http://jenkins.buildacloud.org', 'jenkinsjobid': 'package-deb-4.2', 'artifacts': ['cloudstack-management', 'cloudstack-common'] },
+            'systemvm':  { 'jenkinsurl': 'http://jenkins.buildacloud.org', 'jenkinsjobid': 'build-systemvm-4.2', 'artifacts': '' },
+            'marvin':    { 'jenkinsurl': 'http://jenkins.buildacloud.org', 'jenkinsjobid': 'cloudstack-marvin', 'artifacts': 'Marvin' },
+            'tcbranch':  None,
+            'cmdprefix': 'cloudstack',
+            'distro':    'ubuntu1204'
+            },
+        'acs-41': {
+            'release':  'ACS',
+            'mansvr':    { 'package-name': 'cloudstack-management', 'version': '4.1' },
+            'systemvm':  'http://download.cloud.com/templates/acton/acton-systemvm-02062012.vhd.bz2',
+            'marvin':    { 'jenkinsurl': 'http://jenkins.buildacloud.org', 'jenkinsjobid': 'cloudstack-marvin', 'artifacts': 'Marvin' },
+            'tcbranch':  None,
+            'cmdprefix': 'cloud',
+            'distro':    'ubuntu1204'
+            }
+        }
+
+
+
+############################################################################
+# Lib methods
+    def updateNetworkNameLabel(self, host, networkUUID, newName):
+        if newName:
+            host.genParamSet(ptype='network', uuid=networkUUID, param='name-label', value=newName)
+        return host.genParamGet(ptype='network', uuid=networkUUID, param='name-label')
+
+    def getResourceRange(self, resourceType, numberRequired):
+        loopsToTry = 3
+
+        lastResourceInt = None
+        resourceInt = None
+        resourceList = []
+        resource = None
+        while len(resourceList) < numberRequired:
+            if resourceType == 'IP4ADDR':
+                resource = xenrt.StaticIP4Addr()
+                resourceInt = IPy.IP(resource.getAddr()).int()
+            elif resourceType == 'IP6ADDR':
+                resource = xenrt.StaticIP6Addr()
+                resourceInt = IPy.IP(resource.getAddr()).int()
+            elif resourceType == 'VLAN':
+                resource = xenrt.PrivateVLAN()
+                resourceInt = int(resource.getID())
+            else:
+                raise xenrt.XRTError('Invalid resource type: %s' % (resourceType))
+
+            try:
+                if lastResourceInt != None:
+                    if resourceInt != lastResourceInt + 1:
+                        # Free all aquired IP addresses
+                        map(lambda x:x.release(), resourceList)
+                        resourceList = []
+                    elif resourceInt < lastResourceInt:
+                        # Failed to find a block of resources during this pass - decrement loop counter and try again
+                        map(lambda x:x.release(), resourceList)
+                        resourceList = []
+                        loopsToTry -= 1
+                        if loopsToTry < 1:
+                            resource.release()
+                            raise xenrt.XRTError('Failed to allocate %d block of resource: %s' % (numberRequired, resourceType))
+
+                resourceList.append(resource)
+                lastResourceInt = resourceInt
+            except Exception, e:
+                # Attept to free all resources
+                resource.release()
+                map(lambda x:x.release(), resourceList)
+                raise xenrt.XRTError('Error during %s resource range allocation' % (resourceType))
+
+        return resourceList
+
+    def reserveNetworkResources(self, publicIpSize=10, managementIpSize=5, storageIpSize=5, guestVLANSize=2, useIPv6=False):
+        ipResourceType = useIPv6 and 'IP6ADDR' or 'IP4ADDR'
+
+        self.publicIpResources = self.getResourceRange(resourceType=ipResourceType, numberRequired=publicIpSize)      
+        self.managementIpResources = self.getResourceRange(resourceType=ipResourceType, numberRequired=managementIpSize)      
+        self.storageIpResources = self.getResourceRange(resourceType=ipResourceType, numberRequired=storageIpSize)
+        self.guestVLANResources = self.getResourceRange(resourceType='VLAN', numberRequired=guestVLANSize)
+        if self.publicIpResources:
+            xenrt.TEC().logverbose('Public IP Address Range: Start: %s, End: %s' % (self.publicIpResources[0].getAddr(), self.publicIpResources[-1].getAddr()))
+        if self.managementIpResources:
+            xenrt.TEC().logverbose('Management IP Address Range: Start: %s, End: %s' % (self.managementIpResources[0].getAddr(), self.managementIpResources[-1].getAddr()))
+        if self.storageIpResources:
+            xenrt.TEC().logverbose('Storage IP Address Range: Start: %s, End: %s' % (self.storageIpResources[0].getAddr(), self.storageIpResources[-1].getAddr()))
+        if self.guestVLANResources:
+            xenrt.TEC().logverbose('Guest VLAN ID Range: Start: %s, End: %s' % (self.guestVLANResources[0].getID(), self.guestVLANResources[-1].getID()))
+
+    def releaseReservedNetworkResources(self):
+        xenrt.TEC().logverbose('Releasing network resources')
+        map(lambda x:x.release(), self.publicIpResources)
+        map(lambda x:x.release(), self.managementIpResources)
+        map(lambda x:x.release(), self.storageIpResources)
+        map(lambda x:x.release(), self.guestVLANResources)
+
+
+    def getNfsSrName(self, host):
+        nfsSrs = host.getSRs(type='nfs')
+        if len(nfsSrs) != 1:
+            raise xenrt.XRTError('Invalid number of NFS SRs: Expected 1, Actual: %d' % (len(nfsSrs)))
+        return host.genParamGet('sr', nfsSrs[0], 'name-label')
+
+
+    def installManSvrRHEL(self, manSvrVM, cloudArtifacts):
+        if cloudArtifacts['release'] == 'CCP':
+            manSvrVM.execguest('wget %s -O cp.tar.gz' % (cloudArtifacts['mansvr']))
+            manSvrVM.execguest('mkdir cloudplatform')
+            manSvrVM.execguest('tar -zxvf cp.tar.gz -C /root/cloudplatform')
+            installDir = os.path.dirname(manSvrVM.execguest('find cloudplatform/ -type f -name install.sh'))
+            manSvrVM.execguest('cd %s && ./install.sh -m' % (installDir))
+        else:
+            raise xenrt.XRTError('Installing release type %s not implemented' % (cloudArtifacts['release']))
+
+        manSvrVM.execguest('setenforce Permissive')
+        manSvrVM.execguest('service nfs start')
+
+        manSvrVM.execguest('yum -y install mysql-server mysql')        
+        manSvrVM.execguest('service mysqld restart')
+
+        manSvrVM.execguest('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+        manSvrVM.execguest('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+        manSvrVM.execguest('mysqladmin -u root password xensource')
+        manSvrVM.execguest('service mysqld restart')
+
+        setupDbLoc = manSvrVM.execguest('find /usr/bin -name %s-setup-databases' % (cloudArtifacts['cmdprefix'])).strip()
+        manSvrVM.execguest('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+
+        manSvrVM.execguest('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+        setupMsLoc = manSvrVM.execguest('find /usr/bin -name %s-setup-management' % (cloudArtifacts['cmdprefix'])).strip()
+        manSvrVM.execguest(setupMsLoc)
+
+
+    def installCSManSvrUbuntu1204(self, manSvrVM, cloudArtifacts):
+        hostname = manSvrVM.execguest('hostname --fqdn').strip()
+        # TODO Check host name
+
+        manSvrVM.execguest("echo 'deb http://ftp.ubuntu.com/ubuntu precise universe' >> /etc/apt/sources.list")
+        manSvrVM.execguest('apt-get update')
+        manSvrVM.execguest('apt-get install openntpd')
+
+        if cloudArtifacts['release'] == 'ACS':
+            manSvrVM.execguest('touch /etc/apt/sources.list.d/cloudstack.list')
+#        manSvrVM.execguest("echo 'deb http://cloudstack.apt-get.eu/ubuntu precise 4.0' >> /etc/apt/sources.list.d/cloudstack.list")
+            manSvrVM.execguest("echo 'deb http://cloudstack.apt-get.eu/ubuntu precise %s' >> /etc/apt/sources.list.d/cloudstack.list" % (cloudArtifacts['mansvr']['version']))
+            manSvrVM.execguest('wget -O - http://cloudstack.apt-get.eu/release.asc|apt-key add -')
+            manSvrVM.execguest('apt-get update')
+
+            manSvrVM.execguest('apt-get -y --force-yes install %s' % (cloudArtifacts['mansvr']['package-name']), timeout=60*60)
+        elif cloudArtifacts['release'] == 'ACS-prerelease':
+            destLocation = '/tmp'
+            for pkgUrl in cloudArtifacts['mansvr']:
+                manSvrVM.execguest('wget %s -P %s' % (pkgUrl, destLocation))
+
+            try:
+                manSvrVM.execguest('dpkg -i %s' % (os.path.join(destLocation, '*.deb')))
+            except xenrt.XRTFailure, e:
+                xenrt.TEC().logverbose('Expected error: %s' % (e.data))
+            manSvrVM.execguest('apt-get -y -f install')
+        else:
+            raise xenrt.XRTError('Installing release type %s not implemented' % (cloudArtifacts['release']))
+
+
+#        self.installLastGoodManSvrPkg(manSvrVM, version='4.2')
+#        self.install41PublicManSvrPkg(manSvrVM)
+
+       # TODO - needs fixing
+#        manSvrVM.execguest('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -O /usr/lib/cloud/common/scripts/vm/hypervisor/xenserver/vhd-util')
+        manSvrVM.execguest('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -O /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
+
+#        manSvrVM.execguest('export DEBIAN_FRONTEND=noninteractive')
+        manSvrVM.execguest('apt-get -q -y install mysql-server')
+        manSvrVM.execguest('mysqladmin -u root password xensource')
+
+
+        manSvrVM.execguest('cp /etc/mysql/my.cnf /etc/mysql/my.cnf.bak')
+        manSvrVM.execguest('sed s/bind-address/#bind-address/ /etc/mysql/my.cnf.bak > /etc/mysql/my.cnf')
+
+
+        mySqlConfFile = '/etc/mysql/conf.d/cloudstack.cnf'
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        fh.write("[mysqld]\n")
+        fh.write("innodb_rollback_on_timeout=1\n")
+        fh.write("innodb_lock_wait_timeout=600\n")
+        fh.write("max_connections=350\n")
+        fh.write("log-bin=mysql-bin\n")
+        fh.write("binlog-format = 'ROW'\n") 
+#        fh.write("bind-address = %s\n" % (manSvrVM.getIP()))
+        fh.close()
+        sftp = manSvrVM.sftpClient()
+        sftp.copyTo(fn, mySqlConfFile)
+        sftp.close()
+
+        manSvrVM.execguest('service mysql restart')
+
+        setupDbLoc = manSvrVM.execguest('find /usr/bin -name %s-setup-databases' % (cloudArtifacts['cmdprefix'])).strip()
+        manSvrVM.execguest('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+ 
+        setupMsLoc = manSvrVM.execguest('find /usr/bin -name %s-setup-management' % (cloudArtifacts['cmdprefix'])).strip()
+        manSvrVM.execguest(setupMsLoc)
+
+    def restartManagementService(self, manSvrVM, cmdPrefix):
+        manSvrVM.execguest('service %s-management stop' % (cmdPrefix))
+        # Wait for service to stop (Campo bug - service stop completes before service actually stops)
+        xenrt.sleep(120)
+
+        manSvrVM.execguest('service %s-management start' % (cmdPrefix))
+        # Wait for service to start
+        xenrt.sleep(180)
+
+    def createMarvinConfigFile(self, manSvrIPAddr, hostAddrList=None):
+        marvinCfg = {}
+        marvinCfg['dbSvr'] = {}
+        marvinCfg['dbSvr']['dbSvr'] = manSvrIPAddr
+        marvinCfg['dbSvr']['passwd'] = 'cloud'
+        marvinCfg['dbSvr']['db'] = 'cloud'
+        marvinCfg['dbSvr']['port'] = 3306
+        marvinCfg['dbSvr']['user'] = 'cloud'
+
+        marvinCfg['logger'] = []
+        marvinCfg['logger'].append({'name': 'TestClient', 'file': '/tmp/testclient.log'})
+        marvinCfg['logger'].append({'name': 'TestCase', 'file': '/tmp/testcase.log'})
+
+        marvinCfg['globalConfig'] = [
+            { "name": "network.gc.wait", "value": "60" },
+            { "name": "storage.cleanup.interval", "value": "300" },
+            { "name": "vm.op.wait.interval", "value": "5" },
+            { "name": "default.page.size", "value": "10000" },
+            { "name": "network.gc.interval", "value": "60" },
+#            { "name": "instance.name", "value": "QA" },
+            { "name": "workers", "value": "10" },
+            { "name": "account.cleanup.interval", "value": "600" },
+#            { "name": "guest.domain.suffix", "value": "sandbox.simulator" },
+            { "name": "expunge.delay", "value": "60" },
+            { "name": "vm.allocation.algorithm", "value": "random" },
+            { "name": "expunge.interval", "value": "60" },
+            { "name": "expunge.workers", "value": "3" },
+            { "name": "check.pod.cidrs", "value": "true" },
+#            { "name": "secstorage.allowed.internal.sites", "value": "10.147.28.0/24" },
+            { "name": "direct.agent.load.size", "value": "1000" } ]
+
+        marvinCfg['mgtSvr'] = []
+        marvinCfg['mgtSvr'].append({'mgtSvrIp': manSvrIPAddr, 'port': 8096})
+
+        if hostAddrList:
+            hostList = []
+            for addr in hostAddrList:
+                hostList.append( {"username": "root", "password": xenrt.TEC().lookup("ROOT_PASSWORD"), "url": "http://%s" % (addr)} )
+            cluster = {"clustername": "Test Cluster", "hypervisor": "XenServer", "hosts": hostList}
+            pod = {"name": "Test Pod", "clusters": [cluster]}
+            zone = {"name": "TestZone", "networktype": "Advanced", "pods": [pod]}
+            marvinCfg["zones"] = [zone] 
+
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        json.dump(marvinCfg, fh)
+        fh.close()
+        return fn
+
+    def getArtifactsFromJenkins(self, configDict):
+        j = Jenkins(configDict['jenkinsurl'])
+        if configDict['jenkinsjobid'] not in j.keys():
+            raise xenrt.XRTError('No Jenkins job found with id: %s' % (configDict['jenkinsjobid']))
+
+        lastGoodBuild = j[configDict['jenkinsjobid']].get_last_good_build()
+        artifacts = lastGoodBuild.get_artifact_dict()
+
+        if isinstance(configDict['artifacts'], list):
+            urlList = []
+            for artifactName in configDict['artifacts']:
+                artifactList = filter(lambda x:x.startswith(artifactName), artifacts)
+                xenrt.TEC().logverbose('Found %d artifacts with name: %s %s' % (len(artifactList), artifactName, artifactList))
+                if not len(artifactList) == 1:
+                    raise xenrt.XRTError('Could not find unique Jenkins artifact from name %s' % (artifactName))
+                urlList.append(artifacts[artifactList[0]].url)
+            return urlList
+        else:
+            artifactList = filter(lambda x:x.startswith(configDict['artifacts']), artifacts)
+            xenrt.TEC().logverbose('Found %d artifacts with name: %s %s' % (len(artifactList), configDict['artifacts'], artifactList))
+            if not len(artifactList) == 1:
+                raise xenrt.XRTError('Could not find unique Jenkins artifact from name %s' % (configDict['artifacts']))
+            return artifacts[artifactList[0]].url
+
+    def getCloudArtifacts(self, cloudRelease=None):
+        if not cloudRelease:
+            cloudRelease = xenrt.TEC().lookup("CLOUD_RELEASE", default='ccp-campo')
+            if not self.CLOUD_ARTIFACTS.has_key(cloudRelease):
+                raise xenrt.XRTError('Cloud artifacts lookup failed for %s' % (cloudRelease))
+
+        releaseDict = self.CLOUD_ARTIFACTS[cloudRelease]
+        if isinstance(releaseDict['mansvr'], dict) and releaseDict['mansvr'].has_key('jenkinsurl'):
+            releaseDict['mansvr'] = self.getArtifactsFromJenkins(releaseDict['mansvr'])
+
+        if isinstance(releaseDict['systemvm'], dict) and releaseDict['systemvm'].has_key('jenkinsurl'):
+            releaseDict['systemvm'] = self.getArtifactsFromJenkins(releaseDict['systemvm'])
+
+        if isinstance(releaseDict['marvin'], dict) and releaseDict['marvin'].has_key('jenkinsurl'):
+            releaseDict['marvin'] = self.getArtifactsFromJenkins(releaseDict['marvin'])
+
+        for (k,v) in releaseDict.items():
+            xenrt.TEC().comment('%s: %s' % (k,v))
+        return releaseDict
+
+
+    def installCSTestControllerUbuntu1204(self, testContVM, cloudArtifacts):
+        testContVM.execguest("echo 'deb http://ftp.ubuntu.com/ubuntu precise universe' >> /etc/apt/sources.list")
+        testContVM.execguest('apt-get update')
+        testContVM.execguest('apt-get -y install python-pip python-dev build-essential git')
+
+        srcMarvinLocation = cloudArtifacts['marvin']
+        destMarvinLocation = os.path.join('/tmp', os.path.basename(srcMarvinLocation))
+        testContVM.execguest('wget %s -O %s' % (srcMarvinLocation, destMarvinLocation))
+
+        testContVM.execguest('pip install %s' % (destMarvinLocation))
+        testContVM.execguest('tar -zxvf %s' % (destMarvinLocation))
+        
+        branchStr = ''
+        if cloudArtifacts.has_key('tcbranch'):
+            branchStr = '-b %s' % (cloudArtifacts['tcbranch'])
+        testContVM.execguest('git clone --depth=1 %s %s' % (branchStr, self.CS_GIT_REPO), timeout=1800)
+
+    def parseXUnitResults(self, xUnitResultFile):
+        fh = open(xUnitResultFile)
+        xmlStr = fh.read()
+        fh.close()
+
+        treeData = etree.fromstring(xmlStr)
+        resultData = { 'tests':    int(treeData.get('tests')),
+                       'errors':   int(treeData.get('errors')), 
+                       'failures': int(treeData.get('failures')),
+                       'skipped':  int(treeData.get('skip'))
+                     }
+        return resultData 
+
+    def getLogs(self, logsubdir, marvinLogFolderPath=None, testContVM=None, manSvrVM=None):
+        if testContVM:
+            sftp = testContVM.sftpClient()
+            sftp.copyTreeFrom(marvinLogFolderPath, logsubdir)
+
+#            logFiles = testContVM.execguest('find /tmp -type f -name *.log').splitlines()
+#            for logFile in logFiles:
+#                sftp.copyFrom(logFile, os.path.join(logsubdir, os.path.basename(logFile)))
+            sftp.close()
+
+        if manSvrVM:
+            sftp = manSvrVM.sftpClient()
+            manSvrLogsLoc = manSvrVM.execguest('find /var/log -type f -name management-server.log').strip()
+            sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), logsubdir)
+            sftp.close()
+
+    def executeMarvinTest(self, testContVM, manSvrVM, configFile, testName=None, tag=None, storeLogs=True, checkResults=True, legacyLogCollection=True):
+        pollPeriod = 300
+        result = None
+        logDir = ''
+
+        marvinLogFolderPath = '/tmp/marvinlogs/'
+        if testContVM.execguest('test -e %s' % (marvinLogFolderPath), retval="code") != 0: 
+            testContVM.execguest('mkdir %s' % (marvinLogFolderPath))
+
+        marvinConfigLocation = os.path.join(marvinLogFolderPath, 'marvincfg.cfg')
+        xunitResultsLocation = os.path.join(marvinLogFolderPath, 'marvin.xml')
+
+        sftp = testContVM.sftpClient()
+        sftp.copyTo(configFile, marvinConfigLocation)
+
+
+        if legacyLogCollection:
+            clientLogLocation = os.path.join(marvinLogFolderPath, 'marvin.client.log')
+            resultLogLocation = os.path.join(marvinLogFolderPath, 'marvin.results.log')
+
+            execCommand = 'nosetests -v --logging-level=DEBUG --result-log=%s --client-log=%s --with-marvin --marvin-config=%s --with-xunit --xunit-file=%s' % (resultLogLocation, clientLogLocation, marvinConfigLocation, xunitResultsLocation)
+        else:
+            execCommand = 'nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=%s --with-xunit --xunit-file=%s' % (marvinLogFolderPath, marvinConfigLocation, xunitResultsLocation)
+ 
+        if testName:
+            testLocation = testContVM.execguest('find cloudstack/test/ -type f -name %s' % (testName)).strip()
+            execCommand += ' --load %s' % (testLocation)
+            logDir = testName
+        elif tag:
+            execCommand += ' --load -a tags=%s cloudstack/test/integration/smoke' % (tag)
+            logDir = tag
+        else:
+            # Don't get logs when we are just applying Marvin config.
+            pollPeriod = 30
+            logDir = 'deploy'
+
+        # Specify excluded tests
+        testExcludeStr = ''
+        for excludedTest in self.EXCLUDED_MARVIN_TESTS:
+            xenrt.TEC().comment('Excluding tests that match the REGEX: %s' % (excludedTest))
+            testExcludeStr += ' --exclude=%s' % (excludedTest)
+        execCommand += testExcludeStr
+
+        pid = int(testContVM.execguest('%s &> /dev/null & echo $!' % (execCommand)).strip())
+        xenrt.TEC().logverbose('Marvin nosetests started with PID: %d' % (pid))
+        while (testContVM.execguest('ps -p %d' % (pid), retval='code') == 0):
+            xenrt.sleep(pollPeriod)
+
+        if storeLogs:
+            logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', logDir)
+            if not os.path.exists(logsubdir):
+                os.makedirs(logsubdir)
+ 
+            self.getLogs(logsubdir, marvinLogFolderPath, testContVM, manSvrVM)
+
+            if checkResults:
+                xmlFileDest = os.path.join(logsubdir, os.path.basename(xunitResultsLocation))
+                result = self.parseXUnitResults(xmlFileDest)
+        sftp.close()
+
+        return result
+ 
+    def configureCloudstack(self, testContVM, manSvrVMAddr, secondaryStoragePath, hostAddr, networkNames, primaryStorageNameLabel):
+        config = self.CLOUD_CONFIG
+
+        config['dnsAddr'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+        config['gateway'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+        config['netmask'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+
+        config['publicRange'] = [self.publicIpResources[0].getAddr(), self.publicIpResources[-1].getAddr()]
+        config['managementRange'] = [self.managementIpResources[0].getAddr(), self.managementIpResources[-1].getAddr()]
+        config['storageRange'] = [self.storageIpResources[0].getAddr(), self.storageIpResources[-1].getAddr()]
+        config['guestVLANRange'] = [int(self.guestVLANResources[0].getID()), int(self.guestVLANResources[-1].getID())]
+
+        config['mgtSvrIpAddr'] = manSvrVMAddr
+        config['hostAddr'] = hostAddr
+        config['priStor'] = primaryStorageNameLabel
+        config['secStor'] = secondaryStoragePath
+
+        config['infraNetwork'] = networkNames['infra']
+        config['guestNetwork'] = networkNames['guest']
+        config['storageNetwork'] = networkNames['storage']
+
+        xenrt.TEC().logverbose(config)
+
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        json.dump(config, fh)
+        fh.close()
+
+        cloudConfigLocation = '/tmp/cloudcfg.cfg'
+        configureScriptLocation = '/tmp/cloudConfigure.py'
+        sftp = testContVM.sftpClient()
+        sftp.copyTo(fn, cloudConfigLocation)
+
+        cloudScriptDir = os.path.join(xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), 'cloud')
+        sftp.copyTo(os.path.join(cloudScriptDir, 'cloudConfigure.py'), configureScriptLocation)
+
+        testContVM.execguest('python %s %s' % (configureScriptLocation, cloudConfigLocation))
+
+    def postInstallCSManSvr(self, manSvrVM, secondaryStorageServerPath, cloudArtifacts):
+        # Install service VMs
+        manSvrVM.execguest('mount %s /media' % (secondaryStorageServerPath))
+        installSysTmpltLoc = manSvrVM.execguest('find / -name *install-sys-tmplt').strip()
+        manSvrVM.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, cloudArtifacts['systemvm']), timeout=60*60)
+#        manSvrVM.execguest('/usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt -m /media -u %s -h xenserver -F' % (systemVMUrl), timeout=60*60)
+        manSvrVM.execguest('umount /media')
+
+        # Set the API port
+        manSvrVM.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+
+        self.restartManagementService(manSvrVM, cloudArtifacts['cmdprefix'])
+
+    def _getConnectedNonManagementPifUUIDs(self, host):
+        pifUUIDs = host.minimalList('pif-list', 'uuid', 'management=false')
+        connectedPifUUIDs = filter(lambda x:host.genParamGet('pif', x, 'carrier') == 'true', pifUUIDs)
+        return connectedPifUUIDs
+
+    def xsHostWorkarounds(self, pool):
+        # Tampa + CS 4.1
+        pool.master.execdom0('ln -s /usr/bin/vhd-util /opt/xensource/bin')
+
+    def _prepareXSHosts(self, pool):
+#        self.xsHostWorkarounds(pool)
+        networkNames = {'infra': None, 'guest': None, 'storage': None}
+
+        infraNetworkUUID = pool.master.minimalList("pif-list", "network-uuid", "management=true host-uuid=%s" % pool.master.getMyHostUUID())[0]
+        networkNames['infra'] = self.updateNetworkNameLabel(pool.master, infraNetworkUUID, newName='cs-infra')
+
+        nonManPIFUUIDs = self._getConnectedNonManagementPifUUIDs(pool.master)
+        nwList = pool.master.parameterList('network-list', ['uuid', 'PIF-uuids'])
+        nonManNwList = filter(lambda x:x['uuid'] != infraNetworkUUID, nwList)
+        connectedNetworkUuids = []
+        for nwData in nonManNwList:
+            if nwData['PIF-uuids'] != '':
+                pifs = nwData['PIF-uuids'].split(';')
+                if len(pifs) == len(pool.getHosts()):
+                    disconnectedPIFs = filter(lambda x:x.strip() not in nonManPIFUUIDs, pifs)
+                    if len(disconnectedPIFs) == 0:
+                        connectedNetworkUuids.append(nwData['uuid'])
+
+        if len(connectedNetworkUuids) == 0:
+            raise xenrt.XRTError('No physical network available for the guest network')
+        elif len(connectedNetworkUuids) > 1:
+            storageNetworkUUID = connectedNetworkUuids[1]
+            networkNames['storage'] = self.updateNetworkNameLabel(pool.master, storageNetworkUUID, newName='storage')
+
+        guestNetworkUUID = connectedNetworkUuids[0]
+        networkNames['guest'] = self.updateNetworkNameLabel(pool.master, guestNetworkUUID, newName='guest')
+
+        return networkNames
+
+    def _prepareCSManSvr(self, infrastructureHost, secondaryStorage, cloudArtifacts): 
+        existingGuests = infrastructureHost.listGuests()
+        if self.CS_MAN_SVR_VM_NAME in existingGuests:
+            manSvrVM = infrastructureHost.getGuest(self.CS_MAN_SVR_VM_NAME)
+        else:
+            # Create VM
+            pass
+
+        if not cloudArtifacts['distro'] == manSvrVM.distro:
+            raise xenrt.XRTError('No VM with distro %s' % (cloudArtifacts['distro']))
+
+        if manSvrVM.distro == 'ubuntu1204':
+            self.installCSManSvrUbuntu1204(manSvrVM, cloudArtifacts)
+        elif manSvrVM.distro.startswith('rhel'):
+            self.installManSvrRHEL(manSvrVM, cloudArtifacts)
+        else:
+            raise xenrt.XRTError('No method for installing Citrix Cloud on %s' % (manSvrVM.distro))
+
+        self.postInstallCSManSvr(manSvrVM, secondaryStorage.getMount(), cloudArtifacts)
+        manSvrVM.checkpoint(name='Fresh-Mngmt-Server')
+        return manSvrVM
+
+    def _prepareCSTestController(self, infrastructureHost, cloudArtifacts):
+        existingGuests = infrastructureHost.listGuests()
+        if self.TEST_CONTROLLER_VM_NAME in existingGuests:
+            testContVM = infrastructureHost.getGuest(self.TEST_CONTROLLER_VM_NAME)
+        else:
+            # Create VM
+            pass        
+
+        self.installCSTestControllerUbuntu1204(testContVM, cloudArtifacts)
+        return testContVM        
+
+    def changeCloudHostProductVersion(self, pool, newVersion='6.2.0'):
+        xenrt.TEC().warning('Changing product version to be CCP compatible')
+
+        hosts = [pool.master] + pool.getSlaves()
+        for host in hosts:
+            inventory = host.execdom0('cat /etc/xensource-inventory')
+            newInventory = re.sub("PRODUCT_VERSION='.*'", "PRODUCT_VERSION='%s'" % (newVersion), inventory)
+
+            host.execdom0('echo "%s" > /etc/xensource-inventory' % (newInventory))
+            host.restartToolstack()
+            if pool.master.genParamGet(ptype='host', uuid=host.uuid, param='software-version', pkey='product_version') != newVersion:
+                raise xenrt.XRTError('Failed to modify product version')
+
+    def prepare(self, arglist):
+        cloudArtifacts = self.getCloudArtifacts()
+
+        self.infrastructureHost = self.getHost("RESOURCE_HOST_0")
+        self.xsPool = self.getDefaultPool()
+        version = self.xsPool.master.checkVersion(versionNumber=True)
+        # Run trunk against Clearwater templates
+        if version == '6.2.50':
+            self.changeCloudHostProductVersion(self.xsPool)
+
+        xenrt.TEC().comment('Infrastructure Host: %s, Pool Master: %s, Slaves: %s' % (self.infrastructureHost.getName(), self.xsPool.master.getName(), self.xsPool.listSlaves()))
+
+        self.secondaryStorage = xenrt.ExternalNFSShare()
+
+        prepareTasks = []
+        prepareTasks.append(xenrt.PTask(self._prepareCSManSvr, self.infrastructureHost, self.secondaryStorage, cloudArtifacts))
+        prepareTasks.append(xenrt.PTask(self._prepareCSTestController, self.infrastructureHost, cloudArtifacts))
+
+        (self.manSvrVM, self.testContVM) = xenrt.pfarm(prepareTasks)
+
+    def run(self, arglist=None):
+        pass
+
+    def postRun(self):
+        self.releaseReservedNetworkResources()
+        self.secondaryStorage.release()
+        self.manSvrVM.shutdown()
+
+class TCBasicCloudStack(CitrixCloudBase):
+
+    def run(self, arglist=None):
+        self.reserveNetworkResources(publicIpSize=10, managementIpSize=5, storageIpSize=0, guestVLANSize=0, useIPv6=False)
+        secondaryStoragePath = self.secondaryStorage.getMount().replace(':','')
+
+        dnsAddr = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+        gateway = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+        netmask = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+
+        marvinConf = MarvinConfig(self.manSvrVM.getIP())
+        zone = marvinConf.addBasicZone('TestZone', dnsAddr, secondaryStoragePath)
+        pod = marvinConf.addPod('TestPod', zone, netmask, gateway, [self.publicIpResources[0].getAddr(), self.publicIpResources[-1].getAddr()],
+                                                                   [self.managementIpResources[0].getAddr(), self.managementIpResources[-1].getAddr()])
+        cluster = marvinConf.addCluster('TestCluster', pod, map(lambda x:x.getIP(), self.xsPool.getHosts()), primaryStorageSRName='CS-PRI')
+        marvinConfigFile = marvinConf.createJSONMarvinConfigFile()
+
+        self.executeMarvinTest(self.testContVM, self.manSvrVM, marvinConfigFile, storeLogs=True, checkResults=False, legacyLogCollection=False)
+
+        cloudArtifacts = self.getCloudArtifacts()
+        self.restartManagementService(self.manSvrVM, cloudArtifacts['cmdprefix'])
+
+    def postRun(self):
+        # Don't release the resources - they will be released by the XenRT resource clean-up mechanism
+        pass
+
+class TCCloudStackBvt(CitrixCloudBase):
+
+    def run(self, arglist=None):
+        self.reserveNetworkResources(publicIpSize=10, managementIpSize=5, storageIpSize=5, guestVLANSize=2, useIPv6=False)
+        networkNames = self._prepareXSHosts(self.xsPool)
+        secondaryStoragePath = self.secondaryStorage.getMount().replace(':','')
+
+        try:
+            self.configureCloudstack(self.testContVM, self.manSvrVM.getIP(), secondaryStoragePath, self.xsPool.master.getIP(), networkNames, self.getNfsSrName(self.xsPool.master))
+        except Exception as e:
+            raise e
+        finally:
+            logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'deploy')
+            if not os.path.exists(logsubdir):
+                os.makedirs(logsubdir)
+            self.getLogs(logsubdir, manSvrVM=self.manSvrVM)
+
+        marvinConfigFile = self.createMarvinConfigFile(self.manSvrVM.getIP())
+        self.executeMarvinTest(self.testContVM, self.manSvrVM, marvinConfigFile, storeLogs=False)
+
+        cloudArtifacts = self.getCloudArtifacts()
+        self.restartManagementService(self.manSvrVM, cloudArtifacts['cmdprefix'])
+
+        marvinConfigFile = self.createMarvinConfigFile(self.manSvrVM.getIP(), map(lambda x:x.getIP(), self.xsPool.getHosts()))
+        testResult = self.executeMarvinTest(self.testContVM, self.manSvrVM, marvinConfigFile, tag='smoke')
+
+        xenrt.TEC().comment('Marvin tests executed: %d' % (testResult['tests']))
+        xenrt.TEC().comment('Marvin tests failed:   %d' % (testResult['failures']))
+        xenrt.TEC().comment('Marvin test errors:    %d' % (testResult['errors']))
+        xenrt.TEC().comment('Marvin tests skipped:  %d' % (testResult['skipped']))
+

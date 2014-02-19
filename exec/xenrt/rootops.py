@@ -1,0 +1,135 @@
+#
+# XenRT: Test harness for Xen and the XenServer product family
+#
+# Priviledged operations
+#
+# Copyright (c) 2006 XenSource, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and
+# conditions as licensed by XenSource, Inc. All other rights reserved.
+#
+
+import string, sys, os, tempfile, traceback, stat, shutil, time
+import xenrt, xenrt.util
+
+# Symbols we want to export from the package.
+__all__ = ["MountISO",
+           "MountNFS",
+           "MountNFSv3",
+           "nmap",
+           "sudo"]
+    
+class Mount:
+    def __init__(self, device, options=None, mtype=None, retry=True):
+        self.mounted = 0
+        exceptiondata = None
+        try:
+            self.mountpoint = tempfile.mkdtemp("", "xenrt", "/tmp")
+            xenrt.TEC().logverbose("Created mountpoint %s" % (self.mountpoint))
+            xenrt.TEC().gec.registerCallback(self)
+            os.chmod(self.mountpoint,
+                     stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+            for i in range(3):
+                cmd = ["sudo", "mount"]
+                if options:
+                    cmd.append("-o%s" % (options))
+                if mtype:
+                    cmd.append("-t %s" % (mtype))
+                cmd.append(device)
+                cmd.append(self.mountpoint)
+                try:
+                    xenrt.util.command(string.join(cmd))
+                    self.mounted = 1
+                except xenrt.XRTFailure, e:
+                    exceptiondata = e.data
+                if self.mounted == 1:
+                    break
+                if not retry:
+                    break
+                # wait a bit then try again
+                xenrt.sleep(120)
+            
+            if not self.mounted:    
+                xenrt.TEC().logverbose("Error mounting %s at %s" %
+                                       (device, self.mountpoint))
+                raise xenrt.XRTError("Unable to mount %s" % (device),
+                                     exceptiondata)
+            xenrt.TEC().logverbose("Mounted %s at %s" %
+                                   (device, self.mountpoint))
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            raise
+
+    def getMount(self):
+        return self.mountpoint
+
+    def unmount(self):
+        if self.mounted:
+            xenrt.TEC().logverbose("Unmounting %s" % (self.mountpoint))
+            tries = 3
+            while tries > 0:
+                if xenrt.util.command("sudo umount %s" % (self.mountpoint),
+                                      retval="code") == 0:
+                    break
+                xenrt.TEC().logverbose("Error unmounting %s" %
+                                       (self.mountpoint))
+                tries = tries - 1
+                if tries == 0:
+                    raise xenrt.XRTError("Unable to umount %s" %
+                                         (self.mountpoint))
+                xenrt.sleep(15)
+            self.mounted = 0
+
+    def callback(self):
+        if self.mounted:
+            xenrt.TEC().logverbose("Unmounting %s" % (self.mountpoint))
+            if xenrt.util.command("sudo umount %s" % (self.mountpoint),
+                                    retval="code"):
+                xenrt.TEC().logverbose("Error unmounting %s" %
+                                       (self.mountpoint))
+            else:
+                self.mounted = 0
+        if self.mountpoint:
+            try:
+                if os.path.exists(self.mountpoint):
+                    xenrt.TEC().logverbose("Removing directory %s" %
+                                           (self.mountpoint))
+                    os.removedirs(self.mountpoint)
+            except OSError:
+                xenrt.TEC().logerror("Error removing directory %s" %
+                                     (self.mountpoint))
+
+class MountISO(Mount):
+    """Mount an ISO so we can extract files."""
+    def __init__(self, iso):
+        Mount.__init__(self, iso, options="loop,ro")
+
+class MountNFS(Mount):
+    def __init__(self, nfs, retry=True):
+        Mount.__init__(self, nfs, options="nfsvers=2", mtype="nfs", retry=retry)
+
+class MountNFSv3(Mount):
+    def __init__(self, nfs, retry=True):
+        Mount.__init__(self, nfs, options="nfsvers=3", mtype="nfs", retry=retry)
+
+
+def nmap(target, xmlfile, output):
+    """Run nmap against the specified target."""
+    # Make temporary output files which we can later copy, this avoids
+    # the final copies being owned by root
+    f, txmlfile = tempfile.mkstemp()
+    os.close(f)
+    os.chmod(txmlfile,
+             stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+    f, toutfile = tempfile.mkstemp()
+    os.close(f)
+    os.chmod(toutfile,
+             stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+    xenrt.util.command("sudo nmap -vvv -p1- -T4 -n -R -sV -oN %s -oX %s %s" %
+                       (toutfile, txmlfile, target))
+    shutil.copy(txmlfile, xmlfile)
+    shutil.copy(toutfile, output)
+    xenrt.util.command("sudo rm -f %s %s" % (txmlfile, toutfile))
+
+def sudo(command):
+    return xenrt.util.command("sudo %s" % (command))
+    

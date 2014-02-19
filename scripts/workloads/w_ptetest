@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# xenrt: Xen regression Testing
+#
+# Workload: memtest
+#
+# (C) XenSource UK Ltd, 2005-2007
+
+THISSCRIPT=`basename $0`
+
+run() {
+    touch /tmp/ptetest-run
+    while [ -e /tmp/ptetest-run ]; do
+        /tmp/ptetest
+    done
+}
+
+stop() {
+    rm -f /tmp/ptetest-run
+    killall ptetest || true
+    sleep 5
+    killall ptetest || true
+}
+
+case "$1" in
+    start)
+	shift
+	rm -f /tmp/ptetest /tmp/ptetest.c
+        cp `dirname $0`/ptetest.c /tmp/
+	cd /tmp
+	gcc -o ptetest ptetest.c
+        $0 run "$@" > /dev/null 2>&1 < /dev/null &
+        ;;
+    stop)
+	shift
+	stop
+	;;
+    run)
+	shift
+	run "$@"
+	;;
+esac

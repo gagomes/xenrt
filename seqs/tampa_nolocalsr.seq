@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <SR_ON_PRIMARY_DISK>no</SR_ON_PRIMARY_DISK>
+    <OPTION_NO_DISK_CLAIM>yes</OPTION_NO_DISK_CLAIM>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <testsequence>
+    <serial tc="TC-19274">
+      <testcase id="xenserver.install.TCXenServerInstall" blocker="yes"/>
+      <testcase id="xenserver.tc.host.NoLocalSR"/>  
+    </serial>
+  </testsequence>
+
+</xenrt>

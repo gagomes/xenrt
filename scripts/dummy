@@ -1,0 +1,93 @@
+#!/bin/bash
+
+SCRIPTDIR=`dirname $0`
+. ${SCRIPTDIR}/config
+
+TIMEOUT=45
+
+RETVAL=0
+
+set -e
+
+. ${SCRIPTDIR}/functions
+
+install() {
+    mkdir -p ${WORKDIR}/logs
+    touch ${WORKDIR}/.setupcomplete
+}
+
+run() {
+    sleep 20
+    set > ${WORKDIR}/logs/env.txt
+    touch ${WORKDIR}/.xenrt-success
+}
+
+xxxstart() {
+
+    if [ '!' -e ${WORKDIR}/.setupcomplete ]; then
+      exit ${RC_NOT_SETUP}
+    fi
+
+    date +%s > ${WORKDIR}/.started
+    sleep 20 > /dev/null < /dev/null 2> /dev/null &
+    echo $! > ${WORKDIR}/.pid
+    touch ${WORKDIR}/.xenrt-success
+}
+
+xxxstop() {
+    # TODO
+    echo stop
+}
+
+process() {
+    if [ -e ${WORKDIR}/.xenrt-success ]; then
+        echo "Test: passed"
+    else
+        echo "Test: failed"
+	RETVAL=1
+    fi
+}
+
+usage() {
+    echo $"Usage: $0 {install|start|stop|waitfor|process}"
+}
+
+getlogs() {
+    tar -jcf - -C ${WORKDIR}/logs .
+}
+
+#
+#===================================================
+#
+
+case "$1" in
+  install)
+        install
+        ;;
+  start)
+        start_run
+        ;;
+  stop)
+        stop_run
+        ;;
+  run)
+	run
+	;;
+  waitfor)
+	waitfor
+        ;;
+  process)
+        process
+        ;;
+  getlogs)
+        getlogs
+        ;;
+  cleanup)
+        cleanup_working_directory
+        ;;
+  *)
+        usage
+        exit 1
+esac
+
+exit $RETVAL

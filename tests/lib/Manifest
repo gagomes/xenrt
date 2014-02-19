@@ -1,0 +1,19 @@
+# Third party Python libraries
+# Type: directory
+# Status: downloadable
+# Obtaining:
+# The NetApp SDK  (Na*.py) can be obtained from https://communities.netapp.com/docs/DOC-1152
+# The Cisco UCS SDK can be obtained from http://developer.cisco.com/web/unifiedcomputing/sdk
+b5df84695b195405da11f224a3efe3ed  ./NaElement.py
+f39ce8c746c6284cac04820e9a609259  ./NaErrno.py
+42144a1c17c9ebfe3475391437f68af8  ./NaServer.py
+aedaeb5e2cef2ef61a19d3ec3ee2a2ff  ./UcsSdk/Constants.py
+1be58d145c1738553f839fff414a822f  ./UcsSdk/__init__.py
+ae616d7acad2b3d6aa18d0636253dc0e  ./UcsSdk/MethodMeta.py
+aaeb3172b9efcb50a4b64d9e320b5f61  ./UcsSdk/MoMeta.py
+494e06e6e476abec9c0e1f841dd3eefc  ./UcsSdk/Mos.py
+5c89e2aef267b078e4613c06891e5aec  ./UcsSdk/UcsBase.py
+6ea46ab7ee6af27565ce50fd4c42c855  ./UcsSdk/UcsHandle_Edit.py
+28caae63793807b6dc2940b8fe8550ac  ./UcsSdk/UcsHandle.py
+88af9d16829572a1071eb17bc70e6d5e  ./UcsSdk/Ucs.py
+aa1fcbac3e25285fb3e91402edff8a58  ./UcsSdk/WatchUcsGui.py

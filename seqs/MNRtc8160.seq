@@ -1,0 +1,28 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+       <PHYSICAL network="NSEC">
+         <NIC/>
+         <STORAGE/>
+       </PHYSICAL>
+     </NETWORK>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8160">
+      <testcase id="xenserver.tc.multipath.TC8160"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

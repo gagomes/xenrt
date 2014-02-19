@@ -1,0 +1,11 @@
+<xenrt>
+  <!-- Pool of 2 George-update-2 hosts (latest pre-v6d) -->
+  <default name="OLD_PRODUCT_VERSION" value="George-Update-2"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.5.0-Update2"/>
+  <prepare>
+    <pool id="0">
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="0" />
+      <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" id="1" />
+    </pool>
+  </prepare>
+</xenrt>

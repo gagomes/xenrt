@@ -1,0 +1,108 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+      <pool>
+        <storage type="nfs" name="fastStoreSR" default="true"/>
+        <allhosts/>
+        <NETWORK>
+          <PHYSICAL network="NPRI">
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <NIC/>
+            <MANAGEMENT mode="static"/>
+          </PHYSICAL>
+        </NETWORK>
+      </pool>
+    </prepare>
+
+    <testsequence>
+
+
+
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-45">
+        <arg>numdesktops=45</arg>
+      </testcase>
+
+<!--
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+        <arg>numdesktops=2</arg>
+      </testcase>
+-->
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-55">
+        <arg>numdesktops=55</arg>
+      </testcase>
+<!--
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-10">
+        <arg>numdesktops=10</arg>
+      </testcase>
+
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-20">
+        <arg>numdesktops=20</arg>
+      </testcase>
+
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-30">
+        <arg>numdesktops=30</arg>
+      </testcase>
+-->
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-40">
+        <arg>numdesktops=40</arg>
+      </testcase>
+
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-50">
+        <arg>numdesktops=50</arg>
+      </testcase>
+<!--
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-01">
+        <arg>numdesktops=1</arg>
+      </testcase>
+-->
+<!--
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-02">
+        <arg>numdesktops=2</arg>
+      </testcase>
+-->
+<!--
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-03">
+        <arg>numdesktops=3</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-05">
+        <arg>numdesktops=5</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-07">
+        <arg>numdesktops=7</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-15">
+        <arg>numdesktops=15</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-25">
+        <arg>numdesktops=25</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-35">
+        <arg>numdesktops=35</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.perf.tc_vmstart.TCTimeVMStarts" host="RESOURCE_HOST_0" name="TCTimeVMStarts-45">
+        <arg>numdesktops=45</arg>
+      </testcase>
+-->
+    </testsequence>
+  </xenrt>

@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Boston VM scalability test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <LINUX_DISTRO>rhel54</LINUX_DISTRO>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VM">
+    <testcase id="xenserver.tc.scalability.TC6848"/>
+    <testcase id="xenserver.tc.scalability.TC6853"/>
+    <testcase id="xenserver.tc.scalability.TC7336">  <!-- Testing for 150 VMs. (With default Dom0 memory, it can create a maximum of 50-60 VMs) -->
+        <arg>dom0mem=3072</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

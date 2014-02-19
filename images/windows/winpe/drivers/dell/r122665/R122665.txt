@@ -1,0 +1,135 @@
+Dell PowerEdge SAS 5x Adapter Device Driver 
+for Windows Server 2000 and 
+Windows Server 2003 x86 Edition
+
+Version 1.21.08.00
+
+
+TABLE OF CONTENTS
+=================
+
+1.0  Introduction
+2.0  Compatibility / Minimum Requirements
+3.0  Install Instructions
+     3.1  Installing the Driver During Operating System Installation
+     3.2  Installing a Windows Driver for a New SAS 5 Controller
+     3.3  Updating an Existing Windows Driver
+4.0  Fixes or Enhancements in this Release
+5.0  Additional Information
+6.0  Revision History
+
+
+1.0 Introduction
+================
+
+This is the driver for following controllers:
+ 
+    SAS 5x Adapters
+
+
+2.0 Compatibility / Minimum Requirements
+========================================
+
+This device driver requires the following minimum Operating System version:
+
+Windows Server 2003 x86 Edition
+Windows Server 2000, Service Pack 4
+
+
+3.0 Install Instructions
+========================
+
+This is a self-extracting package of the Windows device driver 
+installation diskette for SAS 5 adapters.
+	
+To build the installation diskette, execute the package, directing its output 
+to an empty, formatted diskette.
+
+3.1 Installing the Driver during Operating System Installation
+--------------------------------------------------------------
+
+1. Boot the system using the Microsoft Windows CD.
+2. When the message Press F6 if you need to install a third party SCSI or RAID
+   driver appears, press the <F6> key immediately.
+   Within a few minutes, a screen appears that asks for additional controllers 
+   in the system.
+3. Press the <S> key.
+   The system prompts for the driver diskette to be inserted.
+4. Insert the driver diskette in the floppy drive and press the <Enter> key.
+   A list of SAS adapters appears.
+5. Select the right driver for the installed adapter and press the <Enter>
+   key to load the driver.
+6. Press the <Enter> key again to continue the installation process as usual.
+
+
+3.2 Installing a Windows Driver for a New SCSI/RAID Controller
+--------------------------------------------------------------
+
+Perform the following steps to configure the driver when you add the SCSI/RAID 
+adapter to a system that already has Windows installed.
+
+1. Power down the system.
+2. Install the new SCSI/RAID adapter in the system.
+   Refer to Hardware Installation for detailed instructions on installing and
+   cabling the SCSI/RAID adapter in the system.
+3. Power on the system.
+   The Windows operating system should detect the new adapter and display a
+   message to inform the user.
+4. The Found New Hardware Wizard screen pops up and displays the detected 
+   hardware device.
+5. Click Next.
+6. On the Locate device driver screen, select Search for a suitable driver for
+   my device and click Next.
+7. Insert the appropriate driver diskette and select Floppy disk drives on the
+   Locate Driver Files screen.
+8. Click Next.
+9. The wizard detects and installs the appropriate device drivers for the new
+   SCSI/RAID controller.
+10. Click Finish to complete the installation.
+11. Reboot the System.
+
+
+3.3 Updating an Existing Windows Driver
+---------------------------------------
+
+Perform the following steps to update the Windows driver for the SCSI/RAID adapter
+already installed on your system.
+
+NOTE: It is important that you idle your system before you update the driver.
+
+1. Press Start > Control Panel > System.
+   The System Properties screen displays.
+
+Note: In Windows 2000, press Start > Settings > Control Panel > System.
+
+2. Click on the Hardware tab.
+3. Click the Device Manager and the Device Manager screen displays.
+4. Click SCSI and RAID Controllers.
+5. Double-click the SCSI/RAID controller for which you want to update the driver.
+6. Click the Driver tab and click on Update Driver.
+   The screen for the Upgrade Device Driver Wizard displays.
+7. Insert the appropriate driver diskette.
+8. Click Next.
+9. Follow the steps in the Wizard to search the diskette for the driver.
+10. Select the INF file from the diskette.
+11. Click Next and continue the installation steps in the Wizard.
+12. Click Finish to exit the wizard and reboot the system for the changes to take
+    place.
+
+
+4.0 Fixes or Enhancements in this Release 
+=========================================
+
+Initial release
+
+
+5.0 Important Information
+==========================
+
+None
+
+
+6.0 Known Issues
+==========================
+
+None

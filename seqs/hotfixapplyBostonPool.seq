@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- Hotfix application tests for XenServer 6.0.0 (pool) -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0/RTM-50762</PIDIR_BOSTON>
+    <PATCH_DESCRIPTIONS />
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
+
+  <testsequence group="HF_BOSTON_Pool">
+    <testcase id="xenserver.tc.hotfix.TC15217" />
+  </testsequence>
+
+</xenrt>

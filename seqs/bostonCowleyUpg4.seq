@@ -1,0 +1,36 @@
+<xenrt>
+
+  <!-- Boston rolling pool upgrade test from Cowley plus all the hotfixes upto Oxford plus Bob hotfix -->
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+    <PIDIR_COWLEY>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</PIDIR_COWLEY>
+    <CARBON_PATCHES_COWLEY>
+      <XS56EFP1001>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1001/41063/hotfix-XS56EFP1001/hotfix.xsupdate</XS56EFP1001>
+      <XS56EFP1002>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1002/hotfix-XS56EFP1002/hotfix.xsupdate</XS56EFP1002>
+      <XS56EFP1004>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1004/45836/hotfix-XS56EFP1004/XS56EFP1004.xsupdate</XS56EFP1004>
+      <XS56EFP1005>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1005/43712/hotfix-XS56EFP1005/XS56EFP1005.xsupdate</XS56EFP1005>
+      <XS56EFP1006>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1006/46680/hotfix-XS56EFP1006/XS56EFP1006.xsupdate</XS56EFP1006>
+      <XS56EFP1007>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1007/47081/hotfix-XS56EFP1007/XS56EFP1007.xsupdate</XS56EFP1007>
+      <XS56EFP1008>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/hotfixes/XS56EFP1008/49645/hotfix-XS56EFP1008/XS56EFP1008.xsupdate</XS56EFP1008>
+      <OXFHF>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101/hotfix/XS56ESP2.xsupdate</OXFHF>
+      <XS56ESP2001>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/hotfixes/XS56ESP2001/47929/hotfix-XS56ESP2001/XS56ESP2001.xsupdate</XS56ESP2001>
+    </CARBON_PATCHES_COWLEY>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="2">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC15025"/>
+  </testsequence>
+
+</xenrt>

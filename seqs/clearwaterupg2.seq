@@ -1,0 +1,65 @@
+<xenrt>
+
+  <!-- Boston retail pool upgrade test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PIDIR_RIO>/usr/groups/release/rio-4.0.1-ga</PIDIR_RIO>
+    <PIDIR_MIAMI>/usr/groups/release/XenServer-4.x/XS-4.1.0/xenserver-4.1.0</PIDIR_MIAMI>
+    <CARBON_PATCHES_MIAMI>
+      <HF1>/usr/groups/release/XenServer-4.x/XS-4.1.0/hotfixes/xenserver-4.1.0-hotfix1/XenServer-4.1.0-ga1.xsupdate</HF1>
+      <HF2>/usr/groups/release/XenServer-4.x/XS-4.1.0/hotfixes/xenserver-4.1.0-hotfix2/xenserver-4.1.0-hotfix2-RC4.xsupdate</HF2>
+      <HF3>/usr/groups/release/XenServer-4.x/XS-4.1.0/hotfixes/XenServer-4.1.0ga-hotfix3.xsupdate</HF3>
+    </CARBON_PATCHES_MIAMI>
+    <PIDIR_ORLANDO>/usr/groups/release/xenserver-5.0.0</PIDIR_ORLANDO>
+    <CARBON_PATCHES_ORLANDO>
+      <HF1>/usr/groups/release/XenServer-5.0.0-Update1RC3/XenServer-5.0.0-Update1.xsupdate</HF1>
+      <HF2>/usr/groups/release/XenServer-5.0.0-Update2RC3/XenServer-5.0.0-Update2.xsupdate</HF2>
+      <HF3>/usr/groups/release/XenServer-5.0.0-Update3-CTX123193-RC2/XenServer-5.0.0-Update3-CTX123193.xsupdate</HF3>
+    </CARBON_PATCHES_ORLANDO>
+    <PIDIR_ORLANDOHF3>/usr/groups/release/XenServer-5.0.0-Update3-CTX123193-RC2</PIDIR_ORLANDOHF3>
+    <PIDIR_GEORGEBETA>/usr/groups/release/XenServer-5.5.0-Beta1</PIDIR_GEORGEBETA>
+    <PIDIR_GEORGE>/usr/groups/release/XenServer-5.5.0</PIDIR_GEORGE>
+    <CARBON_PATCHES_GEORGE>
+      <LVHD>/usr/groups/release/XenServer-5.5.0/hotfixes/lvhd-fix1/hotfix.xsupdate</LVHD>
+      <EPT>/usr/groups/release/XenServer-5.5.0/hotfixes/xen-fix1/hotfix.xsupdate</EPT>
+      <TIME>/usr/groups/release/XenServer-5.5.0/hotfixes/xen-fix2/hotfix.xsupdate</TIME>
+      <BERIT>/usr/groups/release/XenServer-5.5.0-CTX123193-RC1/XenServer-5.5.0-CTX123193.xsupdate</BERIT>
+      <STEELEYE>/usr/groups/release/XenServer-5.5.0/hotfixes/steeleye-fix1/hotfix.xsupdate</STEELEYE>
+      <HF1>/usr/groups/release/XenServer-5.5.0-Update1/hotfix.xsupdate</HF1>
+      <HF2>/usr/groups/release/XenServer-5.5.0-Update2/hotfix.xsupdate</HF2>
+    </CARBON_PATCHES_GEORGE>
+    <PIDIR_MNR>/usr/groups/release/XenServer-5.6.0</PIDIR_MNR>
+    <PIDIR_COWLEY>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</PIDIR_COWLEY>
+    <PIDIR_OXFORD>/usr/groups/release/XenServer-5.x/XS-5.6.100-SP2/RTM-47101</PIDIR_OXFORD>
+    <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762</PIDIR_BOSTON>
+    <PIDIR_SANIBEL>/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456</PIDIR_SANIBEL>
+    <PIDIR_TAMPA>/usr/groups/release/XenServer-6.x/XS-6.1.0/RTM</PIDIR_TAMPA>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <sharedhost>
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </sharedhost>
+  </prepare>
+
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC19858"/>
+    <testcase id="xenserver.tc.hotfix.TC19853"/>
+    <testcase id="xenserver.tc.hotfix.TC19857"/>
+    <testcase id="xenserver.tc.hotfix.TC19856"/>
+    <testcase id="xenserver.tc.hotfix.TC19855"/>
+    <testcase id="xenserver.tc.hotfix.TC19854"/>
+    <testcase id="xenserver.tc.hotfix.TC19852"/>
+    <testcase id="xenserver.tc.hotfix.TC19851"/>
+    <testcase id="xenserver.tc.hotfix.TC19850"/>
+    <testcase id="xenserver.tc.hotfix.TC19849"/>
+    <testcase id="xenserver.tc.hotfix.TC19848"/>
+  </testsequence>
+
+</xenrt>

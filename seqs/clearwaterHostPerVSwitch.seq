@@ -1,0 +1,109 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="1">
+      <host id="16">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </host>
+    </pool>
+    <pool id="0">
+      <storage type="nfs" name="shared" default="true"/>
+      <host id="0">
+        <vm name="linux_0">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="1" noisos="yes">
+        <vm name="linux_1">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="2">
+        <vm name="linux_2">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="3" noisos="yes">
+        <vm name="linux_3">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="4">
+        <vm name="linux_4">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="5" noisos="yes">
+        <vm name="linux_5">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="6">
+        <vm name="linux_6">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="7" noisos="yes">
+        <vm name="linux_7">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="8">
+        <vm name="linux_8">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="9" noisos="yes">
+        <vm name="linux_9">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="10">
+        <vm name="linux_10">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="11" noisos="yes">
+        <vm name="linux_11">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="12">
+        <vm name="linux_12">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="13" noisos="yes">
+        <vm name="linux_13">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="14">
+        <vm name="linux_14">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="15" noisos="yes">
+        <vm name="linux_15">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+  
+    <!-- Hosts per pool per vSwitch controller- 16-->
+    <testcase id="xenserver.tc.vswitch.TC11903"/>
+    
+  </testsequence>
+</xenrt>

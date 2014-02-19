@@ -1,0 +1,35 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+ <default name="GUESTMEMORY" value="4096"/>
+
+  <prepare>
+    <host>
+      <vm name="test">
+        <distro>win7-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <disk device="0" size="30"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="WSMANTest">
+    <testcase id="xenserver.tc.cimserver.TC12667"/>
+    <testcase id="xenserver.tc.cimserver.TC12668"/>
+    <testcase id="xenserver.tc.cimserver.TC12669"/>
+    <testcase id="xenserver.tc.cimserver.TC12670"/>
+    <testcase id="xenserver.tc.cimserver.TC12671"/>
+    <testcase id="xenserver.tc.cimserver.TC12672"/>
+    <testcase id="xenserver.tc.cimserver.TC12679"/>
+    <testcase id="xenserver.tc.cimserver.TC12680"/>
+    <testcase id="xenserver.tc.cimserver.TC12681"/>
+    <testcase id="xenserver.tc.cimserver.TC12682"/>
+  </testsequence>
+
+</xenrt>
+

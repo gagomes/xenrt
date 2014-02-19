@@ -1,0 +1,21 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="shared" default="true"/>
+      <allhosts license="FG Free"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PaidPool">
+      <testcase id="xenserver.tc.license.TC9057"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

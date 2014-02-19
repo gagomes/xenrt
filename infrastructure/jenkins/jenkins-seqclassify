@@ -1,0 +1,10 @@
+#!/usr/bin/python -u
+
+import os,urllib,re,sys
+
+seq = re.match(".*\((.*)\)", os.environ['Sequence']).group(1)
+
+cmd = "xrt --run-tool 'setSeqComponent(\"%s\", \"%s\")' -D SEQ_PARSING_ONLY=yes" % (seq, os.environ['Component'])
+print cmd
+os.system(cmd)
+

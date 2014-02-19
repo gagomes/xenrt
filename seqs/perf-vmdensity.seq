@@ -1,0 +1,20 @@
+  <xenrt>
+    <variables>
+      <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    </variables>
+
+    <prepare>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vmdensity.TCVMDensity" host="RESOURCE_HOST_0">
+        <arg>VMTYPES=['win7sp1-x86', 'winxpsp3', 'win7sp1-x64', 'ws08sp2-x86']</arg>
+        <arg>RUNS=range(1,6)</arg>
+        <!--<arg>MACHINES=['q8']</arg>--> 
+        <arg>XSVERSIONS=['Tampa-59235','MNR-31188','Cowley-39567','Boston-50762']</arg>
+        <arg>VMS=range(1,261)</arg>
+        <arg>THRESHOLD=100.0</arg> <!-- x times initial measurement -->
+      </testcase>
+    </testsequence>
+  </xenrt>

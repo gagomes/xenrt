@@ -1,0 +1,25 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+
+  <prepare>
+    <pool>
+      <allhosts/>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+          <VLAN network="VR04">
+            <VMS/>
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+</xenrt>

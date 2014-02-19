@@ -1,0 +1,150 @@
+<xenrt>
+
+  <!-- George basic pool check -->
+
+  <default name="GUESTMEMORY" value="512"/>
+  <default name="GUESTVCPUS" value="1"/>
+  <default name="VIGUESTVERSION0" value="rhel47"/>
+  <default name="VIGUESTVERSION1" value="rhel51"/>
+  <default name="GUESTDISK" value="DEFAULT"/>
+  <default name="VMOPSITER" value="4"/>
+  <default name="CLITESTLIST" value="ALL"/>
+
+  <variables>
+    <PRODUCT_VERSION>George</PRODUCT_VERSION>
+  </variables>
+
+  <collection name="viguest0">
+      <serial>
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall" tc="TC-6669">
+          <arg>${HOSTNAME}</arg>
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>distro=${VIGUESTVERSION}</arg>
+          <arg>memory=${GUESTMEMORY}</arg>
+          <arg>vcpus=${GUESTVCPUS}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-6671">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-6672">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-6673">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-6675">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>live</arg>
+          <arg>to=${OTHERHOST}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCShutdown" tc="TC-6676">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=${GUESTNAME}</arg>
+            <arg>again</arg>
+          </testcase>
+        </finally>
+      </serial>
+  </collection>
+
+  <collection name="viguest1">
+      <serial>
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="TCVendorInstall" tc="TC-6670">
+          <arg>${HOSTNAME}</arg>
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>distro=${VIGUESTVERSION}</arg>
+          <arg>memory=${GUESTMEMORY}</arg>
+          <arg>vcpus=${GUESTVCPUS}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-6677">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-6678">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-6679">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-6681">
+          <arg>guest=${GUESTNAME}</arg>
+          <arg>loops=${VMOPSITER}</arg>
+          <arg>live</arg>
+          <arg>to=${OTHERHOST}</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCShutdown" tc="TC-6682">
+          <arg>guest=${GUESTNAME}</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=${GUESTNAME}</arg>
+            <arg>again</arg>
+          </testcase>
+        </finally>
+      </serial>
+  </collection>
+
+  <testsequence>
+
+    <!-- Install the hosts -->
+    <testcase id="testcases.xenserver.tc.hotfix.TCUnsignedHotfixChecks" tc="TC-19881" />
+    <parallel group="HostInstallation" blocker="yes">
+      <serial blocker="yes">
+        <testcase id="xenserver.install.TCXenServerInstall" name="TCXenServerInstall" tc="TC-6647">
+          <arg>RESOURCE_HOST_0</arg>
+        </testcase>
+        <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6652"/>
+      </serial>
+      <serial blocker="yes">
+        <testcase id="xenserver.install.TCXenServerInstall" name="TCXenServerInstall.1" tc="TC-6648">
+          <arg>RESOURCE_HOST_1</arg>
+          <arg>slave</arg>
+        </testcase>
+      </serial>
+    </parallel>
+
+    <!-- Join the hosts in a pool -->
+
+    <testcase group="PoolOps" id="xenserver.install.TCCreatePool" tc="TC-6668">
+      <arg>mypool</arg>
+      <arg>RESOURCE_HOST_0</arg>
+      <arg>RESOURCE_HOST_1</arg>
+    </testcase>
+
+    <!-- Install guests on each host -->
+
+    <parallel>
+      <serial group="RedHatGuest.0">
+        <include collection="viguest0">
+          <param name="HOSTNAME" value="RESOURCE_HOST_0"/>
+          <param name="OTHERHOST" value="RESOURCE_HOST_1"/>
+          <param name="GUESTNAME" value="viguest0"/>
+          <param name="VIGUESTVERSION" value="${VIGUESTVERSION0}"/>
+        </include>
+      </serial>
+      <serial group="RedHatGuest.1">
+        <include collection="viguest1">
+          <param name="HOSTNAME" value="RESOURCE_HOST_1"/>
+          <param name="OTHERHOST" value="RESOURCE_HOST_0"/>
+          <param name="GUESTNAME" value="viguest1"/>
+          <param name="VIGUESTVERSION" value="${VIGUESTVERSION1}"/>
+        </include>
+      </serial>
+    </parallel>
+
+    <!-- Perform a basic HA sanity test -->
+    <testcase id="xenserver.tc.ha.TC7829" group="HATests">
+      <arg>mypool</arg>
+    </testcase>
+
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,22 @@
+  <xenrt>
+    <variables>
+      <PREPARE_WORKERS>1</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <allhosts/>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_vminstallsnapshot.TCVMInstallSnapshot">
+        <arg>numvms=500</arg>
+        <arg>desktopimage=desktop7.img</arg>
+        <arg>desktopvmname=desktop7</arg>
+        <arg>dontusemps</arg>
+        <arg>novifs</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

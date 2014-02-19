@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- MNR V6 upgrade test sequence -->
+
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.5.0-Update2"/>
+  <default name="OLD_PRODUCT_VERSION" value="George"/>
+
+  <variables>
+    <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host license="no" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="V6Upgrade">
+      <testcase id="xenserver.tc.license.TC10167"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.license.TC10168"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.license.TC10169"/>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.license.TC10170"/>
+    </serial>
+  </testsequence>
+
+
+</xenrt>

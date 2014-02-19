@@ -177,7 +177,7 @@ ifeq ($(DOWINPE),yes)
 endif
 
 
-.PHONY: hgrc
+.PHONY: gitrc
 hgrc:
 ifeq ($(DOHGRC),yes)
 	$(info Installing Mercurial configuration file...)

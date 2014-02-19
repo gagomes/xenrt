@@ -32,7 +32,7 @@ NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
 REVISION	= $(GIT) -R $(1) log -r tip --template "$(notdir $(1)):{rev}:{node}"
 
 .PHONY: update 
-update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE) .git/patches $(ROOT)/$(INTERNAL)/.hg/patches
+update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE)
 	$(info Updated XenRT repositories.)
 
 .hg/patches: $(PATCHQUEUE)
@@ -125,12 +125,13 @@ uninstall:
 	$(SUDO) $(RMTREE) $(SHAREDIR)
 	$(SUDO) $(RMTREE) $(CONFDIR)
 
-.PHONY: %.hg
-%.hg:
+.PHONY: %.git
+%.git:
 	$(info Updating $@ repository...)
-	[ -d $(ROOT)/$@ ] || $(GIT) clone $(HGPATH)/$@ $(ROOT)/$@
-	-$(HG) -R $(ROOT)/$@ pull
-	$(HG) -R $(ROOT)/$@ update
+	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
+	pushd $(ROOT)/$@
+	-$(GIT) pull
+	popd
 
 .PHONY: $(CONFDIR)
 $(CONFDIR):

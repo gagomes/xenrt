@@ -10,7 +10,6 @@ RESTORE = if [ -e $(1).xrt ]; then $(SUDO) mv $(1).xrt $(1); fi
 ifeq ($(PRODUCTIONCONFIG),yes)
 DOSSH = yes
 DOWINPE = yes
-DOHGRC = yes
 DOFILES = yes
 DOPROMPT = yes
 DOAUTOFS = yes
@@ -28,7 +27,6 @@ endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
 DOSSH = yes
 DOWINPE = yes
-DOHGRC = yes
 DOFILES = yes
 DOHOSTS = yes
 DONAGIOS = yes
@@ -176,19 +174,6 @@ ifeq ($(DOWINPE),yes)
 	rm -rf $(TMP)
 endif
 
-
-.PHONY: gitrc
-hgrc:
-ifeq ($(DOHGRC),yes)
-	$(info Installing Mercurial configuration file...)
-	$(call BACKUP,~/.hgrc)
-	ln -s -f $(CONFDIR)/hgrc ~/.hgrc
-endif
-
-.PHONY: hgrc-uninstall
-hgrc-uninstall:
-	$(info Uninstalling Mercurial configuration file...)
-	rm -f ~/.hgrc
 
 .PHONY: files
 files: $(SHAREDIR)/control/xrt
@@ -514,7 +499,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe hgrc files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt debugger
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt debugger
 	$(info XenRT infrastructure installed.)
 
 
@@ -527,7 +512,6 @@ infrastructure-uninstall: network-uninstall \
 			  httpd-uninstall \
 			  iscsi-uninstall \
 			  conserver-uninstall \
-			  hgrc-uninstall \
 			  sudoers-uninstall \
 			  ftp-uninstall \
 			  nagios-uninstall \

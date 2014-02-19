@@ -88,7 +88,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git status -amn ; [ ! -d .hg/patches ] || git diff -r qparent:qtip | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git status -uno --short | grep -v "^ D" | awk '{print $2}' ; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -106,7 +106,7 @@ pylint-all:
 
 .PHONY: xmllint xmllint-all
 xmllint:
-	@for f in `hg status -amn | grep -e '\.seq$$'`; do \
+	@for f in `git status -uno --short | grep -v "^ D" | awk '{print $2}' | grep -e '\.seq$$'`; do \
 	echo "Checking $$f..." && \
 	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
@@ -142,12 +142,10 @@ $(CONFDIR):
 ifeq ($(PRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/hgrc` $@/hgrc
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/hgrc` $@/hgrc
 endif
 	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
 	$(SUDO) mkdir -p $@/conf.d

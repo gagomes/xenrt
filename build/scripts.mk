@@ -90,7 +90,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git status -uno --short | grep -v "^ D" | awk '{print $2}' ; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -99,25 +99,25 @@ pylint:
 	done; 
 pylint-all:
 	@for f in `find | egrep '\.(py)$$' | sort | uniq`; do \
-        echo "Checking $$f..." && \
-        export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
-        pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
-        $$f && \
-        $(ROOT)/$(XENRT)/scripts/misspelt $$f; \
-        done; 
+    echo "Checking $$f..." && \
+    export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
+    pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
+    $$f && \
+    $(ROOT)/$(XENRT)/scripts/misspelt $$f; \
+    done; 
 
 .PHONY: xmllint xmllint-all
 xmllint:
-	@for f in `git status -uno --short | grep -v "^ D" | awk '{print $2}' | grep -e '\.seq$$'`; do \
+	@for f in `(git diff | lsdiff --strip 1; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
 	done
 xmllint-all:
 	@for f in `find | grep -e '\.seq$$'`; do \
-        xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f 2>&1 | grep -v " validates$$" && \
-        $(ROOT)/$(XENRT)/scripts/misspelt $$f; \
-        done
+	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f 2>&1 | grep -v " validates$$" && \
+	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
+	done
 
 .PHONY: clean
 clean:

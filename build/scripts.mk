@@ -37,6 +37,7 @@ update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEU
 	$(info Updated XenRT repositories.)
 
 .git/patches/master: $(PATCHQUEUE)
+	mkdir -p .git/patches
 	[ -e $@ ] || ln -s $(ROOT)/$< $@
 	touch $@/status 
 

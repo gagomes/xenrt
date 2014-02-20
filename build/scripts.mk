@@ -42,6 +42,7 @@ update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEU
 	touch $@/status 
 
 $(ROOT)/$(INTERNAL)/.git/patches/master: $(INTERNALPATCHQUEUE)
+	mkdir -p $(ROOT)/$(INTERNAL)/.git/patches
 	[ -e $@ ] || ln -s $(ROOT)/$< $@
 	touch $@/status 
 

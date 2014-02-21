@@ -33,18 +33,8 @@ REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$
 
 
 .PHONY: update 
-update: $(XENRT) $(INTERNAL) $(PATCHQUEUE) $(PERFPATCHQUEUE) $(INTERNALPATCHQUEUE) .git/patches/master $(ROOT)/$(INTERNAL)/.git/patches/master
+update: $(XENRT) $(INTERNAL)
 	$(info Updated XenRT repositories.)
-
-.git/patches/master: $(PATCHQUEUE)
-	mkdir -p .git/patches
-	[ -e $@ ] || ln -s $(ROOT)/$< $@
-	touch $@/status 
-
-$(ROOT)/$(INTERNAL)/.git/patches/master: $(INTERNALPATCHQUEUE)
-	mkdir -p $(ROOT)/$(INTERNAL)/.git/patches
-	[ -e $@ ] || ln -s $(ROOT)/$< $@
-	touch $@/status 
 
 .PHONY: minimal-install
 minimal-install: install
@@ -90,7 +80,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git diff | lsdiff --strip 1; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -108,7 +98,7 @@ pylint-all:
 
 .PHONY: xmllint xmllint-all
 xmllint:
-	@for f in `(git diff | lsdiff --strip 1; [ ! -d .git/patches/master ] || git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
@@ -193,13 +183,10 @@ progs:
 	$(MAKE) -C progs ROOT=$(ROOT) DESTDIR=$(SHAREDIR)/scripts/progs install 
 
 .PHONY: $(SHAREDIR)/VERSION
-$(SHAREDIR)/VERSION: PATCHPATH=$(realpath $(ROOT)/$(XENRT)/.git/patches/master)
 $(SHAREDIR)/VERSION: $(SRCDIRS) 
 	$(info Creating $(notdir $@) stamp file...)
 	echo `$(call REVISION,$(ROOT)/$(XENRT))` > $@ 
 	echo `$(call REVISION,$(ROOT)/$(INTERNAL))` >> $@
-	echo $(PATCHPATH)
-	echo `$(call REVISION,$(PATCHPATH))` >> $@ 
 
 $(SHAREDIR)/SITE: $(SHAREDIR)
 	$(info Creating $(notdir $@) stamp file...)

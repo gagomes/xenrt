@@ -232,6 +232,7 @@ def start_job(jobid):
 
 
         
+        execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir))
         execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
 
@@ -250,6 +251,7 @@ def start_job(jobid):
     except Exception, e:
         # Failed set-up, so bail out.
         errmsg = "Failed to checkout from git - %s" % str(e) 
+        execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir), errorException=False)
         if otherBranch:
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)

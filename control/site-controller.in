@@ -49,7 +49,11 @@ def incrementfailcount():
     f = file("%s/site-controller-fail-count" % _vardir, "w")
     f.write("%d\n" % (count + 1))
     f.close()
-    
+
+def execCmd(cmd, errorException=True):
+    rc = os.system(cmd)
+    if rc > 0 and errorException:
+        raise Exception("Error running %s" % cmd)
 
 # Kill self if still running after 5 minutes
 class WatchdogThread(threading.Thread):
@@ -216,44 +220,27 @@ def start_job(jobid):
             cmd.append("%s=%s" % (k, data[k]))
     cmdl = string.join(cmd)
 
-    if (data.has_key("XENRT_PQ_NAME") and len(data['XENRT_PQ_NAME']) > 0):
-        trace("Using patchqueue XENRT_PQ_NAME='%s'\n" % (data['XENRT_PQ_NAME']))
+    if data.has_key("XRTBRANCH") and len(data["XRTBRANCH"]) > 0:
+        branch = data['XRTBRANCH']    
     else:
-        data["XENRT_PQ_NAME"] = "xenrt.pq.hg"
-        trace("Set XENRT_PQ_NAME to default value, '%s'\n" % (data["XENRT_PQ_NAME"]))
+        branch = "master"
+    trace("Using branch '%s'\n" % (branch))
 
-    if data.has_key("GUARD") and len(data["GUARD"]) > 0:
-        trace("Using PQ guard '%s' with PQ '%s'\n" % (data['GUARD'],data['XENRT_PQ_NAME']))
-    else:
-        data["GUARD"] = "-n"
+    try:
 
-    # Prepare to apply specified patches from specified patchqueue, first removing any current patches.
-    pqpath = "%s/../%s" % (_rootdir,data['XENRT_PQ_NAME'])
-    if not os.path.isdir(os.path.realpath(pqpath)):
-        errmsg = "Found no patchqueue '%s' at '%s'." % (data['XENRT_PQ_NAME'],pqpath)
-        trace("%s\n" % (errmsg))
-        if not debug:
-            com.run("update", [jobid, "FAILED", errmsg])
-            com.run("complete", [jobid])
-        return
+        if branch != "master":
+            # Try to delete the branch if it exists. Ignore the error
+            execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
+            # Pull down the branch from upstream
+            execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch)
 
-    rc = os.system("cd %s && hg qpop -a && hg qselect -n && [ -d ../%s ] && ln -sfn ../../%s .hg/patches && hg qselect %s" %
-              (_rootdir,data['XENRT_PQ_NAME'],data['XENRT_PQ_NAME'],data['GUARD']))
-    if rc > 0:
+        execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
+
+        execCmd("cd %s && git rebase master" % (_rootdir, branch))
+
+    except Exception, e:
         # Failed set-up, so bail out.
-        errmsg = "Failed to set up guard '%s' in PQ '%s'" % (data['GUARD'],data['XENRT_PQ_NAME'])
-        trace("%s\n" % (errmsg))
-        if not debug:
-            com.run("update", [jobid, "FAILED", errmsg])
-            com.run("complete", [jobid])
-        return
-    rc = os.system("cd %s && hg pull --mq && hg update -C --mq && hg qpush -a" % (_rootdir))
-    # Depending on choice of patchqueue there might be unguarded patches or not.
-    if rc > 0 and data["GUARD"] != "-n":
-        # The patch queue failed to apply, so bail out.
-        os.system("cd %s && hg qpop -a" % (_rootdir))
-        os.system("cd %s && hg qselect -n" % (_rootdir))
-        errmsg = "Guard %s in PQ %s failed to apply" % (data['GUARD'],data['XENRT_PQ_NAME'])
+        errmsg = "Failed to checkout from git - %s" % str(e) 
         trace("%s\n" % (errmsg))
         if not debug:
             com.run("update", [jobid, "FAILED", errmsg])
@@ -283,11 +270,11 @@ def start_job(jobid):
                 com.run("complete", [jobid])
             
             if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
-                os.system("cd %s && hg revert --all" % (_rootdir))
+                os.system("cd %s && hg reset --hard" % (_rootdir))
                 # delete all files in the custom patch as some of these might be left as untracked
                 # by the revert-all. They need to be deleted so as to allow patches on these files in future.
                 os.system("cd %s && cat %s | lsdiff --strip 1 | xargs -I '{}' rm -f '{}'" % (_rootdir, custompatchtmp))
-                os.system("cd %s && hg update -C" % (_rootdir))
+                os.system("cd %s && git reset --hard" % (_rootdir))
                 os.system("rm -f %s" % custompatchtmp)
             return
 
@@ -310,15 +297,16 @@ def start_job(jobid):
 
     time.sleep(30)
     if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
-        os.system("cd %s && hg revert --all" % (_rootdir))
+        os.system("cd %s && git reset --hard" % (_rootdir))
         # delete all files in the custom patch as some of these might be left as untracked
         # when reverting. They need to be deleted so as to allow patches on these files in future.
         os.system("cd %s && cat %s | lsdiff --strip 1 | xargs -I '{}' rm -f '{}'" % (_rootdir, custompatchtmp))
-        os.system("cd %s && hg update -C" % (_rootdir))
+        os.system("cd %s && git reset --hard" % (_rootdir))
         os.system("rm -f %s" % custompatchtmp)
     
-    os.system("cd %s && hg qpop -a" % (_rootdir))
-    os.system("cd %s && hg qselect -n" % (_rootdir))
+    os.system("cd %s && git checkout master" % (_rootdir))
+    if branch != "master":
+        os.system("cd %s && git branch -D %s" % (_rootdir, branch))
     os.system("cd %s && make minimal-install" % (_rootdir))
 
 # Main prog
@@ -489,11 +477,6 @@ if __name__ == '__main__':
         
     # If we have new jobs make sure we have all the machines ready then
     # start the job
-
-    if len(newjoblist) > 0:
-        rc = os.system("if [ -d %s/../xenrt-internal.hg ]; then cd %s/../xenrt-internal.hg && hg qpop -a && hg pull && hg update -C && hg qpush -a; fi; cd %s && hg pull && hg update -C" % (_rootdir, _rootdir, _rootdir))
-        if rc > 0:
-            trace("WARNING: Failed to update controller with latest mercurial code\n")
 
     for j in newjoblist:
         trace("New job %s..." % (j))

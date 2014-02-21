@@ -2102,7 +2102,7 @@ logdata call."""
 
     def logdelimit(self, tag='unnamed'):
         """Insert a break into the log file to improve readability."""
-        for line in ["**", "**", "** New log section: %s" % (tag), "**", "**"]:
+        for line in ["**", "**", "** New log section starts here: %s" % (tag), "**", "**"]:
             self.log(self.gec.logverbose(line, pref="DELIMIT"))
 
     #########################################################################

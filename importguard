@@ -1,0 +1,16 @@
+#!/bin/bash
+
+set -e -x
+
+git checkout master
+git checkout -b $2
+
+for i in `cat $1/series | grep "#+$2$" | grep -v "^#" | awk '{print $1}'`
+do
+    echo $i
+    patch -p1 < $1/$i
+    git commit -a -m "Imported patch $i"
+done
+
+git push -u origin $2
+git checkout master

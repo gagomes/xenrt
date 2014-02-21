@@ -221,22 +221,26 @@ def start_job(jobid):
     cmdl = string.join(cmd)
 
     if data.has_key("XRTBRANCH") and len(data["XRTBRANCH"]) > 0:
-        branch = data['XRTBRANCH']    
+        branch = data['XRTBRANCH']
+        otherBranch = True
     else:
         branch = "master"
+        otherBranch = False
     trace("Using branch '%s'\n" % (branch))
 
     try:
 
-        if branch != "master":
+
+        if otherBranch:
             # Try to delete the branch if it exists. Ignore the error
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
             # Pull down the branch from upstream
-            execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch)
+            execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch))
 
         execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
-
-        execCmd("cd %s && git rebase master" % (_rootdir, branch))
+        execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
+        execCmd("cd %s/../xenrt-internal.git && git pull" % (_rootdir), errorException=False)
+        execCmd("cd %s && git rebase master" % (_rootdir))
 
     except Exception, e:
         # Failed set-up, so bail out.
@@ -257,7 +261,7 @@ def start_job(jobid):
 
         if os.path.isfile(custompatchtmp):
             # apply patch
-            rc = os.system("cd %s && hg import --no-commit %s" % (_rootdir, custompatchtmp))
+            rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
             if rc > 0:
                 errmsg = "Couldn't import custom patch %s" % (data["CUSTOM_PATCH"])
         else:
@@ -270,7 +274,7 @@ def start_job(jobid):
                 com.run("complete", [jobid])
             
             if len(custompatchtmp) > 0 and os.path.isfile(custompatchtmp):
-                os.system("cd %s && hg reset --hard" % (_rootdir))
+                os.system("cd %s && git reset --hard" % (_rootdir))
                 # delete all files in the custom patch as some of these might be left as untracked
                 # by the revert-all. They need to be deleted so as to allow patches on these files in future.
                 os.system("cd %s && cat %s | lsdiff --strip 1 | xargs -I '{}' rm -f '{}'" % (_rootdir, custompatchtmp))

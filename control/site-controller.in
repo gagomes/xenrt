@@ -231,16 +231,21 @@ def start_job(jobid):
     try:
 
 
+        
+        execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir))
+        execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
+
         if otherBranch:
             # Try to delete the branch if it exists. Ignore the error
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
             # Pull down the branch from upstream
             execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch))
 
-        execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
-        execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
-        execCmd("cd %s/../xenrt-internal.git && git pull" % (_rootdir), errorException=False)
-        execCmd("cd %s && git rebase master" % (_rootdir))
+            execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
+            execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
+            execCmd("cd %s && git rebase master" % (_rootdir))
+        
+        execCmd("cd %s/../xenrt-internal.git && git checkout master && git reset --hard && git pull" % (_rootdir), errorException=False)
 
     except Exception, e:
         # Failed set-up, so bail out.

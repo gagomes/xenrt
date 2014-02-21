@@ -24,7 +24,6 @@ scripts/distutils/devcon.exe
 scripts/distutils/devcon64.exe
 scripts/distutils/psloglist.exe
 scripts/distutils/soon.exe
-seqs/netthru_vm2bare_1vif_interhost_esxbare.seq
 server/config.py
 server/uwsgi.ini
 server/xenrt-server

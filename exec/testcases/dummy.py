@@ -74,7 +74,7 @@ class TCFail(xenrt.TestCaseWrapper):
 
     def run(self, arglist=None):
         xenrt.TEC().logverbose("About to fail...")
-        raise xenrt.XRTFailure("It's what I do all the time...")
+        raise xenrt.XRTFailure("It's what I do...")
 
 class TCError(xenrt.TestCaseWrapper):
 

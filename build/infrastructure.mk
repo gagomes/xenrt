@@ -23,6 +23,7 @@ DOLOGROTATE = yes
 DOCRON = yes
 DOSITECONTROLLERCMD = yes
 DOLIBVIRT = yes
+DOGITCONFIG = yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
 DOSSH = yes
@@ -36,6 +37,7 @@ DOCRON = yes
 DOSITECONTROLLERCMD = yes
 DOAUTOFSNIS = yes
 DOLIBVIRT = yes
+DOGITCONFIG = yes
 endif
 ifeq ($(SSHCONFIG),yes)
 DOSSH = yes
@@ -479,6 +481,14 @@ ifeq ($(DOCRON),yes)
 	sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
 	sed -i 's#@@CONFDIR@@#$(CONFDIR)#g' $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
 	crontab $(ROOT)/$(XENRT)/infrastructure/cron/xenrt.cron
+endif
+
+.PHONY: gitconfig
+gitconfig:
+ifeq ($(DOGITCONFIG),yes)
+	$(info Setting up git config)
+	$(GIT) config --global user.email '$(GITEMAIL)'
+	$(GIT) config --global user.name '$(GITUSER)'
 endif
 
 .PHONY: sitecontrolllercmd

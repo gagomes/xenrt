@@ -12881,14 +12881,16 @@ class RawHBAStorageRepository(HBAStorageRepository):
 
 class ISCSILun(xenrt.ISCSILun):
     """An iSCSI LUN from a central shared pool."""
-    def __init__(self, minsize=10, ttype=None, maxsize=1000000, params={}, jumbo=False, mpprdac=None):
+    def __init__(self, minsize=10, ttype=None, hwtype=None, maxsize=1000000, params={}, jumbo=False, mpprdac=None, usewildcard=False):
         xenrt.ISCSILun.__init__(self,
                                 minsize=minsize,
                                 ttype=ttype,
+                                hwtype=hwtype,
                                 maxsize=maxsize,
                                 params=params,
                                 jumbo=jumbo,
-                                mpprdac=mpprdac)
+                                mpprdac=mpprdac,
+                                usewildcard=usewildcard)
 
     def setEnvTests(self, dict):
         """Populate an environment dictionary suitable for SM RT testing"""

@@ -12,7 +12,7 @@
 import sys, string, time, socket, re, os.path, os, shutil, random, sets, math
 import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
-import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
+import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources, xenrt.clouddeploy
 import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
@@ -2208,7 +2208,10 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcUnpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self.xmlrpcExec("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
         self.reboot()
-   
+
+    def installCloudPlatformManagementServer(self):
+        xenrt.clouddeploy.installCloudPlatformManagementServer(self)
+
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
         

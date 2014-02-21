@@ -3375,6 +3375,314 @@ class TC9074(_MultipathRT):
     """Alert generation with path flapping"""
     TCID = 9074
 
+
+class _DellPowerVaultMultipathing(testcases.xenserver.tc._XapiRTBase):
+    """Base class for Dell PowerVault ISCSI Multipath Failover testcases"""
+    TYPE = "multipath"
+    
+    def configureStorageNetwork(self):
+        # Configure the host network
+        primaryNetconfig = self.dell.primaryNetconfig.split(',')
+        secondaryNetconfig = self.dell.secondaryNetconfig.split(',')
+        netconfig = """<NETWORK>
+  <PHYSICAL """
+        if primaryNetconfig[0] in ["NPRI", "NSEC", "IPRI", "ISEC"]:
+            netconfig += 'network="%s">' % primaryNetconfig[0]
+        else:
+            netconfig += 'network="NPRI">'
+        netconfig += """
+    <NIC/>
+    <VLAN"""
+        if "VR" in primaryNetconfig[1]:
+            netconfig += ' network="%s">' % primaryNetconfig[1]
+            netconfig += """
+      <STORAGE/>
+    </VLAN>"""
+        else:
+            netconfig += """/>"""
+        netconfig += """
+    <MANAGEMENT/>
+  </PHYSICAL>"""
+        if primaryNetconfig[0] != secondaryNetconfig[0]:
+            netconfig += """<PHYSICAL """
+            if secondaryNetconfig[0] in ["NPRI", "NSEC", "IPRI", "ISEC"]:
+                netconfig += 'network="%s">' % secondaryNetconfig[0]
+            else:
+                netconfig += 'network="NPRI">'
+            netconfig += """
+    <NIC/>
+    <VLAN"""
+            if "VR" in secondaryNetconfig[1]:
+                netconfig += ' network="%s">' % secondaryNetconfig[1]
+                netconfig += """
+      <STORAGE/>
+    </VLAN>"""
+            else:
+                netconfig += """/>"""
+            netconfig += """
+    <MANAGEMENT/>
+  </PHYSICAL>"""
+        netconfig += """
+</NETWORK>"""
+        
+        self.host.createNetworkTopology(netconfig)
+
+    def extraPrepare(self):
+        
+        # Set up a Dell PowerVault ISCSI SR
+        dellISCSILun = xenrt.lib.xenserver.ISCSILun(hwtype="DELL_POWERVAULT", usewildcard=True)
+        self.dell = dellISCSILun
+        # Configure the host network for obtaining all multipaths
+        self.configureStorageNetwork()
+        # Enable multipathing on host
+        self.host.enableMultipathing()
+        # Attach the iscsi SR
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "xenrtDelliSCSI")
+        sr.create(self.dell, subtype="lvm", multipathing=True)
+        self.dellSR = sr.uuid
+        # Workaround for CA-125486, Don't use commas in /etc/multipath.conf
+        self.host.execdom0("sed -i s'/,$//' /etc/multipath.conf")
+        self.host.reboot()
+        
+
+    def postRun(self):
+        # Clean up the SR
+        try:
+            self.host.destroySR(self.dellSR)
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            xenrt.TEC().warning("Exception destroying SR: %s" % (str(e)))
+            # Try to forget instead
+            try:
+                self.host.forgetSR(self.dellSR)
+            except Exception,e:
+                traceback.print_exc(file=sys.stderr)
+                xenrt.TEC().warning("Exception forgetting SR: %s" % (str(e)))
+        try:
+            self.dell.release()
+        except:
+            traceback.print_exc(file=sys.stderr)
+            xenrt.TEC().warning("Exception releasing Dell PowerVault target")
+        testcases.xenserver.tc._XapiRTBase.postRun(self)
+
+class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
+    """Path fail-over on Dell PowerVault ISCSI multipath"""
+
+    TCID = 21002
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+        self.dellSR = None
+        self.guest = None
+        self.host = None
+
+    def check(self):
+        # Check the periodic read/write script is still running on the VM
+        rc = self.guest.execguest("pidof python",retval="code")
+        if rc > 0:
+            # Get the log
+            self.guest.execguest("cat /tmp/rw.log || true")
+            raise xenrt.XRTFailure("Periodic read/write script failed")
+
+        try:
+            line = ''
+            line = self.guest.execguest("tail -n 1 /tmp/rw.log").strip()
+            if(len(line) == 0):
+                raise xenrt.XRTError("/tmp/rw.log file is empty on first attempt")
+            first = int(float(line))
+            time.sleep(30)
+            line = ''
+            line = self.guest.execguest("tail -n 1 /tmp/rw.log").strip()
+            if(len(line) == 0):
+                raise xenrt.XRTError("/tmp/rw.log file is empty on second attempt")
+            next = int(float(line))
+            if next == first:
+                raise xenrt.XRTFailure("Periodic read/write script has not "
+                                       "completed a loop in 30 seconds")
+
+        except Exception, e:
+            traceback.print_exc(file=sys.stderr)
+            raise xenrt.XRTError("Exception checking read/write script progress",
+                                 data=str(e))
+
+    def enableDisablePath(self, type, ip):
+        # Disable or Enable particular IP via iptables
+        prevmpdevs = self.host.getMultipathInfo(onlyActive=True)
+        self.host.execdom0("iptables -I INPUT -s %s -j %s" % (ip, type))
+        self.host.execdom0("iptables -I OUTPUT -s %s -j %s" % (ip, type))
+        # Do poll the multipath status
+        deadline = xenrt.util.timenow() + 240
+        while xenrt.util.timenow() < deadline:
+            currmpdevs = self.host.getMultipathInfo(onlyActive=True)
+            if prevmpdevs != currmpdevs:
+                return
+            xenrt.sleep(10)
+        if xenrt.util.timenow() > deadline:
+            raise xenrt.XRTError("Multipath -ll status has not changed within 4 minutes")
+        
+
+    def multipathInfo(self):
+        # Get the multipath -ll output in form of primary and secondary groups
+        # primary = {'status':['active'/'enable'], 0:['sda', 'active'/'failed'], 1:['sdb', 'active'/'failed']}
+        # secondary = {'status':['active'/'enable'], 0:['sdc', 'active'/'failed'], 1:['sdd', 'active'/'failed']}
+        mp = self.host.execdom0("multipath -ll")
+        primary = {}
+        secondary = {}
+        flag = False
+        keyname = 0
+        for line in mp.splitlines():
+            r = re.search(r"([0-9A-Za-z-_]+) *dm-\d+", line)
+            if r:
+                continue
+            r = re.search(r"policy", line)
+            if r and not flag:
+                if re.search("status=active", line):
+                    primary['status'] = 'active'
+                else:
+                    primary['status'] = 'enabled'
+                flag = True
+                primary[keyname%2] = []
+                
+            elif r and flag:
+                if re.search("status=active", line):
+                    secondary['status'] = 'active'
+                else:
+                    secondary['status'] = 'enabled'
+                secondary[keyname%2] = []
+                
+            if not r:
+                r = re.search(r"^[| ] [|`]- \S+\s+(\S+)\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)", line)
+                if r:
+                    lr = []
+                    lr.append(r.group(1))
+                    lr.append(r.group(2))
+                    if keyname < 2:
+                        pass
+                        primary[keyname%2] = lr
+                    else:
+                        pass
+                        secondary[keyname%2] = lr
+                    keyname += 1
+    
+        xenrt.TEC().logverbose("Details of primary path are %s and secondary path are %s" % (str(primary), str(secondary)))
+        return primary, secondary
+
+    def checkMultipathInfo(self, lunpaths):
+        # lunpaths[0] and lunpaths[1] states expected primary paths status
+        # lunpaths[2] and lunpaths[3] states expected secondary paths status
+        # True for active and False for failed
+        xenrt.sleep(10)
+        primary, secondary = self.multipathInfo()
+        
+        if lunpaths[0] and lunpaths[1]:
+            if not (primary['status'] == 'active' and primary[0][1] == 'active' and primary[1][1] == 'active'):
+                raise xenrt.XRTFailure("Both Primary Paths are not active")
+        elif (lunpaths[0] or lunpaths[1]):
+            if not (primary['status'] == 'active' and (primary[0][1] == 'active' or primary[1][1] == 'active')):
+                raise xenrt.XRTFailure("None of the Primary Paths are active")
+        elif not lunpaths[0] and not lunpaths[1] and lunpaths[2] and lunpaths[3]:
+            if not (secondary['status'] == 'active' and secondary[0][1] == 'active' and secondary[1][1] == 'active'):
+                raise xenrt.XRTFailure("Both Secondary Paths are not active")
+        elif not lunpaths[0] and not lunpaths[1] and (lunpaths[2] or lunpaths[3]):
+            if not (secondary['status'] == 'active' and (secondary[0][1] == 'active' or secondary[1][1] == 'active')):
+                raise xenrt.XRTFailure("None of the Secondary Paths are active")
+        elif not lunpaths[0] and not lunpaths[1] and not lunpaths[2] and not lunpaths[3]:
+            if not (primary['status'] == 'enabled' and secondary['status'] == 'enabled'):
+                if not primary[0][1] == 'failed' and primary[1][1] == 'failed':
+                    if not secondary[0][1] == 'failed' and secondary[1][1] == 'failed':
+                        raise xenrt.XRTFailure("Atleast one of the Primary or Secondary Path is active")
+    
+    def run(self, arglist=None):
+        
+        # Get the multipath IPs for the failover/recover testing
+        primaryIPs = self.dell.primaryIPs.split(',')
+        secondaryIPs = self.dell.secondaryIPs.split(',')
+        lunpath = [True,True,True,True]
+        self.checkMultipathInfo(lunpath)
+        # Set up VM with VDI on iscsi SR with periodically reading/writing
+        self.guest = self.host.createGenericLinuxGuest(name="testVM", sr=self.dellSR)
+        dev = self.guest.createDisk(sizebytes=5368709120, sruuid=self.dellSR, returnDevice=True) # 5GB
+        xenrt.sleep(30)
+        # Launch a periodic read/write script using the new disk
+        self.guest.execguest("%s/remote/readwrite.py /dev/%s > /tmp/rw.log "
+                             "2>&1 < /dev/null &" %
+                             (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dev))
+        xenrt.sleep(30)
+        # Check the SR is functional
+        self.check()
+
+        # Primary/Secondary Paths Failover Loop
+        for i in range(0, 50):
+            log("failover/recover loop count is %s " % str(i))
+            # Disable 1st primary path
+            self.enableDisablePath("DROP", primaryIPs[1])
+            lunpath = [False,True,True,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Disable 2nd primary path
+            self.enableDisablePath("DROP", primaryIPs[0])
+            lunpath = [False,False,True,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Disable 1st secondary path
+            self.enableDisablePath("DROP", secondaryIPs[1])
+            lunpath = [False,False,False,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Enable 1st primary path
+            self.enableDisablePath("ACCEPT", primaryIPs[1])
+            lunpath = [True,False,False,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Enable 2nd primary path
+            self.enableDisablePath("ACCEPT", primaryIPs[0])
+            lunpath = [True,True,False,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Enable 1st secondary path
+            self.enableDisablePath("ACCEPT", secondaryIPs[1])
+            lunpath = [True,True,True,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Disable both primary paths
+            self.enableDisablePath("DROP", primaryIPs[0])
+            self.enableDisablePath("DROP", primaryIPs[1])
+            lunpath = [False,False,True,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+            # Enable both primary paths
+            self.enableDisablePath("ACCEPT", primaryIPs[0])
+            self.enableDisablePath("ACCEPT", primaryIPs[1])
+            lunpath = [True,True,True,True]
+            self.checkMultipathInfo(lunpath)
+            self.check()
+            
+
+        # Disable all paths
+        self.enableDisablePath("DROP", primaryIPs[0])
+        self.enableDisablePath("DROP", primaryIPs[1])
+        self.enableDisablePath("DROP", secondaryIPs[0])
+        self.enableDisablePath("DROP", secondaryIPs[1])
+
+        lunpath = [False,False,False,False]
+        self.checkMultipathInfo(lunpath)
+
+        # Enable all paths
+        self.host.execdom0("service iptables restart")
+        xenrt.sleep(60)
+        # Restart the VM for enabling multipathing
+        self.guest.reboot()
+        lunpath = [True,True,True,True]
+        self.checkMultipathInfo(lunpath)
+        
+
 #############################################################################
 # FC
 

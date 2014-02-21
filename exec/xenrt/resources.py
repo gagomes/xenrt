@@ -792,6 +792,7 @@ class _ISCSILunBase(CentralResource):
                  startlist,
                  minsize=10,
                  ttype=None,
+                 hwtype=None,
                  maxsize=10000000,
                  jumbo=False,
                  mpprdac=None,
@@ -814,16 +815,21 @@ class _ISCSILunBase(CentralResource):
 
             # Check if the size is suitable
             xsize = int(xenrt.TEC().lookup([keyname, s, "SIZE"], 0))
-            xtype = xenrt.TEC().lookup([keyname, s, "TYPE"], "unknown")
             if xsize < minsize:
                 continue
             if xsize > maxsize:
                 continue
 
             # Check if the type (hardware/software) is suitable
+            xtype = xenrt.TEC().lookup([keyname, s, "TYPE"], "unknown")
             if ttype and ttype != xtype:
                 continue
-
+            
+            # Check the suitable hardware type
+            htype = xenrt.TEC().lookup([keyname, s, "HWTYPE"], "unknown")
+            if hwtype and hwtype != htype:
+                continue
+            
             # Check we have enough initiator names defined
             if params.has_key("INITIATORS"):
                 want = int(params["INITIATORS"])
@@ -857,7 +863,7 @@ class _ISCSILunBase(CentralResource):
             names.append(s)
         if len(names) == 0:
             raise xenrt.XRTError("Could not find a suitable LUN "
-                                 "(size>%uG, type=%s)" % (minsize, ttype))
+                                 "(size>%uG, type=%s, hardwaretype=%s)" % (minsize, ttype, hwtype))
         return names   
 
 class ISCSILunGroup(_ISCSILunBase):
@@ -998,13 +1004,16 @@ class ISCSILun(_ISCSILunBase):
     def __init__(self,
                  minsize=10,
                  ttype=None,
+                 hwtype=None,
                  maxsize=10000000,
                  jumbo=False,
                  mpprdac=None,
                  params={},
-                 name=None):
+                 name=None,
+                 usewildcard=False):
         """minsize is in GB
-        ttype can be "hardware", "software" or None for any"""
+        ttype can be "hardware", "software" or None for any
+        hwtype can be specific hardware or None for any"""
         if name:
             CentralResource.__init__(self, held=False)
             self.name = name
@@ -1020,7 +1029,7 @@ class ISCSILun(_ISCSILunBase):
             servers = sorted(serverdict.keys())
             if len(servers) == 0:
                 raise xenrt.XRTError("No ISCSI_LUNS defined")
-            names = self.filterLuns("ISCSI_LUNS",servers,minsize, ttype, maxsize, jumbo, mpprdac, params)
+            names = self.filterLuns("ISCSI_LUNS",servers,minsize, ttype, hwtype, maxsize, jumbo, mpprdac, params)
             CentralResource.__init__(self, held=False)
             name = None
             startlooking = xenrt.util.timenow()
@@ -1056,15 +1065,26 @@ class ISCSILun(_ISCSILunBase):
                                                       name,
                                                       "INITIATOR_START"],
                                                      "0"))
-        self.targetname = xenrt.TEC().lookup(["ISCSI_LUNS",
-                                              name,
-                                              "TARGET_NAME"],
-                                             None)
+        if usewildcard:
+            self.targetname = "*"
+        else:
+            self.targetname = xenrt.TEC().lookup(["ISCSI_LUNS",
+                                                  name,
+                                                  "TARGET_NAME"],
+                                                None)
         self.lunid = int(xenrt.TEC().lookup(["ISCSI_LUNS",
                                               name,
                                               "LUN_ID"],
                                              "0"))
-
+        
+        # Get details of the iscsi filer for this resource if available
+        self.filername = xenrt.TEC().lookup(["ISCSI_LUNS", name, "FILER"], None)
+        if self.filername:
+            self.primaryIPs = xenrt.TEC().lookup(["ISCSI_FILERS", self.filername, "PRIMARY"], None)
+            self.primaryNetconfig = xenrt.TEC().lookup(["ISCSI_FILERS", self.filername, "PRIMARY_NETCONFIG"], None)
+            self.secondaryIPs = xenrt.TEC().lookup(["ISCSI_FILERS", self.filername, "SECONDARY"], None)
+            self.secondaryNetconfig = xenrt.TEC().lookup(["ISCSI_FILERS", self.filername, "SECONDARY_NETCONFIG"], None)
+        
         if params.has_key("NETWORK"):
             # We specified a network, make sure we use the correct server
             # address for that
@@ -2896,4 +2916,49 @@ class ProductLicense(CentralResource):
     def getKey(self):
         return xenrt.TEC().lookup(["LICENSES", "PRODUCT_%s" % self.product, self.license])
 
+
+def getResourceRange(resourceType, numberRequired):
+    loopsToTry = 3
+
+    lastResourceInt = None
+    resourceInt = None
+    resourceList = []
+    resource = None
+    while len(resourceList) < numberRequired:
+        if resourceType == 'IP4ADDR':
+            resource = xenrt.StaticIP4Addr()
+            resourceInt = IPy.IP(resource.getAddr()).int()
+        elif resourceType == 'IP6ADDR':
+            resource = xenrt.StaticIP6Addr()
+            resourceInt = IPy.IP(resource.getAddr()).int()
+        elif resourceType == 'VLAN':
+            resource = xenrt.PrivateVLAN()
+            resourceInt = int(resource.getID())
+        else:
+            raise xenrt.XRTError('Invalid resource type: %s' % (resourceType))
+
+        try:
+            if lastResourceInt != None:
+                if resourceInt != lastResourceInt + 1:
+                    # Free all aquired IP addresses
+                    map(lambda x:x.release(), resourceList)
+                    resourceList = []
+                elif resourceInt < lastResourceInt:
+                    # Failed to find a block of resources during this pass - decrement loop counter and try again
+                    map(lambda x:x.release(), resourceList)
+                    resourceList = []
+                    loopsToTry -= 1
+                    if loopsToTry < 1:
+                        resource.release()
+                        raise xenrt.XRTError('Failed to allocate %d block of resource: %s' % (numberRequired, resourceType))
+
+            resourceList.append(resource)
+            lastResourceInt = resourceInt
+        except Exception, e:
+            # Attept to free all resources
+            resource.release()
+            map(lambda x:x.release(), resourceList)
+            raise xenrt.XRTError('Error during %s resource range allocation' % (resourceType))
+
+    return resourceList
 

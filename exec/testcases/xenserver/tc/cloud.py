@@ -156,7 +156,6 @@ class CitrixCloudBase(xenrt.TestCase):
         'ccp-latest': {
             'release':  'CCP',
             'mansvr':   'http://repo-ccp.citrix.com/releases/release_builds/4.2.0/CloudPlatform-4.2.0-2-rhel6.3.tar.gz',
-            'systemvm': 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2',
             'marvin':   'http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz',
             'cmdprefix': 'cloudstack',
             'distro':   'rhel63'
@@ -479,8 +478,9 @@ class CitrixCloudBase(xenrt.TestCase):
         if isinstance(releaseDict['mansvr'], dict) and releaseDict['mansvr'].has_key('jenkinsurl'):
             releaseDict['mansvr'] = self.getArtifactsFromJenkins(releaseDict['mansvr'])
 
-        if isinstance(releaseDict['systemvm'], dict) and releaseDict['systemvm'].has_key('jenkinsurl'):
-            releaseDict['systemvm'] = self.getArtifactsFromJenkins(releaseDict['systemvm'])
+        if releaseDict.has_key('systemvm'):
+            if isinstance(releaseDict['systemvm'], dict) and releaseDict['systemvm'].has_key('jenkinsurl'):
+                releaseDict['systemvm'] = self.getArtifactsFromJenkins(releaseDict['systemvm'])
 
         if isinstance(releaseDict['marvin'], dict) and releaseDict['marvin'].has_key('jenkinsurl'):
             releaseDict['marvin'] = self.getArtifactsFromJenkins(releaseDict['marvin'])
@@ -501,11 +501,13 @@ class CitrixCloudBase(xenrt.TestCase):
 
         testContVM.execguest('pip install %s' % (destMarvinLocation))
         testContVM.execguest('tar -zxvf %s' % (destMarvinLocation))
-        
-        branchStr = ''
-        if cloudArtifacts.has_key('tcbranch'):
-            branchStr = '-b %s' % (cloudArtifacts['tcbranch'])
-        testContVM.execguest('git clone --depth=1 %s %s' % (branchStr, self.CS_GIT_REPO), timeout=1800)
+
+        getMarvinTests = xenrt.TEC().lookup("GET_MARVIN_TEST_CODE", True, boolean=True)
+        if getMarvinTests:
+            branchStr = ''
+            if cloudArtifacts.has_key('tcbranch'):
+                branchStr = '-b %s' % (cloudArtifacts['tcbranch'])
+            testContVM.execguest('git clone --depth=1 %s %s' % (branchStr, self.CS_GIT_REPO), timeout=60*60)
 
     def parseXUnitResults(self, xUnitResultFile):
         fh = open(xUnitResultFile)
@@ -637,10 +639,18 @@ class CitrixCloudBase(xenrt.TestCase):
         testContVM.execguest('python %s %s' % (configureScriptLocation, cloudConfigLocation))
 
     def postInstallCSManSvr(self, manSvrVM, secondaryStorageServerPath, cloudArtifacts):
-        # Install service VMs
+        # Get service VM template
+        if cloudArtifacts.has_key('systemvm'):
+            sysTemplateUrl = cloudArtifacts['systemvm']
+        else:
+            sysTemplateFile = xenrt.TEC().getFile('/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
+            webdir = xenrt.WebDirectory()
+            webdir.copyIn(sysTemplateFile)
+            sysTemplateUrl = webdir.getURL(os.path.basename(sysTemplateFile))
+
         manSvrVM.execguest('mount %s /media' % (secondaryStorageServerPath))
         installSysTmpltLoc = manSvrVM.execguest('find / -name *install-sys-tmplt').strip()
-        manSvrVM.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, cloudArtifacts['systemvm']), timeout=60*60)
+        manSvrVM.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
 #        manSvrVM.execguest('/usr/share/cloudstack-common/scripts/storage/secondary/cloud-install-sys-tmplt -m /media -u %s -h xenserver -F' % (systemVMUrl), timeout=60*60)
         manSvrVM.execguest('umount /media')
 
@@ -776,7 +786,7 @@ class TCBasicCloudStack(CitrixCloudBase):
         zone = marvinConf.addBasicZone('TestZone', dnsAddr, secondaryStoragePath)
         pod = marvinConf.addPod('TestPod', zone, netmask, gateway, [self.publicIpResources[0].getAddr(), self.publicIpResources[-1].getAddr()],
                                                                    [self.managementIpResources[0].getAddr(), self.managementIpResources[-1].getAddr()])
-        cluster = marvinConf.addCluster('TestCluster', pod, map(lambda x:x.getIP(), self.xsPool.getHosts()), primaryStorageSRName='CS-PRI')
+        cluster = marvinConf.addCluster('TestCluster', pod, [self.xsPool.master.getIP()], primaryStorageSRName='CS-PRI')
         marvinConfigFile = marvinConf.createJSONMarvinConfigFile()
 
         self.executeMarvinTest(self.testContVM, self.manSvrVM, marvinConfigFile, storeLogs=True, checkResults=False, legacyLogCollection=False)

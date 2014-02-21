@@ -12,8 +12,8 @@
 Parses an XML test sequence specification.
 """
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random
-import xenrt
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
+import xenrt, xenrt.clouddeploy
 
 __all__ = ["Fragment",
            "SingleTestCase",
@@ -890,6 +890,7 @@ class PrepareNode:
         self.pools = []
         self.bridges = []
         self.srs = []
+        self.cloudSpec = {}
         self.networksForHosts = {}
         self.networksForPools = {}
         self.controllersForHosts = {}
@@ -918,6 +919,53 @@ class PrepareNode:
                     if i == stop:
                         break
                     i = i + 1
+            elif n.localName == "cloud":
+                self.handleCloudNode(n, params)
+
+    def handleCloudNode(self, node, params):
+        # Load the JSON block from the sequence file
+        self.cloudSpec = json.loads(node.childNodes[0].data)
+
+
+        # Find allocated host IDs 
+        allocatedHostIds = map(lambda x:int(x['id']), self.hosts)
+        hostIdIndex = 0
+        if len(allocatedHostIds) > 0:
+            hostIdIndex = max(allocatedHostIds) + 1
+
+        allocatedPoolIds = map(lambda x:int(x['id']), self.pools)
+        poolIdIndex = 0
+        if len(allocatedPoolIds) > 0:
+            poolIdIndex = max(allocatedPoolIds) + 1
+
+        xenrt.TEC().logverbose('Allocate Hosts from ID: %d' % (hostIdIndex))
+        xenrt.TEC().logverbose('Allocate Pools from ID: %d' % (poolIdIndex))
+
+        for zone in self.cloudSpec['zones']:
+            
+            for pod in zone['pods']:
+
+                for cluster in pod['clusters']:
+                    if not cluster.has_key('masterHostId'):
+                        hostIds = range(hostIdIndex, hostIdIndex + cluster['hosts'])
+                        poolId = poolIdIndex
+
+                        simplePoolNode = xml.dom.minidom.Element('pool')
+                        simplePoolNode.setAttribute('id', str(poolId))
+                        for hostId in hostIds:
+                            simpleHostNode = xml.dom.minidom.Element('host')
+                            simpleHostNode.setAttribute('id', str(hostId))
+                            simplePoolNode.appendChild(simpleHostNode)
+
+# TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
+                            
+                        hostIdIndex += cluster['hosts']
+                        poolIdIndex += 1
+
+                        self.handlePoolNode(simplePoolNode, params)
+                        poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
+                        cluster['masterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
+    
 
     def handlePoolNode(self, node, params):
         pool = {}
@@ -1223,6 +1271,7 @@ class PrepareNode:
         xenrt.TEC().logverbose("VMs: %s" % (self.vms))
         xenrt.TEC().logverbose("Bridges: %s" % (self.bridges))
         xenrt.TEC().logverbose("SRs: %s" % (self.srs))
+        xenrt.TEC().logverbose("Cloud Spec: %s" % (self.cloudSpec))
 
     def runThis(self):
         self.preparecount = self.preparecount + 1
@@ -1722,7 +1771,10 @@ class PrepareNode:
                     controller = xenrt.TEC().registry.guestGet(self.controllersForHosts[h])
                     host = xenrt.TEC().registry.hostGet(h)
                     host.associateDVS(controller.getDVSCWebServices())
-                
+
+                if self.cloudSpec:
+                    xenrt.clouddeploy.deploy(self.cloudSpec)
+
         except Exception, e:
             sys.stderr.write(str(e))
             traceback.print_exc(file=sys.stderr)

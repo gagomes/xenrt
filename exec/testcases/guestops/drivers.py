@@ -105,7 +105,11 @@ class TCDriverInstall(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTError(e.reason)
 
-        guest.installDrivers(useHostTimeUTC=useHostTimeUTC)
+        if isinstance(guest, xenrt.lib.xenserver.guest.TampaGuest):
+            guest.installDrivers(useHostTimeUTC=useHostTimeUTC)
+        else:
+            guest.installDrivers()
+        
         if xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True):
             guest.shutdown()
             cli = guest.getCLIInstance()

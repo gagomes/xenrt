@@ -13,6 +13,7 @@ class _XapiRTBase(xenrt.TestCase):
     EXPECTED_PATH = '/tmp/local/bm/scripts/remote/patterns.py'
     ACTUAL_PATH = '/opt/xenrt/scripts/remote/patterns.py'
     LOCATION = '/etc/xapi.d/plugins/lvhdrt-helper'
+    CHANGE_PATTERNS_PATH = False
     
     def prepare(self, arglist):
         if not self.TCID:

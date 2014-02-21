@@ -61,11 +61,12 @@ class _Scalability(xenrt.TestCase):
             guest.resume()  
 
 
+
 class _VMScalability(_Scalability):
     
     VCPUCOUNT= None #default values
     VIFCOUNT=1 #default values
-    VIFS = False
+    VIFS = False # No VIFs for individual VMs
     VBDCOUNT=1 #default values
     MAX = 0
     TRYMAX = False # TRY to load the MAXimum possible VMs, by disabling some features
@@ -79,13 +80,15 @@ class _VMScalability(_Scalability):
     DOM0MEM = False #Dom 0 Memory in MB
     NET_BRIDGE=False # Use Linux Bridge for Network Backend
     FLOW_EVT_THRESHOLD = False # set flow-eviction-threshold value (e.g.: 8192)
+    POSTRUN = True #For post run VM cleanup
     
-    # pin additional vCPUs for dom0. Will use this if TRYMAX is set to True
+    #Pin additional vCPUs for dom0. Will use this if TRYMAX is set to True
     DOM0CPUS = False 
     tunevcpus = 8
     
     pri_bridge = False
     pool = None
+    vmtemplate = "Golden-VM-Template"
 
     def parseArgument(self,param,value):
         """Parse an argument to the testcase"""
@@ -104,6 +107,15 @@ class _VMScalability(_Scalability):
             self.DOM0MEM=int(value)
         elif param=="max":  #No.of VMs
             self.MAX=int(value)
+        elif param=="postRun": #Post Run Cleanup
+            self.POSTRUN=str(value)
+    
+    #Base class for cloning VMs with worker threads
+    def prepare(self, arglist=None):
+        # Find the gold VMs - we'll clone from these
+        # e.g. if we have 2 golden images, we'll clone half from gold0 and half from gold1
+        self.gold = []
+        
 
     def installVM(self, host):
         if self.DISTRO == "LINUX":
@@ -129,7 +141,7 @@ class _VMScalability(_Scalability):
             self.MEMORY = 256   
         
         g0 = xenrt.lib.xenserver.guest.createVM(host,
-                                                  xenrt.randomGuestName(),
+                                                  self.vmtemplate,
                                                   distro,
                                                   arch=self.ARCH,
                                                   memory=self.MEMORY,
@@ -193,13 +205,31 @@ class _VMScalability(_Scalability):
                 self.pool.setPoolParam("ha-host-failures-to-tolerate", 1)
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to create HA enabled Pool.. %s" % (e))
-       
-        # Create the initial VM
-        guest = self.installVM(host)
-        self.guests.append(guest)
+                
+        # Get the Existing Guests
+        existingGuests = host.listGuests()
+        for gname in existingGuests:
+                self.guests.append(host.getGuest(gname))
+        
+        if self.MAX == True:
+            max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
+        else:
+            max = self.MAX
 
-        guest.preCloneTailor()
-        guest.shutdown()
+        #VM Master Copy
+        guest = None
+        if max == 0 or len(self.guests) < max:
+            if self.getGuest(self.vmtemplate):
+                guest = self.getGuest(self.vmtemplate)
+                if guest.getState() != "DOWN":
+                    guest.shutdown(force=True)                
+            # Create the initial VM
+            else:
+                guest = self.installVM(host)
+                guest.preCloneTailor()
+                guest.shutdown()
+            if self.POSTRUN:
+                self.uninstallOnCleanup(guest)
         
         if self.FLOW_EVT_THRESHOLD:
             host.execdom0("ovs-vsctl set bridge %s other-config:flow-eviction-threshold=%u" % (self.pri_bridge,self.FLOW_EVT_THRESHOLD))
@@ -208,45 +238,28 @@ class _VMScalability(_Scalability):
             # Remove the VIF
             guest.removeVIF("0")
 
-        if self.MAX == True:
-            max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
-        else:
-            max = self.MAX
-
         # Do a clone loop
-        count = 0
-        clones = []
-        vmname=guest.getName()
-        k = 0
+        count = len(self.guests)
         while max == 0 or count < max:
-            if count > 0 and count % 20 == 0:
-                # CA-19617 Perform a vm-copy every 20 clones
-                #adding code to ensure better vm names
-                guest = guest.copyVM(name=str(count/20) + "copyOF-" + vmname)
-                self.guests.append(guest)
-                k = 0
-            try:
-                k += 1
-                g = guest.cloneVM(name=str(len(clones)+1)+"-" +str(k)+ "cloneOF-"+guest.getName())
-                self.guests.append(g)
-                if tailor_guest:
-                    tailor_guest(g)
-                if max == 0:
+            g = guest.cloneVM(name=str(len(self.guests)+1)+"-" + self.DISTRO)
+            self.guests.append(g)
+            if tailor_guest:
+                tailor_guest(g)
+            if max == 0:
+                try:
                     g.start()
                     if self.HATEST:
                         g.setHAPriority(order=2, protect=True, restart=False)
                         if not g.paramGet("ha-restart-priority") == "best-effort":
-                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName())) 
-                clones.append(g)
-            except xenrt.XRTFailure, e:
-                xenrt.TEC().warning("Failed to start VM %u: %s" % (count+1,e))
-                break
+                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))                 
+                except xenrt.XRTFailure, e:
+                    xenrt.TEC().warning("Failed to start VM %u: %s" % (count+1,e))
+                    break
             count += 1
         
-        #It is better to start after creating all the Clones
+        #To reduce the Xenserver load, due to XenRT interference, it is better to start the guests after creating all the Clones
         if max != 0:
-            temp = 0 #One single VM failure shouldn't stop the VM start loop. Try a mximum of 10 failures, before quitting the loop.. 
-            for g in clones:
+            for g in self.guests:
                 try:
                     g.start()
                     if self.HATEST:
@@ -254,15 +267,13 @@ class _VMScalability(_Scalability):
                         if not g.paramGet("ha-restart-priority") == "best-effort":
                             raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName())) 
                 except xenrt.XRTFailure, e:
-                    temp += 1
-                    xenrt.TEC().warning("Failure %u >> Couldn't start VM %s: %s" % (temp,g.getName(),e))
-                    if temp > 10: 
-                        break
+                    raise xenrt.XRTFailure("Couldn't start VM %s: %s" % (g.getName(),e))
+                    break
 
         #reachability test
         aliveCount = 0
         if self.CHECKREACHABLE:
-            for g in clones:
+            for g in self.guests:
                 try:
                     g.checkReachable(30)
                 except:
@@ -275,7 +286,7 @@ class _VMScalability(_Scalability):
         #taking a snapshot of the VM to search for BSODs and other issues)
         upCount = 0		
         if self.CHECKHEALTH:
-            for g in clones:
+            for g in self.guests:
                 try:
                     if g.getState() == "UP":
                         g.checkHealth(noreachcheck=True) #noreachcheck=True will ensure the VNC Snapshot is taken and checked
@@ -301,16 +312,16 @@ class _VMScalability(_Scalability):
         
         if self.LOOPS > 0:
             # Looping test
-            for g in clones:
+            for g in self.guests:
                 if g.getState() == "UP":
                     g.shutdown()
 
             lcount = 0
             try:
                 for i in range(self.LOOPS):
-                    for g in clones:
+                    for g in self.guests:
                         g.start()
-                    for g in clones:
+                    for g in self.guests:
                         g.shutdown()
                     lcount += 1
             finally:
@@ -325,18 +336,20 @@ class _VMScalability(_Scalability):
                 self.pool.disableHA(check=False)
             except:
                 pass
-        for g in self.guests:
-            try:
+        if self.POSTRUN:
+            for g in self.guests:
                 try:
-                    g.shutdown(force=True)
-                except:
-                    pass
-                g.poll("DOWN", 120, level=xenrt.RC_ERROR)
-                g.uninstall()
-            except:
-                xenrt.TEC().warning("Exception while uninstalling temp guest")  
+                    try:
+                        g.shutdown(force=True)
+                    except:
+                        pass
+                    g.poll("DOWN", 120, level=xenrt.RC_ERROR)
+                    g.uninstall()
+                except Exception, e:
+                    xenrt.TEC().warning("Exception while uninstalling guest:%s %s" % (g.getName(), str(e)))
+           
+           
 
-				
 class _VIFScalability(_Scalability):
     MAX = None
     VALIDATE = False

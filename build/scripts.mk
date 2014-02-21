@@ -124,8 +124,7 @@ uninstall:
 %.git:
 	$(info Updating $@ repository...)
 	[ -d $(ROOT)/$@ ] || $(GIT) clone $(GITPATH)/$@ $(ROOT)/$@
-	cd $(ROOT)/$@
-	-$(GIT) pull
+	cd $(ROOT)/$@ && $(GIT) pull
 
 .PHONY: $(CONFDIR)
 $(CONFDIR):

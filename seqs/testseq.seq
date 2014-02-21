@@ -1,0 +1,10 @@
+<xenrt>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="dummy.TCFail" />
+    </serial>
+
+  </testsequence>
+
+</xenrt>

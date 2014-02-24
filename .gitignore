@@ -5,6 +5,9 @@ control/queue.cgi
 control/site-controller
 *.orig
 *.rej
+*.swp
+*.swo
+*~
 control/xenrt
 env/guestdhcpd
 examples/second_network_site.xml

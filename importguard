@@ -9,6 +9,7 @@ for i in `cat $1/series | grep "#+$2$" | grep -v "^#" | awk '{print $1}'`
 do
     echo $i
     patch -p1 < $1/$i
+    git add .
     git commit -a -m "Imported patch $i"
 done
 

@@ -8,7 +8,11 @@ git checkout -b $2
 for i in `cat $1/series | grep "#+$2$" | grep -v "^#" | awk '{print $1}'`
 do
     echo $i
-    git apply --index < $1/$i
+    patch -p1 < $1/$i
+    for j in `grep "^+++ " $1/$i | awk '{print $2}' | cut -d "/" -f 2-`
+    do
+        git add $j
+    done
     git commit -m "Imported patch $i"
 done
 

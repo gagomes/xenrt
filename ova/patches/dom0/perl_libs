@@ -1,9 +1,0 @@
-diff -r 46e8349213e8 packages.xenrt
---- a/packages.xenrt	Wed Oct 24 15:55:00 2007 +0100
-+++ b/packages.xenrt	Fri Oct 26 09:56:21 2007 +0100
-@@ -34,3 +34,5 @@ tcpdump
- tcpdump
- authd
- libjpeg-devel
-+perl-IO-Socket-SSL
-+perl-Net-SSLeay

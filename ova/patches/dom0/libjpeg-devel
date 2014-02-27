@@ -1,8 +1,0 @@
-diff -r 007d7229dc19 packages.xenrt
---- a/packages.xenrt	Mon Oct 01 11:06:04 2007 +0100
-+++ b/packages.xenrt	Tue Oct 02 11:16:01 2007 +0100
-@@ -33,3 +33,4 @@ strace
- strace
- tcpdump
- authd
-+libjpeg-devel

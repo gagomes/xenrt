@@ -1,8 +1,0 @@
-diff -r 5dd4fb0b0c0f binary-overlay.xenrt/etc/httpd/conf.d/apt-cacher.conf
---- a/binary-overlay.xenrt/etc/httpd/conf.d/apt-cacher.conf	Thu Sep 06 12:26:20 2007 +0100
-+++ b/binary-overlay.xenrt/etc/httpd/conf.d/apt-cacher.conf	Thu Sep 06 12:26:59 2007 +0100
-@@ -13,3 +13,4 @@ RewriteRule ^/debian-amd64/(.*) /apt-cac
- RewriteRule ^/debian-amd64/(.*) /apt-cacher/amd64.debian.net/debian-amd64/$1 [PT]
- RewriteRule ^/debian/(.*) /apt-cacher/ftp.us.debian.org/debian/$1 [PT]
- RewriteRule ^/debian-backports/(.*) /apt-cacher/www.backports.org/debian/$1 [PT]
-+RewriteRule ^/XenServer/([^/]+)/debian/(.*) /apt-cacher/updates.xensource.com/XenServer/$1/debian/$2 [PT]

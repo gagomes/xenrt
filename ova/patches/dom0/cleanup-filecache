@@ -1,0 +1,8 @@
+diff -r 9bfb704edf64 patches.xenrt/patch-etc_crontab
+--- a/patches.xenrt/patch-etc_crontab	Thu Sep 20 14:32:58 2007 +0100
++++ b/patches.xenrt/patch-etc_crontab	Mon Sep 24 10:16:54 2007 +0100
+@@ -7,3 +7,4 @@
+ +
+ +*/2 * * * * xenrtd if [ -e /etc/xenrt/siteid ]; then /usr/share/xenrt/control/site-controller -d -s `cat /etc/xenrt/siteid` >> /tmp/xenrt-site-controller.log 2>&1; fi
+ +30 * * * * xenrtd /usr/bin/xrt -V --replay-db >> /tmp/xenrt-replay-db.log 2>&1
+++0 0 * * * xenrtd /usr/bin/xrt -V --cleanup-filecache >> /tmp/xenrt-cleanup-filecache.log 2>&1

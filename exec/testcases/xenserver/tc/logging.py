@@ -300,8 +300,10 @@ class TC19175(xenrt.TestCase):
         t.start()
         ExpDirectories = ['/var/log/blktap/', '/var/log/installer/', '/var/log/sa/', '/var/log/samba/', '/var/log/xen/']
         OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/']
+        DirectoriesToCheck = '/var/log /var/log/blktap /var/log/xen'
         if self.host.special['Network subsystem type'] == "vswitch":
             ExpDirectories.append('/var/log/openvswitch/')
+            DirectoriesToCheck += ' /var/log/openvswitch'
         ActDirectories = self.host.execdom0("ls -d /var/log/*/").split("\n")[:-1]
         xenrt.TEC().logverbose("Expected Directories in /var/log %s" %(ExpDirectories))
         xenrt.TEC().logverbose("Optional Directories in /var/log %s" %(OptDirectories))
@@ -314,7 +316,7 @@ class TC19175(xenrt.TestCase):
             if item not in ExpDirectories and item not in OptDirectories:
                 raise xenrt.XRTFailure("%s not expected/optional but present" %(item))
 
-        cmdLivelogSize = "find /var/log /var/log/openvswitch /var/log/blktap /var/log/xen -maxdepth 1 -type f ! -name '*.tmp' ! -name '*.gz' ! -name lastlog ! -name faillog ! -name '*dmesg' ! -regex '.*\.[0-9]+'| xargs --delimiter='\n' du -m --total | tail -1 | cut -f 1"
+        cmdLivelogSize = "find %s -maxdepth 1 -type f ! -name '*.tmp' ! -name '*.gz' ! -name lastlog ! -name faillog ! -name '*dmesg' ! -regex '.*\.[0-9]+'| xargs --delimiter='\n' du -m --total | tail -1 | cut -f 1" %(DirectoriesToCheck)
         #Verify if the total set of live log files(files still growing) is at least 36MB then the biggest ones will be rotated to bring the total down to 12MB or less. 
         deadline = xenrt.timenow() + self.TIMEOUT
         while True:

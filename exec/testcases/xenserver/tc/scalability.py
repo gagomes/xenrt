@@ -80,7 +80,7 @@ class _VMScalability(_Scalability):
     DOM0MEM = False #Dom 0 Memory in MB
     NET_BRIDGE=False # Use Linux Bridge for Network Backend
     FLOW_EVT_THRESHOLD = False # set flow-eviction-threshold value (e.g.: 8192)
-    POSTRUN = True #For post run VM cleanup
+    NOPOSTRUN = False #For post run VM cleanup
     
     #Pin additional vCPUs for dom0. Will use this if TRYMAX is set to True
     DOM0CPUS = False 
@@ -107,8 +107,8 @@ class _VMScalability(_Scalability):
             self.DOM0MEM=int(value)
         elif param=="max":  #No.of VMs
             self.MAX=int(value)
-        elif param=="postRun": #Post Run Cleanup
-            self.POSTRUN=str(value)
+        elif param=="noPostrun": #Post Run Cleanup
+            self.NOPOSTRUN=value
     
     #Base class for cloning VMs with worker threads
     def prepare(self, arglist=None):
@@ -228,7 +228,7 @@ class _VMScalability(_Scalability):
                 guest = self.installVM(host)
                 guest.preCloneTailor()
                 guest.shutdown()
-            if self.POSTRUN:
+            if not self.NOPOSTRUN:
                 self.uninstallOnCleanup(guest)
         
         if self.FLOW_EVT_THRESHOLD:
@@ -336,7 +336,7 @@ class _VMScalability(_Scalability):
                 self.pool.disableHA(check=False)
             except:
                 pass
-        if self.POSTRUN:
+        if not self.NOPOSTRUN:
             for g in self.guests:
                 try:
                     try:

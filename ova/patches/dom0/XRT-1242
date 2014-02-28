@@ -1,0 +1,16 @@
+diff -r 334169b05373 patches.xenrt/patch-etc_crontab
+--- a/patches.xenrt/patch-etc_crontab	Fri Nov 30 15:08:09 2007 +0000
++++ b/patches.xenrt/patch-etc_crontab	Fri Nov 30 16:04:17 2007 +0000
+@@ -1,6 +1,6 @@
+ --- dom0-pure/etc/crontab	2007-08-16 14:34:47.000000000 +0000
+ +++ dom0-staging/etc/crontab	2007-08-16 14:36:33.000000000 +0000
+-@@ -8,3 +8,6 @@
++@@ -8,3 +8,8 @@
+  02 4 * * * root run-parts /etc/cron.daily
+  22 4 * * 0 root run-parts /etc/cron.weekly
+  42 4 1 * * root run-parts /etc/cron.monthly
+@@ -8,3 +8,4 @@
+ +*/2 * * * * xenrtd if [ -e /etc/xenrt/siteid ]; then /usr/share/xenrt/control/site-controller -d -s `cat /etc/xenrt/siteid` >> /tmp/xenrt-site-controller.log 2>&1; fi
+ +30 * * * * xenrtd /usr/bin/xrt -V --replay-db >> /tmp/xenrt-replay-db.log 2>&1
+ +0 0 * * * xenrtd /usr/bin/xrt -V --cleanup-filecache >> /tmp/xenrt-cleanup-filecache.log 2>&1
+++5 * * * * xenrtd /usr/bin/xrt -V --cleanup-locks >> /tmp/xenrt-cleanup-locks.log 2>&1

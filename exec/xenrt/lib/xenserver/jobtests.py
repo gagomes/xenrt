@@ -147,4 +147,21 @@ for f in gcov-*.dat.xz; do
 done
 """ % (xenrt.TEC().lookup("JOBID", "-"), xenrt.TEC().lookup("JOBGROUP", "-"), xenrt.TEC().lookup("JOBGROUPTAG", "-"), xenrt.TEC().lookup("COVERAGE_URL", None)) )
 
-__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage"]
+class JTGro(xenrt.JobTest):
+    TCID = "TC-20999"
+    FAIL_MSG = "Gro not on by default on trunk host"
+
+    def postJob(self):
+        # Verify GRO is set to the 'ON' by default for all the NICs
+        nics = [] #list containing the nics with GRO off
+        for id in [0]+self.host.listSecondaryNICs():
+            nic = self.host.getNIC(id)
+            currstate = self.host.execdom0("ethtool -k %s | grep 'generic-receive-offload' | cut -d ':' -f 2" %nic).strip()
+            if not currstate == "on":
+                nics.append(nic)
+        if not nics:
+            xenrt.TEC().logverbose("GRO is on by default for all the NICs")
+        else:
+            return "GRO is off for NICs : %s" % string.join(nics,", ")
+
+__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro"]

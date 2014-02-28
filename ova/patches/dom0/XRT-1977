@@ -1,0 +1,279 @@
+diff -r ad734cb1e31e overlay.xenrt/etc/init.d/ipsetup
+--- a/overlay.xenrt/etc/init.d/ipsetup	Fri Feb 15 10:29:52 2008 +0000
++++ b/overlay.xenrt/etc/init.d/ipsetup	Tue Feb 19 15:02:17 2008 +0000
+@@ -1,135 +1,11 @@
+-#!/usr/bin/python
++#!/bin/bash
+ 
+ # chkconfig: 12345 99 01
+-# description: configure system at first boot
++# description: configure IP addressing
+ 
+-import string, xml.dom.minidom, os, sys
+-
+-# Functions
+-def convertint(ip):
+-    # Convert the string ip into an integer
+-    ipq = string.split(ip,".",3)
+-    shift = 24
+-    result = 0
+-
+-    for q in ipq:
+-        # Convert to an int
+-        qi = int(q)
+-        # Shift the appropriate number of bits
+-        qi = qi << shift
+-        shift -= 8
+-        # Add to the result
+-        result += qi
+-
+-    return result
+-
+-def convertstring(ip):
+-    # Convert the integer ip into a string
+-    o3 = str(ip & 0xff)
+-    o2 = str((ip & 0xff00) >> 8)
+-    o1 = str((ip & 0xff0000) >> 16)
+-    o0 = str((ip & 0xff000000) >> 24)
+-    return o0 + "." + o1 + "." + o2 + "." + o3
+-
+-def makeElement(dom, elem, value):
+-    # Make an element
+-    el = dom.createElement(elem)
+-    no = dom.createTextNode(value)
+-    el.appendChild(no)
+-    return el
+-
+-if sys.argv[1] != "start":
+-    sys.exit(1)
+-
+-print ""
+-ip = raw_input("Please specify an IP address for this host: ")
+-snet = raw_input("Please specify the subnet mask: ")
+-
+-# Convert IP and subnet mask into hex
+-ip_int = convertint(ip)
+-snet_int = convertint(snet)
+-
+-# Do a bitwise AND to get the network address
+-net_int = ip_int & snet_int
+-net = convertstring(net_int)
+-
+-# Now work out the broadcast address
+-bcast_int = net_int | (~snet_int)
+-bcast = convertstring(bcast_int)
+-
+-# Now decide what range of addresses to use for the pool
+-last_int = bcast_int - 1
+-first_int = ip_int + 20
+-last = convertstring(last_int)
+-first = convertstring(first_int)
+-
+-print "Network Configuration"
+-print "====================="
+-print "Network Address: " + net + ", Subnet Mask: " + snet
+-print "Controller IP: " + ip
+-print "DHCP Pool Start: " + first + ", Finish: " + last
+-print ""
+-
+-# Now write out configs
+-ifcfg = """DEVICE=eth0
+-BOOTPROTO=static
+-ONBOOT=yes
+-TYPE=ethernet
+-IPADDR=%s
+-NETMASK=%s
+-NETWORK=%s
+-BROADCAST=%s""" % (ip,snet,net,bcast)
+-
+-f = open('/etc/sysconfig/network-scripts/ifcfg-eth0', 'w')
+-f.write(ifcfg)
+-f.close()
+-
+-print "ifcfg-eth0 written"
+-
+-# Now write out the XenRT config
+-
+-# Read in sample config
+-dom = xml.dom.minidom.parse("/home/xenrtd/xenrt.hg/examples/site.xml.in")
+-
+-# Add network settings
+-net_elem = makeElement(dom,"SUBNET",net)
+-snet_elem = makeElement(dom,"SUBNETMASK",snet)
+-gw_elem = makeElement(dom,"GATEWAY",ip)
+-start_elem = makeElement(dom,"POOLSTART",first)
+-end_elem = makeElement(dom,"POOLEND",last)
+-ns_elem = makeElement(dom,"NAMESERVERS",ip)
+-
+-df = dom.createElement("DEFAULT")
+-df.appendChild(net_elem)
+-df.appendChild(snet_elem)
+-df.appendChild(gw_elem)
+-df.appendChild(start_elem)
+-df.appendChild(end_elem)
+-df.appendChild(ns_elem)
+-
+-nc = dom.createElement("NETWORK_CONFIG")
+-nc.appendChild(df)
+-
+-xenrt = dom.getElementsByTagName("xenrt")[0]
+-xenrt.appendChild(nc)
+-
+-# Write out
+-f = file("/etc/xenrt/site.xml", "w")
+-dom.writexml(f, addindent="  ", newl="\n")
+-f.close()
+-os.popen("chown xenrtd:xenrtd /etc/xenrt/site.xml")
+-
+-print "site.xml written"
+-
+-os.popen("/sbin/chkconfig ipsetup off")
+-
+-# Now launch the network stack
+-pipe = os.popen("/etc/init.d/network restart")
+-while True:
+-    line = pipe.readline()
+-    if not line:
+-        break
+-    print string.strip(line)
+-pipe.close()
+-
+-print "*** Configuration complete - continuing normal boot..."
++echo "Press any key within 5 seconds to configure IP addressing..."
++any_key="none"
++read -n1 -t5 any_key
++if [ "${any_key}" != "none" ]; then
++    /etc/ipsetup.py
++fi
+diff -r ad734cb1e31e overlay.xenrt/etc/ipsetup
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/overlay.xenrt/etc/ipsetup	Tue Feb 19 15:00:39 2008 +0000
+@@ -0,0 +1,128 @@
++#!/usr/bin/python
++
++import string, xml.dom.minidom, os, sys
++
++# Functions
++def convertint(ip):
++    # Convert the string ip into an integer
++    ipq = string.split(ip,".",3)
++    shift = 24
++    result = 0
++
++    for q in ipq:
++        # Convert to an int
++        qi = int(q)
++        # Shift the appropriate number of bits
++        qi = qi << shift
++        shift -= 8
++        # Add to the result
++        result += qi
++
++    return result
++
++def convertstring(ip):
++    # Convert the integer ip into a string
++    o3 = str(ip & 0xff)
++    o2 = str((ip & 0xff00) >> 8)
++    o1 = str((ip & 0xff0000) >> 16)
++    o0 = str((ip & 0xff000000) >> 24)
++    return o0 + "." + o1 + "." + o2 + "." + o3
++
++def makeElement(dom, elem, value):
++    # Make an element
++    el = dom.createElement(elem)
++    no = dom.createTextNode(value)
++    el.appendChild(no)
++    return el
++
++print ""
++print "WARNING: This will overwrite the site.xml file, to cancel, press Ctrl-C"
++ip = raw_input("Please specify an IP address for this host: ")
++snet = raw_input("Please specify the subnet mask: ")
++
++# Convert IP and subnet mask into hex
++ip_int = convertint(ip)
++snet_int = convertint(snet)
++
++# Do a bitwise AND to get the network address
++net_int = ip_int & snet_int
++net = convertstring(net_int)
++
++# Now work out the broadcast address
++bcast_int = net_int | (~snet_int)
++bcast = convertstring(bcast_int)
++
++# Now decide what range of addresses to use for the pool
++last_int = bcast_int - 1
++first_int = ip_int + 20
++last = convertstring(last_int)
++first = convertstring(first_int)
++
++print "Network Configuration"
++print "====================="
++print "Network Address: " + net + ", Subnet Mask: " + snet
++print "Controller IP: " + ip
++print "DHCP Pool Start: " + first + ", Finish: " + last
++print ""
++
++# Now write out configs
++ifcfg = """DEVICE=eth0
++BOOTPROTO=static
++ONBOOT=yes
++TYPE=ethernet
++IPADDR=%s
++NETMASK=%s
++NETWORK=%s
++BROADCAST=%s""" % (ip,snet,net,bcast)
++
++f = open('/etc/sysconfig/network-scripts/ifcfg-eth0', 'w')
++f.write(ifcfg)
++f.close()
++
++print "ifcfg-eth0 written"
++
++# Now write out the XenRT config
++
++# Read in sample config
++dom = xml.dom.minidom.parse("/home/xenrtd/xenrt.hg/examples/site.xml.in")
++
++# Add network settings
++net_elem = makeElement(dom,"SUBNET",net)
++snet_elem = makeElement(dom,"SUBNETMASK",snet)
++gw_elem = makeElement(dom,"GATEWAY",ip)
++start_elem = makeElement(dom,"POOLSTART",first)
++end_elem = makeElement(dom,"POOLEND",last)
++ns_elem = makeElement(dom,"NAMESERVERS",ip)
++
++df = dom.createElement("DEFAULT")
++df.appendChild(net_elem)
++df.appendChild(snet_elem)
++df.appendChild(gw_elem)
++df.appendChild(start_elem)
++df.appendChild(end_elem)
++df.appendChild(ns_elem)
++
++nc = dom.createElement("NETWORK_CONFIG")
++nc.appendChild(df)
++
++xenrt = dom.getElementsByTagName("xenrt")[0]
++xenrt.appendChild(nc)
++
++# Write out
++f = file("/etc/xenrt/site.xml", "w")
++dom.writexml(f, addindent="  ", newl="\n")
++f.close()
++os.popen("chown xenrtd:xenrtd /etc/xenrt/site.xml")
++
++print "site.xml written"
++
++# Now launch the network stack
++pipe = os.popen("/etc/init.d/network restart")
++while True:
++    line = pipe.readline()
++    if not line:
++        break
++    print string.strip(line)
++pipe.close()
++
++print "*** Configuration complete - continuing normal boot..."

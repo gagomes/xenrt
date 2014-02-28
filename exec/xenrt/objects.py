@@ -2210,7 +2210,8 @@ Add-WindowsFeature as-net-framework"""
         self.reboot()
 
     def installCloudPlatformManagementServer(self):
-        xenrt.clouddeploy.installCloudPlatformManagementServer(self)
+        manSvr = xenrt.clouddeploy.ManagementServer(self)
+        manSvr.installCloudPlatformManagementServer()
 
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
@@ -5545,7 +5546,7 @@ exit 0
         if create_vif_fn is None:
             g.createVIF(bridge=bridge, mac=mac)
         else:
-            create_vif_fn(g)
+            create_vif_fn(g, primaryMAC=mac)
         g.enlightenedDrivers = False
         
         pxe = xenrt.PXEBoot(removeOnExit=True)

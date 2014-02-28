@@ -11866,6 +11866,14 @@ done
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False
 
+    #def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
+    #    Host.__init__(self,
+    #                  machine,
+    #                  productType=productType,
+    #                  productVersion=productVersion)
+        
+    #    self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
+
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest
         

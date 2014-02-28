@@ -1217,7 +1217,7 @@ class XenRTSubmit(XenRTCommand):
                     
         details['action'] = 'submit'
 
-        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+        u = urlopen_with_retry(self.getServerURL(), urllib.urlencode(details),
                            proxies=self.proxies)
         reply = None
         while 1:

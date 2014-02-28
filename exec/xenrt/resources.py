@@ -872,6 +872,7 @@ class ISCSILunGroup(_ISCSILunBase):
                  luncount,
                  minsize=10,
                  ttype=None,
+                 hwtype=None,
                  maxsize=10000000,
                  jumbo=False,
                  mpprdac=None,
@@ -892,7 +893,7 @@ class ISCSILunGroup(_ISCSILunBase):
             lunnames = xenrt.TEC().lookup(["ISCSI_LUN_GROUPS",s,"LUNS"]).values()
             if len(lunnames) >= luncount:
                 names.append(s)
-        names = self.filterLuns("ISCSI_LUN_GROUPS",names,minsize, ttype, maxsize, jumbo, mpprdac, params)
+        names = self.filterLuns("ISCSI_LUN_GROUPS",names,minsize, ttype, hwtype, maxsize, jumbo, mpprdac, params)
         CentralResource.__init__(self, held=False)
         name = None
         startlooking = xenrt.util.timenow()
@@ -2960,5 +2961,14 @@ def getResourceRange(resourceType, numberRequired):
             map(lambda x:x.release(), resourceList)
             raise xenrt.XRTError('Error during %s resource range allocation' % (resourceType))
 
+    if len(resourceList) != numberRequired:
+        xenrt.TEC().logverbose('Requested %d resources of type %s - %d were allocated' % (numberRequired, resourceType, len(resourceList)))
+        raise xenrt.XRTError('Failed to allocate resources: %s' % (resourceType))
+
+    if resourceType in ['IP4ADDR', 'IP6ADDR']:
+        xenrt.TEC().logverbose('Resources allocated: Type: %s, Range: %s -> %s' % (resourceType, resourceList[0].getAddr(), resourceList[-1].getAddr()))
+    else:
+        xenrt.TEC().logverbose('Resources allocated: Type: %s, Range: %s -> %s' % (resourceType, resourceList[0].getID(), resourceList[-1].getID()))
+ 
     return resourceList
 

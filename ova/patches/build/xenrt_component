@@ -1,0 +1,63 @@
+diff -r 502697410b45 b/config/components
+--- a/b/config/components	Fri Sep 03 14:13:24 2010 +0100
++++ b/b/config/components	Mon Sep 06 14:33:14 2010 +0100
+@@ -79,6 +79,7 @@
+ sm
+ sm-closed
+ sources
++xenrt
+ license
+ product
+ xe-phase-1
+diff -r 502697410b45 b/config/xenrt.mk
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/b/config/xenrt.mk	Mon Sep 06 14:33:14 2010 +0100
+@@ -0,0 +1,9 @@
++NAME ?= xenrt
++BUILD ?= yes
++CACHING ?= yes
++DEPENDS ?= dom0 guest-utilities-rpm gcc-dom0
++REPOS ?= dom0.hg rpmchroot.hg
++CHROOT ?= dom0
++USE_BRANDING ?= yes
++USE_BUILD_NUMBER ?= yes
++EXTERNAL_BUILD ?= dom0.hg/Makefile
+diff -r 502697410b45 mk/autogen-depends.mk
+--- a/mk/autogen-depends.mk	Fri Sep 03 14:13:24 2010 +0100
++++ b/mk/autogen-depends.mk	Mon Sep 06 14:33:14 2010 +0100
+@@ -1,4 +1,4 @@
+-COMPONENTS := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos4x chroot-centos5x chroot-rhel3x chroot-rhel4x chroot-rhel5x chroot-sles9x chroot-sles10x chroot-sles11x chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5
++COMPONENTS := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos4x chroot-centos5x chroot-rhel3x chroot-rhel4x chroot-rhel5x chroot-sles9x chroot-sles10x chroot-sles11x chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5 xenrt
+ # frag from xen/Makefile.dep
+ __predeps_xen += chroot-dom0
+ COMPONENT_xen := xen
+@@ -1375,6 +1375,20 @@
+ IS_CHROOT_sources ?=
+ INSTALL_TARGETS_sources ?=
+ USE_BUILD_NUMBER_sources ?=
++# frag from xenrt/Makefile.dep
++__predeps_xenrt += chroot-dom0
++COMPONENT_xenrt := xenrt
++__predeps_xenrt += branding
++DEPENDS_xenrt := ${__predeps_xenrt} dom0 guest-utilities-rpm gcc-dom0
++BUILD_xenrt ?= yes
++CACHING_xenrt ?= yes
++CHROOT_xenrt ?= dom0
++REPOS_xenrt ?= dom0.hg rpmchroot.hg
++EXTERNAL_BUILD_xenrt ?= /repos/dom0.hg/Makefile
++PREPARE_BUILD_xenrt ?=
++IS_CHROOT_xenrt ?=
++INSTALL_TARGETS_xenrt ?=
++USE_BUILD_NUMBER_xenrt ?= yes
+ # frag from license/Makefile.dep
+ __predeps_license += chroot-dom0
+ COMPONENT_license := license
+@@ -1875,6 +1889,6 @@
+ IS_CHROOT_test-hotfix-5 ?=
+ INSTALL_TARGETS_test-hotfix-5 ?=
+ USE_BUILD_NUMBER_test-hotfix-5 ?=
+-COMPONENTS_all := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos43 chroot-centos44 chroot-centos5 chroot-rhel35 chroot-rhel36 chroot-rhel38 chroot-rhel41 chroot-rhel42 chroot-rhel43 chroot-rhel44 chroot-rhel45 chroot-rhel46 chroot-rhel47 chroot-rhel48 chroot-rhel5 chroot-rhel51 chroot-rhel52 chroot-rhel53 chroot-rhel54 chroot-rhel55 chroot-sles90 chroot-sles91 chroot-sles92 chroot-sles93 chroot-sles93-i686 chroot-sles94 chroot-sles100 chroot-sles101 chroot-sles102 chroot-sles103 chroot-sles110 chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5
+-COMPONENTS_build := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos43 chroot-centos44 chroot-centos5 chroot-rhel35 chroot-rhel36 chroot-rhel38 chroot-rhel41 chroot-rhel42 chroot-rhel43 chroot-rhel44 chroot-rhel45 chroot-rhel46 chroot-rhel47 chroot-rhel48 chroot-rhel5 chroot-rhel51 chroot-rhel52 chroot-rhel53 chroot-rhel54 chroot-rhel55 chroot-sles90 chroot-sles91 chroot-sles92 chroot-sles93 chroot-sles93-i686 chroot-sles94 chroot-sles100 chroot-sles101 chroot-sles102 chroot-sles103 chroot-sles110 chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5
++COMPONENTS_all := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos43 chroot-centos44 chroot-centos5 chroot-rhel35 chroot-rhel36 chroot-rhel38 chroot-rhel41 chroot-rhel42 chroot-rhel43 chroot-rhel44 chroot-rhel45 chroot-rhel46 chroot-rhel47 chroot-rhel48 chroot-rhel5 chroot-rhel51 chroot-rhel52 chroot-rhel53 chroot-rhel54 chroot-rhel55 chroot-sles90 chroot-sles91 chroot-sles92 chroot-sles93 chroot-sles93-i686 chroot-sles94 chroot-sles100 chroot-sles101 chroot-sles102 chroot-sles103 chroot-sles110 chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5 xenrt
++COMPONENTS_build := xen ioemu blktap install-image-base kernel-rhel4x kernel-dom0 kernel-debian-source kernel-debian-etch-amd64 kernel-debian-etch-i386 kernel-generic-source kernel-generic-deb-i386 kernel-generic-rpm-i686 kernel-debian-lenny kernel-netback kernel-iscsitarget branding gcc-dom0 uclibc-kbd dom0 ddk sdk xsconsole uclibc-toolchain uclibc-xen driverdomain-network driverdomain-iscsitarget pvdrivers-win template-debian-etch template-debian-etch-amd64 xgt-package install-image docs eulas rhel41-guest-installer rhel44-guest-installer rhel45-guest-installer rhel46-guest-installer rhel47-guest-installer rhel48-guest-installer rhel50-guest-installer rhel51-guest-installer rhel52-guest-installer rhel53-guest-installer rhel54-guest-installer rhel55-guest-installer binary-iso guest-packages-rhel4x guest-packages-dom0 guest-packages-dom0-kernel guest-utilities-rpm guest-utilities-deb dom0-dists chroot-dom0 chroot-centos43 chroot-centos44 chroot-centos5 chroot-rhel35 chroot-rhel36 chroot-rhel38 chroot-rhel41 chroot-rhel42 chroot-rhel43 chroot-rhel44 chroot-rhel45 chroot-rhel46 chroot-rhel47 chroot-rhel48 chroot-rhel5 chroot-rhel51 chroot-rhel52 chroot-rhel53 chroot-rhel54 chroot-rhel55 chroot-sles90 chroot-sles91 chroot-sles92 chroot-sles93 chroot-sles93-i686 chroot-sles94 chroot-sles100 chroot-sles101 chroot-sles102 chroot-sles103 chroot-sles110 chroot-etch chroot-lenny ocaml api-libs api-utils api api-bindings syslinux tools-iso win-tools-iso vncterm dotnet-packages xenadmin sm sm-closed sources license product xe-phase-1 xe-phase-2 xe-phase-3 kernel-phase-1 gui-phase-1 docs-phase-1 support-phase-1 all-phase sdktest binary-packages poolmon-deb poolmon-rpm vmmon-deb xha bugagg stunnelng likewise storagelink ocaml-libs openpegasus openvswitch transfer transfervm xs-cim xs-hp-esp integration-suite xencenter-ovf oem-phase-1 xenbootserver-template test-hotfix-1 test-hotfix-2 test-hotfix-3 test-hotfix-4 test-hotfix-5 xenrt
+ COMPONENTS_nobuild :=

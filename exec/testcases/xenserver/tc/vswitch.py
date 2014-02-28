@@ -5276,7 +5276,7 @@ class TCFlowEvictionThreshold(xenrt.TestCase):
     def prepare(self,arglist):
         self.nbrOfIterations = 10
         self.flowEvictionThresholdDefault = 1000
-        self.flowEvictionThresholdDefaultClearwater = 2500
+        self.flowEvictionThresholdDefaultTampa = 2500
         self.flowEvictionThresholdCustom = 2000
 
         self.host = self.getDefaultHost()
@@ -5314,8 +5314,8 @@ while (qClock() < duration):
     def run(self,arglist):
         """Generate flows and check if the number of flows in the kernel corresponds to the value of flow-eviction-threshold"""
         
-        if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost): 
-            flowEvictionThreshold = self.flowEvictionThresholdDefaultClearwater
+        if isinstance(self.host, xenrt.lib.xenserver.TampaHost): 
+            flowEvictionThreshold = self.flowEvictionThresholdDefaultTampa
         else:
             flowEvictionThreshold = self.flowEvictionThresholdDefault
 

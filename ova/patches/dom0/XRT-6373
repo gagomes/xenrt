@@ -1,0 +1,21 @@
+diff -r 7bf5617ca7e9 Makefile
+--- a/Makefile	Mon Jun 15 10:35:59 2009 +0100
++++ b/Makefile	Fri Jun 19 10:25:40 2009 +0100
+@@ -425,6 +425,7 @@ post: $(POST_COOKIE)
+ 	$(CHROOT) /sbin/chkconfig dhcpd on || true
+ 	$(CHROOT) /sbin/chkconfig rootpassword on
+ 	$(CHROOT) chmod 755 /etc/init.d/ipsetup
++	$(CHROOT) chmod 755 /etc/ipsetup
+ 	$(CHROOT) /sbin/chkconfig ipsetup on
+ 	echo "root:xensource" | $(CHROOT) chpasswd
+ 	$(CHROOT) /usr/sbin/useradd -p xensource xenrtd
+diff -r 7bf5617ca7e9 overlay.xenrt/etc/init.d/ipsetup
+--- a/overlay.xenrt/etc/init.d/ipsetup	Mon Jun 15 10:35:59 2009 +0100
++++ b/overlay.xenrt/etc/init.d/ipsetup	Fri Jun 19 10:25:04 2009 +0100
+@@ -7,5 +7,5 @@ any_key="none"
+ any_key="none"
+ read -n1 -t5 any_key
+ if [ "${any_key}" != "none" ]; then
+-    /etc/ipsetup.py
++    /etc/ipsetup
+ fi

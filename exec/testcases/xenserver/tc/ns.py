@@ -11,7 +11,7 @@
 import xenrt, xenrt.lib.xenserver
 import time, calendar, re, os, os.path
 import IPy
-
+from xenrt.lazylog import step, log
 
 class TC12666(xenrt.TestCase):
     
@@ -73,6 +73,7 @@ class TC12666(xenrt.TestCase):
 
     def copyScriptOntoDom0(self, script):
         tmpdir = xenrt.resources.TempDirectory()
+
         script_file = "%s/link_state_test.sh" % tmpdir.path()
         f = open(script_file, 'w')
         f.write(script)
@@ -184,24 +185,31 @@ class SRIOVTests(xenrt.TestCase):
 
     MAX_VF_PER_VM = 16
     
-    def prepare(self, arglist=None):
-
+    def _setupInfrastructure(self):
         self.pool = self.getDefaultPool()
         self.host = self.pool.master
 
+    def prepare(self, arglist=None):
+
+        self._setupInfrastructure()
+
         # Let us install/use two guests for all tests
-        
+        self._createGuests()
+        self.io = self._createIO(self.host)
+
+    def _createGuests(self):
         self.guest_01 = self.host.installHVMLinux()
         self.uninstallOnCleanup(self.guest_01)
         self.guest_02 = self.host.installHVMLinux()
         self.uninstallOnCleanup(self.guest_02)
-
-        self.io = xenrt.lib.xenserver.IOvirt(self.host)
-        self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+   
+    def _createIO(self, host):
+        io = xenrt.lib.xenserver.IOvirt(host)
+        io.enableIOMMU(restart_host=False)
+        io.enableVirtualFunctions()
+        return io
 
     def getSRIOVEthDevices(self):
-
         self.io.queryVFs()
         return self.io.getSRIOVEthDevices()
 
@@ -210,6 +218,8 @@ class SRIOVTests(xenrt.TestCase):
         
         eth_devs = self.getSRIOVEthDevices()
         eth_devs = set(eth_devs)
+        log("SRIOV eths: %s" % eth_devs)
+
         if eths_to_use is not None:
             eths_to_use = set(eths_to_use)
             eth_devs = eth_devs.intersection(eths_to_use)
@@ -248,8 +258,10 @@ class SRIOVTests(xenrt.TestCase):
                                     self.MAX_VF_PER_VM))
 
         free_vfs_per_eth = self.getFreeVFsPerEth(eths_to_use)
-        
+        log("Free VFs per Eth: %s" % free_vfs_per_eth)
+
         num_free_vfs = sum([len(vfs) for vfs in free_vfs_per_eth.values()])
+        log("Num of free VFs: %s" % num_free_vfs)
         
         if n > num_free_vfs:
             if strict:
@@ -429,6 +441,87 @@ class SRIOVTests(xenrt.TestCase):
             self.guest_02.shutdown(force=True)
         self.unassignVFsByPCIID(self.guest_02)
         
+class ReachableAfterVfFlipFlop(SRIOVTests):
+    """
+    Need to run: TCNsSuppPackVerify and TC12666 prior to running this test
+    """
+    ETHONE = "eth1"
+    ETHZERO = "eth0"
+    NUMBER_OF_FLIPS = 10
+    ETHUP = "up"
+    ETHDOWN = "down"
+    WAIT = 900
+
+    def _setupInfrastructure(self):
+        self.host = self.getDefaultHost()
+        
+    def _createGuests(self):
+        self.guest_01 = self.host.installHVMLinux()
+        self.uninstallOnCleanup(self.guest_01)
+
+    def run(self, arglist=None):
+       
+        step("Assign VFs")
+        pciid = self.assignVFsToVM(self.guest_01, 1)
+        log("pciid: %s" % pciid)
+
+        log("vf on vm: %s" % self.getVFsAssignedToVM(self.guest_01))
+
+        step("Bring up host if required")
+        if self.guest_01.getState() == "DOWN":
+            self.guest_01.start()
+            self.guest_01.waitForSSH(self.WAIT)
+        
+        step("Detemrine which eth on the VM is VF")
+        eth, vfEth = self.__determineEths()
+        vfip  = self.__getIPs(vfEth)
+
+        step("Ping guest on the VF eth")
+        self.__ping(vfip) 
+
+        step("Send VF eth up and down on guest")
+        for n in range(self.NUMBER_OF_FLIPS):
+            [self.__sendEthernet(direction, self.guest_01, vfEth) for direction in [self.ETHDOWN, self.ETHUP]]
+
+        step("Make sure VF eth is up on guest")
+        self.__sendEthernet(self.ETHUP, self.guest_01, vfEth)
+
+        step("Re-ping the guest on the VF eth")
+        self.__ping(vfip) 
+   
+    def __getIPs(self, dev):
+        """ Get the ip from a VM on a named device """
+        ips = self.io.getIPAddressFromVM(self.guest_01)
+        log("IPs : %s" % ips)
+        return ips[dev].split('/')[0]
+
+    def __determineEths(self):
+        """ Determine which of the named devices is VF and which is not """
+        eth = self.ETHZERO
+        vfEth = self.ETHONE
+
+        if not self.__getIPs(eth) in self.guest_01.mainip:
+            vfEth = self.ETHZERO
+            eth = self.ETHONE
+
+        log("VF eth: %s ; SSH eth = %s" % (vfEth, eth))
+        return (eth, vfEth)
+
+    def __ping(self, ip):
+        """ Ping an IP on the VM"""
+        log("Pinging %s" % ip)
+        response = self.host.execdom0("ping -c3 -w10 %s" % ip) 
+        log("Ping response: %s" %response)
+        return response
+
+
+    def __sendEthernet(self, upDown, guest, dev):
+        """Send the named eth device either up or down"""
+        if not upDown in [self.ETHUP, self.ETHDOWN]:
+            raise xenrt.XRTFailure("Not a valid ifconfig option - option provided was: %s" % upDown)
+        log("Sending %s on %s %s" %(dev, guest, upDown))
+        guest.execguest("ifconfig %s %s" % (dev, upDown))
+
 
 
 class TC12673(SRIOVTests):

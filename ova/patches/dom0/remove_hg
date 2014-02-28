@@ -1,0 +1,14 @@
+diff -r e529cfd2934c Makefile
+--- a/Makefile	Wed Nov 14 10:55:16 2007 +0000
++++ b/Makefile	Wed Nov 14 12:33:46 2007 +0000
+@@ -328,7 +328,9 @@ post: $(POST_COOKIE)
+ 	    $(STAGING)/home/xenrtd/xenrt.hg/tests $(XENRT_DISTMASTER) \
+ 	    $(STAGING)/home/xenrtd/tests
+ 	# Remove Mercurial stuff
+-	#$(CHROOT) rm -rf /home/xenrtd/xenrt.hg/.hg*
++	$(CHROOT) rm -rf /home/xenrtd/xenrt.hg/.hg
++	$(CHROOT) rm -rf /home/xenrtd/xenrt.hg/.hgtags
++	$(CHROOT) rm -rf /home/xenrtd/xenrt.hg/.hgignore
+ 	# Remove keys (NOT TESTED YET!)
+ 	#$(CHROOT) find /home/xenrtd/xenrt.hg/keys ! -type d -exec rm -f "{}" \;
+ 	# Set up swap file

@@ -1,0 +1,12 @@
+diff -r 7f060b4e01e7 Makefile
+--- a/Makefile	Thu Oct 18 16:12:35 2007 +0100
++++ b/Makefile	Fri Oct 19 14:24:18 2007 +0100
+@@ -315,6 +315,8 @@ post: $(POST_COOKIE)
+ 	#$(CHROOT) find /home/xenrtd/xenrt.hg/keys ! -type d -exec rm -f "{}" \;
+ 	# Set up swap file
+ 	bash mkfs.swap $(XENRT_SWAP_IMAGE) $(XENRT_SWAP_G)
++	$(CHROOT) chmod -R a+x /usr/local/share/apt-cacher/lib
++	$(CHROOT) chmod a+x /sbin/update-issue
+ 
+ 	@touch $@
+ 

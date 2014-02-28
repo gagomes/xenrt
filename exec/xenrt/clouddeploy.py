@@ -22,8 +22,8 @@ class MarvinApi(object):
     MS_USERNAME = 'admin'
     MS_PASSWORD = 'password'
 
-    def __init__(self, mgtSvrVM):
-        self.mgtSvrVM = mgtSvrVM
+    def __init__(self, mgtSvr):
+        self.mgtSvr = mgtSvr
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self.logger = logging.getLogger(self.MARVIN_LOGGER)
@@ -31,32 +31,45 @@ class MarvinApi(object):
         stream.setLevel(logging.INFO)
         self.logger.addHandler(stream)
 
-        mgtSvrDetails = configGenerator.managementServer()
-        mgtSvrDetails.mgtSvrIp = mgtSvrVM.getIP()
-        mgtSvrDetails.user = self.MS_USERNAME
-        mgtSvrDetails.passwd = self.MS_PASSWORD
+        self.mgtSvrDetails = configGenerator.managementServer()
+        self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
+        self.mgtSvrDetails.user = self.MS_USERNAME
+        self.mgtSvrDetails.passwd = self.MS_PASSWORD
         
-        self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
+        self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
         self.apiClient = self.testClient.getApiClient()
 
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
+
+    def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
+        configSetting = Configurations.list(self.apiClient, name=name)
+        if len(configSetting) != 1:
+            raise xenrt.XRTError('Could not find unique setting: %s' % (name))
+        xenrt.TEC().logverbose('Current value for setting: %s is %s' % (name, configSetting[0].value))
+        if value != configSetting[0].value:
+            Configurations.update(self.apiClient, name=name, value=value)
+            if restartManagementServer:
+                self.mgtSvr.restart()
+        else:
+            xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
     def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
 #        sysTemplateLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         sysTemplateiSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", '/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         if not sysTemplateiSrcLocation:
             raise xenrt.XRTError('Location of system template not specified')
+        xenrt.TEC().logverbose('Using System Template: %s' % (sysTemplateiSrcLocation))
         sysTemplateFile = xenrt.TEC().getFile(sysTemplateiSrcLocation)
         webdir = xenrt.WebDirectory()
         webdir.copyIn(sysTemplateFile)
         sysTemplateUrl = webdir.getURL(os.path.basename(sysTemplateFile))
 
         if provider == 'NFS':
-            self.mgtSvrVM.execguest('mount %s /media' % (storagePath))
-            installSysTmpltLoc = self.mgtSvrVM.execguest('find / -name *install-sys-tmplt').strip()
-            self.mgtSvrVM.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
-            self.mgtSvrVM.execguest('umount /media')
+            self.mgtSvr.place.execguest('mount %s /media' % (storagePath))
+            installSysTmpltLoc = self.mgtSvr.place.execguest('find / -name *install-sys-tmplt').strip()
+            self.mgtSvr.place.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
+            self.mgtSvr.place.execguest('umount /media')
 
     def addZone(self, name, networktype='Basic', dns1=None, internaldns1=None):
         args = locals()
@@ -182,24 +195,29 @@ class MarvinApi(object):
     def addHost(self, cluster, hostAddr):
         args = { 'url': 'http://%s' % (hostAddr), 'username': 'root', 'password': xenrt.TEC().lookup("ROOT_PASSWORD"), 'zoneid': cluster.zoneid, 'podid': cluster.podid }
         host = Host.create(self.apiClient, cluster, args)
-        # Wait for host to start up
-        while(host.state != 'Up'):
-            xenrt.TEC().logverbose('Waiting for host [%s], Current State: %s' % (host.name, host.state))
+
+        # Wait for host(s) to start up
+        allHostsUp = False
+        while(not allHostsUp):
             xenrt.sleep(10)
-            host = Host(host.update(self.apiClient, id=host.id).__dict__)        
+            hostList = Host.list(self.apiClient, clustername='XenRT-Zone-0-Pod-0-Cluster-0', type='Routing')
+            hostListState = map(lambda x:x.state, hostList)
+            xenrt.TEC().logverbose('Waiting for host(s) %s, Current State(s): %s' % (map(lambda x:x.name, hostList), hostListState))
+            allHostsUp = len(hostList) == hostListState.count('Up')
 
    
-def deploy(cloudSpec, manSvrVM=None):
+def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))
 
-    # TODO Get the IP address of the shared
-    if not manSvrVM:
+    # TODO - Get the ManSvr object from the registry
+    if not manSvr:
         manSvrVM = xenrt.TEC().registry.guestGet('CS-MS')
-    if not manSvrVM:
-        raise xenrt.XRTError('No management server specified')
+        if not manSvrVM:
+            raise xenrt.XRTError('No management server specified')
+        manSvr = ManagementServer(manSvrVM)
 
-    xenrt.TEC().comment('Using Management Server: %s' % (manSvrVM.getIP()))
-    marvinApi = MarvinApi(manSvrVM)
+    xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
+    marvinApi = MarvinApi(manSvr)
 
     zoneNameIx = 0
     for zoneSpec in cloudSpec['zones']:
@@ -230,7 +248,9 @@ def deploy(cloudSpec, manSvrVM=None):
             clusterSpecs = podSpec.pop('clusters')
             podSpec['zone'] = zone
             pod = marvinApi.addPod(**podSpec)
-            ipRange = marvinApi.addNetworkIpRange(pod, phyNetwork)
+ 
+            #TODO - this is nor correct for advanced zone
+            ipRange = marvinApi.addNetworkIpRange(pod, phyNetwork, ipRangeSize=20)
 
             clusterNameIx = 0
             for clusterSpec in clusterSpecs:
@@ -249,93 +269,98 @@ def deploy(cloudSpec, manSvrVM=None):
 
         zone.update(marvinApi.apiClient, allocationstate='Enabled')
 
+class ManagementServer(object):
+    def __init__(self, place):
+        self.place = place
+        self.cmdPrefix = 'cloudstack'
 
-def checkManagementServerHealth(place, cmdPrefix):
-    managementServerOk = False
-    maxRetries = 2
-    maxReboots = 2
-    reboots = 0
-    while(reboots < maxReboots and not managementServerOk):
-        retries = 0
-        while(retries < maxRetries):
-            retries += 1
-            xenrt.TEC().logverbose('Check Management Server Ports: Attempt: %d of %d' % (retries, maxRetries))
+    def getLogs(self, destDir):
+        sftp = self.place.sftpClient()
+        manSvrLogsLoc = self.place.execguest('find /var/log -type f -name management-server.log').strip()
+        sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
+        sftp.close()
+ 
+    def checkManagementServerHealth(self):
+        managementServerOk = False
+        maxRetries = 2
+        maxReboots = 2
+        reboots = 0
+        while(reboots < maxReboots and not managementServerOk):
+            retries = 0
+            while(retries < maxRetries):
+                retries += 1
+                xenrt.TEC().logverbose('Check Management Server Ports: Attempt: %d of %d' % (retries, maxRetries))
 
-            # Check the management server ports are reachable
-            port = 8080
-            try:
-                urllib.urlopen('http://%s:%s' % (place.getIP(), port))
-            except IOError, ioErr:
-                xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (place.getIP(), port, ioErr.strerror))
-                xenrt.sleep(60)
-                continue
+                # Check the management server ports are reachable
+                port = 8080
+                try:
+                    urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                except IOError, ioErr:
+                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
+                    xenrt.sleep(60)
+                    continue
 
-            port = 8096
-            try:
-                urllib.urlopen('http://%s:%s' % (place.getIP(), port))
-                managementServerOk = True
-                break
-            except IOError, ioErr:
-                xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (place.getIP(), port, ioErr.strerror))
-                xenrt.sleep(60)
+                port = 8096
+                try:
+                    urllib.urlopen('http://%s:%s' % (self.place.getIP(), port))
+                    managementServerOk = True
+                    break
+                except IOError, ioErr:
+                    xenrt.TEC().logverbose('Attempt to reach Management Server [%s] on Port: %d failed with error: %s' % (self.place.getIP(), port, ioErr.strerror))
+                    xenrt.sleep(60)
 
-        if not managementServerOk:
-            reboots += 1
-            xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots, maxReboots))
-            place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-            place.execguest('service %s-management restart' % (cmdPrefix))
-            xenrt.sleep(60)
+            if not managementServerOk:
+                reboots += 1
+                xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots, maxReboots))
+                self.place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+                self.restart(checkHealth=False)
 
-#        place.execguest('service %s-management stop' % (cmdPrefix))
-        # Wait for service to stop (Campo bug - service stop completes before service actually stops)
-#        xenrt.sleep(120)
+    def restart(self, checkHealth=True, startStop=False):
+        if not startStop:
+            self.place.execguest('service %s-management restart' % (self.cmdPrefix))
+        else:
+            self.place.execguest('service %s-management stop' % (self.cmdPrefix))
+            xenrt.sleep(120)
+            self.place.execguest('service %s-management start' % (self.cmdPrefix))
+        
+        if checkHealth:
+            self.checkManagementServerHealth()
 
-#        place.execguest('service %s-management start' % (cmdPrefix))
-        # Wait for service to start
-#        xenrt.sleep(180)
+    def installCloudPlatformManagementServer(self):
+        if self.place.arch != 'x86-64':
+            raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
-        # Open the management server port that Marvin will use
+        manSvrInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+        if not manSvrInputDir:
+            raise xenrt.XRTError('Location of management server build not specified')
 
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            self.place.execguest('wget %s -O cp.tar.gz' % (manSvrInputDir))
+            self.place.execguest('mkdir cloudplatform')
+            self.place.execguest('tar -zxvf cp.tar.gz -C /root/cloudplatform')
+            installDir = os.path.dirname(self.place.execguest('find cloudplatform/ -type f -name install.sh'))
+            self.place.execguest('cd %s && ./install.sh -m' % (installDir))
 
-def installCloudPlatformManagementServer(place):
-    if place.arch != 'x86-64':
-        raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
+            self.place.execguest('setenforce Permissive')
+            self.place.execguest('service nfs start')
 
-    manSvrInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
-    if not manSvrInputDir:
-        raise xenrt.XRTError('Location of management server build not specified')
+            self.place.execguest('yum -y install mysql-server mysql')
+            self.place.execguest('service mysqld restart')
 
-    if place.distro in ['rhel63', 'rhel64', ]:
-        place.execguest('wget %s -O cp.tar.gz' % (manSvrInputDir))
-        place.execguest('mkdir cloudplatform')
-        place.execguest('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-        installDir = os.path.dirname(place.execguest('find cloudplatform/ -type f -name install.sh'))
-        place.execguest('cd %s && ./install.sh -m' % (installDir))
+            self.place.execguest('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+            self.place.execguest('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+            self.place.execguest('mysqladmin -u root password xensource')
+            self.place.execguest('service mysqld restart')
 
-        place.execguest('setenforce Permissive')
-        place.execguest('service nfs start')
+            setupDbLoc = self.place.execguest('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            self.place.execguest('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
-        place.execguest('yum -y install mysql-server mysql')
-        place.execguest('service mysqld restart')
+            self.place.execguest('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
 
-        place.execguest('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-        place.execguest('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-        place.execguest('mysqladmin -u root password xensource')
-        place.execguest('service mysqld restart')
+            setupMsLoc = self.place.execguest('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            self.place.execguest(setupMsLoc)    
 
-        for cmdPrefix in ['cloud', 'cloudstack']:
-            setupDbLoc = place.execguest('find /usr/bin -name %s-setup-databases' % (cmdPrefix)).strip()
-            if setupDbLoc != '':
-                place.execguest('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+            self.place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+        
+        self.restart()
 
-                place.execguest('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
-
-                setupMsLoc = place.execguest('find /usr/bin -name %s-setup-management' % (cmdPrefix)).strip()
-                place.execguest(setupMsLoc)    
-                break
-
-        place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-        place.execguest('service %s-management restart' % (cmdPrefix))
-        xenrt.sleep(60)
-
-        checkManagementServerHealth(place, cmdPrefix)

@@ -1,0 +1,52 @@
+diff -r 2ce80bde98fc overlay.xenrt/boot/grub/menu.lst
+--- a/overlay.xenrt/boot/grub/menu.lst	Tue Apr 13 16:23:04 2010 +0000
++++ b/overlay.xenrt/boot/grub/menu.lst	Mon Apr 19 10:23:15 2010 +0000
+@@ -1,3 +1,3 @@
+ title @PRODUCT_BRAND@ XenRT @PRODUCT_VERSION@
+-	kernel /boot/vmlinuz-@KERNEL_VERSION@ root=/dev/@OVA_ROOT_DEVICE@1 ro 
++	kernel /boot/vmlinuz-@KERNEL_VERSION@ root=/dev/@OVA_ROOT_DEVICE@1 ro xencons=hvc console=hvc0 
+ 	initrd /boot/initrd-@KERNEL_VERSION@.img
+diff -r 2ce80bde98fc overlay.xenrt/etc/rc.local
+--- a/overlay.xenrt/etc/rc.local	Tue Apr 13 16:23:04 2010 +0000
++++ b/overlay.xenrt/etc/rc.local	Mon Apr 19 10:23:15 2010 +0000
+@@ -3,6 +3,20 @@
+ touch /etc/boottime.stamp
+ 
+ /sbin/update-issue
++clear </dev/tty1 >/dev/tty1
++
++defconsole="$(sed -ne 's/.*\(console=[^ ]*\).*/\1/p' /proc/cmdline)"
++defconsole=${defconsole#console=}
++
++if [ ! -e /etc/xensource/no_move_kernel_tty ]
++then
++    if [ "x${defconsole}" = "x" ] || [[ ${defconsole} = tty[0-9]* ]]
++    then
++        # Put the kernel messages on tty2
++        /usr/bin/openvt -c 2 /bin/echo "System Messages:"
++        /opt/xensource/libexec/set-printk-console 2
++    fi
++fi
+ 
+ #don't show firewall messages on the console
+ echo 4 > /proc/sys/kernel/printk
+diff -r 2ce80bde98fc packages.xenrt
+--- a/packages.xenrt	Tue Apr 13 16:23:04 2010 +0000
++++ b/packages.xenrt	Mon Apr 19 10:23:15 2010 +0000
+@@ -42,3 +42,4 @@
+ vim-common
+ vim-enhanced
+ openssl-devel
++libxml2-devel
+diff -r 2ce80bde98fc patches.xenrt/patch-etc_inittab
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/patches.xenrt/patch-etc_inittab	Mon Apr 19 10:23:15 2010 +0000
+@@ -0,0 +1,8 @@
++--- dom0-pure/etc/inittab	2008-05-08 11:36:34.000000000 +0100
+++++ dom0-staging/etc/inittab	2008-05-08 11:38:49.000000000 +0100
++@@ -51,3 +45,3 @@
++ 
++-# Run xdm in runlevel 5
++-x:5:respawn:/etc/X11/prefdm -nodaemon
+++s0:2345:respawn:/sbin/agetty hvc0 115200,9600 linux
+++

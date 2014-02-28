@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- Installing Generic Linux guests on HVM tests. -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="5">
+
+      <testcase id="xenserver.tc.guest.TCHVMLinuxInstall" name="RHEL65">
+        <arg>distro=rhel65-x86-32</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.guest.TCHVMLinuxInstall" name="CentOS65">
+        <arg>distro=centos65_x86-32</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.guest.TCHVMLinuxInstall" name="OEL65">
+        <arg>distro=oel65_x86-32</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.guest.TCHVMLinuxInstall" name="Ubuntu1204">
+        <arg>distro=ubuntu1204_x86-32</arg>
+      </testcase>
+
+      <testcase id="xenserver.tc.guest.TCHVMLinuxInstall" name="Debian7">
+        <arg>distro=deb7_x86-32</arg>
+      </testcase>
+
+</parallel>
+  </testsequence>
+</xenrt>

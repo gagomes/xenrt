@@ -2664,6 +2664,9 @@ class Config:
         # Cartwheel: blktap, device-mapper-multipath, kpartxsm, sm-closed, storagelink. Rolls up XS61E001, XS61E007, XS61E015
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E034/76278/hotfix-XS61E034/XS61E034.xsupdate"
         
+        # Rodney: nash, mkinitrd, kernel-xen, kernel-kdump, md3000-rdac, openvswitch. Rolls up XS61E014, XS61E018, XS61E028, XS61E030
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E035/82435/hotfix-XS61E035/XS61E035.xsupdate"
+        
         # Carabosse: kexec-tools, xen-bugtool, xapi-core, xapi-networkd, xapi-noarch, xapi-rrdd, xapi-xenopsd, xen-firmware, xen-hypervisor, xen-tools . Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033 
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E036/77411/hotfix-XS61E036/XS61E036.xsupdate"
       
@@ -2850,11 +2853,10 @@ class Config:
             self.config["CARBON_PATCHES_TAMPA"] = {}
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]   
-        self.config["CARBON_PATCHES_TAMPA"]["HF28"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E028"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
         self.config["CARBON_PATCHES_TAMPA"]["HF29"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF30"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E030"]
         self.config["CARBON_PATCHES_TAMPA"]["HF34"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF35"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"]
         self.config["CARBON_PATCHES_TAMPA"]["HF36"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):

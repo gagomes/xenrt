@@ -99,6 +99,8 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = True
 
+    default_eth = "eth0"
+
     def __init__(self, machine, productVersion="kvm", productType="kvm"):
         xenrt.lib.libvirt.Host.__init__(self, machine,
                              productType=productType,
@@ -127,9 +129,11 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getSRPathFromName(self, srname):
         return "/var/run/sr-mount/%s" % (urllib.quote(srname), )
 
+    def getBridge(self, eth):
+        return eth.replace("eth","virbr")
+
     def getPrimaryBridge(self):
-        # TODO
-        return "virbr0"
+        return self.getBridge(self.default_eth)
 
     def createNetwork(self, name="bridge"):
         self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
@@ -141,3 +145,109 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def checkVersion(self):
         self.productVersion = "kvm"
         self.productRevision = self.execdom0("uname -r | cut -d'-' -f1")
+
+    def getDefaultInterface(self):
+        """Return the enumeration ID for the configured default interface."""
+        return self.default_eth
+
+    def createNetworkTopology(self, topology):
+        """Create the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+
+        physList = self._parseNetworkTopology(topology)
+        if not physList:
+            xenrt.TEC().logverbose("Empty network configuration.")
+            return
+
+        # configure single nic non vlan jumbo networks
+        requiresReboot = False
+        has_new_ip = False
+        for p in physList:
+            network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode = p
+            xenrt.TEC().logverbose("Processing p=%s" % (p,))
+            # create only on single nic non valn nets
+            if len(nicList) == 1  and len(vlanList) == 0:
+                eth = nicList[0]
+                previous_eth = self.default_eth
+                previous_bridge = self.getBridge(previous_eth)
+                xenrt.TEC().logverbose("Processing eth%s: %s" % (eth, p))
+                #make sure it is up
+                self.execcmd("ifup eth%s || true" % eth)
+
+                #set up new primary kvm bridge if necessary
+                pri_eth = "eth%s" % (eth,)
+                pri_bridge = self.getBridge(pri_eth)
+                has_virsh_pri_bridge = self.execcmd("virsh iface-list|grep %s|wc -l" % (pri_bridge,)).strip() != "0"
+                if not has_virsh_pri_bridge:
+                    self.createNetwork(name=pri_bridge)
+                    host.execvirt("virsh net-destroy %s" % (previous_bridge,))
+                    host.execvirt("virsh net-undefine %s" % (previous_bridge,))
+                    networkConfig  = "<network>"
+                    networkConfig += "<name>%s</name>" % (pri_bridge,)
+                    networkConfig += "<forward mode='bridge'/>"
+                    networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
+                    networkConfig += "</network>"
+                    host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+
+                if mgmt:
+                    #use the ip of the mgtm nic on the list as the default ip of the host
+                    mode = mgmt
+                    if mode == "static":
+                        newip, netmask, gateway = self.getNICAllocatedIPAddress(eth)
+                        xenrt.TEC().logverbose("XenRT static configuration for host %s: ip=%s, netmask=%s, gateway=%s" % (self, ip, netmask, gateway))
+                        #TODO: set also BOOTPROTO,IPADDR,NETMASK in network-scripts/ifcfg-eth
+                        self.execcmd("ifconfig %s %s netmask %s" % (pri_bridge, newip, netmask))
+
+                    elif mode == "dhcp":
+                        #TODO: set also BOOTPROTO=dhcp in network-scripts/ifcfg-eth
+                        pass
+
+                    #read final ip in eth
+                    newip = self.execcmd("ip addr show %s|grep \"inet \"|gawk '{print $2}'| gawk -F/ '{print $1}'" % (pri_bridge,)).strip()
+                    if newip and len(newip)>0:
+                        xenrt.TEC().logverbose("New IP %s for host %s on %s" % (newip, self, pri_bridge))
+                        self.machine.ipaddr = newip
+                        has_new_ip = True
+                        self.default_eth = pri_eth
+                        xenrt.TEC().logverbose("New virsh default network: %s" % self.default_eth)
+                    else:
+                        raise xenrt.XRTError("Wrong new IP %s for host %s on %s" % (newip, self, pri_bridge))
+
+                if jumbo == True:
+                    #enable jumbo frames immediately
+                    self.execcmd("ifconfig %s mtu 9000" % (pri_eth,))
+                    #make it permanent
+                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"9000\"/; t; s/^/MTU=\"9000\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (pri_eth,))
+                    requiresReboot = False
+                elif jumbo != False: #ie jumbo is a string
+                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, jumbo))
+                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"%s\"/; t; s/^/MTU=\"%s\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (jumbo,jumbo,pri_eth))
+                    requiresReboot = False
+
+            if len(nicList) > 1:
+                raise xenrt.XRTError("Can't create bond on %s using %s" %
+                                       (network, str(nicList)))
+            if len(vlanList) > 0:
+                raise xenrt.XRTError("Can't create vlan on %s using %s" %
+                                       (network, str(vlanList)))
+
+        if len(physList)>0:
+            if not has_new_ip:
+                raise xenrt.XRTError("The network topology did not define a management IP for the host")
+
+        # Only reboot if required and once while physlist is processed
+        if requiresReboot == True:
+            self.reboot()
+
+        # Make sure no firewall will interfere with tests
+        self.execcmd("iptables -F")
+
+    def checkNetworkTopology(self,
+                             topology,
+                             ignoremanagement=False,
+                             ignorestorage=False,
+                             plugtest=False):
+        """Verify the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+        pass
+

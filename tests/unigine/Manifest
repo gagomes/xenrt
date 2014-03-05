@@ -1,5 +1,6 @@
 # Unigine Heaven ver 4.0 Basic Edition (free)
+# Status: downloadable
 # Downloaded from: http://unigine.com/products/heaven/download/
 # Description: Package that renders a movie in real-time to put a large
 # load on the GPU of a Windows machine
-84ecd9a10b252f5b48d9b3e259d36d2c  /usr/groups/xenrt/distmaster/unigine/Unigine-Heaven-40.exe
+84ecd9a10b252f5b48d9b3e259d36d2c  ./Unigine-Heaven-40.exe

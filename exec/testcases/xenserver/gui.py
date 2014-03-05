@@ -311,15 +311,28 @@ class _UnitTestMechanism(object):
     __metaclass__ = ABCMeta
     TARGET_ROOT = ""
     RESULT_FILE_NAME = "test_results.out"
+    SDK_OVERRIDE = "SDK_BUILD_LOCATION"
 
     def __init__(self, host, targetGuest):
         self._host = host
         self._runner = targetGuest
 
+    def __get_sdk_location(self):
+        """
+        Look for the SDK location in a named flag otherwise provide the default
+        """
+        log("Look for override in %s" % self.SDK_OVERRIDE)
+        try: 
+            location = xenrt.TEC().lookup(self.SDK_OVERRIDE)
+            log("Found override.....")
+            return os.path.join(location, self._packageName)
+        except:
+            return "xe-phase-2/%s" % self._packageName
+
     def _getSdk(self):
         self.removePackage()
-        log("Getting SDK....")
-        target = "xe-phase-2/%s" % self._packageName
+        step("Getting SDK....")
+        target = self.__get_sdk_location()
         sdkfile = xenrt.TEC().getFile(target)
         sftp = self._runner.sftpClient()
         targetLocation = os.path.join(self.TARGET_ROOT, self._packageName) 
@@ -461,10 +474,12 @@ class TCJavaSDKUnitTests(_SDKUnitTestCase):
 class CUnitTestMechanism(_UnitTestMechanism):
     __TEST_CODE_PATH = "XenServer-SDK/libxenserver/src/test"
     __TEST_RUNNER = "test_vm_ops"
-    __BADNESS = ["Error", "Segmentation fault", "FAULT", "command not found"]
+    __TEST_RECORDS = "test_get_records"
+    __BADNESS = ["Error", "Segmentation fault", "FAULT", "command not found", "No such file"]
 
     def __init__(self, host, runner):
-        self.__results = None
+        self.__results = {}
+        self.__currentTest = ""
         self.__vmCount = len(host.listGuests())
         log("Initially there are %d VMs" % self.__vmCount)
         super(CUnitTestMechanism, self).__init__(host, runner)
@@ -476,7 +491,7 @@ class CUnitTestMechanism(_UnitTestMechanism):
     def _srcPath(self): return "XenServer-SDK/libxenserver/src"
    
     @property
-    def results(self): return self.__results
+    def results(self): return str(self.__results)
 
     def installSdk(self):
         sdkLocation = self._getSdk()
@@ -490,14 +505,23 @@ class CUnitTestMechanism(_UnitTestMechanism):
     def buildTests(self): 
         log(self._runner.execguest("cd %s && make clean" % self._srcPath))
         log(self._runner.execguest("cd %s && make" % self._srcPath))
+
+    def __runVmOps(self, localSrName):
+        self.__currentTest = self.__TEST_RUNNER
+        return self._runner.execguest("cd %s && ./%s https://%s \'%s\' root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP(), localSrName))
+    
+    def __runGetRecords(self):
+        self.__currentTest = self.__TEST_RECORDS
+        return self._runner.execguest("cd %s && ./%s https://%s root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP()))
     
     def runTests(self):
         localSrName = next(sr for sr in self._host.asXapiObject().SR() if sr.isLocal()).name()
         try:
-            self.__results = self._runner.execguest("cd %s && ./%s https://%s \'%s\' root xenroot" % (self.__TEST_CODE_PATH, self.__TEST_RUNNER, self._host.getIP(), localSrName))
+            self.__results[self.__currentTest] = self.__runVmOps(localSrName)
+            self.__results[self.__currentTest] = self.__runGetRecords()
         except xenrt.XRTFailure, e:
            log("Test failed: %s" % e)
-           self.__results = e.data
+           self.__results[self.__currentTest]=(e.data)
     
     def triageTestOutput(self): 
         for bad in self.__BADNESS:

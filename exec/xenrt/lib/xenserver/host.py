@@ -3166,7 +3166,8 @@ done
                          disksize=None,
                          rawHBAVDIs=None,
                          primaryMAC=None,
-                         reservedIP=None
+                         reservedIP=None,
+                         forceHVM=False
                          ):
         """Installs a VM of the specified distro and installs tools/drivers."""
         if distro.startswith("generic-"): 
@@ -3175,7 +3176,7 @@ done
             distro = self.lookup("GENERIC_" + distro.upper() + "_OS"
                                  + (arch.endswith("64") and "_64" or ""),
                                  distro)
-        template = xenrt.lib.xenserver.getTemplate(self, distro, arch=arch)
+        template = xenrt.lib.xenserver.getTemplate(self, distro, forceHVM, arch)
         if re.search(r"etch", template, flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
             password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
         else:
@@ -3205,7 +3206,10 @@ done
         if memory != None:
             guest.setMemory(memory)
         if not disksize:
-            disksize = guest.DEFAULT
+            if forceHVM:
+                disksize = 8192 # 8GB (in MB) by default
+            else:
+                disksize = guest.DEFAULT
         guest.arch = arch
         if primaryMAC:
             if bridge:
@@ -3218,6 +3222,7 @@ done
         guest.install(self,
                       distro=distro,
                       isoname=isoname,
+                      pxe=forceHVM,
                       repository=repository,
                       sr=sr,
                       bridge=bridge,
@@ -7288,12 +7293,15 @@ done
             elif re.search("ws12", distro) and re.search("x64", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS12_64")
             elif re.search("debian\d+", distro):
-                r = re.search("debian(\d+)", distro)
-                if arch and arch == "x86-64":
-                    template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
-                                               (r.group(1)))
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
+                    r = re.search("debian(\d+)", distro)
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s_64" %
+                                                   (r.group(1)))
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN_%s" %
                                                (r.group(1)))
             elif re.search("debian", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_DEBIAN")
@@ -7380,10 +7388,13 @@ done
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1004")
             elif re.search("ubuntu1204", distro):
-                if arch and arch == "x86-64":
-                    template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204_64")
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
                 else:
-                    template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204_64")
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -11799,7 +11810,7 @@ done
             return True
 
     def installNVIDIAHostDrivers(self):
-        rpm="NVIDIA-vgx-xenserver-6.2-331.47.i386"
+        rpm="NVIDIA-vgx-xenserver-6.2-331.52.i386"
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
@@ -11866,13 +11877,11 @@ done
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False
 
-    #def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
-    #    Host.__init__(self,
-    #                  machine,
-    #                  productType=productType,
-    #                  productVersion=productVersion)
-        
-    #    self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
+    def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
+        ClearwaterHost.__init__(self,
+                                machine)
+
+        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest
@@ -11919,6 +11928,21 @@ class SarasotaHost(ClearwaterHost):
     
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
+
+    def getBridgeInterfaces(self, bridge):
+        """Return a list of interfaces on the bridge, or None if that bridge
+        does not exist."""
+        # Get network backend
+        backend=self.execdom0('cat /etc/xensource/network.conf').strip()
+        if not re.search('bridge', backend, re.I):
+            data = self.execdom0('ovs-vsctl list-ports %s' %
+                                bridge)
+            ifs = string.split(data)
+        else:
+            ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
+        return ifs
+
+
 
 #############################################################################
 

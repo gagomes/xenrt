@@ -4313,6 +4313,10 @@ class GenericHost(GenericPlace):
             name = "Linux"
             version = "RedHat"
             buildNumber = ""
+        elif self.execdom0("test -e /etc/xen", retval="code") == 0:
+            name = "OSS"
+            version = ""
+            buildNumber = ""
         elif self.execdom0("test -e /etc/debian_version", retval="code") == 0:
             name = "Linux"
             version = "Debian"
@@ -7690,6 +7694,13 @@ class GenericGuest(GenericPlace):
                 maindisk="sda"
             else:
                 maindisk="hda"
+                if distro:
+                    if distro.startswith("rhel") and int(distro[4:5]) >= 6:
+                        maindisk="xvda"
+                    if distro.startswith("centos") and int(distro[6:7]) >= 6:
+                        maindisk="xvda"
+                    if distro.startswith("oel") and int(distro[3:4]) >= 6:
+                        maindisk="xvda"
         else:
             ethDevice = vifname
             maindisk = options["maindisk"]
@@ -7960,9 +7971,20 @@ class GenericGuest(GenericPlace):
                                      (method))
 
             arch = "amd64" if "64" in self.arch else "i386"
-            release = re.search("Debian/(\w+)/", repository).group(1)
-            _url = repository + "/dists/%s/" % (release.lower(), )
-            boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
+            xenrt.TEC().logverbose("distro: %s | repository: %s | filename: %s" % (distro, repository, filename))
+            if re.search("ubuntu", distro):
+                release = re.search("Ubuntu/(\d+)/", repository).group(1)
+                if release == "1004":
+                    _url = repository + "/dists/lucid/"
+                elif release == "1204":
+                    _url = repository + "/dists/precise/"
+                elif release == "1404":
+                    _url = repository + "/dists/trusty/"
+                boot_dir = "main/installer-%s/current/images/netboot/ubuntu-installer/%s/" % (arch, arch)
+            else:
+                release = re.search("Debian/(\w+)/", repository).group(1)
+                _url = repository + "/dists/%s/" % (release.lower(), )
+                boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
 
             # Pull boot files from HTTP repository
             fk = xenrt.TEC().tempFile()
@@ -8660,9 +8682,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
         #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.62"
+            filename = "WDDM_x86_332.70"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.62"
+                filename = "WDDM_x64_332.70"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)

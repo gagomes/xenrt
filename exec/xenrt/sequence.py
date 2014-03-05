@@ -1919,6 +1919,9 @@ class HostInstallWorker(_InstallWorker):
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
             xenrt.lib.esx.createHost(**work)
+        elif specProductType == "oss":
+            work["noisos"] = True
+            xenrt.lib.oss.createHost(**work)
         else:
             raise xenrt.XRTError("Unknown productType: %s" % (specProductType))
 

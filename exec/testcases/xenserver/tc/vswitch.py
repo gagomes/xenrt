@@ -5361,6 +5361,8 @@ class NetworkThroughputwithGRO(_VSwitch):
     SOURCE = "centos57"
     TARGET = "centos64"
     DURATION = 10 # Stick to the defaults
+    TXHASNONSEC=True # Assume that rx does not have any NSECs
+    NICSNOTTESTED=[]
 
     def setGRO(self, host, nic="eth0", state="on"):
         cli = host.getCLIInstance()
@@ -5376,47 +5378,66 @@ class NetworkThroughputwithGRO(_VSwitch):
     def addVIF(self, guest, id):
         """Adds a VIF to the guest on a particular bridge and assigns it an IP.
            For different distros, we need different measure to ensure the VIF gets an IP"""
+
         #Check if it's possible to add any more VIFs to the VM   
         if guest.getHost().genParamGet("vm", guest.getUUID(), "allowed-VIF-devices"):
             device = guest.createVIF(bridge="xenbr%d" %id, plug=True)
             if guest.windows: return #No complications for windows
+
             #Different ways of handling different Linux VMs
             if re.search("centos", guest.distro):
                 guest.execguest("echo 'DEVICE=%s' > /etc/sysconfig/network-scripts/ifcfg-%s" %(device,device))
                 guest.execguest("echo 'BOOTPROTO=dhcp' >> /etc/sysconfig/network-scripts/ifcfg-%s" %device)
                 guest.execguest("echo 'ONBOOT=yes' >> /etc/sysconfig/network-scripts/ifcfg-%s" %device) 
                 guest.execguest("echo 'TYPE=ethernet' >> /etc/sysconfig/network-scripts/ifcfg-%s" %device)
+
             elif re.search("sles", guest.distro):
                 guest.execguest("echo 'DEVICE=%s' > /etc/sysconfig/network/ifcfg-%s" %(device,device))
                 guest.execguest("echo 'BOOTPROTO=dhcp4' >> /etc/sysconfig/network/ifcfg-%s" %device)
-                guest.execguest("echo 'STARTMODE=onboot' >> /etc/sysconfig/network/ifcfg-%s" %device)            
+                guest.execguest("echo 'STARTMODE=onboot' >> /etc/sysconfig/network/ifcfg-%s" %device)
+
             elif re.search("ubuntu", guest.distro):
                 guest.execguest("echo 'auto %s' >> /etc/network/interfaces" %device)
                 guest.execguest("echo 'iface %s inet dhcp' >> /etc/network/interfaces" %device)
-            guest.execguest("ifconfig %s up" %device)    
+            guest.execguest("ifconfig %s up" %device)
            
     def runThroughput(self, nic1, nic2, rx_nic):
         """Measures network throughput (with GRO enabled) for rx_nic (on rx) with nic1 enabled and nic2 disabled on tx"""
+
         #Set the main ip to the ip on nic1 vif
-        self.tx.mainip = self.tx.execguest("ifconfig %s | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'" %nic1).strip()
+        self.tx.mainip = self.tx.execguest("ifconfig %s | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'" % nic1).strip()
         if not self.tx.mainip:
             raise xenrt.XRTFailure("No IP found for tx %s vif" %nic1)
-        self.tx.execguest("ifconfig %s down" %nic2)    
-        vif = self.rx.getVIF(bridge="xenbr%d" %rx_nic)
+        if nic2 <> None:
+            self.tx.execguest("ifconfig %s down" % nic2)
+        vif = self.rx.getVIF(bridge="xenbr%d" % rx_nic)
+
         #Run the throughput tests (with GRO off and on) for rx_nic
         step("Testing GRO disabled throughput for nic %d (on rx)" %rx_nic)
-        res = self._internalNetperf(test="TCP_STREAM", source=self.tx, target=vif[1])
-        log("Results with GRO disabled for nic %d (on rx): %s" % (rx_nic,str(res)))
+        self.setGRO(self.host2, "eth%d" %rx_nic, state='off')
+
+        res = self._internalNetperf(test="TCP_STREAM", 
+                                    source=self.tx, target=vif[1])
+        log("Results with GRO disabled for nic %d (on rx): %s" % 
+            (rx_nic,str(res)))
+
         #Enable GRO on rx_nic
         if not self.setGRO(self.host2, "eth%d" %rx_nic, state='on'):
-            raise xenrt.XRTFailure("Failure while enabling gro on host 2 - %s, NIC %d" % (self.host2,rx_nic))        
-        step("Testing GRO enabled throughput for nic %d (on rx)" %rx_nic)
-        res = self._internalNetperf(test="TCP_STREAM", source=self.tx, target=vif[1])
-        log("Results with GRO enabled for nic %d (on rx): %s" % (rx_nic,str(res)))
-        self.tx.execguest("ifconfig %s up" %nic2)
+            raise xenrt.XRTFailure("Failure while enabling gro on host 2 - %s, NIC %d" % 
+                                    (self.host2,rx_nic))
+
+        step("Testing GRO enabled throughput for nic %d (on rx)" % rx_nic)
+        res = self._internalNetperf(test="TCP_STREAM", 
+                                    source=self.tx, target=vif[1])
+        log("Results with GRO enabled for nic %d (on rx): %s" % 
+            (rx_nic,str(res)))
+
+        if nic2 <> None :
+            self.tx.execguest("ifconfig %s up" %nic2)
         if res[1] == 0.0:
-            raise xenrt.XRTFailure("Netperf test (with GRO enabled) between %s and %s on nic %d (on rx) returned 0" %
+            xenrt.TEC().warning("Netperf test (with GRO enabled) between %s and %s on nic %d (on rx) returned 0" %
                                     (self.SOURCE, self.TARGET, rx_nic))
+            self.NICSNOTTESTED.append(rx_nic)
         
     def prepare(self, arglist=None):
         self.host1 = self.getHost("RESOURCE_HOST_0")
@@ -5426,8 +5447,10 @@ class NetworkThroughputwithGRO(_VSwitch):
         
         #Add one NSEC vif to tx
         nics = self.host1.listSecondaryNICs(network='NSEC')
-        self.addVIF(self.tx, nics[0])
-        self.tx.reboot()
+        if nics:
+            self.addVIF(self.tx, nics[0])
+            self.tx.reboot()
+            self.TXHASNONSEC=False
         #Add vifs (on all on nics) to rx
         nics = self.host2.listSecondaryNICs()
         map(lambda x: self.addVIF(self.rx, x), nics)
@@ -5461,11 +5484,21 @@ class NetworkThroughputwithGRO(_VSwitch):
             nic = int(re.search(r"(\d+)", bridge).group(1))
             #If it's NIC0 or on the NPRI network, then disable the eth1 interface on tx
             if not nic or self.host2.lookup(["NICS", "NIC%d" %nic, "NETWORK"], None)=="NPRI":
-                self.runThroughput("eth0", "eth1", nic)
+                if not self.TXHASNONSEC:
+                    self.runThroughput("eth0", "eth1", nic)
+                else:
+                    self.runThroughput("eth0", None, nic)
             #If it's on the NSEC network, then disable the eth0 interface on tx
             elif self.host2.lookup(["NICS", "NIC%d" %nic, "NETWORK"], None)=="NSEC":
-                self.runThroughput("eth1", "eth0", nic)
-        
+                if not self.TXHASNONSEC:
+                    self.runThroughput("eth1", "eth0", nic)
+                else:
+                    xenrt.TEC().warning("Unable to test NSEC on RX since the TX has no nsec networks")
+
+        if self.NICSNOTTESTED:
+            raise xenrt.XRTFailure("The following nics on host %s were not tested - %s" %
+                                    (self.host2, self.NICSNOTTESTED))
+
     def postRun(self):
         self.host1.uninstallAllGuests()
         self.host2.uninstallAllGuests()

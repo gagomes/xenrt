@@ -2745,6 +2745,9 @@ class Config:
         
         # Carabosse - xen-hypervisor, xen-tools . Rolls up XS62E014 
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1002/77446/hotfix-XS62ESP1002/XS62ESP1002.xsupdate"
+        
+        # MrToad - xen-tools . Rolls up XS62E015 
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/xen/carbon/clearwater-sp1-lcm/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
 
 
 
@@ -2875,6 +2878,7 @@ class Config:
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF02"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
         
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

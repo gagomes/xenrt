@@ -445,8 +445,6 @@ class ReachableAfterVfFlipFlop(SRIOVTests):
     """
     Need to run: TCNsSuppPackVerify and TC12666 prior to running this test
     """
-    ETHONE = "eth1"
-    ETHZERO = "eth0"
     NUMBER_OF_FLIPS = 10
     ETHUP = "up"
     ETHDOWN = "down"
@@ -472,7 +470,7 @@ class ReachableAfterVfFlipFlop(SRIOVTests):
             self.guest_01.start()
             self.guest_01.waitForSSH(self.WAIT)
         
-        step("Detemrine which eth on the VM is VF")
+        step("Determine which eth on the VM is VF")
         eth, vfEth = self.__determineEths()
         vfip  = self.__getIPs(vfEth)
 
@@ -497,12 +495,13 @@ class ReachableAfterVfFlipFlop(SRIOVTests):
 
     def __determineEths(self):
         """ Determine which of the named devices is VF and which is not """
-        eth = self.ETHZERO
-        vfEth = self.ETHONE
+        devices = self.io.getIPAddressFromVM(self.guest_01).keys()
+        eth = devices[0] 
+        vfEth =devices[1] 
 
         if not self.__getIPs(eth) in self.guest_01.mainip:
-            vfEth = self.ETHZERO
-            eth = self.ETHONE
+            eth = devices[1] 
+            vfEth =devices[0] 
 
         log("VF eth: %s ; SSH eth = %s" % (vfEth, eth))
         return (eth, vfEth)
@@ -514,14 +513,12 @@ class ReachableAfterVfFlipFlop(SRIOVTests):
         log("Ping response: %s" %response)
         return response
 
-
     def __sendEthernet(self, upDown, guest, dev):
         """Send the named eth device either up or down"""
         if not upDown in [self.ETHUP, self.ETHDOWN]:
             raise xenrt.XRTFailure("Not a valid ifconfig option - option provided was: %s" % upDown)
         log("Sending %s on %s %s" %(dev, guest, upDown))
         guest.execguest("ifconfig %s %s" % (dev, upDown))
-
 
 
 class TC12673(SRIOVTests):

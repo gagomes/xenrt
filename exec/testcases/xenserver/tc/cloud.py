@@ -7,6 +7,7 @@ import json
 import IPy
 from lxml import etree
 import re
+from datetime import datetime
 
 use_jenkins_api = True
 try:
@@ -828,4 +829,211 @@ class TCCloudStackBvt(CitrixCloudBase):
         xenrt.TEC().comment('Marvin tests failed:   %d' % (testResult['failures']))
         xenrt.TEC().comment('Marvin test errors:    %d' % (testResult['errors']))
         xenrt.TEC().comment('Marvin tests skipped:  %d' % (testResult['skipped']))
+
+# Prototype test case for cloud scale
+import xenrt.clouddeploy
+class TCCloudScale(xenrt.TestCase):
+    SERVICE_OFFERING_NAME = 'Small Instance'
+    DISK_OFFERING_NAME = 'Small'
+    TEMPLATE_NAME = 'CentOS 5.6(64-bit) no GUI (XenServer)'
+
+    def deployInstance(self, command, instanceName=None):
+        if instanceName:
+            command.name = instanceName
+            xenrt.TEC().logverbose('Deploying instance: %s' % (instanceName))
+        inst = self.marvinApi.apiClient.deployVirtualMachine(command)
+        xenrt.TEC().logverbose('Deployed instance: %s' % (inst.name))
+
+    def getInstancesInfo(self):
+        try:
+            instances = xenrt.clouddeploy.VirtualMachine.list(self.marvinApi.apiClient)
+        except Exception, e:
+            xenrt.TEC().logverbose('Failed to list Instances: %s' % (str(e)))
+            return {}
+
+        infoDict = {}
+        stateList = map(lambda x:x.state, instances)
+        for state in list(set(stateList)):
+            infoDict[state] = stateList.count(state)
+            xenrt.TEC().logverbose('%d instances in state: %s' % (infoDict[state], state))
+
+        return infoDict
+
+    def waitForAllInstancesToReachState(self, state, timeout=300):
+        startTime = datetime.now()
+        while(True):
+            info = self.getInstancesInfo()
+            timeTaken = (datetime.now() - startTime).seconds
+            if len(info.keys()) == 1 and info.has_key(state):
+                xenrt.TEC().logverbose('All instances reached the %s state in %d seconds' % (state, timeTaken))
+                break
+            elif timeTaken < timeout:
+                xenrt.sleep(60)
+            else:
+                raise xenrt.XRTFailure('Timeout expired waiting for all instances to reach %s state' % (state))
+        return timeTaken
+
+    def start(self, instanceId):
+        xenrt.TEC().logverbose('Start instance %s' % (instanceId))
+        svmC = xenrt.clouddeploy.startVirtualMachine.startVirtualMachineCmd()
+        svmC.id = instanceId
+        svmC.isAsync = "false"
+        self.marvinApi.apiClient.startVirtualMachine(svmC)
+
+    def stop(self, instanceId):
+        xenrt.TEC().logverbose('stop instance %s' % (instanceId))
+        svmC = xenrt.clouddeploy.stopVirtualMachine.stopVirtualMachineCmd()
+        svmC.id = instanceId
+        svmC.isAsync = "false"
+        self.marvinApi.apiClient.stopVirtualMachine(svmC)
+
+    def updateInstances(self, operation):
+        instances = xenrt.clouddeploy.VirtualMachine.list(self.marvinApi.apiClient)
+        instanceIds = map(lambda x:x.id, instances)
+
+        map(lambda x:getattr(self, operation)(x), instanceIds)
+
+    def createInstances(self, number, startInstances=False):
+        xenrt.TEC().logverbose('Creating %d instances' % (number))
+        baseName = 'Instance-%d'
+
+        dvmC = xenrt.clouddeploy.deployVirtualMachine.deployVirtualMachineCmd()
+        dvmC.serviceofferingid = self.serviceOffering.id
+        dvmC.diskofferingid = self.diskOffering.id
+        dvmC.templateid = self.template.id
+        dvmC.zoneid = self.zone.id
+        dvmC.startvm = startInstances and 'true' or 'false'
+
+        map(lambda x:self.deployInstance(dvmC, baseName % (x)), range(number))
+
+    def prepare(self, arglist):
+        self.manSvr = xenrt.clouddeploy.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
+        self.marvinApi = xenrt.clouddeploy.MarvinApi(self.manSvr)
+        apiCli = self.marvinApi.apiClient
+
+        self.marvinApi.setCloudGlobalConfig(name='execute.in.sequence.hypervisor.commands', value='false')
+        self.marvinApi.setCloudGlobalConfig(name='execute.in.sequence.network.element.commands', value='false', restartManagementServer=True)
+
+        self.marvinApi.waitForTemplateReady(self.TEMPLATE_NAME)
+        self.template = xenrt.clouddeploy.Template.list(apiCli, templatefilter='featured', name=self.TEMPLATE_NAME)[0]
+        self.serviceOffering = xenrt.clouddeploy.ServiceOffering.list(apiCli, name=self.SERVICE_OFFERING_NAME)[0]
+        self.diskOffering = xenrt.clouddeploy.DiskOffering.list(apiCli, name=self.DISK_OFFERING_NAME)[0]
+        self.zone = xenrt.clouddeploy.Zone.list(apiCli)[0]
+
+        capacity = xenrt.clouddeploy.Capacities.list(apiCli, zoneid=self.zone.id, type=8)[0]
+        self.numberOfInstances = capacity.capacitytotal - (capacity.capacityused + 3)
+        self.createInstances(number=self.numberOfInstances)
+        self.waitForAllInstancesToReachState('Stopped', timeout=(30*self.numberOfInstances))
+
+    def run(self, arglist):
+        self.updateInstances('start')
+        self.waitForAllInstancesToReachState('Running', timeout=(60*self.numberOfInstances))
+
+        self.updateInstances('stop')
+        self.waitForAllInstancesToReachState('Stopped', timeout=(60*self.numberOfInstances))
+
+    def postRun(self):
+        logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud')
+        if not os.path.exists(logsubdir):
+            os.makedirs(logsubdir)
+        self.manSvr.getLogs(logsubdir)
+
+try:
+    from nose.loader import TestLoader
+    import nose
+except ImportError:
+    pass
+
+class TCNoseRunner(xenrt.TestCase):
+#    MARVIN_TEST_CODE_PATH = '/local/scratch/ccp/working/cloudstack/test/integration/smoke'
+    MARVIN_TEST_CODE_PATH = '/local/scratch/cloud/smoke'
+
+    def generateMarvinTestConfig(self):
+        self.marvinCfg = {}
+        self.marvinCfg['dbSvr'] = {}
+        self.marvinCfg['dbSvr']['dbSvr'] = self.marvinApi.mgtSvrDetails.mgtSvrIp
+        self.marvinCfg['dbSvr']['passwd'] = 'cloud'
+        self.marvinCfg['dbSvr']['db'] = 'cloud'
+        self.marvinCfg['dbSvr']['port'] = 3306
+        self.marvinCfg['dbSvr']['user'] = 'cloud'
+
+#        self.marvinCfg['logger'] = []
+#        self.marvinCfg['logger'].append({'name': 'TestClient', 'file': '/tmp/testclient.log'})
+#        self.marvinCfg['logger'].append({'name': 'TestCase', 'file': '/tmp/testcase.log'})
+
+        self.marvinCfg['mgtSvr'] = []
+        self.marvinCfg['mgtSvr'].append({'mgtSvrIp': self.marvinApi.mgtSvrDetails.mgtSvrIp, 
+                                         'port'    : self.marvinApi.mgtSvrDetails.port})
+
+        self.marvinCfg['zones'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Zone.list(self.marvinApi.apiClient))
+        for zone in self.marvinCfg['zones']:
+            zone['pods'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Pod.list(self.marvinApi.apiClient, zoneid=zone['id']))
+            for pod in zone['pods']:
+                pod['clusters'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Cluster.list(self.marvinApi.apiClient, podid=pod['id']))
+                for cluster in pod['clusters']:
+                    cluster['hosts'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Host.list(self.marvinApi.apiClient, clusterid=cluster['id']))
+                    for host in cluster['hosts']:
+                        host['username'] = 'root'
+                        host['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+                        host['url'] = host['ipaddress']
+
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        json.dump(self.marvinCfg, fh)
+        fh.close()
+        return fn
+
+    def prepare(self, arglist):
+        self.manSvr = xenrt.clouddeploy.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
+        self.marvinApi = xenrt.clouddeploy.MarvinApi(self.manSvr)
+        self.marvinTestConfig = self.generateMarvinTestConfig()
+
+        # Apply test configration
+        self.marvinApi.setCloudGlobalConfig("network.gc.wait", "60")
+        self.marvinApi.setCloudGlobalConfig("storage.cleanup.interval", "300")
+        self.marvinApi.setCloudGlobalConfig("vm.op.wait.interval", "5")
+        self.marvinApi.setCloudGlobalConfig("default.page.size", "10000")
+        self.marvinApi.setCloudGlobalConfig("network.gc.interval", "60")
+        self.marvinApi.setCloudGlobalConfig("workers", "10")
+        self.marvinApi.setCloudGlobalConfig("account.cleanup.interval", "600")
+        self.marvinApi.setCloudGlobalConfig("expunge.delay", "60")
+        self.marvinApi.setCloudGlobalConfig("vm.allocation.algorithm", "random")
+        self.marvinApi.setCloudGlobalConfig("expunge.interval", "60")
+        self.marvinApi.setCloudGlobalConfig("expunge.workers", "3")
+        self.marvinApi.setCloudGlobalConfig("check.pod.cidrs", "true")
+        self.marvinApi.setCloudGlobalConfig("direct.agent.load.size", "1000", restartManagementServer=True)
+
+        # TODO - Create the log sub-dir based on what is being tested
+        self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'test')
+        if not os.path.exists(self.logsubdir):
+            os.makedirs(self.logsubdir)
+        xenrt.TEC().logverbose('Logging to %s' % (self.logsubdir))
+#        self.noseTestFile = '/local/scratch/ccp/working/cloudstack/test/integration/smoke/test_deploy_vm.py'
+#        self.testsToExecute = TestLoader().loadTestsFromName(self.noseTestFile)
+#        xenrt.TEC().logverbose('Executing %d tests from %s' % (self.testsToExecute.countTestCases(), self.noseTestFile))
+
+        self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
+
+    def run(self, arglist):
+        noseArgs = ['-v',
+                    '--logging-level=DEBUG',
+                    '--log-folder-path=%s' % (self.logsubdir),
+                    '--with-marvin', '--marvin-config=%s' % (self.marvinTestConfig),
+                    '--with-xunit', '--xunit-file=%s' % (os.path.join(self.logsubdir, 'result.xml')),
+                    '--load']
+
+        noseArgs.append('-a tags=%s' % ('basic'))
+        noseArgs.append(self.MARVIN_TEST_CODE_PATH)
+
+        xenrt.TEC().logverbose('Using nosetest args: %s' % (' '.join(noseArgs)))
+        
+#        result = nose.run_exit(argv=noseArgs)
+        try:
+            result = xenrt.util.command('/usr/local/bin/nosetests %s' % (' '.join(noseArgs)))
+            xenrt.TEC().logverbose('Test(s) completed with result: %s' % (result))
+        except Exception, e:
+            xenrt.TEC().logverbose('Exception raised: %s' % (str(e)))
+
+        self.manSvr.getLogs(self.logsubdir)
+
 

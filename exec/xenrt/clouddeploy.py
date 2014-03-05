@@ -2,6 +2,8 @@
 import xenrt
 import logging
 import os, urllib
+from datetime import datetime
+
 try:
     from marvin import cloudstackTestClient
     from marvin.integration.lib.base import *
@@ -44,15 +46,39 @@ class MarvinApi(object):
 
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)
-        if len(configSetting) != 1:
-            raise xenrt.XRTError('Could not find unique setting: %s' % (name))
-        xenrt.TEC().logverbose('Current value for setting: %s is %s' % (name, configSetting[0].value))
+        if configSetting == None or len(configSetting) == 0:
+            raise xenrt.XRTError('Could not find setting: %s' % (name))
+        elif len(configSetting) > 1:
+            configSetting = filter(lambda x:x.name == name, configSetting)
+        xenrt.TEC().logverbose('Current value for setting: %s is %s, new value: %s' % (name, configSetting[0].value, value))
         if value != configSetting[0].value:
             Configurations.update(self.apiClient, name=name, value=value)
             if restartManagementServer:
                 self.mgtSvr.restart()
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
+
+    def waitForTemplateReady(self, name):
+        templateReady = False
+        startTime = datetime.now()
+        while((datetime.now() - startTime).seconds < 1800):
+            templateList = Template.list(self.apiClient, templatefilter='all', name=name)
+            if not templateList:
+                xenrt.TEC().logverbose('Template %s not found' % (name))
+            elif len(templateList) == 1:
+                xenrt.TEC().logverbose('Template %s, is ready: %s, status: %s' % (name, templateList[0].isready, templateList[0].status))
+                templateReady = templateList[0].isready
+                if templateReady:
+                    break
+            else:
+                raise xenrt.XRTFailure('>1 template found with name %s' % (name))
+
+            xenrt.sleep(60)
+
+        if not templateReady:
+            raise xenrt.XRTFailure('Timeout expired waiting for template %s' % (name))
+
+        xenrt.TEC().logverbose('Template %s ready after %d seconds' % (name, (datetime.now() - startTime).seconds))
 
     def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
 #        sysTemplateLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')

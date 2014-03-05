@@ -10,7 +10,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="K1Config">
+    <serial group="K2Config">
       <testcase tc="TC-20818" id="testcases.xenserver.tc.vgpu.TCBasicVerifOfAllK2config">
       </testcase>
 

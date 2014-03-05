@@ -54,6 +54,11 @@ RESULTS = ["notrun", "pass", "fail", "partial", "error", "skipped"]
 
 DEFAULT = -10
 
+STATE_DOWN = 0
+STATE_UP = 1
+STATE_PAUSED = 2
+STATE_SUSPENDED = 3
+
 def resultDisplay(resultcode):
     """Turn a numeric result code into a string result description."""
     global RESULTS

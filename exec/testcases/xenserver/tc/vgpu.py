@@ -9,7 +9,7 @@ from testcases.benchmarks import graphics
 Enums
 """
 class VGPUOS: Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN = range(10)
-class VGPUConfig: K100, K140, K1PassThrough, K200, K240, K260, K2PassThrough = range(7)
+class VGPUConfig: K100, K120, K140, K1PassThrough, K200, K220, K240, K260, K2PassThrough = range(9)
 class VGPUDistribution: BreadthFirst, DepthFirst = range(2)
 class SRType: Local, NFS, ISCSI = range(3)
 class VMStartMethod: OneByOne, Simultenous = range(2)
@@ -26,9 +26,11 @@ NumOfPGPUPerCard = {
     }
 MaxNumOfVGPUPerPGPU = {
     VGPUConfig.K100 :  8,
+    VGPUConfig.K120 :  8,
     VGPUConfig.K140 :  4,
     VGPUConfig.K1PassThrough : 1,
     VGPUConfig.K200 :  8,
+    VGPUConfig.K220 :  8,
     VGPUConfig.K240 :  4,
     VGPUConfig.K260 :  2,
     VGPUConfig.K2PassThrough : 1
@@ -154,7 +156,7 @@ class VGPUInstaller(object):
         ggman.obtainExistingGroups()
         for group in ggman.groups:
             gtype = group.getGridType()
-            if self.__config == VGPUConfig.K100 or self.__config == VGPUConfig.K140 or self.__config == VGPUConfig.K1PassThrough:
+            if self.__config == VGPUConfig.K100 or self.__config == VGPUConfig.K120 or self.__config == VGPUConfig.K140 or self.__config == VGPUConfig.K1PassThrough:
                 if self.__GROUP_K1 in gtype:
                     return group.uuid
             else:
@@ -225,16 +227,18 @@ Test base classes
 class _VGPUTest(xenrt.TestCase, object):
     _CONFIGURATION = {
         VGPUConfig.K100 : "K100",
+        VGPUConfig.K120 : "K120",
         VGPUConfig.K140 : "K140",
         VGPUConfig.K1PassThrough : "K1PassThrough",
         VGPUConfig.K200 : "K200",
+        VGPUConfig.K220 : "K220",
         VGPUConfig.K240 : "K240",
         VGPUConfig.K260 : "K260",
         VGPUConfig.K2PassThrough : "K2PassThrough"
     }
     
     def isNvidiaK1(self, config):
-        return config in [ VGPUConfig.K100, VGPUConfig.K140, VGPUConfig.K1PassThrough]
+        return config in [ VGPUConfig.K100, VGPUConfig.K120, VGPUConfig.K140, VGPUConfig.K1PassThrough]
             
     def isNvidiaK2(self, config):
         return not self.isNvidiaK1(config)
@@ -656,7 +660,7 @@ class _VGPUOwnedVMsTest(_VGPUTest):
 
     def getConfigurationName(self, configuration):
         if not configuration in self._CONFIGURATION:
-            raise xenrt.XRTError("Unexpected configuration number: " + configuration)
+            raise xenrt.XRTError("Unexpected configuration number: %s" % configuration)
         return self._CONFIGURATION[configuration]
 
     def __masterVmName(self, requiredOS):
@@ -2126,7 +2130,7 @@ class TCRevertnonvGPUSnapshot(FunctionalBase):
 class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
 
     REQUIRED_DISTROS = [VGPUOS.Win7x64,VGPUOS.Win81x64]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K2PassThrough,VGPUConfig.K200]
+    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K220, VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K2PassThrough,VGPUConfig.K200]
 
     def run(self,arglist):
 
@@ -2154,12 +2158,12 @@ class TCChangeK2vGPUType(TCRevertvGPUSnapshot):
 class TCChangeK1vGPUType(TCChangeK2vGPUType):
 
     REQUIRED_DISTROS = [VGPUOS.WS2008R2]
-    VGPU_CONFIG = [VGPUConfig.K100,VGPUConfig.K140,VGPUConfig.K1PassThrough,VGPUConfig.K140]
+    VGPU_CONFIG = [VGPUConfig.K100,VGPUConfig.K120, VGPUConfig.K140,VGPUConfig.K1PassThrough,VGPUConfig.K140]
 
 class TCBasicVerifOfAllK2config(FunctionalBase):
 
     REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win81x64,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
-    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K2PassThrough]
+    VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K220,VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K2PassThrough]
 
     def prepare(self,arglist):
 
@@ -2233,7 +2237,7 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
 class TCBasicVerifOfAllK1config(TCBasicVerifOfAllK2config):
 
     REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win81x64,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
-    VGPU_CONFIG = [VGPUConfig.K100,VGPUConfig.K140,VGPUConfig.K1PassThrough]
+    VGPU_CONFIG = [VGPUConfig.K100, VGPUConfig.K120,VGPUConfig.K140,VGPUConfig.K1PassThrough]
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):
 

@@ -13,3 +13,4 @@
 from xenrt.lib.native import *
 from xenrt.lib.kirkwood import *
 from xenrt.lib.switch import createSwitch
+from xenrt.lib.generic import *

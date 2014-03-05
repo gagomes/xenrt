@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.xenserver
+import xenrt, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
@@ -936,6 +936,8 @@ def existingHost(hostname):
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":
         host = xenrt.lib.native.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+    elif place.productVersion == "OSS":
+        host = xenrt.lib.oss.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     else:
         host = xenrt.lib.xenserver.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     place.populateSubclass(host)

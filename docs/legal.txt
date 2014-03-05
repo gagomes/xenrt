@@ -1,8 +1,8 @@
 XenRT test harness
 ==================
 
-The XenRT Python codebase is released under the terms of the 3-clause BSD
-license. Full details can be found in the file exec/LICENSE.
+The XenRT Python codebase is released under the terms of the Apache License,
+Version 2.0. Full details can be found in the file exec/LICENSE.
 
 Third party software
 ====================

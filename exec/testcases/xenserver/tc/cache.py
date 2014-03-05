@@ -764,6 +764,7 @@ class TC19835(_Discard):
             raise xenrt.XRTFailure("Writes to VDI %s were not appropriately persisted." % 
                                    (self.vdiuuid))
         self.guest.shutdown()
+        self.guest.changeCD(None)
         self.upgrade()
         self.guest.start()
 

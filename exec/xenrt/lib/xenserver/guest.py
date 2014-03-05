@@ -254,6 +254,18 @@ class Guest(xenrt.GenericGuest):
         if distro and distro=="sles112" and ((self.memory and self.memory<4096) or not self.memory):
             self.memory=4096
 
+        # Workaround # RHEL/CentOS/OEL 6 or later requires at least 1G ram.
+        if distro:
+            if distro.startswith("rhel") and int(distro[4:5]) >= 6:
+                if (self.memory and self.memory<1024) or not self.memory:
+                    self.memory = 1024
+            if distro.startswith("centos") and int(distro[6:7]) >= 6:
+                if (self.memory and self.memory<1024) or not self.memory:
+                    self.memory = 1024
+            if distro.startswith("oel") and int(distro[3:4]) >= 6:
+                if (self.memory and self.memory<1024) or not self.memory:
+                    self.memory = 1024
+
         # Hack to avoid using an ISO install for Debian VMs from TCMultipleVDI
         # etc.
         if distro and (distro in ["etch", "sarge"] or "debian" in distro):
@@ -1804,6 +1816,8 @@ exit /B 1
         vmuuid = cli.execute("vm-install",
                              string.join(args),
                              strip=True)
+        if disks == None:
+            disks = [(self.DEFAULT, self.chooseSR())]
         for i in range(len(disks)):
             ds, sr = disks[i]
             if ds == self.DEFAULT:

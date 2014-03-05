@@ -4,8 +4,37 @@ General helper code for unit testing framework
 
 import unittest
 from mock import patch, Mock
+from nose.plugins.attrib import attr
+from nose.plugins.skip import SkipTest
+from functools import wraps
 
-class XenRTUnitTestCase(unittest.TestCase):
+"""
+Helper methods
+"""
+
+def wip(fn):
+    """
+    Work-in-progress decorator @wip
+    This decorator lets you check tests into version control and not gate a push 
+    while allowing you to work on making them pass
+     - If the test fails it will be skipped
+     - If the test passes it will report a failure
+    """
+    @wraps(fn)
+    def run_test(*args, **kwargs):
+        try:
+            fn(*args, **kwargs)
+        except Exception as ex:
+            raise SkipTest( "WIP FAILURE: %s" % str(ex))
+        raise AssertionError("Test passed but is work in progress")
+
+    return attr('wip')(run_test)
+
+
+"""
+Unittest abstraction for XenRT
+"""
+class XenRTBaseTestCase(unittest.TestCase):
     """
     Abstraction of the unittest.TestCase class to add any additional functionality
     """
@@ -20,7 +49,22 @@ class XenRTUnitTestCase(unittest.TestCase):
         [functionPointer(data) for data in listOfData]
 
 
+"""
+Implementations of the XenRT unit testing abstraction marked with attributes
+You can run these with the nose runner by adding a '-a <attr name>'
+"""
+
+@attr("UnitTest")
+class XenRTUnitTestCase(XenRTBaseTestCase): pass
+
+@attr("IntegrationTest")
+class XenRTIntegrationTestCase(XenRTBaseTestCase): pass
+
+@attr("TCTest")
 class XenRTTestCaseUnitTestCase(XenRTUnitTestCase):
+    """
+    Protoype code - what is required to quickly implement a unit test for a xenrt TestCase
+    """
     def setUp(self):
         try:
             self.tecPatcher = patch("xenrt.TEC")

@@ -75,12 +75,12 @@ def createHost(id=0,
 
     host.execvirt("virsh net-destroy default")
     host.execvirt("virsh net-undefine default")
-    host.createNetwork("br0")
+    host.createNetwork("virbr0")
 
     networkConfig  = "<network>"
-    networkConfig += "<name>br0</name>"
+    networkConfig += "<name>virbr0</name>"
     networkConfig += "<forward mode='bridge'/>"
-    networkConfig += "<bridge name='br0'/>"
+    networkConfig += "<bridge name='virbr0'/>"
     networkConfig += "</network>"
     host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
 
@@ -129,7 +129,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
     def getPrimaryBridge(self):
         # TODO
-        return "br0"
+        return "virbr0"
 
     def createNetwork(self, name="bridge"):
         self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))

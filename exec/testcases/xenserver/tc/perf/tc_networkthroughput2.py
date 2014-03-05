@@ -313,10 +313,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         # Install iperf in both places if necessary
         if 'iperf_installed' not in self.endpoint0.__dict__.keys():
-            self.endpoint0.installIperf()
+            self.endpoint0.installIperf(version="2.0.5")
             self.endpoint0.iperf_installed = True
         if 'iperf_installed' not in self.endpoint1.__dict__.keys():
-            self.endpoint1.installIperf()
+            self.endpoint1.installIperf(version="2.0.5")
             self.endpoint1.iperf_installed = True
 
         # Collect as much information as necessary for the rage importer

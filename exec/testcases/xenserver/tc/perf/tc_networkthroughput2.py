@@ -135,6 +135,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         _dev, mac = endpoint.execcmd(cmd).split(" ")
 
         dev = _dev.replace("xenbr","eth")
+        dev = dev.replace("virbr","eth")
         return dev, _dev, mac
 
     def nicinfo(self, endpoint, key_prefix=""):

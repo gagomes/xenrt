@@ -1,6 +1,6 @@
 import libperf
 import xenrt
-import random, string
+import random, string, time
 
 # Expects the sequence file to set up two VMs, called 'endpoint0' and 'endpoint1'
 class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
@@ -288,6 +288,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             if self.endpoint0.getState() == "PAUSED": self.endpoint0.unpause()
         if isinstance(self.endpoint1, xenrt.GenericGuest):
             if self.endpoint1.getState() == "PAUSED": self.endpoint1.unpause()
+        time.sleep(20)
 
     def vmpause(self):
         if isinstance(self.endpoint0, xenrt.GenericGuest):

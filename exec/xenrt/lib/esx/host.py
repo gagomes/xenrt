@@ -156,8 +156,28 @@ class ESXHost(xenrt.lib.libvirt.Host):
         return "vmnic0"
 
     def arpwatch(self, iface, mac, **kwargs):
-        # TODO: figure out how to get the proper vmknic
-        return xenrt.GenericHost.arpwatch(self, "vmk0", mac, **kwargs)
+        xenrt.TEC().logverbose("Working out vmkernel device for iface='%s' in order to arpwatch for %s..." % (iface, mac))
+
+        cmds = [
+            """vswitch=$(esxcli network vswitch standard list | grep -B 13 "Portgroups: .*%s\(,\|$\)" | head -n 1)""" % (iface),
+            """esxcli network vswitch standard list | grep -A 13 "^$vswitch\$" | fgrep "Portgroups:" | sed 's/^.*: //'""",
+        ]
+        networks = self.execdom0("; ".join(cmds)).strip().split(", ")
+        xenrt.TEC().logverbose("Found networks %s on the vSwitch for network '%s'" % (networks, iface))
+        
+        vmks = []
+        for network in networks:
+            vmk = self.execdom0("esxcfg-vmknic -l | fgrep \"%s\" | awk '{print $1}'" % (network)).strip()
+            if vmk != "":
+                vmks.append(vmk)
+
+        xenrt.TEC().logverbose("Found vmkernel device(s): %s" % (vmks))
+
+        if len(vmks) == 0:
+           raise xenrt.XRTError("Couldn't find any vmkernel device on network '%s'" % iface)
+
+        xenrt.TEC().logverbose("Using vmkernel device %s" % (vmks[0]))
+        return xenrt.GenericHost.arpwatch(self, vmks[0], mac, **kwargs)
 
     def install(self,
                 cd=None,
@@ -322,16 +342,19 @@ reboot
                 if not has_pri_bridge:
                     self.createNetwork(pri_eth, name=pri_bridge)
 
-		# Add the network to the vSwitch
-		self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, friendlynetname))
+                # Add the network to the vSwitch
+                self.execdom0("esxcli network vswitch standard portgroup add -v %s -p \"%s\"" % (pri_bridge, friendlynetname))
+
+                # Create a vmkernel interface on this vSwitch, to be used for arpwatching traffic on this vswitch
+                self.execdom0("esxcfg-vmknic -a -i DHCP -p \"%s\"" % (friendlynetname))
 
                 if mgmt:
                     # TODO move the "Management Network" onto this vSwitch. Not sure how to do this when there's a vmk0 using it.
-		    pass
+                    pass
 
                 if jumbo == True:
                     # TODO
-		    pass
+                    pass
 
             if len(nicList) > 1:
                 raise xenrt.XRTError("Creation of bond on %s using %s unimplemented" %

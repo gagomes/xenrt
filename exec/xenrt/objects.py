@@ -2452,43 +2452,40 @@ Add-WindowsFeature as-net-framework"""
                              (workdir))
                 self.execcmd("rm -rf %s" % (workdir))
 
-    def installIperf(self):
+    def installIperf(self, version=""):
         """Install iperf into the guest"""
+
+        if version=="":
+            sfx = "2.0.4"
+        else:
+            sfx = version
+
         if self.windows:
-            self.xmlrpcUnpackTarball("%s/iperf-bin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
-            self.xmlrpcExec("move c:\\iperf-bin\\iperf.exe c:\\")
+            self.xmlrpcUnpackTarball("%s/iperf-bin%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version), "c:\\")
+            self.xmlrpcExec("move c:\\iperf-bin%s\\* c:\\" % (version,))
         else:
             if self.execcmd("test -e /usr/local/bin/iperf -o "
                             "     -e /usr/bin/iperf",
                             retval="code") != 0:
-                #Only for the host, not guest
-                try:
-                    self.execdom0("ls")
-                    self.execcmd("yum --enablerepo=base install -y  gcc-c++")
-                    self.execcmd("yum --enablerepo=base install -y make")
-                except:
-                    pass
                 workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
-                self.execcmd("wget '%s/iperf.tgz' -O %s/iperf.tgz" %
-                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
-                              workdir))
-                self.execcmd("tar -zxf %s/iperf.tgz -C %s" % (workdir, workdir))
-                self.execcmd("tar -zxf %s/iperf/iperf-2.0.4.tar.gz -C %s" %
-                             (workdir, workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && ./configure" %
-                               (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make" % (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make install" %
-                             (workdir))
+                self.execcmd("wget '%s/iperf%s.tgz' -O %s/iperf%s.tgz" %
+                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version,
+                             workdir, version))
+                self.execcmd("tar -zxf %s/iperf%s.tgz -C %s" % (workdir, version, workdir))
+                self.execcmd("tar -zxf %s/iperf%s/iperf-%s.tar.gz -C %s" %
+                             (workdir, version, sfx, workdir))
+                self.execcmd("cd %s/iperf-%s && ./configure" %
+                             (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make" % (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make install" %
+                             (workdir, sfx))
                 self.execcmd("rm -rf %s" % (workdir))
-                self.execcmd("mkdir ~/iperf && cp /usr/local/bin/iperf iperf/iperf")
-
 
     def startIperf(self):
         """Starts iperf as server in the Guest"""
-        
         if self.windows:
-            self.xmlrpcExec("c:\\iperf -s -D", returnerror=False, ignoredata=True)
+            self.xmlrpcExec("start c:\\iperf -s", returnerror=False, ignoredata=True)
+            time.sleep(10) # iperf -s takes some time to kick in
         else:
             raise xenrt.XRTError("Unimplemented")
 

@@ -1315,8 +1315,8 @@ class Guest(xenrt.GenericGuest):
         snapshot = self.virDomain.snapshotLookupByName(name, 0)
         snapshot.delete(0)
 
-    def tailor(self):
-        pass
+    #def tailor(self):
+    #    pass
 
     def vendorInstallDevicePrefix(self):
         return self._getDiskDevicePrefix()

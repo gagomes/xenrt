@@ -322,3 +322,10 @@ class Host(xenrt.GenericHost):
 
     def isEnabled(self):
         return True
+
+    def getDomid(self, guest):
+        """Return the domid of the specified guest."""
+        #TODO: use virsh list output
+        return "unknown"
+
+

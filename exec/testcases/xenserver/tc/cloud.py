@@ -1007,7 +1007,7 @@ class TCNoseRunner(xenrt.TestCase):
         self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'test')
         if not os.path.exists(self.logsubdir):
             os.makedirs(self.logsubdir)
-        xenrt.TEC().logverbose('Logging to %s' % (self.logsubdir))
+        xenrt.TEC().logverbose('Logging to path %s' % (self.logsubdir))
 #        self.noseTestFile = '/local/scratch/ccp/working/cloudstack/test/integration/smoke/test_deploy_vm.py'
 #        self.testsToExecute = TestLoader().loadTestsFromName(self.noseTestFile)
 #        xenrt.TEC().logverbose('Executing %d tests from %s' % (self.testsToExecute.countTestCases(), self.noseTestFile))

@@ -4458,7 +4458,7 @@ class GenericHost(GenericPlace):
             if sp == "1G":
                 sp = None
             if mac and nw:
-                if network == None or network == nw:
+                if network == None or network == nw or network == "ANY":
                     if (not rspan) or rs:
                         if speed == None or speed == sp or (speed == "1G" and not sp):
                             reply.append(i)

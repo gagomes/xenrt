@@ -4731,7 +4731,7 @@ done
             primaryNICSpeed = self.lookup("NIC_SPEED", None)
             if primaryNICSpeed == "1G":
                 primaryNICSpeed = None
-            if network == "NPRI" and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
+            if (network == "NPRI" or network == "ANY") and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
                 # The primary NIC is also on this network
                 avail = [0] + avail
             nicnodes = phys.getElementsByTagName("NIC")

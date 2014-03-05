@@ -90,6 +90,11 @@ def createHost(id=0,
     sr.createOn("/dev/VGXenRT/lv_storage")
     host.addSR(sr, default=True)
 
+    # SELinux support for NFS SRs on KVM (eg. for ISO files)
+    # https://bugzilla.redhat.com/show_bug.cgi?id=589922
+    host.execdom0("getsebool virt_use_nfs")
+    host.execdom0("setsebool virt_use_nfs on")
+
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
 

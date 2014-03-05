@@ -120,6 +120,7 @@ class TCDiskConcurrent(libperf.PerfTestCase):
     def run(self, arglist=None):
         self.changeNrDom0vcpus(self.host, self.dom0vcpus)
         self.loadKernelModule()
+        self.host.execdom0("iptables -F")
 
         guests = self.host.guests.values()
 

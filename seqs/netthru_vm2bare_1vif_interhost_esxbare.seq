@@ -1,0 +1,324 @@
+<?xml version="1.0"?>
+<!-- netthru_vm2bare_1vif_interhost_exsbare.seq
+
+  This sequence contains network throughput experiments between
+  a VM in ESXi and bare metal hosts.
+
+-->
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+
+    <!--no pool here, the hosts can have different cpus-->
+    <host id="0" productVersion="5.0.0.update01" productType="esx">
+      <NETWORK>
+        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+          <MANAGEMENT/>
+          <NIC/>
+          <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+        </PHYSICAL>
+      </NETWORK>
+
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+	  <postinstall action="installTools"/>
+	  <postinstall action="changeToVMXNet3"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="debian60-0-2v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>512</memory>
+	  <postinstall action="installTools"/>
+	  <postinstall action="changeToVMXNet3"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="debian60-0-4v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>4</vcpus>
+          <memory>512</memory>
+	  <postinstall action="installTools"/>
+	  <postinstall action="changeToVMXNet3"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+
+<!-- Don't bother trying to run Windows on ESXi yet.
+        <vm name="win7sp1-0-1v">
+          <distro>win7sp1-x86</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>1024</memory>
+          <postinstall action="installDrivers"/>
+          <postinstall action="disableFirewall"/>
+          <postinstall action="xenDesktopTailor"/>
+          <postinstall action="pause"/>
+        </vm>
+        <vm name="win7sp1-0-2v">
+          <distro>win7sp1-x86</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>1024</memory>
+          <postinstall action="installDrivers"/>
+          <postinstall action="disableFirewall"/>
+          <postinstall action="xenDesktopTailor"/>
+          <postinstall action="pause"/>
+        </vm>
+        <vm name="win7sp1-0-4v">
+          <distro>win7sp1-x86</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>4</vcpus>
+          <corespersocket>2</corespersocket>
+          <memory>1024</memory>
+          <postinstall action="installDrivers"/>
+          <postinstall action="disableFirewall"/>
+          <postinstall action="xenDesktopTailor"/>
+          <postinstall action="pause"/>
+        </vm>
+-->
+    </host>
+
+    <!-- a baremetal machine -->
+    <host id="1" productVersion="centos63-x64" productType="nativelinux">
+      <NETWORK>
+        <PHYSICAL network="ANY" jumbo="yes" speed="10G">
+          <NIC/>
+          <MANAGEMENT mode="dhcp"/> <!-- use nic for default ip of host -->
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <!-- gro off -->
+
+    <serial group="debian60/t01/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t02/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t04/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t08/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t16/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+
+    <serial group="debian60/t01/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t02/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t04/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t08/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t16/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+
+    <serial group="debian60/t01/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t02/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=debian60-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t04/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=debian60-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t08/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t16/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=debian60-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+
+    <!--
+    <serial group="win7sp1/t01/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=win7sp1-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t02/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=win7sp1-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t04/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=win7sp1-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t08/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=win7sp1-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t16/v01/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=win7sp1-0-1v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+
+    <serial group="win7sp1/t01/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=win7sp1-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t02/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=win7sp1-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t04/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=win7sp1-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t08/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=win7sp1-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t16/v02/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=win7sp1-0-2v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+
+    <serial group="win7sp1/t01/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=win7sp1-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t02/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=2</arg>
+        <arg>endpoint0=win7sp1-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t04/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=4</arg>
+        <arg>endpoint0=win7sp1-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t08/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=win7sp1-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+    <serial group="win7sp1/t16/v04/goff">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=16</arg>
+        <arg>endpoint0=win7sp1-0-4v</arg>
+        <arg>endpoint1=RESOURCE_HOST_1</arg>
+      </testcase>
+    </serial>
+-->
+
+  </testsequence>
+
+</xenrt>

@@ -4,6 +4,7 @@ class Instance(object):
 
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack
+        self.toolstackId = None
         self.name = name
         self.distro = distro
         self.vcpus = vcpus
@@ -11,7 +12,6 @@ class Instance(object):
         self.extraConfig = extraConfig
         self.mainip = None
 
-        # TODO: This should be pattern matching etc rather than a simple if
         self.os = xenrt.lib.opsys.OSFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk

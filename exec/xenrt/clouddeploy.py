@@ -18,6 +18,75 @@ class XenRTLogStream(object):
     def flush(self):
         xenrt.TEC().logverbose('FLUSH CALLED')
 
+class CloudStack(object):
+    def __init__(self, place):
+        self.mgtsvr = ManagementServer(place)
+        self.marvin = MarvinApi(self.mgtsvr)
+
+    def createInstance(self,
+                       name,
+                       distro,
+                       vcpus,
+                       memory,
+                       vifs=None,
+                       rootdisk=None,
+                       extraConfig={},
+                       startOn=None):
+        instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
+
+        if not "iso" in instance.os.supportedInstallMethods:
+            raise xenrt.XRTError("ISO Install not supported")
+
+        self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+
+        deployVirtualMachineC = deployVirtualMachine.deployVirtualMachineCmd()
+        deployVirtualMachineC.displayname = name
+        deployVirtualMachineC.templateid = [x.id for x in self.marvin.apiClient.listIsos(listIsos.listIsosCmd()) if x.name == instance.os.isoName][0]
+        # TODO support different service offerings
+        deployVirtualMachineC.serviceofferingid = [x.id for x in self.marvin.apiClient.listServiceOfferings(listServiceOfferings.listServiceOfferingsCmd()) if x.name == "Medium Instance"][0]
+        # TODO support different disk offerings
+        deployVirtualMachineC.diskofferingid = [x.id for x in self.marvin.apiClient.listDiskOfferings(listDiskOfferings.listDiskOfferingsCmd()) if x.disksize == 20]
+        # TODO Support different hypervisors
+        deployVirtualMachineC.hypervisor = "XenServer"
+        deployVirtualMachineC.zoneid = self.marvin.apiClient.listZones(listZones.listZonesCmd())[0].id
+
+        xenrt.TEC().logverbose("Deploying VM")
+
+        rsp = self.marvin.apiClient.deployVirtualMachine(deployVirtualMachineC)
+
+        instance.toolstackId = rsp.id
+
+        createTagsC = createtTags.createTagsCmd()
+        createTagsC.resourceid = instance.toolstackId
+        createTagsC.resourcetype = "userVm"
+        createTagsC.tags.append({"key":"distro", "value": distro})
+        self.marvin.apiClient.createTags(createTagsC)
+
+        xenrt.TEC().logverbose("Waiting for install complete")
+        instance.os.waitForInstallCompleteAndFirstBoot()
+        return instance
+
+
+    def existingInstance(self, name):
+
+        vm = [x for x in self.marvin.apiClient.listVirtualMachines(listVirtualMachines.listVirtualMachinesCmd()) if x.displayname==name][0]
+        listTagsC = listTags.listTagsCmd()
+        listTagsC.resourceid = vm.id
+        tags = self.marvin.apiClient.listTags(listTagsC)
+        distro = [x.value for x in tags if x.key=="distro"][0]
+
+        # TODO: Sort out the other arguments here
+        instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
+        instance.toolstackId = vm.id
+        return instance
+
+    def getIP(self, instance, timeout, level):
+        cmd = listNics.listNicsCmd()
+        cmd.virtualmachineid=instance.toolstackId
+        return [x.ipaddress for x in self.marvin.apiClient.listNics(cmd) if x.isdefault][0]
+
+
+
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
     
@@ -231,6 +300,44 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Waiting for host(s) %s, Current State(s): %s' % (map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
+    def addIsoIfNotPresent(self, distro, isoName, isoRepo):
+        isos = [x.name for x in self.apiClient.listIsos(listIsos.listIsosCmd())]
+        if isoName not in isos:
+            xenrt.TEC().logverbose("ISO is not present, registering")
+            if isoRepo == "windows":
+                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
+            elif isoRepo == "linux":
+                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC"), isoName)
+            else:
+                raise xenrt.XRTError("ISO Repository not recognised")
+
+            # TODO: Cope with more zones
+            # Should also be able to do "All Zones", but marvin requires a zone to be specified
+
+            zoneid = self.apiClient.listZones(listZones.listZonesCmd())[0].id
+
+            registerIsoC = registerIso.registerIsoCmd()
+            registerIsoC.url = url
+            registerIsoC.name = isoName
+            registerIsoC.displaytext = isoName
+            registerIsoC.ispublic = True
+            registerIsoC.zoneid = zoneid
+            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            osid = [x.id for x in self.apiClient.listOsTypes(listOsTypes.listOsTypesCmd()) if x.description == osname][0]
+            registerIsoC.ostypeid = osid
+            self.apiClient.registerIso(registerIsoC)
+
+        # Now wait until the ISO is ready
+        deadline = xenrt.timenow() + 3600
+        xenrt.TEC().logverbose("Waiting for ISO to be ready")
+        while xenrt.timenow() <= deadline:
+            try:
+                ready = [x.isready for x in self.apiClient.listIsos(listIsos.listIsosCmd()) if x.name == isoName][0]
+                if ready:
+                    break
+            except:
+                pass
+            xenrt.sleep(15)
    
 def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))

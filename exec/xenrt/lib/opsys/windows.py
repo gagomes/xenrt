@@ -71,9 +71,13 @@ class WindowsOS(OS):
         self.isoRepo = "windows"
         self.isoName = "%s.iso" % self.distro
         self.supportedInstallMethods = ["iso"]
+        self.defaultRootdisk = 20 * xenrt.GIGA
+        self.vifStem = "eth"
 
     def waitForInstallCompleteAndFirstBoot(self):
+        xenrt.TEC().logverbose("Getting IP address")
         self.parent.getIP(10800)
+        xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
 
     def waitForDaemon(self, timeout):

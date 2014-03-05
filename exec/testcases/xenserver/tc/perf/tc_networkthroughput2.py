@@ -166,7 +166,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]
         proc_sys_net = kvs2dict("", map2kvs(endpoint.execcmd("find /proc/sys/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         sys_class_net = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/class/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
-        sys_devices = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/devices/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
+        sys_devices = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/devices/system/cpu/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         try:
             xlinfo = kvs2dict("xlinfo:", map2kvs(endpoint.execcmd("xl info").replace(": ","=").split("\n")))
         except Exception, e: #if xl not available, use lscpu for bare metal machines

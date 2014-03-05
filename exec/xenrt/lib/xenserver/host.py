@@ -2744,6 +2744,7 @@ done
                                 allowUpdateKernel=True,
                                 disksize=None,
                                 use_ipv6=False,
+                                generic_distro=None,
                                 rawHBAVDIs=None):
         """Installs a generic Linux VM for non-OS-specific tests."""
 
@@ -2758,13 +2759,11 @@ done
                 t.shutdown()
             return t
 
-
-
-            
-        # Just to make sure that GENERIC_LINUX_OS config is synchronous with
-        # our ad-hoc 32bit OS choice here
-        generic_distro = self.lookup("GENERIC_LINUX_OS", "etch") 
-        xenrt.TEC().logverbose("GENERIC_LINUX_OS lookup is %s" % (generic_distro))
+        if not generic_distro:
+            # Just to make sure that GENERIC_LINUX_OS config is synchronous with
+            # our ad-hoc 32bit OS choice here
+            generic_distro = self.lookup("GENERIC_LINUX_OS", "etch") 
+            xenrt.TEC().logverbose("GENERIC_LINUX_OS lookup is %s" % (generic_distro))
         if generic_distro != "etch":
             xenrt.TEC().logverbose("Create basic guest")
             t = self.createBasicGuest(generic_distro, vcpus=vcpus, memory=memory,name=name, 

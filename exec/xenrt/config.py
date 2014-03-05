@@ -669,7 +669,7 @@ class Config:
         self.config["VERSION_CONFIG"]["SanibelCC"] = self.config["VERSION_CONFIG"]["Sanibel"]
         
         self.config["VERSION_CONFIG"]["Tampa"] = {}
-        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0,Debian Squeeze 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_DEBIAN_ETCH"] = "Demo Linux VM,Debian Etch 4.0"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_DEBIAN_50"] = "Debian Lenny 5.0 (32-bit),Debian Lenny 5.0"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_DEBIAN_60"] = "Debian Squeeze 6.0 (32-bit),Debian Squeeze 6.0"
@@ -908,7 +908,7 @@ class Config:
 
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}
-        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0,Debian Squeeze 6.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN_ETCH"] = "Demo Linux VM,Debian Etch 4.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN_50"] = "Debian Lenny 5.0 (32-bit),Debian Lenny 5.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN_60"] = "Debian Squeeze 6.0 (32-bit),Debian Squeeze 6.0"

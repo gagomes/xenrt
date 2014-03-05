@@ -135,7 +135,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         if endpoint not in endpoints:
             endpoints[endpoint] = [] # list of vms cloned from endpoint
             self.start_endpoint(endpoint) #required state to install iperf
-            endpoint.installIperf()
+            endpoint.installIperf(version="2.0.5")
             self.install_synexec(endpoint)
 
         # reuse any existing clone

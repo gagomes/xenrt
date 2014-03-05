@@ -6514,9 +6514,15 @@ class GenericGuest(GenericPlace):
         try:
             guest_reported = self.getGuestVCPUs()
             dom0_reported = self.getDomainVCPUs()
+
+            if self.corespersocket:
+                corespersocket = int(self.corespersocket)
+            else:
+                corespersocket = 1
+
             xenrt.TEC().logverbose("Guest reports %u CPUs." % (guest_reported))
             xenrt.TEC().logverbose("Domain-0 reports %u CPUs." % (dom0_reported))
-            xenrt.TEC().logverbose("Config reports %u CPUs." % (self.vcpus))
+            xenrt.TEC().logverbose("Config reports %u CPUs (with %u cores per CPU socket)." % (self.vcpus, corespersocket))
 
             if self.vcpus == 0:
                 # vcpus=all

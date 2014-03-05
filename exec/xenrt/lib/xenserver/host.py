@@ -3057,7 +3057,7 @@ done
                     t.start()
             else:
                 # Install from Debian template
-                xenrt.TEC().logverbose("Install from Debian template")
+                xenrt.TEC().logverbose("Install %s in Debian template" % (generic_distro))
                 if disksize == None:
                     disksize = t.DEFAULT
                 if vcpus != None:
@@ -3067,7 +3067,7 @@ done
                 if bridge:
                     vifs = [("eth0", bridge, xenrt.randomMAC(), None)]
                     t.install(self,
-                              distro="debian",
+                              distro=generic_distro,
                               start=start,
                               sr=sr,
                               vifs=vifs,
@@ -3076,7 +3076,7 @@ done
                               rawHBAVDIs=rawHBAVDIs)
                 else:
                     t.install(self,
-                              distro="debian",
+                              distro=generic_distro,
                               start=start,
                               sr=sr,
                               rootdisk=disksize,

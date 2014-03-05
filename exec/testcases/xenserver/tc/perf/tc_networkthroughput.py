@@ -503,7 +503,7 @@ class CreateVMthread(libthread.ExcThread):
         self.guest.poll('DOWN')
       else: # self.vm_type == demo
         xenrt.TEC().logverbose("Creating a generic Linux guest %s on bridge %s on host %s" % (self.vm_type,self.comm_bridge, self.host.getName()))
-        self.guest = self.host.createGenericLinuxGuest(start=False, bridge=self.comm_bridge, vcpus=self.num_vm_vcpus)
+        self.guest = self.host.createGenericLinuxGuest(start=False, bridge=self.comm_bridge, vcpus=self.num_vm_vcpus, generic_distro=self.vm_type)
     # shutdown prebuilt VM
     if self.guest.getState() == "UP":
       self.guest.shutdown()
@@ -513,7 +513,8 @@ class CreateVMthread(libthread.ExcThread):
     dummy_vif_uuid = self.createVif(dummy_net_uuid, "2")
     self.guest.start(specifyOn=False)
     if self.vm_type not in win_vms: # self.vm_type == demo
-      self.guest.execguest("sed -i 's/http:\/\/.*\//http:\/\/archive.debian.org\//' /etc/apt/sources.list")
+      if self.vm_type == "etch":
+        self.guest.execguest("sed -i 's/http:\/\/.*\//http:\/\/archive.debian.org\//' /etc/apt/sources.list")
       self.guest.execguest("apt-get update")
       self.guest.execguest("apt-get install --force-yes -y iperf")
     self.guest.shutdown()

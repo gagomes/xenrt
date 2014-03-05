@@ -218,12 +218,15 @@ class Guest(xenrt.GenericGuest):
         if self.template and (re.search("[Ww]in", self.template)):
             self.windows = True
             self.vifstem = self.VIFSTEMHVM
+            self.hasSSH = False
         elif self.template and (re.search("Solaris", self.template)):
             self.windows = False
             self.vifstem = self.VIFSTEMSOLPV
+            self.hasSSH = True
         else:
             self.windows = False
             self.vifstem = self.VIFSTEMPV
+            self.hasSSH = True
 
         self.noguestagent = False
         if host:

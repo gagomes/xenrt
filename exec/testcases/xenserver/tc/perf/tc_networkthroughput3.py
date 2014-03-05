@@ -73,6 +73,9 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         if host_endpoint.productType=="kvm":
             #no dom0vcpus or netback threads to check for
             return
+        elif host_endpoint.productType=="esx":
+            #no dom0vcpus or netback threads to check for
+            return
         else:
             self.get_vcpus_and_netback_threads(host_endpoint, vifs_in_the_host=nr_vifs)
 
@@ -81,6 +84,10 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             #use whatever number of cpus is available in the kvm host
             self.dom0vcpus = self.get_nr_dom0_vcpus(host_endpoint)
             self.log(None, "kvm host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
+            return False
+        elif host_endpoint.productType=="esx":
+            self.dom0vcpus = 4
+            self.log(None, "esx host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
             return False
         else:
             nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)

@@ -1021,7 +1021,8 @@ class Guest(xenrt.GenericGuest):
         return self.virDomain.maxMemory() // 1024
     def cpuget(self):
         #return self.virDomain.vcpusFlags(0)
-        return self.virDomain.vcpus()
+        return self.virDomain.info()[3]
+
     def memset(self, memory):
         xenrt.TEC().logverbose("Setting %s memory to %uMB" % (self.name, memory))
         self.memory = memory

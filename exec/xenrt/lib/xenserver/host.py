@@ -2806,7 +2806,14 @@ done
         if domains.has_key(uuid):
             return domains[uuid][0]
         raise xenrt.XRTError("Domain '%s' not found" % (uuid))
-        
+
+    def installIperf(self, version=""):
+        """Installs the iperf application on the host"""
+        if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
+            self.execdom0("wget %s/iperf%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version))
+            self.execdom0("tar -zxf iperf%s.tgz" % (version,))
+            self.execdom0("ln -s ~/iperf%s/iperf /usr/bin" % (version,))
+
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):
         """Create a new vbridge on the host"""

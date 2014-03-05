@@ -1258,17 +1258,24 @@ class Guest(xenrt.GenericGuest):
 
         # clone disks
         xmlstr = self._getXML()
+        xenrt.TEC().logverbose("xmlstr=%s" % (xmlstr,))
         xmldom = xml.dom.minidom.parseString(xmlstr)
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
             source = node.getElementsByTagName("source")[0]
             sourcefile = source.getAttribute("file")
-            sr = self.host.srs[self.host.getSRNameFromPath(sourcefile)]
-            vdiname = sr.getVDINameFromPath(sourcefile)
-
-            newdiskname = vdiname.replace(self.name, newname)
-            if newdiskname == vdiname:
-                newdiskname = sr.generateCloneName(vdiname)
+            xenrt.TEC().logverbose("sourcefile=%s" % (sourcefile,))
             try:
+                #sr can be none if it doesn't have []s (eg. if a cdrom is present)
+                #if this is the case, currently we don't clone
+                #TODO: what is the proper action if there are no []s in sourcefile?
+                sr = self.host.srs[self.host.getSRNameFromPath(sourcefile)]
+                xenrt.TEC().logverbose("sr=%s" % (sr,))
+                vdiname = sr.getVDINameFromPath(sourcefile)
+                xenrt.TEC().logverbose("vdiname=%s" % (vdiname,))
+
+                newdiskname = vdiname.replace(self.name, newname)
+                if newdiskname == vdiname:
+                    newdiskname = sr.generateCloneName(vdiname)
                 if operation == "copy":
                     newdisk = sr.copyVDI(vdiname, newdiskname)
                 else:

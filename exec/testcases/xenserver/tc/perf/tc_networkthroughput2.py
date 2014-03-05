@@ -35,6 +35,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getGuestOrHostFromName(self, name):
         for guest in self.guests:
             if guest.getName() == name:
+                self.log(None, "name=%s -> guest=%s" % (name, guest))
                 return guest
         host = xenrt.TEC().registry.hostGet(name)
         self.log(None, "name=%s -> host=%s" % (name, host))
@@ -104,11 +105,21 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         return output
 
+    def hostOfEndpoint(self, endpoint):
+        # Get the host object for this endpoint
+        if isinstance(endpoint, xenrt.GenericGuest):
+            return endpoint.host
+        elif isinstance(endpoint, xenrt.GenericHost):
+            return endpoint
+        else:
+            raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
+
     def nicdev(self, endpoint):
         ip = endpoint.getIP()
+        endpointHost = self.hostOfEndpoint(endpoint)
 
         # Get the device name and MAC address for a given IP address
-        if self.host.productType == "esx":
+        if endpointHost.productType == "esx":
             cmds = [
                 "vmk=$(esxcfg-vmknic -l | fgrep '%s' | awk '{print $1}')" % (ip,),
                 "portgroup=$(esxcli network ip interface list | grep -A 10 \"^$vmk\\$\" | fgrep \"Portgroup:\" | sed 's/^.*: //')",
@@ -117,7 +128,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 "mac=$(esxcfg-vmknic -l | fgrep '%s' | awk '{print toupper($8)}')" % (ip,),
                 "echo $nic $mac",
             ]
-	    cmd = "; ".join(cmds)
+            cmd = "; ".join(cmds)
         else:
             cmd = "ifconfig |grep -B 1 '%s'|grep HWaddr|awk '{print $1,$5}'" % (ip,)
 
@@ -130,6 +141,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
         dev, _dev, mac = self.nicdev(endpoint)
+        endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s" % (dev,)).replace(": ","=").split("\n")))
@@ -158,7 +170,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             xlinfo = kvs2dict("xlinfo:", map2kvs(endpoint.execcmd("xl info").replace(": ","=").split("\n")))
         except Exception, e: #if xl not available, use lscpu for bare metal machines
             xlinfo = {}
-            if self.host.productType == "esx":
+            if endpointHost.productType == "esx":
                 self.log(None, "using vim-cmd: %s" % (e,))
                 cpuinfo = kvs2dict("cpuinfo:", map2kvs(map(lambda x: x.strip(","), endpoint.execcmd("vim-cmd hostsvc/hosthardware | grep -A 6 'cpuInfo = '").replace(" = ","=").split("\n"))))
                 # Note: not a 1-to-1 mapping between ESXi's notions and xl info's notions of these things.
@@ -174,7 +186,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 xlinfo["xlinfo:threads_per_core"] = lscpu["lscpu:Thread(s) per core"]
                 xlinfo["xlinfo:nr_nodes"] = lscpu["lscpu:NUMA node(s)"]
 
-        if self.host.productType == "esx":
+        if endpointHost.productType == "esx":
             # We need to extract at least the equivalent info to the "model name" and "cpu MHz"
             cpuinfo = kvs2dict("cpuinfo:", map(lambda x: map(lambda x: x.strip("\", "), x), map2kvs(endpoint.execcmd("vim-cmd hostsvc/hosthardware | grep -A 8 'cpuPkg = '").replace(" = ","=").split("\n"))))
             cpuinfo["cpuinfo:model name"] = cpuinfo["cpuinfo:description"]

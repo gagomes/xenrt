@@ -55,7 +55,7 @@ def createHost(id=0,
         distro = "centos64"
         arch = "x86-32"
 
-    host = KVMHost(m)
+    host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []
     extrapackages.append("libvirt")
     extrapackages.append("python-virtinst")

@@ -8051,7 +8051,28 @@ class GenericGuest(GenericPlace):
             if method == "CDROM":
                 self.paramSet("other-config-install-repository", "cdrom")
             else:
-                self.paramSet("other-config-install-repository", repository)
+                if self.host.productType == "kvm":
+                    arch = "amd64" if "64" in self.arch else "i386"
+                    release = re.search("Debian/(\w+)/", repository).group(1)
+                    _url = repository + "/dists/%s/" % (release.lower(), )
+                    boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
+
+                    fk = xenrt.TEC().tempFile()
+                    fr = xenrt.TEC().tempFile()
+                    xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                    xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+                    hdir = self.host.hostTempDir()
+                    try:
+                        sftp = self.host.sftpClient()
+                        sftp.copyTo(fk, "%s/linux" % (hdir, ))
+                        sftp.copyTo(fr, "%s/initrd.gz" % (hdir, ))
+                    finally:
+                        sftp.close()
+                    self.host.execdom0("chmod 777 -R %s" % (hdir, ))
+                    self.kernel = "%s/linux" % (hdir, )
+                    self.initrd = "%s/initrd.gz" % (hdir, )
+                else:
+                    self.paramSet("other-config-install-repository", repository)
 
         # A valid hostname may contain only the numbers 0-9, the lowercase  
         # letters a-z, and the minus sign. It must be between 2 and 63

@@ -36,7 +36,7 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         return None # use default
 
     def _detectDistro(self):
-        Guest._detectDistro(self)
+        xenrt.lib.libvirt.Guest._detectDistro(self)
         if not self.windows:
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True

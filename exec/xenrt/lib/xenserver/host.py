@@ -1469,6 +1469,10 @@ echo PARTITIONS=\\'/dev/$XRTDISK\\' >> etc/firstboot.d/data/default-storage.conf
 echo TYPE='%s' >> etc/firstboot.d/data/default-storage.conf
 """ % (disk, disk, srtype, srtype)
 
+        setxen = xenrt.TEC().lookup("SETXENCMDLINE", None) #eg. SETXENCMDLINE=x=a,y=b
+        if setxen:
+            args=dict(map(lambda a: tuple(a.split("=")), setxen.split(",")))
+            self.setXenCmdLine(**args)
 
         pifile = "%s/post-install-script-%s" % (workdir,self.getName())
         pi = file(pifile, "w")
@@ -8822,6 +8826,11 @@ rm -f /etc/xensource/xhad.conf || true
         if r:
             return int(r.group(1))
         return None
+
+    def setXenCmdLine(self, set="xen", **kwargs):
+        for key in kwargs:
+            value = kwargs[key]
+            self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
 #############################################################################
 

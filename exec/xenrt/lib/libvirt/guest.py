@@ -1141,8 +1141,15 @@ class Guest(xenrt.GenericGuest):
         r = re.search(r"<mac address='([^']*)'/>", self._getXML())
         if r:
             mac = r.group(1)
-            xenrt.TEC().progress("Looking for VM IP address using arpwatch.")
-            self.mainip = self.getHost().arpwatch(self.host.getDefaultInterface(), mac, timeout=300)
+            r2 = re.search(r"<source bridge='([^']*)'/>", self._getXML())
+            if r2:
+                bridge = r2.group(1)
+                xenrt.TEC().logverbose("Guest's VIF is on '%s'" % bridge)
+            else:
+                bridge = self.host.getDefaultInterface()
+                xenrt.TEC().logverbose("Could not find bridge name in XML; arpwatching on host's default interface")
+            xenrt.TEC().progress("Looking for VM IP address on %s using arpwatch." % (bridge))
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=300)
             if not self.mainip:
                 raise xenrt.XRTFailure("Did not find an IP address.")
 

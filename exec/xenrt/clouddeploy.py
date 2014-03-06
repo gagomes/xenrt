@@ -131,7 +131,14 @@ class CloudStack(object):
         cmd.virtualmachineid=instance.toolstackId
         return [x.ipaddress for x in self.marvin.apiClient.listNics(cmd) if x.isdefault][0]
 
+    def startInstance(self, instance):
+        pass
 
+    def stopInstance(self, instance, force=False):
+        pass
+
+    def rebootInstance(self, instance, force=False):
+        pass
 
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'

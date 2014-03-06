@@ -38,4 +38,11 @@ class Instance(object):
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)
 
+    def reboot(self, force=False, timeout=600):
+        self.toolstack.rebootInstance(self, force)
+        self.os.waitForBoot(timeout)
+
+    def stop(self, force=False):
+        self.toolstack.stopInstance(self, force)
+
 __all__ = ["Instance"]

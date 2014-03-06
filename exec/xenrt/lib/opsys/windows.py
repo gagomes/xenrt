@@ -79,6 +79,10 @@ class WindowsOS(OS):
         self.parent.getIP(10800)
         xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
+        self.updateDaemon()
+
+    def waitForBoot(self, timeout):
+        self.waitForDaemon(timeout)
 
     def waitForDaemon(self, timeout):
         sleeptime = 15

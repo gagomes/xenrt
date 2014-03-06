@@ -129,16 +129,27 @@ class CloudStack(object):
     def getIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()
         cmd.virtualmachineid=instance.toolstackId
-        return [x.ipaddress for x in self.marvin.apiClient.listNics(cmd) if x.isdefault][0]
+        instance.mainip = [x.ipaddress for x in self.marvin.apiClient.listNics(cmd) if x.isdefault][0]
+        return instance.mainip
 
-    def startInstance(self, instance):
-        pass
+    def startInstance(self, instance, on):
+        cmd = startVirtualMachine.startVirtualMachineCmd()
+        cmd.id = instance.toolstackId
+        self.marvin.apiClient.startVirtualMachine(cmd)
 
     def stopInstance(self, instance, force=False):
-        pass
+        cmd = stopVirtualMachine.stopVirtualMachineCmd()
+        cmd.id = instance.toolstackId
+        if force:
+            cmd.forced = force
+        self.marvin.apiClient.stopVirtualMachine(cmd)
 
     def rebootInstance(self, instance, force=False):
-        pass
+        cmd = rebootVirtualMachine.rebootVirtualMachineCmd()
+        cmd.id = instance.toolstackId
+        if force:
+            cmd.forced = force
+        self.marvin.apiClient.rebootVirtualMachine(cmd)
 
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
@@ -356,7 +367,9 @@ class MarvinApi(object):
             allHostsUp = len(hostList) == hostListState.count('Up')
 
     def addIsoIfNotPresent(self, distro, isoName, isoRepo):
-        isos = [x.name for x in self.apiClient.listIsos(listIsos.listIsosCmd())]
+        listIsosC = listIsos.listIsosCmd()
+        listIsosC.isofilter = "all"
+        isos = [x.name for x in self.apiClient.listIsos(listIsosC)]
         if isoName not in isos:
             xenrt.TEC().logverbose("ISO is not present, registering")
             if isoRepo == "windows":
@@ -387,9 +400,11 @@ class MarvinApi(object):
         xenrt.TEC().logverbose("Waiting for ISO to be ready")
         while xenrt.timenow() <= deadline:
             try:
-                ready = [x.isready for x in self.apiClient.listIsos(listIsos.listIsosCmd()) if x.name == isoName][0]
-                if ready:
+                iso = [x for x in self.apiClient.listIsos(listIsosC) if x.name == isoName][0]
+                if iso.isready:
                     break
+                else:
+                    xenrt.TEC().logverbose("Status: %s" % iso.status)
             except:
                 pass
             xenrt.sleep(15)

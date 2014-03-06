@@ -11935,9 +11935,14 @@ class SarasotaHost(ClearwaterHost):
         # Get network backend
         backend=self.execdom0('cat /etc/xensource/network.conf').strip()
         if not re.search('bridge', backend, re.I):
-            data = self.execdom0('ovs-vsctl list-ports %s' %
-                                bridge)
-            ifs = string.split(data)
+            try:
+                data = self.execdom0('ovs-vsctl list-ports %s' %
+                                    bridge)
+                ifs = string.split(data)
+            except:
+                # If we pass in a network name rather than a bridge name this will fail.
+                # This is fine, because the calling function will fall through to another method
+                return None
         else:
             ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
         return ifs

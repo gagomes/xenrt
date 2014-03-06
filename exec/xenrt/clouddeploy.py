@@ -56,8 +56,8 @@ class CloudStack(object):
 
         instance.toolstackId = rsp.id
 
-        createTagsC = createtTags.createTagsCmd()
-        createTagsC.resourceid = instance.toolstackId
+        createTagsC = createTags.createTagsCmd()
+        createTagsC.resourceids.append(instance.toolstackId)
         createTagsC.resourcetype = "userVm"
         createTagsC.tags.append({"key":"distro", "value": distro})
         self.marvin.apiClient.createTags(createTagsC)
@@ -79,6 +79,52 @@ class CloudStack(object):
         instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
         instance.toolstackId = vm.id
         return instance
+
+    def installPVTools(self, instance):
+        listIsosC = listIsos.listIsosCmd()
+        listIsosC.name="xs-tools.iso"
+        isoId = self.marvin.apiClient.listIsos(listIsosC)[0].id
+
+        attachIsoC = attachIso.attachIsoCmd()
+        attachIsoC.id = isoId
+        attachIsoC.virtualmachineid = instance.toolstackId
+        self.marvin.apiClient.attachIso(attachIsoC)
+
+        deadline = xenrt.util.timenow() + 60
+        while True:
+            if instance.os.fileExists("D:\\installwizard.msi"):
+                break
+
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Installer did not appear")
+            
+            xenrt.sleep(5)
+
+        instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
+        
+        deadline = xenrt.util.timenow() + 3600
+        while True:
+            regValue = ""
+            try:
+                regValue = instance.os.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+            except:
+                try:
+                    regValue = instance.os.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
+                except:
+                    pass
+                
+            if xenrt.util.timenow() > deadline:
+                #instanse.os.checkHealth(desc="Waiting for installer registry key to be written")
+                
+                if regValue and len(regValue) > 0:
+                    raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written. Value=%s" % regValue)
+                else:
+                    raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written.")
+            
+            elif "Installed" == regValue:
+                break
+            else:
+                xenrt.sleep(30)
 
     def getIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()

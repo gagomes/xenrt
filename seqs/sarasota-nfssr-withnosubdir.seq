@@ -31,6 +31,8 @@
 
     <serial group="VMSnap">
       <testcase id="xenserver.tc.snapshot.TC7863" name="TC20986" tc="TC-20986" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8114" name="TC20988" tc="TC-20988" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8117" name="TC20989" tc="TC-20989" prio="3" />
     </serial>
 
     <testcase id="xenserver.tc.impexp.TC10629" name="TC20987" tc="TC-20987" prio="3" />

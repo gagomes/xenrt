@@ -44,6 +44,8 @@
     </serial>
     <serial group="VMSnap">
       <testcase id="xenserver.tc.snapshot.TC7860" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8615" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8618" prio="3" />
     </serial>
     <testcase id="xenserver.tc.storage.TC8764" prio="3" />
     <testcase id="xenserver.tc.storage.TC10602" prio="3" />

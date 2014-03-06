@@ -5708,3 +5708,79 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
 
 class TC20672(SRTrafficwithGRO):
     TYPE="nfs"
+
+class JumboFrames(_TC11551):
+
+    def nativehostMTUSet(self, host, jumboFrames=True, eth='eth0'):
+        if jumboFrames:
+            host.execcmd('ifconfig %s mtu 9000' % eth)
+        else:
+            host.execcmd('ifconfig %s mtu 1500' % eth)
+
+    def xenserverMTUSet(self, host, jumboFrames=True, bridge='xenbr0'):
+        cli=host.getCLIInstance()
+        uuid=host.getNetworkUUID(bridge)
+        if jumboFrames:
+            mtu=9000
+        else:
+            mtu=1500
+        host.execdom0("ifconfig %s mtu %s" % 
+                        (host.getBridgeInterfaces(bridge)[0], mtu))
+        host.execdom0("ifconfig %s mtu %i" % 
+                    (bridge, mtu))
+        cli.execute("network-param-set", 
+                    "uuid=%s MTU=%i" %
+                    (uuid, mtu) )
+
+    def prepare(self, arglist):
+        host=self.getHost("RESOURCE_HOST_0")
+        self.linHost = self.nativeLinuxHostSetup(host=host)
+        self.xsHost = self.getHost("RESOURCE_HOST_1")
+        
+        # Install iperf on both hosts
+        self.linHost.installIperf()
+        self.linHost.execcmd("iperf -s > /root/iperf.log 2>&1 &")
+        self.xsHost.installIperf()
+
+    def nativeLinuxHostSetup(self, host):
+        distro="centos64"
+        arch="x86-32"
+        m = xenrt.PhysicalHost(host.getMyHostName())
+        h = xenrt.lib.native.NativeLinuxHost(m)
+        # Start the iperf server
+        h.installLinuxVendor(distro, arch=arch)
+        return h
+
+    def _parseIperfData(self, data, jf=False):
+        iperfData = {}
+        dataFound = False
+        for line in data.splitlines():
+            xenrt.TEC().logverbose(line)
+
+            if line.startswith('[ID]'):
+                lineFields = line.split()
+                if len(lineFields) != 7:
+                    raise xenrt.XRTError('Failed to parse SUM output from Iperf')
+                iperfData['transfer'] = int(lineFields[3])
+                iperfData['bandwidth'] = int(lineFields[5])
+                dataFound = True
+
+        if not dataFound:
+            raise xenrt.XRTError('Failed to parse general output from Iperf')
+        return iperfData
+
+
+    def run(self, arglist):
+
+        # Run the client to measure throughput
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+        xenrt.log(rawData)
+        
+        # Turn on jumbo frames and measure
+        self.nativehostMTUSet(host=self.linHost)
+        # Turn on jumbo frames on XS
+        self.xenserverMTUSet(host=self.xsHost)
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+        xenrt.log(rawData)

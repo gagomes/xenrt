@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Jumbo Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.JumboFrames"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

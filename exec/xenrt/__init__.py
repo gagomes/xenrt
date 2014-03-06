@@ -2469,7 +2469,9 @@ class PhysicalHost:
             try:
                 ipaddr = xenrt.util.getHostAddress(name)
             except:
-                ipaddr = xenrt.util.getHostAddress(name + ".testdev.hq.xensource.com")
+                xenrt.log("************** Name is %s ***********************" % name)
+                tmp = name + ".testdev.hq.xensource.com"
+                ipaddr = xenrt.util.getHostAddress(tmp)
         self.ipaddr = ipaddr        
         self.ipaddr6 = None
         self.pxeipaddr = self.ipaddr

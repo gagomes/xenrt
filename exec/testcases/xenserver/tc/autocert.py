@@ -44,9 +44,10 @@ class _XSAutoCertKit(xenrt.TestCase):
         
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
-            # Current latest ACK in trunk-partner is only working with CentOS 6.4 based Dom0.
-            # This is temporary fix to avoid failing ACK installation.
-            if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+            if "x86_64" in host.execdom0("uname -a"):
+                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=car-1401exp&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
+                acklocation = "/usr/groups/xen/carbon/car-1401exp/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
+            elif isinstance(host, xenrt.lib.xenserver.SarasotaHost):
                 build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=trunk-partner&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
                 acklocation = "/usr/groups/xen/carbon/trunk-partner/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
             else:

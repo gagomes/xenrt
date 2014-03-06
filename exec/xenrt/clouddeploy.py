@@ -13,10 +13,10 @@ except ImportError:
 
 class XenRTLogStream(object):
     def write(self, data):
-        xenrt.TEC().logverbose(data)
+        xenrt.TEC().logverbose(data.rstrip())
 
     def flush(self):
-        xenrt.TEC().logverbose('FLUSH CALLED')
+        pass
 
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
@@ -29,8 +29,10 @@ class MarvinApi(object):
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self.logger = logging.getLogger(self.MARVIN_LOGGER)
+        self.logger.setLevel(logging.DEBUG)
         stream = logging.StreamHandler(stream=self.xenrtStream)
-        stream.setLevel(logging.INFO)
+        stream.setLevel(logging.DEBUG)
+        stream.setFormatter(logFormat)
         self.logger.addHandler(stream)
 
         self.mgtSvrDetails = configGenerator.managementServer()

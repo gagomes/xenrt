@@ -5,7 +5,7 @@ import os,urllib,re,sys
 suite = os.environ['Suite'].split(" ")[-1]
 
 if not os.environ.has_key("Update Mercurial") or os.environ["Update Mercurial"] == "true":
-    os.system("make -C /home/xenrtd/xenrt.hg update install")
+    os.system("make -C /home/xenrtd/xenrt.git update install")
 
 cmd = "xrt --run-suite %s -b %s -r %s" % (suite, os.environ['Branch'], os.environ['Version'])
 

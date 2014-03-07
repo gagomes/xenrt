@@ -90,11 +90,13 @@ class CloudStack(object):
         attachIsoC.virtualmachineid = instance.toolstackId
         self.marvin.apiClient.attachIso(attachIsoC)
 
-        deadline = xenrt.util.timenow() + 60
+        deadline = xenrt.util.timenow() + 300 
         while True:
-            if instance.os.fileExists("D:\\installwizard.msi"):
-                break
-
+            try:
+                if instance.os.fileExists("D:\\installwizard.msi"):
+                    break
+            except:
+                pass
             if xenrt.util.timenow() > deadline:
                 raise xenrt.XRTError("Installer did not appear")
             

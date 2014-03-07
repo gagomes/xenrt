@@ -244,7 +244,10 @@ def start_job(jobid):
 
             execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
             execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
-            execCmd("cd %s && git merge master --no-edit" % (_rootdir))
+            try:
+                execCmd("cd %s && git merge master --no-edit" % (_rootdir))
+            except:
+                execCmd("cd %s && git merge master -m Merge" % (_rootdir))
         
         execCmd("cd %s/../xenrt-internal.git && git checkout master && git reset --hard && git pull" % (_rootdir), errorException=False)
 

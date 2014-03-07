@@ -2784,6 +2784,10 @@ exit /B 1
         self.uuid = uuid
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+        self.vifs.sort()
+        self.recreateVIFs(newMACs=True)
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):

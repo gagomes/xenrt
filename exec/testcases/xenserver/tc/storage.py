@@ -3350,9 +3350,6 @@ class TC13476(xenrt.TestCase):
         if nVGs > 1:
             raise xenrt.XRTError("Single voulume group expected! Found: \n%s" % vgList)
 
-        
-
-    
 class TC13568(xenrt.TestCase):
     """Test VDIs don't get corrupted after network outage (CA-56857)"""
     

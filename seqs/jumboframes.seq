@@ -9,7 +9,7 @@
   </variables>
 
   <prepare>
-    <host id="0"/>
+    <host productType="nativelinux" productVersion="centos63" id="0"/>
     <host id="1"/>
   </prepare>
 

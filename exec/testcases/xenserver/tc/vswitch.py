@@ -5733,8 +5733,7 @@ class JumboFrames(_TC11551):
                     (uuid, mtu) )
 
     def prepare(self, arglist):
-        host=self.getHost("RESOURCE_HOST_0")
-        self.linHost = self.nativeLinuxHostSetup(host=host)
+        self.linHost=self.getHost("RESOURCE_HOST_0")
         self.xsHost = self.getHost("RESOURCE_HOST_1")
         
         # Install iperf on both hosts
@@ -5742,45 +5741,54 @@ class JumboFrames(_TC11551):
         self.linHost.execcmd("iperf -s > /root/iperf.log 2>&1 &")
         self.xsHost.installIperf()
 
-    def nativeLinuxHostSetup(self, host):
-        distro="centos64"
-        arch="x86-32"
-        m = xenrt.PhysicalHost(host.getMyHostName())
-        h = xenrt.lib.native.NativeLinuxHost(m)
-        # Start the iperf server
-        h.installLinuxVendor(distro, arch=arch)
-        return h
-
     def _parseIperfData(self, data, jf=False):
+        """ Extract throughputs and mss from raw iperf data """
+
         iperfData = {}
         dataFound = False
         for line in data.splitlines():
             xenrt.TEC().logverbose(line)
 
-            if line.startswith('[ID]'):
+            if re.search("0.0-10.0", line, re.I):
                 lineFields = line.split()
                 if len(lineFields) != 7:
-                    raise xenrt.XRTError('Failed to parse SUM output from Iperf')
+                    raise xenrt.XRTError('Failed to parse output from Iperf')
                 iperfData['transfer'] = int(lineFields[3])
                 iperfData['bandwidth'] = int(lineFields[5])
                 dataFound = True
+            
+            # Parse MSS info to ensure desired packet sizes are transfered
+            if re.search('MSS', line):
+                lineFields = line.split()
+                iperfData['mss'] = int(lineFields[3])
+                mssFound = True
 
-        if not dataFound:
+        if not dataFound and mssFound:
             raise xenrt.XRTError('Failed to parse general output from Iperf')
+        if jf and not iperfData['mss'] > 1500 :
+
+            raise xenrt.XRTFailure("MSS when jumboframes is enabled is expected to be greater than 1500" \
+                                    "Current value %i" % iperfData['mss'])
         return iperfData
 
 
     def run(self, arglist):
+        nonJFRes={}
+        jfRes={}
 
         # Run the client to measure throughput
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        xenrt.log(rawData)
+        nonJFRes=_parseIperfData(rawData)
+        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
         
         # Turn on jumbo frames and measure
-        self.nativehostMTUSet(host=self.linHost)
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
         # Turn on jumbo frames on XS
         self.xenserverMTUSet(host=self.xsHost)
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        xenrt.log(rawData)
+        jfRes=_parseIperfData(rawData)
+        jfRes=_parseIperfData(rawData)

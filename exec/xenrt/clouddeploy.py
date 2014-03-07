@@ -422,6 +422,9 @@ def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
     marvinApi = MarvinApi(manSvr)
 
+    marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
+    marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
+
     zoneNameIx = 0
     for zoneSpec in cloudSpec['zones']:
         if not zoneSpec.has_key('name'):

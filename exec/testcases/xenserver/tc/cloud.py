@@ -85,8 +85,8 @@ class MarvinConfig():
             { "name": "vm.allocation.algorithm", "value": "random" },
             { "name": "expunge.interval", "value": "60" },
             { "name": "expunge.workers", "value": "3" },
-            { "name": "check.pod.cidrs", "value": "true" },
-#            { "name": "secstorage.allowed.internal.sites", "value": "10.147.28.0/24" },
+            { "name": "check.pod.cidrs", "value": "false" },
+            { "name": "secstorage.allowed.internal.sites", "value": "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12" },
             { "name": "direct.agent.load.size", "value": "1000" } ]
 
         self.marvinCfg['mgtSvr'] = []

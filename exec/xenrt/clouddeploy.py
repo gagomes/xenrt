@@ -90,6 +90,9 @@ class CloudStack(object):
         attachIsoC.virtualmachineid = instance.toolstackId
         self.marvin.apiClient.attachIso(attachIsoC)
 
+        # Allow the CD to appear
+        xenrt.sleep(30)
+
         deadline = xenrt.util.timenow() + 300 
         while True:
             try:

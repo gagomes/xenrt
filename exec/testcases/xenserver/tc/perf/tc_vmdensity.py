@@ -1086,7 +1086,7 @@ class VMLoad_cpu_loop(VMLoad):
             guest.execguest(script)
 
 class VMLoad_loginvsi_nordp(VMLoad):
-    pyfile = os.path.expanduser("~/xenrt.hg/exec/testcases/xenserver/tc/perf/loginvsi/installloginvsitarget.py")
+    pyfile = os.path.expanduser("~/xenrt.git/exec/testcases/xenserver/tc/perf/loginvsi/installloginvsitarget.py")
     #pypath = "c:\\"+pyfile
     pypath = "c:\\install-loginvsi-target.py"
 
@@ -1171,7 +1171,7 @@ class VMLoad_loginvsi(VMLoad_loginvsi_nordp):
         VMLoad_loginvsi_nordp.install(self, guest)
 
 class VMLoad_loginvsi_rds(VMLoad_loginvsi):
-    pyfile = os.path.expanduser("~/xenrt.hg/exec/testcases/xenserver/tc/perf/loginvsi/installloginvsitargetrds.py")
+    pyfile = os.path.expanduser("~/xenrt.git/exec/testcases/xenserver/tc/perf/loginvsi/installloginvsitargetrds.py")
     
     def __init__(self,experiment,params):
         VMLoad.__init__(self,experiment,params)

@@ -5751,8 +5751,9 @@ class JumboFrames(_TC11551):
 
             if re.search("0.0-10.0", line, re.I):
                 lineFields = line.split()
-                if len(lineFields) != 7:
-                    raise xenrt.XRTError('Failed to parse output from Iperf')
+                #if len(lineFields) != 7:
+                #    raise xenrt.XRTError('Failed to parse output from Iperf')
+                xenrt.log("Length of linefields is %i" % len(lineFields))
                 iperfData['transfer'] = int(lineFields[3])
                 iperfData['bandwidth'] = int(lineFields[5])
                 dataFound = True

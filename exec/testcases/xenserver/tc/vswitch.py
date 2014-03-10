@@ -5751,17 +5751,17 @@ class JumboFrames(_TC11551):
 
             if re.search("0.0-10.0", line, re.I):
                 lineFields = line.split()
-                #if len(lineFields) != 7:
-                #    raise xenrt.XRTError('Failed to parse output from Iperf')
+                if len(lineFields) != 8:
+                    raise xenrt.XRTError('Failed to parse output from Iperf')
                 xenrt.log("Length of linefields is %i" % len(lineFields))
-                iperfData['transfer'] = int(lineFields[3])
-                iperfData['bandwidth'] = int(lineFields[5])
+                iperfData['transfer'] = int(lineFields[4])
+                iperfData['bandwidth'] = int(lineFields[6])
                 dataFound = True
             
             # Parse MSS info to ensure desired packet sizes are transfered
             if re.search('MSS', line):
                 lineFields = line.split()
-                iperfData['mss'] = int(lineFields[3])
+                iperfData['mss'] = int(lineFields[4])
                 mssFound = True
 
         if not dataFound and mssFound:

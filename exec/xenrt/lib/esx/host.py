@@ -256,6 +256,7 @@ reboot
         bootcfgtext = re.sub(r"/", r"", bootcfgtext)        # get rid of all absolute paths...
         bootcfgtext += "prefix=%s" % pxe.makeBootPath("")   # ... and use our PXE path as a prefix instead
         bootcfgtext = re.sub(r"--- useropts\.gz", r"", bootcfgtext)        # this file seems to cause only trouble, and getting rid of it seems to have no side effects...
+        bootcfgtext = re.sub(r"--- jumpstrt\.gz", r"", bootcfgtext)        # this file (in ESXi 5.5) is similar
         bootcfgtext = re.sub(r"(kernelopt=.*)", r"\1 debugLogToSerial=1 logPort=com1 ks=%s" %
                              ("nfs://%s%s" % (nfsdir.getHostAndPath(ksname))), bootcfgtext)
         bootcfg.write(bootcfgtext)

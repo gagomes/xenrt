@@ -4906,14 +4906,6 @@ class TC20917(xenrt.TestCase):
             i += 100
 
     def run(self, arglist):
-        self.fillXenStoreQuota()
-        self.guest.migrateVM(host=self.host,live="true")
-       
-        self.guest.reboot()
-        self.fillXenStoreQuota()
-        self.guest.migrateVM(host=self.host,live="false")
-        
-        self.guest.reboot()
         vbd = self.guest.createDisk(sizebytes=xenrt.MEGA, returnVBD=True)
         self.fillXenStoreQuota()
         self.host.getCLIInstance().execute("vbd-unplug uuid=%s" % vbd)

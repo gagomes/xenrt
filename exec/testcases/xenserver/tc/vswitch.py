@@ -5779,7 +5779,7 @@ class JumboFrames(_TC11551):
         # Run the client to measure throughput
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        nonJFRes=_parseIperfData(rawData)
+        nonJFRes=self._parseIperfData(rawData)
         xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
         
         # Turn on jumbo frames and measure
@@ -5790,5 +5790,5 @@ class JumboFrames(_TC11551):
         self.xenserverMTUSet(host=self.xsHost)
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        jfRes=_parseIperfData(rawData)
-        jfRes=_parseIperfData(rawData)
+        jfRes=self._parseIperfData(rawData)
+        jfRes=self._parseIperfData(rawData)

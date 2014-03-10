@@ -2101,6 +2101,9 @@ else:
         except Exception, e:
             traceback.print_exc(file=sys.stderr) 
 
+if xenrt.TEC().lookup("PAUSE_BEFORE_EXIT", False, boolean=True):
+    xenrt.sleep(432000)
+
 sys.stderr.write("XenRT about to exit\n")
 sys.stderr.write("Current threads:\n")
 

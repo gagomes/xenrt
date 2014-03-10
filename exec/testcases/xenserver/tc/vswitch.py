@@ -5754,8 +5754,8 @@ class JumboFrames(_TC11551):
                 if len(lineFields) != 8:
                     raise xenrt.XRTError('Failed to parse output from Iperf')
                 xenrt.log("Length of linefields is %i" % len(lineFields))
-                iperfData['transfer'] = int(lineFields[4])
-                iperfData['bandwidth'] = int(lineFields[6])
+                iperfData['transfer'] = lineFields[4]
+                iperfData['bandwidth'] = lineFields[6]
                 dataFound = True
             
             # Parse MSS info to ensure desired packet sizes are transfered
@@ -5780,7 +5780,7 @@ class JumboFrames(_TC11551):
         # Run the client to measure throughput
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        xenrt.log("Logging raw data before %s " % rawData)
+
         nonJFRes=self._parseIperfData(rawData)
         xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
         

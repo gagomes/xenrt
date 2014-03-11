@@ -13,7 +13,7 @@ Parses an XML test sequence specification.
 """
 
 import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
-import xenrt, xenrt.clouddeploy
+import xenrt
 
 __all__ = ["Fragment",
            "SingleTestCase",
@@ -1773,7 +1773,7 @@ class PrepareNode:
                     host.associateDVS(controller.getDVSCWebServices())
 
                 if self.cloudSpec:
-                    xenrt.clouddeploy.deploy(self.cloudSpec)
+                    xenrt.lib.cloud.deploy(self.cloudSpec)
 
         except Exception, e:
             sys.stderr.write(str(e))

@@ -167,7 +167,7 @@ class ESXHost(xenrt.lib.libvirt.Host):
         
         vmks = []
         for network in networks:
-            vmk = self.execdom0("esxcfg-vmknic -l | fgrep \"%s\" | awk '{print $1}'" % (network)).strip()
+            vmk = self.execdom0("esxcfg-vmknic -l | fgrep \"%s\" | head -n 1 | awk '{print $1}'" % (network)).strip()
             if vmk != "":
                 vmks.append(vmk)
 

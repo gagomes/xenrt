@@ -5747,13 +5747,12 @@ class JumboFrames(_TC11551):
         iperfData = {}
         dataFound = False
         for line in data.splitlines():
-            xenrt.TEC().logverbose(line)
 
             if re.search("0.0-10.0", line, re.I):
                 lineFields = line.split()
                 if len(lineFields) != 8:
                     raise xenrt.XRTError('Failed to parse output from Iperf')
-                xenrt.log("Length of linefields is %i" % len(lineFields))
+
                 iperfData['transfer'] = lineFields[4]
                 iperfData['bandwidth'] = lineFields[6]
                 dataFound = True
@@ -5776,6 +5775,7 @@ class JumboFrames(_TC11551):
     def run(self, arglist):
         nonJFRes={}
         jfRes={}
+        allowedVariance=30
 
         # Run the client to measure throughput
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
@@ -5792,6 +5792,9 @@ class JumboFrames(_TC11551):
         self.xenserverMTUSet(host=self.xsHost)
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        xenrt.log("Logging raw data after %s " % rawData)
         jfRes=self._parseIperfData(rawData)
-        jfRes=self._parseIperfData(rawData)
+        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
+
+        if not int(jfRes['bandwidth']) > (int(nonJFRes['bandwidth']) - allowedVariance):
+            raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
+                                    (jfRes['bandwidth'], nonJFRes['bandwidth']))

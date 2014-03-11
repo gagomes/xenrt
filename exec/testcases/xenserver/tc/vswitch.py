@@ -5792,7 +5792,8 @@ class JumboFrames(_TC11551):
         self.xenserverMTUSet(host=self.xsHost)
         rawData=self.xsHost.execdom0('iperf -m -c %s' % 
                                     self.linHost.getIP())
-        jfRes=self._parseIperfData(rawData)
+        jfRes=self._parseIperfData(rawData,
+                                    jf=True)
         xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
 
         if not int(jfRes['bandwidth']) > (int(nonJFRes['bandwidth']) - allowedVariance):

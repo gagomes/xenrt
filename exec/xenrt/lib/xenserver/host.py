@@ -11942,19 +11942,6 @@ class SarasotaHost(ClearwaterHost):
             ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
         return ifs
 
-    def getBridgeInterfaces(self, bridge):
-        """Return a list of interfaces on the bridge, or None if that bridge
-        does not exist."""
-        # Get network backend
-        backend=self.execdom0('cat /etc/xensource/network.conf').strip()
-        if not re.search('bridge', backend, re.I):
-            data = self.execdom0('ovs-vsctl list-ports %s' %
-                                bridge)
-            ifs = string.split(data)
-        else:
-            ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
-        return ifs
-
 
 
 #############################################################################

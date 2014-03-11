@@ -1,6 +1,6 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
   </variables>
   <default name="PARALLEL" value="6" />
   <scheduler>

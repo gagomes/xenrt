@@ -13,6 +13,8 @@ except ImportError:
 
 __all__ = ["CloudStack"]
 
+import xenrt.lib.cloud.pvtoolsinstall
+
 class CloudStack(object):
     def __init__(self, place):
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
@@ -79,55 +81,7 @@ class CloudStack(object):
         return instance
 
     def installPVTools(self, instance):
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.name="xs-tools.iso"
-        isoId = self.marvin.apiClient.listIsos(listIsosC)[0].id
-
-        attachIsoC = attachIso.attachIsoCmd()
-        attachIsoC.id = isoId
-        attachIsoC.virtualmachineid = instance.toolstackId
-        self.marvin.apiClient.attachIso(attachIsoC)
-
-        # Allow the CD to appear
-        xenrt.sleep(30)
-
-        deadline = xenrt.util.timenow() + 300 
-        while True:
-            try:
-                if instance.os.fileExists("D:\\installwizard.msi"):
-                    break
-            except:
-                pass
-            if xenrt.util.timenow() > deadline:
-                raise xenrt.XRTError("Installer did not appear")
-            
-            xenrt.sleep(5)
-
-        instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
-        
-        deadline = xenrt.util.timenow() + 3600
-        while True:
-            regValue = ""
-            try:
-                regValue = instance.os.winRegLookup('HKLM', "SOFTWARE\\Wow6432Node\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-            except:
-                try:
-                    regValue = instance.os.winRegLookup('HKLM', "SOFTWARE\\Citrix\\XenToolsInstaller", "InstallStatus", healthCheckOnFailure=False)
-                except:
-                    pass
-                
-            if xenrt.util.timenow() > deadline:
-                #instanse.os.checkHealth(desc="Waiting for installer registry key to be written")
-                
-                if regValue and len(regValue) > 0:
-                    raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written. Value=%s" % regValue)
-                else:
-                    raise xenrt.XRTFailure("Timed out waiting for installer registry key to be written.")
-            
-            elif "Installed" == regValue:
-                break
-            else:
-                xenrt.sleep(30)
+        xenrt.lib.cloud.pvtoolsinstall.PVToolsInstallerFactory(self, instance).install()
 
     def getIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()

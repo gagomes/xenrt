@@ -2,6 +2,8 @@ import xenrt, os.path
 from xenrt.lib.opsys import LinuxOS, RegisterOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 
+__all__ = ["DebianBasedLinux"]
+
 class DebianBasedLinux(LinuxOS):
 
     @staticmethod

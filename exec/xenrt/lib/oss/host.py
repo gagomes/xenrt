@@ -225,6 +225,30 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         """Destroys the given domid"""
         self._xl("destroy", [str(domid)])
 
+    def shutdown(self, domid):
+        """Shuts down the given domid"""
+        self._xl("shutdown", [str(domid)])
+
+    def reboot(self, domid):
+        """Reboots the given domid"""
+        self._xl("reboot", [str(domid)])
+
+    def save(self, domid, saveFile):
+        """Suspends the given domid into the specified save file"""
+        self._xl("save", [str(domid), saveFile])
+
+    def restore(self, saveFile):
+        """Restores the given save file"""
+        self._xl("restore", [saveFile])
+
+    def migrate(self, domid, to):
+        """Migrates the given domid to the specified host"""
+        if not isinstance(to, OSSHost):
+            raise xenrt.XRTError("Cannot migrate to this type of host")
+
+        # TODO: Set up SSH keys if not already present
+        self._xl("migrate", [domid, to.getIP()])
+
     def execSSH(self, *args, **kwargs):
         return self.execdom0(*args, **kwargs)
 

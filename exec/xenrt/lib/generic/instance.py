@@ -45,4 +45,13 @@ class Instance(object):
     def stop(self, force=False):
         self.toolstack.stopInstance(self, force)
 
+    def suspend(self):
+        self.toolstack.suspendInstance(self)
+
+    def resume(self):
+        self.toolstack.resumeInstance(self)
+
+    def migrate(self, to, live=True):
+        self.toolstack.migrateInstance(self, to, live)
+
 __all__ = ["Instance"]

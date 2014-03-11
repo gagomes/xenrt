@@ -5794,8 +5794,8 @@ class JumboFrames(_TC11551):
                                     self.linHost.getIP())
         jfRes=self._parseIperfData(rawData,
                                     jf=True)
-        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
+        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in jfRes.iteritems()])
 
-        if not int(jfRes['bandwidth']) > (int(nonJFRes['bandwidth']) - allowedVariance):
+        if not float(jfRes['bandwidth']) > (float(nonJFRes['bandwidth']) - allowedVariance):
             raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
                                     (jfRes['bandwidth'], nonJFRes['bandwidth']))

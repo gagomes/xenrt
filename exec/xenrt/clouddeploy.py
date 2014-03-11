@@ -24,14 +24,17 @@ class CloudStack(object):
         self.marvin = MarvinApi(self.mgtsvr)
 
     def createInstance(self,
-                       name,
                        distro,
-                       vcpus,
-                       memory,
+                       name=None,
+                       vcpus=None,
+                       memory=None,
                        vifs=None,
                        rootdisk=None,
                        extraConfig={},
                        startOn=None):
+
+        if not name:
+            name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
         if not "iso" in instance.os.supportedInstallMethods:

@@ -27,8 +27,8 @@ class XLToolstack(object):
         instance.poll(xenrt.STATE_DOWN)
 
     def createInstance(self,
-                       name,
                        distro,
+                       name,
                        vcpus,
                        memory,
                        vifs=None,

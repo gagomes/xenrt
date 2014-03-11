@@ -24,7 +24,7 @@ class XLToolstack(object):
         else:
             hv.shutdown(instance.name)
 
-        instance.poll(xenrt.STATE_DOWN)
+        instance.poll(xenrt.State.down)
 
     def rebootInstance(self, instance):
         hv = self.getHypervisor(instance)
@@ -34,7 +34,7 @@ class XLToolstack(object):
         hv.reboot(instance.name)
 
     def suspendInstance(self, instance):
-        if not self.getState(instance) == xenrt.STATE_UP:
+        if not self.getState(instance) == xenrt.State.up:
             raise xenrt.XRTError("Cannot suspend a non running VM")
 
         # TODO: Parameterise where to store the suspend image
@@ -46,7 +46,7 @@ class XLToolstack(object):
                 
 
     def resumeInstance(self, instance, on):
-        if not self.getState(instance) == xenrt.STATE_SUSPENDED:
+        if not self.getState(instance) == xenrt.State.suspended:
             raise xenrt.XRTError("Cannot resume a non suspended VM")
 
         img = "/data/%s-suspend" % (instance.toolstackId)
@@ -62,7 +62,7 @@ class XLToolstack(object):
         if not live:
             raise xenrt.XRTError("xl only supports live migration")
 
-        if not self.getState(instance) == xenrt.STATE_UP:
+        if not self.getState(instance) == xenrt.State.up:
             raise xenrt.XRTError("Cannot migrate a non running VM")
 
         src = self.getHypervisor(instance)
@@ -117,7 +117,7 @@ class XLToolstack(object):
         instance.os.waitForInstallCompleteAndFirstBoot()
 
     def getIP(self, instance, timeout=600, level=xenrt.RC_ERROR):
-        if self.getState(instance) != xenrt.STATE_UP:
+        if self.getState(instance) != xenrt.State.up:
             raise xenrt.XRTError("Instance not running")
 
         if instance.mainip is not None:
@@ -170,24 +170,24 @@ disk = [ %s ]
 
     def getState(self, instance):
         if instance.toolstackId in self.suspendedInstances:
-            return xenrt.STATE_SUSPENDED
+            return xenrt.State.suspended
 
         hv = self.getHypervisor(instance)
         if not hv:
-            return xenrt.STATE_DOWN
+            return xenrt.State.down
 
         guests = hv.listGuestsData()
         if not instance.toolstackId in guests.keys():
             del self.residentOn[instance.toolstackId]
-            return xenrt.STATE_DOWN
+            return xenrt.State.down
 
         gd = guests[instance.toolstackId]
         if gd[1] == "s":
             # Domain has actually shut down, so destroy it
             hv.destroy(gd[0])
-            return xenrt.STATE_DOWN
+            return xenrt.State.down
 
         # TODO: handle paused / crashed etc
-        return xenrt.STATE_UP
+        return xenrt.State.up
 
 __all__ = ["XLToolstack"]

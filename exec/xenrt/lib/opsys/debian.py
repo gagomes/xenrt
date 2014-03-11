@@ -57,7 +57,7 @@ class DebianBasedLinux(LinuxOS):
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
-        self.parent.poll(xenrt.STATE_DOWN, timeout=1800)
+        self.parent.poll(xenrt.State.down, timeout=1800)
         self.parent.start()
 
     def waitForBoot(self, timeout):

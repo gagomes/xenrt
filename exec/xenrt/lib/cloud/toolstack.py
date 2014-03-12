@@ -28,7 +28,8 @@ class CloudStack(object):
                        vifs=None,
                        rootdisk=None,
                        extraConfig={},
-                       startOn=None):
+                       startOn=None,
+                       installTools=True):
 
         if not name:
             name = xenrt.util.randomGuestName()
@@ -39,40 +40,46 @@ class CloudStack(object):
 
         self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
 
-        deployVirtualMachineC = deployVirtualMachine.deployVirtualMachineCmd()
-        deployVirtualMachineC.displayname = name
-        deployVirtualMachineC.templateid = [x.id for x in self.marvin.apiClient.listIsos(listIsos.listIsosCmd()) if x.name == instance.os.isoName][0]
+        zone = Zone.list(self.marvin.apiClient)[0].id
         # TODO support different service offerings
-        deployVirtualMachineC.serviceofferingid = [x.id for x in self.marvin.apiClient.listServiceOfferings(listServiceOfferings.listServiceOfferingsCmd()) if x.name == "Medium Instance"][0]
+        svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
+
         # TODO support different disk offerings
-        deployVirtualMachineC.diskofferingid = [x.id for x in self.marvin.apiClient.listDiskOfferings(listDiskOfferings.listDiskOfferingsCmd()) if x.disksize == 20]
-        # TODO Support different hypervisors
-        deployVirtualMachineC.hypervisor = "XenServer"
-        deployVirtualMachineC.zoneid = self.marvin.apiClient.listZones(listZones.listZonesCmd())[0].id
+        diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id
+
+        template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
-
-        rsp = self.marvin.apiClient.deployVirtualMachine(deployVirtualMachineC)
+        rsp = VirtualMachine.create(self.marvin.apiClient, {
+                                        "serviceoffering": svcOffering,
+                                        "zoneid": zone,
+                                        "displayname": name,
+                                        "name": name,
+                                        "template": template,
+                                        "diskoffering": diskOffering},
+                                    startvm=False)
 
         instance.toolstackId = rsp.id
 
-        createTagsC = createTags.createTagsCmd()
-        createTagsC.resourceids.append(instance.toolstackId)
-        createTagsC.resourcetype = "userVm"
-        createTagsC.tags.append({"key":"distro", "value": distro})
-        self.marvin.apiClient.createTags(createTagsC)
+        Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
+
+        xenrt.TEC().logverbose("Starting VM")
+
+        self.startInstance(instance)
 
         xenrt.TEC().logverbose("Waiting for install complete")
         instance.os.waitForInstallCompleteAndFirstBoot()
+
+        if installTools:
+            self.installPVTools(instance)
+
         return instance
 
 
     def existingInstance(self, name):
 
-        vm = [x for x in self.marvin.apiClient.listVirtualMachines(listVirtualMachines.listVirtualMachinesCmd()) if x.displayname==name][0]
-        listTagsC = listTags.listTagsCmd()
-        listTagsC.resourceid = vm.id
-        tags = self.marvin.apiClient.listTags(listTagsC)
+        vm = VirtualMachine.list(self.marvin.apiClient, name=name)[0]
+        tags = Tag.list(self.marvin.apiClient, resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
         # TODO: Sort out the other arguments here
@@ -81,15 +88,20 @@ class CloudStack(object):
         return instance
 
     def installPVTools(self, instance):
-        xenrt.lib.cloud.pvtoolsinstall.PVToolsInstallerFactory(self, instance).install()
+        try:
+            installer = xenrt.lib.cloud.pvtoolsinstall.PVToolsInstallerFactory(self, instance)
+        except:
+            xenrt.TEC().logverbose("No PV tools installer found for instance")
+        else:
+            installer.install()
 
     def getIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()
         cmd.virtualmachineid=instance.toolstackId
-        instance.mainip = [x.ipaddress for x in self.marvin.apiClient.listNics(cmd) if x.isdefault][0]
+        instance.mainip = [x.ipaddress for x in NIC.list(self.marvin.apiClient, virtualmachineid = instance.toolstackId) if x.isdefault][0]
         return instance.mainip
 
-    def startInstance(self, instance, on):
+    def startInstance(self, instance, on=None):
         cmd = startVirtualMachine.startVirtualMachineCmd()
         cmd.id = instance.toolstackId
         self.marvin.apiClient.startVirtualMachine(cmd)
@@ -108,3 +120,10 @@ class CloudStack(object):
             cmd.forced = force
         self.marvin.apiClient.rebootVirtualMachine(cmd)
 
+    def getInstancePowerState(self, instance):
+        state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state
+        if state == "Stopped":
+            return instance.POWERSTATE_STOPPED
+        elif state == "Running":
+            return instance.POWERSTATE_RUNNING
+        raise xenrt.XRTError("Unrecognised power state")

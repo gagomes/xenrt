@@ -15,7 +15,8 @@
 
   <testsequence>
     <serial group="vSwitch">
-      <testcase id="xenserver.tc.vswitch.JumboFrames"/>
+      <testcase id="xenserver.tc.vswitch.JumboFrames" tc="TC-21018"/>
+      <testcase id="xenserver.tc.vswitch.TC21019" tc="TC-21019"/>
     </serial>
   </testsequence>
 

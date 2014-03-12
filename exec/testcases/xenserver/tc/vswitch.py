@@ -5782,7 +5782,8 @@ class JumboFrames(_TC11551):
                                     self.linHost.getIP())
 
         nonJFRes=self._parseIperfData(rawData)
-        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in nonJFRes.iteritems()])
+        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in nonJFRes.iteritems()])
         
         # Turn on jumbo frames and measure
         eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
@@ -5794,8 +5795,63 @@ class JumboFrames(_TC11551):
                                     self.linHost.getIP())
         jfRes=self._parseIperfData(rawData,
                                     jf=True)
-        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % [(k,r) for k,r in jfRes.iteritems()])
+        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in jfRes.iteritems()])
 
         if not float(jfRes['bandwidth']) > (float(nonJFRes['bandwidth']) - allowedVariance):
             raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
                                     (jfRes['bandwidth'], nonJFRes['bandwidth']))
+
+class TC21019(JumboFrames):
+
+    def startIperfServers(self, linHost, numOfServers, baseport=5000):
+        """ Start multiple iperf servers on different ports """
+        host.execcmd("pkill iperf")
+        script="""#!/bin/bash
+for i in `seq 1 %i`; do
+# Set server port
+server_port=%i
+# Report file includes server port
+report_file=iperfServer-${server_port}.txt
+# Run iperf
+iperf -s -p $server_port &> $report_file 2>&1 &
+done """ % (numOfServers, baseport)
+
+    def prepare(self, arglist):
+        self.ipsToTest()
+        JumboFrames.prepare(self)
+        assumedids = self.xsHost.listSecondaryNICs()
+        cli=self.xsHost.getCLIInstance()
+        
+        for id in assumedids:
+            pif = self.xsHost.getNICPIF(id)
+            cli.execute("pif-reconfigure-ip mode=dhcp uuid=%s" % pif)
+            self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
+            xenrt.log("IPs to test - %s" % self.ipsToTest)
+
+        if len(self.ipsToTest) <= 1:
+            raise xenrt.XRTError("This test requires machines with more than one NIC")
+
+        self.startIperfServers(linHost=self.linHost,
+                                numOfServers=len(self.ipsToTest))
+
+    def runIPerf(self, iperfHost, iperfServer, srvBasePort=5000, timeSecs=10):
+        # Convert the python list into a shell script list
+        list=" ".join(self.ipsToTest)
+        script = """#!/bin/bash
+server_ip=%s
+test_duration=%i
+ip=%s
+for i in `seq 1 %i`; do
+# Set server port
+server_port=$(($base_port+$i));
+# Report file includes server ip, server port and test duration
+report_file=iperClient-${server_port}-${test_duration}.txt
+# Run iperf
+for i in $ip; do 
+iperf -c $server_ip -p $server_port -t $test_duration -B $i &> $report_file & ; done
+done
+""" % (iperfServer, timeSecs, list, len(self.ipsToTest))
+
+
+

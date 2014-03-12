@@ -2432,7 +2432,7 @@ class DebianPreseedFile():
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.postscript = postscript
         self.poweroff = poweroff
-        self.disk = None
+        self.disk = disk
         
     def generate(self):
         if self.distro.startswith("debian60") or self.distro.startswith("debian70"):

@@ -127,3 +127,57 @@ class CloudStack(object):
         elif state == "Running":
             return instance.POWERSTATE_RUNNING
         raise xenrt.XRTError("Unrecognised power state")
+
+    def createTemplateFromInstance(self, instance, templateName):
+        origState = instance.getPowerState()
+        instance.setPowerState(instance.POWERSTATE_STOPPED)
+        
+        volume = Volume.list(self.marvin.apiClient, virtualmachineid=instance.toolstackId, type="ROOT")[0].id
+
+        vm = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0]
+        ostypeid = vm.guestosid
+
+        tags = Tag.list(self.marvin.apiClient, resourceid = vm.id)
+        distro = [x.value for x in tags if x.key=="distro"][0]
+
+
+        t = Template.create(self.marvin.apiClient, {
+                            "name": templateName,
+                            "displaytext": templateName,
+                            "ispublic": True,
+                            "ostypeid": ostypeid
+                        }, volumeid = volume)
+        
+        Tag.create(self.marvin.apiClient, [t.id], "Template", {"distro": distro})
+        instance.setPowerState(origState)
+
+    def createInstanceFromTemplate(self, templateName, name=None, start=True):
+        if not name:
+            name = xenrt.util.randomGuestName()
+        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
+        
+        tags = Tag.list(self.marvin.apiClient, resourceid = template)
+        distro = [x.value for x in tags if x.key=="distro"][0]
+        
+        zone = Zone.list(self.marvin.apiClient)[0].id
+        # TODO support different service offerings
+        svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
+
+        xenrt.TEC().logverbose("Deploying VM")
+        rsp = VirtualMachine.create(self.marvin.apiClient, {
+                                        "serviceoffering": svcOffering,
+                                        "zoneid": zone,
+                                        "displayname": name,
+                                        "name": name,
+                                        "template": template},
+                                    startvm=False)
+        
+        # TODO: Sort out the other arguments here
+        instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
+        instance.toolstackId = rsp.id
+
+        Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
+        if start:
+            instance.start()
+
+        return instance

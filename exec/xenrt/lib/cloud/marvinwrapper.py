@@ -281,3 +281,9 @@ class MarvinApi(object):
         cmd = deleteIso.deleteIsoCmd()
         cmd.id = iso
         self.apiClient.deleteIso(cmd)
+
+    def deleteTemplate(self, templateName):
+        template = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
+        cmd = deleteTemplate.deleteTemplateCmd()
+        cmd.id = template
+        self.apiClient.deleteTemplate(cmd)

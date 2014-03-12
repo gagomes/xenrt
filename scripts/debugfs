@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [ -z $1 ]; then
+    echo "Usage: $0 <domid>" >&2
+    exit 1
+fi
+
+DOMID=$1
+
+mount -t debugfs debugfs /sys/kernel/debug
+
+while true
+do
+        date
+        ethtool -S vif$DOMID.0
+        cat /sys/kernel/debug/xen-netback/vif$DOMID.0/io_ring
+        echo; echo
+        sleep 1
+done

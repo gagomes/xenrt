@@ -169,7 +169,7 @@ class XLToolstack(object):
     def generateXLConfig(self, instance, hvm=False, kernel=None, initrd=None, args=None, iso=None):
         bootSpec = ""
         if hvm:
-            bootSpec = "builder =\"hvm\""
+            bootSpec = "builder = \"hvm\""
         else:
             bootSpec = "bootloader = \"pygrub\""
             if kernel:
@@ -194,7 +194,7 @@ class XLToolstack(object):
 
         hvmData = ""
         if hvm:
-            hvmData = "boot=dc\nvnc = 1"
+            hvmData = "boot = \"dc\"\nvnc = 1"
 
         return """name = "%s"
 uuid = "%s"
@@ -221,15 +221,9 @@ disk = [ %s ]
         if not hv:
             return xenrt.PowerState.down
 
-        guests = hv.listGuestsData()
-        if not instance.toolstackId in guests.keys():
+        guests = hv.listGuests()
+        if not instance.toolstackId in guests:
             del self.residentOn[instance.toolstackId]
-            return xenrt.PowerState.down
-
-        gd = guests[instance.toolstackId]
-        if gd[1] == "s":
-            # Domain has actually shut down, so destroy it
-            hv.destroy(gd[0])
             return xenrt.PowerState.down
 
         # TODO: handle paused / crashed etc

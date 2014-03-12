@@ -223,9 +223,10 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         """Creates an instance, returning the domid"""
         tmpfile = self._writeXLConfig(xlcfg)
         try:
-            self._xl("create", [tmpfile, "-e"])
+            self._xl("create", [tmpfile])
         finally:
-            self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
+            if not xenrt.TEC().lookup("OPTION_KEEP_XLCFGS", False, boolean=True):
+                self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
         # xl create doesn't return the domid, so we need to look this up
         data = self._list()
         for dom in data:

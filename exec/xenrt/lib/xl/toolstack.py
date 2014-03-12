@@ -6,12 +6,12 @@ class XLToolstack(object):
     def __init__(self):
         self.hosts = [] # A list of known hosts
         self.residentOn = {} # A dictionary mapping running instances to their resident host
-        self.instanceUUIDs = {} # A dictionary mapping running instances to their uuids
+        self.suspendedInstances = []
 
     def startInstance(self, instance, on):
         host = self.hosts[0] # TODO: use on to identify the right host
-        host.create(self.generateXLConfig(instance), self.instanceUUIDs[instance])
-        self.residentOn[instance] = host
+        host.create(self.generateXLConfig(instance), instance.toolstackId)
+        self.residentOn[instance.toolstackId] = host
 
     # TODO: in guest shutdown?
     def stopInstance(self, instance, force=False):
@@ -24,7 +24,50 @@ class XLToolstack(object):
         else:
             hv.shutdown(instance.name)
 
-        instance.poll(xenrt.STATE_DOWN)
+        instance.poll(xenrt.PowerState.down)
+
+    def rebootInstance(self, instance):
+        hv = self.getHypervisor(instance)
+        if not hv:
+            raise xenrt.XRTError("Instance is not running")
+
+        hv.reboot(instance.name)
+
+    def suspendInstance(self, instance):
+        if not self.getState(instance) == xenrt.PowerState.up:
+            raise xenrt.XRTError("Cannot suspend a non running VM")
+
+        # TODO: Parameterise where to store the suspend image
+        img = "/data/%s-suspend" % (instance.toolstackId)
+        hv = self.getHypervisor(instance)
+        hv.save(instance.name, img)
+        self.suspendedInstances.append(instance.toolstackId)
+        del self.residentOn[instance.toolstackId]
+                
+
+    def resumeInstance(self, instance, on):
+        if not self.getState(instance) == xenrt.PowerState.suspended:
+            raise xenrt.XRTError("Cannot resume a non suspended VM")
+
+        img = "/data/%s-suspend" % (instance.toolstackId)
+        host = self.hosts[0] # TODO: use on!
+        host.restore(img)
+        self.residentOn[instance.toolstackId] = host
+        self.suspendedInstances.remove(instance.toolstackId)
+
+    def migrateInstance(self, instance, to, live=True):
+        if not isinstance(to, xenrt.lib.oss.OSSHost):
+            raise xenrt.XRTError("xl can only migrate to OSSHost objects")
+
+        if not live:
+            raise xenrt.XRTError("xl only supports live migration")
+
+        if not self.getState(instance) == xenrt.PowerState.up:
+            raise xenrt.XRTError("Cannot migrate a non running VM")
+
+        src = self.getHypervisor(instance)
+        src.migrate(instance.name, to)
+        self.residentOn[instance.toolstackId] = to
 
     def createInstance(self,
                        distro,
@@ -37,7 +80,7 @@ class XLToolstack(object):
                        startOn=None,
                        installTools=True):
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
-        self.instanceUUIDs[instance] = str(uuid.uuid4())
+        instance.toolstackId = str(uuid.uuid4())
 
         if "PV" in instance.os.supportedInstallMethods:
             self._createInstancePV(instance, startOn)
@@ -55,7 +98,7 @@ class XLToolstack(object):
         webdir = xenrt.WebDirectory()
         bootArgs = instance.os.generateAnswerfile(webdir)
         host = self.hosts[0] # TODO: Use startOn
-        uuid = self.instanceUUIDs[instance]
+        uuid = instance.toolstackId
 
         # Copy the kernel and initrd to the host
         host.execSSH("mkdir -p /tmp/installers/%s" % (uuid))
@@ -69,13 +112,13 @@ class XLToolstack(object):
         # Build an XL configuration
         xlcfg = self.generateXLConfig(instance, "/tmp/installers/%s/kernel" % (uuid), "/tmp/installers/%s/initrd" % (uuid), bootArgs)
         domid = host.create(xlcfg, uuid)
-        self.residentOn[instance] = host
+        self.residentOn[instance.toolstackId] = host
         host.updateConfig(domid, self.generateXLConfig(instance)) # Reset the boot config to normal for the reboot
 
         instance.os.waitForInstallCompleteAndFirstBoot()
 
     def getIP(self, instance, timeout=600, level=xenrt.RC_ERROR):
-        if self.getState(instance) != xenrt.STATE_UP:
+        if self.getState(instance) != xenrt.PowerState.up:
             raise xenrt.XRTError("Instance not running")
 
         if instance.mainip is not None:
@@ -108,7 +151,7 @@ class XLToolstack(object):
             vifList.append("'mac=%s'" % v[2])
         vifs = string.join(vifList, ",")
         # TODO: Handle additional disks
-        disks = "'/data/%s-root,raw,xvda,rw'" % (self.instanceUUIDs[instance])
+        disks = "'/data/%s-root,raw,xvda,rw'" % (instance.toolstackId)
 
         return """name = "%s"
 uuid = "%s"
@@ -118,31 +161,34 @@ memory = %d
 vcpus = %d
 vif = [ %s ]
 disk = [ %s ]
-""" % (instance.name, self.instanceUUIDs[instance], bootSpec, string.join(args), instance.memory, instance.vcpus, vifs, disks)
+""" % (instance.name, instance.toolstackId, bootSpec, string.join(args), instance.memory, instance.vcpus, vifs, disks)
        
     def getHypervisor(self, instance):
         """Returns the Hypervisor object the given instance is running on, or None if the instance is shutdown"""
-        if not instance in self.residentOn.keys():
+        if not instance.toolstackId in self.residentOn.keys():
             return None
-        return self.residentOn[instance]
+        return self.residentOn[instance.toolstackId]
 
     def getState(self, instance):
+        if instance.toolstackId in self.suspendedInstances:
+            return xenrt.PowerState.suspended
+
         hv = self.getHypervisor(instance)
         if not hv:
-            return xenrt.STATE_DOWN
+            return xenrt.PowerState.down
 
         guests = hv.listGuestsData()
-        if not self.instanceUUIDs[instance] in guests.keys():
-            del self.residentOn[instance]
-            return xenrt.STATE_DOWN
+        if not instance.toolstackId in guests.keys():
+            del self.residentOn[instance.toolstackId]
+            return xenrt.PowerState.down
 
-        gd = guests[self.instanceUUIDs[instance]]
+        gd = guests[instance.toolstackId]
         if gd[1] == "s":
             # Domain has actually shut down, so destroy it
             hv.destroy(gd[0])
-            return xenrt.STATE_DOWN
+            return xenrt.PowerState.down
 
         # TODO: handle paused / crashed etc
-        return xenrt.STATE_UP
+        return xenrt.PowerState.up
 
 __all__ = ["XLToolstack"]

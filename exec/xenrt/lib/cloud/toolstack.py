@@ -123,14 +123,14 @@ class CloudStack(object):
     def getInstancePowerState(self, instance):
         state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state
         if state == "Stopped":
-            return instance.POWERSTATE_STOPPED
+            return xenrt.PowerState.down
         elif state == "Running":
-            return instance.POWERSTATE_RUNNING
+            return xenrt.PowerState.up
         raise xenrt.XRTError("Unrecognised power state")
 
     def createTemplateFromInstance(self, instance, templateName):
         origState = instance.getPowerState()
-        instance.setPowerState(instance.POWERSTATE_STOPPED)
+        instance.setPowerState(xenrt.PowerState.down)
         
         volume = Volume.list(self.marvin.apiClient, virtualmachineid=instance.toolstackId, type="ROOT")[0].id
 

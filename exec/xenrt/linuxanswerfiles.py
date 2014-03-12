@@ -2509,8 +2509,8 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
 
     def _grubDisk(self):
         if self.disk:
-            return "d-i     grub-installer/bootdev                  string %s" % (self.disk)
-        return ""
+            return "d-i     grub-installer/only_debian              boolean false\nd-i     grub-installer/bootdev                  string %s" % (self.disk)
+        return "d-i     grub-installer/only_debian              boolean true"
             
     def generateDebian(self):
         """Generates Debian Preseed file for Debian6,Debian7,Debian7(x64)"""
@@ -2553,8 +2553,6 @@ d-i     partman/confirm                         boolean true
 d-i     passwd/make-user                        boolean false
 d-i     passwd/root-password-crypted            password %s
 d-i     pkgsel/include                          string openssh-server psmisc ntpdate
-d-i     grub-installer/only_debian              boolean true
-d-i     grub-installer/with_other_os            boolean true
 %s
 d-i     finish-install/reboot_in_progress       note
 %s

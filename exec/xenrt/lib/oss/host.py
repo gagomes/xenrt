@@ -29,7 +29,7 @@ def createHost(id=0,
                diskCount=1,
                productVersion=None,
                productType=None,
-               withisos=False,
+               withisos=True,
                embedded=None,
                noisos=None,
                overlay=None,
@@ -52,6 +52,8 @@ def createHost(id=0,
     host.installLinuxVendor("debian70", arch="x86-64")
 
     host.installXen()
+    if withisos:
+        host.setupISOMounts()
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
@@ -112,6 +114,16 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
 
         # Check we have a working Xen installation
         self.check()
+
+    def setupISOMounts(self):
+        isoMounts = {'isos': self.lookup("EXPORT_ISO_NFS")}
+        staticIsos = self.lookup("EXPORT_ISO_NFS_STATIC", None)
+        if staticIsos:
+            isoMounts['isos-static'] = staticIsos
+        for i in isoMounts:
+            self.execSSH("mkdir -p /mnt/%s" % i)
+            self.execSSH("echo '%s /mnt/%s nfs ro 0 0' >> /etc/fstab" % (isoMounts[i], i))
+            self.execSSH("mount /mnt/%s" % i)
 
     def check(self):
         # TODO: Improve this to be more thorough than just checking an xl command responds!
@@ -211,9 +223,10 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         """Creates an instance, returning the domid"""
         tmpfile = self._writeXLConfig(xlcfg)
         try:
-            self._xl("create", [tmpfile, "-e"])
+            self._xl("create", [tmpfile])
         finally:
-            self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
+            if not xenrt.TEC().lookup("OPTION_KEEP_XLCFGS", False, boolean=True):
+                self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
         # xl create doesn't return the domid, so we need to look this up
         data = self._list()
         for dom in data:

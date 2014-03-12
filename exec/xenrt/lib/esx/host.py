@@ -257,6 +257,9 @@ reboot
         bootcfgtext += "prefix=%s" % pxe.makeBootPath("")   # ... and use our PXE path as a prefix instead
         bootcfgtext = re.sub(r"--- useropts\.gz", r"", bootcfgtext)        # this file seems to cause only trouble, and getting rid of it seems to have no side effects...
         bootcfgtext = re.sub(r"--- jumpstrt\.gz", r"", bootcfgtext)        # this file (in ESXi 5.5) is similar
+        bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)          # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
+        deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
+        bootcfgtext = bootcfgtext2
         bootcfgtext = re.sub(r"(kernelopt=.*)", r"\1 debugLogToSerial=1 logPort=com1 ks=%s" %
                              ("nfs://%s%s" % (nfsdir.getHostAndPath(ksname))), bootcfgtext)
         bootcfg.write(bootcfgtext)
@@ -284,9 +287,6 @@ reboot
         pfname = os.path.basename(pxefile)
         xenrt.TEC().copyToLogDir(pxefile,target="%s.pxe.txt" % (pfname))
 
-        # We're done with the ISO now
-        mount.unmount()
-
         # Reboot the host into the installer
         self.machine.powerctl.cycle()
         xenrt.TEC().progress("Rebooted host to start installation.")
@@ -304,6 +304,24 @@ reboot
 
         xenrt.sleep(30)
         self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
+
+        # If we skipped tools.t00 above due to tftp issues, install it now. It's just a .tar.gz file.
+        if deferToolsPackInstallation:
+            xenrt.TEC().progress("Manually installing tools.t00")
+
+            toolsFile = "%s/tools.t00" % (mountpoint)
+            destFilePath = "/vmfs/volumes/datastore1/tools.t00"
+            sftp = self.sftpClient()
+            try:
+                sftp.copyTo(toolsFile, destFilePath)
+            finally:
+                sftp.close()
+
+            self.execdom0("tar xvfz %s -C /locker/packages" % (destFilePath))
+            self.execdom0("rm -f %s" % (destFilePath))
+
+        # We're done with the ISO now
+        mount.unmount()
 
         nfsdir.remove()
 

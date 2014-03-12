@@ -75,6 +75,7 @@ class WindowsOS(OS):
         self.supportedInstallMethods = ["iso"]
         self.defaultRootdisk = 20 * xenrt.GIGA
         self.vifStem = "eth"
+        self.viridian = True
 
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")

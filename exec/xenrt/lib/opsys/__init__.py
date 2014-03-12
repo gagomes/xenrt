@@ -5,6 +5,7 @@ class OS(object):
     def __init__(self, parent):
         self.parent = parent
         self.password = None
+        self.viridian = False
 
     def findPassword(self):
         """Try some passwords to determine which to use"""

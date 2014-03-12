@@ -195,6 +195,8 @@ class XLToolstack(object):
         hvmData = ""
         if hvm:
             hvmData = "boot = \"dc\"\nvnc = 1"
+            if instance.os.viridian:
+                hvmData += "\nviridian = 1"
 
         return """name = "%s"
 uuid = "%s"

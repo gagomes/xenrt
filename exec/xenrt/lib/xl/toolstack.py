@@ -34,7 +34,8 @@ class XLToolstack(object):
                        vifs=None,
                        rootdisk=None,
                        extraConfig={},
-                       startOn=None):
+                       startOn=None,
+                       installTools=True):
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         self.instanceUUIDs[instance] = str(uuid.uuid4())
 

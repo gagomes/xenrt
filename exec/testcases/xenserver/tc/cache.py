@@ -1521,7 +1521,8 @@ class TC12006(_CachePerformance):
     CACHED = True
     READMAXGAIN = 0.7
     READMINGAIN = 0.01
-    WRITEMAXGAIN = 1.15 
+    #WRITEMAXGAIN = 1.15 # Due to increase in cache writeback, this increase is expected.
+    WRITEMAXGAIN = 1.3 # Refer CA-124004
     WRITEMINGAIN = 0.5 # Ensure writes are still being sent back to nfs.
 
 class TC12008(_Cache):

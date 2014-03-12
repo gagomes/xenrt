@@ -238,8 +238,8 @@ class MarvinApi(object):
     def addIsoIfNotPresent(self, distro, isoName, isoRepo):
         listIsosC = listIsos.listIsosCmd()
         listIsosC.isofilter = "all"
-        isos = [x.name for x in self.apiClient.listIsos(listIsosC)]
-        if isoName not in isos:
+        isos = Iso.list(self.apiClient, isofilter="all", name=isoName)
+        if not isos:
             xenrt.TEC().logverbose("ISO is not present, registering")
             if isoRepo == "windows":
                 url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
@@ -251,25 +251,23 @@ class MarvinApi(object):
             # TODO: Cope with more zones
             # Should also be able to do "All Zones", but marvin requires a zone to be specified
 
-            zoneid = self.apiClient.listZones(listZones.listZonesCmd())[0].id
+            zone = Zone.list(self.apiClient)[0].id
 
-            registerIsoC = registerIso.registerIsoCmd()
-            registerIsoC.url = url
-            registerIsoC.name = isoName
-            registerIsoC.displaytext = isoName
-            registerIsoC.ispublic = True
-            registerIsoC.zoneid = zoneid
             osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
-            osid = [x.id for x in self.apiClient.listOsTypes(listOsTypes.listOsTypesCmd()) if x.description == osname][0]
-            registerIsoC.ostypeid = osid
-            self.apiClient.registerIso(registerIsoC)
+            Iso.create(self.apiClient, {
+                        "zoneid": zone,
+                        "ostype": osname,
+                        "name": isoName,
+                        "displaytext": isoName,
+                        "ispublic": True,
+                        "url": url})
 
         # Now wait until the ISO is ready
         deadline = xenrt.timenow() + 3600
         xenrt.TEC().logverbose("Waiting for ISO to be ready")
         while xenrt.timenow() <= deadline:
             try:
-                iso = [x for x in self.apiClient.listIsos(listIsosC) if x.name == isoName][0]
+                iso = Iso.list(self.apiClient, isofilter="all", name=isoName)[0]
                 if iso.isready:
                     break
                 else:
@@ -277,4 +275,9 @@ class MarvinApi(object):
             except:
                 pass
             xenrt.sleep(15)
-   
+
+    def deleteIso(self, isoName):
+        iso = Iso.list(self.apiClient, isofilter="all", name=isoName)[0].id
+        cmd = deleteIso.deleteIsoCmd()
+        cmd.id = iso
+        self.apiClient.deleteIso(cmd)

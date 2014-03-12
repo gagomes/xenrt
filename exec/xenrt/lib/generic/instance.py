@@ -2,6 +2,10 @@ import xenrt
 
 class Instance(object):
 
+    POWERSTATE_RUNNING = "running"
+    POWERSTATE_STOPPED = "stopped"
+    POWERSTATE_SUSPENDED = "suspended"
+
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack
         self.toolstackId = None
@@ -53,5 +57,32 @@ class Instance(object):
 
     def migrate(self, to, live=True):
         self.toolstack.migrateInstance(self, to, live)
+
+    def setPowerState(self, powerState):
+        transitions = {}
+        transitions[self.POWERSTATE_RUNNING] = {}
+        transitions[self.POWERSTATE_RUNNING][self.POWERSTATE_STOPPED] = [self.stop]
+        transitions[self.POWERSTATE_RUNNING][self.POWERSTATE_SUSPENDED] = [self.suspend]
+
+        transitions[self.POWERSTATE_STOPPED] = {}
+        transitions[self.POWERSTATE_STOPPED][self.POWERSTATE_RUNNING] = [self.start]
+        transitions[self.POWERSTATE_STOPPED][self.POWERSTATE_SUSPENDED] = [self.start, self.suspend]
+
+        transitions[self.POWERSTATE_SUSPENDED] = {}
+        transitions[self.POWERSTATE_SUSPENDED][self.POWERSTATE_RUNNING] = [self.resume]
+        transitions[self.POWERSTATE_SUSPENDED][self.POWERSTATE_STOPPED] = [self.resume, self.stop]
+        
+        curState = self.getPowerState()
+
+        try:
+            ts = transitions[curState][powerState]
+        except:
+            xenrt.TEC().logverbose("No transition needed for %s to %s" % (curState, powerState))
+        else:
+            for t in ts:
+                t()
+
+    def getPowerState(self):
+        return self.toolstack.getInstancePowerState(self)
 
 __all__ = ["Instance"]

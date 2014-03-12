@@ -12,7 +12,7 @@
 import sys, string, time, socket, re, os.path, os, shutil, random, sets, math
 import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
-import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources, xenrt.clouddeploy
+import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
@@ -2210,7 +2210,7 @@ Add-WindowsFeature as-net-framework"""
         self.reboot()
 
     def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.clouddeploy.ManagementServer(self)
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudPlatformManagementServer()
 
     def installTestComplete(self):
@@ -5208,6 +5208,10 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
+        disk = self.lookup("OPTION_CARBON_DISKS", None)
+        if disk:
+            disk = "/dev/%s" % disk
+
         # Generate a config file
         ps=DebianPreseedFile(distro,
                              repository,
@@ -5221,7 +5225,8 @@ exit 0
                              arch=arch,
                              installXenToolsInPostInstall=False,
                              postscript=piurl,
-                             poweroff=False)
+                             poweroff=False,
+                             disk=disk)
         ps.generate()
 
         webdir.copyIn(filename)

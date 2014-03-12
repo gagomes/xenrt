@@ -2,6 +2,8 @@ import xenrt
 import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2
 from xenrt.lib.opsys import OS, RegisterOS
 
+__all__ = ["WindowsOS"]
+
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
     

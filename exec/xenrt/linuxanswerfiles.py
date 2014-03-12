@@ -2417,7 +2417,8 @@ class DebianPreseedFile():
                  timezone=None,
                  installXenToolsInPostInstall=False,
                  postscript=None,
-                 poweroff=True):
+                 poweroff=True,
+                 disk=None):
         self.filename=filename
         self.distro = distro
         self.repository = repository
@@ -2431,6 +2432,7 @@ class DebianPreseedFile():
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.postscript = postscript
         self.poweroff = poweroff
+        self.disk = None
         
     def generate(self):
         if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
@@ -2499,6 +2501,11 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
             Mirror = "d-i mirror/file/directory string /cdrom"
         
         return Mirror
+
+    def _disk(self):
+        if self.disk:
+            return "d-i     partman-auto/disk                       string %s" % (self.disk)
+        return ""
             
     def generateDebian(self):
         """Generates Debian Preseed file for Debian6,Debian7,Debian7(x64)"""
@@ -2529,6 +2536,8 @@ d-i     mirror/http/proxy                       string
 d-i     mirror/udeb/suite                       string %s
 d-i     mirror/suite                            string %s
 d-i     time/zone string                        string %s
+
+%s
 d-i     partman-auto/method                     string regular
 d-i     partman-auto/choose_recipe              select atomic
 d-i     partman-lvm/device_remove_lvm           boolean true
@@ -2551,6 +2560,7 @@ popularity-contest                              popularity-contest/participate b
        self._distroName(),
        self._distroName(),
        self._timezone(),
+       self._disk(),
        self._password(),
        po,
        st,
@@ -2642,6 +2652,7 @@ popularity-contest    popularity-contest/participate    boolean    false
 tasksel    tasksel/first            multiselect standard
 d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc
 d-i    grub-installer/only_debian    boolean true
+d-i    grub-installer/with_other_os  boolean true
 d-i    finish-install/reboot_in_progress    note
 d-i    debian-installer/exit/poweroff    boolean true
 %s

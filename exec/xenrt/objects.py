@@ -5208,6 +5208,10 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
+        disk = self.lookup("OPTION_CARBON_DISKS", None)
+        if disk:
+            disk = "/dev/%s" % disk
+
         # Generate a config file
         ps=DebianPreseedFile(distro,
                              repository,
@@ -5221,7 +5225,8 @@ exit 0
                              arch=arch,
                              installXenToolsInPostInstall=False,
                              postscript=piurl,
-                             poweroff=False)
+                             poweroff=False,
+                             disk=disk)
         ps.generate()
 
         webdir.copyIn(filename)

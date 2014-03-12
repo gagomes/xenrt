@@ -44,7 +44,13 @@ class _XSStorageCertKit(xenrt.TestCase):
             xenrt.TEC().logverbose("XenServer Storage Cert Kit is already installed in the host.")
             return
 
-        storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO)
+        updatedXenCertLoc = xenrt.TEC().lookup("XENCERT_LOCATION", None)
+        
+        if updatedXenCertLoc != None and len(updatedXenCertLoc) > 0:
+            storageCertKitISO = xenrt.TEC().getFile(updatedXenCertLoc)
+        else:
+            storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO)
+        
         try:
             xenrt.checkFileExists(storageCertKitISO)
         except:

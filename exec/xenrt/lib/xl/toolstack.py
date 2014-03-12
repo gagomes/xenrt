@@ -84,11 +84,21 @@ class XLToolstack(object):
 
         if "PV" in instance.os.supportedInstallMethods:
             self._createInstancePV(instance, startOn)
+        elif "iso" in instance.os.supportedInstallMethods:
+            self._createInstanceISO(instance, startOn)
         else:
             raise xenrt.XRTError("Specified instance does not have a supported install method")
 
         # TODO: tools?
         return instance
+
+    def _createDisk(self,
+                    instance,
+                    name,
+                    size,
+                    host):
+        # TODO: handle different storage locations
+        host.execSSH("dd if=/dev/zero of=/data/%s-%s bs=1M seek=%d count=0" % (instance.toolstackId, name, size / xenrt.MEGA))
 
     def _createInstancePV(self,
                           instance,
@@ -106,14 +116,37 @@ class XLToolstack(object):
         host.execSSH("wget -O /tmp/installers/%s/initrd %s" % (uuid, initrd))
 
         # Create rootdisk
-        # TODO: handle different storage locations
-        host.execSSH("dd if=/dev/zero of=/data/%s-root bs=1M seek=%d count=0" % (uuid, instance.rootdisk / xenrt.MEGA))
+        self._createDisk(instance, "root", instance.rootdisk, host)
 
         # Build an XL configuration
-        xlcfg = self.generateXLConfig(instance, "/tmp/installers/%s/kernel" % (uuid), "/tmp/installers/%s/initrd" % (uuid), bootArgs)
+        xlcfg = self.generateXLConfig(instance, kernel="/tmp/installers/%s/kernel" % (uuid), initrd="/tmp/installers/%s/initrd" % (uuid), args=bootArgs)
         domid = host.create(xlcfg, uuid)
         self.residentOn[instance.toolstackId] = host
         host.updateConfig(domid, self.generateXLConfig(instance)) # Reset the boot config to normal for the reboot
+
+        instance.os.waitForInstallCompleteAndFirstBoot()
+
+    def _createInstanceISO(self,
+                           instance,
+                           startOn):
+        """Perform an HVM ISO installation"""
+
+        # We assume all ISOs used for HVM installation are in the primary ISO repository
+        iso = "/mnt/isos/%s" % instance.os.isoName
+        host = self.hosts[0] # TODO: Use startOn
+        uuid = instance.toolstackId
+
+        # Check the ISO exists
+        if host.execSSH("ls %s" % (iso), retval="code") != 0:
+            raise xenrt.XRTError("Cannot find %s to create instance" % (instance.os.isoName))
+
+        # Create rootdisk
+        self._createDisk(instance, "root", instance.rootdisk, host)
+
+        # Build an XL configuration
+        xlcfg = self.generateXLConfig(instance, hvm=True, iso=iso)
+        domid = host.create(xlcfg, uuid)
+        self.residentOn[instance.toolstackId] = host
 
         instance.os.waitForInstallCompleteAndFirstBoot()
 
@@ -133,17 +166,21 @@ class XLToolstack(object):
         instance.mainip = ip
         return ip
 
-    def generateXLConfig(self, instance, kernel=None, initrd=None, args=None):
-        # TODO: HVM!
-
-        bootSpec = "bootloader = \"pygrub\""
-        if kernel:
-            bootSpec = "kernel = \"%s\"" % (kernel)
-            if initrd:
-                bootSpec += "\nramdisk = \"%s\"" % (initrd)
+    def generateXLConfig(self, instance, hvm=False, kernel=None, initrd=None, args=None, iso=None):
+        bootSpec = ""
+        if hvm:
+            bootSpec = "builder =\"hvm\""
+        else:
+            bootSpec = "bootloader = \"pygrub\""
+            if kernel:
+                bootSpec = "kernel = \"%s\"" % (kernel)
+                if initrd:
+                    bootSpec += "\nramdisk = \"%s\"" % (initrd)
+            if args is None:
+                args = instance.os.pvBootArgs
 
         if args is None:
-            args = instance.os.pvBootArgs
+            args = []
 
         vifList = []
         # TODO: Sort the vif list to ensure we create these in the right order if > 1!
@@ -152,6 +189,12 @@ class XLToolstack(object):
         vifs = string.join(vifList, ",")
         # TODO: Handle additional disks
         disks = "'/data/%s-root,raw,xvda,rw'" % (instance.toolstackId)
+        if iso:
+            disks += ",'%s,,hdd,cdrom'" % (iso)
+
+        hvmData = ""
+        if hvm:
+            hvmData = "boot=dc\nvnc = 1"
 
         return """name = "%s"
 uuid = "%s"
@@ -161,7 +204,8 @@ memory = %d
 vcpus = %d
 vif = [ %s ]
 disk = [ %s ]
-""" % (instance.name, instance.toolstackId, bootSpec, string.join(args), instance.memory, instance.vcpus, vifs, disks)
+%s
+""" % (instance.name, instance.toolstackId, bootSpec, string.join(args), instance.memory, instance.vcpus, vifs, disks, hvmData)
        
     def getHypervisor(self, instance):
         """Returns the Hypervisor object the given instance is running on, or None if the instance is shutdown"""

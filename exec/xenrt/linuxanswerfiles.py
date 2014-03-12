@@ -2549,6 +2549,7 @@ d-i     passwd/make-user                        boolean false
 d-i     passwd/root-password-crypted            password %s
 d-i     pkgsel/include                          string openssh-server psmisc ntpdate
 d-i     grub-installer/only_debian              boolean true
+d-i     grub-installer/with_other_os            boolean true
 d-i     finish-install/reboot_in_progress       note
 %s
 d-i     apt-setup/services-select               multiselect none
@@ -2652,7 +2653,6 @@ popularity-contest    popularity-contest/participate    boolean    false
 tasksel    tasksel/first            multiselect standard
 d-i pkgsel/include string openssh-server psmisc patch build-essential flex bc
 d-i    grub-installer/only_debian    boolean true
-d-i    grub-installer/with_other_os  boolean true
 d-i    finish-install/reboot_in_progress    note
 d-i    debian-installer/exit/poweroff    boolean true
 %s

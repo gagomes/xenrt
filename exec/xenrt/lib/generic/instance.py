@@ -2,10 +2,6 @@ import xenrt
 
 class Instance(object):
 
-    POWERSTATE_RUNNING = "running"
-    POWERSTATE_STOPPED = "stopped"
-    POWERSTATE_SUSPENDED = "suspended"
-
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack
         self.toolstackId = None
@@ -60,17 +56,17 @@ class Instance(object):
 
     def setPowerState(self, powerState):
         transitions = {}
-        transitions[self.POWERSTATE_RUNNING] = {}
-        transitions[self.POWERSTATE_RUNNING][self.POWERSTATE_STOPPED] = [self.stop]
-        transitions[self.POWERSTATE_RUNNING][self.POWERSTATE_SUSPENDED] = [self.suspend]
+        transitions[xenrt.PowerState.up] = {}
+        transitions[xenrt.PowerState.up][xenrt.PowerState.down] = [self.stop]
+        transitions[xenrt.PowerState.up][xenrt.PowerState.suspended] = [self.suspend]
 
-        transitions[self.POWERSTATE_STOPPED] = {}
-        transitions[self.POWERSTATE_STOPPED][self.POWERSTATE_RUNNING] = [self.start]
-        transitions[self.POWERSTATE_STOPPED][self.POWERSTATE_SUSPENDED] = [self.start, self.suspend]
+        transitions[xenrt.PowerState.down] = {}
+        transitions[xenrt.PowerState.down][xenrt.PowerState.up] = [self.start]
+        transitions[xenrt.PowerState.down][xenrt.PowerState.suspended] = [self.start, self.suspend]
 
-        transitions[self.POWERSTATE_SUSPENDED] = {}
-        transitions[self.POWERSTATE_SUSPENDED][self.POWERSTATE_RUNNING] = [self.resume]
-        transitions[self.POWERSTATE_SUSPENDED][self.POWERSTATE_STOPPED] = [self.resume, self.stop]
+        transitions[xenrt.PowerState.suspended] = {}
+        transitions[xenrt.PowerState.suspended][xenrt.PowerState.up] = [self.resume]
+        transitions[xenrt.PowerState.suspended][xenrt.PowerState.down] = [self.resume, self.stop]
         
         curState = self.getPowerState()
 

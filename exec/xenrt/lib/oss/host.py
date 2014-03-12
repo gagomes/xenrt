@@ -241,12 +241,23 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         """Restores the given save file"""
         self._xl("restore", [saveFile])
 
+    def authoriseSSHKey(self, publicKey):
+        """Authorises the given public Key for SSH access"""
+        # Check if it's already present
+        if self.execSSH("grep '%s' /root/.ssh/authorized_keys" % publicKey, retval="code") != 0:
+            self.execSSH("echo '%s' >> /root/.ssh/authorized_keys" % publicKey)
+
     def migrate(self, domid, to):
         """Migrates the given domid to the specified host"""
         if not isinstance(to, OSSHost):
             raise xenrt.XRTError("Cannot migrate to this type of host")
 
-        # TODO: Set up SSH keys if not already present
+        # Set up SSH keys needed for the migration
+        if self.execSSH("ls -l /root/.ssh/id_rsa.pub", retval="code") != 0:
+            self.execSSH("ssh-keygen -f /root/.ssh/id_rsa -P ''")
+        publicKey = self.execSSH("cat /root/.ssh/id_rsa.pub").strip()
+        to.authoriseSSHKey(publicKey)
+
         self._xl("migrate", [domid, to.getIP()])
 
     def execSSH(self, *args, **kwargs):

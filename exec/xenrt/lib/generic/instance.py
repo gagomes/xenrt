@@ -48,8 +48,8 @@ class Instance(object):
     def suspend(self):
         self.toolstack.suspendInstance(self)
 
-    def resume(self):
-        self.toolstack.resumeInstance(self)
+    def resume(self, on=None):
+        self.toolstack.resumeInstance(self, on)
 
     def migrate(self, to, live=True):
         self.toolstack.migrateInstance(self, to, live)

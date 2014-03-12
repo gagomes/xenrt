@@ -138,6 +138,7 @@ def usage(fd):
 
     Maintenance operations:
 
+    --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
@@ -193,6 +194,7 @@ traceon = False
 redir = False
 existing = False
 aux = False
+sanitycheck = False
 makeconfigs = False
 switchconfig = False
 doshell = False
@@ -296,6 +298,7 @@ try:
                                       'pause-on-fail=',
                                       'pause-on-pass=',
                                       'email=',
+                                      'sanity-check',
                                       'make-configs',
                                       'switch-config',
                                       'shell',
@@ -547,6 +550,9 @@ try:
             setvars.append((["CLIOPTIONS", "PAUSE_ON_PASS", value], True))
         elif flag == "--email":
             setvars.append(("EMAIL", value))
+        elif flag == "--sanity-check":
+            sanitycheck = True
+            aux = True
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
@@ -1097,6 +1103,11 @@ atexit.register(exitcb)
 if confdump:
     config.writeOut(sys.stdout)
 
+if sanitycheck:
+    # If we get this far then our standard imports etc have all
+    # succeeded, so report this back to the user
+    sys.stderr.write("Sanity check passed sucessfully\n")
+    sys.exit(0)
 
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)

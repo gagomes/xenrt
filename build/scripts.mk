@@ -260,3 +260,9 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	python $@.tmp > $@
 	rm $@.tmp
 	chmod --reference $@.gen $@
+
+.PHONY: check
+check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+

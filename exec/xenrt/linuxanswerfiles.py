@@ -2508,7 +2508,7 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
         return ""
 
     def _grubDisk(self):
-        if self.disk
+        if self.disk:
             return "d-i     grub-installer/bootdev                  string %s" % (self.disk)
         return ""
             

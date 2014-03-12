@@ -194,7 +194,7 @@ class XLToolstack(object):
 
         hvmData = ""
         if hvm:
-            hvmData = "boot = \"dc\"\nvnc = 1"
+            hvmData = "boot = \"dc\"\nvnc = 1\nusb = 1\nusbdevice = ['tablet']"
             if instance.os.viridian:
                 hvmData += "\nviridian = 1"
 

@@ -111,7 +111,7 @@ class XLToolstack(object):
         # Build an XL configuration
         xlcfg = self.generateXLConfig(instance, "/tmp/installers/%s/kernel" % (uuid), "/tmp/installers/%s/initrd" % (uuid), bootArgs)
         domid = host.create(xlcfg, uuid)
-        self.residentOn[instance] = host
+        self.residentOn[instance.toolstackId] = host
         host.updateConfig(domid, self.generateXLConfig(instance)) # Reset the boot config to normal for the reboot
 
         instance.os.waitForInstallCompleteAndFirstBoot()

@@ -11872,6 +11872,17 @@ done
                 self.execdom0("ethtool -K %s gro on" % eth)
                 self.genParamSet("pif", pif, "other-config:ethtool-gro", "on")
 
+    def startVifDebug(self, domid):
+        self.execdom0("killall -9 debugfs")
+        self.execdom0("%s/debugfs %d </dev/null > /tmp/vifdebug.%d.log 2>&1 &" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), int(domid), int(domid)))
+        
+
+    def stopVifDebug(self, domid):
+        self.execdom0("killall -9 debugfs")
+        xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
+
+        
+
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):
@@ -11946,7 +11957,6 @@ class SarasotaHost(ClearwaterHost):
         else:
             ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
         return ifs
-
 
 
 #############################################################################

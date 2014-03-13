@@ -5833,7 +5833,7 @@ done """ % (baseport, numOfServers)
         linHost.execcmd("chmod +x /tmp/startiperf.sh")
 
 
-    def prepare(self, arglist):
+    def prepare(self, arglist=None):
         self.ipsToTest=[]
         self.basePort=5000
         JumboFrames.prepare(self)

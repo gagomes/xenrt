@@ -44,7 +44,7 @@ class XenRTDetailFrame(XenRTPage):
         cur = self.getDB().cursor()
         out = """<div id="contents-results">"""
 
-        cur.execute(("SELECT phase, test, result, jobid FROM qryResults " +
+        cur.execute(("SELECT phase, test, result, jobid FROM tblresults " +
                      "WHERE detailid = %u") % (detailid))                
         rc = cur.fetchone()    
         if rc:

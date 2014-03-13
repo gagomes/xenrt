@@ -377,6 +377,28 @@ class TCVGPUSetup(_VGPUTest):
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
         self.guest.installNvidiaVGPUDriver()
+
+        if "PassThrough" in self.args['vgpuconfig']:
+            autoit = self.guest.installAutoIt()
+            au3path = "c:\\change_display.au3"
+            au3scr = """
+Send("!c")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("{LEFT}")
+Send("{ENTER}")
+"""
+            self.guest.xmlrpcWriteFile(au3path, au3scr)
+            self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
+            self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path)) 
         self.assertvGPURunningInVM(self.guest, self.args['vgpuconfig'])
 
 class TCVGPUCloneVM(_VGPUTest):

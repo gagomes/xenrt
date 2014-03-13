@@ -35,7 +35,7 @@ class CloudStack(object):
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
-        if not "iso" in instance.os.supportedInstallMethods:
+        if not "iso" in instance.os.supportedInstallMethods and not "isowithanswerfile" in instance.os.supportedInstallMethods:
             raise xenrt.XRTError("ISO Install not supported")
 
         self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
@@ -67,8 +67,15 @@ class CloudStack(object):
 
         self.startInstance(instance)
 
+        if "isowithanswerfile" in instance.os.supportedInstallMethods:
+            xenrt.TEC().logverbose("Generating answer file")
+            instance.os.generateIsoAnswerfile()
+
         xenrt.TEC().logverbose("Waiting for install complete")
         instance.os.waitForInstallCompleteAndFirstBoot()
+        
+        if "isowithanswerfile" in instance.os.supportedInstallMethods:
+            instance.os.cleanupIsoAnswerfile()
 
         if installTools:
             self.installPVTools(instance)
@@ -122,9 +129,9 @@ class CloudStack(object):
 
     def getInstancePowerState(self, instance):
         state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state
-        if state == "Stopped":
+        if state in ("Stopped", "Starting"):
             return xenrt.PowerState.down
-        elif state == "Running":
+        elif state == ("Running", "Stopping"):
             return xenrt.PowerState.up
         raise xenrt.XRTError("Unrecognised power state")
 
@@ -181,3 +188,8 @@ class CloudStack(object):
             instance.start()
 
         return instance
+
+    def ejectIso(self, instance):
+        cmd = detachIso.detachIsoCmd()
+        cmd.virtualmachineid = instance.toolstackId
+        self.marvin.apiClient.detachIso(cmd)

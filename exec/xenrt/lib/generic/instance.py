@@ -21,7 +21,7 @@ class Instance(object):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout
         while 1:
-            status = self.toolstack.getState(self)
+            status = self.getPowerState()
             if state == status:
                 return
             if xenrt.timenow() > deadline:
@@ -80,5 +80,8 @@ class Instance(object):
 
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
+
+    def ejectIso(self):
+        return self.toolstack.ejectIso(self)
 
 __all__ = ["Instance"]

@@ -1,4 +1,4 @@
-import xenrt, os.path
+import xenrt, os.path, os, shutil
 from xenrt.lib.opsys import LinuxOS, RegisterOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 
@@ -16,11 +16,29 @@ class DebianBasedLinux(LinuxOS):
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)
 
-        self.distro = distro
+        if distro.endswith("x86-32") or distro.endswith("x86-64"):
+            self.distro = distro[:-7]
+            self.arch = distro[-6:]
+        else:
+            self.distro = distro
+            self.arch = "x86-64"
+
         self.pvBootArgs = ["console=hvc0"]
+        self.cleanupdir = None
 
         # TODO: Validate distro
         # TODO: Look up / work out URLs, don't just hard code!
+
+    @property
+    def isoName(self):
+        if self.distro == "debian60":
+            return "deb6_%s.iso" % self.arch
+        elif self.distro == "debian70":
+            return "deb7_%s.iso" % self.arch
+
+    @property
+    def isoRepo(self):
+        return "linux"
 
     @property
     def installURL(self):
@@ -48,9 +66,31 @@ class DebianBasedLinux(LinuxOS):
         # TODO: handle native where console is different, and handle other interfaces
         return ["vga=normal", "auto=true priority=critical", "console=hvc0", "interface=eth0", "url=%s" % url]
 
+    def generateIsoAnswerfile(self):
+        preseedfile = "preseed-%s.cfg" % (self.parent.name)
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
+        ps = DebianPreseedFile(self.distro,
+                               xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"]),
+                               filename,
+                               arch=self.arch)
+        ps.generate()
+        installIP = self.parent.getIP(600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        self.cleanupdir = path
+        try:
+            os.makedirs(path)
+        except:
+            pass
+        shutil.copyfile(filename, "%s/preseed" % (path))
+
+    def cleanupIsoAnswerfile(self):
+        if self.cleanupdir:
+            shutil.rmtree(self.cleanupdir)
+        self.cleanupdir = None
+
     @property
     def supportedInstallMethods(self):
-        return ["PV"]
+        return ["PV", "isowithanswerfile"]
 
     @property
     def defaultRootdisk(self):
@@ -60,6 +100,9 @@ class DebianBasedLinux(LinuxOS):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
+        if self.cleanupdir:
+            self.cleanupIsoAnswerfile()
+            self.parent.ejectIso()
         self.parent.start()
 
     def waitForBoot(self, timeout):

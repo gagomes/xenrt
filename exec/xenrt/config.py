@@ -49,6 +49,7 @@ class Config:
         self.config["XENRT_BASE"] = "/usr/share/xenrt"
         self.config["XENRT_CONF"] = "/etc/xenrt"
         self.config["HTTP_BASE_PATH"] = "/local/scratch/www"
+        self.config["GUESTFILE_BASE_PATH"] = "/local/scratch/guestfiles"
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
         self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache"
@@ -1456,6 +1457,7 @@ class Config:
         self.config["CCP_CONFIG"]["OS_NAMES"] = {}
         self.config["CCP_CONFIG"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["debian70_x86-64"] = "Debian GNU/Linux 7(64-bit)"
 
         self.config["GUEST_VIFS_centos41"] = "3"
         self.config["GUEST_VIFS_centos42"] = "3"

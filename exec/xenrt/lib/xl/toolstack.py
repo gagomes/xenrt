@@ -34,7 +34,7 @@ class XLToolstack(object):
         hv.reboot(instance.name)
 
     def suspendInstance(self, instance):
-        if not self.getState(instance) == xenrt.PowerState.up:
+        if not self.getInstancePowerState(instance) == xenrt.PowerState.up:
             raise xenrt.XRTError("Cannot suspend a non running VM")
 
         # TODO: Parameterise where to store the suspend image
@@ -46,7 +46,7 @@ class XLToolstack(object):
                 
 
     def resumeInstance(self, instance, on):
-        if not self.getState(instance) == xenrt.PowerState.suspended:
+        if not self.getInstancePowerState(instance) == xenrt.PowerState.suspended:
             raise xenrt.XRTError("Cannot resume a non suspended VM")
 
         img = "/data/%s-suspend" % (instance.toolstackId)
@@ -62,7 +62,7 @@ class XLToolstack(object):
         if not live:
             raise xenrt.XRTError("xl only supports live migration")
 
-        if not self.getState(instance) == xenrt.PowerState.up:
+        if not self.getInstancePowerState(instance) == xenrt.PowerState.up:
             raise xenrt.XRTError("Cannot migrate a non running VM")
 
         src = self.getHypervisor(instance)
@@ -151,7 +151,7 @@ class XLToolstack(object):
         instance.os.waitForInstallCompleteAndFirstBoot()
 
     def getIP(self, instance, timeout=600, level=xenrt.RC_ERROR):
-        if self.getState(instance) != xenrt.PowerState.up:
+        if self.getInstancePowerState(instance) != xenrt.PowerState.up:
             raise xenrt.XRTError("Instance not running")
 
         if instance.mainip is not None:
@@ -215,7 +215,7 @@ disk = [ %s ]
             return None
         return self.residentOn[instance.toolstackId]
 
-    def getState(self, instance):
+    def getInstancePowerState(self, instance):
         if instance.toolstackId in self.suspendedInstances:
             return xenrt.PowerState.suspended
 

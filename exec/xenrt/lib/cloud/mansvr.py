@@ -57,7 +57,7 @@ class ManagementServer(object):
                 reboots += 1
                 xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots, maxReboots))
                 self.place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-                self.restart(checkHealth=False)
+                self.restart(checkHealth=False, startStop=True)
 
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:

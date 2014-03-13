@@ -241,10 +241,21 @@ class Fragment(threading.Thread):
             for c in toplevel.collections[collection].childNodes:
                 if c.nodeType == c.ELEMENT_NODE:
                     self.handleSubNode(toplevel, c, newparams)
-        elif node.localName == "testcase":
-            tcid = expand(node.getAttribute("id"), params)
-            name = expand(node.getAttribute("name"), params)
-            group = expand(node.getAttribute("group"), params)
+        elif node.localName == "testcase" or node.localName == "marvintests":
+            if node.localName == "testcase":
+                tcid = expand(node.getAttribute("id"), params)
+                name = expand(node.getAttribute("name"), params)
+                group = expand(node.getAttribute("group"), params)
+                marvinTestConfig = None
+            else:
+                tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
+                name = expand(node.getAttribute("class"), params)
+                group = 'Marvin'
+                marvinTestConfig = {}
+                marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
+                marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
+                marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
+
             host = expand(node.getAttribute("host"), params)
             guest = expand(node.getAttribute("guest"), params)
             prios = expand(node.getAttribute("prio"), params)
@@ -288,7 +299,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             except Exception as e:
                 exception_type,exception_value,exception_traceback = sys.exc_info()
                 xenrt.TEC().logverbose("Failed to import file %s with exception values %s,%s,%s"%(tcid,exception_type,exception_value,exception_traceback))
@@ -309,7 +321,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             self.addStep(newtc)        
 
     def handleXMLNode(self, toplevel, node, params=None):
@@ -410,7 +423,8 @@ class SingleTestCase(Fragment):
                  depend=None,
                  blocker=None,
                  jiratc=None,
-                 tcsku=None):
+                 tcsku=None,
+                 marvinTestConfig=None):
         xenrt.TEC().logverbose("Creating testcase object for %s" % (tc))
         Fragment.__init__(self, parent, None)
         package = string.join(string.split(tc, ".")[:-1], ".")
@@ -442,6 +456,7 @@ class SingleTestCase(Fragment):
         self.blocker = blocker
         self.jiratc = jiratc
         self.tcsku = tcsku
+        self.marvinTestConfig = marvinTestConfig
 
     def runThis(self):
         try:
@@ -460,7 +475,8 @@ class SingleTestCase(Fragment):
                               isfinally=self.isfinally,
                               blocker=self.blocker,
                               jiratc=self.jiratc,
-                              tcsku = self.tcsku)
+                              tcsku = self.tcsku,
+                              marvinTestConfig = self.marvinTestConfig)
             if t and t.ticket:
                 self.ticket = t.ticket
                 self.ticketIsFailure = t.ticketIsFailure

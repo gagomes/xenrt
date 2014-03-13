@@ -287,3 +287,197 @@ class MarvinApi(object):
         cmd = deleteTemplate.deleteTemplateCmd()
         cmd.id = template
         self.apiClient.deleteTemplate(cmd)
+  
+
+
+from lxml import etree
+import glob, shutil, os, re, json
+
+class TCMarvinTestRunner(xenrt.TestCase):
+    MARVIN_TEST_CODE_PATH = '/local/scratch/cloud'
+
+    def generateMarvinTestConfig(self):
+        self.marvinCfg = {}
+        self.marvinCfg['dbSvr'] = {}
+        self.marvinCfg['dbSvr']['dbSvr'] = self.marvinApi.mgtSvrDetails.mgtSvrIp
+        self.marvinCfg['dbSvr']['passwd'] = 'cloud'
+        self.marvinCfg['dbSvr']['db'] = 'cloud'
+        self.marvinCfg['dbSvr']['port'] = 3306
+        self.marvinCfg['dbSvr']['user'] = 'cloud'
+
+        self.marvinCfg['mgtSvr'] = []
+        self.marvinCfg['mgtSvr'].append({'mgtSvrIp': self.marvinApi.mgtSvrDetails.mgtSvrIp,
+                                         'port'    : self.marvinApi.mgtSvrDetails.port})
+
+        self.marvinCfg['zones'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Zone.list(self.marvinApi.apiClient))
+        for zone in self.marvinCfg['zones']:
+            zone['pods'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Pod.list(self.marvinApi.apiClient, zoneid=zone['id']))
+            for pod in zone['pods']:
+                pod['clusters'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Cluster.list(self.marvinApi.apiClient, podid=pod['id']))
+                for cluster in pod['clusters']:
+                    cluster['hosts'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Host.list(self.marvinApi.apiClient, clusterid=cluster['id']))
+                    for host in cluster['hosts']:
+                        host['username'] = 'root'
+                        host['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+                        host['url'] = host['ipaddress']
+
+        fn = xenrt.TEC().tempFile()
+        fh = open(fn, 'w')
+        json.dump(self.marvinCfg, fh)
+        fh.close()
+        return fn
+
+    def getTestsToExecute(self, noseClassSelector, tagStr=None):
+        noseTestList = xenrt.TEC().tempFile()
+        tempLogDir = xenrt.TEC().tempDir()
+        noseArgs = ['--with-marvin', '--marvin-config=%s' % (self.marvinConfigFile),
+                    '--with-xunit', '--xunit-file=%s' % (noseTestList),
+                    '--log-folder-path=%s' % (tempLogDir),
+                    '--load',
+                    noseClassSelector,
+                    '--collect-only']
+
+        if tagStr:
+            noseArgs.append(tagStr)
+
+        xenrt.TEC().logverbose('Using nosetest args: %s' % (' '.join(noseArgs)))
+
+        try:
+            result = xenrt.util.command('/usr/local/bin/nosetests %s' % (' '.join(noseArgs)))
+            xenrt.TEC().logverbose('Completed with result: %s' % (result))
+        except Exception, e:
+            xenrt.TEC().logverbose('Failed to get test information from nose - Exception raised: %s' % (str(e)))
+            raise
+
+        testData = open(noseTestList).read()
+        treeData = etree.fromstring(testData)
+        elements = treeData.getchildren()
+
+        self.testsToExecute = map(lambda x:{ 'name': x.get('name'), 'classname': x.get('classname') }, elements)
+        xenrt.TEC().logverbose('Found %d test-cases reported by nose' % (len(self.testsToExecute))) 
+
+        map(lambda x:xenrt.TEC().logverbose('  Testcase: %s, Class path: %s' % (x['name'], x['classname'])), self.testsToExecute)
+        failures = filter(lambda x:x['classname'] == 'nose.failure.Failure', self.testsToExecute)
+
+        if len(self.testsToExecute) == 0:
+            raise xenrt.XRTError('No nose tests found for %s with tags: %s' % (self.noseClassSelctorStr, self.marvinTestConfig['tags']))
+
+        if len(failures) > 0:
+            raise xenrt.XRTError('Nosetest lookup failed')
+
+        testNames = map(lambda x:x['name'], self.testsToExecute)
+        if len(testNames) != len(set(testNames)):
+            raise xenrt.XRTError('Duplicate Marvin test names found')
+
+    def prepare(self, arglist):
+        xenrt.TEC().logverbose('Using marvin test config: %s' % (self.marvinTestConfig))
+
+        self.noseClassSelctorStr = '%s:%s' % (os.path.join(self.MARVIN_TEST_CODE_PATH, self.marvinTestConfig['path']), self.marvinTestConfig['cls'])
+        self.noseTagStr  = '-a "%s"' % (','.join(map(lambda x:'tags=%s' % (x), self.marvinTestConfig['tags'])))
+
+        self.manSvr = xenrt.lib.cloud.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
+        self.marvinApi = xenrt.lib.cloud.MarvinApi(self.manSvr)
+        self.marvinConfigFile = self.generateMarvinTestConfig()
+
+        self.getTestsToExecute(self.noseClassSelctorStr, self.noseTagStr)
+
+        # Apply test configration
+        self.marvinApi.setCloudGlobalConfig("network.gc.wait", "60")
+        self.marvinApi.setCloudGlobalConfig("storage.cleanup.interval", "300")
+        self.marvinApi.setCloudGlobalConfig("vm.op.wait.interval", "5")
+        self.marvinApi.setCloudGlobalConfig("default.page.size", "10000")
+        self.marvinApi.setCloudGlobalConfig("network.gc.interval", "60")
+        self.marvinApi.setCloudGlobalConfig("workers", "10")
+        self.marvinApi.setCloudGlobalConfig("account.cleanup.interval", "600")
+        self.marvinApi.setCloudGlobalConfig("expunge.delay", "60")
+        self.marvinApi.setCloudGlobalConfig("vm.allocation.algorithm", "random")
+        self.marvinApi.setCloudGlobalConfig("expunge.interval", "60")
+        self.marvinApi.setCloudGlobalConfig("expunge.workers", "3")
+        self.marvinApi.setCloudGlobalConfig("check.pod.cidrs", "true")
+        self.marvinApi.setCloudGlobalConfig("direct.agent.load.size", "1000", restartManagementServer=True)
+
+        # Add check to make this optional
+        self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
+
+    def writeRunInfoLog(self, testcaseName, runInfoFile):
+        xenrt.TEC().logverbose('-------------------------- START MARVIN LOGS FOR %s --------------------------' % (testcaseName))
+        searchStr = '- DEBUG - %s' % (testcaseName)
+        for line in open(runInfoFile):
+            if re.search(searchStr, line):
+                xenrt.TEC().log(line)
+        xenrt.TEC().logverbose('-------------------------- END MARVIN LOGS FOR %s --------------------------' % (testcaseName))
+
+    def handleMarvinTestCaseFailure(self, testData, reasonData):
+        reason = reasonData.get('type')
+        message = reasonData.get('message')
+        if reason == 'unittest.case.SkipTest':
+            # TODO - should this fail the test?
+            xenrt.TEC().warning('Marvin testcase %s was skipped for reason: %s' % (testData['name'], message))
+        else:
+            # TODO - do more checking of failure reason
+            xenrt.TEC().logverbose('Marvin testcase %s failed/errored with reason: %s, message: %s' % (testData['name'], reason, message))
+            raise xenrt.XRTFailure('Marvin testcase %s failed/errored with reason: %s, message: %s' % (testData['name'], reason, message))
+
+
+    def marvinTestCase(self, testData, runInfoFile, resultData):
+        self.writeRunInfoLog(testData['name'], runInfoFile)
+
+        xenrt.TEC().logverbose('Test duration: %s (sec)' % (resultData.get('time')))
+        childElements = resultData.getchildren()
+        if len(childElements) > 0:
+            for childElement in childElements:
+                self.handleMarvinTestCaseFailure(testData, childElement)
+
+    def run(self, arglist):
+        tempLogDir = xenrt.TEC().tempDir()
+        noseTestResults = xenrt.TEC().tempFile()
+        noseArgs = ['-v',
+                    '--logging-level=DEBUG',
+                    '--log-folder-path=%s' % (tempLogDir),
+                    '--with-marvin', '--marvin-config=%s' % (self.marvinConfigFile),
+                    '--with-xunit', '--xunit-file=%s' % (noseTestResults),
+                    '--load']
+
+        noseArgs.append(self.noseTagStr)
+        noseArgs.append(self.noseClassSelctorStr)
+
+        xenrt.TEC().logverbose('Using nosetest args: %s' % (' '.join(noseArgs)))
+
+        try:
+            result = xenrt.util.command('/usr/local/bin/nosetests %s' % (' '.join(noseArgs)))
+            xenrt.TEC().logverbose('Test(s) completed with result: %s' % (result))
+        except Exception, e:
+            xenrt.TEC().logverbose('Exception raised: %s' % (str(e)))
+
+        testData = open(noseTestResults).read()
+        xmlResultData = etree.fromstring(testData)
+
+        if len(self.testsToExecute) != int(xmlResultData.get('tests')):
+            xenrt.TEC().warning('Expected %d Marvin tests to be executed, Actual: %d' % (len(self.testsToExecute), int(xmlResultData.get('tests'))))
+
+        xenrt.TEC().comment('Marvin tests executed: %s' % (xmlResultData.get('tests')))
+        xenrt.TEC().comment('Marvin tests failed:   %s' % (xmlResultData.get('failures')))
+        xenrt.TEC().comment('Marvin test errors:    %s' % (xmlResultData.get('errors')))
+        xenrt.TEC().comment('Marvin tests skipped:  %s' % (xmlResultData.get('skipped')))
+
+        logPathList = glob.glob(os.path.join(tempLogDir, '*', 'runinfo.txt'))
+        if len(logPathList) != 1:
+            xenrt.TEC().logverbose('%d Marvin log directories found' % (len(logPathList)))
+            raise xenrt.XRTError('Unique Marvin log directory not found')
+
+        runInfoFile = logPathList[0]
+        logPath = os.path.dirname(runInfoFile)
+        self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', self.marvinTestConfig['cls'])
+        xenrt.TEC().logverbose('Add full test logs to path %s' % (self.logsubdir))
+        shutil.copytree(logPath, self.logsubdir)
+
+        for test in self.testsToExecute:
+            resultDataList = filter(lambda x:x.get('name') == test['name'], xmlResultData.getchildren())
+            if len(resultDataList) != 1:
+                xenrt.TEC().logverbose('%d Marvin test results found for test %s' % (len(resultDataList), test['name']))
+                raise xenrt.XRTError('Unique Marvin test result not found')
+
+            self.runSubcase('marvinTestCase', (test, runInfoFile, resultDataList[0]), test['classname'], test['name'])
+
+        self.manSvr.getLogs(self.logsubdir)
+

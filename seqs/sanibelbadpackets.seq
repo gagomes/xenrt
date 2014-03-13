@@ -7,16 +7,16 @@
     <host id="0">
       <bridge name="internal"/>
       <vm name="victim1">
+        <!-- ####Boston/Sanibel are LEGACY DRIVERS by default### -->
         <distro>win7-x64</distro>
         <memory>2048</memory>
         <postinstall action="disableFirewall" />
-        <postinstall action="installLegacyDrivers" /> <!-- ####LEGACY DRIVERS### -->
         <network device="0" />
         <network device="1" bridge="internal"/>
         <disk device="0" size="24" />
       </vm>
       <vm name="victim2">
-        <distro>win8-x86</distro>
+        <distro>win7-x86</distro>
         <memory>1024</memory>
         <postinstall action="disableFirewall" />
         <postinstall action="installDrivers" />
@@ -25,8 +25,8 @@
         <disk device="0" size="24" />
       </vm>
       <vm name="victim3">
-        <distro>ws12-x64</distro>
-        <memory>2048</memory>
+        <distro>w2k3eesp2</distro>
+        <memory>1024</memory>
         <postinstall action="disableFirewall" />
         <postinstall action="installDrivers" />
         <network device="0" />

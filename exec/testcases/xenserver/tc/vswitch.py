@@ -5836,7 +5836,7 @@ done """ % (baseport, numOfServers)
     def prepare(self, arglist=None):
         self.ipsToTest=[]
         self.basePort=5000
-        JumboFrames.prepare()
+        JumboFrames.prepare(self)
         assumedids = self.xsHost.listSecondaryNICs()
         cli=self.xsHost.getCLIInstance()
 

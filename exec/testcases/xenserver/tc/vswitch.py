@@ -5806,52 +5806,101 @@ class TC21019(JumboFrames):
 
     def startIperfServers(self, linHost, numOfServers, baseport=5000):
         """ Start multiple iperf servers on different ports """
+
         host.execcmd("pkill iperf")
+        scriptfile = xenrt.TEC().tempFile()
+
         script="""#!/bin/bash
+base_port=%i
+mkdir "/tmp/iperfLogsServer"
 for i in `seq 1 %i`; do
 # Set server port
-server_port=%i
+server_port=$(($base_port+$i))
 # Report file includes server port
-report_file=iperfServer-${server_port}.txt
+report_file="/tmp/iperfLogsServer/iperfServer-${server_port}.txt"
 # Run iperf
-iperf -s -p $server_port &> $report_file 2>&1 &
-done """ % (numOfServers, baseport)
+iperf -s -p $server_port > $report_file 2>&1 &
+done """ % (baseport, numOfServers)
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = linHost.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/startiperf.sh")
+        finally:
+            sftp.close()
+        linHost.execcmd("chmod +x /tmp/startiperf.sh")
+
 
     def prepare(self, arglist):
-        self.ipsToTest()
+        self.ipsToTest=[]
+        self.basePort=5000
         JumboFrames.prepare(self)
         assumedids = self.xsHost.listSecondaryNICs()
         cli=self.xsHost.getCLIInstance()
-        
+
         for id in assumedids:
             pif = self.xsHost.getNICPIF(id)
-            cli.execute("pif-reconfigure-ip mode=dhcp uuid=%s" % pif)
+            cli.execute("pif-reconfigure-ip", "mode=dhcp uuid=%s" % pif)
             self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
             xenrt.log("IPs to test - %s" % self.ipsToTest)
 
         if len(self.ipsToTest) <= 1:
             raise xenrt.XRTError("This test requires machines with more than one NIC")
-
         self.startIperfServers(linHost=self.linHost,
-                                numOfServers=len(self.ipsToTest))
+                                numOfServers=len(self.ipsToTest),
+                                baseport=self.basePort)
 
-    def runIPerf(self, iperfHost, iperfServer, srvBasePort=5000, timeSecs=10):
+
+    def runIPerf(self, iperfClient, iperfServerIP, srvBasePort=5000, timeSecs=10):
         # Convert the python list into a shell script list
         list=" ".join(self.ipsToTest)
         script = """#!/bin/bash
 server_ip=%s
 test_duration=%i
 ip=%s
+base_port=%i
+mkdir "/tmp/iperfLogsClient"
 for i in `seq 1 %i`; do
 # Set server port
 server_port=$(($base_port+$i));
 # Report file includes server ip, server port and test duration
-report_file=iperClient-${server_port}-${test_duration}.txt
+report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${test_duration}.txt"
 # Run iperf
 for i in $ip; do 
-iperf -c $server_ip -p $server_port -t $test_duration -B $i &> $report_file & ; done
+iperf -c $server_ip -p $server_port -t $test_duration -B $i > $report_file 2>&1 & ; done
 done
-""" % (iperfServer, timeSecs, list, len(self.ipsToTest))
+""" % (iperfServerIP, timeSecs, list, srvBasePort, self.iperfLogDir, len(self.ipsToTest))
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = self.linHost.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/iperfclient.sh")
+        finally:
+            sftp.close()
+        iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
+        iperfClient.execcmd("/tmp/iperfclient.sh "
+                            timeout=timeSecs)
+
+    def run(self, arglist):
+        self.runIPerf(iperfClient=self.xsHost,
+                        iperfServerIP=self.linHost.getIP(),
+                        timeSecs=20)
+        xenrt.sleep(30)
 
 
+    def postRun():
+        logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'iperf', logDir)
+        if not os.path.exists(logsubdir):
+                os.makedirs(logsubdir)
+
+        for h in self.linHost, self.xsHost:
+            try:
+                sftp = h.sftpClient()
+                sftp.copyTreeFrom("/tmp/iperfLogs*", logsubdir)
+            finally:
+                sftp.close()
 

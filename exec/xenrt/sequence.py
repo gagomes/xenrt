@@ -249,12 +249,13 @@ class Fragment(threading.Thread):
                 marvinTestConfig = None
             else:
                 tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
-                name = expand(node.getAttribute("class"), params)
-                group = 'Marvin'
                 marvinTestConfig = {}
                 marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
                 marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
                 marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
+
+                group = os.path.splitext(os.path.basename(marvinTestConfig['path']))[0]
+                name = expand(node.getAttribute("class"), params)
 
             host = expand(node.getAttribute("host"), params)
             guest = expand(node.getAttribute("guest"), params)

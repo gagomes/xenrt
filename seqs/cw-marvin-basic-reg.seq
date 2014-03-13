@@ -1,0 +1,119 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUDINPUTDIR>http://repo-ccp.citrix.com/releases/release_builds/4.2.1/4.2.1-3/CloudPlatform-4.2.1-3-rhel6.3.tar.gz</CLOUDINPUTDIR>
+    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+
+  <prepare>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="20" />
+        <postinstall action="installCloudPlatformManagementServer"/>
+      </vm>
+    </sharedhost>
+
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic", "pods": [
+          { "managementIpRangeSize": 5, "clusters": [
+            { "hosts": 2 }
+          ]
+          }
+        ]
+        }
+      ]
+      }
+    </cloud>
+
+  </prepare>
+  
+  <testsequence>
+    <serial group="Marvin">
+      <marvintests path="component/maint/test_host_high_availability.py" class="TestHostHighAvailability" tags="basic" tc="TC-989000"/>
+      <marvintests path="component/test_accounts.py" class="TestAccounts" tags="basic" tc="TC-989002"/>
+      <marvintests path="component/test_accounts.py" class="TestAddVmToSubDomain" tags="basic" tc="TC-989003"/>
+      <marvintests path="component/test_accounts.py" class="TestNonRootAdminsPrivileges" tags="basic" tc="TC-989004"/>
+      <marvintests path="component/test_accounts.py" class="TestRemoveUserFromAccount" tags="basic" tc="TC-989005"/>
+      <marvintests path="component/test_accounts.py" class="TestServiceOfferingHierarchy" tags="basic" tc="TC-989006"/>
+      <marvintests path="component/test_accounts.py" class="TestServiceOfferingSiblings" tags="basic" tc="TC-989007"/>
+      <marvintests path="component/test_accounts.py" class="TestTemplateHierarchy" tags="basic" tc="TC-989008"/>
+      <marvintests path="component/test_accounts.py" class="TestUserDetails" tags="basic" tc="TC-989009"/>
+      <marvintests path="component/test_accounts.py" class="TestUserLogin" tags="basic" tc="TC-989010"/>
+      <marvintests path="component/test_add_remove_network.py" class="TestFailureScenariosAddNetworkToVM" tags="basic" tc="TC-989011"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestAffinityGroupsAdminUser" tags="basic" tc="TC-989012"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestCreateAffinityGroup" tags="basic" tc="TC-989013"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestDeleteAffinityGroups" tags="basic" tc="TC-989014"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestDeployVMAffinityGroups" tags="basic" tc="TC-989015"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestListAffinityGroups" tags="basic" tc="TC-989016"/>
+      <marvintests path="component/test_affinity_groups.py" class="TestUpdateVMAffinityGroups" tags="basic" tc="TC-989017"/>
+      <marvintests path="component/test_baremetal.py" class="TestBaremetal" tags="basic" tc="TC-989018"/>
+      <marvintests path="component/test_base_image_updation.py" class="TestBaseImageUpdate" tags="basic" tc="TC-989019"/>
+      <marvintests path="component/test_blocker_bugs.py" class="TestTemplate" tags="basic" tc="TC-989020"/>
+      <marvintests path="component/test_blocker_bugs.py" class="TestTemplates" tags="basic" tc="TC-989021"/>
+      <marvintests path="component/test_custom_hostname.py" class="TestInstanceNameFlagFalse" tags="basic" tc="TC-989022"/>
+      <marvintests path="component/test_custom_hostname.py" class="TestInstanceNameFlagTrue" tags="basic" tc="TC-989023"/>
+      <marvintests path="component/test_explicit_dedication.py" class="TestExplicitDedication" tags="basic" tc="TC-989024"/>
+      <marvintests path="component/test_implicit_planner.py" class="TestImplicitPlanner" tags="basic" tc="TC-989025"/>
+      <marvintests path="component/test_ldap.py" class="TestLdap" tags="basic" tc="TC-989026"/>
+      <marvintests path="component/test_multiple_ips_per_nic.py" class="TestBasicOperations" tags="basic" tc="TC-989027"/>
+      <marvintests path="component/test_project_configs.py" class="TestProjectCreationNegative" tags="basic" tc="TC-989028"/>
+      <marvintests path="component/test_project_configs.py" class="TestProjectInviteRequired" tags="basic" tc="TC-989029"/>
+      <marvintests path="component/test_project_configs.py" class="TestProjectInviteRequiredTrue" tags="basic" tc="TC-989030"/>
+      <marvintests path="component/test_project_configs.py" class="TestProjectInviteTimeout" tags="basic" tc="TC-989031"/>
+      <marvintests path="component/test_project_configs.py" class="TestUserProjectCreation" tags="basic" tc="TC-989032"/>
+      <marvintests path="component/test_project_limits.py" class="TestProjectLimits" tags="basic" tc="TC-989033"/>
+      <marvintests path="component/test_project_limits.py" class="TestResourceLimitsProject" tags="basic" tc="TC-989034"/>
+      <marvintests path="component/test_project_resources.py" class="TestOfferings" tags="basic" tc="TC-989035"/>
+      <marvintests path="component/test_project_resources.py" class="TestSnapshots" tags="basic" tc="TC-989036"/>
+      <marvintests path="component/test_project_resources.py" class="TestTemplates" tags="basic" tc="TC-989037"/>
+      <marvintests path="component/test_project_usage.py" class="TestISOUsage" tags="basic" tc="TC-989038"/>
+      <marvintests path="component/test_project_usage.py" class="TestSnapshotUsage" tags="basic" tc="TC-989039"/>
+      <marvintests path="component/test_project_usage.py" class="TestTemplateUsage" tags="basic" tc="TC-989040"/>
+      <marvintests path="component/test_project_usage.py" class="TestVmUsage" tags="basic" tc="TC-989041"/>
+      <marvintests path="component/test_project_usage.py" class="TestVolumeUsage" tags="basic" tc="TC-989042"/>
+      <marvintests path="component/test_projects.py" class="TestCrossDomainAccountAdd" tags="basic" tc="TC-989043"/>
+      <marvintests path="component/test_projects.py" class="TestDeleteAccountWithProject" tags="basic" tc="TC-989044"/>
+      <marvintests path="component/test_projects.py" class="TestDeleteDomainWithProject" tags="basic" tc="TC-989045"/>
+      <marvintests path="component/test_projects.py" class="TestMultipleProjectCreation" tags="basic" tc="TC-989046"/>
+      <marvintests path="component/test_projects.py" class="TestProjectOwners" tags="basic" tc="TC-989047"/>
+      <marvintests path="component/test_projects.py" class="TestProjectResources" tags="basic" tc="TC-989048"/>
+      <marvintests path="component/test_projects.py" class="TestProjectSuspendActivate" tags="basic" tc="TC-989049"/>
+      <marvintests path="component/test_regions.py" class="TestRegions" tags="basic" tc="TC-989050"/>
+      <marvintests path="component/test_regions_accounts.py" class="TestRegionsAccounts" tags="basic" tc="TC-989051"/>
+      <marvintests path="component/test_reset_ssh_keypair.py" class="TestResetSSHKeyUserRights" tags="basic" tc="TC-989052"/>
+      <marvintests path="component/test_reset_ssh_keypair.py" class="TestResetSSHKeypair" tags="basic" tc="TC-989053"/>
+      <marvintests path="component/test_security_groups.py" class="TestDhcpOnlyRouter" tags="basic" tc="TC-989054"/>
+      <marvintests path="component/test_snapshot_gc.py" class="TestAccountSnapshotClean" tags="basic" tc="TC-989055"/>
+      <marvintests path="component/test_snapshots.py" class="TestSnapshots" tags="basic" tc="TC-989056"/>
+      <marvintests path="component/test_snapshots_improvement.py" class="TestSnapshotOnRootVolume" tags="basic" tc="TC-989057"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestDeployHaEnabledVM" tags="basic" tc="TC-989058"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestDeployOnSpecificHost" tags="basic" tc="TC-989059"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestDeployVM" tags="basic" tc="TC-989060"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestDeployVMFromTemplate" tags="basic" tc="TC-989061"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestUploadAttachVolume" tags="basic" tc="TC-989062"/>
+      <marvintests path="component/test_stopped_vm.py" class="TestVMAccountLimit" tags="basic" tc="TC-989063"/>
+      <marvintests path="component/test_storage_motion.py" class="TestStorageMotion" tags="basic" tc="TC-989064"/>
+      <marvintests path="component/test_tags.py" class="TestResourceTags" tags="basic" tc="TC-989065"/>
+      <marvintests path="component/test_update_vm.py" class="TestUpdateVirtualMachine" tags="basic" tc="TC-989066"/>
+      <marvintests path="component/test_usage.py" class="TestISOUsage" tags="basic" tc="TC-989067"/>
+      <marvintests path="component/test_usage.py" class="TestSnapshotUsage" tags="basic" tc="TC-989068"/>
+      <marvintests path="component/test_usage.py" class="TestTemplateUsage" tags="basic" tc="TC-989069"/>
+      <marvintests path="component/test_usage.py" class="TestVmUsage" tags="basic" tc="TC-989070"/>
+      <marvintests path="component/test_usage.py" class="TestVolumeUsage" tags="basic" tc="TC-989071"/>
+      <marvintests path="component/test_vm_passwdenabled.py" class="TestVMPasswordEnabled" tags="basic" tc="TC-989072"/>
+      <marvintests path="component/test_volumes.py" class="TestDeployVmWithCustomDisk" tags="basic" tc="TC-989073"/>
+      <marvintests path="component/test_volumes.py" class="TestVolumes" tags="basic" tc="TC-989074"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

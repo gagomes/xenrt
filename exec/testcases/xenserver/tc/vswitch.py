@@ -5807,7 +5807,7 @@ class TC21019(JumboFrames):
     def startIperfServers(self, linHost, numOfServers, baseport=5000):
         """ Start multiple iperf servers on different ports """
 
-        host.execcmd("pkill iperf")
+        linHost.execcmd("pkill iperf")
         scriptfile = xenrt.TEC().tempFile()
 
         script="""#!/bin/bash
@@ -5831,6 +5831,7 @@ done """ % (baseport, numOfServers)
         finally:
             sftp.close()
         linHost.execcmd("chmod +x /tmp/startiperf.sh")
+	linHost.execcmd("/tmp/startiperf.sh &")
 
 
     def prepare(self, arglist=None):

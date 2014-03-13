@@ -5732,7 +5732,7 @@ class JumboFrames(_TC11551):
                     "uuid=%s MTU=%i" %
                     (uuid, mtu) )
 
-    def prepare(self, arglist):
+    def prepare(self, arglist=None):
         self.linHost=self.getHost("RESOURCE_HOST_0")
         self.xsHost = self.getHost("RESOURCE_HOST_1")
         
@@ -5836,7 +5836,7 @@ done """ % (baseport, numOfServers)
     def prepare(self, arglist=None):
         self.ipsToTest=[]
         self.basePort=5000
-        JumboFrames.prepare(self)
+        JumboFrames.prepare()
         assumedids = self.xsHost.listSecondaryNICs()
         cli=self.xsHost.getCLIInstance()
 

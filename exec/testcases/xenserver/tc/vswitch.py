@@ -5882,7 +5882,7 @@ done
         finally:
             sftp.close()
         iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
-        iperfClient.execcmd("/tmp/iperfclient.sh "
+        iperfClient.execcmd("/tmp/iperfclient.sh",
                             timeout=timeSecs)
 
     def run(self, arglist):

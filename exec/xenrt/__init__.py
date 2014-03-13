@@ -2721,7 +2721,8 @@ class GlobalExecutionContext:
               depend=None,
               blocker=None,
               jiratc=None,
-              tcsku=None):
+              tcsku=None,
+              marvinTestConfig=None):
         """Run a test case by name.
 
         This method is called by the sequence execution logic or by the
@@ -2754,6 +2755,7 @@ class GlobalExecutionContext:
         @param ttype: testcase type, used for filtering
         @param depend: comma-separated list of testcases this on depends on
         @param blocker: C{True} if this is a blocking testcase
+        @param marvinTestConfig: dictionary config for executing Marvin tests
         """
         initfail = False
         try:
@@ -2773,6 +2775,7 @@ class GlobalExecutionContext:
             xenrt.TEC().logverbose(str(e), pref='REASON')
         t.setJiraTC(jiratc)
         t.setTCSKU(tcsku)
+        t.marvinTestConfig = marvinTestConfig
         if name and group:
             t._rename("%s/%s" % (group, name))
             t._setBaseName(name)

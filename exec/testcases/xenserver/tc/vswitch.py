@@ -5804,34 +5804,41 @@ class JumboFrames(_TC11551):
 
 class TC21019(JumboFrames):
 
-    def startIperfServers(self, linHost, numOfServers, baseport=5000):
+    def startIperfServers(self, host, ipsToTest, baseport=5000):
         """ Start multiple iperf servers on different ports """
+        list=" ".join(self.ipsToTest)
 
-        linHost.execcmd("pkill iperf")
+        try:
+            host.execdom0("pkill iperf")
+            linHost.execdom0("service iptables stop")
+        except Exception, e:
+            # Dont really need to do anything if the above fails
+            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
         scriptfile = xenrt.TEC().tempFile()
 
         script="""#!/bin/bash
 base_port=%i
-mkdir "/tmp/iperfLogsServer"
-for i in `seq 1 %i`; do
+ips=%s
+mkdir -p "/tmp/iperfLogsServer"
+for i in $ips; do
 # Set server port
-server_port=$(($base_port+$i))
+server_port=$(($base_port+1))
 # Report file includes server port
-report_file="/tmp/iperfLogsServer/iperfServer-${server_port}.txt"
+report_file="/tmp/iperfLogsServer/iperfServer-${server_port}-$i.txt"
 # Run iperf
-iperf -s -p $server_port > $report_file 2>&1 &
-done """ % (baseport, numOfServers)
+iperf -s -p $server_port -B $i > $report_file 2>&1 &
+done """ % (baseport, list)
 
         f = file(scriptfile, "w")
         f.write(script)
         f.close()
-        sftp = linHost.sftpClient()
+        sftp = host.sftpClient()
         try:
             sftp.copyTo(scriptfile, "/tmp/startiperf.sh")
         finally:
             sftp.close()
-        linHost.execcmd("chmod +x /tmp/startiperf.sh")
-	linHost.execcmd("/tmp/startiperf.sh &")
+        host.execdom0("chmod +x /tmp/startiperf.sh")
+        host.execdom0("/tmp/startiperf.sh &")
 
 
     def prepare(self, arglist=None):
@@ -5841,20 +5848,33 @@ done """ % (baseport, numOfServers)
         assumedids = self.xsHost.listSecondaryNICs()
         cli=self.xsHost.getCLIInstance()
 
+        # Turn on jumbo frames on native linux
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
+        # Turn on Jumbo Frames on management interface
+        self.xenserverMTUSet(host=self.xsHost)
+
         for id in assumedids:
             pif = self.xsHost.getNICPIF(id)
             cli.execute("pif-reconfigure-ip", "mode=dhcp uuid=%s" % pif)
             self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
-            xenrt.log("IPs to test - %s" % self.ipsToTest)
+            self.xenserverMTUSet(host=self.xsHost,
+                                bridge=self.xsHost.getBridgeWithMapping(id))
+
+        # Dont forget to test the management interface
+        self.ipsToTest.append(self.xsHost.getIP())
+        xenrt.log("IPs to test - %s" % self.ipsToTest)
 
         if len(self.ipsToTest) <= 1:
             raise xenrt.XRTError("This test requires machines with more than one NIC")
-        self.startIperfServers(linHost=self.linHost,
-                                numOfServers=len(self.ipsToTest),
+        # Start iperf servers on XS - one for each pif
+        self.startIperfServers(host=self.xsHost,
+                                ipsToTest=self.ipsToTest,
                                 baseport=self.basePort)
 
 
-    def runIPerf(self, iperfClient, iperfServerIP, srvBasePort=5000, timeSecs=10):
+    def startIPerfClient(self, iperfClient, iperfServerIP, srvBasePort=5000, timeSecs=10):
         # Convert the python list into a shell script list
         list=" ".join(self.ipsToTest)
         script = """#!/bin/bash
@@ -5862,17 +5882,18 @@ server_ip=%s
 test_duration=%i
 ip=%s
 base_port=%i
-mkdir "/tmp/iperfLogsClient"
-for i in `seq 1 %i`; do
+mkdir -p "/tmp/iperfLogsClient"
+for i in $ip; do
 # Set server port
-server_port=$(($base_port+$i));
+server_port=$(($base_port+1));
 # Report file includes server ip, server port and test duration
-report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${test_duration}.txt"
+report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${i}.txt"
 # Run iperf
-for i in $ip; do 
-iperf -c $server_ip -p $server_port -t $test_duration -B $i > $report_file 2>&1 & ; done
+iperf -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
 done
-""" % (iperfServerIP, timeSecs, list, srvBasePort, self.iperfLogDir, len(self.ipsToTest))
+# Add sleep to stall the script from exiting
+sleep %i
+""" % (iperfServerIP, timeSecs, list, srvBasePort, len(self.ipsToTest), timeSecs)
 
         f = file(scriptfile, "w")
         f.write(script)
@@ -5884,17 +5905,11 @@ done
             sftp.close()
         iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
         iperfClient.execcmd("/tmp/iperfclient.sh",
-                            timeout=timeSecs)
+                            timeout=timeSecs+10)
 
-    def run(self, arglist):
-        self.runIPerf(iperfClient=self.xsHost,
-                        iperfServerIP=self.linHost.getIP(),
-                        timeSecs=20)
-        xenrt.sleep(30)
-
-
-    def postRun():
-        logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'iperf', logDir)
+    def _collectLogs(self, timeSecs):
+        logDir="iperf-%i" % timeSecs
+        logsubdir = os.path.join(xenrt.TEC().getLogdir(), logDir)
         if not os.path.exists(logsubdir):
                 os.makedirs(logsubdir)
 
@@ -5904,4 +5919,24 @@ done
                 sftp.copyTreeFrom("/tmp/iperfLogs*", logsubdir)
             finally:
                 sftp.close()
+
+    def generateNetworkTraffictoXS(self, timeSecs=10):
+        result={}
+        self.startIPerfClient(iperfClient=self.linHost,
+                        iperfServerIP=self.linHost.getIP(),
+                        timeSecs=20)
+        # Process results
+        for ip in self.ipsToTest:
+            str=self.linHost.execcmd("ls /tmp/iperfLogs* | grep %s | xargs cat" % ip)
+            # Check if any iperf client communication has bombed
+            result=self._parseIperfData(data=str, 
+                                        jf=True)
+            result['ip']=ip
+            xenrt.log("Iperf results - %s" % 
+                        [(k,r) for k,r in result.iteritems()])
+        self._collectLogs()
+        # Look for overruns
+
+    def run(self, arglist):
+        self.runSubCase("generateNetworkTraffictoXS", "60", "RX Overruns", "RX Overruns")
 

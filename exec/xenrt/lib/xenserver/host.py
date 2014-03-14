@@ -11882,6 +11882,24 @@ done
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
         
+    def tailorForCloudStack(self):
+        # Set the Linux templates with PV args to autoinstall
+
+        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+
+        args = {}
+        args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Wheezy 7.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        for a in args.keys():
+            uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
+            if len(uuids) == 0:
+                xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
+                continue
+            self.genParamSet("template", uuids[0], "PV-args", args[a])
+
 
 
 #############################################################################

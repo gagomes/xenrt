@@ -5938,5 +5938,5 @@ sleep %i
         # Look for overruns
 
     def run(self, arglist):
-        self.runSubCase("generateNetworkTraffictoXS", "60", "RX Overruns", "RX Overruns")
+        self.runSubcase("generateNetworkTraffictoXS", "60", "RX Overruns", "RX Overruns")
 

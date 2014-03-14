@@ -8626,7 +8626,14 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiavgpuDriver(self):
+    def installNvidiaVGPUDriver(self,driverType):
+
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver()
+        else:
+            self.installNvidiaVGPUUnsignedDriver()
+
+    def installNvidiaVGPUSignedDriver(self):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8671,7 +8678,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTError as e:
             raise e
             
-    def installNvidiaVGPUDriver(self):
+    def installNvidiaVGPUUnsignedDriver(self):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.

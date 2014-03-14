@@ -14,6 +14,7 @@ class VGPUDistribution: BreadthFirst, DepthFirst = range(2)
 class SRType: Local, NFS, ISCSI = range(3)
 class VMStartMethod: OneByOne, Simultenous = range(2)
 class CardType: K1, K2, PassThrough, NotAvailable = range(4)
+class DriverType: Signed, Unsigned = range(2)
 
 """
 Constants
@@ -308,7 +309,7 @@ class _VGPUTest(xenrt.TestCase, object):
         return None
 
     def installGuestDrivers(self, guest):
-        guest.installNvidiaVGPUDriver()
+        guest.installNvidiaVGPUDriver(DriverType.Unsigned)
 
     def installHostDrivers(self):
         for host in self.getAllHosts():
@@ -376,7 +377,7 @@ class TCVGPUSetup(_VGPUTest):
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
-        self.guest.installNvidiaVGPUDriver()
+        self.guest.installNvidiaVGPUDriver(DriverType.Unsigned)
 
         if "PassThrough" in self.args['vgpuconfig']:
             autoit = self.guest.installAutoIt()
@@ -3668,7 +3669,7 @@ class TCinstallNVIDIAGuestDrivers(xenrt.TestCase):
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
-        g.installNvidiaVGPUDriver()
+        g.installNvidiaVGPUDriver(DriverType.Unsigned)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 

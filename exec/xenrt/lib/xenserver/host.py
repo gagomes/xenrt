@@ -11810,7 +11810,7 @@ done
             return True
 
     def installNVIDIAHostDrivers(self):
-        rpm="NVIDIA-vgx-xenserver-6.2-331.52.i386"
+        rpm="NVIDIA-vgx-xenserver-6.2-331.59.i386"
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")

@@ -8687,9 +8687,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
         #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.70"
+            filename = "WDDM_x86_332.83"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.70"
+                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)

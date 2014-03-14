@@ -100,7 +100,7 @@ class DebianBasedLinux(LinuxOS):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
-        if self.cleanupdir:
+        if self.installMethod == "isowithanswerfile":
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
         self.parent.start()

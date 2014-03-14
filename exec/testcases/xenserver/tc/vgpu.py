@@ -397,7 +397,11 @@ Send("{LEFT}")
 Send("{ENTER}")
 """
             self.guest.xmlrpcWriteFile(au3path, au3scr)
-            self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
+            try:
+                #This command will throw error
+                self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
+            except:
+                pass
             self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path)) 
         self.assertvGPURunningInVM(self.guest, self.args['vgpuconfig'])
 

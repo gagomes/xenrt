@@ -5858,7 +5858,7 @@ server_port=$(($base_port+1));
 # Report file includes server ip, server port and test duration
 report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${i}.txt"
 # Run iperf
-iperf -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
+iperf -m -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
 done
 # Add sleep to stall the script from exiting
 sleep %i

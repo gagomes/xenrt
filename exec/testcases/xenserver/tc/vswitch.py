@@ -5843,7 +5843,7 @@ done """ % (baseport, list)
 
     def startIPerfClient(self, iperfClient, iperfServerIPs, srvBasePort=5000, timeSecs=10):
         # Convert the python list into a shell script list
-        list=" ".join(iperfServerIPs)
+        iplist=" ".join(iperfServerIPs)
         script = """#!/bin/bash
 test_duration=%i
 ip=%s
@@ -5859,7 +5859,7 @@ iperf -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
 done
 # Add sleep to stall the script from exiting
 sleep %i
-""" % (timeSecs, list, srvBasePort, timeSecs)
+""" % (timeSecs, iplist, srvBasePort, timeSecs)
 
         f = file(scriptfile, "w")
         f.write(script)

@@ -5920,11 +5920,11 @@ sleep %i
                                 baseport=self.basePort)
 
 
-    def generateNetworkTraffictoXS(self, timeSecs=10):
+    def generateNetworkTraffictoXS(self, timeSecs, ips):
         result={}
         self.startIPerfClient(iperfClient=self.linHost,
-                        iperfServerIPs=self.ipsToTest,
-                        timeSecs=timeSecs)
+                        iperfServerIPs=ips,
+                        timeSecs=int(timeSecs))
         # Process results
         for ip in self.ipsToTest:
             str=self.linHost.execcmd("ls /tmp/iperfLogs* | grep %s | xargs cat" % ip)
@@ -5938,5 +5938,5 @@ sleep %i
         # Look for overruns
 
     def run(self, arglist):
-        self.runSubcase("generateNetworkTraffictoXS", "timeSecs=60", "RX Overruns", "RX Overruns")
+        self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
 

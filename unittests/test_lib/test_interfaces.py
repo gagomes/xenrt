@@ -1,7 +1,9 @@
 from testing import XenRTTestCaseUnitTestCase
 import xenrt.lib.cloud
 import xenrt.lib.xl
-from zope.interface.verify import verifyObject
+import xenrt.lib.opsys
+from zope.interface.verify import verifyObject, verifyClass
+from zope.interface import implementedBy
 from mock import Mock
 
 class CloudStackTest(xenrt.lib.cloud.CloudStack):
@@ -20,14 +22,21 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
     def test_cloudstackInterface(self):
         """Verify that the CloudStack class implements the Toolstack interface"""
         c = CloudStackTest()
-        verifyObject(xenrt.Toolstack, c)
+        verifyObject(xenrt.interfaces.Toolstack, c)
 
     def test_xlInterface(self):
         """Verify the XLToolstack class implements the Toolstack interface"""
         x = xenrt.lib.xl.XLToolstack()
-        verifyObject(xenrt.Toolstack, x)
+        verifyObject(xenrt.interfaces.Toolstack, x)
 
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
         i = InstanceTest()
-        verifyObject(xenrt.OSParent, i)
+        verifyObject(xenrt.interfaces.OSParent, i)
+
+    def test_osLibraries(self):
+        """Verify OS libraries implement their interfaces"""
+        for l in xenrt.lib.opsys.oslist:
+            for i in list(implementedBy(l)):
+                verifyClass(i, l)
+

@@ -1,6 +1,7 @@
 import xenrt
 import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2
 from xenrt.lib.opsys import OS, RegisterOS
+from zope.interface import implements
 
 __all__ = ["WindowsOS"]
 
@@ -59,6 +60,8 @@ class MyPatientTrans(xmlrpclib.Transport):
 
 class WindowsOS(OS):
 
+    implements(xenrt.interfaces.InstallMethodIso)
+
     @staticmethod
     def KnownDistro(distro):
         if distro[0] == 'w' or distro[0] == 'v':
@@ -72,7 +75,6 @@ class WindowsOS(OS):
         self.distro = distro
         self.isoRepo = xenrt.IsoRepository.Windows
         self.isoName = "%s.iso" % self.distro
-        self.supportedInstallMethods = [xenrt.InstallMethod.Iso]
         self.defaultRootdisk = 20 * xenrt.GIGA
         self.vifStem = "eth"
         self.viridian = True

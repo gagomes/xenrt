@@ -3530,7 +3530,7 @@ def getTestTarball(testname, extract=False, copy=True, directory=None):
 # Import all symbols from this package to our namespace. This is only
 # for users of this package - internal references are to the submodules
 from xenrt.enum import *
-from xenrt.interfaces import *
+import xenrt.interfaces
 from xenrt.resources import *
 from xenrt.grub import *
 from xenrt.legacy import *

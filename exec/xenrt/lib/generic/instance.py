@@ -3,7 +3,7 @@ import xenrt
 from zope.interface import implements
 
 class Instance(object):
-    implements(xenrt.OSParent)
+    implements(xenrt.interfaces.OSParent)
 
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack

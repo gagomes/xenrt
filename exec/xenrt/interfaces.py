@@ -1,6 +1,6 @@
 from zope.interface import Interface, Attribute
 
-__all__=["Toolstack", "OSParent"]
+__all__=["Toolstack", "OSParent", "OS", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
 
 class Toolstack(Interface):
     def instanceHypervisorType(instance):
@@ -49,4 +49,35 @@ class OSParent(Interface):
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
+class OS(Interface):
+    installMethod = Attribute("Selected installation method")
+    defaultRootdisk = Attribute("Default rootdisk size")
+
+    def KnownDistro(distro):
+        """Determine if the given distro is known to this library"""
+
+    def waitForBoot(timeout):
+        """Wait for the OS to boot"""
+
+class InstallMethodPV(Interface):
+    installUrl = Attribute("HTTP installation URL")
+    installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")
+
+    def generateAnswerfile(webdir):
+        """Generate an answerfile for the OS"""
+
+    def waitForInstallCompleteAndFirstBoot():
+        """Wait for installation completion and first boot"""
+
+class InstallMethodIso(Interface):
+    isoName = Attribute("ISO name")
+    isoRepo = Attribute("ISO repository")
+
+    def waitForInstallCompleteAndFirstBoot():
+        """Wait for installation completion and first boot"""
+
+class InstallMethodIsoWithAnswerFile(InstallMethodIso):
+
+    def generateIsoAnswerfile():
+        """Generate an answerfile for ISO installation"""
 

@@ -1,8 +1,13 @@
-import sys, os
+import os, string
 from subprocess import call
 
-#Fix up the pythonpath
-sys.path.append(os.path.join(os.path.dirname(__file__), os.path.abspath("../exec")))
+# Fix up the pythonpath
+path = []
+if os.environ.has_key("PYTHONPATH"):
+    path.append(os.environ["PYTHONPATH"])
+path.append(os.path.abspath("../exec"))
+
+os.environ["PYTHONPATH"] = string.join(path, ":")
 
 #Run the tests using nose
-call(["nosetests", "-P ../exec", "-v"] )
+call(["nosetests", "-v"] )

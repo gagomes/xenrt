@@ -265,4 +265,5 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
+	cd /usr/share/xenrt/unittests && python runner.py
 

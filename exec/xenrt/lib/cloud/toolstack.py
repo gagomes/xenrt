@@ -25,6 +25,10 @@ class CloudStack(object):
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
+    def hypervisorType(self, instance):
+        # TODO actually determine what hypervisor is selected for the given instance
+        return xenrt.HypervisorType.xen
+
     def createInstance(self,
                        distro,
                        name=None,

@@ -8,9 +8,13 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    def hypervisorType(self, instance):
+        # XL only works with Xen, so we will always be returning Xen
+        return xenrt.HypervisorType.xen
+
     def startInstance(self, instance, on):
         host = self.hosts[0] # TODO: use on to identify the right host
-        host.create(self.generateXLConfig(instance), instance.toolstackId)
+        host.createInstance(self.generateXLConfig(instance), instance.toolstackId)
         self.residentOn[instance.toolstackId] = host
 
     # TODO: in guest shutdown?
@@ -20,9 +24,9 @@ class XLToolstack(object):
             raise xenrt.XRTError("Instance is not running")
 
         if force:
-            hv.destroy(instance.name)
+            hv.destroyInstance(instance.name)
         else:
-            hv.shutdown(instance.name)
+            hv.shutdownInstance(instance.name)
 
         instance.poll(xenrt.PowerState.down)
 
@@ -31,7 +35,7 @@ class XLToolstack(object):
         if not hv:
             raise xenrt.XRTError("Instance is not running")
 
-        hv.reboot(instance.name)
+        hv.rebootInstance(instance.name)
 
     def suspendInstance(self, instance):
         if not self.getInstancePowerState(instance) == xenrt.PowerState.up:
@@ -40,7 +44,7 @@ class XLToolstack(object):
         # TODO: Parameterise where to store the suspend image
         img = "/data/%s-suspend" % (instance.toolstackId)
         hv = self.getHypervisor(instance)
-        hv.save(instance.name, img)
+        hv.saveInstance(instance.name, img)
         self.suspendedInstances.append(instance.toolstackId)
         del self.residentOn[instance.toolstackId]
                 
@@ -51,7 +55,7 @@ class XLToolstack(object):
 
         img = "/data/%s-suspend" % (instance.toolstackId)
         host = self.hosts[0] # TODO: use on!
-        host.restore(img)
+        host.restoreInstance(img)
         self.residentOn[instance.toolstackId] = host
         self.suspendedInstances.remove(instance.toolstackId)
 
@@ -66,7 +70,7 @@ class XLToolstack(object):
             raise xenrt.XRTError("Cannot migrate a non running VM")
 
         src = self.getHypervisor(instance)
-        src.migrate(instance.name, to)
+        src.migrateInstance(instance.name, to)
         self.residentOn[instance.toolstackId] = to
 
     def createInstance(self,
@@ -120,7 +124,7 @@ class XLToolstack(object):
 
         # Build an XL configuration
         xlcfg = self.generateXLConfig(instance, kernel="/tmp/installers/%s/kernel" % (uuid), initrd="/tmp/installers/%s/initrd" % (uuid), args=bootArgs)
-        domid = host.create(xlcfg, uuid)
+        domid = host.createInstance(xlcfg, uuid)
         self.residentOn[instance.toolstackId] = host
         host.updateConfig(domid, self.generateXLConfig(instance)) # Reset the boot config to normal for the reboot
 
@@ -145,7 +149,7 @@ class XLToolstack(object):
 
         # Build an XL configuration
         xlcfg = self.generateXLConfig(instance, hvm=True, iso=iso)
-        domid = host.create(xlcfg, uuid)
+        domid = host.createInstance(xlcfg, uuid)
         self.residentOn[instance.toolstackId] = host
 
         instance.os.waitForInstallCompleteAndFirstBoot()

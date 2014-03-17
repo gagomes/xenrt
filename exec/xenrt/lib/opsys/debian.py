@@ -6,6 +6,9 @@ __all__ = ["DebianBasedLinux"]
 
 class DebianBasedLinux(LinuxOS):
 
+    debianMappings = {"debian60": "squeeze",
+                      "debian70": "wheezy"}
+
     @staticmethod
     def KnownDistro(distro):
         if distro.startswith("debian") or distro.startswith("ubuntu"):
@@ -41,13 +44,40 @@ class DebianBasedLinux(LinuxOS):
         return "linux"
 
     @property
+    def debianName(self):
+        if self.debianMappings.has_key(self.distro):
+            return self.debianMappings[self.distro]
+        return None
+
+    @property
     def installURL(self):
-        return "http://10.220.160.11/vol/xenrtdata/linux/distros/Debian/Wheezy/all/"
+        return xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"], None)
 
     @property
     def installerKernelAndInitRD(self):
-        return ("http://10.220.160.11/vol/xenrtdata/linux/distros/Debian/Wheezy/all/dists/wheezy/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux",
-                "http://10.220.160.11/vol/xenrtdata/linux/distros/Debian/Wheezy/all/dists/wheezy/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz")
+        if self.arch == "x86-32":
+            darch = "i386"
+        elif self.arch == "x86-64":
+            darch = "amd64"
+        else:
+            raise xenrt.XRTError("Cannot identify architecture")
+
+        # 32-bit Xen guests need to use a special installer kernel, 64-bit and non-Xen we
+        # can just use the standard as PVops support works
+        if self.arch == "x86-32" and self.parent.hypervisorType == xenrt.HypervisorType.xen:
+            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/xen" % \
+                       (self.installURL,
+                        self.debianName,
+                        darch)
+            kernelName = "vmlinuz"
+        else:
+            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" % \
+                       (self.installURL,
+                        self.debianName,
+                        darch,
+                        darch)
+            kernelName = "linux"
+        return ("%s/%s" % (basePath, kernelName), "%s/initrd.gz" % basePath)
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
@@ -56,9 +86,9 @@ class DebianBasedLinux(LinuxOS):
 
         # TODO: Use new signalling method so this works for hosts as well
         ps=DebianPreseedFile(self.distro,
-                             "http://10.220.160.11/vol/xenrtdata/linux/distros/Debian/Wheezy/all",
+                             self.installURL,
                              filename,
-                             arch="x86-64")
+                             arch=self.arch)
         ps.generate()
         webdir.copyIn(filename)
         url = webdir.getURL(os.path.basename(filename))

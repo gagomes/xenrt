@@ -219,7 +219,7 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         self.sftpClient().copyTo(localtmp, tmpfile)
         return tmpfile
 
-    def create(self, xlcfg, uuid):
+    def createInstance(self, xlcfg, uuid):
         """Creates an instance, returning the domid"""
         tmpfile = self._writeXLConfig(xlcfg)
         try:
@@ -234,23 +234,23 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
                 return dom['domid']
         raise xenrt.XRTError("domid not found after creating domain")
 
-    def destroy(self, domid):
+    def destroyInstance(self, domid):
         """Destroys the given domid"""
         self._xl("destroy", [str(domid)])
 
-    def shutdown(self, domid):
+    def shutdownInstance(self, domid):
         """Shuts down the given domid"""
         self._xl("shutdown", [str(domid)])
 
-    def reboot(self, domid):
+    def rebootInstance(self, domid):
         """Reboots the given domid"""
         self._xl("reboot", [str(domid)])
 
-    def save(self, domid, saveFile):
+    def saveInstance(self, domid, saveFile):
         """Suspends the given domid into the specified save file"""
         self._xl("save", [str(domid), saveFile])
 
-    def restore(self, saveFile):
+    def restoreInstance(self, saveFile):
         """Restores the given save file"""
         self._xl("restore", [saveFile])
 
@@ -260,7 +260,7 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         if self.execSSH("grep '%s' /root/.ssh/authorized_keys" % publicKey, retval="code") != 0:
             self.execSSH("echo '%s' >> /root/.ssh/authorized_keys" % publicKey)
 
-    def migrate(self, domid, to):
+    def migrateInstance(self, domid, to):
         """Migrates the given domid to the specified host"""
         if not isinstance(to, OSSHost):
             raise xenrt.XRTError("Cannot migrate to this type of host")

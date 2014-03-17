@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState", "IsoRepository", "InstallMethod"]
+__all__ = ["PowerState", "HypervisorType", "IsoRepository", "InstallMethod"]
 
 class Enum(object):
     pass
@@ -16,6 +16,12 @@ class PowerState(Enum):
     up = "up"
     paused = "paused"
     suspended = "suspended"
+
+class HypervisorType(Enum):
+    xen = "xen"
+    native = "native"
+    kvm = "kvm"
+    other = "other"
 
 class InstallMethod(Enum):
     PV = "PV"

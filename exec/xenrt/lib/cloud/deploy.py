@@ -81,4 +81,4 @@ def deploy(cloudSpec, manSvr=None):
 
         zone.update(marvinApi.apiClient, allocationstate='Enabled')
 
-    xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(manSvr))
+    xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=manSvr.place))

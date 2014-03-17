@@ -22,7 +22,19 @@ class Toolstack(Interface):
         """Stop the specified instnace"""
 
     def rebootInstance(instance, force):
-        """Reboot the specified instnace"""
+        """Reboot the specified instance"""
+
+    def suspendInstance(instance):
+        """Suspend the specified instance"""
+
+    def resumeInstance(instance, on):
+        """Resume the specified instance"""
+
+    def migrateInstance(instance, to, live):
+        """Resume the specified instance"""
+
+    def destroyInstance(instance):
+        """Destroy the specified instance"""
 
     def getInstancePowerState(instance):
         """Get the current power state for the specified instance"""

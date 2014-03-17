@@ -111,6 +111,12 @@ class CloudStack(object):
         instance.toolstackId = vm.id
         return instance
 
+    def destroyInstance(self, instance):
+        cmd = destroyVirtualMachine.destroyVirtualMachineCmd()
+        cmd.id = instance.toolstackId
+        cmd.expunge = True
+        self.marvin.apiClient.destroyVirtualMachine(cmd)
+
     def installPVTools(self, instance):
         try:
             installer = xenrt.lib.cloud.pvtoolsinstall.PVToolsInstallerFactory(self, instance)
@@ -143,6 +149,15 @@ class CloudStack(object):
         if force:
             cmd.forced = force
         self.marvin.apiClient.rebootVirtualMachine(cmd)
+
+    def suspendInstance(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
+    def resumeInstance(self, instance, on):
+        raise xenrt.XRTError("Not implemented")
+
+    def migrateInstance(self, instance, to, live=True):
+        raise xenrt.XRTError("Not implemented")
 
     def getInstancePowerState(self, instance):
         state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state

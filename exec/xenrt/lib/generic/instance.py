@@ -61,6 +61,9 @@ class Instance(object):
     def resume(self, on=None):
         self.toolstack.resumeInstance(self, on)
 
+    def destroy(self):
+        self.toolstack.destroyInstance(self)
+
     def migrate(self, to, live=True):
         self.toolstack.migrateInstance(self, to, live)
 

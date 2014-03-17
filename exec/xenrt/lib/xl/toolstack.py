@@ -78,6 +78,9 @@ class XLToolstack(object):
         src.migrateInstance(instance.name, to)
         self.residentOn[instance.toolstackId] = to
 
+    def destroyInstance(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
     def createInstance(self,
                        distro,
                        name,

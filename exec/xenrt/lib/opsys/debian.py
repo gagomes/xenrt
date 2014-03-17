@@ -90,7 +90,7 @@ class DebianBasedLinux(LinuxOS):
 
     @property
     def supportedInstallMethods(self):
-        return ["PV", "isowithanswerfile"]
+        return [xenrt.InstallMethod.PV, xenrt.InstallMethod.IsoWithAnswerFile]
 
     @property
     def defaultRootdisk(self):
@@ -100,7 +100,7 @@ class DebianBasedLinux(LinuxOS):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
-        if self.installMethod == "isowithanswerfile":
+        if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
         self.parent.start()

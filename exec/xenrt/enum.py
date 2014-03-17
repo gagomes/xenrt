@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState"]
+__all__ = ["PowerState", "IsoRepository", "InstallMethod"]
 
 class Enum(object):
     pass
@@ -17,3 +17,11 @@ class PowerState(Enum):
     paused = "paused"
     suspended = "suspended"
 
+class InstallMethod(Enum):
+    PV = "PV"
+    Iso = "iso"
+    IsoWithAnswerFile = "isowithanswerfile"
+
+class IsoRepository(Enum):
+    Windows = "windows"
+    Linux = "linux"

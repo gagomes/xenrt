@@ -62,7 +62,7 @@ class DebianBasedLinux(LinuxOS):
         else:
             raise xenrt.XRTError("Cannot identify architecture")
 
-        basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" %
+        basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" % \
                    (self.installURL,
                     self.debianName,
                     darch,
@@ -76,7 +76,7 @@ class DebianBasedLinux(LinuxOS):
 
         # TODO: Use new signalling method so this works for hosts as well
         ps=DebianPreseedFile(self.distro,
-                             self.installURL
+                             self.installURL,
                              filename,
                              arch=self.arch)
         ps.generate()

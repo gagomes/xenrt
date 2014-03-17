@@ -5850,7 +5850,7 @@ done """ % (baseport, list)
         script = """#!/bin/bash
 test_duration=%i
 ip=%s
-base_port=%i
+base_port='%i'
 mkdir -p "/tmp/iperfLogsClient"
 for i in $ip; do
 # Set server port

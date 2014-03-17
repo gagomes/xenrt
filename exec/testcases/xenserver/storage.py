@@ -409,7 +409,8 @@ class TCMultipleVDI(xenrt.TestCase):
 
         if xenrt.TEC().lookup("VIF_DEBUG", False, boolean=True):
             try:
-                self.host.startVifDebug(g.getDomid())
+                self.debugdom = g.getDomid()
+                self.host.startVifDebug(self.debugdom)
             except:
                 pass
 
@@ -535,14 +536,14 @@ class TCMultipleVDI(xenrt.TestCase):
             if nvbds == 0:
                 nvbds = max
         
-        if xenrt.TEC().lookup("VIF_DEBUG", False, boolean=True):
-            try:
-                self.host.stopVifDebug(g.getDomid())
-            except:
-                pass
 
 
     def postRun(self):
+        if xenrt.TEC().lookup("VIF_DEBUG", False, boolean=True):
+            try:
+                self.host.stopVifDebug(self.debugdom)
+            except:
+                pass
         try:
             for g in self.guestsToClean:
                 xenrt.TEC().logverbose("Starting postRun for %s." % (g.name))

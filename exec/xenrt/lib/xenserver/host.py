@@ -11873,12 +11873,18 @@ done
                 self.genParamSet("pif", pif, "other-config:ethtool-gro", "on")
 
     def startVifDebug(self, domid):
-        self.execdom0("killall -9 debugfs")
+        try:
+            self.execdom0("killall -9 debugfs")
+        except:
+            pass
         self.execdom0("%s/debugfs %d </dev/null > /tmp/vifdebug.%d.log 2>&1 &" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), int(domid), int(domid)))
         
 
     def stopVifDebug(self, domid):
-        self.execdom0("killall -9 debugfs")
+        try:
+            self.execdom0("killall -9 debugfs")
+        except:
+            pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
         

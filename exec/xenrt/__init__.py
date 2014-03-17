@@ -1620,6 +1620,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
             self._host = "RESOURCE_HOST_0"
             return self.getHost("RESOURCE_HOST_0")
 
+    def getDefaultToolstack(self):
+        return self.tec.gec.registry.toolstackGetDefault()
+
     def getPool(self, name):
         """Get a pool object by name. Registers the hosts for log fetching."""
         p = self.tec.gec.registry.poolGet(name)

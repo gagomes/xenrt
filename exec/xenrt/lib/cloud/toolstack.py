@@ -16,7 +16,12 @@ __all__ = ["CloudStack"]
 import xenrt.lib.cloud.pvtoolsinstall
 
 class CloudStack(object):
-    def __init__(self, place):
+    def __init__(self, place=None, ip=None):
+        assert place or ip
+        if not place:
+            place = xenrt.GenericGuest("CS-MS")
+            place.mainip = ip
+            place.findPassword()
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
@@ -106,7 +111,7 @@ class CloudStack(object):
         else:
             installer.install()
 
-    def getIP(self, instance, timeout, level):
+    def getInstanceIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()
         cmd.virtualmachineid=instance.toolstackId
         instance.mainip = [x.ipaddress for x in NIC.list(self.marvin.apiClient, virtualmachineid = instance.toolstackId) if x.isdefault][0]
@@ -193,7 +198,7 @@ class CloudStack(object):
 
         return instance
 
-    def ejectIso(self, instance):
+    def ejectInstanceIso(self, instance):
         cmd = detachIso.detachIsoCmd()
         cmd.virtualmachineid = instance.toolstackId
         self.marvin.apiClient.detachIso(cmd)

@@ -1004,6 +1004,11 @@ def existingLocations():
     guestIndex = 0
     slaves = []
 
+    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+    if cloudip:
+        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+        gec.registry.toolstackPut("cloud", cloud)
+
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:

@@ -32,7 +32,7 @@ class Instance(object):
     def getIP(self, timeout=600, level=xenrt.RC_ERROR):
         if self.mainip:
             return self.mainip
-        return self.toolstack.getIP(self, timeout, level)
+        return self.toolstack.getInstanceIP(self, timeout, level)
         
     def start(self, on=None, timeout=600):
         self.toolstack.startInstance(self, on)
@@ -82,6 +82,6 @@ class Instance(object):
         return self.toolstack.getInstancePowerState(self)
 
     def ejectIso(self):
-        return self.toolstack.ejectIso(self)
+        return self.toolstack.ejectInstanceIso(self)
 
 __all__ = ["Instance"]

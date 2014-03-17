@@ -150,7 +150,7 @@ class XLToolstack(object):
 
         instance.os.waitForInstallCompleteAndFirstBoot()
 
-    def getIP(self, instance, timeout=600, level=xenrt.RC_ERROR):
+    def getInstanceIP(self, instance, timeout=600, level=xenrt.RC_ERROR):
         if self.getInstancePowerState(instance) != xenrt.PowerState.up:
             raise xenrt.XRTError("Instance not running")
 

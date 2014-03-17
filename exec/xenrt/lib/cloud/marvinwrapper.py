@@ -96,10 +96,10 @@ class MarvinApi(object):
         sysTemplateUrl = webdir.getURL(os.path.basename(sysTemplateFile))
 
         if provider == 'NFS':
-            self.mgtSvr.place.execguest('mount %s /media' % (storagePath))
-            installSysTmpltLoc = self.mgtSvr.place.execguest('find / -name *install-sys-tmplt').strip()
-            self.mgtSvr.place.execguest('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
-            self.mgtSvr.place.execguest('umount /media')
+            self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
+            installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
+            self.mgtSvr.place.execcmd('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
+            self.mgtSvr.place.execcmd('umount /media')
 
     def addZone(self, name, networktype='Basic', dns1=None, internaldns1=None):
         args = locals()

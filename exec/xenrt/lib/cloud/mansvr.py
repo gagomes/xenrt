@@ -20,7 +20,7 @@ class ManagementServer(object):
 
     def getLogs(self, destDir):
         sftp = self.place.sftpClient()
-        manSvrLogsLoc = self.place.execguest('find /var/log -type f -name management-server.log').strip()
+        manSvrLogsLoc = self.place.execcmd('find /var/log -type f -name management-server.log').strip()
         sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
         sftp.close()
  
@@ -56,16 +56,16 @@ class ManagementServer(object):
             if not managementServerOk:
                 reboots += 1
                 xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots, maxReboots))
-                self.place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+                self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
                 self.restart(checkHealth=False, startStop=True)
 
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
-            self.place.execguest('service %s-management restart' % (self.cmdPrefix))
+            self.place.execcmd('service %s-management restart' % (self.cmdPrefix))
         else:
-            self.place.execguest('service %s-management stop' % (self.cmdPrefix))
+            self.place.execcmd('service %s-management stop' % (self.cmdPrefix))
             xenrt.sleep(120)
-            self.place.execguest('service %s-management start' % (self.cmdPrefix))
+            self.place.execcmd('service %s-management start' % (self.cmdPrefix))
         
         if checkHealth:
             self.checkManagementServerHealth()
@@ -79,32 +79,32 @@ class ManagementServer(object):
             raise xenrt.XRTError('Location of management server build not specified')
 
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execguest('wget %s -O cp.tar.gz' % (manSvrInputDir))
-            self.place.execguest('mkdir cloudplatform')
-            self.place.execguest('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-            installDir = os.path.dirname(self.place.execguest('find cloudplatform/ -type f -name install.sh'))
-            self.place.execguest('cd %s && ./install.sh -m' % (installDir))
+            self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrInputDir))
+            self.place.execcmd('mkdir cloudplatform')
+            self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
+            installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
+            self.place.execcmd('cd %s && ./install.sh -m' % (installDir))
 
-            self.place.execguest('setenforce Permissive')
-            self.place.execguest('service nfs start')
+            self.place.execcmd('setenforce Permissive')
+            self.place.execcmd('service nfs start')
 
-            self.place.execguest('yum -y install mysql-server mysql')
-            self.place.execguest('service mysqld restart')
+            self.place.execcmd('yum -y install mysql-server mysql')
+            self.place.execcmd('service mysqld restart')
 
-            self.place.execguest('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-            self.place.execguest('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-            self.place.execguest('mysqladmin -u root password xensource')
-            self.place.execguest('service mysqld restart')
+            self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+            self.place.execcmd('mysqladmin -u root password xensource')
+            self.place.execcmd('service mysqld restart')
 
-            setupDbLoc = self.place.execguest('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            self.place.execguest('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+            setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
-            self.place.execguest('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
 
-            setupMsLoc = self.place.execguest('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
-            self.place.execguest(setupMsLoc)    
+            setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            self.place.execcmd(setupMsLoc)    
 
-            self.place.execguest('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+            self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
         
         self.restart()
 

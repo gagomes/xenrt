@@ -5811,7 +5811,7 @@ class TC21019(JumboFrames):
 
         try:
             host.execdom0("pkill iperf")
-            linHost.execdom0("service iptables stop")
+            host.execdom0("service iptables stop")
         except Exception, e:
             # Dont really need to do anything if the above fails
             xenrt.TEC().warning("Caught exception - %s, continuing.." % e)

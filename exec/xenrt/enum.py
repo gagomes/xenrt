@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState", "HypervisorType"]
+__all__ = ["PowerState", "HypervisorType", "IsoRepository", "InstallMethod"]
 
 class Enum(object):
     pass
@@ -23,3 +23,11 @@ class HypervisorType(Enum):
     kvm = "kvm"
     other = "other"
 
+class InstallMethod(Enum):
+    PV = "PV"
+    Iso = "iso"
+    IsoWithAnswerFile = "isowithanswerfile"
+
+class IsoRepository(Enum):
+    Windows = "windows"
+    Linux = "linux"

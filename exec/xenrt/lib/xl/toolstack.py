@@ -86,9 +86,9 @@ class XLToolstack(object):
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         instance.toolstackId = str(uuid.uuid4())
 
-        if "PV" in instance.os.supportedInstallMethods:
+        if xenrt.InstallMethod.PV in instance.os.supportedInstallMethods:
             self._createInstancePV(instance, startOn)
-        elif "iso" in instance.os.supportedInstallMethods:
+        elif xenrt.InstallMethod.Iso in instance.os.supportedInstallMethods:
             self._createInstanceISO(instance, startOn)
         else:
             raise xenrt.XRTError("Specified instance does not have a supported install method")

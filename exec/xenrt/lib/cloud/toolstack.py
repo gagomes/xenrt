@@ -39,7 +39,7 @@ class CloudStack(object):
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
-        supportedInstallMethods = ["iso", "isowithanswerfile"]
+        supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
 
         for m in supportedInstallMethods:
             if m in instance.os.supportedInstallMethods:
@@ -78,7 +78,7 @@ class CloudStack(object):
 
         self.startInstance(instance)
 
-        if instance.os.installMethod == "isowithanswerfile":
+        if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             xenrt.TEC().logverbose("Generating answer file")
             instance.os.generateIsoAnswerfile()
 

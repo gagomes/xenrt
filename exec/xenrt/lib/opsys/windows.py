@@ -70,9 +70,9 @@ class WindowsOS(OS):
         super(self.__class__, self).__init__(parent)
 
         self.distro = distro
-        self.isoRepo = "windows"
+        self.isoRepo = xenrt.IsoRepository.Windows
         self.isoName = "%s.iso" % self.distro
-        self.supportedInstallMethods = ["iso"]
+        self.supportedInstallMethods = [xenrt.InstallMethod.Iso]
         self.defaultRootdisk = 20 * xenrt.GIGA
         self.vifStem = "eth"
         self.viridian = True

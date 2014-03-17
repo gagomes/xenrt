@@ -241,9 +241,9 @@ class MarvinApi(object):
         isos = Iso.list(self.apiClient, isofilter="all", name=isoName)
         if not isos:
             xenrt.TEC().logverbose("ISO is not present, registering")
-            if isoRepo == "windows":
+            if isoRepo == xenrt.IsoRepository.Windows:
                 url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
-            elif isoRepo == "linux":
+            elif isoRepo == xenrt.IsoRepository.Linux:
                 url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC"), isoName)
             else:
                 raise xenrt.XRTError("ISO Repository not recognised")

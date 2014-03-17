@@ -65,17 +65,19 @@ class DebianBasedLinux(LinuxOS):
         # 32-bit Xen guests need to use a special installer kernel, 64-bit and non-Xen we
         # can just use the standard as PVops support works
         if self.arch == "x86-32" and self.parent.hypervisorType == xenrt.HypervisorType.xen:
-            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/xen/" % \
+            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/xen" % \
                        (self.installURL,
                         self.debianName,
                         darch)
+            kernelName = "vmlinuz"
         else:
             basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" % \
                        (self.installURL,
                         self.debianName,
                         darch,
                         darch)
-        return ("%s/linux" % basePath, "%s/initrd.gz" % basePath)
+            kernelName = "linux"
+        return ("%s/%s" % (basePath, kernelName), "%s/initrd.gz" % basePath)
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""

@@ -19,7 +19,7 @@ class Instance(object):
 
     @property
     def hypervisorType(self):
-        return self.toolstack.hypervisorType(self)
+        return self.toolstack.instanceHypervisorType(self)
 
     def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""

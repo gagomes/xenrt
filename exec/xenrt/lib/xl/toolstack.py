@@ -1,14 +1,16 @@
 import xenrt, uuid, string
+from zope.interface import implements
 
 class XLToolstack(object):
     """An object to represent the xl toolstack and associated operations"""
+    implements(xenrt.lib.generic.Toolstack)
 
     def __init__(self):
         self.hosts = [] # A list of known hosts
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
-    def hypervisorType(self, instance):
+    def instanceHypervisorType(self, instance):
         # XL only works with Xen, so we will always be returning Xen
         return xenrt.HypervisorType.xen
 
@@ -30,7 +32,10 @@ class XLToolstack(object):
 
         instance.poll(xenrt.PowerState.down)
 
-    def rebootInstance(self, instance):
+    def existingInstance(self, name):
+        raise xenrt.XRTError("Not implemented")
+
+    def rebootInstance(self, instance, force=False):
         hv = self.getHypervisor(instance)
         if not hv:
             raise xenrt.XRTError("Instance is not running")
@@ -234,5 +239,8 @@ disk = [ %s ]
 
         # TODO: handle paused / crashed etc
         return xenrt.PowerState.up
+
+    def ejectInstanceIso(self, instance):
+        raise xenrt.XRTError("Not implemented")
 
 __all__ = ["XLToolstack"]

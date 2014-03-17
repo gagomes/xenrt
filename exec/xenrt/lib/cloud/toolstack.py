@@ -3,6 +3,8 @@ import logging
 import os, urllib
 from datetime import datetime
 
+from zope.interface import implements
+
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
@@ -16,6 +18,8 @@ __all__ = ["CloudStack"]
 import xenrt.lib.cloud.pvtoolsinstall
 
 class CloudStack(object):
+    implements(xenrt.lib.generic.Toolstack)
+
     def __init__(self, place=None, ip=None):
         assert place or ip
         if not place:
@@ -25,7 +29,7 @@ class CloudStack(object):
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
-    def hypervisorType(self, instance):
+    def instanceHypervisorType(self, instance):
         # TODO actually determine what hypervisor is selected for the given instance
         return xenrt.HypervisorType.xen
 

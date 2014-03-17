@@ -17,6 +17,10 @@ class Instance(object):
         self.rootdisk = rootdisk or self.os.defaultRootdisk
         self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]
 
+    @property
+    def hypervisorType(self):
+        return self.toolstack.hypervisorType(self)
+
     def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout

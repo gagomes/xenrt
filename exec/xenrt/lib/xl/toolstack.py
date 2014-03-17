@@ -8,6 +8,10 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    def hypervisorType(self, instance):
+        # XL only works with Xen, so we will always be returning Xen
+        return xenrt.HypervisorType.xen
+
     def startInstance(self, instance, on):
         host = self.hosts[0] # TODO: use on to identify the right host
         host.createInstance(self.generateXLConfig(instance), instance.toolstackId)

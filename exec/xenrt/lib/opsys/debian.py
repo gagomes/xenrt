@@ -62,11 +62,19 @@ class DebianBasedLinux(LinuxOS):
         else:
             raise xenrt.XRTError("Cannot identify architecture")
 
-        basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" % \
-                   (self.installURL,
-                    self.debianName,
-                    darch,
-                    darch)
+        # 32-bit Xen guests need to use a special installer kernel, 64-bit and non-Xen we
+        # can just use the standard as PVops support works
+        if self.arch == "x86-32" and self.parent.hypervisorType == xenrt.HypervisorType.xen:
+            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/xen/" % \
+                       (self.installURL,
+                        self.debianName,
+                        darch)
+        else:
+            basePath = "%s/dists/%s/main/installer-%s/current/images/netboot/debian-installer/%s" % \
+                       (self.installURL,
+                        self.debianName,
+                        darch,
+                        darch)
         return ("%s/linux" % basePath, "%s/initrd.gz" % basePath)
 
     def generateAnswerfile(self, webdir):

@@ -5930,7 +5930,9 @@ sleep %i
                         timeSecs=int(timeSecs))
         # Process results
         for ip in ips:
-            str=self.linHost.execcmd("ls /tmp/iperfLogs* | grep %s | xargs cat" % ip)
+            str=self.linHost.execcmd("cd /tmp/iperfLogsClient && ls | grep %s | xargs cat" % ip).strip()
+            xenrt.log("Raw iperf data for ip - %s: %s" %
+                        (ip, str) )
             # Check if any iperf client communication has bombed
             result=self._parseIperfData(data=str, 
                                         jf=True)

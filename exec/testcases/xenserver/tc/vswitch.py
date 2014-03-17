@@ -5844,6 +5844,8 @@ done """ % (baseport, list)
     def startIPerfClient(self, iperfClient, iperfServerIPs, srvBasePort=5000, timeSecs=10):
         # Convert the python list into a shell script list
         iplist=" ".join(iperfServerIPs)
+        scriptfile = xenrt.TEC().tempFile()
+
         script = """#!/bin/bash
 test_duration=%i
 ip=%s

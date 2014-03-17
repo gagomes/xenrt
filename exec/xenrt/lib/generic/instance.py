@@ -1,6 +1,9 @@
 import xenrt
 
+from zope.interface import implements
+
 class Instance(object):
+    implements(xenrt.OSParent)
 
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack
@@ -37,7 +40,10 @@ class Instance(object):
         if self.mainip:
             return self.mainip
         return self.toolstack.getInstanceIP(self, timeout, level)
-        
+
+    def setIP(self, ip):
+        raise xenrt.XRTError("Not implemented")
+    
     def start(self, on=None, timeout=600):
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)

@@ -3,7 +3,7 @@ from zope.interface import implements
 
 class XLToolstack(object):
     """An object to represent the xl toolstack and associated operations"""
-    implements(xenrt.lib.generic.Toolstack)
+    implements(xenrt.Toolstack)
 
     def __init__(self):
         self.hosts = [] # A list of known hosts

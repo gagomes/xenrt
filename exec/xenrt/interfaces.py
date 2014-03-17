@@ -1,6 +1,6 @@
-from zope.interface import Interface
+from zope.interface import Interface, Attribute
 
-__all__=["Toolstack"]
+__all__=["Toolstack", "OSParent"]
 
 class Toolstack(Interface):
     def instanceHypervisorType(instance):
@@ -29,3 +29,24 @@ class Toolstack(Interface):
 
     def ejectInstanceIso(instance):   
         """Eject the ISO from the specified instance"""
+
+class OSParent(Interface):
+    name = Attribute("Name of the OS")
+    hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
+
+    def getIP(timeout, level):
+        """Get the IP for the OS"""
+
+    def setIP(ip):
+        """Set the IP for the OS"""
+
+    def start():
+        """Start the OS container (VM/host)"""
+
+    def ejectIso():
+        """Eject the ISO from the OS container"""
+
+    def poll(state, timeout, level, pollperiod):
+        """Poll for a change in power state"""
+
+

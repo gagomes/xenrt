@@ -18,7 +18,7 @@ __all__ = ["CloudStack"]
 import xenrt.lib.cloud.pvtoolsinstall
 
 class CloudStack(object):
-    implements(xenrt.lib.generic.Toolstack)
+    implements(xenrt.Toolstack)
 
     def __init__(self, place=None, ip=None):
         assert place or ip

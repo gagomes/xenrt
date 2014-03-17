@@ -5746,6 +5746,7 @@ class JumboFrames(_TC11551):
 
         iperfData = {}
         dataFound = False
+        mssFound = False
         for line in data.splitlines():
 
             if re.search("0.0-10.0", line, re.I):
@@ -5928,7 +5929,7 @@ sleep %i
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
         # Process results
-        for ip in self.ipsToTest:
+        for ip in ips:
             str=self.linHost.execcmd("ls /tmp/iperfLogs* | grep %s | xargs cat" % ip)
             # Check if any iperf client communication has bombed
             result=self._parseIperfData(data=str, 
@@ -5937,7 +5938,22 @@ sleep %i
             xenrt.log("Iperf results - %s" % 
                         [(k,r) for k,r in result.iteritems()])
         self._collectLogs()
-        # Look for overruns
+
+        for id in self.xsHost.listSecondaryNICs():
+            # Look for overruns
+            overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
+                                            h.getSecondaryNIC(id)).strip().split()[-2]
+            rxDict = {}
+            rxDict[h.getSecondaryNIC(id)] = overruns
+            xenrt.log("OVERRUN DATA: %s" %
+                        [(k,r) for k,r in rxDict.iteritems()])
+
+            # Verify there are no overruns
+            if rxDict[h.getSecondaryNIC(id)].split(":")[1] <> 0:
+                raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
+                                        (h.getSecondaryNIC(id), overruns))
+        xenrt.log("OVERRUN DATA: %s" %
+                        [(k,r) for k,r in rxDict.iteritems()])
 
     def run(self, arglist):
         self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")

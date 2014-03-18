@@ -56,6 +56,9 @@
             <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
+          <testcase id="testcases.xenserver.tc.guest.TCVerifyVMCorruption" tc="TC-21015">
+            <arg>guest=win7sp1-x86</arg>
+           </testcase>
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-11883">
             <arg>N/A</arg>
             <arg>guest=win7sp1-x86</arg>

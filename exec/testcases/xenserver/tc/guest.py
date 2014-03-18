@@ -1634,3 +1634,45 @@ class TCSetComputername(xenrt.TestCase):
 
     def rebootGuest(self, guestName):
         self.getGuest(guestName).reboot()
+
+class TCVerifyVMCorruption(xenrt.TestCase):
+    """Verify Xapi fix to avoid VM Corruption during Migration"""  
+    
+    def prepare(self, arglist=None):
+        
+        self.host = self.getDefaultHost()
+        
+        for arg in arglist:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+
+        step("If we have a VM already then use that, otherwise create one")
+        self.guest = self.getGuest(gname)
+        if not self.guest:
+            xenrt.TEC().progress("Installing guest %s" % (gname))
+            self.guest = self.host.createGenericWindowsGuest(distro="win7-x86")
+            self.uninstallOnCleanup(self.guest)
+        else:
+            step("Check the guest is healthy and reboot if it is already up")
+            try:
+                if self.guest.getState() == "DOWN":
+                    self.guest.start()
+                else:
+                    step("If it is suspended or anything else then that's bad")
+                    self.guest.reboot()
+                self.guest.checkHealth()
+            except xenrt.XRTFailure, e:
+                raise xenrt.XRTError("Guest broken before we start: %s" %
+                                     (str(e)))
+
+    def run(self, arglist=None):
+        
+        step("Check the value of '/local/domain/dom-id/console/ring-ref'")
+        exception = False
+        try:
+            self.host.execdom0("xenstore-ls -f | grep '/local/domain/%d/console/ring-ref'" %self.guest.getDomid())
+        except:
+            pass
+        else:
+            raise xenrt.XRTFailure("Xapi fix to avoid VM corruption during Migration has Failed")

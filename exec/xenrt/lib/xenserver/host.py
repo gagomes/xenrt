@@ -3266,7 +3266,7 @@ done
     def getVdiMD5Sum(self, vdi):
         """Gets the MD5 sum of the specified VDI"""
 
-        if not isinstance(vdi, str) or len(vdi) == 0:
+        if not (isinstance(vdi, str) or isinstance(vdi, unicode)) or len(vdi) == 0:
             raise xenrt.XRTError("Invalid VDI UUID passed to getVdiMD5Sum()")
         
         # generate random name for script to write in dom0
@@ -8386,7 +8386,8 @@ rm -f /etc/xensource/xhad.conf || true
         self.execdom0("chmod a+x /tmp/xenrt_ha_reset.sh")
         self.execdom0("PATH=$PATH:/opt/xensource/xha "
                       "/tmp/xenrt_ha_reset.sh",
-                      level=xenrt.RC_OK)
+                      level=xenrt.RC_OK,
+                      getreply=False)
 
         # Remove any NFS blocks
         self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")

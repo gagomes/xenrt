@@ -5824,7 +5824,7 @@ class TC21019(JumboFrames):
 
         script="""#!/bin/bash
 base_port=%i
-ips=%s
+ips='%s'
 mkdir -p "/tmp/iperfLogsServer"
 for i in $ips; do
 # Set server port
@@ -5882,8 +5882,8 @@ sleep %i
                             timeout=timeSecs+10)
 
 
-    def _collectLogs(self, timeSecs):
-        logDir="iperf-%i" % timeSecs
+    def _collectLogs(self):
+        logDir="iperf"
         logsubdir = os.path.join(xenrt.TEC().getLogdir(), logDir)
         if not os.path.exists(logsubdir):
                 os.makedirs(logsubdir)
@@ -5944,7 +5944,6 @@ sleep %i
             result['ip']=ip
             xenrt.log("Iperf results - %s" % 
                         [(k,r) for k,r in result.iteritems()])
-        self._collectLogs()
 
         for id in self.xsHost.listSecondaryNICs():
             # Look for overruns
@@ -5964,4 +5963,7 @@ sleep %i
 
     def run(self, arglist):
         self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
+
+    def postRun(self):
+        self._collectLogs()
 

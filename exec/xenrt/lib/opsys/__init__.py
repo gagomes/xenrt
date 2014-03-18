@@ -33,11 +33,7 @@ class OS(object):
     def supportedInstallMethods(self):
         # We base this on interfaces
         interfaces = implementedBy(self.__class__)
-        methods = []
-        for i in interfaces:
-            if self._allInstallMethods.has_key(i):
-                methods.append(self._allInstallMethods[i])
-        return methods
+        return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod
     def KnownDistro(distro):

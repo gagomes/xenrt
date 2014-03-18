@@ -34,9 +34,10 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         i = InstanceTest()
         verifyObject(xenrt.interfaces.OSParent, i)
 
-    def test_osLibraries(self):
-        """Verify OS libraries implement their interfaces"""
-        for l in xenrt.lib.opsys.oslist:
-            for i in list(implementedBy(l)):
-                verifyClass(i, l)
-
+def test_osLibraries():
+    def oslib_test(oslib):
+        for i in list(implementedBy(oslib)):
+            verifyClass(i, oslib)
+    for l in xenrt.lib.opsys.oslist:
+        oslib_test.description = "Verify the %s class implements its interfaces" % l.__name__
+        yield oslib_test, l

@@ -5748,6 +5748,8 @@ class JumboFrames(_TC11551):
         dataFound = False
         mssFound = False
         for line in data.splitlines():
+            if len(lineFields) < 7:
+                    raise xenrt.XRTError('Iperf still running so could not parse output')
 
             if re.search("0.0-10.0", line, re.I):
                 lineFields = line.split()

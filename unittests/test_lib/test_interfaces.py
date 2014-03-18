@@ -44,8 +44,18 @@ def test_osLibraries():
         for i in list(implementedBy(oslib)):
             verifyObject(i, o)
 
+    def oslib_supportedInstallMethods(oslib):
+        o = oslib.testInit()
+        implementedInterfaces = list(implementedBy(oslib))
+        requiredInterfaces = filter(lambda i: o._allInstallMethods[i] in o.supportedInstallMethods, o._allInstallMethods)
+        for i in requiredInterfaces:
+            if not i in implementedInterfaces:
+                raise AssertionError("Interface %s not implemented but stated in supportedInstallMethods" % i.__name__)
+
     for l in xenrt.lib.opsys.oslist:
         testfn = lambda: oslib_test(l)
         testfn.description = "Verify the %s class implements its interfaces" % l.__name__
         yield testfn
-
+        testfn = lambda: oslib_supportedInstallMethods(l)
+        testfn.description = "Verify the %s class implements interfaces for all supportedInstallMethods" % l.__name__
+        yield testfn

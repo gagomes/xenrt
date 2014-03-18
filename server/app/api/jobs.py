@@ -27,7 +27,7 @@ class XenRTJobPage(XenRTAPIPage):
         else:
             pref = ""
 
-        cur.execute(("SELECT phase, test, result, detailid FROM qryResults " +
+        cur.execute(("SELECT phase, test, result, detailid FROM tblresults " +
                      "WHERE jobid = %u") %
                     (id))
         while 1:

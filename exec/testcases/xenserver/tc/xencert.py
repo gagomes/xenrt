@@ -13,7 +13,7 @@ class _XSStorageCertKit(xenrt.TestCase):
     """Base class for XenServer Storage Certification Kit"""
 
     XENCERT_ISO = "xencert-supp-pack.iso"
-    XENCERT_RPMS = ["xencert-1.8.50-xs10", "xenserver-transfer-vm"]
+    XENCERT_RPMS = ["xencert-1.8.0-xs14", "xenserver-transfer-vm"]
     XENCERT_RPM_REPOS = ["xs:xencert-supp-pack", "xs:xenserver-transfer-vm"]
 
     SR_TYPE = None
@@ -44,7 +44,13 @@ class _XSStorageCertKit(xenrt.TestCase):
             xenrt.TEC().logverbose("XenServer Storage Cert Kit is already installed in the host.")
             return
 
-        storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO)
+        updatedXenCertLoc = xenrt.TEC().lookup("XENCERT_LOCATION", None)
+        
+        if updatedXenCertLoc != None and len(updatedXenCertLoc) > 0:
+            storageCertKitISO = xenrt.TEC().getFile(updatedXenCertLoc)
+        else:
+            storageCertKitISO = xenrt.TEC().getFile("xe-phase-2/%s" % (self.XENCERT_ISO),self.XENCERT_ISO)
+        
         try:
             xenrt.checkFileExists(storageCertKitISO)
         except:
@@ -63,17 +69,22 @@ class _XSStorageCertKit(xenrt.TestCase):
         except:
             xenrt.TEC().logverbose("Unable to install XenServer Storage Cert Kit")
 
-        for rpm in self.XENCERT_RPMS:
-            rpmInstalled = self.checkXSStorageCertKitRPMS(host,rpm)
-            if not rpmInstalled:
-                raise xenrt.XRTFailure("XenServer Storage Cert Kit RPM package %s is not installed" %
-                                       (rpm))
+        ignoreVersion = xenrt.TEC().lookup("IGNORE_XENCERT_VERSION", None)
 
-        for rpmRepo in self.XENCERT_RPM_REPOS:
-            rpmReposInstalled = self.checkInstalledXSStorageCertKitRepos(host,rpmRepo)
-            if not rpmReposInstalled:
-                raise xenrt.XRTFailure("XenServer Storage Cert Kit entries not found under installed-repos: %s" %
-                                       (rpm))
+        if ignoreVersion != None:
+            xenrt.TEC().logverbose("XenCert version check purposely ignored")        
+        else:
+            for rpm in self.XENCERT_RPMS:
+                rpmInstalled = self.checkXSStorageCertKitRPMS(host,rpm)
+                if not rpmInstalled:
+                    raise xenrt.XRTFailure("XenServer Storage Cert Kit RPM package "
+                                           "%s is not installed" % (rpm))
+
+                for rpmRepo in self.XENCERT_RPM_REPOS:
+                    rpmReposInstalled = self.checkInstalledXSStorageCertKitRepos(host,rpmRepo)
+                    if not rpmReposInstalled:
+                        raise xenrt.XRTFailure("XenServer Storage Cert Kit entries "
+                                                "not found under installed-repos: %s" % (rpm))
 
     def checkInstalledXSStorageCertKitRepos(self, host, rpmRepo):
         # Check XenServer Storage Cert Kit entry exists under installed-repos

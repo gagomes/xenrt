@@ -3,7 +3,16 @@
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
   <prepare>
-    <host id="0" />
+    <host id="0">
+      <vm name="Windows 7">
+        <distro>win7-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
   </prepare>
   <testsequence>
     <serial group="HFX959">
@@ -14,6 +23,9 @@
     </serial>
     <serial group="HFX952">
       <testcase id="xenserver.tc.host.TC20917" />
+    </serial>
+    <serial group="HFX-982">
+      <testcase id="xenserver.tc.guest.TCSetComputername" tc="TC-21020"/>
     </serial>
   </testsequence>
 </xenrt>

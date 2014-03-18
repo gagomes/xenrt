@@ -64,6 +64,24 @@ class Registry:
         finally:
             self.mylock.release()        
 
+    def objPut(self, objType, tag, obj):
+        path = "/xenrt/specific/%s/%s" % (objType, tag)
+        self.write(path, obj)
+    
+    def objGet(self, objType, tag):
+        path = "/xenrt/specific/%s/%s" % (objType, tag)
+        return self.read(path)
+    
+    def objDelete(self, objType, tag):
+        path = "/xenrt/specific/%s/%s" % (objType, tag)
+        self.delete(path)
+   
+    def objGetDefault(self, objType):
+        for k in sorted(self.data.keys()): 
+            if k.startswith("/xenrt/specific/%s/" % objType):
+                return self.read(k)
+        raise Exception("No object found of type %s" % objType)
+
     # Specific operations
     def hostPut(self, tag, host):
         """Store a host object using a string tag"""
@@ -314,3 +332,14 @@ class Registry:
         path = "/xenrt/specific/resource/%s" % (tag)
         self.delete(path)
 
+    def toolstackPut(self, tag, resource):
+        self.objPut("toolstack", tag, resource)
+
+    def toolstackGet(self, tag):
+        return self.objGet("toolstack", tag)
+
+    def toolstackDelete(self, tag):
+        self.objDelete("toolstack", tag)
+
+    def toolstackGetDefault(self):
+        return self.objGetDefault("toolstack")

@@ -14,6 +14,7 @@ class VGPUDistribution: BreadthFirst, DepthFirst = range(2)
 class SRType: Local, NFS, ISCSI = range(3)
 class VMStartMethod: OneByOne, Simultenous = range(2)
 class CardType: K1, K2, PassThrough, NotAvailable = range(4)
+class DriverType: Signed, Unsigned = range(2)
 
 """
 Constants
@@ -308,7 +309,7 @@ class _VGPUTest(xenrt.TestCase, object):
         return None
 
     def installGuestDrivers(self, guest):
-        guest.installNvidiaVGPUDriver()
+        guest.installNvidiaVGPUDriver(DriverType.Unsigned)
 
     def installHostDrivers(self):
         for host in self.getAllHosts():
@@ -376,7 +377,33 @@ class TCVGPUSetup(_VGPUTest):
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
-        self.guest.installNvidiaVGPUDriver()
+        self.guest.installNvidiaVGPUDriver(DriverType.Unsigned)
+
+        if "PassThrough" in self.args['vgpuconfig']:
+            autoit = self.guest.installAutoIt()
+            au3path = "c:\\change_display.au3"
+            au3scr = """
+Send("!c")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("!s")
+Send("{DOWN}")
+Send("!m")
+Send("{DOWN}")
+Send("!a")
+Send("{LEFT}")
+Send("{ENTER}")
+"""
+            self.guest.xmlrpcWriteFile(au3path, au3scr)
+            try:
+                #This command will throw error
+                self.guest.xmlrpcExec("control.exe desk.cpl,Settings,@Settings")
+            except:
+                pass
+            self.guest.xmlrpcStart("\"%s\" %s" % (autoit, au3path)) 
         self.assertvGPURunningInVM(self.guest, self.args['vgpuconfig'])
 
 class TCVGPUCloneVM(_VGPUTest):
@@ -3642,7 +3669,7 @@ class TCinstallNVIDIAGuestDrivers(xenrt.TestCase):
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
-        g.installNvidiaVGPUDriver()
+        g.installNvidiaVGPUDriver(DriverType.Unsigned)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 

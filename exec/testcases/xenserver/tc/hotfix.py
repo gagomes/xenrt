@@ -890,6 +890,7 @@ class TC18394(_SanibelCCRTM):
 
 class TC18162(_TampaRTM):
     """Apply hotfix to XenServer 6.1 RTM"""
+    INITIAL_HOTFIXES = ["XS61E009"]
     pass
 
 class TC19911(_ClearwaterRTM):
@@ -1094,6 +1095,7 @@ class TC18396(_SanibelCCRTM):
 class TC18161(_TampaRTM):
     """Apply hotfix to XenServer 6.1 RTM (pool)"""
     POOLED = True
+    INITIAL_HOTFIXES = ["XS61E009"]
 
 class TC19914(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM (pool)"""

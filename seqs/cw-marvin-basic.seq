@@ -1,0 +1,71 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUDINPUTDIR>http://repo-ccp.citrix.com/releases/release_builds/4.2.1/4.2.1-3/CloudPlatform-4.2.1-3-rhel6.3.tar.gz</CLOUDINPUTDIR>
+    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+
+  <prepare>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="20" />
+        <postinstall action="installCloudPlatformManagementServer"/>
+      </vm>
+    </sharedhost>
+
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic", "pods": [
+          { "managementIpRangeSize": 5, "clusters": [
+            { "hosts": 2 }
+          ]
+          }
+        ]
+        }
+      ]
+      }
+    </cloud>
+
+  </prepare>
+  
+  <testsequence>
+    <serial group="Marvin">
+      <marvintests path="smoke/test_affinity_groups.py" class="TestDeployVmWithAffinityGroup" tags="basic" tc="TC-989075"/>
+      <marvintests path="smoke/test_deploy_vm.py" class="TestDeployVM" tags="basic" tc="TC-989076"/>
+      <marvintests path="smoke/test_deploy_vm_with_userdata.py" class="TestDeployVmWithUserData" tags="basic" tc="TC-989077"/>
+      <marvintests path="smoke/test_deploy_vms_with_varied_deploymentplanners.py" class="TestDeployVmWithVariedPlanners" tags="basic" tc="TC-989078"/>
+      <marvintests path="smoke/test_disk_offerings.py" class="TestCreateDiskOffering" tags="basic" tc="TC-989079"/>
+      <marvintests path="smoke/test_disk_offerings.py" class="TestDiskOfferings" tags="basic" tc="TC-989080"/>
+      <marvintests path="smoke/test_global_settings.py" class="TestUpdateConfigWithScope" tags="basic" tc="TC-989081"/>
+      <marvintests path="smoke/test_iso.py" class="TestCreateIso" tags="basic" tc="TC-989082"/>
+      <marvintests path="smoke/test_iso.py" class="TestISO" tags="basic" tc="TC-989083"/>
+      <marvintests path="smoke/test_multipleips_per_nic.py" class="TestDeployVM" tags="basic" tc="TC-989084"/>
+      <marvintests path="smoke/test_nic.py" class="TestNic" tags="basic" tc="TC-989085"/>
+      <marvintests path="smoke/test_portable_publicip.py" class="TestPortablePublicIPRange" tags="basic" tc="TC-989086"/>
+      <marvintests path="smoke/test_primary_storage.py" class="TestPrimaryStorageServices" tags="basic" tc="TC-989087"/>
+      <marvintests path="smoke/test_regions.py" class="TestRegions" tags="basic" tc="TC-989088"/>
+      <marvintests path="smoke/test_reset_vm_on_reboot.py" class="TestResetVmOnReboot" tags="basic" tc="TC-989089"/>
+      <marvintests path="smoke/test_routers.py" class="TestRouterServices" tags="basic" tc="TC-989090"/>
+      <marvintests path="smoke/test_scale_vm.py" class="TestScaleVm" tags="basic" tc="TC-989091"/>
+      <marvintests path="smoke/test_secondary_storage.py" class="TestSecStorageServices" tags="basic" tc="TC-989092"/>
+      <marvintests path="smoke/test_service_offerings.py" class="TestCreateServiceOffering" tags="basic" tc="TC-989093"/>
+      <marvintests path="smoke/test_service_offerings.py" class="TestServiceOfferings" tags="basic" tc="TC-989094"/>
+      <marvintests path="smoke/test_ssvm.py" class="TestSSVMs" tags="basic" tc="TC-989095"/>
+      <marvintests path="smoke/test_templates.py" class="TestTemplates" tags="basic" tc="TC-989096"/>
+      <marvintests path="smoke/test_vm_life_cycle.py" class="TestDeployVM" tags="basic" tc="TC-989097"/>
+      <marvintests path="smoke/test_vm_life_cycle.py" class="TestVMLifeCycle" tags="basic" tc="TC-989098"/>
+      <marvintests path="smoke/test_volumes.py" class="TestCreateVolume" tags="basic" tc="TC-989099"/>
+      <marvintests path="smoke/test_volumes.py" class="TestVolumes" tags="basic" tc="TC-989100"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

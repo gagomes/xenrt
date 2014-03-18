@@ -13,7 +13,7 @@ Parses an XML test sequence specification.
 """
 
 import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
-import xenrt, xenrt.clouddeploy
+import xenrt
 
 __all__ = ["Fragment",
            "SingleTestCase",
@@ -241,10 +241,24 @@ class Fragment(threading.Thread):
             for c in toplevel.collections[collection].childNodes:
                 if c.nodeType == c.ELEMENT_NODE:
                     self.handleSubNode(toplevel, c, newparams)
-        elif node.localName == "testcase":
-            tcid = expand(node.getAttribute("id"), params)
-            name = expand(node.getAttribute("name"), params)
-            group = expand(node.getAttribute("group"), params)
+        elif node.localName == "testcase" or node.localName == "marvintests":
+            if node.localName == "testcase":
+                tcid = expand(node.getAttribute("id"), params)
+                name = expand(node.getAttribute("name"), params)
+                group = expand(node.getAttribute("group"), params)
+                marvinTestConfig = None
+            else:
+                tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
+                marvinTestConfig = {}
+                marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
+                marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
+                marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
+
+                group = os.path.splitext(os.path.basename(marvinTestConfig['path']))[0]
+                group = len(group) > 32 and group[len(group)-32:] or group
+                name = expand(node.getAttribute("class"), params)
+                name = len(name) > 32 and name[len(name)-32:] or name
+
             host = expand(node.getAttribute("host"), params)
             guest = expand(node.getAttribute("guest"), params)
             prios = expand(node.getAttribute("prio"), params)
@@ -288,7 +302,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             except Exception as e:
                 exception_type,exception_value,exception_traceback = sys.exc_info()
                 xenrt.TEC().logverbose("Failed to import file %s with exception values %s,%s,%s"%(tcid,exception_type,exception_value,exception_traceback))
@@ -309,7 +324,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             self.addStep(newtc)        
 
     def handleXMLNode(self, toplevel, node, params=None):
@@ -410,7 +426,8 @@ class SingleTestCase(Fragment):
                  depend=None,
                  blocker=None,
                  jiratc=None,
-                 tcsku=None):
+                 tcsku=None,
+                 marvinTestConfig=None):
         xenrt.TEC().logverbose("Creating testcase object for %s" % (tc))
         Fragment.__init__(self, parent, None)
         package = string.join(string.split(tc, ".")[:-1], ".")
@@ -442,6 +459,7 @@ class SingleTestCase(Fragment):
         self.blocker = blocker
         self.jiratc = jiratc
         self.tcsku = tcsku
+        self.marvinTestConfig = marvinTestConfig
 
     def runThis(self):
         try:
@@ -460,7 +478,8 @@ class SingleTestCase(Fragment):
                               isfinally=self.isfinally,
                               blocker=self.blocker,
                               jiratc=self.jiratc,
-                              tcsku = self.tcsku)
+                              tcsku = self.tcsku,
+                              marvinTestConfig = self.marvinTestConfig)
             if t and t.ticket:
                 self.ticket = t.ticket
                 self.ticketIsFailure = t.ticketIsFailure
@@ -1773,7 +1792,7 @@ class PrepareNode:
                     host.associateDVS(controller.getDVSCWebServices())
 
                 if self.cloudSpec:
-                    xenrt.clouddeploy.deploy(self.cloudSpec)
+                    xenrt.lib.cloud.deploy(self.cloudSpec)
 
         except Exception, e:
             sys.stderr.write(str(e))

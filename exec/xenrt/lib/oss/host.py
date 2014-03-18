@@ -29,7 +29,7 @@ def createHost(id=0,
                diskCount=1,
                productVersion=None,
                productType=None,
-               withisos=False,
+               withisos=True,
                embedded=None,
                noisos=None,
                overlay=None,
@@ -52,6 +52,8 @@ def createHost(id=0,
     host.installLinuxVendor("debian70", arch="x86-64")
 
     host.installXen()
+    if withisos:
+        host.setupISOMounts()
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
@@ -112,6 +114,16 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
 
         # Check we have a working Xen installation
         self.check()
+
+    def setupISOMounts(self):
+        isoMounts = {'isos': self.lookup("EXPORT_ISO_NFS")}
+        staticIsos = self.lookup("EXPORT_ISO_NFS_STATIC", None)
+        if staticIsos:
+            isoMounts['isos-static'] = staticIsos
+        for i in isoMounts:
+            self.execSSH("mkdir -p /mnt/%s" % i)
+            self.execSSH("echo '%s /mnt/%s nfs ro 0 0' >> /etc/fstab" % (isoMounts[i], i))
+            self.execSSH("mount /mnt/%s" % i)
 
     def check(self):
         # TODO: Improve this to be more thorough than just checking an xl command responds!
@@ -207,13 +219,14 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
         self.sftpClient().copyTo(localtmp, tmpfile)
         return tmpfile
 
-    def create(self, xlcfg, uuid):
+    def createInstance(self, xlcfg, uuid):
         """Creates an instance, returning the domid"""
         tmpfile = self._writeXLConfig(xlcfg)
         try:
-            self._xl("create", [tmpfile, "-e"])
+            self._xl("create", [tmpfile])
         finally:
-            self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
+            if not xenrt.TEC().lookup("OPTION_KEEP_XLCFGS", False, boolean=True):
+                self.execSSH("rm -f %s" % (tmpfile), level=xenrt.RC_OK)
         # xl create doesn't return the domid, so we need to look this up
         data = self._list()
         for dom in data:
@@ -221,9 +234,44 @@ class OSSHost(xenrt.lib.native.NativeLinuxHost):
                 return dom['domid']
         raise xenrt.XRTError("domid not found after creating domain")
 
-    def destroy(self, domid):
+    def destroyInstance(self, domid):
         """Destroys the given domid"""
         self._xl("destroy", [str(domid)])
+
+    def shutdownInstance(self, domid):
+        """Shuts down the given domid"""
+        self._xl("shutdown", [str(domid)])
+
+    def rebootInstance(self, domid):
+        """Reboots the given domid"""
+        self._xl("reboot", [str(domid)])
+
+    def saveInstance(self, domid, saveFile):
+        """Suspends the given domid into the specified save file"""
+        self._xl("save", [str(domid), saveFile])
+
+    def restoreInstance(self, saveFile):
+        """Restores the given save file"""
+        self._xl("restore", [saveFile])
+
+    def authoriseSSHKey(self, publicKey):
+        """Authorises the given public Key for SSH access"""
+        # Check if it's already present
+        if self.execSSH("grep '%s' /root/.ssh/authorized_keys" % publicKey, retval="code") != 0:
+            self.execSSH("echo '%s' >> /root/.ssh/authorized_keys" % publicKey)
+
+    def migrateInstance(self, domid, to):
+        """Migrates the given domid to the specified host"""
+        if not isinstance(to, OSSHost):
+            raise xenrt.XRTError("Cannot migrate to this type of host")
+
+        # Set up SSH keys needed for the migration
+        if self.execSSH("ls -l /root/.ssh/id_rsa.pub", retval="code") != 0:
+            self.execSSH("ssh-keygen -f /root/.ssh/id_rsa -P ''")
+        publicKey = self.execSSH("cat /root/.ssh/id_rsa.pub").strip()
+        to.authoriseSSHKey(publicKey)
+
+        self._xl("migrate", [domid, to.getIP()])
 
     def execSSH(self, *args, **kwargs):
         return self.execdom0(*args, **kwargs)

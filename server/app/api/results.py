@@ -164,13 +164,6 @@ class XenRTLogData(XenRTAPIPage):
         cur = db.cursor()
 
 
-        # Make sure this phase+test combination exists in the lookup table
-        cur.execute(("SELECT phase,test FROM tlkptestphase WHERE phase='%s' " +
-                     "AND test='%s';") % (phase,test))
-        if not cur.rowcount:
-            cur.execute(("INSERT INTO tlkptestphase (phase,test) VALUES ('%s'," +
-                         "'%s');") % (phase,test))
-
         # Make sure we have a result field for this test
         result = ""
         if key == "result":
@@ -251,13 +244,6 @@ class XenRTSetResult(XenRTAPIPage):
 
         cur = db.cursor()
 
-
-        # Make sure this phase+test combination exists in the lookup table
-        cur.execute(("SELECT phase,test FROM tlkptestphase WHERE phase='%s' " +
-                     "AND test='%s';") % (phase,test))
-        if not cur.rowcount:
-            cur.execute(("INSERT INTO tlkptestphase (phase,test) VALUES ('%s'," +
-                         "'%s');") % (phase,test))
 
         cur.execute(("SELECT jobid, phase, test, result FROM tblResults " +
                      "WHERE jobid = %u AND phase = '%s' AND test = '%s';") %

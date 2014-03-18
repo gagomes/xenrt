@@ -1,0 +1,102 @@
+<xenrt>
+  <!-- Boston Windows timezone test -->
+  <default name="PARALLEL" value="3" />
+
+  <variables>
+    <PRODUCT_VERSION>Boston</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0">
+        <vm name="winxpsp3">
+          <distro>winxpsp3</distro>
+          <postinstall action="installDrivers"/>
+          <postinstall action="installPowerShell"/>
+          <network device="0" />
+        </vm>
+        <vm name="w2k3eesp2x64">
+          <distro>w2k3eesp2-x64</distro>
+          <postinstall action="installPowerShell"/>
+          <network device="0" />
+        </vm>
+        <vm name="win7sp1x86">
+          <distro>win7sp1-x86</distro>
+          <postinstall action="installDrivers"/>
+          <network device="0" />
+        </vm>
+        <vm name="ws08r2sp1x64">
+          <distro>ws08r2sp1-x64</distro>
+          <network device="0" />
+        </vm>
+      </host>
+      <host id="1" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="WinKern52">
+        <testcase id="guestops.drivers.TCDriverInstall">
+          <arg>guest=w2k3eesp2x64</arg>
+          <arg>useHostTimeUTC</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzStopStart-xp" tc="TC-20968">
+          <arg>guest=winxpsp3</arg>
+          <arg>lifecycleOperation=shutdownStart</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzSuspendResume-2k3" tc="TC-20965">
+          <arg>guest=w2k3eesp2x64</arg>
+          <arg>hostTimeOptionAlreadySet</arg>
+          <arg>lifecycleOperation=suspendResume</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzPoolMigrate-2k3" tc="TC-20964">
+          <arg>guest=w2k3eesp2x64</arg>
+          <arg>hostTimeOptionAlreadySet</arg>
+          <arg>lifecycleOperation=poolMigrate</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzInGuestReboot-xp" tc="TC-20969">
+          <arg>guest=winxpsp3</arg>
+          <arg>lifecycleOperation=inGuestReboot</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzLHMigrate-xp" tc="TC-20970">
+          <arg>guest=winxpsp3</arg>
+          <arg>lifecycleOperation=localhostMigrate</arg>
+        </testcase>
+      </serial>
+
+      <serial group="WinKern61">
+        <testcase id="guestops.drivers.TCDriverInstall">
+          <arg>guest=ws08r2sp1x64</arg>
+          <arg>useHostTimeUTC</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzStopStart-2k8" tc="TC-20926">
+          <arg>guest=ws08r2sp1x64</arg>
+          <arg>hostTimeOptionAlreadySet</arg>
+          <arg>lifecycleOperation=shutdownStart</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzSuspendResume-w7" tc="TC-20966">
+          <arg>guest=win7sp1x86</arg>
+          <arg>lifecycleOperation=suspendResume</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzPoolMigrate-w7" tc="TC-20973">
+          <arg>guest=win7sp1x86</arg>
+          <arg>lifecycleOperation=poolMigrate</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzInGuestReboot-2k8" tc="TC-20960">
+          <arg>guest=ws08r2sp1x64</arg>
+          <arg>hostTimeOptionAlreadySet</arg>
+          <arg>lifecycleOperation=inGuestReboot</arg>
+        </testcase>
+        <testcase id="xenserver.tc.vmlifecycle.TCWinTzHostTimeUTC" name="WinTzLHMigrate-2k8" tc="TC-20961">
+          <arg>guest=ws08r2sp1x64</arg>
+          <arg>hostTimeOptionAlreadySet</arg>
+          <arg>lifecycleOperation=localhostMigrate</arg>
+        </testcase>
+      </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

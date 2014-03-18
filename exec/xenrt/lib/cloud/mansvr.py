@@ -8,6 +8,8 @@ try:
     from marvin import cloudstackTestClient
     from marvin.integration.lib.base import *
     from marvin import configGenerator
+    import jenkinsapi
+    from jenkinsapi.jenkins import Jenkins
 except ImportError:
     pass
 
@@ -54,10 +56,10 @@ class ManagementServer(object):
                     xenrt.sleep(60)
 
             if not managementServerOk:
-                reboots += 1
                 xenrt.TEC().logverbose('Restarting Management Server: Attempt: %d of %d' % (reboots, maxReboots))
                 self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-                self.restart(checkHealth=False, startStop=True)
+                self.restart(checkHealth=False, startStop=(reboots > 0))
+                reboots += 1
 
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
@@ -69,6 +71,33 @@ class ManagementServer(object):
         
         if checkHealth:
             self.checkManagementServerHealth()
+
+    def setupManagementServerDatabase(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            # Configure SELinux
+            self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
+            self.place.execcmd('setenforce Permissive')
+
+            self.place.execcmd('yum -y install mysql-server mysql')
+            self.place.execcmd('service mysqld restart')
+
+            self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+            self.place.execcmd('mysqladmin -u root password xensource')
+            self.place.execcmd('service mysqld restart')
+
+            setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+            self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+
+    def setupManagementServer(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+            setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+            self.place.execcmd(setupMsLoc)
+
+            self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+
+        self.restart()
 
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':
@@ -85,26 +114,57 @@ class ManagementServer(object):
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
             self.place.execcmd('cd %s && ./install.sh -m' % (installDir))
 
-            self.place.execcmd('setenforce Permissive')
-            self.place.execcmd('service nfs start')
+            self.setupManagementServerDatabase()
+            self.setupManagementServer()
 
-            self.place.execcmd('yum -y install mysql-server mysql')
-            self.place.execcmd('service mysqld restart')
+    def getLatestMSArtifactsFromJenkins(self):
+        jenkinsUrl = 'http://jenkins.buildacloud.org'
 
-            self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-            self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-            self.place.execcmd('mysqladmin -u root password xensource')
-            self.place.execcmd('service mysqld restart')
+        j = Jenkins(jenkinsUrl)
+        # TODO - Add support for getting a specific build (not just the last good one)?
+        branch = xenrt.TEC().lookup('ACS_BRANCH', 'master')
+        if not branch in j.views.keys():
+            raise xenrt.XRTError('Could not find ACS_BRANCH %s' % (branch))
 
-            setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+        view = j.views[branch]
+        xenrt.TEC().logverbose('View %s has jobs: %s' % (branch, view.keys()))
 
-            self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+        jobKey = None
+        if 'package-%s-%s' % (self.place.distro, branch) in view.keys():
+            jobKey = 'package-%s-%s' % (self.place.distro, branch)
+        else:
+            packageType = 'deb'
+            if self.place.distro.startswith('rhel') or self.place.distro.startswith('centos'):
+                packageType = 'rpm'
 
-            setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
-            self.place.execcmd(setupMsLoc)    
+            if 'package-%s-%s' % (packageType, branch) in view.keys():
+                jobKey = 'package-%s-%s' % (packageType, branch)
 
-            self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
-        
-        self.restart()
+            if 'cloudstack-%s-package-%s' % (branch, packageType) in view.keys():
+                jobKey = 'cloudstack-%s-package-%s' % (branch, packageType)
+
+        if not jobKey:
+            raise xenrt.XRTError('Failed to find a jenkins job for creating MS package')
+        else:
+            xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
+
+        lastGoodBuild = view[jobKey].get_last_good_build()
+        artifactsDict = lastGoodBuild.get_artifact_dict()
+
+        artifactKeys = filter(lambda x:x.startswith('cloudstack-management-') or x.startswith('cloudstack-common-') or x.startswith('cloudstack-awsapi-'), artifactsDict.keys())
+
+        placeArtifactDir = '/tmp/csartifacts'
+        self.place.execcmd('mkdir %s' % (placeArtifactDir))
+        # Copy artifacts into the temp directory
+        map(lambda x:self.place.execcmd('wget %s -P %s' % (artifactsDict[x].url, placeArtifactDir)), artifactKeys)
+        return placeArtifactDir
+
+    def installCloudStackManagementServer(self):
+        placeArtifactDir = self.getLatestMSArtifactsFromJenkins()
+
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')))
+
+        self.setupManagementServerDatabase()
+        self.setupManagementServer()
 

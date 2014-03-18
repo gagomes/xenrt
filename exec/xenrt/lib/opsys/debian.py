@@ -19,6 +19,10 @@ class DebianBasedLinux(LinuxOS):
         else:
             return False
 
+    @staticmethod
+    def testInit():
+        return DebianBasedLinux("debian70", None)
+
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)
 

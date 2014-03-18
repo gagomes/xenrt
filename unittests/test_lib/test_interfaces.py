@@ -35,9 +35,17 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         verifyObject(xenrt.interfaces.OSParent, i)
 
 def test_osLibraries():
+
+    # Some of the libraries call xenrt.TEC().lookup, so we need to mock xenrt.TEC
+    xenrt.TEC = Mock()
+
     def oslib_test(oslib):
+        o = oslib.testInit()
         for i in list(implementedBy(oslib)):
-            verifyClass(i, oslib)
+            verifyObject(i, o)
+
     for l in xenrt.lib.opsys.oslist:
-        oslib_test.description = "Verify the %s class implements its interfaces" % l.__name__
-        yield oslib_test, l
+        testfn = lambda: oslib_test(l)
+        testfn.description = "Verify the %s class implements its interfaces" % l.__name__
+        yield testfn
+

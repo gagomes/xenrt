@@ -59,8 +59,11 @@ class OS(Interface):
     def waitForBoot(timeout):
         """Wait for the OS to boot"""
 
+    def testInit():
+        """Instantiate a dummy version for interface testing"""
+
 class InstallMethodPV(Interface):
-    installUrl = Attribute("HTTP installation URL")
+    installURL = Attribute("HTTP installation URL")
     installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")
 
     def generateAnswerfile(webdir):

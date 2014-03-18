@@ -8386,7 +8386,8 @@ rm -f /etc/xensource/xhad.conf || true
         self.execdom0("chmod a+x /tmp/xenrt_ha_reset.sh")
         self.execdom0("PATH=$PATH:/opt/xensource/xha "
                       "/tmp/xenrt_ha_reset.sh",
-                      level=xenrt.RC_OK)
+                      level=xenrt.RC_OK,
+                      getreply=False)
 
         # Remove any NFS blocks
         self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")

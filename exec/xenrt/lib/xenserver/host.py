@@ -3266,7 +3266,7 @@ done
     def getVdiMD5Sum(self, vdi):
         """Gets the MD5 sum of the specified VDI"""
 
-        if not isinstance(vdi, str) or len(vdi) == 0:
+        if not (isinstance(vdi, str) or isinstance(vdi, unicode)) or len(vdi) == 0:
             raise xenrt.XRTError("Invalid VDI UUID passed to getVdiMD5Sum()")
         
         # generate random name for script to write in dom0

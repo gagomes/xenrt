@@ -325,7 +325,7 @@ class _UnitTestMechanism(object):
         try: 
             location = xenrt.TEC().lookup(self.SDK_OVERRIDE)
             log("Found override.....")
-            return os.path.join(location, self._packageName)
+            return location 
         except:
             return "xe-phase-2/%s" % self._packageName
 

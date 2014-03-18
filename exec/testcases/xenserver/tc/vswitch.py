@@ -1,4 +1,4 @@
-import math, threading, re, time, string, subprocess, xml.dom.minidom, copy
+import math, threading, re, time, string, subprocess, xml.dom.minidom, copy, os
 import xenrt
 from xenrt.lazylog import step, comment, log, warning
 import socket,random,sys,time
@@ -5934,7 +5934,7 @@ sleep %i
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
         # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
-        xenrt.sleep(timeSecs/2)
+        xenrt.sleep(timeSecs)
 
         # Process results
         for ip in ips:

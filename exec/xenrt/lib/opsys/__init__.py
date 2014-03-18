@@ -1,5 +1,5 @@
 import xenrt
-from zope.interface import implements, implementedBy
+from zope.interface import implements, providedBy
 
 oslist = []
 
@@ -35,7 +35,7 @@ class OS(object):
     @property
     def supportedInstallMethods(self):
         # We base this on interfaces
-        interfaces = implementedBy(self.__class__)
+        interfaces = providedBy(self)
         return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod

@@ -230,9 +230,9 @@ class MarvinApi(object):
         allHostsUp = False
         while(not allHostsUp):
             xenrt.sleep(10)
-            hostList = Host.list(self.apiClient, clustername='XenRT-Zone-0-Pod-0-Cluster-0', type='Routing')
+            hostList = Host.list(self.apiClient, clustername=cluster.name, type='Routing')
             hostListState = map(lambda x:x.state, hostList)
-            xenrt.TEC().logverbose('Waiting for host(s) %s, Current State(s): %s' % (map(lambda x:x.name, hostList), hostListState))
+            xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
     def addIsoIfNotPresent(self, distro, isoName, isoRepo):

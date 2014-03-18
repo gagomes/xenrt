@@ -98,6 +98,7 @@ class ManagementServer(object):
             self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
         self.restart()
+        xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
 
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':
@@ -155,6 +156,9 @@ class ManagementServer(object):
 
         placeArtifactDir = '/tmp/csartifacts'
         self.place.execcmd('mkdir %s' % (placeArtifactDir))
+
+        xenrt.TEC().logverbose('Using CloudStack Build: %d, Timestamp %s' % (lastGoodBuild.get_number(), lastGoodBuild.get_timestamp().strftime('%d-%b-%y %H:%M:%S')))
+
         # Copy artifacts into the temp directory
         map(lambda x:self.place.execcmd('wget %s -P %s' % (artifactsDict[x].url, placeArtifactDir)), artifactKeys)
         return placeArtifactDir

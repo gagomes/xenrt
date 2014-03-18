@@ -14,6 +14,7 @@ Parses an XML test sequence specification.
 
 import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
 import xenrt
+import pprint
 
 __all__ = ["Fragment",
            "SingleTestCase",
@@ -1285,12 +1286,12 @@ class PrepareNode:
         return vm                    
 
     def debugDisplay(self):
-        xenrt.TEC().logverbose("Hosts: %s" % (self.hosts))
-        xenrt.TEC().logverbose("Pools: %s" % (self.pools))
-        xenrt.TEC().logverbose("VMs: %s" % (self.vms))
-        xenrt.TEC().logverbose("Bridges: %s" % (self.bridges))
-        xenrt.TEC().logverbose("SRs: %s" % (self.srs))
-        xenrt.TEC().logverbose("Cloud Spec: %s" % (self.cloudSpec))
+        xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))
+        xenrt.TEC().logverbose("Pools:\n" + pprint.pformat(self.pools))
+        xenrt.TEC().logverbose("VMs:\n" + pprint.pformat(self.vms))
+        xenrt.TEC().logverbose("Bridges:\n" + pprint.pformat(self.bridges))
+        xenrt.TEC().logverbose("SRs:\n" + pprint.pformat(self.srs))
+        xenrt.TEC().logverbose("Cloud Spec:\n" + pprint.pformat(self.cloudSpec))
 
     def runThis(self):
         self.preparecount = self.preparecount + 1

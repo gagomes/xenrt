@@ -74,6 +74,12 @@ class OS(Interface):
     def testInit():
         """Instantiate a dummy version for interface testing"""
 
+    def reboot():
+        """Perform an OS-initiated reboot"""
+
+    def shutdown():
+        """Perform an OS-initiated shutdown"""
+
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")
     installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")

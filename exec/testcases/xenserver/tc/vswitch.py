@@ -5828,7 +5828,7 @@ ips='%s'
 mkdir -p "/tmp/iperfLogsServer"
 for i in $ips; do
 # Set server port
-server_port=$(($base_port+1))
+server_port=$((base_port++))
 # Report file includes server port
 report_file="/tmp/iperfLogsServer/iperfServer-${server_port}-$i.txt"
 # Run iperf
@@ -5859,7 +5859,7 @@ base_port=%i
 mkdir -p "/tmp/iperfLogsClient"
 for i in $ip; do
 # Set server port
-server_port=$(($base_port+1));
+server_port=$(($base_port++));
 # Report file includes server ip, server port and test duration
 report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${i}.txt"
 # Run iperf

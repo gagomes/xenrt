@@ -24,7 +24,7 @@ class RHELKickStartFile :
                  memory=256,
                  bootDiskSize=100,
                  options={},
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  method="HTTP",
                  repository=None,
                  ethDevice="eth0",
@@ -57,7 +57,7 @@ class RHELKickStartFile :
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         
     def generate(self):
-        if self.installOn=="Xen":
+        if self.installOn==xenrt.HypervisorType.xen:
             kf=self._generateKS()
         else :
         #Native installation
@@ -150,7 +150,7 @@ class RHELKickStartFile :
         
     def _more(self):
         more=""
-        if self.installOn=="Xen":   
+        if self.installOn==xenrt.HypervisorType.xen:   
            
             if self.pxe or self.installXenToolsInPostInstall:
                 more="reboot\n"
@@ -253,7 +253,7 @@ stunnel
        self._extra()
        )
 
-        if self.installOn == "Xen":       
+        if self.installOn == xenrt.HypervisorType.xen:       
             out = out+ """
 %%post
 %s
@@ -339,7 +339,7 @@ class SLESAutoyastFile :
                  distro,
                  signalDir,
                  maindisk,
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  pxe=False,
                  password=None,
                  method="HTTP",
@@ -382,7 +382,7 @@ class SLESAutoyastFile :
         return self.postinstall
     
     def generate(self):
-        if self.installOn=="Xen":
+        if self.installOn==xenrt.HypervisorType.xen:
             ay=self._generateAY()
         else:
             ay=self._generateNativeAY()
@@ -2407,7 +2407,7 @@ class DebianPreseedFile():
                  distro,
                  repository,
                  filename,
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  method="HTTP",
                  ethDevice="eth0",
                  password=None,

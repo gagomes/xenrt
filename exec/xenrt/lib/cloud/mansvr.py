@@ -98,6 +98,7 @@ class ManagementServer(object):
             self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
         self.restart()
+        xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
 
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':

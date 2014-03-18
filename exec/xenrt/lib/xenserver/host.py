@@ -3208,7 +3208,7 @@ done
             guest.setVCPUs(vcpus)
         if memory != None:
             guest.setMemory(memory)
-        if not disksize:
+        if (not disksize) or disksize == None or disksize == guest.DEFAULT:
             if forceHVM:
                 disksize = 8192 # 8GB (in MB) by default
             else:

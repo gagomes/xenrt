@@ -5933,6 +5933,9 @@ sleep %i
         self.startIPerfClient(iperfClient=self.linHost,
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
+        # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
+        xenrt.sleep(timeSecs/2)
+
         # Process results
         for ip in ips:
             str=self.linHost.execcmd("cd /tmp/iperfLogsClient && ls | grep %s | xargs cat" % ip).strip()

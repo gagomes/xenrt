@@ -36,24 +36,34 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         verifyObject(xenrt.interfaces.OSParent, i)
 
 def test_osLibraries():
+    """Generate tests for each known OS library"""
 
     # Some of the libraries call xenrt.TEC().lookup, so we need to mock xenrt.TEC
     xenrt.TEC = Mock()
 
     def oslib_test(oslib):
+        # Instantiate the OS library
         o = oslib.testInit()
+        # Verify all interfaces declared as being implemented
         for i in list(implementedBy(oslib)):
             verifyObject(i, o)
 
     def oslib_supportedInstallMethods(oslib):
+        # Instantiate the OS library
         o = oslib.testInit()
+
         implementedInterfaces = list(implementedBy(oslib))
+
+        # Determine what interfaces are required based on the supportedInstallMethods attribute
         requiredInterfaces = filter(lambda i: o._allInstallMethods[i] in o.supportedInstallMethods, o._allInstallMethods)
+
+        # Verify the required interfaces are implemented
         for i in requiredInterfaces:
             if not i in implementedInterfaces:
                 raise AssertionError("Interface %s not implemented but stated in supportedInstallMethods" % i.__name__)
 
     for l in xenrt.lib.opsys.oslist:
+        # We use lambda functions here so we can give them a unique description
         testfn = lambda: oslib_test(l)
         testfn.description = "Verify the %s class implements its interfaces" % l.__name__
         yield testfn

@@ -155,6 +155,9 @@ class ManagementServer(object):
 
         placeArtifactDir = '/tmp/csartifacts'
         self.place.execcmd('mkdir %s' % (placeArtifactDir))
+
+        xenrt.TEC().logverbose('Using CloudStack Build: %d, Timestamp %s' % (lastGoodBuild.get_number(), lastGoodBuild.get_timestamp().strftime('%d-%b-%y %H:%M:%S')))
+
         # Copy artifacts into the temp directory
         map(lambda x:self.place.execcmd('wget %s -P %s' % (artifactsDict[x].url, placeArtifactDir)), artifactKeys)
         return placeArtifactDir

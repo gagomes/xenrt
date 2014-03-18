@@ -6,32 +6,33 @@ from zope.interface.verify import verifyObject, verifyClass
 from zope.interface import implementedBy
 from mock import Mock
 
-class CloudStackTest(xenrt.lib.cloud.CloudStack):
-    """Mock Cloudstack class that overrides __init__ so we can just check the interface"""
-    def __init__(self):
-        pass
-
-class InstanceTest(xenrt.lib.generic.Instance):
-    """Mock instance class that overrides __init__ so we can just check the interface"""
-    def __init__(self):
-        self.name=None
-        self.toolstack = Mock()
-        self.toolstack.instanceHypervisorType = Mock() # The hypervisorType property needs to call this, so we need to mock it
-
 class TestInterfaces(XenRTTestCaseUnitTestCase):
     def test_cloudstackInterface(self):
         """Verify that the CloudStack class implements the Toolstack interface"""
-        c = CloudStackTest()
+
+        # Mock out the classes used by the CloudStack __init__ so they don't get created
+        xenrt.lib.cloud.ManagementServer = Mock()
+        xenrt.lib.cloud.MarvinApi = Mock()
+        # Create the CloudStack object, mocking place
+        c = xenrt.lib.cloud.CloudStack(place = Mock())
+
+        # Do the verification
         verifyObject(xenrt.interfaces.Toolstack, c)
 
     def test_xlInterface(self):
         """Verify the XLToolstack class implements the Toolstack interface"""
+        # Create the toolstack object, no mocking needed for now
         x = xenrt.lib.xl.XLToolstack()
+        # Do the verification
         verifyObject(xenrt.interfaces.Toolstack, x)
 
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
-        i = InstanceTest()
+        # Mock out the methods used by the Instance __init__ so they don't get called
+        xenrt.lib.opsys.OSFactory = Mock()
+        # Crete the Instance, mocking toolstack
+        i = xenrt.lib.generic.Instance(Mock(), None, None, None, None)
+        # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
 def test_osLibraries():

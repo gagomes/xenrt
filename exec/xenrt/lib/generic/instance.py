@@ -24,6 +24,13 @@ class Instance(object):
     def hypervisorType(self):
         return self.toolstack.instanceHypervisorType(self)
 
+    def populateFromExisting(self, ip=None):
+        if ip:
+            self.mainip = ip
+        else:
+            self.mainip = self.getIP()
+        self.os.populateFromExisting()
+
     def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):
         """Poll for reaching the specified state"""
         deadline = xenrt.timenow() + timeout

@@ -20,6 +20,9 @@ class OS(object):
         """Try some passwords to determine which to use"""
         return
 
+    def populateFromExisting(self):
+        pass
+
     @property
     def installMethod(self):
         return self.__installMethod

@@ -49,6 +49,9 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
+    def populateFromExisting(self):
+        self.findPassword()
+
     def findPassword(self, ipList = []):
         """Try some passwords to determine which to use"""
         if not self.password or len(ipList) > 0:

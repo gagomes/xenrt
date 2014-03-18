@@ -80,6 +80,9 @@ class OS(Interface):
     def shutdown():
         """Perform an OS-initiated shutdown"""
 
+    def populateFromExisting():
+        """Populate class members from an existing OS installaion"""
+
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")
     installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")

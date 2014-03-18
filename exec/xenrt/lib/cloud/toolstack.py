@@ -109,6 +109,7 @@ class CloudStack(object):
         # TODO: Sort out the other arguments here
         instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
         instance.toolstackId = vm.id
+        instance.populateFromExisting()
         return instance
 
     def destroyInstance(self, instance):

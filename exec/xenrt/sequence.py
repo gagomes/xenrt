@@ -1318,10 +1318,20 @@ class PrepareNode:
                 i += 1
         
         try:
+            sharedGuestQueue = InstallWorkQueue()
             for v in self.vms:
                 if v.has_key("host") and v["host"] == "SHARED":
                     if not xenrt.TEC().registry.hostGet("SHARED"):
                         xenrt.TEC().registry.hostPut("SHARED", xenrt.resources.SharedHost().getHost())
+                        sharedGuestQueue.add(v)
+                
+            sharedGuestWorkers = []
+            if len(sharedGuestQueue.items) > 0:
+                for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
+                    w = GuestInstallWorker(sharedGuestQueue, name="SHGWorker%02u" % (i))
+                    sharedGuestWorkers.append(w)
+                    w.start()
+                
             if not nohostprepare:
                 # Install hosts in parallel to save time.
                 queue = InstallWorkQueue()
@@ -1784,7 +1794,8 @@ class PrepareNode:
             if len(self.vms) > 0:
                 queue = InstallWorkQueue()
                 for v in self.vms:
-                    queue.add(v)
+                    if not (v.has_key("host") and v["host"] == "SHARED"):
+                        queue.add(v)
                 workers = []
                 for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
                     w = GuestInstallWorker(queue, name="GWorker%02u" % (i))
@@ -1793,6 +1804,12 @@ class PrepareNode:
                 for w in workers:
                     w.join()
                 for w in workers:
+                    if w.exception:
+                        raise w.exception
+            if len(sharedGuestWorkers) > 0:
+                for w in sharedGuestWorkers:
+                    w.join()
+                for w in sharedGuestWorkers:
                     if w.exception:
                         raise w.exception
             

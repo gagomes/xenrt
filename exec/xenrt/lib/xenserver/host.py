@@ -725,10 +725,13 @@ class Host(xenrt.GenericHost):
         if doguests:
             guests = self.listGuests()
             for guestname in guests:
-                guest = self.guestFactory()(guestname, None)
-                guest.existing(self)
-                xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                xenrt.TEC().registry.guestPut(guestname, guest)
+                try:
+                    guest = self.guestFactory()(guestname, None)
+                    guest.existing(self)
+                    xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
+                    xenrt.TEC().registry.guestPut(guestname, guest)
+                except:
+                    xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
 
     def reinstall(self):
         self.install(cd=self.i_cd, primarydisk=self.i_primarydisk,

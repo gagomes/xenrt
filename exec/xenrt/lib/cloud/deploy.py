@@ -82,8 +82,8 @@ def deploy(cloudSpec, manSvr=None):
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSIP", manSvr.getIP()])
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSGUEST", "%s/%s" % (manSvr.getHost().getName(), manSvr.getName())])
-                except:
-                    xenrt.TEC().logverbose("Warning - could not update machine info")
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
                 # TODO - Add support for using other storage
                 priStoreName = '%s-PriStore' % (cluster.name)

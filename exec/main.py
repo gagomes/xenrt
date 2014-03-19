@@ -1001,11 +1001,21 @@ def getCloud(hostname):
     except:
         try:
             m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
-            if m.has_key('CSIP'):
+            if m.has_key("CSGUEST"):
+                (hostname, guestname) = m['CSGUEST'].split("/", 1)
+                try:
+                    host = existingHost(hostname)
+                except:
+                    host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                guest = host.guests[guestname]
+                gec.registry.guestPut("CS-MS", guest)
+                cloud = xenrt.lib.cloud.CloudStack(guest)
+                gec.registry.toolstackPut("cloud", cloud)
+            elif m.has_key('CSIP'):
                 cloud = xenrt.lib.cloud.CloudStack(ip=m['CSIP'])
                 gec.registry.toolstackPut("cloud", cloud)
-        except:
-            pass
+        except Exception, e:
+            xenrt.TEC().logverbose("Warning - could not retrieve CS management server - %s" % str(e))
 
 def existingLocations():
     runon = None

@@ -2838,15 +2838,16 @@ class SharedHost:
         if xenrt.TEC().lookup("OPTION_KEEP_UTILITY_VMS", False, boolean=True):
             return
         jobid = xenrt.GEC().dbconnect.jobid()
-        vms = self.getHost().execdom0("xe vm-list --minimal").strip().split(",")
-        for vm in vms:
-            vmname = self.getHost().execdom0("xe vm-param-get uuid=%s param-name=name-label" % vm).strip()
-            if re.match(".+-%s$" % jobid, vmname):
-                try:
-                    self.getHost().execdom0("xe vm-shutdown uuid=%s --force" % (vm))
-                except:
-                    pass
-                self.getHost().execdom0("xe vm-uninstall uuid=%s --force" % (vm))
+        if jobid:
+            vms = self.getHost().execdom0("xe vm-list --minimal").strip().split(",")
+            for vm in vms:
+                vmname = self.getHost().execdom0("xe vm-param-get uuid=%s param-name=name-label" % vm).strip()
+                if re.match(".+-%s$" % jobid, vmname):
+                    try:
+                        self.getHost().execdom0("xe vm-shutdown uuid=%s --force" % (vm))
+                    except:
+                        pass
+                    self.getHost().execdom0("xe vm-uninstall uuid=%s --force" % (vm))
             
 class PrivateVLAN(CentralResource):
     """A VLAN that we have temporary exclusive access to."""

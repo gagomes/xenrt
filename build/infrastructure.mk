@@ -534,3 +534,8 @@ infrastructure-uninstall: network-uninstall \
 			  cron-uninstall
 	$(info XenRT Infrastructure uninstalled.)			
 
+.PHONY: marvin
+marvin:
+	$(info Installing marvin)
+	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
+	sudo easy_install $(SHAREDIR)/marvin.tar.gz

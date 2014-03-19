@@ -5748,7 +5748,7 @@ class JumboFrames(_TC11551):
         dataFound = False
         mssFound = False
         for line in data.splitlines():
-            if len(lineFields) < 7:
+            if len(data.splitlines()) < 7:
                     raise xenrt.XRTError('Iperf still running so could not parse output')
 
             if re.search("0.0-10.0", line, re.I):
@@ -5853,6 +5853,11 @@ done """ % (baseport, list)
         # Convert the python list into a shell script list
         iplist=" ".join(iperfServerIPs)
         scriptfile = xenrt.TEC().tempFile()
+        # Kill any iperf server that might be running
+        try: 
+            iperfClient.execcmd("pkill iperf")
+        except Exception, e:
+            xenrt.log("Caught exception - %s, continuing..." % e)
 
         script = """#!/bin/bash
 test_duration=%i
@@ -5935,8 +5940,12 @@ sleep %i
         self.startIPerfClient(iperfClient=self.linHost,
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
-        # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
-        xenrt.sleep(timeSecs)
+
+        counter=len(self.ipsToTest)
+        while self.linHost.execcmd("ps -ef | pgrep iperf").strip() and counter:
+            # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
+            xenrt.sleep(timeSecs)
+            counter-=1
 
         # Process results
         for ip in ips:

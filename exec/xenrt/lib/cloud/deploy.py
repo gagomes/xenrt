@@ -73,6 +73,10 @@ def deploy(cloudSpec, manSvr=None):
                 cluster = marvinApi.addCluster(clusterSpec['name'], pod)
 
                 hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (clusterSpec['masterHostId']))
+                try:
+                    hostObject.tailorForCloudStack()
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
                 host = marvinApi.addHost(cluster, hostObject.getIP())
 
                 # TODO - Add support for using other storage

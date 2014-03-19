@@ -5942,10 +5942,15 @@ sleep %i
                         timeSecs=int(timeSecs))
 
         counter=len(self.ipsToTest)+20 # Add another few iterations as buffer
-        while self.linHost.execcmd("ps -ef | pgrep iperf").strip() and counter:
+        out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+        while out and counter:
             # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
             xenrt.sleep(timeSecs)
             counter-=1
+            try:
+                out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+            except Exception, e:
+                out=False
 
         # Process results
         for ip in ips:

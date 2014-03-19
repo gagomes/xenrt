@@ -20,18 +20,15 @@ class TCTimeVMClones(libperf.PerfTestCase):
         return vm
 
     def findVanillaVM(self):
-        vmuuids = self.host.minimalList("vm-list")
-        xenrt.TEC().logverbose("VM uuids: [%s]" % vmuuids)
-        vms = [ (vmuuid, self.host.genParamGet("vm", vmuuid, "name-label")) for vmuuid in vmuuids ]
+        vms = self.host.listGuests()
         xenrt.TEC().logverbose("VM name-labels: [%s]" % vms)
-        vms = filter(lambda (vmuuid,vm): vm == 'winxpsp3-vanilla', vms)
+        vms = filter(lambda (vm): vm == 'winxpsp3-vanilla', vms)
         xenrt.TEC().logverbose("Keeping VM name-labels: [%s]" % vms)
 
         # Take the first one that was found
-        (vmuuid,vm) = vms[0]
-        xenrt.TEC().logverbose("registering VM with name-label %s and uuid %s" % (vm,vmuuid))
+        vm = vms[0]
+        xenrt.TEC().logverbose("registering VM with name-label %s" % (vm))
         g = self.host.guestFactory()(vm, "NO_TEMPLATE", self.host)
-        g.uuid = vmuuid
         g.existing(self.host)
         self.host.addGuest(g)
 

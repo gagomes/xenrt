@@ -5967,16 +5967,16 @@ sleep %i
         for id in self.xsHost.listSecondaryNICs():
             # Look for overruns
             overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
-                                            h.getSecondaryNIC(id)).strip().split()[-2]
+                                            self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
             rxDict = {}
-            rxDict[h.getSecondaryNIC(id)] = overruns
+            rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
             xenrt.log("OVERRUN DATA: %s" %
                         [(k,r) for k,r in rxDict.iteritems()])
 
             # Verify there are no overruns
-            if rxDict[h.getSecondaryNIC(id)].split(":")[1] <> 0:
+            if rxDict[self.xsHost.getSecondaryNIC(id)].split(":")[1] <> 0:
                 raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
-                                        (h.getSecondaryNIC(id), overruns))
+                                        (self.xsHost.getSecondaryNIC(id), overruns))
         xenrt.log("OVERRUN DATA: %s" %
                         [(k,r) for k,r in rxDict.iteritems()])
 

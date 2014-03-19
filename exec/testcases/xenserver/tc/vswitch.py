@@ -5827,7 +5827,7 @@ class TC21019(JumboFrames):
         script="""#!/bin/bash
 base_port=%i
 ips='%s'
-mkdir -p "/tmp/iperfLogsServer"
+mkdir -p "/tmp/iperfLogs"
 for i in $ips; do
 # Set server port
 server_port=$((base_port++))
@@ -5863,7 +5863,7 @@ done """ % (baseport, list)
 test_duration=%i
 ip='%s'
 base_port=%i
-mkdir -p "/tmp/iperfLogsClient"
+mkdir -p "/tmp/iperfLogs"
 for i in $ip; do
 # Set server port
 server_port=$((base_port++));
@@ -5898,7 +5898,7 @@ sleep %i
         for h in self.linHost, self.xsHost:
             try:
                 sftp = h.sftpClient()
-                sftp.copyTreeFrom("/tmp/iperfLogs*", logsubdir)
+                sftp.copyTreeFrom("/tmp/iperfLogs", logsubdir)
             finally:
                 sftp.close()
 
@@ -5949,7 +5949,7 @@ sleep %i
 
         # Process results
         for ip in ips:
-            str=self.linHost.execcmd("cd /tmp/iperfLogsClient && ls | grep %s | xargs cat" % ip).strip()
+            str=self.linHost.execcmd("cd /tmp/iperfLogs && ls | grep %s | xargs cat" % ip).strip()
             xenrt.log("Raw iperf data for ip - %s: %s" %
                         (ip, str) )
             # Check if any iperf client communication has bombed

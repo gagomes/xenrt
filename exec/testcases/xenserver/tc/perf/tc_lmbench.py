@@ -43,9 +43,12 @@ class TCLMBench(libperf.PerfTestCase):
         instDir = "/root/lmbench-3.0-a9"
 
         # Install make, gcc
+        extraargs = ""
+        if xenrt.productLib(self.host) == xenrt.lib.xenserver:
+            extraargs = "--disablerepo=citrix --enablerepo=base,updates"
         cmds = [
-            "yum --disablerepo=citrix --enablerepo=base,updates install -y make",
-            "yum --disablerepo=citrix --enablerepo=base,updates install -y gcc",
+            "yum %s install -y make" % extraargs,
+            "yum %s install -y gcc" % extraargs,
         ]
         for cmd in cmds:
             output = self.host.execdom0(cmd)

@@ -5832,7 +5832,7 @@ for i in $ips; do
 # Set server port
 server_port=$((base_port++))
 # Report file includes server port
-report_file="/tmp/iperfLogsServer/iperfServer-${server_port}-$i.txt"
+report_file="/tmp/iperfLogs/iperfServer-${server_port}-$i.txt"
 # Run iperf
 iperf -s -p $server_port -B $i > $report_file 2>&1 &
 done """ % (baseport, list)
@@ -5868,7 +5868,7 @@ for i in $ip; do
 # Set server port
 server_port=$((base_port++));
 # Report file includes server ip, server port and test duration
-report_file="/tmp/iperfLogsClient/iperfClient-${server_port}-${i}.txt"
+report_file="/tmp/iperfLogs/iperfClient-${server_port}-${i}.txt"
 # Run iperf
 iperf -m -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
 done
@@ -5941,7 +5941,7 @@ sleep %i
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
 
-        counter=len(self.ipsToTest)+3 # Add another 3 iterations as buffer
+        counter=len(self.ipsToTest)+20 # Add another few iterations as buffer
         while self.linHost.execcmd("ps -ef | pgrep iperf").strip() and counter:
             # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
             xenrt.sleep(timeSecs)

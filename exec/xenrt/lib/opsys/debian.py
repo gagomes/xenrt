@@ -14,10 +14,8 @@ class DebianBasedLinux(LinuxOS):
 
     @staticmethod
     def KnownDistro(distro):
-        if distro.startswith("debian") or distro.startswith("ubuntu"):
-            return True
-        else:
-            return False
+        return distro.startswith("debian") or \
+               distro.startswith("ubuntu")
 
     @staticmethod
     def testInit():

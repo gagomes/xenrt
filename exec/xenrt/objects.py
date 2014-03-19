@@ -2353,6 +2353,9 @@ Add-WindowsFeature as-net-framework"""
             targetPath="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules\\XenServerPSModule"
             self.xmlrpcExec("mkdir %s" % targetPath)
             self.xmlrpcSendRecursive(srcPath, targetPath)
+            testRunner = os.path.join(tempDir, "XenServer-SDK/XenServerPowerShell/samples/AutomatedTestCore.ps1")
+            xenrt.TEC().logverbose("Sending test runner %s to %s" % (testRunner, targetPath))
+            self.xmlrpcSendFile(testRunner, targetPath + "\\AutomatedTestCore.ps1", usehttp=True)
         
         elif isinstance(self, xenrt.lib.xenserver.guest.TampaGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")

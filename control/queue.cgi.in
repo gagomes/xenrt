@@ -3465,6 +3465,20 @@ elif action == "complete":
         traceback.print_exc(file=sys.stderr)
         print "ERROR Could not mark job as complete"
 
+elif action == "email_raw":
+    print "Content-type: text/plain\n"
+    try:
+        sender = form["sender"].value
+        recipient = form["recipient"].value
+        subject = form["subject"].value
+        message = form["message"].value
+        
+        send_mail(sender, [recipient], subject, message)
+        print "OK"
+    except:
+        traceback.print_exc(file=sys.stderr)
+        print "ERROR Could not send email"
+
 elif action == "email":
     if not email_sender:
         print "Content-type: text/plain\n"

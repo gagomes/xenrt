@@ -112,4 +112,13 @@ class Instance(object):
     def ejectIso(self):
         return self.toolstack.ejectInstanceIso(self)
 
+    def createSnapshot(self, name, memory=False, quiesce=False):
+        return self.toolstack.createInstanceSnapshot(self, name, memory)
+
+    def deleteSnapshot(self, name):
+        return self.toolstack.deleteInstanceSnapshot(self, name)
+
+    def revertToSnapshot(self, name):
+        return self.toolstack.revertInstanceToSnapshot(self, name)
+
 __all__ = ["Instance"]

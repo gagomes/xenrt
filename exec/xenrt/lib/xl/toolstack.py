@@ -246,4 +246,13 @@ disk = [ %s ]
     def ejectInstanceIso(self, instance):
         raise xenrt.XRTError("Not implemented")
 
+    def createInstanceSnapshot(self, instance, name, memory=False, quiesce=False):
+        raise xenrt.XRTError("Not implemented")
+
+    def deleteInstanceSnapshot(self, instance, name):
+        raise xenrt.XRTError("Not implemented")
+
+    def revertInstanceToSnapshot(self, instance, name):
+        raise xenrt.XRTError("Not implemented")
+
 __all__ = ["XLToolstack"]

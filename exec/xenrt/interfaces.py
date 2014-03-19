@@ -42,6 +42,15 @@ class Toolstack(Interface):
     def ejectInstanceIso(instance):   
         """Eject the ISO from the specified instance"""
 
+    def createInstanceSnapshot(instance, name, memory, quiesce):
+        """Snapshot an instance"""
+
+    def deleteInstanceSnapshot(instance, name):
+        """Delete an Instance Snapshot"""
+    
+    def revertInstanceToSnapshot(instance, name):
+        """Revert an Instance to a named snapshot"""
+
 class OSParent(Interface):
     name = Attribute("Name of the OS")
     hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")

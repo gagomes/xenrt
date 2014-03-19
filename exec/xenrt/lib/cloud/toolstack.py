@@ -229,3 +229,24 @@ class CloudStack(object):
         cmd = detachIso.detachIsoCmd()
         cmd.virtualmachineid = instance.toolstackId
         self.marvin.apiClient.detachIso(cmd)
+
+    def createInstanceSnapshot(self, instance, name, memory=False, quiesce=False):
+        cmd = createVMSnapshot.createVMSnapshotCmd()
+        cmd.virtualmachineid = instance.toolstackId
+        cmd.name = name
+        cmd.snapshotmemory=memory
+        cmd.quiesce=quiesce
+        self.marvin.apiClient.createVMSnapshot(cmd)
+
+    def getSnapshotId(self, instance, name):
+        return VmSnapshot.list(self.marvin.apiClient, virtualmachineid = instance.toolstackId, name=name)[0].id
+
+    def deleteInstanceSnapshot(self, instance, name):
+        cmd = deleteVMSnapshot.deleteVMSnapshotCmd()
+        cmd.vmsnapshotid = self.getSnapshotId(instance, name)
+        self.marvin.apiClient.deleteVMSnapshot(cmd)
+
+    def revertInstanceToSnapshot(self, instance, name):
+        cmd = revertToVMSnapshot.revertToVMSnapshotCmd()
+        cmd.vmsnapshotid = self.getSnapshotId(instance, name)
+        self.marvin.apiClient.revertToVMSnapshot(cmd)

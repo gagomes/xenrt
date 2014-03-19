@@ -21,8 +21,13 @@ class TXTSuppPackInstaller:
         @param hosts: list of hosts onto which the spupp pack should be installed
         """
         suppPackIso = xenrt.TEC().getFile(xenrt.TEC().lookup("TXT_SUPP_PACK"))
-        for h in hosts:
-            self.__installSuppPack(h, suppPackIso)
+        
+        try:
+            for h in hosts:
+                self.__installSuppPack(h, suppPackIso)
+        except Exception, e:
+            xenrt.TEC().logverbose(str(e))
+            raise xenrt.XRTFailure("Failure installing TXT supp pack")
     
     def __installSuppPack(self, host, suppPackIso):
         packName = os.path.basename(suppPackIso)

@@ -45,14 +45,17 @@ class _XSAutoCertKit(xenrt.TestCase):
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
             if "x86_64" in host.execdom0("uname -a"):
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=car-1401exp&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
-                acklocation = "/usr/groups/xen/carbon/car-1401exp/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
-            elif isinstance(host, xenrt.lib.xenserver.SarasotaHost):
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=trunk-partner&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
-                acklocation = "/usr/groups/xen/carbon/trunk-partner/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
+                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                    branch = "car-1401exp"
+                else:
+                    branch = "clearwater-sp1-64bit-expr"
             else:
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=clearwater-lcm&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
-                acklocation = "/usr/groups/xen/carbon/clearwater-lcm/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
+                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                    branch = "trunk-partner"
+                else:
+                    branch = "clearwater-lcm"
+            build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
+            acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 
         autoCertKitISO = xenrt.TEC().getFile(acklocation)
         try:

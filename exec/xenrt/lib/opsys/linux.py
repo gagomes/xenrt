@@ -99,3 +99,8 @@ class LinuxOS(OS):
                 return xenrt.XRT("%s timed out" % (desc), level)
             xenrt.sleep(15, log=False)
 
+    def shutdown(self):
+        self.execSSH("poweroff")
+
+    def reboot(self):
+        self.execSSH("reboot")

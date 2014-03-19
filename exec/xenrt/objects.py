@@ -12,7 +12,7 @@
 import sys, string, time, socket, re, os.path, os, shutil, random, sets, math
 import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
-import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources, xenrt.clouddeploy
+import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
@@ -2210,8 +2210,12 @@ Add-WindowsFeature as-net-framework"""
         self.reboot()
 
     def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.clouddeploy.ManagementServer(self)
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudPlatformManagementServer()
+
+    def installCloudStackManagementServer(self):
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
+        manSvr.installCloudStackManagementServer()
 
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
@@ -5208,6 +5212,10 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
+        disk = self.lookup("OPTION_CARBON_DISKS", None)
+        if disk:
+            disk = "/dev/%s" % disk
+
         # Generate a config file
         ps=DebianPreseedFile(distro,
                              repository,
@@ -5221,7 +5229,8 @@ exit 0
                              arch=arch,
                              installXenToolsInPostInstall=False,
                              postscript=piurl,
-                             poweroff=False)
+                             poweroff=False,
+                             disk=disk)
         ps.generate()
 
         webdir.copyIn(filename)
@@ -8621,7 +8630,14 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiavgpuDriver(self):
+    def installNvidiaVGPUDriver(self,driverType):
+
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver()
+        else:
+            self.installNvidiaVGPUUnsignedDriver()
+
+    def installNvidiaVGPUSignedDriver(self):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8666,7 +8682,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTError as e:
             raise e
             
-    def installNvidiaVGPUDriver(self):
+    def installNvidiaVGPUUnsignedDriver(self):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.
@@ -8682,9 +8698,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
         #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.70"
+            filename = "WDDM_x86_332.83"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.70"
+                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)

@@ -9,6 +9,7 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, math, numpy, decimal
+import textwrap
 import xenrt, xenrt.lib.xenserver
 from datetime import datetime
 from datetime import timedelta
@@ -1549,3 +1550,129 @@ $a[0].log("THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S  %s")
             xenrt.TEC().logverbose("Found '%s' in /var/log/daemon.log as expected" % data )
         else:
             raise xenrt.XRTFailure("Found '%s' in /var/log/daemon.log but '%%s' was expected" % data)
+
+
+class TCSetComputername(xenrt.TestCase):
+
+    def assertSetComputernameSupported(self, guestName):
+        cmdListXenstore = "xenstore-ls {domPath}".format(
+            domPath=self.getDomPath(guestName))
+
+        xenstoreListing = self.getDefaultHost().execdom0(cmdListXenstore)
+        expectedString = 'feature-setcomputername = "1"'
+
+        if expectedString not in xenstoreListing:
+            raise xenrt.XRTFailure('setcomputername not supported')
+
+    def getComputername(self, guestName):
+        guest = self.getGuest(guestName)
+        return guest.xmlrpcGetEnvVar('COMPUTERNAME')
+
+    def assertComputername(self, expectedName, guestName):
+        actualComputername = self.getComputername(guestName)
+
+        if expectedName.lower() != actualComputername.lower():
+            raise xenrt.XRTFailure(
+                'Computername mismatch. Expected: {expectedName}'.format(
+                    expectedName=expectedName)
+                + ' Actual: {actualComputername}'.format(
+                    actualComputername=actualComputername)
+            )
+
+    def getDomPath(self, guestName):
+        domId = self.getGuest(guestName).getDomid()
+        return '/local/domain/{domId}'.format(domId=domId)
+
+    def setComputername(self, guestName, computername):
+        commands = textwrap.dedent("""
+        xenstore-write {domPath}/control/setcomputername/name {computername}
+        xenstore-write {domPath}/control/setcomputername/action set
+        """).format(
+            domPath=self.getDomPath(guestName), computername=computername)
+
+        self.getDefaultHost().execdom0(commands)
+
+    def getSetComputernameState(self, guestName):
+        cmdGetSetComputernameState = (
+            "xenstore-read {domPath}/control/setcomputername/state"
+        ).format(domPath=self.getDomPath(guestName))
+
+        return self.getDefaultHost().execdom0(cmdGetSetComputernameState)
+
+    def assertStateIsSucceedNeedsReboot(self, guestName):
+        expectedState = "SucceededNeedsReboot"
+        actualState = self.getSetComputernameState(guestName)
+        if expectedState not in actualState:
+            raise xenrt.XRTFailure(
+                'Unexpected setcomputername state: {actualState}'.format(
+                    actualState=actualState)
+                + ' expected: {expectedState}'.format(
+                    expectedState=expectedState)
+            )
+
+    def waitTillStateIsNotInProgress(self, guestName):
+        attempts = 5
+        secondsToSleep = 5
+
+        for i in range(attempts):
+            if "InProgress" not in self.getSetComputernameState(guestName):
+                return
+            time.sleep(secondsToSleep)
+
+        raise xenrt.XRTFailure('SetComputername timed out')
+
+    def run(self, arglist=None):
+        guestName = "Windows 7"
+
+        self.assertSetComputernameSupported(guestName)
+
+        self.setComputername(guestName, "aaaa")
+        self.waitTillStateIsNotInProgress(guestName)
+        self.assertStateIsSucceedNeedsReboot(guestName)
+        self.rebootGuest(guestName)
+        self.assertComputername("aaaa", guestName)
+
+    def rebootGuest(self, guestName):
+        self.getGuest(guestName).reboot()
+
+class TCVerifyVMCorruption(xenrt.TestCase):
+    """Verify Xapi fix to avoid VM Corruption during Migration"""  
+    
+    def prepare(self, arglist=None):
+        
+        self.host = self.getDefaultHost()
+        
+        for arg in arglist:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+
+        step("If we have a VM already then use that, otherwise create one")
+        self.guest = self.getGuest(gname)
+        if not self.guest:
+            xenrt.TEC().progress("Installing guest %s" % (gname))
+            self.guest = self.host.createGenericWindowsGuest(distro="win7-x86")
+            self.uninstallOnCleanup(self.guest)
+        else:
+            step("Check the guest is healthy and reboot if it is already up")
+            try:
+                if self.guest.getState() == "DOWN":
+                    self.guest.start()
+                else:
+                    step("If it is suspended or anything else then that's bad")
+                    self.guest.reboot()
+                self.guest.checkHealth()
+            except xenrt.XRTFailure, e:
+                raise xenrt.XRTError("Guest broken before we start: %s" %
+                                     (str(e)))
+
+    def run(self, arglist=None):
+        
+        step("Check the value of '/local/domain/dom-id/console/ring-ref'")
+        exception = False
+        try:
+            self.host.execdom0("xenstore-ls -f | grep '/local/domain/%d/console/ring-ref'" %self.guest.getDomid())
+        except:
+            pass
+        else:
+            raise xenrt.XRTFailure("Xapi fix to avoid VM corruption during Migration has Failed")

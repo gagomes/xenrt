@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
@@ -138,6 +138,7 @@ def usage(fd):
 
     Maintenance operations:
 
+    --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
@@ -193,6 +194,7 @@ traceon = False
 redir = False
 existing = False
 aux = False
+sanitycheck = False
 makeconfigs = False
 switchconfig = False
 doshell = False
@@ -296,6 +298,7 @@ try:
                                       'pause-on-fail=',
                                       'pause-on-pass=',
                                       'email=',
+                                      'sanity-check',
                                       'make-configs',
                                       'switch-config',
                                       'shell',
@@ -547,6 +550,9 @@ try:
             setvars.append((["CLIOPTIONS", "PAUSE_ON_PASS", value], True))
         elif flag == "--email":
             setvars.append(("EMAIL", value))
+        elif flag == "--sanity-check":
+            sanitycheck = True
+            aux = True
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
@@ -998,6 +1004,11 @@ def existingLocations():
     guestIndex = 0
     slaves = []
 
+    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+    if cloudip:
+        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+        gec.registry.toolstackPut("cloud", cloud)
+
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:
@@ -1097,6 +1108,11 @@ atexit.register(exitcb)
 if confdump:
     config.writeOut(sys.stdout)
 
+if sanitycheck:
+    # If we get this far then our standard imports etc have all
+    # succeeded, so report this back to the user
+    sys.stderr.write("Sanity check passed sucessfully\n")
+    sys.exit(0)
 
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)

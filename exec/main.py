@@ -994,6 +994,19 @@ def existingPool(mastername):
         raise 
     return pool
 
+def getCloud(hostname):
+    """Populate the registry with a cloud"""
+    try:
+        gec.registry.toolstackGetDefault()
+    except:
+        try:
+            m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+            if m.has_key('CSIP'):
+                cloud = xenrt.lib.cloud.CloudStack(ip=m['CSIP'])
+                gec.registry.toolstackPut("cloud", cloud)
+        except:
+            pass
+
 def existingLocations():
     runon = None
     getPools = True
@@ -1012,6 +1025,7 @@ def existingLocations():
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:
+        getCloud(masterhost)
         runon = existingPool(masterhost)
         gec.registry.poolPut("RESOURCE_POOL_%s" % (poolIndex), runon)
         poolIndex = poolIndex + 1 
@@ -1023,6 +1037,7 @@ def existingLocations():
         # See if we have a host to run on.
         runonname = gec.config.lookup("RESOURCE_HOST_0", None)
         if runonname:
+            getCloud(runonname)
             runon = existingHost(runonname)
             gec.registry.hostPut("RESOURCE_HOST_0", runon)
             gec.registry.hostPut(runonname, runon)
@@ -1045,6 +1060,7 @@ def existingLocations():
         poolvar = "RESOURCE_POOL_%d" % (poolIndex)
         masterhost = gec.config.lookup(poolvar, None)
         if masterhost:
+            getCloud(masterhost)
             pool = existingPool(masterhost)
             gec.registry.poolPut(poolvar, pool)
             gec.registry.hostPut("RESOURCE_HOST_%s" % (hostIndex), runon.master)
@@ -1059,6 +1075,7 @@ def existingLocations():
         hostvar = "RESOURCE_HOST_%d" % (hostIndex)
         hostname = gec.config.lookup(hostvar, None)
         if hostname:
+            getCloud(hostname)
             host = existingHost(hostname)
             if existing and not hostname in slaves:
                 host.existing()

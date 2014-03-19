@@ -1301,6 +1301,22 @@ class PrepareNode:
         nohostprepare = xenrt.TEC().lookup(["CLIOPTIONS", "NOHOSTPREPARE"],
                                          False,
                                          boolean=True)
+
+        if not nohostprepare:
+            xenrt.TEC().logverbose("Resetting machines Cloudstack info")
+            i = 0
+            while True:
+                try:
+                    hostname = xenrt.TEC().lookup("RESOURCE_HOST_%d" % i)
+                except:
+                    break
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSIP", ""])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSGUEST", ""])
+                except:
+                    pass
+                i += 1
+        
         try:
             for v in self.vms:
                 if v.has_key("host") and v["host"] == "SHARED":

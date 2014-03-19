@@ -1,6 +1,14 @@
+import xenrt
+from zope.interface import implements, providedBy
+
 oslist = []
 
 class OS(object):
+    implements(xenrt.interfaces.OS)
+
+    _allInstallMethods = {xenrt.interfaces.InstallMethodPV: xenrt.InstallMethod.PV,
+                          xenrt.interfaces.InstallMethodIso: xenrt.InstallMethod.Iso,
+                          xenrt.interfaces.InstallMethodIsoWithAnswerFile: xenrt.InstallMethod.IsoWithAnswerFile}
 
     def __init__(self, parent):
         self.parent = parent
@@ -20,7 +28,12 @@ class OS(object):
     def installMethod(self, value):
         assert value in self.supportedInstallMethods
         self.__installMethod = value
-        
+
+    @property
+    def supportedInstallMethods(self):
+        # We base this on interfaces
+        interfaces = providedBy(self)
+        return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod
     def KnownDistro(distro):

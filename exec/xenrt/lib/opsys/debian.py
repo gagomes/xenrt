@@ -1,6 +1,7 @@
 import xenrt, os.path, os, shutil
 from xenrt.lib.opsys import LinuxOS, RegisterOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
+from zope.interface import implements
 
 __all__ = ["DebianBasedLinux"]
 
@@ -9,12 +10,18 @@ class DebianBasedLinux(LinuxOS):
     debianMappings = {"debian60": "squeeze",
                       "debian70": "wheezy"}
 
+    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+
     @staticmethod
     def KnownDistro(distro):
         if distro.startswith("debian") or distro.startswith("ubuntu"):
             return True
         else:
             return False
+
+    @staticmethod
+    def testInit():
+        return DebianBasedLinux("debian70", None)
 
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)
@@ -117,10 +124,6 @@ class DebianBasedLinux(LinuxOS):
         if self.cleanupdir:
             shutil.rmtree(self.cleanupdir)
         self.cleanupdir = None
-
-    @property
-    def supportedInstallMethods(self):
-        return [xenrt.InstallMethod.PV, xenrt.InstallMethod.IsoWithAnswerFile]
 
     @property
     def defaultRootdisk(self):

@@ -18,7 +18,7 @@ __all__ = ["CloudStack"]
 import xenrt.lib.cloud.pvtoolsinstall
 
 class CloudStack(object):
-    implements(xenrt.Toolstack)
+    implements(xenrt.interfaces.Toolstack)
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -102,7 +102,7 @@ class CloudStack(object):
 
     def existingInstance(self, name):
 
-        vm = VirtualMachine.list(self.marvin.apiClient, name=name)[0]
+        vm = [x for x in VirtualMachine.list(self.marvin.apiClient, name=name) if x.name==name][0]
         tags = Tag.list(self.marvin.apiClient, resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
@@ -157,7 +157,10 @@ class CloudStack(object):
         raise xenrt.XRTError("Not implemented")
 
     def migrateInstance(self, instance, to, live=True):
-        raise xenrt.XRTError("Not implemented")
+        cmd = migrateVirtualMachine.migrateVirtualMachineCmd()
+        cmd.virtualmachineid = instance.toolstackId
+        cmd.hostid = [x for x in Host.list(self.marvin.apiClient, name=to) if x.name==to][0].id
+        self.marvin.apiClient.migrateVirtualMachine(cmd)
 
     def getInstancePowerState(self, instance):
         state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state

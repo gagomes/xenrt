@@ -81,12 +81,12 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade pyramid
 	$(SUDO) easy_install --upgrade pyramid_chameleon
 	$(SUDO) easy_install --upgrade flup
-	$(SUDO) easy_install --upgrade paramiko
+	$(SUDO) easy_install paramiko==1.12.3
 	$(SUDO) easy_install --upgrade uwsgi
 	$(SUDO) easy_install --upgrade zope.interface
 	$(SUDO) easy_install --upgrade nose
 	$(SUDO) easy_install --upgrade mock
-
+	$(SUDO) easy_install --upgrade jenkinsapi
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y python-m2crypto

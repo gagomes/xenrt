@@ -3,7 +3,7 @@ import xenrt
 from zope.interface import implements
 
 class Instance(object):
-    implements(xenrt.OSParent)
+    implements(xenrt.interfaces.OSParent)
 
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
         self.toolstack = toolstack
@@ -48,12 +48,20 @@ class Instance(object):
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)
 
-    def reboot(self, force=False, timeout=600):
-        self.toolstack.rebootInstance(self, force)
+    def reboot(self, force=False, timeout=600, osInitiated=False):
+        if osInitiated:
+            self.os.reboot()
+            xenrt.sleep(120)
+        else:
+            self.toolstack.rebootInstance(self, force)
         self.os.waitForBoot(timeout)
 
-    def stop(self, force=False):
-        self.toolstack.stopInstance(self, force)
+    def stop(self, force=False, osInitiated=False):
+        if osInitiated:
+            self.os.shutdown()
+            self.poll(xenrt.PowerState.down)
+        else:
+            self.toolstack.stopInstance(self, force)
 
     def suspend(self):
         self.toolstack.suspendInstance(self)

@@ -2756,6 +2756,8 @@ class Config:
         # MrToad - xen-tools . Rolls up XS62E015 
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/xen/carbon/clearwater-sp1-lcm/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
 
+        # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/build/clearwater-sp1-lcm/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
 
 
         return
@@ -2884,8 +2886,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF02"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
         
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

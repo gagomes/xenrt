@@ -754,7 +754,7 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004"]
     
     
 # Upgrades

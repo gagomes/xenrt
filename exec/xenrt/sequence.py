@@ -250,15 +250,21 @@ class Fragment(threading.Thread):
                 marvinTestConfig = None
             else:
                 tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
+                group = 'MarvinGroup'
+                name = 'MarvinTests'
                 marvinTestConfig = {}
-                marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
-                marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
-                marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
-
-                group = os.path.splitext(os.path.basename(marvinTestConfig['path']))[0]
-                group = len(group) > 32 and group[len(group)-32:] or group
-                name = expand(node.getAttribute("class"), params)
-                name = len(name) > 32 and name[len(name)-32:] or name
+                if expand(node.getAttribute("path"), params) != '':
+                    marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
+                    group = marvinTestConfig['path']
+                    group = len(group) > 32 and group[len(group)-32:] or group
+                if expand(node.getAttribute("class"), params) != '':
+                    if not marvinTestConfig.has_key('path'):
+                        raise xenrt.XRTError('marvintests does not support just specifying a class - you must also specify a path in the sequence')
+                    marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
+                    name = marvinTestConfig['cls']
+                    name = len(name) > 32 and name[len(name)-32:] or name
+                if expand(node.getAttribute("tags"), params) != '':
+                    marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
 
             host = expand(node.getAttribute("host"), params)
             guest = expand(node.getAttribute("guest"), params)

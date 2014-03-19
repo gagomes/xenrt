@@ -2,6 +2,8 @@ import xenrt
 import logging
 import os, urllib
 from datetime import datetime
+import shutil
+import tarfile
 
 import xenrt.lib.cloud
 try:
@@ -294,7 +296,6 @@ from lxml import etree
 import glob, shutil, os, re, json
 
 class TCMarvinTestRunner(xenrt.TestCase):
-    MARVIN_TEST_CODE_PATH = '/local/scratch/cloud'
 
     def generateMarvinTestConfig(self):
         self.marvinCfg = {}
@@ -327,14 +328,14 @@ class TCMarvinTestRunner(xenrt.TestCase):
         fh.close()
         return fn
 
-    def getTestsToExecute(self, noseClassSelector, tagStr=None):
+    def getTestsToExecute(self, nosetestSelectorStr, tagStr=None):
         noseTestList = xenrt.TEC().tempFile()
         tempLogDir = xenrt.TEC().tempDir()
         noseArgs = ['--with-marvin', '--marvin-config=%s' % (self.marvinConfigFile),
                     '--with-xunit', '--xunit-file=%s' % (noseTestList),
                     '--log-folder-path=%s' % (tempLogDir),
                     '--load',
-                    noseClassSelector,
+                    nosetestSelectorStr,
                     '--collect-only']
 
         if tagStr:
@@ -360,7 +361,7 @@ class TCMarvinTestRunner(xenrt.TestCase):
         failures = filter(lambda x:x['classname'] == 'nose.failure.Failure', self.testsToExecute)
 
         if len(self.testsToExecute) == 0:
-            raise xenrt.XRTError('No nose tests found for %s with tags: %s' % (self.noseClassSelctorStr, self.marvinTestConfig['tags']))
+            raise xenrt.XRTError('No nose tests found for %s with tags: %s' % (self.nosetestSelectorStr, self.noseTagStr))
 
         if len(failures) > 0:
             raise xenrt.XRTError('Nosetest lookup failed')
@@ -369,17 +370,61 @@ class TCMarvinTestRunner(xenrt.TestCase):
         if len(testNames) != len(set(testNames)):
             raise xenrt.XRTError('Duplicate Marvin test names found')
 
+    def getMarvinTestCode(self):
+        localTestCodeDir = xenrt.TEC().tempDir()
+        sourceLocation = xenrt.TEC().lookup('MARVIN_TEST_CODE_PATH', None)
+        if not sourceLocation:
+            # TODO - add logic to get correct code for SUT
+            return '/local/scratch/cloud'
+
+        if not sourceLocation:
+            raise xenrt.XRTError('Failed to find source location for Marvin testcode')
+
+        xenrt.TEC().logverbose('Using Marvin testcode from source location: %s' % (sourceLocation))
+        sourceFile = xenrt.TEC().getFile(sourceLocation)
+        if not sourceFile:
+            raise xenrt.XRTError('Failed to getFile from %s' % (sourceLocation))
+        
+        if os.path.splitext(sourceFile)[1] == '.py':
+            xenrt.TEC().logverbose('Moving single python file [%s] to test directory [%s]' % (sourceFile, localTestCodeDir)) 
+            shutil.copy(sourceFile, localTestCodeDir)
+            os.chmod(os.path.join(localTestCodeDir, os.path.basename(sourceFile)), 0o664)
+        elif tarfile.is_tarfile(sourceFile):
+            tf = tarfile.open(sourceFile)
+            for tarInfo in tf:
+                if os.path.splitext(tarInfo.name)[1] == '.py':
+                    xenrt.TEC().logverbose('Extracting %s to test directory [%s]' % (tarInfo.name, localTestCodeDir))
+                    tf.extract(tarInfo.name, path=localTestCodeDir)
+        else:
+            raise xenrt.XRTError('Invalid file type: %s (should be .py or tarball)' % (sourceFile))
+            
+        return localTestCodeDir
+
     def prepare(self, arglist):
-        xenrt.TEC().logverbose('Using marvin test config: %s' % (self.marvinTestConfig))
+        self.marvinTestCodePath = self.getMarvinTestCode()
+        self.nosetestSelectorStr = self.marvinTestCodePath
+        self.noseTagStr = None
 
-        self.noseClassSelctorStr = '%s:%s' % (os.path.join(self.MARVIN_TEST_CODE_PATH, self.marvinTestConfig['path']), self.marvinTestConfig['cls'])
-        self.noseTagStr  = '-a "%s"' % (','.join(map(lambda x:'tags=%s' % (x), self.marvinTestConfig['tags'])))
+        if self.marvinTestConfig != None:
+            xenrt.TEC().logverbose('Using marvin test config: %s' % (self.marvinTestConfig))
+            if self.marvinTestConfig.has_key('path') and self.marvinTestConfig['path'] != None:
+                self.nosetestSelectorStr = os.path.join(self.marvinTestCodePath, self.marvinTestConfig['path'])
 
-        self.manSvr = xenrt.lib.cloud.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
-        self.marvinApi = xenrt.lib.cloud.MarvinApi(self.manSvr)
+            if self.marvinTestConfig.has_key('cls') and self.marvinTestConfig['cls'] != None:
+                self.nosetestSelectorStr += ':' + self.marvinTestConfig['cls']
+
+            if self.marvinTestConfig.has_key('tags') and self.marvinTestConfig['tags'] != None and len(self.marvinTestConfig['tags']) > 0:
+                self.noseTagStr = '-a "%s"' % (','.join(map(lambda x:'tags=%s' % (x), self.marvinTestConfig['tags'])))
+                xenrt.TEC().logverbose('Using nose tag str: %s' % (self.noseTagStr))
+
+        xenrt.TEC().logverbose('Using nose selector str: %s' % (self.nosetestSelectorStr))
+
+        cloud = self.getDefaultToolstack()
+        self.manSvr = cloud.mgtsvr
+        self.marvinApi = cloud.marvin
         self.marvinConfigFile = self.generateMarvinTestConfig()
 
-        self.getTestsToExecute(self.noseClassSelctorStr, self.noseTagStr)
+        self.getTestsToExecute(self.nosetestSelectorStr, self.noseTagStr)
 
         # Apply test configration
         self.marvinApi.setCloudGlobalConfig("network.gc.wait", "60")
@@ -438,8 +483,9 @@ class TCMarvinTestRunner(xenrt.TestCase):
                     '--with-xunit', '--xunit-file=%s' % (noseTestResults),
                     '--load']
 
-        noseArgs.append(self.noseTagStr)
-        noseArgs.append(self.noseClassSelctorStr)
+        if self.noseTagStr:
+            noseArgs.append(self.noseTagStr)
+        noseArgs.append(self.nosetestSelectorStr)
 
         xenrt.TEC().logverbose('Using nosetest args: %s' % (' '.join(noseArgs)))
 
@@ -467,7 +513,7 @@ class TCMarvinTestRunner(xenrt.TestCase):
 
         runInfoFile = logPathList[0]
         logPath = os.path.dirname(runInfoFile)
-        self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', self.marvinTestConfig['cls'])
+        self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'marvintest')
         xenrt.TEC().logverbose('Add full test logs to path %s' % (self.logsubdir))
         shutil.copytree(logPath, self.logsubdir)
 

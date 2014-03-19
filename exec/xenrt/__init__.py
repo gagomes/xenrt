@@ -368,6 +368,7 @@ class TestCase:
         self.group = None
         self.jiratc = None
         self.tcsku = None
+        self.marvinTestConfig = None
         self.logsfrom = {}
         self._anon = anon
         if anon:

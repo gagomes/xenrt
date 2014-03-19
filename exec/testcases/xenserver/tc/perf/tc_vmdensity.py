@@ -1673,7 +1673,7 @@ class Experiment_vmrun(Experiment):
                     #dom0 = host.guestFactory()("Control domain on host: %s" % hostname, None)
                     #dom0.existing(host)
                     #dom0.paramSet("VCPUs-params:weight", dom0cpuweight) #doesn't work in dom0
-                    host.execdom0("/opt/xensource/debug/xenops sched_domain -domid 0 -weight %s",dom0cpuweight) #alternative: valid until next reboot only
+                    host.execdom0("/opt/xensource/debug/xenops sched_domain -domid 0 -weight %s" % dom0cpuweight) #alternative: valid until next reboot only
                 elif "modprobe" in dom0param:
                     modprobe=dom0param.replace("modprobe=","")
                     out=host.execdom0("/sbin/modprobe %s" % modprobe)

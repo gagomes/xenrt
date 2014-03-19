@@ -19,7 +19,7 @@
     </sharedhost>
   </prepare>
   <testsequence>
-    <testcase id="cloud.tc.basic.TCGuestDeploy">
+    <testcase id="cloud.tc.basic.TCGuestDeploy" />
   </testsequence>
 </xenrt>
 

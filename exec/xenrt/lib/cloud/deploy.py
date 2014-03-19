@@ -80,8 +80,8 @@ def deploy(cloudSpec, manSvr=None):
                 host = marvinApi.addHost(cluster, hostObject.getIP())
 
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSIP", manSvr.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSGUEST", "%s/%s" % (manSvr.getHost().getName(), manSvr.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSIP", manSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSGUEST", "%s/%s" % (manSvr.place.getHost().getName(), manSvr.place.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 

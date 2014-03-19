@@ -5941,7 +5941,7 @@ sleep %i
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
 
-        counter=len(self.ipsToTest)
+        counter=len(self.ipsToTest)+3 # Add another 3 iterations as buffer
         while self.linHost.execcmd("ps -ef | pgrep iperf").strip() and counter:
             # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
             xenrt.sleep(timeSecs)

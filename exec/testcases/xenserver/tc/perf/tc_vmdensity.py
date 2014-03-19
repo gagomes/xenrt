@@ -1457,7 +1457,7 @@ class Experiment_vmrun(Experiment):
     numpostcloneworker = 0
     hostvmmap = []
     loginvsiexclude = []
-    vmcooloff = 0
+    vmcooloff = "0"
     xentrace = []
     
 
@@ -1867,8 +1867,10 @@ class Experiment_vmrun(Experiment):
 
                 time.sleep(30)
 
-                xenrt.TEC().logverbose("Waiting %s seconds for the template VM to cool off.")
-                time.sleep(self.vmcooloff)
+                if "postbootstorm" not in self.vmcooloff or "postvmtemplate" in self.vmcooloff:
+                    cooloff = float(self.vmcooloff.split(":")[0])
+                    xenrt.TEC().logverbose("Waiting %s seconds for the template VM to cool off." % cooloff)
+                    time.sleep(cooloff)
 
                 xenrt.TEC().logverbose("Creating model guest is done. Shutting down the VM.")
                 g0.shutdown()
@@ -2557,6 +2559,11 @@ class Experiment_vmrun_cron(Experiment_vmrun):
                 vmt.join(timeout)
             self.vmstart_threads = []
 
+            if "postbootstorm" in self.vmcooloff:
+                cooloff = float(self.vmcooloff.split(":")[0])
+                xenrt.TEC().logverbose("Waiting %s seconds after vm bootstorm for vms to cool off." % cooloff)
+                time.sleep(cooloff)
+
             #login vms manually when using 2-stage loginvsi
             xenrt.TEC().logverbose("DEBUG: vm_load_1.__class__.__name__ = %s" % self.vm_load_1.__class__.__name__)
             if self.vm_load_1.__class__.__name__=="VMLoad_loginvsi": #is it a loginvsi load?
@@ -3054,7 +3061,7 @@ class TCVMDensity(libperf.PerfTestCase):
         setprm("POSTCLONEWORKER", default=[0])
         setprm("HOSTVMMAP",default=[[]])
         setprm("LOGINVSIEXCLUDE", default=[[]])
-        setprm("VMCOOLOFF", default=[0]) # no cool-off time by default for the template vm
+        setprm("VMCOOLOFF", default=["0"]) # no cool-off time by default for the template vm
         setprm("LOADSPERVM", default=[0]) # sessions to run loginvsi per RDS vm
         setprm("XENTRACE", default=[])
 

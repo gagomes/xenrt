@@ -1,10 +1,22 @@
+import string
+import xenrt
+
+def _initialise(host, prog):
+    workdir = string.strip(host.execcmd("mktemp -d /tmp/XXXXXX"))
+    host.execcmd("wget -O - '%s/synexec.tgz' | tar -xz -C %s" %
+                 (xenrt.TEC().lookup("TEST_TARBALL_BASE"), workdir))
+
+    if host.getBasicArch() == "x86-64":
+        host.execcmd("cp %s/synexec/%s.x86_64 /root/%s" % (workdir, prog, prog))
+    else:
+        host.execcmd("cp %s/synexec/%s.x86_32 /root/%s" % (workdir, prog, prog))
+    host.execcmd("rm -rf %s" % workdir)
+
 def initialise_master_in_dom0(host):
-    sftp = host.sftpClient()
-    sftp.copyTo("/home/xenrtd/felipef/synexec_master", "/root/synexec_master")
+    _initialise(host, "synexec_master")
 
 def initialise_slave(slave):
-    sftp = slave.sftpClient()
-    sftp.copyTo("/home/xenrtd/felipef/synexec_slave", "/root/synexec_slave")
+    _initialise(slave, "synexec_slave")
 
 def start_slave(slave, jobid):
     slave.execguest("/root/synexec_slave -v -s %d >> /tmp/synexec.log &" % jobid)

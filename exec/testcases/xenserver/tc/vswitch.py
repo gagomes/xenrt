@@ -5751,7 +5751,7 @@ class JumboFrames(_TC11551):
             if len(data.splitlines()) < 7:
                     raise xenrt.XRTError('Iperf still running so could not parse output')
 
-            if re.search("0.0-10.0", line, re.I):
+            if re.search("0.0-", line, re.I):
                 lineFields = line.split()
                 if len(lineFields) != 8:
                     raise xenrt.XRTError('Failed to parse output from Iperf')

@@ -1381,7 +1381,7 @@ class Experiment_vmrun(Experiment):
 # are quicker to explore (eg. increasing number of VMs first, and
 # only then reinstalling hosts with different configurations)
     #d_order = ['DOM0RAM','XSVERSIONS','VMS']
-    d_order = ['RUNS','XDSUPPORT','POSTCLONEWORKER','VMTYPES','VMRAM','MACHINES','DOM0RAM','DOM0PARAMS','XENOPSPARAMS','DEFAULTSR','XENPARAMS','DOM0DISKSCHED','QEMUPARAMS','VMPARAMS','VMDISKS','VMVIFS','VMVCPUS','VMLOADS','VMPOSTINSTALL','HOSTVMMAP','LOGINVSIEXCLUDE','VMCOOLOFF','XSVERSIONS','VMS']
+    d_order = ['RUNS','XDSUPPORT','POSTCLONEWORKER','VMTYPES','VMRAM','MACHINES','DOM0RAM','DOM0PARAMS','XENOPSPARAMS','DEFAULTSR','XENPARAMS','DOM0DISKSCHED','QEMUPARAMS','VMPARAMS','VMDISKS','VMVIFS','VMVCPUS','VMLOADS','VMPOSTINSTALL','HOSTVMMAP','LOGINVSIEXCLUDE','XENTRACE','VMCOOLOFF','XSVERSIONS','VMS']
 
     def getDimensions(self, filters=None):
         #return dict(
@@ -1412,6 +1412,7 @@ class Experiment_vmrun(Experiment):
         ds['HOSTVMMAP'] = self.tc.HOSTVMMAP
         ds['LOGINVSIEXCLUDE'] = self.tc.LOGINVSIEXCLUDE
         ds['VMCOOLOFF'] = self.tc.VMCOOLOFF
+        ds['XENTRACE'] = self.tc.XENTRACE
         return ds
 
     def __init__(self,tc):
@@ -1457,6 +1458,7 @@ class Experiment_vmrun(Experiment):
     hostvmmap = []
     loginvsiexclude = []
     vmcooloff = 0
+    xentrace = []
     
 
     #this event handles change of values of dimension XSVERSIONS
@@ -2346,12 +2348,26 @@ MachinePassword=%s
         xenrt.TEC().logverbose("DEBUG: XENPARAMS value=[%s]" % value)
         self.xenparams=value
 
+    def do_XENTRACE(self, value, coord):
+        xenrt.TEC().logverbose("DEBUG: XENTRACE value=[%s]" % value)
+        self.xentrace=value
+
+    def do_COLLECT_XENTRACE(self, value):
+        filename = "/root/xentrace-vm-%d" % value
+        gfilename = "%s.gz" % filename
+        guest = self.guests[value]
+        guest.host.execdom0("nohup sh -c 'xentrace -D -e 0x0002f000 -T 5 %s && nice -n 2 gzip %s' > /dev/null 2>&1 < /dev/null &" % (filename, filename))
+        guest.host.addExtraLogFile(gfilename)
+
     #this event handles change of values of dimension VMS
     def do_VMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMS value=[%s]" % str(value))
         #TODO: add a is_initial_value parameter sent by the framework,
         #so that it is not necessary to guess what the first possible value is
         #in the checks below
+
+        if value in self.xentrace:
+            self.do_COLLECT_XENTRACE(value)
 
         if value == 1:
             self.do_VMS_ERR_load_failed = False
@@ -2956,6 +2972,7 @@ class TCVMDensity(libperf.PerfTestCase):
         self.LOGINVSIEXCLUDE = None
         self.VMCOOLOFF = None
         self.LOADSPERVM = None
+        self.XENTRACE = None
 
         inputdir=xenrt.TEC().lookup("INPUTDIR",None)
         def is_valid_inputdir(url):
@@ -2997,6 +3014,7 @@ class TCVMDensity(libperf.PerfTestCase):
         setprm("LOGINVSIEXCLUDE")
         setprm("VMCOOLOFF")
         setprm("LOADSPERVM")
+        setprm("XENTRACE")
 
         #populate remaining unset values from sequence
         self.parse(arglist)
@@ -3038,6 +3056,7 @@ class TCVMDensity(libperf.PerfTestCase):
         setprm("LOGINVSIEXCLUDE", default=[[]])
         setprm("VMCOOLOFF", default=[0]) # no cool-off time by default for the template vm
         setprm("LOADSPERVM", default=[0]) # sessions to run loginvsi per RDS vm
+        setprm("XENTRACE", default=[])
 
         #print resulting parameters
         xenrt.TEC().logverbose("run: VMS=%s" % self.VMS)
@@ -3072,6 +3091,7 @@ class TCVMDensity(libperf.PerfTestCase):
         xenrt.TEC().logverbose("run: LOGINVSIEXCLUDE=%s" % self.LOGINVSIEXCLUDE)
         xenrt.TEC().logverbose("run: VMCOOLOFF=%s" % self.VMCOOLOFF)
         xenrt.TEC().logverbose("run: LOADSPERVM=%s" % self.LOADSPERVM)
+        xenrt.TEC().logverbose("run: XENTRACE=%s" % self.XENTRACE)
 
         experiment_classname = "Experiment_%s" % self.EXPERIMENT
         experiment = globals()[experiment_classname](self)

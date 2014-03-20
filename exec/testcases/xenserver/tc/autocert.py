@@ -252,6 +252,8 @@ class _XSAutoCertKit(xenrt.TestCase):
             pass
         self.pool.master.addExtraLogFile("/opt/xensource/packages/files/auto-cert-kit/ack_cli.log")
         self.pool.master.addExtraLogFile("/opt/xensource/packages/files/auto-cert-kit/test_run.conf")
+        self.pool.master.addExtraLogFile("/var/log/auto-cert-kit.log")
+        self.pool.master.addExtraLogFile("/var/log/auto-cert-kit-plugin.log")
         try:
             self.pool.master.execdom0("rm -f /opt/xensource/packages/files/auto-cert-kit/test_run.conf")
 

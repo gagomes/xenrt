@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app.constants
 
-import string, time, smtplib, traceback, StringIO
+import string, time, smtplib, traceback, StringIO, re, sys
 
 class XenRTJobPage(XenRTAPIPage):
     def showlog(self, id, wide, verbose, times=False):
@@ -90,6 +90,40 @@ class XenRTStatus(XenRTJobPage):
         return out
 
 class XenRTEmail(XenRTJobPage):
+    # Send an email message
+    # toaddrs = is a list of email addresses
+    def send_mail(self, fromaddr, toaddrs, subject, message, reply=None):
+        if not config.smtp_server:
+            return
+        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
+        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
+               % (now, fromaddr, ", ".join(toaddrs), subject))
+        if reply:
+            msg = msg + "Reply-To: %s\r\n" % (reply)
+        msg = msg + "\r\n" + message
+
+        server = smtplib.SMTP(config.smtp_server)
+        server.sendmail(fromaddr, toaddrs, msg)
+        server.quit()
+
+class XenRTRawEmail(XenRTEmail):
+    def render(self):
+        try:
+            sender = config.email_sender
+            recipients = string.split(self.request.params["recipients"], ",")
+            for r in recipients:
+                if not re.match(config.email_recipient_regex, r):
+                    raise Exception("Email recipient does not match regex")
+            subject = self.request.params["subject"]
+            message = self.request.params["message"]
+            
+            self.send_mail(sender, recipients, subject, message)
+            return "OK"
+        except:
+            traceback.print_exc(file=sys.stderr)
+            return "ERROR Could not send email"
+
+class XenRTJobEmail(XenRTEmail):
     def render(self):
         if not config.email_sender:
             return "ERROR No email configuration"
@@ -136,22 +170,6 @@ class XenRTEmail(XenRTJobPage):
         except:
             traceback.print_exc()
             return "ERROR Could not send summary email"
-
-    # Send an email message
-    # toaddrs = is a list of email addresses
-    def send_mail(self, fromaddr, toaddrs, subject, message, reply=None):
-        if not config.smtp_server:
-            return
-        now = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime())
-        msg = ("Date: %s\r\nFrom: %s\r\nTo: %s\r\nSubject: %s\r\n"
-               % (now, fromaddr, ", ".join(toaddrs), subject))
-        if reply:
-            msg = msg + "Reply-To: %s\r\n" % (reply)
-        msg = msg + "\r\n" + message
-
-        server = smtplib.SMTP(config.smtp_server)
-        server.sendmail(fromaddr, toaddrs, msg)
-        server.quit()
 
 class XenRTList(XenRTJobPage):
 
@@ -552,7 +570,8 @@ class XenRTWarnings(XenRTJobPage):
         return out
 
 PageFactory(XenRTStatus, "status", "/api/job/status", compatAction="status")
-PageFactory(XenRTEmail, "email", "/api/job/email", compatAction="email")
+PageFactory(XenRTJobEmail, "email", "/api/job/email", compatAction="email")
+PageFactory(XenRTRawEmail, "email_raw", "/api/email_raw")
 PageFactory(XenRTList, "list", "/api/job/list", compatAction="list")
 PageFactory(XenRTSubmit, "submit", "/api/job/submit", compatAction="submit")
 PageFactory(XenRTComplete, "complete", "/api/job/complete", compatAction="complete")

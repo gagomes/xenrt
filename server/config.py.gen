@@ -32,6 +32,8 @@ if os.path.exists(cf):
                                     cfg['smtp_server'] = data
                                 elif name == "SMTP_SENDER":
                                     cfg['email_sender'] = data
+                                elif name == "SMTP_RECIPIENT_REGEX":
+                                    cfg['email_recipient_regex'] = data
                                 elif name == "CGI_URL_BASE":
                                     cfg['url_base'] = data
                                 elif name == "JOBSCHED_BASE_DIR":

@@ -39,19 +39,19 @@ class OS(object):
         return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod
-    def KnownDistro(distro):
+    def knownDistro(distro):
         return False
 
-def RegisterOS(os):
+def registerOS(os):
     oslist.append(os)
 
-def OSFactory(distro, parent):
+def osFactory(distro, parent):
     for o in oslist:
-        if o.KnownDistro(distro):
+        if o.knownDistro(distro):
             return o(distro, parent)
     raise xenrt.XRTError("No class found for distro %s" % distro)
 
-__all__ = ["OS", "RegisterOS"]
+__all__ = ["OS", "registerOS"]
 
 from xenrt.lib.opsys.linux import *
 from xenrt.lib.opsys.debian import *

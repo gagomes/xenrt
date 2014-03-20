@@ -1,6 +1,6 @@
 import xenrt
 import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2
-from xenrt.lib.opsys import OS, RegisterOS
+from xenrt.lib.opsys import OS, registerOS
 from zope.interface import implements
 
 __all__ = ["WindowsOS"]
@@ -63,7 +63,7 @@ class WindowsOS(OS):
     implements(xenrt.interfaces.InstallMethodIso)
 
     @staticmethod
-    def KnownDistro(distro):
+    def knownDistro(distro):
         if distro[0] == 'w' or distro[0] == 'v':
             return True
         else:
@@ -1038,4 +1038,4 @@ class WindowsOS(OS):
 
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
 
-RegisterOS(WindowsOS)
+registerOS(WindowsOS)

@@ -15,7 +15,7 @@ class Instance(object):
         self.extraConfig = extraConfig
         self.mainip = None
 
-        self.os = xenrt.lib.opsys.OSFactory(self.distro, self)
+        self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk
         self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]

@@ -29,7 +29,7 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
         # Mock out the methods used by the Instance __init__ so they don't get called
-        xenrt.lib.opsys.OSFactory = Mock()
+        xenrt.lib.opsys.osFactory = Mock()
         # Crete the Instance, mocking toolstack
         i = xenrt.lib.generic.Instance(Mock(), None, None, None, None)
         # Do the verification

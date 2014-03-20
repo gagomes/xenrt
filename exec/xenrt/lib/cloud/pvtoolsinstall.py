@@ -13,13 +13,13 @@ except ImportError:
 
 installerList = []
 
-def PVToolsInstallerFactory(cloudstack, instance):
+def pvToolsInstallerFactory(cloudstack, instance):
     for i in installerList:
         if i.supportedInstaller(cloudstack, instance):
             return i(cloudstack, instance)
     raise xenrt.XRTError("No PV Tools installer found")
 
-def RegisterInstaller(installer):
+def registerInstaller(installer):
     installerList.append(installer)
 
 class PVToolsInstaller(object):
@@ -93,4 +93,4 @@ class WindowsXenServer(PVToolsInstaller):
             else:
                 xenrt.sleep(30)
 
-RegisterInstaller(WindowsXenServer)
+registerInstaller(WindowsXenServer)

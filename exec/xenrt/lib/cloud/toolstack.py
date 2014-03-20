@@ -121,7 +121,7 @@ class CloudStack(object):
 
     def installPVTools(self, instance):
         try:
-            installer = xenrt.lib.cloud.pvtoolsinstall.PVToolsInstallerFactory(self, instance)
+            installer = xenrt.lib.cloud.pvtoolsinstall.pvToolsInstallerFactory(self, instance)
         except:
             xenrt.TEC().logverbose("No PV tools installer found for instance")
         else:

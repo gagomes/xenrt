@@ -754,6 +754,7 @@ class TestSequence(Serial):
                                 self.params[str(name)] = \
                                                        xenrt.TEC().lookup(\
                                         str(name), str(value))
+                                xenrt.TEC().config.setVariable(str(name), self.params[str(name)])
                             elif n.localName == "include":
                                 iname = n.getAttribute("filename")
                                 if not iname:

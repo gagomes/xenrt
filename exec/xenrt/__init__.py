@@ -3307,7 +3307,7 @@ class GlobalExecutionContext:
                     for hTuple in hosts:
                         hKey = hTuple[0]
                         h = xenrt.TEC().registry.hostGet(hKey)
-                        if h:
+                        if h and not h.machine.poweredOffAtExit:
                             try:
                                 h.execdom0("logger -t XenRT XRT-3021 Installing "
                                            "iptables rule to block iSCSI traffic")

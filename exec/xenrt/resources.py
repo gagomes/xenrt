@@ -2801,6 +2801,9 @@ class _StaticIPAddr(CentralResource):
 
     def release(self):
         if not xenrt.TEC().lookup("OPTION_KEEP_STATIC_IPS", False, boolean=True):
+            for host in xenrt.TEC().registry.hostList():
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.powerctl.off()
             CentralResource.release(self)
 
 class StaticIP4Addr(_StaticIPAddr):
@@ -2884,6 +2887,12 @@ class PrivateVLAN(CentralResource):
     def getID(self):
         return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", self.name, "ID"])
 
+    def release(self):
+        if not xenrt.TEC().lookup("OPTION_KEEP_VLANS", False, boolean=True):
+            for host in xenrt.TEC().registry.hostList():
+                h = xenrt.TEC().registry.hostGet(host)
+                h.machine.powerctl.off()
+            CentralResource.release(self)
 
 class ProductLicense(CentralResource):
     def __init__(self, product):

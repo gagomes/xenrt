@@ -31,15 +31,25 @@ class PVToolsInstaller(object):
     def supportedInstaller(cloudstack, instance):
         return False
 
+
 class WindowsXenServer(PVToolsInstaller):
 
     @staticmethod
     def supportedInstaller(cloudstack, instance):
+        """
+        @return Is the current instance support
+        @rtype Boolean
+        """
         # TODO: Check the instance is running on XenServer
 
+        #Name strings from /vol/xenrtdata/iso
+        if next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
+            return False
+        
         if not isinstance(instance.os, xenrt.lib.opsys.WindowsOS):
             return False
 
+        
         return True
 
     def install(self):
@@ -93,4 +103,20 @@ class WindowsXenServer(PVToolsInstaller):
             else:
                 xenrt.sleep(30)
 
+class WindowsLegacyXenServer(WindowsXenServer):
+
+    @staticmethod
+    def supportedInstaller(cloudstack, instance):
+        """
+        @return Is the current instance support
+        @rtype Boolean
+        """
+        #Name strings from /vol/xenrtdata/iso
+        if not next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
+            return False
+        
+        return not isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
+
+
 RegisterInstaller(WindowsXenServer)
+RegisterInstaller(WindowsLegacyXenServer)

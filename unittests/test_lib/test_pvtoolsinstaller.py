@@ -4,18 +4,18 @@ from xenrt.lib.cloud.pvtoolsinstall import WindowsXenServer
 from xenrt.lib.opsys import WindowsOS
 
 
-class TestLegacyExcludedForPVTools(XenRTUnitTestCase):
+class TestWindowsXenServerLegacyExcludedForPVTools(XenRTUnitTestCase):
     NON_LEGACY_DISTROS = [("win7", True), ("winxp34344", False), 
                         ("dsjsdfk21312", True), ("w2k3", False)]
 
-
     def test_LegacyDistrosReturnFalse(self):
         """Given a legacy distro, when it is provided to the tools installer, then say this is not supported"""
-        self.run_for_many(self.NON_LEGACY_DISTROS, self.__testDistroPairSupported)
+        self.run_for_many(self.NON_LEGACY_DISTROS, self.__testDistroSupported)
 
-
-    def __testDistroPairSupported(self, data):
+    def __testDistroSupported(self, data):
         distro, expected = data
-        win = Mock(spec=WindowsOS)
+        os = Mock(spec=WindowsOS)
+        win = Mock()
+        type(win).os = PropertyMock(return_value = os)
         type(win).distro = PropertyMock(return_value = distro)
         self.assertEqual(expected, WindowsXenServer.supportedInstaller(None, win))

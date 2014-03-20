@@ -1027,11 +1027,6 @@ def existingLocations():
     guestIndex = 0
     slaves = []
 
-    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
-    if cloudip:
-        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
-        gec.registry.toolstackPut("cloud", cloud)
-
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:
@@ -1378,6 +1373,10 @@ if doshell:
     except:
         traceback.print_exc()
 
+    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+    if cloudip:
+        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+        gec.registry.toolstackPut("cloud", cloud)
     import code
     try:
         for guest in xenrt.TEC().registry.guestList():
@@ -1994,6 +1993,11 @@ ver = xenrt.TEC().lookup("XENRT_VERSION", None)
 if ver:
     xenrt.TEC().logverbose("Using XenRT harness version %s" % (ver))
     gec.dbconnect.jobUpdate("XENRT_VERSION", ver)
+
+cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+if cloudip:
+    cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+    gec.registry.toolstackPut("cloud", cloud)
 
 # Import any additional testcases.
 if tcfile:

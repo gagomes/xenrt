@@ -1,0 +1,35 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="g1">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="g2">
+        <distro>win7-x64</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="IxiaTests">
+      <testcase id="xenserver.tc.ixia_chariot.IxiaChariotBasedTest">
+        <arg>endpointSpec0=RESOURCE_HOST_0/g1</arg>
+        <arg>endpointSpec1=RESOURCE_HOST_0/g2</arg>
+        <arg>ixiaTestFile=ixiatest.tst</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

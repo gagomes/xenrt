@@ -90,7 +90,8 @@ class XLToolstack(object):
                        rootdisk=None,
                        extraConfig={},
                        startOn=None,
-                       installTools=True):
+                       installTools=True,
+                       useTemplateIfAvailable=True):
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         instance.toolstackId = str(uuid.uuid4())
 

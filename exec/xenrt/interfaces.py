@@ -6,7 +6,7 @@ class Toolstack(Interface):
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
-    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools):
+    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable):
         """Create and install and instance on this toolstack"""
 
     def existingInstance(name):

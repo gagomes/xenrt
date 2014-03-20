@@ -42,7 +42,8 @@ class CloudStack(object):
                        rootdisk=None,
                        extraConfig={},
                        startOn=None,
-                       installTools=True):
+                       installTools=True,
+                       useTemplateIfAvailable=True):
 
         if not name:
             name = xenrt.util.randomGuestName()

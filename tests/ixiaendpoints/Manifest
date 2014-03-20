@@ -1,0 +1,9 @@
+# Status: proprietary
+# Type: nobuild
+# Obtaining:
+# http://www.ixiacom.com/support/endpoint_library/index.php
+
+cd635349c8a3ec97515a9c6d6131f5c5  ./pewindows32_730.exe
+6c0b34e3f66f50e7bfbdd31fc0ed844a  ./pewindows64_730.exe
+66e07b5085cd4161e18f574c8892a2d6  ./pevista32_730.exe
+a83a62f6485b203255bcc407399799f3  ./pevista64_730.exe

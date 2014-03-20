@@ -164,9 +164,17 @@ class ManagementServer(object):
         self.place.execcmd('mkdir %s' % (placeArtifactDir))
 
         xenrt.TEC().logverbose('Using CloudStack Build: %d, Timestamp %s' % (lastGoodBuild.get_number(), lastGoodBuild.get_timestamp().strftime('%d-%b-%y %H:%M:%S')))
-
+        
         # Copy artifacts into the temp directory
-        map(lambda x:self.place.execcmd('wget %s -P %s' % (artifactsDict[x].url, placeArtifactDir)), artifactKeys)
+        localFiles = [xenrt.TEC().getFile(artifactsDict[x].url) for x in artifactKeys]
+
+        webdir = xenrt.WebDirectory()
+        for f in localFiles:
+            webdir.copyIn(f)
+            self.place.execcmd('wget %s -P %s' % (webdir.getURL(os.path.basename(f)), placeArtifactDir))
+
+        webdir.remove()
+
         return placeArtifactDir
 
     def installCloudStackManagementServer(self):

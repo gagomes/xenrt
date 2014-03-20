@@ -97,6 +97,10 @@ class ManagementServer(object):
 
             self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
+            templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2": "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+
+            for t in templateSubsts.keys():
+                self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
 

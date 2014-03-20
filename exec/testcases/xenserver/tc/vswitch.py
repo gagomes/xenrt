@@ -5974,7 +5974,7 @@ sleep %i
                         [(k,r) for k,r in rxDict.iteritems()])
 
             # Verify there are no overruns
-            if rxDict[self.xsHost.getSecondaryNIC(id)].split(":")[1] <> 0:
+            if int(overruns.split(":")[1]) <> 0:
                 raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
                                         (self.xsHost.getSecondaryNIC(id), overruns))
         xenrt.log("OVERRUN DATA: %s" %

@@ -5970,8 +5970,6 @@ sleep %i
                                             self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
             rxDict = {}
             rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
-            xenrt.log("OVERRUN DATA: %s" %
-                        [(k,r) for k,r in rxDict.iteritems()])
 
             # Verify there are no overruns
             if int(overruns.split(":")[1]) <> 0:
@@ -5982,6 +5980,7 @@ sleep %i
 
     def run(self, arglist):
         self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
+        self.runSubcase("generateNetworkTraffictoXS", (120, self.ipsToTest), "RX Overruns", "RX Overruns")
 
     def postRun(self):
         self._collectLogs()

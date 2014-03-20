@@ -5937,6 +5937,7 @@ sleep %i
 
     def generateNetworkTraffictoXS(self, timeSecs, ips):
         result={}
+        rxDict = {}
         self.startIPerfClient(iperfClient=self.linHost,
                         iperfServerIPs=ips,
                         timeSecs=int(timeSecs))
@@ -5968,7 +5969,6 @@ sleep %i
             # Look for overruns
             overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
                                             self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
-            rxDict = {}
             rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
 
             # Verify there are no overruns

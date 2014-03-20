@@ -1027,11 +1027,6 @@ def existingLocations():
     guestIndex = 0
     slaves = []
 
-    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
-    if cloudip:
-        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
-        gec.registry.toolstackPut("cloud", cloud)
-
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:
@@ -1378,6 +1373,10 @@ if doshell:
     except:
         traceback.print_exc()
 
+    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+    if cloudip:
+        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+        gec.registry.toolstackPut("cloud", cloud)
     import code
     try:
         for guest in xenrt.TEC().registry.guestList():
@@ -1564,7 +1563,7 @@ if cleanuplocks:
     
     jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
     canClean = dict((x, xenrt.canCleanJobResources(x)) for x in jobs)
-
+    jobsForMachinePowerOff = [] 
     try:
         for lock in locks:
             if lock[1]:
@@ -1602,11 +1601,20 @@ if cleanuplocks:
                             pass
 
                         os.rmdir(path)
+                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
+                            jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         print "Lock released"
                 else:
                     print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
     except Exception, ex:
         print str(ex)
+
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            machine.powerctl.off()
+            
 
 if releaselock:
     cr = xenrt.resources.CentralResource()
@@ -1994,6 +2002,11 @@ ver = xenrt.TEC().lookup("XENRT_VERSION", None)
 if ver:
     xenrt.TEC().logverbose("Using XenRT harness version %s" % (ver))
     gec.dbconnect.jobUpdate("XENRT_VERSION", ver)
+
+cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+if cloudip:
+    cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+    gec.registry.toolstackPut("cloud", cloud)
 
 # Import any additional testcases.
 if tcfile:

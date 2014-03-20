@@ -754,6 +754,7 @@ class TestSequence(Serial):
                                 self.params[str(name)] = \
                                                        xenrt.TEC().lookup(\
                                         str(name), str(value))
+                                xenrt.TEC().config.setVariable(str(name), self.params[str(name)])
                             elif n.localName == "include":
                                 iname = n.getAttribute("filename")
                                 if not iname:
@@ -1309,13 +1310,27 @@ class PrepareNode:
                                          boolean=True)
 
         if not nohostprepare:
+            # Get rid of the old CCP management servers, and the info about them
             xenrt.TEC().logverbose("Resetting machines Cloudstack info")
             i = 0
+            cleanedGuests = []
             while True:
                 try:
                     hostname = xenrt.TEC().lookup("RESOURCE_HOST_%d" % i)
                 except:
                     break
+                # Try to delete the old CCP management server
+                try:
+                    m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+                    if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
+                        cleanedGuests.append(m['CSGUEST'])
+                        (hostname, guestname) = m['CSGUEST'].split("/", 1)
+                        host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                        guest = host.guests[guestname]
+                        guest.uninstall()
+                except Exception, e:
+                    xenrt.TEC().logverbose("Could not clean Cloudstack management server - %s" % str(e))
+                # Reset the machine info 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSIP", ""])
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSGUEST", ""])

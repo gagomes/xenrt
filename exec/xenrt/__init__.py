@@ -2478,6 +2478,7 @@ class PhysicalHost:
         self.ipaddr6 = None
         self.pxeipaddr = self.ipaddr
         self.consoleLogger = None
+        self.poweredOffAtExit = False
         if not powerctltype and xenrt.TEC().lookupHost(name, "CONTAINER_HOST", None): 
             powerctltype = "xapi"
         if not powerctltype:
@@ -2510,6 +2511,11 @@ class PhysicalHost:
                                 (powerctltype,self.name))
         
         return
+
+    def exitPowerOff(self):
+        if not self.poweredOffAtExit:
+            self.poweredOffAtExit = True
+            self.powerctl.off()
 
     def setHost(self, host):
         """Specify the host object (GenericHost) using this machine."""
@@ -3301,7 +3307,7 @@ class GlobalExecutionContext:
                     for hTuple in hosts:
                         hKey = hTuple[0]
                         h = xenrt.TEC().registry.hostGet(hKey)
-                        if h:
+                        if h and not h.machine.poweredOffAtExit:
                             try:
                                 h.execdom0("logger -t XenRT XRT-3021 Installing "
                                            "iptables rule to block iSCSI traffic")

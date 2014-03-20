@@ -518,7 +518,7 @@ class CentralResource(object):
 
         return locks
         
-    def release(self):
+    def release(self, atExit=False):
         """Release the resource after use."""
         if self.resourceHeld:
             if self.lockfile:
@@ -547,7 +547,7 @@ class CentralResource(object):
             f.close()
 
     def callback(self):
-        self.release()
+        self.release(atExit=True)
 
 class ManagedStorageResource(CentralResource):
     """Resources that can be used as CVSM targets should inherit this class."""
@@ -679,7 +679,7 @@ class ExternalNFSShare(CentralResource):
         self.subdir = "%s/%s" % (self.base, os.path.basename(td))
         m.unmount()
 
-    def release(self):
+    def release(self, atExit=False):
         if self.subdir:
             if xenrt.TEC().lookup("OPTION_KEEP_NFS", False, boolean=True):
                 xenrt.TEC().logverbose("Not deleting NFS export %s" %
@@ -693,7 +693,7 @@ class ExternalNFSShare(CentralResource):
                                    (mp, os.path.basename(self.subdir)))
                 m.unmount()
                 self.subdir = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getMount(self):
         if not self.subdir:
@@ -992,12 +992,12 @@ class ISCSILunGroup(_ISCSILunBase):
         self.allocatedluncount += 1
         return lun
 
-    def release(self):
+    def release(self, atExit=False):
         if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
             return
         for l in self.luns:
             l.release()
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
 
 class ISCSILun(_ISCSILunBase):
@@ -1159,7 +1159,7 @@ class ISCSILun(_ISCSILunBase):
         self.sharedDB = None
         self.secAddrs = {}
 
-    def release(self):
+    def release(self, atExit=False):
         if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s" %
                                    (self.getServer(),
@@ -1193,7 +1193,7 @@ class ISCSILun(_ISCSILunBase):
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
 
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getInitiatorName(self, allocate=False):
         if not allocate or self.initiatorcount == 0:
@@ -1302,8 +1302,8 @@ class ISCSINativeLinuxLun(ISCSILun):
     def acquire(self):
         pass
     
-    def release(self):
-        CentralResource.release(self)
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
 
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
@@ -1403,8 +1403,8 @@ class ISCSIVMLun(ISCSILun):
     def acquire(self):
         pass
     
-    def release(self):
-        CentralResource.release(self)
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
 
 class ISCSITemporaryLun(ISCSILun):
     """A temporary LUN on the XenRT controller."""
@@ -1482,7 +1482,7 @@ class ISCSITemporaryLun(ISCSILun):
     def acquire(self):
         pass
 
-    def release(self):
+    def release(self, atExit=False):
         # Remove the LUN from IET
         if self.iettid:
             try:
@@ -1502,7 +1502,7 @@ class ISCSITemporaryLun(ISCSILun):
         if self.file:
             os.unlink(self.file)
 
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
         
 class ISCSILunSpecified(ISCSILun):
     """An iSCSI LUN we have explicitly provided to this test."""
@@ -1551,7 +1551,7 @@ class ISCSILunSpecified(ISCSILun):
     def acquire(self):
         pass
 
-    def release(self):
+    def release(self, atExit=False):
         pass
 
 class FCHBATarget(ManagedStorageResource):
@@ -1641,7 +1641,7 @@ class FCHBATarget(ManagedStorageResource):
 
 
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
@@ -1656,7 +1656,7 @@ class FCHBATarget(ManagedStorageResource):
                 self.username = None
                 self.password = None
                 self.aggr = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getSwitchName(self):
         return self.switchName
@@ -1771,7 +1771,7 @@ class SMISiSCSITarget(ManagedStorageResource):
 
 
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
@@ -1786,7 +1786,7 @@ class SMISiSCSITarget(ManagedStorageResource):
                 self.username = None
                 self.password = None
                 self.aggr = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getName(self):
         return self.name
@@ -1882,7 +1882,7 @@ class SMISFCTarget(ManagedStorageResource):
 
 
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
@@ -1897,7 +1897,7 @@ class SMISFCTarget(ManagedStorageResource):
                 self.username = None
                 self.password = None
                 self.aggr = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getName(self):
         return self.name
@@ -2000,7 +2000,7 @@ class NetAppTarget(ManagedStorageResource):
                                                "FRIENDLYNAME"],
                                                 None)
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
@@ -2015,7 +2015,7 @@ class NetAppTarget(ManagedStorageResource):
                 self.username = None
                 self.password = None
                 self.aggr = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def getName(self):
         return self.name
@@ -2071,7 +2071,7 @@ class NetAppTargetSpecified(NetAppTarget):
     def acquire(self):
         pass
 
-    def release(self):
+    def release(self, atExit=False):
         pass
 
 class EQLTarget(ManagedStorageResource):
@@ -2151,7 +2151,7 @@ class EQLTarget(ManagedStorageResource):
                                                "FRIENDLYNAME"],
                                                 None)
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
@@ -2166,7 +2166,7 @@ class EQLTarget(ManagedStorageResource):
                 self.username = None
                 self.password = None
                 self.aggr = None
-        CentralResource.release(self)
+        CentralResource.release(self, atExit)
 
     def runSSHCommands(self, cmdlist):
         xenrt.TEC().logverbose("Executing command(s) on Equallogic target %s: "
@@ -2355,7 +2355,7 @@ class EQLTargetSpecified(EQLTarget):
     def acquire(self):
         pass
 
-    def release(self):
+    def release(self, atExit=False):
         pass
 
 class NetworkTestPeer(CentralResource):
@@ -2799,9 +2799,15 @@ class _StaticIPAddr(CentralResource):
     def getAddr(self):
         return self.addr
 
-    def release(self):
+    def release(self, atExit=False):
         if not xenrt.TEC().lookup("OPTION_KEEP_STATIC_IPS", False, boolean=True):
-            CentralResource.release(self)
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            CentralResource.release(self, atExit)
 
 class StaticIP4Addr(_StaticIPAddr):
     LOCKID = "IP4ADDR"
@@ -2884,6 +2890,15 @@ class PrivateVLAN(CentralResource):
     def getID(self):
         return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", self.name, "ID"])
 
+    def release(self, atExit=False):
+        if not xenrt.TEC().lookup("OPTION_KEEP_VLANS", False, boolean=True):
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            CentralResource.release(self, atExit)
 
 class ProductLicense(CentralResource):
     def __init__(self, product):

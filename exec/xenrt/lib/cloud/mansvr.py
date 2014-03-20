@@ -115,6 +115,7 @@ class ManagementServer(object):
             manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
 
             self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
+            webdir.remove()
             self.place.execcmd('mkdir cloudplatform')
             self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))

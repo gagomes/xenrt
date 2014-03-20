@@ -102,6 +102,7 @@ class MarvinApi(object):
             installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
             self.mgtSvr.place.execcmd('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
             self.mgtSvr.place.execcmd('umount /media')
+        webdir.remove()
 
     def addZone(self, name, networktype='Basic', dns1=None, internaldns1=None):
         args = locals()

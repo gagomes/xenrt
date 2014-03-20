@@ -1562,6 +1562,9 @@ if cleanuplocks:
     locks = cr.list()
     print "lock count is %d" % len(locks)
     
+    jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
+    canClean = dict((x, xenrt.canCleanJobResources(x)) for x in jobs)
+
     try:
         for lock in locks:
             if lock[1]:
@@ -1575,7 +1578,7 @@ if cleanuplocks:
                 if diff > 5*60:
                     print "Lock %s is greater than 5 minutes old" % (lock[0])
                     if lock[2]['jobid']:
-                        allowLockRelease = xenrt.canCleanJobResources(lock[2]['jobid']) 
+                        allowLockRelease = canClean[lock[2]['jobid']]
                     else:
                         # Doesn't have a job, must be manual run
                         pid = "(N/A)"

@@ -653,6 +653,13 @@ class TC7479(xenrt.TestCase):
         if host.getEthtoolOffloadInfo(iface)['tx-checksumming'] != 'on':
             raise xenrt.XRTError("TX offload already disabled")
 
+        # Check if nics support TX offloading
+        res = host.execdom0("ethtool -K %s tx off" % iface, retval="code")
+        if res:
+            raise xenrt.XRTError("TX offloading not supported on this machine")
+        else:
+            host.execdom0("ethtool -K %s tx on" % iface)
+
         # Set the other-config
         host.genParamSet("pif", pif, "other-config", "off", "ethtool-tx")
 

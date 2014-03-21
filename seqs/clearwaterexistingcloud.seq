@@ -1,0 +1,6 @@
+<xenrt>
+  <testsequence>
+    <testcase id="cloud.tc.basic.TCGuestDeploy" />
+  </testsequence>
+</xenrt>
+

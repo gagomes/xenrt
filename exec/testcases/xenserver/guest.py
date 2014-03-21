@@ -2980,3 +2980,72 @@ class TCSysprep(xenrt.TestCase):
             cli.execute("network-destroy", "uuid=%s" % self.nwuuid)
 
         return
+
+class TCPVHVMIInstall(xenrt.TestCase):
+    
+    def __init__(self):
+        xenrt.TestCase.__init__(self, "TCPVHVMIInstall")
+        #self.blocker = True
+        #self.guest = None
+        #self.host = None
+
+    def run(self, arglist=[]):
+
+        args = xenrt.util.strlistToDict(arglist)
+
+        # Optional arguments
+        distro = args.get("distro") or "rhel65"
+        vcpus = args.get("vcpus") or None
+        memory = args.get("memory") or None
+        if memory: memory = int(memory)
+        arch = args.get("arch") or "x86-32"
+        sr = args.get("sr") or None
+        sruuid = None
+        if sr:
+            if xenrt.isUUID(sr):
+                sruuid = sr
+            else:
+                sr_uuids = host.getSRs()
+                sr_names = [host.getSRParam(uuid=sr_uuid, param='name-label') for sr_uuid in sr_uuids]
+                sr_map = dict(zip(sr_names, sr_uuids))
+                if sr_map.has_key(sr):
+                    sruuid = sr_map[sr]
+                else:
+                    sruuid = sr #Default behaviour
+        notools = args.get("notools") or False
+        extrapackages = args.get("extrapackages") or None
+        rootdisk = args.get("rootdisk") or None
+        if rootdisk: rootdisk = int(rootdisk)
+        vifs = args.get("vifs") or xenrt.lib.xenserver.Guest.DEFAULT
+        extradisks = args.get("extradisks") or None
+        guestname = args.get("guest") or None
+        if not guestname:
+            guestname = distro #+ "_" + xenrt.util.randomGuestName()
+            if arch == "x86-64": guestname += arch
+        #post_shutdown = False
+
+        guest = self.getDefaultHost().createBasicGuest( 
+                         distro = distro,
+                         vcpus = vcpus,
+                         memory = memory,
+                         name = guestname,
+                         arch = arch,
+                         sr = sruuid,
+                         #bridge=None,
+                         #use_ipv6=False,
+                         notools = notools,
+                         disksize=rootdisk,
+                         #rawHBAVDIs=None,
+                         #primaryMAC=None,
+                         #reservedIP=None,
+                         forceHVM = True
+                         )
+        xenrt.TEC().registry.guestPut(guestname, guest)
+        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
+                                                  memory=memory,
+                                                  distro=distro,
+                                                  arch=arch,
+                                                  disksize=rootdisk)
+        xenrt.sleep(30)
+        guest.setState("DOWN")
+

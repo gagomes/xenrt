@@ -3350,9 +3350,6 @@ class TC13476(xenrt.TestCase):
         if nVGs > 1:
             raise xenrt.XRTError("Single voulume group expected! Found: \n%s" % vgList)
 
-        
-
-    
 class TC13568(xenrt.TestCase):
     """Test VDIs don't get corrupted after network outage (CA-56857)"""
     
@@ -4129,6 +4126,63 @@ class TC20915(TCVDICopyDeltas):
 class TC20916(TCVDICopyDeltas):
     """Test vdi-copy options for copying and coalescing deltas (vdi-copy into existing VDIs)"""
     COPY_INTO_EMPTY_VDI=True
+
+class TCCrossHostVmCopy(xenrt.TestCase):
+    """ Base class for cross host, cross SR, VM operations test for HVM and PV Guests"""
+
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid)
+        self.srUUIDsMaster = []
+        self.srUUIDsSlave = []
+
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        self.master = self.pool.master
+        self.slave = self.pool.slaves.values()[0]
+        
+        self.localsr1 = self.master.getSRs(type="lvm")
+        self.localsr2 = self.slave.getSRs(type="lvm")
+        self.nfssr = self.master.getSRs(type="nfs")
+        self.iscsisr = self.master.getSRs(type="lvmoiscsi")
+        
+        self.guests = [ self.master.getGuest(g) for g in self.master.listGuests()]
+
+        for sr in [ self.localsr1, self.nfssr, self.iscsisr ]:
+            if sr:
+                self.srUUIDsMaster.append(sr[0])
+
+        for sr in [ self.localsr2, self.nfssr, self.iscsisr ]:
+            if sr:
+                self.srUUIDsSlave.append(sr[0])
+
+    def testVmCopyOnSr(self, guest, sr):
+        step("Single host: Copying guest VM from local SR of master to SR %s of master as guestcopy." % sr)
+        try:
+            guestcopy = guest.copyVM(sruuid = sr)
+        except:
+            raise xenrt.XRTFailure("Single host copying of guest %s failed from local SR to SR %s." % (guest.name, sr))
+        step("Cross host: Copying guestcopy from master to slave on All slave SRs and checking copied guests on slave.")
+        for sr2 in self.srUUIDsSlave:
+            try:
+                guestcopycopy = guestcopy.copyVM(sruuid = sr2)
+            except:
+                raise xenrt.XRTFailure("Cross host copying of guest %s failed from SR %s to SR %s." % (guest.name, sr ,sr2))
+            guestcopycopy.host = self.slave
+            guestcopycopy.start(specifyOn=True)
+            guestcopycopy.check()
+            guestcopycopy.uninstall()
+        step("Checking guests which were copied on master host")
+        guestcopy.host = self.master
+        guestcopy.start(specifyOn=True)
+        guestcopy.check()
+        guestcopy.uninstall()
+
+    def run(self, arglist):
+        for guest in self.guests:
+            guest.shutdown()
+            for sr in self.srUUIDsMaster:
+                self.runSubcase("testVmCopyOnSr", (guest, sr), guest.name, sr)
+            guest.start()
 
 class SRIntroduceBase(xenrt.TestCase):
     """Base class for introducing a previously forgotten SR"""

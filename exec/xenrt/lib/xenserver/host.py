@@ -725,10 +725,13 @@ class Host(xenrt.GenericHost):
         if doguests:
             guests = self.listGuests()
             for guestname in guests:
-                guest = self.guestFactory()(guestname, None)
-                guest.existing(self)
-                xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
-                xenrt.TEC().registry.guestPut(guestname, guest)
+                try:
+                    guest = self.guestFactory()(guestname, None)
+                    guest.existing(self)
+                    xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
+                    xenrt.TEC().registry.guestPut(guestname, guest)
+                except:
+                    xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
 
     def reinstall(self):
         self.install(cd=self.i_cd, primarydisk=self.i_primarydisk,
@@ -3205,7 +3208,7 @@ done
             guest.setVCPUs(vcpus)
         if memory != None:
             guest.setMemory(memory)
-        if not disksize:
+        if (not disksize) or disksize == None or disksize == guest.DEFAULT:
             if forceHVM:
                 disksize = 8192 # 8GB (in MB) by default
             else:
@@ -3266,7 +3269,7 @@ done
     def getVdiMD5Sum(self, vdi):
         """Gets the MD5 sum of the specified VDI"""
 
-        if not isinstance(vdi, str) or len(vdi) == 0:
+        if not (isinstance(vdi, str) or isinstance(vdi, unicode)) or len(vdi) == 0:
             raise xenrt.XRTError("Invalid VDI UUID passed to getVdiMD5Sum()")
         
         # generate random name for script to write in dom0
@@ -8386,7 +8389,8 @@ rm -f /etc/xensource/xhad.conf || true
         self.execdom0("chmod a+x /tmp/xenrt_ha_reset.sh")
         self.execdom0("PATH=$PATH:/opt/xensource/xha "
                       "/tmp/xenrt_ha_reset.sh",
-                      level=xenrt.RC_OK)
+                      level=xenrt.RC_OK,
+                      getreply=False)
 
         # Remove any NFS blocks
         self.execdom0("rm -f /etc/rc3.d/S09blocknfs || true")
@@ -11810,7 +11814,7 @@ done
             return True
 
     def installNVIDIAHostDrivers(self):
-        rpm="NVIDIA-vgx-xenserver-6.2-331.52.i386"
+        rpm="NVIDIA-vgx-xenserver-6.2-331.59.i386"
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
@@ -11871,6 +11875,41 @@ done
                 pif = self.getNICPIF(n)
                 self.execdom0("ethtool -K %s gro on" % eth)
                 self.genParamSet("pif", pif, "other-config:ethtool-gro", "on")
+
+    def startVifDebug(self, domid):
+        try:
+            self.execdom0("killall -9 debugfs")
+        except:
+            pass
+        self.execdom0("%s/debugfs %d </dev/null > /tmp/vifdebug.%d.log 2>&1 &" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), int(domid), int(domid)))
+        
+
+    def stopVifDebug(self, domid):
+        try:
+            self.execdom0("killall -9 debugfs")
+        except:
+            pass
+        xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
+
+        
+    def tailorForCloudStack(self):
+        # Set the Linux templates with PV args to autoinstall
+
+        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+
+        args = {}
+        args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Wheezy 7.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        for a in args.keys():
+            uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
+            if len(uuids) == 0:
+                xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
+                continue
+            self.genParamSet("template", uuids[0], "PV-args", args[a])
+
 
 
 #############################################################################
@@ -11935,13 +11974,17 @@ class SarasotaHost(ClearwaterHost):
         # Get network backend
         backend=self.execdom0('cat /etc/xensource/network.conf').strip()
         if not re.search('bridge', backend, re.I):
-            data = self.execdom0('ovs-vsctl list-ports %s' %
-                                bridge)
-            ifs = string.split(data)
+            try:
+                data = self.execdom0('ovs-vsctl list-ports %s' %
+                                    bridge)
+                ifs = string.split(data)
+            except:
+                # If we pass in a network name rather than a bridge name this will fail.
+                # This is fine, because the calling function will fall through to another method
+                return None
         else:
             ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
         return ifs
-
 
 
 #############################################################################

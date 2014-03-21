@@ -49,6 +49,7 @@ class Config:
         self.config["XENRT_BASE"] = "/usr/share/xenrt"
         self.config["XENRT_CONF"] = "/etc/xenrt"
         self.config["HTTP_BASE_PATH"] = "/local/scratch/www"
+        self.config["GUESTFILE_BASE_PATH"] = "/local/scratch/guestfiles"
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
         self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache"
@@ -1022,7 +1023,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel6,oel61,oel62,oel63,oel64,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
+        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Sarasota"]["MIN_VM_MEMORY"] = "128"
@@ -1451,6 +1452,12 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
+
+        self.config["CCP_CONFIG"] = {}
+        self.config["CCP_CONFIG"]["OS_NAMES"] = {}
+        self.config["CCP_CONFIG"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["debian70_x86-64"] = "Debian GNU/Linux 7(64-bit)"
 
         self.config["GUEST_VIFS_centos41"] = "3"
         self.config["GUEST_VIFS_centos42"] = "3"
@@ -2749,6 +2756,8 @@ class Config:
         # MrToad - xen-tools . Rolls up XS62E015 
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/xen/carbon/clearwater-sp1-lcm/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
 
+        # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/build/clearwater-sp1-lcm/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
 
 
         return
@@ -2877,8 +2886,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF02"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
         
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

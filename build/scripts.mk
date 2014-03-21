@@ -19,7 +19,7 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server unittests
+SRCDIRS		:= control scripts seqs lib data provision server 
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
@@ -48,8 +48,12 @@ server: install
 .PHONY: install
 install: tarlibs $(NEWDIRS) utils $(SRCDIRS) exec $(LINKS) $(SCRATCHDIR) \
 	 $(SHAREDIR)/VERSION $(SHAREDIR)/SITE $(CONFDIR) \
-	 $(BINLINKS) images $(JOBRESULTDIR) progs tar $(VARDIR) pythonlibs copy
+	 $(BINLINKS) images $(JOBRESULTDIR) progs tar $(VARDIR) pythonlibs copy unittests
 	$(info XenRT installation completed.)	 
+
+.PHONY: unittests
+unittests:
+	rsync -axl --delete unittests $(SHAREDIR)
 
 .PHONY: tarlibs
 tarlibs:
@@ -260,3 +264,10 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	python $@.tmp > $@
 	rm $@.tmp
 	chmod --reference $@.gen $@
+
+.PHONY: check
+check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+	cd /usr/share/xenrt/unittests && python runner.py
+

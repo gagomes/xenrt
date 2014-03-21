@@ -13,7 +13,8 @@ Parses an XML test sequence specification.
 """
 
 import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
-import xenrt, xenrt.clouddeploy
+import xenrt
+import pprint
 
 __all__ = ["Fragment",
            "SingleTestCase",
@@ -241,10 +242,30 @@ class Fragment(threading.Thread):
             for c in toplevel.collections[collection].childNodes:
                 if c.nodeType == c.ELEMENT_NODE:
                     self.handleSubNode(toplevel, c, newparams)
-        elif node.localName == "testcase":
-            tcid = expand(node.getAttribute("id"), params)
-            name = expand(node.getAttribute("name"), params)
-            group = expand(node.getAttribute("group"), params)
+        elif node.localName == "testcase" or node.localName == "marvintests":
+            if node.localName == "testcase":
+                tcid = expand(node.getAttribute("id"), params)
+                name = expand(node.getAttribute("name"), params)
+                group = expand(node.getAttribute("group"), params)
+                marvinTestConfig = None
+            else:
+                tcid = 'xenrt.lib.cloud.marvinwrapper.TCMarvinTestRunner'
+                group = 'MarvinGroup'
+                name = 'MarvinTests'
+                marvinTestConfig = {}
+                if expand(node.getAttribute("path"), params) != '':
+                    marvinTestConfig['path'] = expand(node.getAttribute("path"), params)
+                    group = marvinTestConfig['path']
+                    group = len(group) > 32 and group[len(group)-32:] or group
+                if expand(node.getAttribute("class"), params) != '':
+                    if not marvinTestConfig.has_key('path'):
+                        raise xenrt.XRTError('marvintests does not support just specifying a class - you must also specify a path in the sequence')
+                    marvinTestConfig['cls'] = expand(node.getAttribute("class"), params)
+                    name = marvinTestConfig['cls']
+                    name = len(name) > 32 and name[len(name)-32:] or name
+                if expand(node.getAttribute("tags"), params) != '':
+                    marvinTestConfig['tags'] = expand(node.getAttribute("tags"), params).split(',')
+
             host = expand(node.getAttribute("host"), params)
             guest = expand(node.getAttribute("guest"), params)
             prios = expand(node.getAttribute("prio"), params)
@@ -288,7 +309,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             except Exception as e:
                 exception_type,exception_value,exception_traceback = sys.exc_info()
                 xenrt.TEC().logverbose("Failed to import file %s with exception values %s,%s,%s"%(tcid,exception_type,exception_value,exception_traceback))
@@ -309,7 +331,8 @@ class Fragment(threading.Thread):
                                        depend=depend,
                                        blocker=blocker,
                                        jiratc=tc,
-                                       tcsku=tcsku)
+                                       tcsku=tcsku,
+                                       marvinTestConfig=marvinTestConfig)
             self.addStep(newtc)        
 
     def handleXMLNode(self, toplevel, node, params=None):
@@ -410,7 +433,8 @@ class SingleTestCase(Fragment):
                  depend=None,
                  blocker=None,
                  jiratc=None,
-                 tcsku=None):
+                 tcsku=None,
+                 marvinTestConfig=None):
         xenrt.TEC().logverbose("Creating testcase object for %s" % (tc))
         Fragment.__init__(self, parent, None)
         package = string.join(string.split(tc, ".")[:-1], ".")
@@ -442,6 +466,7 @@ class SingleTestCase(Fragment):
         self.blocker = blocker
         self.jiratc = jiratc
         self.tcsku = tcsku
+        self.marvinTestConfig = marvinTestConfig
 
     def runThis(self):
         try:
@@ -460,7 +485,8 @@ class SingleTestCase(Fragment):
                               isfinally=self.isfinally,
                               blocker=self.blocker,
                               jiratc=self.jiratc,
-                              tcsku = self.tcsku)
+                              tcsku = self.tcsku,
+                              marvinTestConfig = self.marvinTestConfig)
             if t and t.ticket:
                 self.ticket = t.ticket
                 self.ticketIsFailure = t.ticketIsFailure
@@ -728,6 +754,7 @@ class TestSequence(Serial):
                                 self.params[str(name)] = \
                                                        xenrt.TEC().lookup(\
                                         str(name), str(value))
+                                xenrt.TEC().config.setVariable(str(name), self.params[str(name)])
                             elif n.localName == "include":
                                 iname = n.getAttribute("filename")
                                 if not iname:
@@ -1266,12 +1293,12 @@ class PrepareNode:
         return vm                    
 
     def debugDisplay(self):
-        xenrt.TEC().logverbose("Hosts: %s" % (self.hosts))
-        xenrt.TEC().logverbose("Pools: %s" % (self.pools))
-        xenrt.TEC().logverbose("VMs: %s" % (self.vms))
-        xenrt.TEC().logverbose("Bridges: %s" % (self.bridges))
-        xenrt.TEC().logverbose("SRs: %s" % (self.srs))
-        xenrt.TEC().logverbose("Cloud Spec: %s" % (self.cloudSpec))
+        xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))
+        xenrt.TEC().logverbose("Pools:\n" + pprint.pformat(self.pools))
+        xenrt.TEC().logverbose("VMs:\n" + pprint.pformat(self.vms))
+        xenrt.TEC().logverbose("Bridges:\n" + pprint.pformat(self.bridges))
+        xenrt.TEC().logverbose("SRs:\n" + pprint.pformat(self.srs))
+        xenrt.TEC().logverbose("Cloud Spec:\n" + pprint.pformat(self.cloudSpec))
 
     def runThis(self):
         self.preparecount = self.preparecount + 1
@@ -1281,11 +1308,51 @@ class PrepareNode:
         nohostprepare = xenrt.TEC().lookup(["CLIOPTIONS", "NOHOSTPREPARE"],
                                          False,
                                          boolean=True)
+
+        if not nohostprepare:
+            # Get rid of the old CCP management servers, and the info about them
+            xenrt.TEC().logverbose("Resetting machines Cloudstack info")
+            i = 0
+            cleanedGuests = []
+            while True:
+                try:
+                    hostname = xenrt.TEC().lookup("RESOURCE_HOST_%d" % i)
+                except:
+                    break
+                # Try to delete the old CCP management server
+                try:
+                    m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+                    if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
+                        cleanedGuests.append(m['CSGUEST'])
+                        (hostname, guestname) = m['CSGUEST'].split("/", 1)
+                        host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                        guest = host.guests[guestname]
+                        guest.uninstall()
+                except Exception, e:
+                    xenrt.TEC().logverbose("Could not clean Cloudstack management server - %s" % str(e))
+                # Reset the machine info 
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSIP", ""])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSGUEST", ""])
+                except:
+                    pass
+                i += 1
+        
         try:
+            sharedGuestQueue = InstallWorkQueue()
             for v in self.vms:
                 if v.has_key("host") and v["host"] == "SHARED":
                     if not xenrt.TEC().registry.hostGet("SHARED"):
                         xenrt.TEC().registry.hostPut("SHARED", xenrt.resources.SharedHost().getHost())
+                        sharedGuestQueue.add(v)
+                
+            sharedGuestWorkers = []
+            if len(sharedGuestQueue.items) > 0:
+                for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
+                    w = GuestInstallWorker(sharedGuestQueue, name="SHGWorker%02u" % (i))
+                    sharedGuestWorkers.append(w)
+                    w.start()
+                
             if not nohostprepare:
                 # Install hosts in parallel to save time.
                 queue = InstallWorkQueue()
@@ -1748,7 +1815,8 @@ class PrepareNode:
             if len(self.vms) > 0:
                 queue = InstallWorkQueue()
                 for v in self.vms:
-                    queue.add(v)
+                    if not (v.has_key("host") and v["host"] == "SHARED"):
+                        queue.add(v)
                 workers = []
                 for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
                     w = GuestInstallWorker(queue, name="GWorker%02u" % (i))
@@ -1757,6 +1825,12 @@ class PrepareNode:
                 for w in workers:
                     w.join()
                 for w in workers:
+                    if w.exception:
+                        raise w.exception
+            if len(sharedGuestWorkers) > 0:
+                for w in sharedGuestWorkers:
+                    w.join()
+                for w in sharedGuestWorkers:
                     if w.exception:
                         raise w.exception
             
@@ -1773,7 +1847,7 @@ class PrepareNode:
                     host.associateDVS(controller.getDVSCWebServices())
 
                 if self.cloudSpec:
-                    xenrt.clouddeploy.deploy(self.cloudSpec)
+                    xenrt.lib.cloud.deploy(self.cloudSpec)
 
         except Exception, e:
             sys.stderr.write(str(e))

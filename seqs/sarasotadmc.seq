@@ -20,6 +20,7 @@
       <testcase id="xenserver.tc.balloon.TC9529"/>
       <testcase id="xenserver.tc.balloon.TC10552"/>
       <testcase id="xenserver.tc.balloon.TC10553"/>
+      <testcase id="xenserver.tc.balloon.TC11022"/>
       <testcase id="xenserver.tc.balloon.TC12600"/>
       <testcase id="xenserver.tc.balloon.TC12601"/>
       <testcase id="xenserver.tc.balloon.TC12602"/>

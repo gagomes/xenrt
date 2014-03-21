@@ -368,6 +368,7 @@ class TestCase:
         self.group = None
         self.jiratc = None
         self.tcsku = None
+        self.marvinTestConfig = None
         self.logsfrom = {}
         self._anon = anon
         if anon:
@@ -1620,6 +1621,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
             self._host = "RESOURCE_HOST_0"
             return self.getHost("RESOURCE_HOST_0")
 
+    def getDefaultToolstack(self):
+        return self.tec.gec.registry.toolstackGetDefault()
+
     def getPool(self, name):
         """Get a pool object by name. Registers the hosts for log fetching."""
         p = self.tec.gec.registry.poolGet(name)
@@ -2474,6 +2478,7 @@ class PhysicalHost:
         self.ipaddr6 = None
         self.pxeipaddr = self.ipaddr
         self.consoleLogger = None
+        self.poweredOffAtExit = False
         if not powerctltype and xenrt.TEC().lookupHost(name, "CONTAINER_HOST", None): 
             powerctltype = "xapi"
         if not powerctltype:
@@ -2506,6 +2511,11 @@ class PhysicalHost:
                                 (powerctltype,self.name))
         
         return
+
+    def exitPowerOff(self):
+        if not self.poweredOffAtExit:
+            self.poweredOffAtExit = True
+            self.powerctl.off()
 
     def setHost(self, host):
         """Specify the host object (GenericHost) using this machine."""
@@ -2721,7 +2731,8 @@ class GlobalExecutionContext:
               depend=None,
               blocker=None,
               jiratc=None,
-              tcsku=None):
+              tcsku=None,
+              marvinTestConfig=None):
         """Run a test case by name.
 
         This method is called by the sequence execution logic or by the
@@ -2754,6 +2765,7 @@ class GlobalExecutionContext:
         @param ttype: testcase type, used for filtering
         @param depend: comma-separated list of testcases this on depends on
         @param blocker: C{True} if this is a blocking testcase
+        @param marvinTestConfig: dictionary config for executing Marvin tests
         """
         initfail = False
         try:
@@ -2773,6 +2785,7 @@ class GlobalExecutionContext:
             xenrt.TEC().logverbose(str(e), pref='REASON')
         t.setJiraTC(jiratc)
         t.setTCSKU(tcsku)
+        t.marvinTestConfig = marvinTestConfig
         if name and group:
             t._rename("%s/%s" % (group, name))
             t._setBaseName(name)
@@ -3294,7 +3307,7 @@ class GlobalExecutionContext:
                     for hTuple in hosts:
                         hKey = hTuple[0]
                         h = xenrt.TEC().registry.hostGet(hKey)
-                        if h:
+                        if h and not h.machine.poweredOffAtExit:
                             try:
                                 h.execdom0("logger -t XenRT XRT-3021 Installing "
                                            "iptables rule to block iSCSI traffic")
@@ -3523,6 +3536,8 @@ def getTestTarball(testname, extract=False, copy=True, directory=None):
 
 # Import all symbols from this package to our namespace. This is only
 # for users of this package - internal references are to the submodules
+from xenrt.enum import *
+import xenrt.interfaces
 from xenrt.resources import *
 from xenrt.grub import *
 from xenrt.legacy import *

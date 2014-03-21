@@ -526,7 +526,7 @@ class Guest(xenrt.GenericGuest):
         # store the distro so it can be used when using --existing or --pool
         if self.distro:
             self.paramSet("other-config:xenrt-distro", self.distro)
-        
+
         if not dontstartinstall:
             if start:
                 self.start()
@@ -540,6 +540,7 @@ class Guest(xenrt.GenericGuest):
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
+            
             if self.noguestagent and not notools:
                 self.installTools()
 
@@ -2784,6 +2785,10 @@ exit /B 1
         self.uuid = uuid
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+        self.vifs.sort()
+        self.recreateVIFs(newMACs=True)
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):
@@ -3716,7 +3721,14 @@ exit /B 1
             self.execguest("/mnt/Linux/install.sh %s" % (args))
             self.execguest("umount /mnt")
             xenrt.sleep(10)
-            self.removeCD(device=device)
+            try:
+                self.removeCD(device=device)
+            except xenrt.XRTFailure as e:
+                # In case of Linux on HVM, vbd-destroy on CD may fail.
+                if "vbd-destroy" in e.reason:
+                    pass
+                else:
+                    raise e
             if reboot:
                 self.reboot()
         else:
@@ -4731,6 +4743,22 @@ class BostonGuest(MNRGuest):
 
             self.xmlrpcExec('wmic computersystem where name="%%COMPUTERNAME%%" call rename name="%s"' % (hostname))
 
+    def _generateRunOnceScript(self):
+        u = []
+        for p in string.split(xenrt.TEC().lookup("PV_DRIVERS_DIR"), ";"):
+            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon.exe" -r update "%s\\xenvif.inf" XENBUS\\CLASS^&VIF""" % (p, p))
+            u.append("ping 127.0.0.1 -n 20 -w 1000")
+            u.append("""IF EXIST "%s\\xeniface.inf" "c:\\devcon.exe" -r update "%s\\xeniface.inf" XENBUS\\CLASS^&IFACE""" % (p, p))
+            u.append("ping 127.0.0.1 -n 20 -w 1000")
+            u.append("""IF EXIST "%s\\xennet.inf" "c:\\devcon.exe" -r update "%s\\xennet.inf" XEN\\vif""" % (p, p))
+        for p in string.split(xenrt.TEC().lookup("PV_DRIVERS_DIR_64"), ";"):
+            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon64.exe" -r update "%s\\xenvif.inf" XENBUS\\CLASS^&VIF""" % (p, p))
+            u.append("ping 127.0.0.1 -n 20 -w 1000")
+            u.append("""IF EXIST "%s\\xeniface.inf" "c:\\devcon64.exe" -r update "%s\\xeniface.inf" XENBUS\\CLASS^&IFACE""" % (p, p))
+            u.append("ping 127.0.0.1 -n 20 -w 1000")
+            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon64.exe" -r update "%s\\xennet.inf" XEN\\vif""" % (p, p))
+        return string.join(u, "\n")
+
 ##############################################################################
 
 class TampaGuest(BostonGuest):
@@ -5395,23 +5423,6 @@ class ClearwaterGuest(TampaGuest):
         if self.host.execdom0("xe vm-param-add uuid=%s param-name=platform vgpu_vnc_enabled=%s" % (self.uuid, option), retval="code") != 0:
             args = ["uuid=%s" % self.uuid, "platform:vgpu_vnc_enabled=%s" % option]
             self.getCLIInstance().execute("vm-param-set", string.join(args))
-
-    def _generateRunOnceScript(self):
-        u = []
-        for p in string.split(xenrt.TEC().lookup("PV_DRIVERS_DIR"), ";"):
-            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon.exe" -r update "%s\\xenvif.inf" XENBUS\\CLASS^&VIF""" % (p, p))
-            u.append("ping 127.0.0.1 -n 20 -w 1000")
-            u.append("""IF EXIST "%s\\xeniface.inf" "c:\\devcon.exe" -r update "%s\\xeniface.inf" XENBUS\\CLASS^&IFACE""" % (p, p))
-            u.append("ping 127.0.0.1 -n 20 -w 1000")
-            u.append("""IF EXIST "%s\\xennet.inf" "c:\\devcon.exe" -r update "%s\\xennet.inf" XEN\\vif""" % (p, p))
-        for p in string.split(xenrt.TEC().lookup("PV_DRIVERS_DIR_64"), ";"):
-            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon64.exe" -r update "%s\\xenvif.inf" XENBUS\\CLASS^&VIF""" % (p, p))
-            u.append("ping 127.0.0.1 -n 20 -w 1000")
-            u.append("""IF EXIST "%s\\xeniface.inf" "c:\\devcon64.exe" -r update "%s\\xeniface.inf" XENBUS\\CLASS^&IFACE""" % (p, p))
-            u.append("ping 127.0.0.1 -n 20 -w 1000")
-            u.append("""IF EXIST "%s\\xenvif.inf" "c:\\devcon64.exe" -r update "%s\\xennet.inf" XEN\\vif""" % (p, p))
-        return string.join(u, "\n")
-
 
 ##############################################################################
 

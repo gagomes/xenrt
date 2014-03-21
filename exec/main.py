@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
@@ -138,6 +138,7 @@ def usage(fd):
 
     Maintenance operations:
 
+    --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
@@ -193,6 +194,7 @@ traceon = False
 redir = False
 existing = False
 aux = False
+sanitycheck = False
 makeconfigs = False
 switchconfig = False
 doshell = False
@@ -296,6 +298,7 @@ try:
                                       'pause-on-fail=',
                                       'pause-on-pass=',
                                       'email=',
+                                      'sanity-check',
                                       'make-configs',
                                       'switch-config',
                                       'shell',
@@ -547,6 +550,9 @@ try:
             setvars.append((["CLIOPTIONS", "PAUSE_ON_PASS", value], True))
         elif flag == "--email":
             setvars.append(("EMAIL", value))
+        elif flag == "--sanity-check":
+            sanitycheck = True
+            aux = True
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
@@ -988,6 +994,29 @@ def existingPool(mastername):
         raise 
     return pool
 
+def getCloud(hostname):
+    """Populate the registry with a cloud"""
+    try:
+        gec.registry.toolstackGetDefault()
+    except:
+        try:
+            m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
+            if m.has_key("CSGUEST"):
+                (hostname, guestname) = m['CSGUEST'].split("/", 1)
+                try:
+                    host = existingHost(hostname)
+                except:
+                    host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                guest = host.guests[guestname]
+                gec.registry.guestPut("CS-MS", guest)
+                cloud = xenrt.lib.cloud.CloudStack(guest)
+                gec.registry.toolstackPut("cloud", cloud)
+            elif m.has_key('CSIP'):
+                cloud = xenrt.lib.cloud.CloudStack(ip=m['CSIP'])
+                gec.registry.toolstackPut("cloud", cloud)
+        except Exception, e:
+            xenrt.TEC().logverbose("Warning - could not retrieve CS management server - %s" % str(e))
+
 def existingLocations():
     runon = None
     getPools = True
@@ -1001,6 +1030,7 @@ def existingLocations():
     # See if we have a pool to run on.
     masterhost = gec.config.lookup("RESOURCE_POOL_0", None)
     if masterhost:
+        getCloud(masterhost)
         runon = existingPool(masterhost)
         gec.registry.poolPut("RESOURCE_POOL_%s" % (poolIndex), runon)
         poolIndex = poolIndex + 1 
@@ -1012,6 +1042,7 @@ def existingLocations():
         # See if we have a host to run on.
         runonname = gec.config.lookup("RESOURCE_HOST_0", None)
         if runonname:
+            getCloud(runonname)
             runon = existingHost(runonname)
             gec.registry.hostPut("RESOURCE_HOST_0", runon)
             gec.registry.hostPut(runonname, runon)
@@ -1034,6 +1065,7 @@ def existingLocations():
         poolvar = "RESOURCE_POOL_%d" % (poolIndex)
         masterhost = gec.config.lookup(poolvar, None)
         if masterhost:
+            getCloud(masterhost)
             pool = existingPool(masterhost)
             gec.registry.poolPut(poolvar, pool)
             gec.registry.hostPut("RESOURCE_HOST_%s" % (hostIndex), runon.master)
@@ -1048,6 +1080,7 @@ def existingLocations():
         hostvar = "RESOURCE_HOST_%d" % (hostIndex)
         hostname = gec.config.lookup(hostvar, None)
         if hostname:
+            getCloud(hostname)
             host = existingHost(hostname)
             if existing and not hostname in slaves:
                 host.existing()
@@ -1097,6 +1130,11 @@ atexit.register(exitcb)
 if confdump:
     config.writeOut(sys.stdout)
 
+if sanitycheck:
+    # If we get this far then our standard imports etc have all
+    # succeeded, so report this back to the user
+    sys.stderr.write("Sanity check passed sucessfully\n")
+    sys.exit(0)
 
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)
@@ -1335,6 +1373,10 @@ if doshell:
     except:
         traceback.print_exc()
 
+    cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+    if cloudip:
+        cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+        gec.registry.toolstackPut("cloud", cloud)
     import code
     try:
         for guest in xenrt.TEC().registry.guestList():
@@ -1519,6 +1561,9 @@ if cleanuplocks:
     locks = cr.list()
     print "lock count is %d" % len(locks)
     
+    jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
+    canClean = dict((x, xenrt.canCleanJobResources(x)) for x in jobs)
+    jobsForMachinePowerOff = [] 
     try:
         for lock in locks:
             if lock[1]:
@@ -1532,7 +1577,7 @@ if cleanuplocks:
                 if diff > 5*60:
                     print "Lock %s is greater than 5 minutes old" % (lock[0])
                     if lock[2]['jobid']:
-                        allowLockRelease = xenrt.canCleanJobResources(lock[2]['jobid']) 
+                        allowLockRelease = canClean[lock[2]['jobid']]
                     else:
                         # Doesn't have a job, must be manual run
                         pid = "(N/A)"
@@ -1556,11 +1601,20 @@ if cleanuplocks:
                             pass
 
                         os.rmdir(path)
+                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
+                            jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         print "Lock released"
                 else:
                     print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
     except Exception, ex:
         print str(ex)
+
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            machine.powerctl.off()
+            
 
 if releaselock:
     cr = xenrt.resources.CentralResource()
@@ -1949,6 +2003,11 @@ if ver:
     xenrt.TEC().logverbose("Using XenRT harness version %s" % (ver))
     gec.dbconnect.jobUpdate("XENRT_VERSION", ver)
 
+cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
+if cloudip:
+    cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
+    gec.registry.toolstackPut("cloud", cloud)
+
 # Import any additional testcases.
 if tcfile:
     testfiles = string.split(tcfile, ",")
@@ -2100,6 +2159,9 @@ else:
                 seq.run()
         except Exception, e:
             traceback.print_exc(file=sys.stderr) 
+
+if xenrt.TEC().lookup("PAUSE_BEFORE_EXIT", False, boolean=True):
+    xenrt.sleep(432000)
 
 sys.stderr.write("XenRT about to exit\n")
 sys.stderr.write("Current threads:\n")

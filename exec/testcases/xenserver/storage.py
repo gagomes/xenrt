@@ -407,6 +407,13 @@ class TCMultipleVDI(xenrt.TestCase):
                 if g.windows:
                     g.installDrivers()
 
+        if xenrt.TEC().lookup("VIF_DEBUG", False, boolean=True):
+            try:
+                self.debugdom = g.getDomid()
+                self.host.startVifDebug(self.debugdom)
+            except:
+                pass
+
         # Get a list of VBDs we already have. We won't mess with these.
         existingdevices = g.listDiskDevices()
 
@@ -528,8 +535,15 @@ class TCMultipleVDI(xenrt.TestCase):
             nvbds = (nvbds + 1) % max
             if nvbds == 0:
                 nvbds = max
+        
+
 
     def postRun(self):
+        if xenrt.TEC().lookup("VIF_DEBUG", False, boolean=True):
+            try:
+                self.host.stopVifDebug(self.debugdom)
+            except:
+                pass
         try:
             for g in self.guestsToClean:
                 xenrt.TEC().logverbose("Starting postRun for %s." % (g.name))

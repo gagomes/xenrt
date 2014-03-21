@@ -251,3 +251,13 @@ class CloudStack(object):
         cmd = revertToVMSnapshot.revertToVMSnapshotCmd()
         cmd.vmsnapshotid = self.getSnapshotId(instance, name)
         self.marvin.apiClient.revertToVMSnapshot(cmd)
+
+    def downloadTemplate(self, templateName, downloadLocation):
+        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
+        cmd = extractTemplate.extractTemplateCmd()
+        cmd.mode = "HTTP_DOWNLOAD"
+        cmd.id = template
+        rsp = self.marvin.apiClient.extractTemplate(cmd)
+        xenrt.util.command("wget -nv '%s' -O '%s'" % (rsp.url, downloadLocation))
+
+

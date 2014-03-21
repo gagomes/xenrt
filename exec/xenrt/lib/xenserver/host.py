@@ -12222,6 +12222,14 @@ class EXTStorageRepository(StorageRepository):
     def create(self, device, physical_size=0, content_type=""):
         self._create("ext", {"device":device})
 
+class LVMStorageRepository(StorageRepository):
+
+    SHARED = False
+    CLEANUP = "destroy"
+
+    def create(self, device, physical_size=0, content_type=""):
+        self._create("lvm", {"device":device})
+
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True
     CLEANUP = "destroy"

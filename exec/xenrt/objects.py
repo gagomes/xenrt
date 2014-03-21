@@ -2561,6 +2561,19 @@ Add-WindowsFeature as-net-framework"""
         else:
             raise xenrt.XRTError("Unimplemented")
 
+    def installLatency(self):
+        """Install Latency into the guest"""
+
+        workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
+        self.execcmd("wget -O - '%s/latency.tgz' | tar -xz -C %s" %
+                     (xenrt.TEC().lookup("TEST_TARBALL_BASE"), workdir))
+
+        if self.getBasicArch() == "x86-64":
+            self.execcmd("cp %s/latency/latency.x86_64 /root/latency" % workdir)
+        else:
+            self.execcmd("cp %s/latency/latency.x86_32 /root/latency" % workdir)
+        self.execcmd("rm -rf %s" % workdir)
+
     def installVSSTools(self):
         """Install Microsoft VSS tools into a Windows XML-RPC guest"""
         g = self.xmlrpcGlobPattern("c:\\vshadow.exe")

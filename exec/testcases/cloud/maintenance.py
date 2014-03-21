@@ -6,7 +6,8 @@ class TCGenerateTemplate(xenrt.TestCase):
         cloud = self.getDefaultToolstack()
         assert isinstance(cloud, xenrt.lib.cloud.CloudStack)
         for distro in arglist:
-            instance = cloud.createInstance(distro=distro)
+            # Don't install the tools - we want up to date drivers
+            instance = cloud.createInstance(distro=distro, installTools=False)
             templateName = xenrt.randomGuestName()
             cloud.createTemplateFromInstance(instance, templateName)
             d = xenrt.TempDirectory()

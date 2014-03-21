@@ -49,26 +49,41 @@ class CloudStack(object):
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
-        supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
+        template = None
 
-        for m in supportedInstallMethods:
-            if m in instance.os.supportedInstallMethods:
-                instance.os.installMethod = m
-                break
+        # If we can use a template and it exists, use it
+        if useTemplateIfAvailable:
+            templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
+            if templateDir:
+                url = "%s/%s.vhd.bz2" % (templateDir, distro)
+                if xenrt.TEC().fileExists(url):
+                    self.marvin.addTemplateIfNotPresent(distro, url)
+                    template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
+            # If we use a template, we can't specify the disk size
+            diskOffering=None
 
-        if not instance.os.installMethod:
-            raise xenrt.XRTError("No compatible install method found")
+        # If we don't have a template, do ISO instead
+        if not template:
+            self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+            template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
+            supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
 
-        self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+            for m in supportedInstallMethods:
+                if m in instance.os.supportedInstallMethods:
+                    instance.os.installMethod = m
+                    break
+
+            if not instance.os.installMethod:
+                raise xenrt.XRTError("No compatible install method found")
+            # TODO support different disk offerings
+            diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id
+
 
         zone = Zone.list(self.marvin.apiClient)[0].id
         # TODO support different service offerings
         svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
 
-        # TODO support different disk offerings
-        diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id
 
-        template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
         rsp = VirtualMachine.create(self.marvin.apiClient, {
@@ -86,15 +101,20 @@ class CloudStack(object):
 
         xenrt.TEC().logverbose("Starting VM")
 
-        self.startInstance(instance)
+        # If we don't have an install method, we created this from a template, so we just need to start it.
+        if not instance.os.installMethod:
+            instance.start()
+        else:
+            self.startInstance(instance)
 
-        if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-            xenrt.TEC().logverbose("Generating answer file")
-            instance.os.generateIsoAnswerfile()
+            if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                xenrt.TEC().logverbose("Generating answer file")
+                instance.os.generateIsoAnswerfile()
 
-        xenrt.TEC().logverbose("Waiting for install complete")
-        instance.os.waitForInstallCompleteAndFirstBoot()
+            xenrt.TEC().logverbose("Waiting for install complete")
+            instance.os.waitForInstallCompleteAndFirstBoot()
         
+        # We don't install the tools as part of template generation, so install these all the time
         if installTools:
             self.installPVTools(instance)
 

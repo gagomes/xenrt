@@ -238,6 +238,39 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
+    def addTemplateIfNotPresent(self, distro, url):
+        templates = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro]
+        if not templates:
+            xenrt.TEC().logverbose("Template is not present, registering")
+            # TODO: Cope with more zones
+            # Should also be able to do "All Zones", but marvin requires a zone to be specified
+
+            zone = Zone.list(self.apiClient)[0].id
+
+            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            Template.register(self.apiClient, {
+                        "zoneid": zone,
+                        "ostype": osname,
+                        "name": distro,
+                        "displaytext": distro,
+                        "ispublic": True,
+                        "url": url,
+                        "format": "VHD"})
+
+        # Now wait until the Template is ready
+        deadline = xenrt.timenow() + 3600
+        xenrt.TEC().logverbose("Waiting for Template to be ready")
+        while xenrt.timenow() <= deadline:
+            try:
+                template = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro][0]
+                if template.isready:
+                    break
+                else:
+                    xenrt.TEC().logverbose("Status: %s" % template.status)
+            except:
+                pass
+            xenrt.sleep(15)
+
     def addIsoIfNotPresent(self, distro, isoName, isoRepo):
         listIsosC = listIsos.listIsosCmd()
         listIsosC.isofilter = "all"

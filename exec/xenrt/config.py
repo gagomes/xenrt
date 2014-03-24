@@ -1456,6 +1456,9 @@ class Config:
         self.config["CCP_CONFIG"] = {}
         self.config["CCP_CONFIG"]["OS_NAMES"] = {}
         self.config["CCP_CONFIG"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3eesp2-x64"] = "Windows Server 2003 Enterprise Edition(64-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3sesp2"] = "Windows Server 2003 Standard Edition(32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["debian70_x86-64"] = "Debian GNU/Linux 7(64-bit)"
 

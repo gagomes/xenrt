@@ -48,6 +48,9 @@ class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
         # Allow the CD to appear
         xenrt.sleep(30)
     
+    def _installMsi(self):
+        self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
+
     def _pollForCompletion(self):
         deadline = xenrt.util.timenow() + 3600
         while True:
@@ -105,9 +108,6 @@ class WindowsXenServer(WindowsXenServerPVToolsInstaller):
                 raise xenrt.XRTError("Installer did not appear")
             
             xenrt.sleep(5)
-
-    def _installMsi(self):
-        self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
 
     def install(self):
         self._loadToolsIso()

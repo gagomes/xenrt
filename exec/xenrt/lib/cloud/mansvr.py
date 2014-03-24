@@ -61,6 +61,9 @@ class ManagementServer(object):
                 self.restart(checkHealth=False, startStop=(reboots > 0))
                 reboots += 1
 
+        if not managementServerOk:
+            raise xenrt.XRTFailure('Management Server not reachable')
+
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
             self.place.execcmd('service %s-management restart' % (self.cmdPrefix))

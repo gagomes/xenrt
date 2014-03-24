@@ -18,8 +18,8 @@ class DebianBasedLinux(LinuxOS):
                distro.startswith("ubuntu")
 
     @staticmethod
-    def testInit():
-        return DebianBasedLinux("debian70", None)
+    def testInit(parent):
+        return DebianBasedLinux("debian70", parent)
 
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)

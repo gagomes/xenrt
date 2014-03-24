@@ -70,8 +70,8 @@ class WindowsOS(OS):
             return False
 
     @staticmethod
-    def testInit():
-        return WindowsOS("win7sp1x86", None)
+    def testInit(parent):
+        return WindowsOS("win7sp1x86", parent)
 
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)

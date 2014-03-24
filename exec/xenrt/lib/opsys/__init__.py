@@ -11,7 +11,7 @@ class OS(object):
                           xenrt.interfaces.InstallMethodIsoWithAnswerFile: xenrt.InstallMethod.IsoWithAnswerFile}
 
     def __init__(self, parent):
-        self.parent = parent
+        self.parent = xenrt.interfaces.OSParent(parent)
         self.password = None
         self.viridian = False
         self.__installMethod = None

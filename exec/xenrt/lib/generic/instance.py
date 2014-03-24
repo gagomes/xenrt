@@ -6,7 +6,7 @@ class Instance(object):
     implements(xenrt.interfaces.OSParent)
 
     def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
-        self.toolstack = toolstack
+        self.toolstack = xenrt.interfaces.Toolstack(toolstack)
         self.toolstackId = None
         self.name = name
         self.distro = distro

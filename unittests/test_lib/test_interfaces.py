@@ -1,4 +1,4 @@
-from testing import XenRTTestCaseUnitTestCase
+from testing import XenRTTestCaseUnitTestCase, interfaceMock
 import xenrt.lib.cloud
 import xenrt.lib.xl
 import xenrt.lib.opsys
@@ -31,7 +31,7 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Mock out the methods used by the Instance __init__ so they don't get called
         xenrt.lib.opsys.osFactory = Mock()
         # Crete the Instance, mocking toolstack
-        i = xenrt.lib.generic.Instance(Mock(), None, None, None, None)
+        i = xenrt.lib.generic.Instance(interfaceMock(xenrt.interfaces.Toolstack), None, None, None, None)
         # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
@@ -43,14 +43,14 @@ def test_osLibraries():
 
     def oslib_test(oslib):
         # Instantiate the OS library
-        o = oslib.testInit()
+        o = oslib.testInit(interfaceMock(xenrt.interfaces.OSParent))
         # Verify all interfaces declared as being implemented
         for i in list(implementedBy(oslib)):
             verifyObject(i, o)
 
     def oslib_supportedInstallMethods(oslib):
         # Instantiate the OS library
-        o = oslib.testInit()
+        o = oslib.testInit(interfaceMock(xenrt.interfaces.OSParent))
 
         implementedInterfaces = list(implementedBy(oslib))
 

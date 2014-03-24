@@ -80,7 +80,7 @@ class OS(Interface):
     def waitForBoot(timeout):
         """Wait for the OS to boot"""
 
-    def testInit():
+    def testInit(parent):
         """Instantiate a dummy version for interface testing"""
 
     def reboot():

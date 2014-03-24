@@ -9,7 +9,6 @@ from nose.plugins.skip import SkipTest
 from functools import wraps
 import types
 from zope.interface import classImplements
-import sys
 
 """
 Helper methods
@@ -35,30 +34,37 @@ def wip(fn):
 
 _interfaceMockClasses = {}
 def interfaceMock(interfaceClass):
-    if _interfaceMockClasses.has_key(interfaceClass):
-        return _interfaceMockClasses[interfaceClass]()
+    if not isinstance(interfaceClass, list):
+        interfaceClass = [interfaceClass]
 
-    return _createInterfaceMock(interfaceClass)()
+    key = "".join(map(lambda i: i.__name__, interfaceClass))
+    if _interfaceMockClasses.has_key(key):
+        return _interfaceMockClasses[key]()
 
-def _createInterfaceMock(interfaceClass):
-    """Dynamically create a Mock sub class that implements the given zope.interface"""
+    mock = _createInterfaceMock(interfaceClass)
+    _interfaceMockClasses[key] = mock
+    return mock()
 
+def _createInterfaceMock(interfaces):
+    """Dynamically create a Mock sub class that implements the given zope.interfaces"""
+        
+    spec = reduce(lambda fullSpec, intf: fullSpec + intf.names(), interfaces, [])
     # the init method, automatically specifying the interface methods
     def init(self, *args, **kwargs):
-        Mock.__init__(self, spec=interfaceClass.names(),
+        Mock.__init__(self, spec=spec,
                       *args, **kwargs)
 
-    # we derive the sub class name from the interface name
-    name = interfaceClass.__name__ + "Mock"
-    sys.stderr.write("Mocking %s\n" % name)
+    # we derive the sub class name from the interface names
+    interfaceNames = reduce(lambda fullName, intf: "%s%s" % (fullName, intf.__name__), interfaces, "")
+    name = interfaceNames + "Mock"
 
     # create the class object and provide the init method
     mockClass = types.TypeType(name, (Mock, ), {"__init__": init})
 
-    # the new class should implement the interface
-    classImplements(mockClass, interfaceClass)
+    # the new class should implement the interfaces
+    for i in interfaces:
+        classImplements(mockClass, i)
 
-    _interfaceMockClasses[interfaceClass] = mockClass
     return mockClass
 
 """

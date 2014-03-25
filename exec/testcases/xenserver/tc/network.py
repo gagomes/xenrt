@@ -2448,7 +2448,7 @@ class TC2VlansPerBridge(xenrt.TestCase):
         self.host.execdom0("service xapi stop")
         self.host.execdom0("cp /var/xapi/state.db /tmp/state.db")
         self.host.execdom0("service xapi start")
-        xenrt.sleep(20)
+        xenrt.sleep(60)
         
         step("Create vlan 1")
         hostVlan1 = self.cli.execute("vlan-create", "vlan=1 network-uuid=%s pif-uuid=%s" % (self.network.strip(), hostEth0Pif.strip()))
@@ -2457,7 +2457,7 @@ class TC2VlansPerBridge(xenrt.TestCase):
         self.host.execdom0("service xapi stop")
         self.host.execdom0("yes | cp /tmp/state.db /var/xapi/state.db")
         self.host.execdom0("service xapi start")
-        xenrt.sleep(20)
+        xenrt.sleep(60)
         
         step("Create vlan 2")
         self.hostVlan2 = self.cli.execute("vlan-create", "vlan=2 network-uuid=%s pif-uuid=%s" % (self.network.strip(), hostEth0Pif.strip()))

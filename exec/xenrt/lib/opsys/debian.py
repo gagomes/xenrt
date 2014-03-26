@@ -1,5 +1,5 @@
 import xenrt, os.path, os, shutil
-from xenrt.lib.opsys import LinuxOS, RegisterOS
+from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from zope.interface import implements
 
@@ -13,13 +13,13 @@ class DebianBasedLinux(LinuxOS):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
 
     @staticmethod
-    def KnownDistro(distro):
+    def knownDistro(distro):
         return distro.startswith("debian") or \
                distro.startswith("ubuntu")
 
     @staticmethod
-    def testInit():
-        return DebianBasedLinux("debian70", None)
+    def testInit(parent):
+        return DebianBasedLinux("debian70", parent)
 
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(parent)
@@ -145,4 +145,4 @@ class DebianBasedLinux(LinuxOS):
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
-RegisterOS(DebianBasedLinux)
+registerOS(DebianBasedLinux)

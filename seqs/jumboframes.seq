@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Jumbo Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <host productType="nativelinux" productVersion="centos63" id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.JumboFrames" tc="TC-21018"/>
+      <testcase id="xenserver.tc.vswitch.TC21019" tc="TC-21019"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

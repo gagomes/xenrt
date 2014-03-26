@@ -3208,7 +3208,7 @@ done
             guest.setVCPUs(vcpus)
         if memory != None:
             guest.setMemory(memory)
-        if not disksize:
+        if (not disksize) or disksize == None or disksize == guest.DEFAULT:
             if forceHVM:
                 disksize = 8192 # 8GB (in MB) by default
             else:
@@ -11967,7 +11967,7 @@ class SarasotaHost(ClearwaterHost):
     
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
-
+    
     def getBridgeInterfaces(self, bridge):
         """Return a list of interfaces on the bridge, or None if that bridge
         does not exist."""
@@ -12249,6 +12249,14 @@ class EXTStorageRepository(StorageRepository):
 
     def create(self, device, physical_size=0, content_type=""):
         self._create("ext", {"device":device})
+
+class LVMStorageRepository(StorageRepository):
+
+    SHARED = False
+    CLEANUP = "destroy"
+
+    def create(self, device, physical_size=0, content_type=""):
+        self._create("lvm", {"device":device})
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

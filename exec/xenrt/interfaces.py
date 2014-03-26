@@ -74,13 +74,13 @@ class OS(Interface):
     installMethod = Attribute("Selected installation method")
     defaultRootdisk = Attribute("Default rootdisk size")
 
-    def KnownDistro(distro):
+    def knownDistro(distro):
         """Determine if the given distro is known to this library"""
 
     def waitForBoot(timeout):
         """Wait for the OS to boot"""
 
-    def testInit():
+    def testInit(parent):
         """Instantiate a dummy version for interface testing"""
 
     def reboot():

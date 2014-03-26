@@ -7,6 +7,8 @@ from mock import patch, Mock
 from nose.plugins.attrib import attr
 from nose.plugins.skip import SkipTest
 from functools import wraps
+import types
+from zope.interface import classImplements
 
 """
 Helper methods
@@ -30,6 +32,40 @@ def wip(fn):
 
     return attr('wip')(run_test)
 
+_interfaceMockClasses = {}
+def interfaceMock(interfaceClass):
+    if not isinstance(interfaceClass, list):
+        interfaceClass = [interfaceClass]
+
+    key = "".join(map(lambda i: i.__name__, interfaceClass))
+    if _interfaceMockClasses.has_key(key):
+        return _interfaceMockClasses[key]()
+
+    mock = _createInterfaceMock(interfaceClass)
+    _interfaceMockClasses[key] = mock
+    return mock()
+
+def _createInterfaceMock(interfaces):
+    """Dynamically create a Mock sub class that implements the given zope.interfaces"""
+        
+    spec = reduce(lambda fullSpec, intf: fullSpec + intf.names(), interfaces, [])
+    # the init method, automatically specifying the interface methods
+    def init(self, *args, **kwargs):
+        Mock.__init__(self, spec=spec,
+                      *args, **kwargs)
+
+    # we derive the sub class name from the interface names
+    interfaceNames = reduce(lambda fullName, intf: "%s%s" % (fullName, intf.__name__), interfaces, "")
+    name = interfaceNames + "Mock"
+
+    # create the class object and provide the init method
+    mockClass = types.TypeType(name, (Mock, ), {"__init__": init})
+
+    # the new class should implement the interfaces
+    for i in interfaces:
+        classImplements(mockClass, i)
+
+    return mockClass
 
 """
 Unittest abstraction for XenRT
@@ -141,5 +177,4 @@ class XenRTTestCaseUnitTestCase(XenRTUnitTestCase):
                 p.stop()
             except:
                 pass
-        
-        
+

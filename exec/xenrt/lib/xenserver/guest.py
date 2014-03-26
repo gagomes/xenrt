@@ -526,7 +526,7 @@ class Guest(xenrt.GenericGuest):
         # store the distro so it can be used when using --existing or --pool
         if self.distro:
             self.paramSet("other-config:xenrt-distro", self.distro)
-        
+
         if not dontstartinstall:
             if start:
                 self.start()
@@ -540,6 +540,7 @@ class Guest(xenrt.GenericGuest):
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
+            
             if self.noguestagent and not notools:
                 self.installTools()
 
@@ -3720,7 +3721,14 @@ exit /B 1
             self.execguest("/mnt/Linux/install.sh %s" % (args))
             self.execguest("umount /mnt")
             xenrt.sleep(10)
-            self.removeCD(device=device)
+            try:
+                self.removeCD(device=device)
+            except xenrt.XRTFailure as e:
+                # In case of Linux on HVM, vbd-destroy on CD may fail.
+                if "vbd-destroy" in e.reason:
+                    pass
+                else:
+                    raise e
             if reboot:
                 self.reboot()
         else:

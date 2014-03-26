@@ -96,7 +96,7 @@ class DotNetFour(WindowsPackage):
         self._instance.os.createDir("c:\\dotnet40logs")
         self._instance.os.unpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self._instance.os.execCmd("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
-        self._instance.reboot()
+        self._instance.reboot(osInitiated=True)
     
     def isInstalled(self):
         val = 0

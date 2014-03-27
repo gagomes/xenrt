@@ -193,3 +193,10 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
 
+    def installCloudManagementServer(self):
+        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+            self.installCloudPlatformManagementServer()
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+            self.installCloudStackManagementServer()
+        else:
+            raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')

@@ -2,7 +2,8 @@ import xenrt
 from testing import XenRTUnitTestCase
 from mock import Mock, PropertyMock
 from xenrt.lib.cloud.windowspackages import WindowsPackage, WindowsImagingComponent, DotNetFour
-""" Doubles """
+
+""" Test Doubles for dependent classes"""
 class WindowsPackageDouble(WindowsPackage):
     def __init__(self): pass
     def name(self): "Fake"

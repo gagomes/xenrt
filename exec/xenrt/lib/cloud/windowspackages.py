@@ -1,13 +1,6 @@
 import xenrt
 from abc import ABCMeta, abstractmethod
-
 import xenrt.lib.cloud
-try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
-except ImportError:
-    pass
 
 class WindowsPackage(object):
     __metaclass__ = ABCMeta 

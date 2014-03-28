@@ -3521,6 +3521,35 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
             raise xenrt.XRTError("Multipath -ll status has not changed within 4 minutes")
         
 
+    def _multipathGroupStatus(self,line,group,keyname):
+        """Get the multipath -ll output in form of primary and secondary groups
+           Group status, 'status':'active or 'status':'enable']
+        """
+        if re.search("status=active", line):
+            group['status'] = 'active'
+        else:
+            group['status'] = 'enabled'
+        group[keyname%2] = []
+        return group
+    
+    def _multipathPathsStatus(self,keyname,primary,secondary,line):
+        """Get the multipath -ll output in form of primary and secondary group paths 
+           Path status , 0:['sda', 'active'/'failed']
+        """
+        r = re.search(r"^[| ] [|`]- \S+\s+(\S+)\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)", line)
+        if r:
+            lr = []
+            lr.append(r.group(1))
+            lr.append(r.group(2))
+            if keyname < 2:
+                pass
+                primary[keyname%2] = lr
+            else:
+                pass
+                secondary[keyname%2] = lr
+            keyname += 1
+        return keyname,primary,secondary
+        
     def multipathInfo(self):
         # Get the multipath -ll output in form of primary and secondary groups
         # primary = {'status':['active'/'enable'], 0:['sda', 'active'/'failed'], 1:['sdb', 'active'/'failed']}
@@ -3532,37 +3561,20 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
         keyname = 0
         for line in mp.splitlines():
             r = re.search(r"([0-9A-Za-z-_]+) *dm-\d+", line)
+            
             if r:
                 continue
             r = re.search(r"policy", line)
+            
             if r and not flag:
-                if re.search("status=active", line):
-                    primary['status'] = 'active'
-                else:
-                    primary['status'] = 'enabled'
+                primary = self._multipathGroupStatus(line,primary,keyname)
                 flag = True
-                primary[keyname%2] = []
-                
+            
             elif r and flag:
-                if re.search("status=active", line):
-                    secondary['status'] = 'active'
-                else:
-                    secondary['status'] = 'enabled'
-                secondary[keyname%2] = []
+                secondary = self._multipathGroupStatus(line,secondary,keyname)
                 
             if not r:
-                r = re.search(r"^[| ] [|`]- \S+\s+(\S+)\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)", line)
-                if r:
-                    lr = []
-                    lr.append(r.group(1))
-                    lr.append(r.group(2))
-                    if keyname < 2:
-                        pass
-                        primary[keyname%2] = lr
-                    else:
-                        pass
-                        secondary[keyname%2] = lr
-                    keyname += 1
+                keyname,primary,secondary = self._multipathPathsStatus(keyname,primary,secondary,line)
     
         xenrt.TEC().logverbose("Details of primary path are %s and secondary path are %s" % (str(primary), str(secondary)))
         return primary, secondary

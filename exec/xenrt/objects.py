@@ -2217,6 +2217,10 @@ Add-WindowsFeature as-net-framework"""
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudStackManagementServer()
 
+    def installCloudManagementServer(self):
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
+        manSvr.installCloudManagementServer()
+
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
         

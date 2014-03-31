@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.vgpusecurity.TCDEMUFuzzer" tc="TC-21156">
+        <arg>iterations=0</arg>
+        <arg>logperiteration=1000</arg>
+        <arg>timeout=60</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

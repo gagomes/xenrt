@@ -75,6 +75,50 @@ class XenRTBaseTestCase(unittest.TestCase):
     Abstraction of the unittest.TestCase class to add any additional functionality
     """
 
+    def combinatorial(self, listA, listB = None):
+        """
+        Create a combinatorial set of data 
+        If listB is not provided the result will be a combination of listA with listA
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A combinatorial set of the provided data
+        @rtype: list of tuples
+        """
+        if not listB:
+            listB = listA
+        return [(a,b) for a in listA for b in listB]
+
+    def combinatorialExcluding(self, exclusionList, listA, listB = None):
+        """
+        Create a combinatorial set of data 
+        If listB is not provided the result will be a combination of listA with listA
+        @param exclusionList: data to exclude from the result
+        @type: list of tuples
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A combinatorial set of the provided data
+        @rtype: list of tuples
+        """
+        return filter(lambda f: f not in exclusionList, self.combinatorial(listA, listB))
+
+    def sequential(self, listA, listB):
+        """
+        Create a sequential set of data. For lists of mismatching lengths None will be 
+        provided eg [1,2,3] and ['a','b'] -> [(1,a), (2,b), (3,None)]
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A sequential set of the provided data
+        @rtype: list of tuples
+        """
+        return map(None, listA, listB)
+
+
     def run_for_many(self, listOfData, functionPointer):
         """
         @param listOfData: data to run the provided lambda over

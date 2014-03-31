@@ -1467,7 +1467,7 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""
 
     APPLIANCE_NAME = "Dom0"
-    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
 
     IGNORE_EXTRA_RPM_PACKAGES = ['libev', 'perf-tools'] # in addition to the list of base packages.
                                                         # perf-tools missing from tampa onwards
@@ -1760,7 +1760,7 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
     """Verify DDK iso (xe-phase-3/source-ddk.iso) content for missing RPMs."""
 
     APPLIANCE_NAME = "DDK VM"
-    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
 
     # In addition to the list of base packages, we have ...
     IGNORE_EXTRA_RPM_PACKAGES = ['PyPAM', 'SDL', 'biosdevname', 'blktap', 'dbus', 'device-mapper-multipath', 

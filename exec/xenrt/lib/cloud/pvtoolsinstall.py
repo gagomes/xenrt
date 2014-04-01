@@ -121,10 +121,10 @@ class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
         @rtype Boolean
         """
         #Name strings from /vol/xenrtdata/iso
-        if next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
-            return True
+        if not next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
+            return False
         
-        return not isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
+        return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
 
     def _dotNetInstaller(self):
         """ 

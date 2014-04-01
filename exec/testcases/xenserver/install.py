@@ -1387,7 +1387,7 @@ class SourceISOCheck(xenrt.TestCase):
                         mount.unmount()
                 except:
                     pass
-        if isosFound = 0:
+        if isosFound == 0:
             xenrt.TEC().skip("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
             return False
         sourceRpmPackageList.sort()

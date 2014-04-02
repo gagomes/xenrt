@@ -857,6 +857,63 @@ class TCGROEnable(VmOnVlanOnBond):
         else:
             raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='off', Found '%s'" % status)
 
+class TCGSOBondedInterface(xenrt.TestCase):
+    """GRO and GSO enablement for bonded interface (SCTX-1532)"""
+    #Jira TC-21157
+ 
+    def prepare(self, arglist=None):
+        host = self.getDefaultHost()
+        cli = host.getCLIInstance()
+        self.bondSlavePif = cli.execute("bond-list", "params=slaves --minimal").strip().split(';')[0]
+        self.pifDevice = cli.execute("pif-param-get", "param-name=device uuid=%s --minimal" % self.bondSlavePif).strip()
+        
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        step("Set gso off and gro on for bonded interface")
+        cli = host.getCLIInstance()
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gso='off' --minimal" % self.bondSlavePif).strip()
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gro='on' --minimal" % self.bondSlavePif).strip()
+        
+        step("Reboot Host")
+        host.reboot()
+        xenrt.sleep(30)
+        
+        step("Verify GRO and GSO")
+        status = host.execdom0('ethtool -k %s | grep "generic-receive-offload: " | cut -d ":" -f 2' % self.pifDevice).strip()
+        if status == "on":
+            log("GRO enabled on bonded interface")
+        else:
+            raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='on', Found '%s'" % status)
+            
+        status = host.execdom0('ethtool -k %s | grep "generic-segmentation-offload: " | cut -d ":" -f 2' % self.pifDevice).strip()
+        if status == "off":
+            log("GSO disabled on bonded interface")
+        else:
+            raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='off', Found '%s'" % status)
+            
+        step("Set gso on and gro off for bonded interface")
+        cli = host.getCLIInstance()
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gso='on' --minimal" % self.bondSlavePif).strip()
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gro='off' --minimal" % self.bondSlavePif).strip()
+        
+        step("Reboot Host")
+        host.reboot()
+        xenrt.sleep(30)
+        
+        step("Verify GRO and GSO")
+        status = host.execdom0('ethtool -k %s | grep "generic-receive-offload: " | cut -d ":" -f 2' % self.pifDevice).strip()
+        if status == "off":
+            log("GRO enabled on bonded interface")
+        else:
+            raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='on', Found '%s'" % status)
+            
+        status = host.execdom0('ethtool -k %s | grep "generic-segmentation-offload: " | cut -d ":" -f 2' % self.pifDevice).strip()
+        if status == "on":
+            log("GSO disabled on bonded interface")
+        else:
+            raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='off', Found '%s'" % status)
+        
+
 class TC7338(VmOnVlanOnBond):
     """VLAN based networks on top of a bonded interface (VM on VLAN, management on bond)"""
             

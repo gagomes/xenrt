@@ -129,17 +129,17 @@ class JiraLink:
 
             # [GUEST_NAME]/guest-console-logs/console*
             {'file':"*/guest-console-logs/console*", 'desc':"cut here",
-                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
-                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest Stacked Call Trace", 'ignoreAfter': "SysRq :",
-                'pattern':r'(?:.*\n){0,2}(?:.*Call Trace\:.*)(?:.*\n){0,10}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
-                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
-                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
-                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
+                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'}
+#            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
+#                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest Stacked Call Trace", 'ignoreAfter': "SysRq :",
+#                'pattern':r'(?:.*\n){0,2}(?:.*Call Trace\:.*)(?:.*\n){0,10}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
+#                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
+#                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
+#                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
         ]
         desc = "\n"
         for fp in failurepatterns:

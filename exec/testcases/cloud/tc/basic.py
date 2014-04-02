@@ -12,6 +12,6 @@ class TCGuestDeploy(xenrt.TestCase):
                 GUEST_NAME = DISTRO.replace("_","-") # cloudstack does not like underscore.
     
         cloud = self.getDefaultToolstack()
-        instance = cloud.createInstance(distro=DISTRO, name=GUEST_NAME)
+        instance = cloud.createInstance(distro=DISTRO, name=GUEST_NAME )
 
         # MarvinApi is cloud.marvin

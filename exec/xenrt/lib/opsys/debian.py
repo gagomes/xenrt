@@ -124,7 +124,15 @@ class DebianBasedLinux(LinuxOS):
     @property
     def defaultRootdisk(self):
         return 8 * xenrt.GIGA
-
+    
+    @property
+    def defaultVcpus(self):
+        return 1
+    
+    @property
+    def defaultMemory(self):
+        return 256
+    
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead

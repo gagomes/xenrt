@@ -57,12 +57,12 @@ class CloudStack(object):
                        startOn=None,
                        installTools=True,
                        useTemplateIfAvailable=True):
-
+        
         if not name:
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
-
-        template = None
+    
+        template = None        
 
         # If we can use a template and it exists, use it
         if useTemplateIfAvailable:
@@ -73,7 +73,7 @@ class CloudStack(object):
                     self.marvin.addTemplateIfNotPresent(distro, url)
                     template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
             # If we use a template, we can't specify the disk size
-            diskOffering=None
+            diskOffering=None        
 
         # If we don't have a template, do ISO instead
         if not template:
@@ -89,13 +89,14 @@ class CloudStack(object):
             if not instance.os.installMethod:
                 raise xenrt.XRTError("No compatible install method found")
             # TODO support different disk offerings
-            diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id
+            #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
+            diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
 
 
         zone = Zone.list(self.marvin.apiClient)[0].id
         # TODO support different service offerings
-        svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
-
+        #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
+        svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
 
         xenrt.TEC().logverbose("Deploying VM")
@@ -314,5 +315,35 @@ class CloudStack(object):
         cmd.id = template
         rsp = self.marvin.apiClient.extractTemplate(cmd)
         xenrt.util.command("wget -nv '%s' -O '%s'" % (rsp.url, downloadLocation))
+        
+    def findOrCreateServiceOffering(self, cpus, memory):               
+        svcOfferingExist = [x for x in ServiceOffering.list(self.marvin.apiClient) if x.cpunumber == cpus and x.memory == memory]        
+        if svcOfferingExist :
+            return svcOfferingExist[0].id
+        else :
+            cmd = {}
+            cmd["cpunumber"]= cpus
+            cmd["memory"] = memory
+            cmd["name"] = "CPUs=%d ,Memory=%d MB offering" %(cpus,memory)
+            cmd["displaytext"] = "New Offering"
+            cmd["cpuspeed"] = 1000
+            xenrt.TEC().logverbose("Creating New Service Offering ")
+            svcOfferingNew = ServiceOffering.create(self.marvin.apiClient,cmd)
+            return svcOfferingNew.id       
+        
+    def findOrCreateDiskOffering(self, disksize):
+        xenrt.log("Inside the disk Offering")        
+        diskOfferingExist = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == disksize]        
+        if diskOfferingExist :
+            return diskOfferingExist[0].id
+        else :
+            cmd = {}
+            cmd["name"]="Disk=%d GB offering" %disksize
+            cmd["displaytext"]="Disk Offering"            
+            cmd["disksize"] = disksize
+            xenrt.TEC().logverbose("Creating new Disk OFfering ")
+            diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
+            return diskOfferingNew.id
+
 
 

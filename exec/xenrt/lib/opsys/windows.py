@@ -85,6 +85,8 @@ class WindowsOS(OS):
         self.isoRepo = xenrt.IsoRepository.Windows
         self.isoName = "%s.iso" % self.distro
         self.defaultRootdisk = 20 * xenrt.GIGA
+        self.defaultVcpus = 2
+        self.defaultMemory = 2048
         self.vifStem = "eth"
         self.viridian = True
 

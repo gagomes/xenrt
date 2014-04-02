@@ -4334,6 +4334,10 @@ done
             self.setHostParam("other-config:rrd_update_interval", "2")
             self.execdom0("/opt/xensource/bin/xe-toolstack-restart")
         self.storageLinkTailor()
+        if self.lookup("DEBUG_CP7440", False, boolean=True):
+            # Start a flow count script
+            xenrt.TEC().logverbose("Starting flowCheck.sh to monitor the OVS flow table size")
+            self.execdom0("%s/flowCheck.sh > /dev/null 2>&1 < /dev/null &" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
 
     def storageLinkTailor(self):            
         if self.execdom0("test -e /opt/Citrix/StorageLink/bin", retval="code") == 0:

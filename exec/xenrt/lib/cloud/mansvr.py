@@ -107,6 +107,16 @@ class ManagementServer(object):
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
 
+    def installApacheProxy(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            self.place.execcmd("yum -y install httpd")
+            self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("chkconfig httpd on")
+            self.place.execcmd("service httpd restart")
+
+
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':
             raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
@@ -130,6 +140,7 @@ class ManagementServer(object):
 
             self.setupManagementServerDatabase()
             self.setupManagementServer()
+            self.installApacheProxy()
 
     def getLatestMSArtifactsFromJenkins(self):
         jenkinsUrl = 'http://jenkins.buildacloud.org'

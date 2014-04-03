@@ -11895,10 +11895,8 @@ done
             pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
-        
     def tailorForCloudStack(self):
         # Set the Linux templates with PV args to autoinstall
-
         myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
 
         args = {}
@@ -11906,10 +11904,34 @@ done
         args["Debian Wheezy 7.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
         args["Ubuntu Lucid Lynx 10.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Ubuntu Lucid Lynx 10.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Ubuntu Precise Pangolin 12.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Ubuntu Precise Pangolin 12.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["Red Hat Enterprise Linux 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Red Hat Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["CentOS 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["CentOS 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["Oracle Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
+        args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/preseed" % myip
 
         for a in args.keys():
             uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
@@ -11917,8 +11939,6 @@ done
                 xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
                 continue
             self.genParamSet("template", uuids[0], "PV-args", args[a])
-
-
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):

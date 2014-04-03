@@ -56,3 +56,5 @@ __all__ = ["OS", "registerOS"]
 from xenrt.lib.opsys.linux import *
 from xenrt.lib.opsys.debian import *
 from xenrt.lib.opsys.windows import *
+from xenrt.lib.opsys.rhel import *
+

@@ -7,9 +7,9 @@ class IxiaChariotBasedTest(xenrt.TestCase):
 
     def executeOnChariotConsole(self, cmd):
         result = xenrt.ssh.SSH(
-            ixiachariot.CONSOLE_ADDRESS,
+            self.consoleAddress,
             cmd,
-            username=ixiachariot.CONSOLE_USER,
+            username=self.consoleUser,
             level=xenrt.RC_FAIL,
             timeout=300,
             idempotent=False,
@@ -22,6 +22,21 @@ class IxiaChariotBasedTest(xenrt.TestCase):
 
         xenrt.log(result)
 
+    def getConfigValue(self, key):
+        return xenrt.TEC().lookup(["IXIA_CHARIOT", key])
+
+    @property
+    def consoleAddress(self):
+        return self.getConfigValue("CONSOLE_ADDRESS")
+
+    @property
+    def consoleUser(self):
+        return self.getConfigValue("CONSOLE_USER")
+
+    @property
+    def distmasterDir(self):
+        return self.getConfigValue("DISTMASTER_DIR")
+
     def run(self, arglist=None):
         argDict = util.strlistToDict(arglist)
         distmasterBase = xenrt.TEC().lookup("TEST_TARBALL_BASE")
@@ -31,8 +46,8 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         endpoint1 = ixiachariot.createEndpoint(
             argDict['endpointSpec1'], distmasterBase, self)
 
-        endpoint0.install()
-        endpoint1.install()
+        endpoint0.install(self.distmasterDir)
+        endpoint1.install(self.distmasterDir)
 
         ixiaTest = argDict['ixiaTestFile']
         jobId = xenrt.GEC().jobid()
@@ -46,8 +61,8 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         logdir = xenrt.TEC().getLogdir()
 
         sftpclient = xenrt.ssh.SFTPSession(
-            ixiachariot.CONSOLE_ADDRESS,
-            username=ixiachariot.CONSOLE_USER)
+            self.consoleAddress,
+            username=self.consoleUser)
 
         sftpclient.copyTreeFrom(pairTest.workingDir, logdir + '/results')
         sftpclient.close()

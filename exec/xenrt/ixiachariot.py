@@ -1,11 +1,6 @@
 import textwrap
 
 
-CONSOLE_ADDRESS = "ixchariot.uk.xensource.com"
-CONSOLE_USER = "matel"
-DISTMASTER_DIR = 'ixiaendpoints'
-
-
 def createEndpoint(endpointSpec, distmasterBase, hostRegistry):
     host, guestName = endpointSpec.split('/')
     guest = hostRegistry.getHost(host).getGuest(guestName)
@@ -30,16 +25,16 @@ class WindowsEndpoint(object):
         return 'pe{productName}{bitCount}_730.exe'.format(
             productName=productName, bitCount=bitCount)
 
-    def install(self):
+    def install(self, distmaster_dir):
         tmpDir = self.guest.xmlrpcTempDir()
 
         self.guest.xmlrpcUnpackTarball(
-            '/'.join([self.distmasterBase, DISTMASTER_DIR + '.tgz']),
+            '/'.join([self.distmasterBase, distmaster_dir + '.tgz']),
             tmpDir
         )
 
         endpointInstaller = '\\'.join(
-            [tmpDir, DISTMASTER_DIR, self.installer])
+            [tmpDir, distmaster_dir, self.installer])
 
         self.guest.xmlrpcExec("{0} /S /v/qn".format(endpointInstaller))
 

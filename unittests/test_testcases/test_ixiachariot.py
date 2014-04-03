@@ -36,10 +36,10 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
         guest = makeVista32()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
 
-        endpoint.install()
+        endpoint.install('distmaster_dir')
 
         guest.xmlrpcUnpackTarball.assert_called_once_with(
-            'base_directory/ixiaendpoints.tgz', 'tempdir0')
+            'base_directory/distmaster_dir.tgz', 'tempdir0')
 
     def testInstallStartsInstaller(self):
         """
@@ -48,10 +48,10 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
         guest = makeVista32()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
 
-        endpoint.install()
+        endpoint.install('distmaster_dir')
 
         guest.xmlrpcExec.assert_called_once_with(
-            r'tempdir0\ixiaendpoints\pevista32_730.exe /S /v/qn'
+            r'tempdir0\distmaster_dir\pevista32_730.exe /S /v/qn'
         )
 
     def testIpAddress(self):

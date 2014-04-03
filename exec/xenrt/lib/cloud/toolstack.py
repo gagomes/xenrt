@@ -33,6 +33,19 @@ class CloudStack(object):
         # TODO actually determine what hypervisor is selected for the given instance
         return xenrt.HypervisorType.xen
 
+    def instanceSupportedLifecycleOperations(self, instance):
+        ops = [xenrt.LifecycleOperation.start,
+               xenrt.LifecycleOperation.stop,
+               xenrt.LifecycleOperation.reboot,
+               xenrt.LifecycleOperation.destroy,
+               xenrt.LifecycleOperation.snapshot]
+
+        if not isinstance(instance.os, xenrt.lib.opsys.WindowsOS) or \
+                (instance.extraConfig.has_key("CCP_PV_TOOLS") and instance.extraConfig['CCP_PV_TOOLS']):
+            ops.append(xenrt.LifecycleOperation.livemigrate)
+        
+        return ops
+
     def createInstance(self,
                        distro,
                        name=None,
@@ -131,6 +144,8 @@ class CloudStack(object):
         instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
         instance.toolstackId = vm.id
         instance.populateFromExisting()
+        # TODO: Assuming for now the PV tools are installed
+        instance.extraConfig['CCP_PV_TOOLS'] = True
         return instance
 
     def destroyInstance(self, instance):
@@ -146,6 +161,7 @@ class CloudStack(object):
             xenrt.TEC().logverbose("No PV tools installer found for instance")
         else:
             installer.install()
+            instance.extraConfig['CCP_PV_TOOLS'] = True
 
     def getInstanceIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()

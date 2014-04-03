@@ -6,6 +6,9 @@ class Toolstack(Interface):
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
+    def instanceSupportedLifecycleOperations(instance):
+        """Return the lifecycle operations supported by the specified instance on this toolstack"""
+
     def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable):
         """Create and install and instance on this toolstack"""
 

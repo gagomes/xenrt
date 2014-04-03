@@ -24,6 +24,10 @@ class Instance(object):
     def hypervisorType(self):
         return self.toolstack.instanceHypervisorType(self)
 
+    @property
+    def supportedLifecycleOperations(self):
+        return self.toolstack.instanceSupportedLifecycleOperations(self)
+
     def populateFromExisting(self, ip=None):
         if ip:
             self.mainip = ip

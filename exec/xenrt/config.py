@@ -1068,7 +1068,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["GENERIC_WINDOWS_OS"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Sarasota"]["GENERIC_WINDOWS_OS_64"] = "ws08r2sp1-x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["GENERIC_LINUX_OS"] = "debian60"
-        self.config["VERSION_CONFIG"]["Sarasota"]["GENERIC_LINUX_OS_64"] = "centos57"
+        self.config["VERSION_CONFIG"]["Sarasota"]["GENERIC_LINUX_OS_64"] = "centos64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Sarasota"]["TILE_LINUX_DISTRO"] = "centos57"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"

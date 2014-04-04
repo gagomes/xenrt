@@ -36,14 +36,15 @@ class RHELBasedLinux(LinuxOS):
         # TODO: Look up / work out URLs, don't just hard code!
 
     @abstractproperty
-    def isoName(self): pass
-
-    @abstractproperty
     def _maindisk(self): pass
-    
+
     @property
     def isoRepo(self):
         return "linux"
+
+    @property
+    def isoName(self):
+        return "%s_%s.iso" % (self.distro, self.arch)
 
     @property
     def installURL(self):
@@ -66,8 +67,8 @@ class RHELBasedLinux(LinuxOS):
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
-        preseedfile = "preseed-%s-kickstart.cfg" % (self.parent.name)
-        filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
+        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
         
         self.nfsdir = xenrt.NFSDirectory()  
         ksf=RHELKickStartFile(self.distro,
@@ -91,8 +92,8 @@ class RHELBasedLinux(LinuxOS):
         return ["graphical", "utf8", "url=%s" % url]
        
     def generateIsoAnswerfile(self):
-        preseedfile = "preseed-%s-kickstart.cfg" % (self.parent.name)
-        filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
+        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
         
         self.nfsdir = xenrt.NFSDirectory()  
         ksf=RHELKickStartFile(self.distro,
@@ -117,7 +118,7 @@ class RHELBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
-        shutil.copyfile(filename, "%s/preseed" % (path))
+        shutil.copyfile(filename, "%s/kickstart" % (path))
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -151,7 +152,7 @@ class RHELBasedLinux(LinuxOS):
         self.parent.start()
 
     def waitForBoot(self, timeout):
-        # We consider boot of a Debian guest complete once it responds to SSH
+        # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
         self.parent.getIP(timeout)
         # Reduce the timeout by however long it took to get the IP
@@ -175,57 +176,6 @@ class RHELLinux(RHELBasedLinux):
         if int(self.distro[4:5]) >= 6:
             return "xvda"
 
-    @property
-    def isoName(self):
-        if self.distro == "rhel38":
-            return "rhel38_%s.iso" % self.arch
-        elif self.distro == "rhel41":
-            return "rhel41_%s.iso" % self.arch
-        elif self.distro == "rhel44":
-            return "rhel44_%s.iso" % self.arch
-        elif self.distro == "rhel45":
-            return "rhel45_%s.iso" % self.arch
-        elif self.distro == "rhel46":
-            return "rhel46_%s.iso" % self.arch
-        elif self.distro == "rhel47":
-            return "rhel47_%s.iso" % self.arch
-        elif self.distro == "rhel48":
-            return "rhel48_%s.iso" % self.arch
-        elif self.distro == "rhel5":
-            return "rhel5_%s.iso" % self.arch
-        elif self.distro == "rhel510":
-            return "rhel510_%s.iso" % self.arch
-        elif self.distro == "rhel51":
-            return "rhel51_%s.iso" % self.arch
-        elif self.distro == "rhel52":
-            return "rhel52_%s.iso" % self.arch
-        elif self.distro == "rhel53":
-            return "rhel53_%s.iso" % self.arch
-        elif self.distro == "rhel54":
-            return "rhel54_%s.iso" % self.arch
-        elif self.distro == "rhel55":
-            return "rhel55_%s.iso" % self.arch
-        elif self.distro == "rhel56":
-            return "rhel56_%s.iso" % self.arch
-        elif self.distro == "rhel57":
-            return "rhel57_%s.iso" % self.arch
-        elif self.distro == "rhel58":
-            return "rhel58_%s.iso" % self.arch
-        elif self.distro == "rhel59":
-            return "rhel59_%s.iso" % self.arch
-        elif self.distro == "rhel6":
-            return "rhel6_%s.iso" % self.arch
-        elif self.distro == "rhel61":
-            return "rhel61_%s.iso" % self.arch
-        elif self.distro == "rhel62":
-            return "rhel62_%s.iso" % self.arch
-        elif self.distro == "rhel63":
-            return "rhel63_%s.iso" % self.arch
-        elif self.distro == "rhel64":
-            return "rhel64_%s.iso" % self.arch
-        elif self.distro == "rhel65":
-            return "rhel65_%s.iso" % self.arch
-
 class CentOSLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
@@ -242,53 +192,6 @@ class CentOSLinux(RHELBasedLinux):
         if int(self.distro[6:7]) >= 6:
             return "xvda"
 
-    @property
-    def isoName(self):
-        if self.distro == "centos43":
-            return "centos43_%s.iso" % self.arch
-        elif self.distro == "centos45":
-            return "centos45_%s.iso" % self.arch
-        elif self.distro == "centos46":
-            return "centos46_%s.iso" % self.arch
-        elif self.distro == "centos47":
-            return "centos47_%s.iso" % self.arch
-        elif self.distro == "centos48":
-            return "centos48_%s.iso" % self.arch
-        elif self.distro == "centos5":
-            return "centos5_%s.iso" % self.arch
-        elif self.distro == "centos510":
-            return "centos510_%s.iso" % self.arch
-        elif self.distro == "centos51":
-            return "centos51_%s.iso" % self.arch
-        elif self.distro == "centos52":
-            return "centos52_%s.iso" % self.arch
-        elif self.distro == "centos53":
-            return "centos53_%s.iso" % self.arch
-        elif self.distro == "centos54":
-            return "centos54_%s.iso" % self.arch
-        elif self.distro == "centos55":
-            return "centos55_%s.iso" % self.arch
-        elif self.distro == "centos56":
-            return "centos56_%s.iso" % self.arch
-        elif self.distro == "centos57":
-            return "centos57_%s.iso" % self.arch
-        elif self.distro == "centos58":
-            return "centos58_%s.iso" % self.arch
-        elif self.distro == "centos59":
-            return "centos59_%s.iso" % self.arch
-        elif self.distro == "centos6":
-            return "centos6_%s.iso" % self.arch
-        elif self.distro == "centos61":
-            return "centos61_%s.iso" % self.arch
-        elif self.distro == "centos62":
-            return "centos62_%s.iso" % self.arch
-        elif self.distro == "centos63":
-            return "centos63_%s.iso" % self.arch
-        elif self.distro == "centos64":
-            return "centos64_%s.iso" % self.arch
-        elif self.distro == "centos65":
-            return "centos65_%s.iso" % self.arch
-
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
    
@@ -304,37 +207,6 @@ class OELLinux(RHELBasedLinux):
     def _maindisk(self):
         if int(self.distro[3:4]) >= 6:
             return "xvda"
-
-    @property
-    def isoName(self):
-        if self.distro == "oel510":
-            return "oel510_%s.iso" % self.arch
-        if self.distro == "oel53":
-            return "oel53_%s.iso" % self.arch
-        if self.distro == "oel54":
-            return "oel54_%s.iso" % self.arch
-        if self.distro == "oel55":
-            return "oel55_%s.iso" % self.arch
-        if self.distro == "oel56":
-            return "oel56_%s.iso" % self.arch
-        if self.distro == "oel57":
-            return "oel57_%s.iso" % self.arch
-        if self.distro == "oel58":
-            return "oel58_%s.iso" % self.arch
-        if self.distro == "oel59":
-            return "oel59_%s.iso" % self.arch
-        if self.distro == "oel6":
-            return "oel6_%s.iso" % self.arch
-        if self.distro == "oel61":
-            return "oel61_%s.iso" % self.arch
-        if self.distro == "oel62":
-            return "oel62_%s.iso" % self.arch
-        if self.distro == "oel63":
-            return "oel63_%s.iso" % self.arch
-        if self.distro == "oel64":
-            return "oel64_%s.iso" % self.arch
-        if self.distro == "oel65":
-            return "oel65_%s.iso" % self.arch
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

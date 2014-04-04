@@ -2589,6 +2589,7 @@ Add-WindowsFeature as-net-framework"""
         # Get the CLI RPM from the CD.
         mount = None
         rpm = None
+        hostarch = xenrt.command("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
         rpmpath = xenrt.TEC().lookup("XE_RPM", None)
         if rpmpath:
@@ -2614,11 +2615,18 @@ Add-WindowsFeature as-net-framework"""
                 try:
                     mount = xenrt.rootops.MountISO(cd)
                     mountpoint = mount.getMount()
-                    rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
-                                     (mountpoint))
-                    rpms.extend(glob.glob(\
-                        "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
-                        (mountpoint)))
+                    if hostarch != "x86_64":
+                        rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
+                            (mountpoint)))
+                    else:
+                        rpms = glob.glob("%s/client_install/xe-cli*86_64.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86_64.rpm" %
+                            (mountpoint)))
                     if len(rpms) > 0:
                         xenrt.TEC().logverbose("Using CLI RPM %s from ISO %s" %
                                                (os.path.basename(rpms[-1]), cd))

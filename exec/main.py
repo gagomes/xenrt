@@ -563,14 +563,17 @@ try:
         elif flag == "--shell":
             doshell = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--shell-logs":
             doshell = True
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--ishell-logs":
             doshell = "ipython"
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--priority":
             prio = int(value)
         elif flag == "--perf-upload":

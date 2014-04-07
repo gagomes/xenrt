@@ -1473,7 +1473,7 @@ class ISCSITemporaryLun(ISCSILun):
         nsecaddr = xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "ADDRESS"], None)
         if nsecaddr:
             self.secAddrs['NSEC'] = [nsecaddr]
-        vlans = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], []).keys()
+        vlans = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys()
         for v in vlans:
             vlanaddr = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ADDRESS"], None)
             if vlanaddr:

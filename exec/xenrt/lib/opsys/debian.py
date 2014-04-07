@@ -18,9 +18,6 @@ class DebianBasedLinux(LinuxOS):
         pass
 
     @staticmethod
-    def knownDistro(distro): raise NotImplementedError()
-
-    @staticmethod
     def testInit(parent): raise NotImplementedError()
 
     def __init__(self, distro, parent):
@@ -35,9 +32,6 @@ class DebianBasedLinux(LinuxOS):
 
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
-
-        # TODO: Validate distro
-        # TODO: Look up / work out URLs, don't just hard code!
 
     @abstractproperty
     def isoName(self): pass

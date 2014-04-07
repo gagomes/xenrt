@@ -58,7 +58,7 @@ class RHELBasedLinux(LinuxOS):
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
                              installOn=xenrt.HypervisorType.xen,
-                             installXenToolsInPostInstall=True,
+                             installXenToolsInPostInstall=False,
                              pxe=False,
                              arch=self.arch)
 
@@ -83,7 +83,7 @@ class RHELBasedLinux(LinuxOS):
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
                              installOn=xenrt.HypervisorType.xen,
-                             installXenToolsInPostInstall=True,
+                             installXenToolsInPostInstall=False,
                              pxe=False,
                              arch=self.arch)
 
@@ -119,14 +119,11 @@ class RHELBasedLinux(LinuxOS):
             installtime = 7200
         else:
             installtime = 3600
-        try:
-            xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
+
+        xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="RHEL based installation")
-            self.parent.stop()
-        except xenrt.XRTFailure, e:
-            raise 
-        
+        self.parent.stop()
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()

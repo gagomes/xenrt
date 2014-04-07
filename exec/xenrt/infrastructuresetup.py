@@ -67,6 +67,26 @@ def setupNetPeer(netpeer, config):
     sftp = h.sftpClient()
     h.execdom0("modprobe 8021q")
 
+    mask = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"])
+    gw = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
+   
+    h.execdom0("sed -i '/GATEWAY/d' /etc/sysconfig/network")
+    h.execdom0("echo 'GATEWAY=%s' >> /etc/sysconfig/network" % gw)
+
+    netConf = """DEVICE=eth0
+BOOTPROTO=static
+IPADDR=%s
+NETMASK=%s
+ONBOOT=yes
+TYPE=Ethernet
+""" % (addr,mask)
+    ifcfg = xenrt.TEC().tempFile()
+    f = file(ifcfg, "w")
+    f.write(netConf)
+    f.close()
+    sftp.copyTo(ifcfg, 
+                "/etc/sysconfig/network-scripts/ifcfg-eth0")
+
     if tp.has_key("VLANS"):
         vlans = tp["VLANS"]
         for vlan in vlans.split(","):
@@ -91,10 +111,14 @@ VLAN=yes
             h.execdom0("ifconfig eth0.%s %s netmask %s up" % (vid,ip,mask))
             print "Configured vlan %s" % (vid)
 
+
+
     # Set up the cleanup script (kills any netserver procs over 7 days old)
     h.execdom0("echo '30 2 * * * root %s/cleanupNetperf.py' >> /etc/crontab" %
                (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-    h.execdom0("/etc/init.d/crond restart")
+
+
+    h.reboot()
 
     print "%s has been successfully set up." % (netpeer)
 

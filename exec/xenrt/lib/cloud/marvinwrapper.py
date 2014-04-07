@@ -33,11 +33,13 @@ class MarvinApi(object):
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self.logger = logging.getLogger(self.MARVIN_LOGGER)
-        self.logger.setLevel(logging.DEBUG)
-        stream = logging.StreamHandler(stream=self.xenrtStream)
-        stream.setLevel(logging.DEBUG)
-        stream.setFormatter(logFormat)
-        self.logger.addHandler(stream)
+        if len(self.logger.handlers) == 0:
+            # Add a stream handler to the logger and initialise it
+            self.logger.setLevel(logging.DEBUG)
+            stream = logging.StreamHandler(stream=self.xenrtStream)
+            stream.setLevel(logging.DEBUG)
+            stream.setFormatter(logFormat)
+            self.logger.addHandler(stream)
 
         self.mgtSvrDetails = configGenerator.managementServer()
         self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
@@ -87,7 +89,6 @@ class MarvinApi(object):
         xenrt.TEC().logverbose('Template %s ready after %d seconds' % (name, (datetime.now() - startTime).seconds))
 
     def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
-#        sysTemplateLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         sysTemplateiSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", '/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         if not sysTemplateiSrcLocation:
             raise xenrt.XRTError('Location of system template not specified')

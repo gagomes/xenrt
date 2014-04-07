@@ -1645,3 +1645,135 @@ def listHW(fn):
     print "\n==== Storage Controllers ====="
     for v in sorted(storage):
         print v
+
+from lxml import etree
+from pprint import pprint
+import ast
+def _getMarvinTestDocStrings(classname, testnames, marvinCodePath):
+    pathToClass = os.path.join(marvinCodePath, *classname.split('.')[1:-1])+'.py'
+    astData = ast.parse(open(pathToClass).read())
+    classElement = filter(lambda x:isinstance(x, ast.ClassDef) and x.name == classname.split('.')[-1], astData.body)[0]
+    classDocString = ast.get_docstring(classElement)
+    classDocString = classDocString and classDocString.rstrip() or ''
+    testMethodElements = filter(lambda x:isinstance(x, ast.FunctionDef) and x.name in testnames, classElement.body)
+    testMethodDocStrings = []
+    for testMethod in testMethodElements:
+        docStr = ast.get_docstring(testMethod)
+        docStr = docStr and docStr.rstrip() or ''
+        testMethodDocStrings.append((testMethod.name, docStr))
+    return (classDocString, testMethodDocStrings)
+
+def createMarvinTCTickets(tags=[], marvinCodePath=None, mgmtSvrIP=None, testMode=False):
+    if not (isinstance(tags, list) and len(tags) > 0):
+        raise xenrt.XRTError('Must provide a list containing at least 1 tag')
+    if not mgmtSvrIP:
+        raise xenrt.XRTError('Must provide the IP address of a running CP/CS Management Server')
+
+    # Create dummy marvin config
+    marvinCfg = { 'mgtSvr': [ {'mgtSvrIp': mgmtSvrIP, 'port': 8096} ] }
+    marvinConfig = xenrt.TEC().tempFile()
+    fh = open(marvinConfig, 'w')
+    json.dump(marvinCfg, fh)
+    fh.close()
+
+    # Get test list from nose
+    noseTestList = xenrt.TEC().tempFile()
+    tempLogDir = xenrt.TEC().tempDir()
+    noseArgs = ['--with-marvin', '--marvin-config=%s' % (marvinConfig),
+                '--with-xunit', '--xunit-file=%s' % (noseTestList),
+                '--log-folder-path=%s' % (tempLogDir),
+                '--load',
+                marvinCodePath,
+                '-a "%s"' % (','.join(map(lambda x:'tags=%s' % (x), tags))),
+                '--collect-only']
+    print 'Using nosetest args: %s' % (' '.join(noseArgs))
+    xenrt.util.command('/usr/local/bin/nosetests %s' % (' '.join(noseArgs)))
+
+    xmlData = etree.fromstring(open(noseTestList).read())
+    testData = {}
+    for element in xmlData.getchildren():
+        classname = element.get('classname')
+        testname = element.get('name')
+        if testData.has_key(classname):
+            if testname in testData[classname]:
+                print 'Duplicate testname [%s] found in class [%s]' % (testname, classname)
+            else:
+                testData[classname].append(testname)
+        else:
+            testData[classname] = [ testname ]
+    
+    pprint(testData)
+    testData.pop('nose.failure.Failure')
+
+    jira = xenrt.JiraLink()
+    maxResults = 200
+    allMarvinTCTickets = jira.jira.search_issues('project = TC AND issuetype = "Test Case" AND "Test Case Type" = Marvin', maxResults=maxResults)
+    print 'Total number Marvin TCs to fetch: %d' % (allMarvinTCTickets.total)
+    while(len(allMarvinTCTickets) < allMarvinTCTickets.total):
+        allMarvinTCTickets += jira.jira.search_issues('project = TC AND issuetype = "Test Case" AND "Test Case Type" = Marvin', maxResults=maxResults, startAt=len(allMarvinTCTickets))
+
+    for key in testData.keys():
+        (classDocString, testMethodDocStrings) = _getMarvinTestDocStrings(key, testData[key], marvinCodePath)
+        title = key.split('.')[-1] + ' [%s]' % (', '.join(tags))
+        tcMarvinMetaIdentifer = '%s' % ({ 'classpath': key, 'tags': tags })
+        component = [{'id': '11606'}]
+        testType = {'id': '12920', 'value': 'Marvin'}
+        description  = 'Marvin tests in class %s matching tag(s): %s\n' % (key.split('.')[-1], ', '.join(tags))
+        description += 'Full class-path: *%s*\n' % (key)
+        if classDocString != '':
+            description += '{noformat}\n%s\n{noformat}\n' % (classDocString)
+        description += '\nThis class contains the following Marvin test(s)\n'
+        for testMethodDocString in testMethodDocStrings:
+            description += 'TestMethod: *%s*\n' % (testMethodDocString[0])
+            if testMethodDocString[1] != '':
+                description += '{noformat}\n%s\n{noformat}\n' % (testMethodDocString[1])
+            description += '\n'
+        description += '\n*WARNING: This testcase is generated - do not edit any field directly*'
+
+        tcTkts = filter(lambda x:eval(x.fields.customfield_10121) == { 'classpath': key, 'tags': tags }, allMarvinTCTickets)
+        if len(tcTkts) == 0:
+            newTicketId = 'TestMode'
+            if not testMode:
+                newTicket = jira.jira.create_issue(project={'key':'TC'}, issuetype={'name':'Test Case'}, reporter={'name':'xenrt'},
+                                                   summary=title, 
+                                                   components=component, 
+                                                   customfield_10121=tcMarvinMetaIdentifer,
+                                                   customfield_10713=testType,
+                                                   description=description)
+                newTicketId = newTicket.key
+            print 'Created new ticket [%s]' % (newTicketId)
+        elif len(tcTkts) == 1:
+            print 'Updating existing ticket [%s]' % (tcTkts[0].key)
+            if not testMode:
+                tcTkts[0].update(summary=title, components=component, customfield_10121=tcMarvinMetaIdentifer, description=description)
+        else:
+            raise xenrt.XRTError('%d tickets match classpath: %s, tags: %s [%s] aborting' % (key, tags, ','.join(map(lambda x:x.key, tcTkts))))
+
+        if testMode:
+            print title
+            print tcMarvinMetaIdentifer
+            print description
+            print '-------------------------------------------------------------------------------------'
+
+def createMarvinSequence(tags=[], classPathRoot=''):
+    if not (isinstance(tags, list) and len(tags) > 0):
+        raise xenrt.XRTError('Must provide a list containing at least 1 tag')
+
+    jira = xenrt.JiraLink()
+    maxResults = 20
+    allMarvinTCTickets = jira.jira.search_issues('project = TC AND issuetype = "Test Case" AND "Test Case Type" = Marvin', maxResults=maxResults)
+    print 'Total number Marvin TCs to fetch: %d' % (allMarvinTCTickets.total)
+    while(len(allMarvinTCTickets) < allMarvinTCTickets.total):
+        allMarvinTCTickets += jira.jira.search_issues('project = TC AND issuetype = "Test Case" AND "Test Case Type" = Marvin', maxResults=maxResults, startAt=len(allMarvinTCTickets))
+    marvinTestsStrs = []
+    for tkt in allMarvinTCTickets:
+        marvinMetaData = eval(tkt.fields.customfield_10121)
+        if marvinMetaData['tags'] == tags and marvinMetaData['classpath'].startswith(classPathRoot):
+            marvinTestsStrs.append('      <marvintests path="%s" class="%s" tags="%s" tc="%s"/>' % (os.path.join(*marvinMetaData['classpath'].split('.')[1:-1])+'.py',
+                                                                                                    marvinMetaData['classpath'].split('.')[-1],
+                                                                                                    ','.join(tags),
+                                                                                                    tkt.key))
+
+    marvinTestsStrs.sort()
+    for testStr in marvinTestsStrs:
+        print testStr

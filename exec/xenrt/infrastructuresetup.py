@@ -14,6 +14,9 @@ def setupNetPeer(netpeer, config):
     tp = config.lookup(["TTCP_PEERS",netpeer])
     mac = tp["MAC"]
     addr = tp["ADDRESS"]
+    intf = "eth0"
+    if tp.has_key("INTERFACE"):
+        intf = tp['INTERFACE']
 
     print "Configuring network test peer %s" % (netpeer)
 
@@ -73,42 +76,42 @@ def setupNetPeer(netpeer, config):
     h.execdom0("sed -i '/GATEWAY/d' /etc/sysconfig/network")
     h.execdom0("echo 'GATEWAY=%s' >> /etc/sysconfig/network" % gw)
 
-    netConf = """DEVICE=eth0
+    netConf = """DEVICE=%s
 BOOTPROTO=static
 IPADDR=%s
 NETMASK=%s
 ONBOOT=yes
 TYPE=Ethernet
-""" % (addr,mask)
+""" % (intf,addr,mask)
     ifcfg = xenrt.TEC().tempFile()
     f = file(ifcfg, "w")
     f.write(netConf)
     f.close()
     sftp.copyTo(ifcfg, 
-                "/etc/sysconfig/network-scripts/ifcfg-eth0")
+                "/etc/sysconfig/network-scripts/ifcfg-%s" % intf)
 
     if tp.has_key("VLANS"):
         vlans = tp["VLANS"]
         for vlan in vlans.split(","):
             (vid, net) = vlan.split(":",1)
             (ip, mask) = net.split("/",1)
-            netConf = """DEVICE=eth0.%s
+            netConf = """DEVICE=%s.%s
 BOOTPROTO=static
 IPADDR=%s
 NETMASK=%s
 ONBOOT=yes
 TYPE=Ethernet
 VLAN=yes
-""" % (vid,ip,mask)
+""" % (intf,vid,ip,mask)
             ifcfg = xenrt.TEC().tempFile()
             f = file(ifcfg, "w")
             f.write(netConf)
             f.close()
             sftp.copyTo(ifcfg, 
-                        "/etc/sysconfig/network-scripts/ifcfg-eth0.%s" % (vid))
+                        "/etc/sysconfig/network-scripts/ifcfg-%s.%s" % (intf,vid))
             # And set it up for now
-            h.execdom0("vconfig add eth0 %s" % (vid))
-            h.execdom0("ifconfig eth0.%s %s netmask %s up" % (vid,ip,mask))
+            h.execdom0("vconfig add %s %s" % (intf, vid))
+            h.execdom0("ifconfig %s.%s %s netmask %s up" % (intf,vid,ip,mask))
             print "Configured vlan %s" % (vid)
 
 

@@ -73,7 +73,7 @@ class RHELBasedLinux(LinuxOS):
         url = webdir.getURL(os.path.basename(filename))
 
         # TODO: handle native where console is different, and handle other interfaces
-        return ["graphical", "utf8", "url=%s" % url]
+        return ["graphical", "utf8", "ks=%s" % url]
        
     def generateIsoAnswerfile(self):
         kickstartfile = "kickstart-%s.cfg" % (self.parent.name)

@@ -1,8 +1,11 @@
 
 import pprint
 import json
-from marvin import deployDataCenter
-from marvin import jsonHelper
+try:
+    from marvin import deployDataCenter
+    from marvin import jsonHelper
+except ImportError:
+    pass
 
 class MarvinDeployException(Exception):
     def __init__(self, value):

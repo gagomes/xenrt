@@ -1,0 +1,19 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <serial group="HFX959">
+      <testcase id="xenserver.tc.network.TC20918" />
+    </serial>
+    <serial group="HFX927">
+      <testcase id="xenserver.tc.license.TC20922" />
+    </serial>
+    <serial group="HFX952">
+      <testcase id="xenserver.tc.host.TC20917" />
+    </serial>
+  </testsequence>
+</xenrt>

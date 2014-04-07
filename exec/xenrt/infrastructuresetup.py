@@ -118,6 +118,9 @@ VLAN=yes
                (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
 
 
+    h.execdom0("sed -i '/UseDNS/d' /etc/ssh/sshd_config")
+    h.execdom0("echo 'UseDNS no' >> /etc/ssh/sshd_config")
+
     h.reboot()
 
     print "%s has been successfully set up." % (netpeer)

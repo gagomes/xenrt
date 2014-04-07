@@ -35,8 +35,12 @@ class RHELBasedLinux(LinuxOS):
         # TODO: Validate distro
         # TODO: Look up / work out URLs, don't just hard code!
 
-    @abstractproperty
-    def _maindisk(self): pass
+    #@abstractproperty
+    #def _maindisk(self): pass
+
+    @property
+    def _maindisk(self):
+        return "xvda"
 
     @property
     def isoRepo(self):
@@ -171,11 +175,6 @@ class RHELLinux(RHELBasedLinux):
     def testInit(parent):
         return RHELLinux("rhel6", parent)
 
-    @property
-    def _maindisk(self):
-        if int(self.distro[4:5]) >= 6:
-            return "xvda"
-
 class CentOSLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
@@ -187,11 +186,6 @@ class CentOSLinux(RHELBasedLinux):
     def testInit(parent):
         return CentOSLinux("centos6", parent)
 
-    @property
-    def _maindisk(self):
-        if int(self.distro[6:7]) >= 6:
-            return "xvda"
-
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
    
@@ -202,11 +196,6 @@ class OELLinux(RHELBasedLinux):
     @staticmethod
     def testInit(parent):
         return OELLinux("oel6", parent)
-
-    @property
-    def _maindisk(self):
-        if int(self.distro[3:4]) >= 6:
-            return "xvda"
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

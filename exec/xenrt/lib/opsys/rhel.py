@@ -12,12 +12,6 @@ class RHELBasedLinux(LinuxOS):
     
     __metaclass__ = ABCMeta
 
-    @staticmethod
-    def knownDistro(distro): raise NotImplementedError()
-
-    @staticmethod
-    def testInit(parent): raise NotImplementedError()
-
     def __init__(self, distro, parent):
         super(RHELBasedLinux, self).__init__(parent)
 
@@ -31,12 +25,6 @@ class RHELBasedLinux(LinuxOS):
         self.pvBootArgs = ["console=tty0"]
         self.cleanupdir = None
         self.nfsdir = None
-
-        # TODO: Validate distro
-        # TODO: Look up / work out URLs, don't just hard code!
-
-    #@abstractproperty
-    #def _maindisk(self): pass
 
     @property
     def _maindisk(self):
@@ -53,16 +41,6 @@ class RHELBasedLinux(LinuxOS):
     @property
     def installURL(self):
         return xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"], None)
-
-    @property
-    def _architecture(self):
-        """Convert the architecture post-fix to a string representing the installer base path"""
-        if self.arch == "x86-32":
-            return "i386"
-        elif self.arch == "x86-64":
-            return "amd64"
-        else:
-            raise xenrt.XRTError("Cannot identify architecture")
 
     @property
     def installerKernelAndInitRD(self):

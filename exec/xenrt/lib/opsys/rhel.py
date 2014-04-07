@@ -28,7 +28,10 @@ class RHELBasedLinux(LinuxOS):
 
     @property
     def _maindisk(self):
-        return "xvda"
+        if self.parent.hypervisorType == xenrt.HypervisorType.xen:
+            return "xvda"
+        else:
+            return "sda"
 
     @property
     def isoRepo(self):
@@ -57,8 +60,7 @@ class RHELBasedLinux(LinuxOS):
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
-                             installOn=xenrt.HypervisorType.xen,
-                             installXenToolsInPostInstall=False,
+                             installOn=self.parent.hypervisorType,
                              pxe=False,
                              arch=self.arch)
 
@@ -82,8 +84,7 @@ class RHELBasedLinux(LinuxOS):
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
-                             installOn=xenrt.HypervisorType.xen,
-                             installXenToolsInPostInstall=False,
+                             installOn=self.parent.hypervisorType,
                              pxe=False,
                              arch=self.arch)
 

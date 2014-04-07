@@ -27,7 +27,7 @@ def setupNetPeer(netpeer, config):
     h.memory = None
     h.vcpus = None
  
-    h.installLinuxVendor("centos64",extrapackages=["xinetd"],kickstart="centos6")
+    h.installLinuxVendor("centos65",extrapackages=["xinetd"],kickstart="centos6")
     print "Centos Installed, tailoring..."
     h.tailor()
     print "Tailoring complete, installing netperf and iperf..."

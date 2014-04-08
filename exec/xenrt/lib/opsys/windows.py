@@ -98,18 +98,6 @@ class WindowsOS(OS):
             raise xenrt.XRTError("No installer found for package %s" % package)
         installer.ensureInstalled(installOptions)
 
-<<<<<<< Updated upstream
-=======
-    def ensurePackageInstalled(self, package, installOptions={}):
-        global packageList
-        installer = None
-        for p in packageList:
-            if p.NAME == package:
-                installer = p(self)
-        if not installer:
-            raise xenrt.XRTError("No installer found for package %s" % package)
-        installer.ensureInstalled(installOptions)
-
     def isPackageInstalled(self, package, installOptions={}):
         global packageList
         installer = None
@@ -120,8 +108,6 @@ class WindowsOS(OS):
             raise xenrt.XRTError("No installer found for package %s" % package)
         return installer.isInstalled(installOptions)
         
-
->>>>>>> Stashed changes
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
         self.parent.getIP(10800)

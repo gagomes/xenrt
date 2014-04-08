@@ -34,17 +34,7 @@ class PVToolsInstaller(object):
 class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
     
     def _loadToolsIso(self):
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.name="xs-tools.iso"
-        isoId = self.cloudstack.marvin.apiClient.listIsos(listIsosC)[0].id
-
-        attachIsoC = attachIso.attachIsoCmd()
-        attachIsoC.id = isoId
-        attachIsoC.virtualmachineid = self.instance.toolstackId
-        self.cloudstack.marvin.apiClient.attachIso(attachIsoC)
-
-        # Allow the CD to appear
-        xenrt.sleep(30)
+        self.instance.setIso("xs-tools.iso")
     
     def _installMsi(self):
         self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")

@@ -41,6 +41,8 @@ def readMachineFromRackTables(machine,kvm=False):
             mac = availablePorts[0][2]
             if availablePorts[0][1].startswith("10G"):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "NIC_SPEED"],"10G")
+            if availablePorts[0][1].startswith("40G"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "NIC_SPEED"],"40G")
             primaryInterface = availablePorts[0][0]
             xenrt.GEC().config.setVariable(["HOST_CONFIGS", machine, "MAC_ADDRESS"],mac)
 
@@ -194,6 +196,8 @@ def readMachineFromRackTables(machine,kvm=False):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"IP_ADDRESS6"],ip6[0])
             if p[1].startswith("10G"):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"SPEED"],"10G")
+            if p[1].startswith("40G"):
+                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"SPEED"],"40G")
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETPORT"],netport)
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"NETWORK"],network)
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"MAC_ADDRESS"],mac)

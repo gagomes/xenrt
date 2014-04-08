@@ -19,9 +19,11 @@
       <testcase id="xenserver.tc.checkpoint.TC9211"/>
       <testcase id="xenserver.tc.checkpoint.TC9215"/>
       <testcase id="xenserver.tc.checkpoint.TC9216"/>
+      <testcase id="xenserver.tc.checkpoint.TC9217"/>
       <testcase id="xenserver.tc.checkpoint.TC9220"/>
       <testcase id="xenserver.tc.checkpoint.TC9221"/>
       <testcase id="xenserver.tc.checkpoint.TC9212"/>
+      <!--<testcase id="xenserver.tc.checkpoint.TC9224"/>-->
     </serial>
   </testsequence>
 

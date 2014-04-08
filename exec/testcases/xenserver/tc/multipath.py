@@ -3521,6 +3521,35 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
             raise xenrt.XRTError("Multipath -ll status has not changed within 4 minutes")
         
 
+    def _multipathGroupStatus(self,line,group,keyname):
+        """Get the multipath -ll output in form of primary and secondary groups
+           Group status, 'status':'active or 'status':'enable']
+        """
+        if re.search("status=active", line):
+            group['status'] = 'active'
+        else:
+            group['status'] = 'enabled'
+        group[keyname%2] = []
+        return group
+    
+    def _multipathPathsStatus(self,keyname,primary,secondary,line):
+        """Get the multipath -ll output in form of primary and secondary group paths 
+           Path status , 0:['sda', 'active'/'failed']
+        """
+        r = re.search(r"^[| ] [|`]- \S+\s+(\S+)\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)", line)
+        if r:
+            lr = []
+            lr.append(r.group(1))
+            lr.append(r.group(2))
+            if keyname < 2:
+                pass
+                primary[keyname%2] = lr
+            else:
+                pass
+                secondary[keyname%2] = lr
+            keyname += 1
+        return keyname,primary,secondary
+        
     def multipathInfo(self):
         # Get the multipath -ll output in form of primary and secondary groups
         # primary = {'status':['active'/'enable'], 0:['sda', 'active'/'failed'], 1:['sdb', 'active'/'failed']}
@@ -3532,37 +3561,20 @@ class DellPowerVaultIscsiMultipath(_DellPowerVaultMultipathing):
         keyname = 0
         for line in mp.splitlines():
             r = re.search(r"([0-9A-Za-z-_]+) *dm-\d+", line)
+            
             if r:
                 continue
             r = re.search(r"policy", line)
+            
             if r and not flag:
-                if re.search("status=active", line):
-                    primary['status'] = 'active'
-                else:
-                    primary['status'] = 'enabled'
+                primary = self._multipathGroupStatus(line,primary,keyname)
                 flag = True
-                primary[keyname%2] = []
-                
+            
             elif r and flag:
-                if re.search("status=active", line):
-                    secondary['status'] = 'active'
-                else:
-                    secondary['status'] = 'enabled'
-                secondary[keyname%2] = []
+                secondary = self._multipathGroupStatus(line,secondary,keyname)
                 
             if not r:
-                r = re.search(r"^[| ] [|`]- \S+\s+(\S+)\s+\S+\s+(\S+)\s+(\S+)\s+(\S+)", line)
-                if r:
-                    lr = []
-                    lr.append(r.group(1))
-                    lr.append(r.group(2))
-                    if keyname < 2:
-                        pass
-                        primary[keyname%2] = lr
-                    else:
-                        pass
-                        secondary[keyname%2] = lr
-                    keyname += 1
+                keyname,primary,secondary = self._multipathPathsStatus(keyname,primary,secondary,line)
     
         xenrt.TEC().logverbose("Details of primary path are %s and secondary path are %s" % (str(primary), str(secondary)))
         return primary, secondary
@@ -4235,6 +4247,13 @@ class TC18156(xenrt.TestCase):
 class TCIQNWildcard(xenrt.TestCase):
     """TC-18159: Regression test for CA-63999 (multipathing with IQN wildcard)"""
 
+    def countPaths(self, scsiId):
+        # There should be 2 paths to a lun
+        mp = self.host.getMultipathInfo()
+        
+        if len(mp[scsiId]) != 2:
+            raise xenrt.XRTFailure("Should be 2 paths available.")
+
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
         self.host.enableMultipathing()
@@ -4246,38 +4265,84 @@ class TCIQNWildcard(xenrt.TestCase):
         
         # need multiple VIFs for multipathing
         self.guest.createVIF("eth1", bridge, mac=None, plug=True)
-        self.guest.execguest("ifconfig eth1 up && dhclient eth1")
-
-        self.guest.installLinuxISCSITarget()
+        xenrt.sleep(10)
+        self.guest.execguest("echo 'auto eth1' >> "
+                             "/etc/network/interfaces")
+        self.guest.execguest("echo 'iface eth1 inet dhcp' >> "
+                             "/etc/network/interfaces")
+        self.guest.execguest("echo 'post-up route del -net default "
+                             "dev eth1' >> /etc/network/interfaces")
+        self.guest.execguest("ifup eth1")
+        xenrt.sleep(60)
+        self.iqn = self.guest.installLinuxISCSITarget()
         self.guest.createISCSITargetLun(0, 1024)
         
     def run(self, arglist=None):
 
         cli = self.host.getCLIInstance()
+        ip0 = self.guest.getVIFs()['eth0'][1]
+        ip1 = self.guest.getVIFs()['eth1'][1]
         
         # temp hack to start iscsi daemon. Fixed on Tampa and later.
         if not isinstance(self.host, xenrt.lib.xenserver.TampaHost):
             try:
-                cli.execute("sr-probe", "type=lvmoiscsi device-config:multihomed=true device-config:target=%s" % self.guest.getIP())
+                cli.execute("sr-probe", "type=lvmoiscsi device-config:multihomed=true device-config:target=%s" % ip0)
             except:
                 pass
-
+        
+        log("Create ISCSI SR via single target IP search")
         # get SCSI id for LUN
         try:
-            xml = cli.execute("sr-probe", "type=lvmoiscsi device-config:multihomed=true device-config:target=%s device-config:targetIQN=*" % self.guest.getIP())
+            xml = cli.execute("sr-probe", "type=lvmoiscsi device-config:multihomed=true device-config:target=%s device-config:targetIQN=*" % ip0)
         except Exception, e:
             xml = str(e.data)
                     
         scsiId = re.search(r"<SCSIid>(.*)</SCSIid>", xml, re.MULTILINE|re.DOTALL).group(1).strip()
 
         # create SR using IQN wildcard
-        sr = cli.execute("sr-create", "name-label=mySR type=lvmoiscsi device-config:targetIQN=* device-config:SCSIid=%s device-config:target=%s" % (scsiId, self.guest.getIP()))
+        sr = cli.execute("sr-create", "name-label=mySR type=lvmoiscsi device-config:targetIQN=* device-config:SCSIid=%s device-config:target=%s" % (scsiId, ip0)).strip()
         
-        # now check paths
-        mp = self.host.getMultipathInfo()
+        # check paths
+        self.countPaths(scsiId)
+
+        self.host.forgetSR(sr)
         
-        if len(mp[scsiId]) != 2:
-            raise xenrt.XRTFailure("Should be 2 paths available when using IQN wildcard.")
+        log("Create ISCSI SR via multiple target IP search")
+        # check port :3260 is not appended
+        try:
+            xml = cli.execute("sr-probe", "type=lvmoiscsi device-config:target=%s,%s device-config:port=3260" % (ip0, ip1))
+        except Exception, e:
+            xml = str(e.data)
+        
+        badString = ip0 + "," + ip1 + ":3260"
+        if re.search(badString, xml):
+            raise xenrt.XRTFailure("During sr-probe, extra portNumber is appended to IPAddress string")
+        
+        # get SCSIid for LUN
+        try:
+            xml = cli.execute("sr-probe", "type=lvmoiscsi device-config:multihomed=true "
+                              "device-config:target=%s,%s device-config:port=3260 device-config:targetIQN=*" % (ip0, ip1))
+        except Exception, e:
+            xml = str(e.data)
+        
+        scsiId = re.search(r"<SCSIid>(.*)</SCSIid>", xml, re.MULTILINE|re.DOTALL).group(1).strip()
+
+        # create SR using specified IQN
+        sr = cli.execute("sr-create", "name-label=mySR type=lvmoiscsi device-config:targetIQN=%s "
+                         "device-config:SCSIid=%s device-config:target=%s,%s device-config:port=3260" % (self.iqn, scsiId, ip0, ip1)).strip()
+        # check paths
+        self.countPaths(scsiId)
+        
+        self.host.forgetSR(sr)
+        
+        # create SR using IQN wildcard
+        sr = cli.execute("sr-create", "name-label=mySR type=lvmoiscsi device-config:targetIQN=* "
+                         "device-config:SCSIid=%s device-config:target=%s,%s device-config:port=3260" % (scsiId, ip0, ip1)).strip()
+        # check paths
+        self.countPaths(scsiId)
+        
+        self.host.forgetSR(sr)
+         
 
 class TC18782(xenrt.TestCase):
     """Verify memory corruption in multipathd when it gets stuck during switch port failure (HFX-630)"""

@@ -153,9 +153,10 @@ class _Hotfix(xenrt.TestCase):
         xenrt.TEC().comment("Initial host(s) install of %s" % self.INITIAL_VERSION)
         v6applied = False
         if not self.CC and usev6:
-            self.host.installLicenseServerGuest(name="LicenseServer")
+            xenrt.resources.SharedHost().getHost().installLicenseServerGuest(name="LicenseServer")
             
             v6 = self.getGuest("LicenseServer").getV6LicenseServer()
+            self.uninstallOnCleanup(self.getGuest("LicenseServer"))
             v6.removeAllLicenses()
             v6.addLicense("valid-platinum")
             self.host.license(edition="platinum", usev6testd=False, v6server=v6)
@@ -754,7 +755,7 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004"]
     
     
 # Upgrades
@@ -890,6 +891,7 @@ class TC18394(_SanibelCCRTM):
 
 class TC18162(_TampaRTM):
     """Apply hotfix to XenServer 6.1 RTM"""
+    INITIAL_HOTFIXES = ["XS61E009"]
     pass
 
 class TC19911(_ClearwaterRTM):
@@ -1094,6 +1096,7 @@ class TC18396(_SanibelCCRTM):
 class TC18161(_TampaRTM):
     """Apply hotfix to XenServer 6.1 RTM (pool)"""
     POOLED = True
+    INITIAL_HOTFIXES = ["XS61E009"]
 
 class TC19914(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM (pool)"""

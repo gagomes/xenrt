@@ -24,7 +24,7 @@ class RHELKickStartFile :
                  memory=256,
                  bootDiskSize=100,
                  options={},
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  method="HTTP",
                  repository=None,
                  ethDevice="eth0",
@@ -57,7 +57,7 @@ class RHELKickStartFile :
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         
     def generate(self):
-        if self.installOn=="Xen":
+        if self.installOn==xenrt.HypervisorType.xen:
             kf=self._generateKS()
         else :
         #Native installation
@@ -150,7 +150,7 @@ class RHELKickStartFile :
         
     def _more(self):
         more=""
-        if self.installOn=="Xen":   
+        if self.installOn==xenrt.HypervisorType.xen:   
            
             if self.pxe or self.installXenToolsInPostInstall:
                 more="reboot\n"
@@ -253,7 +253,7 @@ stunnel
        self._extra()
        )
 
-        if self.installOn == "Xen":       
+        if self.installOn == xenrt.HypervisorType.xen:       
             out = out+ """
 %%post
 %s
@@ -339,7 +339,7 @@ class SLESAutoyastFile :
                  distro,
                  signalDir,
                  maindisk,
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  pxe=False,
                  password=None,
                  method="HTTP",
@@ -382,7 +382,7 @@ class SLESAutoyastFile :
         return self.postinstall
     
     def generate(self):
-        if self.installOn=="Xen":
+        if self.installOn==xenrt.HypervisorType.xen:
             ay=self._generateAY()
         else:
             ay=self._generateNativeAY()
@@ -2407,7 +2407,7 @@ class DebianPreseedFile():
                  distro,
                  repository,
                  filename,
-                 installOn="native",
+                 installOn=xenrt.HypervisorType.native,
                  method="HTTP",
                  ethDevice="eth0",
                  password=None,
@@ -2417,7 +2417,8 @@ class DebianPreseedFile():
                  timezone=None,
                  installXenToolsInPostInstall=False,
                  postscript=None,
-                 poweroff=True):
+                 poweroff=True,
+                 disk=None):
         self.filename=filename
         self.distro = distro
         self.repository = repository
@@ -2431,6 +2432,7 @@ class DebianPreseedFile():
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         self.postscript = postscript
         self.poweroff = poweroff
+        self.disk = disk
         
     def generate(self):
         if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
@@ -2499,6 +2501,16 @@ d-i    apt-setup/security_path  string %s""" % (self.httphost,self.httppath, sel
             Mirror = "d-i mirror/file/directory string /cdrom"
         
         return Mirror
+
+    def _disk(self):
+        if self.disk:
+            return "d-i     partman-auto/disk                       string %s" % (self.disk)
+        return ""
+
+    def _grubDisk(self):
+        if self.disk:
+            return "d-i     grub-installer/only_debian              boolean false\nd-i     grub-installer/bootdev                  string %s" % (self.disk)
+        return "d-i     grub-installer/only_debian              boolean true"
             
     def generateDebian(self):
         """Generates Debian Preseed file for Debian6,Debian7,Debian7(x64)"""
@@ -2529,6 +2541,8 @@ d-i     mirror/http/proxy                       string
 d-i     mirror/udeb/suite                       string %s
 d-i     mirror/suite                            string %s
 d-i     time/zone string                        string %s
+
+%s
 d-i     partman-auto/method                     string regular
 d-i     partman-auto/choose_recipe              select atomic
 d-i     partman-lvm/device_remove_lvm           boolean true
@@ -2539,7 +2553,7 @@ d-i     partman/confirm                         boolean true
 d-i     passwd/make-user                        boolean false
 d-i     passwd/root-password-crypted            password %s
 d-i     pkgsel/include                          string openssh-server psmisc ntpdate
-d-i     grub-installer/only_debian              boolean true
+%s
 d-i     finish-install/reboot_in_progress       note
 %s
 d-i     apt-setup/services-select               multiselect none
@@ -2551,7 +2565,9 @@ popularity-contest                              popularity-contest/participate b
        self._distroName(),
        self._distroName(),
        self._timezone(),
+       self._disk(),
        self._password(),
+       self._grubDisk(),
        po,
        st,
        subs[0],

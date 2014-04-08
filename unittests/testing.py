@@ -7,6 +7,8 @@ from mock import patch, Mock
 from nose.plugins.attrib import attr
 from nose.plugins.skip import SkipTest
 from functools import wraps
+import types
+from zope.interface import classImplements
 
 """
 Helper methods
@@ -30,6 +32,40 @@ def wip(fn):
 
     return attr('wip')(run_test)
 
+_interfaceMockClasses = {}
+def interfaceMock(interfaceClass):
+    if not isinstance(interfaceClass, list):
+        interfaceClass = [interfaceClass]
+
+    key = "".join(map(lambda i: i.__name__, interfaceClass))
+    if _interfaceMockClasses.has_key(key):
+        return _interfaceMockClasses[key]()
+
+    mock = _createInterfaceMock(interfaceClass)
+    _interfaceMockClasses[key] = mock
+    return mock()
+
+def _createInterfaceMock(interfaces):
+    """Dynamically create a Mock sub class that implements the given zope.interfaces"""
+        
+    spec = reduce(lambda fullSpec, intf: fullSpec + intf.names(), interfaces, [])
+    # the init method, automatically specifying the interface methods
+    def init(self, *args, **kwargs):
+        Mock.__init__(self, spec=spec,
+                      *args, **kwargs)
+
+    # we derive the sub class name from the interface names
+    interfaceNames = reduce(lambda fullName, intf: "%s%s" % (fullName, intf.__name__), interfaces, "")
+    name = interfaceNames + "Mock"
+
+    # create the class object and provide the init method
+    mockClass = types.TypeType(name, (Mock, ), {"__init__": init})
+
+    # the new class should implement the interfaces
+    for i in interfaces:
+        classImplements(mockClass, i)
+
+    return mockClass
 
 """
 Unittest abstraction for XenRT
@@ -38,6 +74,50 @@ class XenRTBaseTestCase(unittest.TestCase):
     """
     Abstraction of the unittest.TestCase class to add any additional functionality
     """
+
+    def combinatorial(self, listA, listB = None):
+        """
+        Create a combinatorial set of data 
+        If listB is not provided the result will be a combination of listA with listA
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A combinatorial set of the provided data
+        @rtype: list of tuples
+        """
+        if not listB:
+            listB = listA
+        return [(a,b) for a in listA for b in listB]
+
+    def combinatorialExcluding(self, exclusionList, listA, listB = None):
+        """
+        Create a combinatorial set of data 
+        If listB is not provided the result will be a combination of listA with listA
+        @param exclusionList: data to exclude from the result
+        @type: list of tuples
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A combinatorial set of the provided data
+        @rtype: list of tuples
+        """
+        return filter(lambda f: f not in exclusionList, self.combinatorial(listA, listB))
+
+    def sequential(self, listA, listB):
+        """
+        Create a sequential set of data. For lists of mismatching lengths None will be 
+        provided eg [1,2,3] and ['a','b'] -> [(1,a), (2,b), (3,None)]
+        @param listA: data to combine
+        @type listA: list
+        @param listB: data to combine
+        @type listB: list
+        @returns: A sequential set of the provided data
+        @rtype: list of tuples
+        """
+        return map(None, listA, listB)
+
 
     def run_for_many(self, listOfData, functionPointer):
         """
@@ -97,5 +177,4 @@ class XenRTTestCaseUnitTestCase(XenRTUnitTestCase):
                 p.stop()
             except:
                 pass
-        
-        
+

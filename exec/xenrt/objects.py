@@ -12,7 +12,7 @@
 import sys, string, time, socket, re, os.path, os, shutil, random, sets, math
 import traceback, xmlrpclib, crypt, glob, copy, httplib, urllib, mimetools
 import xml.dom.minidom, threading, fnmatch, urlparse, libxml2
-import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources, xenrt.clouddeploy
+import xenrt, xenrt.ssh, xenrt.util, xenrt.rootops, xenrt.resources
 import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
@@ -2293,8 +2293,16 @@ Add-WindowsFeature as-net-framework"""
         self.reboot()
 
     def installCloudPlatformManagementServer(self):
-        manSvr = xenrt.clouddeploy.ManagementServer(self)
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudPlatformManagementServer()
+
+    def installCloudStackManagementServer(self):
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
+        manSvr.installCloudStackManagementServer()
+
+    def installCloudManagementServer(self):
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
+        manSvr.installCloudManagementServer()
 
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
@@ -2436,6 +2444,9 @@ Add-WindowsFeature as-net-framework"""
             targetPath="C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules\\XenServerPSModule"
             self.xmlrpcExec("mkdir %s" % targetPath)
             self.xmlrpcSendRecursive(srcPath, targetPath)
+            testRunner = os.path.join(tempDir, "XenServer-SDK/XenServerPowerShell/samples/AutomatedTestCore.ps1")
+            xenrt.TEC().logverbose("Sending test runner %s to %s" % (testRunner, targetPath))
+            self.xmlrpcSendFile(testRunner, targetPath + "\\AutomatedTestCore.ps1", usehttp=True)
         
         elif isinstance(self, xenrt.lib.xenserver.guest.TampaGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
@@ -2658,6 +2669,7 @@ Add-WindowsFeature as-net-framework"""
         # Get the CLI RPM from the CD.
         mount = None
         rpm = None
+        hostarch = xenrt.command("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
         rpmpath = xenrt.TEC().lookup("XE_RPM", None)
         if rpmpath:
@@ -2683,11 +2695,18 @@ Add-WindowsFeature as-net-framework"""
                 try:
                     mount = xenrt.rootops.MountISO(cd)
                     mountpoint = mount.getMount()
-                    rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
-                                     (mountpoint))
-                    rpms.extend(glob.glob(\
-                        "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
-                        (mountpoint)))
+                    if hostarch != "x86_64":
+                        rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
+                            (mountpoint)))
+                    else:
+                        rpms = glob.glob("%s/client_install/xe-cli*86_64.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86_64.rpm" %
+                            (mountpoint)))
                     if len(rpms) > 0:
                         xenrt.TEC().logverbose("Using CLI RPM %s from ISO %s" %
                                                (os.path.basename(rpms[-1]), cd))
@@ -5069,7 +5088,7 @@ class GenericHost(GenericPlace):
                              ethdev=ethdev,
                              ethmac=ethmac,
                              options=options,
-                             installOn="native",
+                             installOn=xenrt.HypervisorType.native,
                              method=method,
                              repository=repository,
                              ethDevice=ethDevice,
@@ -5301,11 +5320,15 @@ exit 0
         webdir.copyIn(pifilename)
         piurl = webdir.getURL(pifile)
 
+        disk = self.lookup("OPTION_CARBON_DISKS", None)
+        if disk:
+            disk = "/dev/%s" % disk
+
         # Generate a config file
         ps=DebianPreseedFile(distro,
                              repository,
                              filename,
-                             installOn="native",
+                             installOn=xenrt.HypervisorType.native,
                              method=method,
                              password=self.password,
                              ethDevice=ethdev,
@@ -5314,7 +5337,8 @@ exit 0
                              arch=arch,
                              installXenToolsInPostInstall=False,
                              postscript=piurl,
-                             poweroff=False)
+                             poweroff=False,
+                             disk=disk)
         ps.generate()
 
         webdir.copyIn(filename)
@@ -7651,7 +7675,7 @@ class GenericGuest(GenericPlace):
         ks=SLESAutoyastFile(distro,
                             nfsdir.getMountURL(""),                            
                             maindisk="hda",
-                            installOn="Xen",
+                            installOn=xenrt.HypervisorType.xen,
                             password=self.password,
                             pxe=pxe,
                             method=method,
@@ -7811,7 +7835,7 @@ class GenericGuest(GenericPlace):
                               vifs=self.vifs,
                               password=self.password,
                               host=self.host,                              
-                              installOn="Xen",
+                              installOn=xenrt.HypervisorType.xen,
                               method=method,
                               repository=repository,
                               arch=self.arch,
@@ -8045,7 +8069,7 @@ class GenericGuest(GenericPlace):
         ps=DebianPreseedFile(distro,
                              repository,
                              filename,
-                             installOn="Xen",
+                             installOn=xenrt.HypervisorType.xen,
                              method=method,
                              password=self.password,
                              ethDevice="eth0",
@@ -8741,7 +8765,14 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiavgpuDriver(self):
+    def installNvidiaVGPUDriver(self,driverType):
+
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver()
+        else:
+            self.installNvidiaVGPUUnsignedDriver()
+
+    def installNvidiaVGPUSignedDriver(self):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8754,9 +8785,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
 
         try:
-            filename = "332.07_grid_win7_english"
+            filename = "332.83_grid_win8_win7_english"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "332.07_grid_win7_64bit_english"
+                filename = "332.83_grid_win8_win7_64bit_english"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.exe" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
@@ -8786,7 +8817,7 @@ class GenericGuest(GenericPlace):
         except xenrt.XRTError as e:
             raise e
             
-    def installNvidiaVGPUDriver(self):
+    def installNvidiaVGPUUnsignedDriver(self):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.
@@ -8802,9 +8833,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
         #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.70"
+            filename = "WDDM_x86_332.83"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.70"
+                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)

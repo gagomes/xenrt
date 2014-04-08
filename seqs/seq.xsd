@@ -67,6 +67,12 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:simpleType name="marvinPath">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="(smoke|component)/.*\.py$"/>
+    </xs:restriction>
+  </xs:simpleType>
+
   <xs:group name="pool">
     <xs:sequence>
       <xs:element name="pool">
@@ -194,6 +200,13 @@
     </xs:sequence>
   </xs:group>
 
+  <xs:group name="cloud">
+    <xs:sequence>
+      <xs:element name="cloud" minOccurs="0" maxOccurs="unbounded">
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
   <xs:group name ="storage">
     <xs:sequence>
       <xs:element name ="storage" minOccurs="0" maxOccurs="unbounded">
@@ -281,6 +294,27 @@
     </xs:sequence>
   </xs:group>
 
+  <xs:group name ="marvintests">
+    <xs:sequence>
+      <xs:element name="marvintests">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="arg" type="xs:string"/>
+          </xs:choice>
+          <xs:attribute name="path" use="required" type="marvinPath"/>
+          <xs:attribute name="class" use="required" type="xs:string"/>
+          <xs:attribute name="tags" use="optional" type="xs:string"/>
+          <xs:attribute name="host" use="optional" type="xs:string"/>
+          <xs:attribute name="group" use="optional" type="groupType"/>
+          <xs:attribute name="guest" use="optional" type="xs:string"/>
+          <xs:attribute name="blocker" use="optional" type="xbool"/>
+          <xs:attribute name="prio" use="optional" type="xs:positiveInteger"/>
+          <xs:attribute name="tc" use="optional" type="tcIdType"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
   <xs:group name="serial">
     <xs:sequence>
       <xs:element name="serial">
@@ -294,6 +328,7 @@
             <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
             <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
             <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:group ref="marvintests" minOccurs="0" maxOccurs="unbounded"/>
             <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
             <xs:group ref="action" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="finally" minOccurs ="0" maxOccurs="1">
@@ -484,6 +519,7 @@
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>
@@ -498,6 +534,7 @@
               <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="marvintests" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="include" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="action" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
@@ -510,6 +547,7 @@
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="marvintests" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
             <xs:attribute name="name" type="xs:string" use ="optional" />
           </xs:complexType>
@@ -550,6 +588,7 @@
         <xs:group ref="serial" minOccurs="0" maxOccurs="unbounded"/>
         <xs:group ref="parallel" minOccurs="0" maxOccurs="unbounded"/>
         <xs:group ref="testcase" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:group ref="marvintests" minOccurs="0" maxOccurs="unbounded"/>
       </xs:choice>
     </xs:complexType>
   </xs:element>

@@ -80,6 +80,9 @@
             <arg>max=8</arg>
             <arg>noplugwindows</arg>
           </testcase>
+          <testcase id="testcases.xenserver.tc.guest.TC20928">
+            <arg>guest=win7sp1-x86</arg>
+          </testcase>
           <finally>
             <testcase id="guestops.basic.TCShutdown">
               <arg>guest=win7sp1-x86</arg>
@@ -147,6 +150,9 @@
             <arg>guest=win7sp1-x64</arg>
             <arg>max=8</arg>
             <arg>noplugwindows</arg>
+          </testcase>
+          <testcase id="testcases.xenserver.tc.guest.TC20928">
+            <arg>guest=win7sp1-x86</arg>
           </testcase>
           <finally>
             <testcase id="guestops.basic.TCShutdown">

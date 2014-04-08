@@ -85,8 +85,8 @@ class MarvinConfig():
             { "name": "vm.allocation.algorithm", "value": "random" },
             { "name": "expunge.interval", "value": "60" },
             { "name": "expunge.workers", "value": "3" },
-            { "name": "check.pod.cidrs", "value": "true" },
-#            { "name": "secstorage.allowed.internal.sites", "value": "10.147.28.0/24" },
+            { "name": "check.pod.cidrs", "value": "false" },
+            { "name": "secstorage.allowed.internal.sites", "value": "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12" },
             { "name": "direct.agent.load.size", "value": "1000" } ]
 
         self.marvinCfg['mgtSvr'] = []
@@ -831,7 +831,7 @@ class TCCloudStackBvt(CitrixCloudBase):
         xenrt.TEC().comment('Marvin tests skipped:  %d' % (testResult['skipped']))
 
 # Prototype test case for cloud scale
-import xenrt.clouddeploy
+import xenrt.lib.cloud
 class TCCloudScale(xenrt.TestCase):
     SERVICE_OFFERING_NAME = 'Small Instance'
     DISK_OFFERING_NAME = 'Small'
@@ -846,7 +846,7 @@ class TCCloudScale(xenrt.TestCase):
 
     def getInstancesInfo(self):
         try:
-            instances = xenrt.clouddeploy.VirtualMachine.list(self.marvinApi.apiClient)
+            instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
         except Exception, e:
             xenrt.TEC().logverbose('Failed to list Instances: %s' % (str(e)))
             return {}
@@ -875,29 +875,29 @@ class TCCloudScale(xenrt.TestCase):
 
     def start(self, instanceId):
         xenrt.TEC().logverbose('Start instance %s' % (instanceId))
-        svmC = xenrt.clouddeploy.startVirtualMachine.startVirtualMachineCmd()
+        svmC = xenrt.lib.cloud.startVirtualMachine.startVirtualMachineCmd()
         svmC.id = instanceId
         svmC.isAsync = "false"
         self.marvinApi.apiClient.startVirtualMachine(svmC)
 
     def stop(self, instanceId):
         xenrt.TEC().logverbose('stop instance %s' % (instanceId))
-        svmC = xenrt.clouddeploy.stopVirtualMachine.stopVirtualMachineCmd()
+        svmC = xenrt.lib.cloud.stopVirtualMachine.stopVirtualMachineCmd()
         svmC.id = instanceId
         svmC.isAsync = "false"
         self.marvinApi.apiClient.stopVirtualMachine(svmC)
 
     def updateInstances(self, operation):
-        instances = xenrt.clouddeploy.VirtualMachine.list(self.marvinApi.apiClient)
+        instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
         instanceIds = map(lambda x:x.id, instances)
 
         map(lambda x:getattr(self, operation)(x), instanceIds)
 
-    def createInstances(self, number, startInstances=False):
+    def createInstances(self, number, startInstances=False, basename='Instance'):
         xenrt.TEC().logverbose('Creating %d instances' % (number))
-        baseName = 'Instance-%d'
+        baseName = basename+'-%d'
 
-        dvmC = xenrt.clouddeploy.deployVirtualMachine.deployVirtualMachineCmd()
+        dvmC = xenrt.lib.cloud.deployVirtualMachine.deployVirtualMachineCmd()
         dvmC.serviceofferingid = self.serviceOffering.id
         dvmC.diskofferingid = self.diskOffering.id
         dvmC.templateid = self.template.id
@@ -907,20 +907,20 @@ class TCCloudScale(xenrt.TestCase):
         map(lambda x:self.deployInstance(dvmC, baseName % (x)), range(number))
 
     def prepare(self, arglist):
-        self.manSvr = xenrt.clouddeploy.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
-        self.marvinApi = xenrt.clouddeploy.MarvinApi(self.manSvr)
+        self.manSvr = xenrt.lib.cloud.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
+        self.marvinApi = xenrt.lib.cloud.MarvinApi(self.manSvr)
         apiCli = self.marvinApi.apiClient
 
         self.marvinApi.setCloudGlobalConfig(name='execute.in.sequence.hypervisor.commands', value='false')
         self.marvinApi.setCloudGlobalConfig(name='execute.in.sequence.network.element.commands', value='false', restartManagementServer=True)
 
         self.marvinApi.waitForTemplateReady(self.TEMPLATE_NAME)
-        self.template = xenrt.clouddeploy.Template.list(apiCli, templatefilter='featured', name=self.TEMPLATE_NAME)[0]
-        self.serviceOffering = xenrt.clouddeploy.ServiceOffering.list(apiCli, name=self.SERVICE_OFFERING_NAME)[0]
-        self.diskOffering = xenrt.clouddeploy.DiskOffering.list(apiCli, name=self.DISK_OFFERING_NAME)[0]
-        self.zone = xenrt.clouddeploy.Zone.list(apiCli)[0]
+        self.template = xenrt.lib.cloud.Template.list(apiCli, templatefilter='featured', name=self.TEMPLATE_NAME)[0]
+        self.serviceOffering = xenrt.lib.cloud.ServiceOffering.list(apiCli, name=self.SERVICE_OFFERING_NAME)[0]
+        self.diskOffering = xenrt.lib.cloud.DiskOffering.list(apiCli, name=self.DISK_OFFERING_NAME)[0]
+        self.zone = xenrt.lib.cloud.Zone.list(apiCli)[0]
 
-        capacity = xenrt.clouddeploy.Capacities.list(apiCli, zoneid=self.zone.id, type=8)[0]
+        capacity = xenrt.lib.cloud.Capacities.list(apiCli, zoneid=self.zone.id, type=8)[0]
         self.numberOfInstances = capacity.capacitytotal - (capacity.capacityused + 3)
         self.createInstances(number=self.numberOfInstances)
         self.waitForAllInstancesToReachState('Stopped', timeout=(30*self.numberOfInstances))
@@ -938,102 +938,216 @@ class TCCloudScale(xenrt.TestCase):
             os.makedirs(logsubdir)
         self.manSvr.getLogs(logsubdir)
 
-try:
-    from nose.loader import TestLoader
-    import nose
-except ImportError:
-    pass
 
-class TCNoseRunner(xenrt.TestCase):
-#    MARVIN_TEST_CODE_PATH = '/local/scratch/ccp/working/cloudstack/test/integration/smoke'
-    MARVIN_TEST_CODE_PATH = '/local/scratch/cloud/smoke'
+class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
+    def preMasterUpdate(self):
+        self.upgradeHook.call(self.newPool.master, True, True)
+        xenrt.lib.xenserver.host.RollingPoolUpdate.preMasterUpdate(self)
 
-    def generateMarvinTestConfig(self):
-        self.marvinCfg = {}
-        self.marvinCfg['dbSvr'] = {}
-        self.marvinCfg['dbSvr']['dbSvr'] = self.marvinApi.mgtSvrDetails.mgtSvrIp
-        self.marvinCfg['dbSvr']['passwd'] = 'cloud'
-        self.marvinCfg['dbSvr']['db'] = 'cloud'
-        self.marvinCfg['dbSvr']['port'] = 3306
-        self.marvinCfg['dbSvr']['user'] = 'cloud'
+    def postMasterUpdate(self):
+        self.upgradeHook.call(self.newPool.master, False, True)
+        xenrt.lib.xenserver.host.RollingPoolUpdate.postMasterUpdate(self)
 
-#        self.marvinCfg['logger'] = []
-#        self.marvinCfg['logger'].append({'name': 'TestClient', 'file': '/tmp/testclient.log'})
-#        self.marvinCfg['logger'].append({'name': 'TestCase', 'file': '/tmp/testcase.log'})
+    def preSlaveUpdate(self, slave):
+        self.upgradeHook.call(slave, True, False)
+        xenrt.lib.xenserver.host.RollingPoolUpdate.preSlaveUpdate(self, slave)
 
-        self.marvinCfg['mgtSvr'] = []
-        self.marvinCfg['mgtSvr'].append({'mgtSvrIp': self.marvinApi.mgtSvrDetails.mgtSvrIp, 
-                                         'port'    : self.marvinApi.mgtSvrDetails.port})
+    def postSlaveUpdate(self, slave):
+        self.upgradeHook.call(slave, False, False)
+        xenrt.lib.xenserver.host.RollingPoolUpdate.postSlaveUpdate(self, slave)
 
-        self.marvinCfg['zones'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Zone.list(self.marvinApi.apiClient))
-        for zone in self.marvinCfg['zones']:
-            zone['pods'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Pod.list(self.marvinApi.apiClient, zoneid=zone['id']))
-            for pod in zone['pods']:
-                pod['clusters'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Cluster.list(self.marvinApi.apiClient, podid=pod['id']))
-                for cluster in pod['clusters']:
-                    cluster['hosts'] = map(lambda x:x.__dict__, xenrt.clouddeploy.Host.list(self.marvinApi.apiClient, clusterid=cluster['id']))
-                    for host in cluster['hosts']:
-                        host['username'] = 'root'
-                        host['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
-                        host['url'] = host['ipaddress']
+    def doUpdateHost(self, host):
+        if self.upgradeHook.DO_UPDATE:
+            xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
+        else:
+            xenrt.TEC().logverbose('SKIPPING Update Host: %s' % (host.getName()))
 
-        fn = xenrt.TEC().tempFile()
-        fh = open(fn, 'w')
-        json.dump(self.marvinCfg, fh)
-        fh.close()
-        return fn
+class TCCloudUpgrade(TCCloudScale):
+    TEMPLATE_NAME = 'CentOS 5.6(64-bit) no GUI (XenServer)'
+    DO_UPDATE = True
 
     def prepare(self, arglist):
-        self.manSvr = xenrt.clouddeploy.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
-        self.marvinApi = xenrt.clouddeploy.MarvinApi(self.manSvr)
-        self.marvinTestConfig = self.generateMarvinTestConfig()
+        # Ignore hotfix options when running the lib upgrade code
+        xenrt.TEC().config.setVariable("OPTION_NO_AUTO_PATCH", True)
 
-        # Apply test configration
-        self.marvinApi.setCloudGlobalConfig("network.gc.wait", "60")
-        self.marvinApi.setCloudGlobalConfig("storage.cleanup.interval", "300")
-        self.marvinApi.setCloudGlobalConfig("vm.op.wait.interval", "5")
-        self.marvinApi.setCloudGlobalConfig("default.page.size", "10000")
-        self.marvinApi.setCloudGlobalConfig("network.gc.interval", "60")
-        self.marvinApi.setCloudGlobalConfig("workers", "10")
-        self.marvinApi.setCloudGlobalConfig("account.cleanup.interval", "600")
-        self.marvinApi.setCloudGlobalConfig("expunge.delay", "60")
-        self.marvinApi.setCloudGlobalConfig("vm.allocation.algorithm", "random")
-        self.marvinApi.setCloudGlobalConfig("expunge.interval", "60")
-        self.marvinApi.setCloudGlobalConfig("expunge.workers", "3")
-        self.marvinApi.setCloudGlobalConfig("check.pod.cidrs", "true")
-        self.marvinApi.setCloudGlobalConfig("direct.agent.load.size", "1000", restartManagementServer=True)
+        self.manSvr = xenrt.lib.cloud.ManagementServer(xenrt.TEC().registry.guestGet('CS-MS'))
+        self.marvinApi = xenrt.lib.cloud.MarvinApi(self.manSvr)
+        apiCli = self.marvinApi.apiClient
 
-        # TODO - Create the log sub-dir based on what is being tested
-        self.logsubdir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'test')
-        if not os.path.exists(self.logsubdir):
-            os.makedirs(self.logsubdir)
-        xenrt.TEC().logverbose('Logging to %s' % (self.logsubdir))
-#        self.noseTestFile = '/local/scratch/ccp/working/cloudstack/test/integration/smoke/test_deploy_vm.py'
-#        self.testsToExecute = TestLoader().loadTestsFromName(self.noseTestFile)
-#        xenrt.TEC().logverbose('Executing %d tests from %s' % (self.testsToExecute.countTestCases(), self.noseTestFile))
+        self.pool = self.getDefaultPool()
 
-        self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
+        self.marvinApi.waitForTemplateReady(self.TEMPLATE_NAME)
+        self.template = xenrt.lib.cloud.Template.list(apiCli, templatefilter='featured', name=self.TEMPLATE_NAME)[0]
+        self.serviceOffering = xenrt.lib.cloud.ServiceOffering.list(apiCli, name=self.SERVICE_OFFERING_NAME)[0]
+        self.diskOffering = xenrt.lib.cloud.DiskOffering.list(apiCli, name=self.DISK_OFFERING_NAME)[0]
+        self.zone = xenrt.lib.cloud.Zone.list(apiCli)[0]
+
+        capacity = xenrt.lib.cloud.Capacities.list(apiCli, zoneid=self.zone.id, type=8)[0]
+        self.numberOfInstances = capacity.capacitytotal - (capacity.capacityused + 6)
+        self.createInstances(number=self.numberOfInstances, startInstances=True, basename='preUpdateInst')
+        self.waitForAllInstancesToReachState('Running', timeout=(60*5))
+
+    def setHostResourceState(self, host, maintenance):
+        xenrt.TEC().logverbose('Set host: %s to maintenance = %s' % (host.getName(), maintenance))
+        hostId = xenrt.lib.cloud.Host.list(self.marvinApi.apiClient, name=host.getName())[0].id
+        if maintenance:
+            xenrt.lib.cloud.Host.enableMaintenance(self.marvinApi.apiClient, hostId)
+        else:
+            xenrt.lib.cloud.Host.cancelMaintenance(self.marvinApi.apiClient, hostId)
+
+        expectedResourceState = maintenance and 'Maintenance' or 'Enabled'
+        resourceState = None
+        while(resourceState != expectedResourceState):
+            xenrt.sleep(10)
+            resourceState = xenrt.lib.cloud.Host.list(self.marvinApi.apiClient, name=host.getName())[0].resourcestate
+            xenrt.TEC().logverbose('Waiting for host: %s, Current Resource State: %s, Expected State: %s' % (host.getName(), resourceState, expectedResourceState))
+
+    def setClusterManaged(self, clusterid, managed):
+        updateClusterC = xenrt.lib.cloud.updateCluster.updateClusterCmd()
+        updateClusterC.id = clusterid
+        updateClusterC.managedstate = managed and 'Managed' or 'Unmanaged'
+        self.marvinApi.apiClient.updateCluster(updateClusterC)
+
+        expectedClusterState = managed and 'Managed' or 'Unmanaged'
+        expectedHostState = managed and 'Up' or 'Disconnected'
+
+        correctStateReached = False
+        while(not correctStateReached):
+            xenrt.sleep(10)
+            cluster = xenrt.lib.cloud.Cluster.list(self.marvinApi.apiClient,id=clusterid)[0]
+            xenrt.TEC().logverbose('Waiting for Cluster %s, Current state: Managed=%s, Alloc=%s, expected state: %s' % (cluster.name, cluster.managedstate, cluster.allocationstate, expectedClusterState))
+            
+            hostList = xenrt.lib.cloud.Host.list(self.marvinApi.apiClient, clusterid=clusterid, type='Routing')
+            hostListState = map(lambda x:x.state, hostList)
+            xenrt.TEC().logverbose('Waiting for host(s) %s, Current State(s): %s' % (map(lambda x:x.name, hostList), hostListState))
+
+            correctStateReached = (cluster.managedstate == expectedClusterState)
+            if managed and correctStateReached:
+                correctStateReached = len(hostList) == hostListState.count(expectedHostState)
+
+    def call(self, host, preHook, master):
+        xenrt.TEC().logverbose('hook called for host: %s, preHook: %s, master %s' % (host.getName(), preHook, master))
+        if master:
+            clusterId = xenrt.lib.cloud.Cluster.list(self.marvinApi.apiClient)[0].id
+            if preHook:
+                self.setHostResourceState(host, maintenance=True)
+                self.setClusterManaged(clusterId, False)
+            else:
+                self.setHostResourceState(host, maintenance=False)
+                self.setClusterManaged(clusterId, True)
+                self.verifyCloud(host, 'post-master')
+        else:
+            if preHook:
+                self.setHostResourceState(host, maintenance=True)
+                self.verifyCloud(host, 'pre-slave')
+            else:
+                self.verifyCloud(host, 'post-slave-maint')
+                self.setHostResourceState(host, maintenance=False)
+                self.verifyCloud(host, 'post-slave')
+                
+    def waitForInstancesToReachState(self, instanceId, state, timeout=60):
+        startTime = datetime.now()
+        while(True):
+            instance = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient, id=instanceId)[0]
+            xenrt.TEC().logverbose('Instance %s, current state: %s, expected state: %s' % (instance.name, instance.state, state))
+            timeTaken = (datetime.now() - startTime).seconds
+            if instance.state == state:
+                xenrt.TEC().logverbose('Instance %s reached the %s state in %d seconds' % (instance.name, state, timeTaken))
+                break
+            elif timeTaken < timeout:
+                xenrt.sleep(10)
+            else:
+                raise xenrt.XRTFailure('Timeout expired waiting for instance to reach %s state' % (state))
+        return timeTaken
+
+    def destroy(self, instanceId):
+        xenrt.TEC().logverbose('Destroy instance %s' % (instanceId))
+        dvmC = xenrt.lib.cloud.destroyVirtualMachine.destroyVirtualMachineCmd()
+        dvmC.id = instanceId
+        dvmC.expunge = "true"
+        self.marvinApi.apiClient.destroyVirtualMachine(dvmC)
+
+    def checkInstanceHealth(self, master, instance):
+        xenrt.TEC().logverbose('Check health for instance %s [VM-Name: %s] IP Addr: %s' % (instance.name, instance.instancename, instance.nic[0].ipaddress))
+        guest = master.guestFactory()(instance.instancename)
+        guest.mainip = instance.nic[0].ipaddress
+        guest.password = 'password'
+
+        guest.checkReachable(timeout=300)
+        guest.execguest('dd if=/dev/zero of=1GBfile bs=1000 count=10000')
+        
+    def verifyCloud(self, hostUpdated, postFixString):
+        newInstanceName = '%s-%s' % (postFixString, hostUpdated.getName())
+        # Check all instances are running
+        # TODO - actually check instances are reachable
+        self.waitForAllInstancesToReachState(state='Running', timeout=120)
+        instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
+        map(lambda x:self.checkInstanceHealth(self.pool.master, x), instances)
+
+        # Create new instance
+        self.createInstances(number=1, startInstances=True, basename=newInstanceName)
+
+        # Create a temp instance
+        self.createInstances(number=1, startInstances=True, basename='temp-%s' % (hostUpdated.getName()))
+        self.waitForAllInstancesToReachState(state='Running', timeout=120)
+        instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
+        map(lambda x:self.checkInstanceHealth(self.pool.master, x), instances)
+
+        # Lifecycle orginal + temp + new instance
+        instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
+        preUpdateInstance = filter(lambda x:x.name.startswith('preUpdateInst'), instances)[0]
+        postHostUpdateInstance = filter(lambda x:x.name.startswith(newInstanceName), instances)[0]
+        tempInstance = filter(lambda x:x.name.startswith('temp-%s' % (hostUpdated.getName())), instances)[0]
+
+        map(lambda x:self.stop(x.id), [preUpdateInstance, postHostUpdateInstance, tempInstance])
+        map(lambda x:self.waitForInstancesToReachState(x.id, 'Stopped'), [preUpdateInstance, postHostUpdateInstance, tempInstance])
+        
+        map(lambda x:self.start(x.id), [preUpdateInstance, postHostUpdateInstance, tempInstance])
+        map(lambda x:self.waitForInstancesToReachState(x.id, 'Running'), [preUpdateInstance, postHostUpdateInstance, tempInstance])
+        instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
+        map(lambda x:self.checkInstanceHealth(self.pool.master, x), instances)
+
+        # destroy original + temp instance
+        map(lambda x:self.destroy(x.id), [preUpdateInstance, tempInstance])
+        instancesDestroyed = False
+        while(not instancesDestroyed):
+            instances = xenrt.lib.cloud.VirtualMachine.list(self.marvinApi.apiClient)
+            instancesToDestroy = filter(lambda x:x.id in [preUpdateInstance, tempInstance], instances)
+            if len(instancesToDestroy) == 0:
+                break
+            else:
+                xenrt.TEC().logverbose('Instances %s not destroyed yet. States: %s' % (map(lambda x:x.name, instancesToDestroy), map(lambda x:x.state, instancesToDestroy)))
+                xenrt.sleep(10)
+
 
     def run(self, arglist):
-        noseArgs = ['-v',
-                    '--logging-level=DEBUG',
-                    '--log-folder-path=%s' % (self.logsubdir),
-                    '--with-marvin', '--marvin-config=%s' % (self.marvinTestConfig),
-                    '--with-xunit', '--xunit-file=%s' % (os.path.join(self.logsubdir, 'result.xml')),
-                    '--load']
+        pool_upgrade = CloudRollingUpdate(poolRef = self.pool,
+                                          newVersion='Clearwater',
+                                          upgrade = True,
+                                          applyAllHFXsBeforeApplyAction=True,
+                                          vmActionIfHostRebootRequired=None,
+                                          preEvacuate=None,
+                                          preReboot=None,
+                                          skipApplyRequiredPatches=False)
+        setattr(pool_upgrade, "upgradeHook", self)
+        self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
 
-        noseArgs.append('-a tags=%s' % ('basic'))
-        noseArgs.append(self.MARVIN_TEST_CODE_PATH)
+class TCCloudAllocateResources(xenrt.TestCase):
+    def run(self, arglist):
+        xenrt.TEC().comment('DNS:     %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0])
+        xenrt.TEC().comment('GATEWAY: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY']))
+        xenrt.TEC().comment('NETMASK: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK']))
 
-        xenrt.TEC().logverbose('Using nosetest args: %s' % (' '.join(noseArgs)))
-        
-#        result = nose.run_exit(argv=noseArgs)
-        try:
-            result = xenrt.util.command('/usr/local/bin/nosetests %s' % (' '.join(noseArgs)))
-            xenrt.TEC().logverbose('Test(s) completed with result: %s' % (result))
-        except Exception, e:
-            xenrt.TEC().logverbose('Exception raised: %s' % (str(e)))
+        manIP = xenrt.resources.getResourceRange('IP4ADDR', 10)
+        xenrt.TEC().comment('MANAGEMENT ADDR RANGE: %s -> %s' % (manIP[0].getAddr(), manIP[-1].getAddr()))
+        guestIP = xenrt.resources.getResourceRange('IP4ADDR', 10)
+        xenrt.TEC().comment('GUEST ADDR RANGE: %s -> %s' % (guestIP[0].getAddr(), guestIP[-1].getAddr()))
 
-        self.manSvr.getLogs(self.logsubdir)
+        secondaryStorage = xenrt.ExternalNFSShare()
+        primaryStorage = xenrt.ExternalNFSShare()
+        xenrt.TEC().comment('SECONDARY STORAGE: %s' % (secondaryStorage.getMount()))
+        xenrt.TEC().comment('PRIMARY STORAGE:   %s' % (primaryStorage.getMount()))
 
+        pool = self.getDefaultPool()
+        xenrt.TEC().comment('XS MASTER IP ADDR: %s' % (pool.master.getIP()))
 

@@ -44,14 +44,18 @@ class _XSAutoCertKit(xenrt.TestCase):
         
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
-            # Current latest ACK in trunk-partner is only working with CentOS 6.4 based Dom0.
-            # This is temporary fix to avoid failing ACK installation.
-            if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=trunk-partner&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
-                acklocation = "/usr/groups/xen/carbon/trunk-partner/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
+            if "x86_64" in host.execdom0("uname -a"):
+                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                    branch = "car-1401exp"
+                else:
+                    branch = "clearwater-sp1-64bit-expr"
             else:
-                build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=clearwater-lcm&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded").strip()
-                acklocation = "/usr/groups/xen/carbon/clearwater-lcm/%s/xe-phase-2/xs-auto-cert-kit.iso" % build
+                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                    branch = "trunk-partner"
+                else:
+                    branch = "clearwater-lcm"
+            build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
+            acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 
         autoCertKitISO = xenrt.TEC().getFile(acklocation)
         try:
@@ -248,6 +252,8 @@ class _XSAutoCertKit(xenrt.TestCase):
             pass
         self.pool.master.addExtraLogFile("/opt/xensource/packages/files/auto-cert-kit/ack_cli.log")
         self.pool.master.addExtraLogFile("/opt/xensource/packages/files/auto-cert-kit/test_run.conf")
+        self.pool.master.addExtraLogFile("/var/log/auto-cert-kit.log")
+        self.pool.master.addExtraLogFile("/var/log/auto-cert-kit-plugin.log")
         try:
             self.pool.master.execdom0("rm -f /opt/xensource/packages/files/auto-cert-kit/test_run.conf")
 

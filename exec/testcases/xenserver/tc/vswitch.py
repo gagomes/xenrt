@@ -1,4 +1,4 @@
-import math, threading, re, time, string, subprocess, xml.dom.minidom, copy
+import math, threading, re, time, string, subprocess, xml.dom.minidom, copy, os
 import xenrt
 from xenrt.lazylog import step, comment, log, warning
 import socket,random,sys,time
@@ -5708,3 +5708,280 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
 
 class TC20672(SRTrafficwithGRO):
     TYPE="nfs"
+
+class JumboFrames(_TC11551):
+
+    def nativehostMTUSet(self, host, jumboFrames=True, eth='eth0'):
+        if jumboFrames:
+            host.execcmd('ifconfig %s mtu 9000' % eth)
+        else:
+            host.execcmd('ifconfig %s mtu 1500' % eth)
+
+    def xenserverMTUSet(self, host, jumboFrames=True, bridge='xenbr0'):
+        cli=host.getCLIInstance()
+        uuid=host.getNetworkUUID(bridge)
+        if jumboFrames:
+            mtu=9000
+        else:
+            mtu=1500
+        host.execdom0("ifconfig %s mtu %s" % 
+                        (host.getBridgeInterfaces(bridge)[0], mtu))
+        host.execdom0("ifconfig %s mtu %i" % 
+                    (bridge, mtu))
+        cli.execute("network-param-set", 
+                    "uuid=%s MTU=%i" %
+                    (uuid, mtu) )
+
+    def prepare(self, arglist=None):
+        self.linHost=self.getHost("RESOURCE_HOST_0")
+        self.xsHost = self.getHost("RESOURCE_HOST_1")
+        
+        # Install iperf on both hosts
+        self.linHost.installIperf()
+        self.linHost.execcmd("iperf -s > /root/iperf.log 2>&1 &")
+        self.xsHost.installIperf()
+
+    def _parseIperfData(self, data, jf=False):
+        """ Extract throughputs and mss from raw iperf data """
+
+        iperfData = {}
+        dataFound = False
+        mssFound = False
+        for line in data.splitlines():
+            if len(data.splitlines()) < 7:
+                    raise xenrt.XRTError('Iperf still running so could not parse output')
+
+            if re.search("0.0-", line, re.I):
+                lineFields = line.split()
+                if len(lineFields) != 8:
+                    raise xenrt.XRTError('Failed to parse output from Iperf')
+
+                iperfData['transfer'] = lineFields[4]
+                iperfData['bandwidth'] = lineFields[6]
+                dataFound = True
+            
+            # Parse MSS info to ensure desired packet sizes are transfered
+            if re.search('MSS', line):
+                lineFields = line.split()
+                iperfData['mss'] = int(lineFields[4])
+                mssFound = True
+
+        if not dataFound and mssFound:
+            raise xenrt.XRTError('Failed to parse general output from Iperf')
+        if jf and not iperfData['mss'] > 1500 :
+
+            raise xenrt.XRTFailure("MSS when jumboframes is enabled is expected to be greater than 1500" \
+                                    "Current value %i" % iperfData['mss'])
+        return iperfData
+
+
+    def run(self, arglist):
+        nonJFRes={}
+        jfRes={}
+        allowedVariance=30
+
+        # Run the client to measure throughput
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+
+        nonJFRes=self._parseIperfData(rawData)
+        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in nonJFRes.iteritems()])
+        
+        # Turn on jumbo frames and measure
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
+        # Turn on jumbo frames on XS
+        self.xenserverMTUSet(host=self.xsHost)
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+        jfRes=self._parseIperfData(rawData,
+                                    jf=True)
+        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in jfRes.iteritems()])
+
+        if not float(jfRes['bandwidth']) > (float(nonJFRes['bandwidth']) - allowedVariance):
+            raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
+                                    (jfRes['bandwidth'], nonJFRes['bandwidth']))
+
+class TC21019(JumboFrames):
+
+    def startIperfServers(self, host, ipsToTest, baseport=5000):
+        """ Start multiple iperf servers on different ports """
+        list=" ".join(self.ipsToTest)
+
+        try:
+            host.execdom0("pkill iperf")
+        except Exception, e:
+            # Dont really need to do anything if the above fails
+            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
+        try:
+            host.execdom0("service iptables stop")
+        except Exception, e:
+            # Dont really need to do anything if the above fails
+            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
+
+        scriptfile = xenrt.TEC().tempFile()
+
+        script="""#!/bin/bash
+base_port=%i
+ips='%s'
+mkdir -p "/tmp/iperfLogs"
+for i in $ips; do
+# Set server port
+server_port=$((base_port++))
+# Report file includes server port
+report_file="/tmp/iperfLogs/iperfServer-${server_port}-$i.txt"
+# Run iperf
+iperf -s -p $server_port -B $i > $report_file 2>&1 &
+done """ % (baseport, list)
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = host.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/startiperf.sh")
+        finally:
+            sftp.close()
+        host.execdom0("chmod +x /tmp/startiperf.sh")
+        host.execdom0("/tmp/startiperf.sh &")
+
+
+    def startIPerfClient(self, iperfClient, iperfServerIPs, srvBasePort=5000, timeSecs=10):
+        # Convert the python list into a shell script list
+        iplist=" ".join(iperfServerIPs)
+        scriptfile = xenrt.TEC().tempFile()
+        # Kill any iperf server that might be running
+        try: 
+            iperfClient.execcmd("pkill iperf")
+        except Exception, e:
+            xenrt.log("Caught exception - %s, continuing..." % e)
+
+        script = """#!/bin/bash
+test_duration=%i
+ip='%s'
+base_port=%i
+mkdir -p "/tmp/iperfLogs"
+for i in $ip; do
+# Set server port
+server_port=$((base_port++));
+# Report file includes server ip, server port and test duration
+report_file="/tmp/iperfLogs/iperfClient-${server_port}-${i}.txt"
+# Run iperf
+iperf -m -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
+done
+# Add sleep to stall the script from exiting
+sleep %i
+""" % (timeSecs, iplist, srvBasePort, timeSecs)
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = iperfClient.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/iperfclient.sh")
+        finally:
+            sftp.close()
+        iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
+        iperfClient.execcmd("/tmp/iperfclient.sh",
+                            timeout=timeSecs+10)
+
+
+    def _collectLogs(self):
+        logDir="iperf"
+        logsubdir = os.path.join(xenrt.TEC().getLogdir(), logDir)
+        if not os.path.exists(logsubdir):
+                os.makedirs(logsubdir)
+
+        for h in self.linHost, self.xsHost:
+            try:
+                sftp = h.sftpClient()
+                sftp.copyTreeFrom("/tmp/iperfLogs", logsubdir)
+            finally:
+                sftp.close()
+
+    def prepare(self, arglist=None):
+        self.ipsToTest=[]
+        self.basePort=5000
+        JumboFrames.prepare(self)
+        assumedids = self.xsHost.listSecondaryNICs()
+        cli=self.xsHost.getCLIInstance()
+
+        # Turn on jumbo frames on native linux
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
+        # Turn on Jumbo Frames on management interface
+        self.xenserverMTUSet(host=self.xsHost)
+
+        for id in assumedids:
+            pif = self.xsHost.getNICPIF(id)
+            cli.execute("pif-reconfigure-ip", "mode=dhcp uuid=%s" % pif)
+            self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
+            self.xenserverMTUSet(host=self.xsHost,
+                                bridge=self.xsHost.getBridgeWithMapping(id))
+
+        # Dont forget to test the management interface
+        self.ipsToTest.append(self.xsHost.getIP())
+        xenrt.log("IPs to test - %s" % self.ipsToTest)
+
+        if len(self.ipsToTest) <= 1:
+            raise xenrt.XRTError("This test requires machines with more than one NIC")
+        # Start iperf servers on XS - one for each pif
+        self.startIperfServers(host=self.xsHost,
+                                ipsToTest=self.ipsToTest,
+                                baseport=self.basePort)
+
+
+    def generateNetworkTraffictoXS(self, timeSecs, ips):
+        result={}
+        rxDict = {}
+        self.startIPerfClient(iperfClient=self.linHost,
+                        iperfServerIPs=ips,
+                        timeSecs=int(timeSecs))
+
+        counter=len(self.ipsToTest)+20 # Add another few iterations as buffer
+        out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+        while out and counter:
+            # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
+            xenrt.sleep(timeSecs)
+            counter-=1
+            try:
+                out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+            except Exception, e:
+                out=False
+
+        # Process results
+        for ip in ips:
+            str=self.linHost.execcmd("cd /tmp/iperfLogs && ls | grep %s | xargs cat" % ip).strip()
+            xenrt.log("Raw iperf data for ip - %s: %s" %
+                        (ip, str) )
+            # Check if any iperf client communication has bombed
+            result=self._parseIperfData(data=str, 
+                                        jf=True)
+            result['ip']=ip
+            xenrt.log("Iperf results - %s" % 
+                        [(k,r) for k,r in result.iteritems()])
+
+        for id in self.xsHost.listSecondaryNICs():
+            # Look for overruns
+            overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
+                                            self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
+            rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
+
+            # Verify there are no overruns
+            if int(overruns.split(":")[1]) <> 0:
+                raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
+                                        (self.xsHost.getSecondaryNIC(id), overruns))
+        xenrt.log("OVERRUN DATA: %s" %
+                        [(k,r) for k,r in rxDict.iteritems()])
+
+    def run(self, arglist):
+        self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
+        self.runSubcase("generateNetworkTraffictoXS", (120, self.ipsToTest), "RX Overruns", "RX Overruns")
+
+    def postRun(self):
+        self._collectLogs()
+

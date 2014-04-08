@@ -1,0 +1,87 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+  <scheduler>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>nfs,staticip</flags>
+  </scheduler>
+
+  <prepare>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="20" />
+        <postinstall action="installCloudManagementServer"/>
+      </vm>
+    </sharedhost>
+
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 5,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 10 }
+              ],
+              "clusters": [
+                { "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ]
+      }
+    </cloud>
+
+  </prepare>
+  
+  <testsequence>
+    <serial group="Marvin">
+      <marvintests path="smoke/test_VirtualRouter_alerts.py" class="TestVRServiceFailureAlerting" tags="basic" tc="TC-21096"/>
+      <marvintests path="smoke/test_affinity_groups.py" class="TestDeployVmWithAffinityGroup" tags="basic" tc="TC-21109"/>
+      <marvintests path="smoke/test_deploy_vgpu_enabled_vm.py" class="TestDeployvGPUenabledVM" tags="basic" tc="TC-21115"/>
+      <marvintests path="smoke/test_deploy_vm.py" class="TestDeployVM" tags="basic" tc="TC-21072"/>
+      <marvintests path="smoke/test_deploy_vm_root_resize.py" class="TestDeployVM" tags="basic" tc="TC-21037"/>
+      <marvintests path="smoke/test_deploy_vm_with_userdata.py" class="TestDeployVmWithUserData" tags="basic" tc="TC-21073"/>
+      <marvintests path="smoke/test_deploy_vms_with_varied_deploymentplanners.py" class="TestDeployVmWithVariedPlanners" tags="basic" tc="TC-21061"/>
+      <marvintests path="smoke/test_disk_offerings.py" class="TestCreateDiskOffering" tags="basic" tc="TC-21099"/>
+      <marvintests path="smoke/test_disk_offerings.py" class="TestDiskOfferings" tags="basic" tc="TC-21065"/>
+      <marvintests path="smoke/test_global_settings.py" class="TestUpdateConfigWithScope" tags="basic" tc="TC-21126"/>
+      <marvintests path="smoke/test_iso.py" class="TestCreateIso" tags="basic" tc="TC-21060"/>
+      <marvintests path="smoke/test_iso.py" class="TestISO" tags="basic" tc="TC-21095"/>
+      <marvintests path="smoke/test_multipleips_per_nic.py" class="TestDeployVM" tags="basic" tc="TC-21057"/>
+      <marvintests path="smoke/test_nic.py" class="TestNic" tags="basic" tc="TC-21070"/>
+      <marvintests path="smoke/test_over_provisioning.py" class="TestUpdateOverProvision" tags="basic" tc="TC-21033"/>
+      <marvintests path="smoke/test_portable_publicip.py" class="TestPortablePublicIPRange" tags="basic" tc="TC-21089"/>
+      <marvintests path="smoke/test_primary_storage.py" class="TestPrimaryStorageServices" tags="basic" tc="TC-21035"/>
+      <marvintests path="smoke/test_regions.py" class="TestRegions" tags="basic" tc="TC-21041"/>
+      <marvintests path="smoke/test_reset_vm_on_reboot.py" class="TestResetVmOnReboot" tags="basic" tc="TC-21031"/>
+      <marvintests path="smoke/test_routers.py" class="TestRouterServices" tags="basic" tc="TC-21062"/>
+      <marvintests path="smoke/test_scale_vm.py" class="TestScaleVm" tags="basic" tc="TC-21110"/>
+      <marvintests path="smoke/test_secondary_storage.py" class="TestSecStorageServices" tags="basic" tc="TC-21077"/>
+      <marvintests path="smoke/test_service_offerings.py" class="TestCreateServiceOffering" tags="basic" tc="TC-21090"/>
+      <marvintests path="smoke/test_service_offerings.py" class="TestServiceOfferings" tags="basic" tc="TC-21071"/>
+      <marvintests path="smoke/test_ssvm.py" class="TestSSVMs" tags="basic" tc="TC-21083"/>
+      <marvintests path="smoke/test_templates.py" class="TestTemplates" tags="basic" tc="TC-21069"/>
+      <marvintests path="smoke/test_vm_iam.py" class="TestVMIam" tags="basic" tc="TC-21094"/>
+      <marvintests path="smoke/test_vm_life_cycle.py" class="TestDeployVM" tags="basic" tc="TC-21092"/>
+      <marvintests path="smoke/test_vm_life_cycle.py" class="TestVMLifeCycle" tags="basic" tc="TC-21067"/>
+      <marvintests path="smoke/test_volumes.py" class="TestCreateVolume" tags="basic" tc="TC-21114"/>
+      <marvintests path="smoke/test_volumes.py" class="TestVolumes" tags="basic" tc="TC-21029"/>    
+    </serial>
+  </testsequence>
+
+</xenrt>

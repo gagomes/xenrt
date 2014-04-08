@@ -65,5 +65,5 @@ class DotNetFour(WindowsPackage):
 
         return val ==  1
 
-RegisterWindowsPackage("DotNet4")
+RegisterWindowsPackage(DotNetFour)
 

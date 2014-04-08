@@ -141,7 +141,11 @@ class CloudStack(object):
         distro = [x.value for x in tags if x.key=="distro"][0]
 
         # TODO: Sort out the other arguments here
-        instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
+        instance = xenrt.lib.Instance(toolstack=self,
+                                      name=name,
+                                      distro=distro,
+                                      vcpus=0,
+                                      memory=0)
         instance.toolstackId = vm.id
         instance.populateFromExisting()
         # TODO: Assuming for now the PV tools are installed

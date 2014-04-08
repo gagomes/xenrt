@@ -131,7 +131,7 @@ class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
         @return A appropriate .NET framework installer class
         @rtype WindowsPackage
         """
-        self.instance.os.installPackage(".NET 4")
+        self.instance.os.ensurePackageInstalled(".NET 4")
 
     def _installWIC(self):
         """ 

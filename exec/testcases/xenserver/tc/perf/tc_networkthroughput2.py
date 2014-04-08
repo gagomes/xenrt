@@ -52,7 +52,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.threads  = libperf.getArgument(arglist, "threads",  int, 1)
         self.duration = libperf.getArgument(arglist, "duration", int, 30)
         self.protocol = libperf.getArgument(arglist, "protocol", str, "tcp")
-        self.gro      = libperf.getArgument(arglist, "gro", str, "off")
+        self.gro      = libperf.getArgument(arglist, "gro", str, "default")
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
     def prepare(self, arglist=None):
@@ -272,6 +272,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             dev, _dev, mac = self.nicdev(endpoint)
             if self.gro in ["on", "off"]:
                 endpoint.execcmd("ethtool -K %s gro %s" % (dev, self.gro))
+            elif self.gro in ["default", ""]:
+	        self.log(None, "not overriding gro option for %s" % (dev,))
             else:
                 raise xenrt.XRTError("unknown gro option: %s" % (self.gro,))
         if isinstance(self.endpoint0, xenrt.GenericHost):

@@ -5,6 +5,11 @@ from zope.interface import implements
 
 __all__ = ["WindowsOS"]
 
+packageList = []
+
+def RegisterWindowsPackage(package):
+    packageList.append(package)
+
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
     
@@ -74,7 +79,7 @@ class WindowsOS(OS):
         return WindowsOS("win7sp1x86", parent)
 
     def __init__(self, distro, parent):
-        super(self.__class__, self).__init__(parent)
+        super(self.__class__, self).__init__(distro, parent)
 
         self.distro = distro
         self.isoRepo = xenrt.IsoRepository.Windows
@@ -82,6 +87,16 @@ class WindowsOS(OS):
         self.defaultRootdisk = 20 * xenrt.GIGA
         self.vifStem = "eth"
         self.viridian = True
+
+    def ensurePackageInstalled(self, package, installOptions={}):
+        global packageList
+        installer = None
+        for p in packageList:
+            if p.NAME == package:
+                installer = p(self)
+        if not installer:
+            raise xenrt.XRTError("No installer found for package %s" % package)
+        installer.ensureInstalled(installOptions)
 
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")

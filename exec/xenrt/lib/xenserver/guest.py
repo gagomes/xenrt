@@ -183,6 +183,9 @@ class Guest(xenrt.GenericGuest):
             except:
                 pass
 
+        if self.distro:
+            self.os = xenrt.lib.opsys.osFactory(self.distro, None)
+
         # If we've still not got it, try some heuristics
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True

@@ -13,7 +13,7 @@ class RHELBasedLinux(LinuxOS):
     __metaclass__ = ABCMeta
 
     def __init__(self, distro, parent):
-        super(RHELBasedLinux, self).__init__(parent)
+        super(RHELBasedLinux, self).__init__(distro, parent)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]

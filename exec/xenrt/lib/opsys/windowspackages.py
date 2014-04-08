@@ -46,7 +46,42 @@ class WindowsImagingComponent(WindowsPackage):
 
 RegisterWindowsPackage(WindowsImagingComponent)
 
-class DotNetFour(WindowsPackage):
+class DotNet35(WindowsPackage):
+    NAME = ".NET 3.5"
+
+    def isInstalled(self):
+        try:
+            val = self._os.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5', 'Install', healthCheckOnFailure=False)
+        except:
+            val = 0
+        
+        return val == 1
+
+    def _installPackage(self):
+        if self._os.distro.startswith('ws08r2'):
+            filename = "c:\\xrtInstallNet35.ps1"
+            fileData = """Import-Module ServerManager
+Add-WindowsFeature as-net-framework"""
+            self._os.writeFile(filename=filename, data=fileData)
+            self._os.enablePowerShellUnrestricted()
+
+            rData = self._os.execCmd('%s' % (filename),
+                                     desc='Install .Net 3.5',
+                                     returndata=False, returnerror=True,
+                                     timeout=1200, powershell=True)
+        elif self._os.distro.startswith('win8') or self._os.distro.startswith('ws12'):
+            self._os.parent.setInstanceIso('%s.iso' % (self._os.distro), xenrt.IsoRepository.Windows)
+            self._os.execCmd("dism.exe /online /enable-feature /featurename:NetFX3 /All /Source:D:\sources\sxs /LimitAccess",timeout=3600)
+        else:
+            self._os.unpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
+            self._os.execCmd("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
+            self._os.reboot()
+            xenrt.sleep(120)
+            self._os.waitForBoot(600)
+
+RegisterWindowsPackage(DotNet35)
+
+class DotNet4(WindowsPackage):
     NAME = ".NET 4"
 
     def _installPackage(self, installOptions):
@@ -65,5 +100,61 @@ class DotNetFour(WindowsPackage):
 
         return val ==  1
 
-RegisterWindowsPackage(DotNetFour)
+RegisterWindowsPackage(DotNet4)
 
+class DotNet2(WindowsPackage):
+    NAME = ".NET 2"
+
+    def isInstalled(self, installOptions):
+        g = self._os.globPattern("c:\\windows\\Microsoft.NET\\Framework\\v2*\\mscorlib.dll")
+        return len(g) > 0
+
+    def _installPackage(self, installOptions):
+        if self._os.windowsVersion() == "5.1":
+            # CA-41364 need a newer version of windows installer
+            self._os.installPackage("WindowsInstaller")
+
+        self._os.unpackTarball("%s/dotnet.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
+                                 "c:\\")
+        exe = self._os._os.getArch() == "amd64" and "NetFx20SP2_x64.exe" or "NetFx20SP2_x86.exe"
+        self._os.execCmd("c:\\dotnet\\%s /q /norestart" % exe,
+                        timeout=3600, returnerror=False)
+        self._os.reboot()
+        xenrt.sleep(120)
+        self._os.waitForBoot(600)
+
+RegisterWindowsPackage(DotNet2)
+
+class WindowsInstaller(WindowsPackage):
+    NAME = "WindowsInstaller"
+
+    def _installPackage(self):
+        """Install Windows Installer 4.5."""
+        self._os.unpackTarball("%s/wininstaller.tgz" % 
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+                                 "c:\\")
+        if self._os.windowsVersion() == "6.0":
+            if self._os.getArch() == "amd64":  
+                self._os.execCmd("c:\\wininstaller\\Windows6.0-KB942288-v2-x64.msu /quiet /norestart",
+                                 timeout=3600, returnerror=False)
+            else:
+                self._os.execCmd("c:\\wininstaller\\Windows6.0-KB942288-v2-x86.msu /quiet /norestart",
+                                 timeout=3600, returnerror=False)
+        elif self._os.windowsVersion() == "5.1":
+            if self._os.getArch() == "amd64":
+                raise xenrt.XRTError("No 64-bit XP Windows Installer available")
+            self._os.execCmd("c:\\wininstaller\\WindowsXP-KB942288-v3-x86.exe /quiet /norestart",
+                            timeout=3600, returnerror=False)
+        else:
+            if self._os.getArch() == "amd64":  
+                self._os.execCmd("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x64.exe /quiet /norestart",
+                                 timeout=3600, returnerror=False)
+            else:
+                self._os.execCmd("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x86.exe /quiet /norestart",
+                                 timeout=3600, returnerror=False)
+        self._os.reboot()
+        xenrt.sleep(120)
+        self._os.waitForBoot(600)
+
+RegisterWindowsPackage(WindowsInstaller)

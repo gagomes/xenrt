@@ -158,6 +158,21 @@ class CloudStack(object):
         cmd.expunge = True
         self.marvin.apiClient.destroyVirtualMachine(cmd)
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        if isoRepo:
+            self.marvin.addIsoIfNotPresent(None, isoName, isoRepo)
+        listIsosC = listIsos.listIsosCmd()
+        listIsosC.name=isoName
+        isoId = self.marvin.apiClient.listIsos(listIsosC)[0].id
+
+        attachIsoC = attachIso.attachIsoCmd()
+        attachIsoC.id = isoId
+        attachIsoC.virtualmachineid = instance.toolstackId
+        self.marvin.apiClient.attachIso(attachIsoC)
+
+        # Allow the CD to appear
+        xenrt.sleep(30)
+
     def installPVTools(self, instance):
         try:
             installer = xenrt.lib.cloud.pvtoolsinstall.pvToolsInstallerFactory(self, instance)

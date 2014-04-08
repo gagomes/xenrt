@@ -252,6 +252,9 @@ disk = [ %s ]
         # TODO: handle paused / crashed etc
         return xenrt.PowerState.up
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        raise xenrt.XRTError("Not implemented")
+    
     def ejectInstanceIso(self, instance):
         raise xenrt.XRTError("Not implemented")
 

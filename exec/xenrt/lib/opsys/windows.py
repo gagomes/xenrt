@@ -98,6 +98,30 @@ class WindowsOS(OS):
             raise xenrt.XRTError("No installer found for package %s" % package)
         installer.ensureInstalled(installOptions)
 
+<<<<<<< Updated upstream
+=======
+    def ensurePackageInstalled(self, package, installOptions={}):
+        global packageList
+        installer = None
+        for p in packageList:
+            if p.NAME == package:
+                installer = p(self)
+        if not installer:
+            raise xenrt.XRTError("No installer found for package %s" % package)
+        installer.ensureInstalled(installOptions)
+
+    def isPackageInstalled(self, package, installOptions={}):
+        global packageList
+        installer = None
+        for p in packageList:
+            if p.NAME == package:
+                installer = p(self)
+        if not installer:
+            raise xenrt.XRTError("No installer found for package %s" % package)
+        return installer.isInstalled(installOptions)
+        
+
+>>>>>>> Stashed changes
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
         self.parent.getIP(10800)
@@ -1051,6 +1075,13 @@ class WindowsOS(OS):
                        "SZ",
                         user.server.domainname)
 
+    def enablePowerShellUnrestricted(self):
+        """Allow the running of unsigned PowerShell scripts."""
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell",
+                       "ExecutionPolicy",
+                       "SZ",
+                       "Unrestricted")
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
 
 registerOS(WindowsOS)

@@ -139,8 +139,8 @@ class DeployerPlugin(object):
                 hostObjects = [hostObject]
             for h in hostObjects:
                 try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", manSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (manSvr.place.getHost().getName(), manSvr.place.getName())])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 

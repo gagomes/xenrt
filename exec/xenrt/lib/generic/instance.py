@@ -113,6 +113,9 @@ class Instance(object):
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
 
+    def setIso(self, isoName, isoRepo=None):
+        return self.toolstack.setInstanceIso(self, isoName, isoRepo)
+
     def ejectIso(self):
         return self.toolstack.ejectInstanceIso(self)
 

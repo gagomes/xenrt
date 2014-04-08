@@ -42,6 +42,9 @@ class Toolstack(Interface):
     def getInstancePowerState(instance):
         """Get the current power state for the specified instance"""
 
+    def setInstanceIso(instance, isoName, isoRepo):
+        """Set the ISO in the instance"""
+
     def ejectInstanceIso(instance):   
         """Eject the ISO from the specified instance"""
 
@@ -69,6 +72,9 @@ class OSParent(Interface):
 
     def ejectIso():
         """Eject the ISO from the OS container"""
+
+    def setIso(isoName, isoRepo):
+        """Set the ISO to the specified iso"""
 
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""

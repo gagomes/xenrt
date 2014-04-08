@@ -289,8 +289,10 @@ class MarvinApi(object):
             # Should also be able to do "All Zones", but marvin requires a zone to be specified
 
             zone = Zone.list(self.apiClient)[0].id
-
-            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            if distro:
+                osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            else:
+                osname = "None"
             Iso.create(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,

@@ -38,7 +38,7 @@ class RHELBasedLinux(LinuxOS):
         return "linux"
 
     @property
-    def isoName(self):
+    def _defaultIsoName(self):
         return "%s_%s.iso" % (self.distro, self.arch)
 
     @property
@@ -151,6 +151,12 @@ class RHELLinux(RHELBasedLinux):
     def testInit(parent):
         return RHELLinux("rhel6", parent)
 
+    @property
+    def isoName(self):
+        if not RHELLinux.knownDistro(self.distro):
+            return None
+        return self._defaultIsoName
+
 class CentOSLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
@@ -162,6 +168,12 @@ class CentOSLinux(RHELBasedLinux):
     def testInit(parent):
         return CentOSLinux("centos6", parent)
 
+    @property
+    def isoName(self):
+        if not CentOSLinux.knownDistro(self.distro):
+            return None
+        return self._defaultIsoName
+
 class OELLinux(RHELBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
    
@@ -172,6 +184,12 @@ class OELLinux(RHELBasedLinux):
     @staticmethod
     def testInit(parent):
         return OELLinux("oel6", parent)
+
+    @property
+    def isoName(self):
+        if not OELLinux.knownDistro(self.distro):
+            return None
+        return self._defaultIsoName
 
 registerOS(RHELLinux)
 registerOS(CentOSLinux)

@@ -11,7 +11,7 @@
     <testcase id="testcases.xenserver.tc.vgpusecurity.TCDEMUFuzzer" tc="TC-21156">
         <arg>iterations=0</arg>
         <arg>logperiteration=10000</arg>
-        <arg>timeout=120</arg> <!-- in minutes -->
+        <arg>timeout=360</arg> <!-- in minutes -->
     </testcase>
   </testsequence>
 </xenrt>

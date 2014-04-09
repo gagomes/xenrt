@@ -14,7 +14,7 @@ class TestScalabilityTest(XenRTTestCaseUnitTestCase):
         self.bootstorm = bootstorm
         self.test = _VGPUScalabilityTest([VGPUOS.Win7x64], VGPUConfig.K100, self.bootstorm)
         self.test.host = Mock(return_value=self._createHost())
-        self.test._run_workload = Mock(return_value = "mock data")
+        self.test._runWorkload = Mock(return_value = "mock data")
         self.test._measureMetric = Mock()
         self.test.rebootAllVMs = Mock()
     

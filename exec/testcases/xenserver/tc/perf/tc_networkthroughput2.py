@@ -71,23 +71,29 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.endpoint0 = self.getGuestOrHostFromName(e0)
         self.endpoint1 = self.getGuestOrHostFromName(e1)
 
+        # Optionally, the sequence file can specify which eth device to use in each endpoint
+        self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
+        self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
+
     def before_prepare(self, arglist=None):
         pass
         ## tag the ipv6 network to be used by VMs
         #self.host.genParamSet("network", self.ipv6_net, "other-config", "true", "xenrtvms")
 
-    def runIperf(self, origin, dest, interval=1, duration=30, threads=1, protocol="tcp"):
+    def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
 
         prot_switch = None
         if protocol == "tcp":   prot_switch = ""
         elif protocol == "udp": prot_switch = "-u"
         else: raise xenrt.XRTError("unknown protocol %s" % (protocol,))
 
+        destIP = self.getIP(dest, destdev)
+
         if dest.windows:
             dest.startIperf()
 
             # Run the client
-            output = origin.xmlrpcExec("c:\\iperf %s -c %s -i %d -t %d -f m -P %d" % (prot_switch, dest.getIP(), interval, duration, threads), returndata=True)
+            output = origin.xmlrpcExec("c:\\iperf %s -c %s -i %d -t %d -f m -P %d" % (prot_switch, destIP, interval, duration, threads), returndata=True)
 
             # Kill server
             dest.xmlrpcKillAll("iperf.exe")
@@ -97,7 +103,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             dest.execcmd("nohup iperf %s -s 0<&- &>/dev/null &" % (prot_switch,)) # should be implemented in startIperf()
 
             # Run the client
-            output = origin.execcmd("iperf %s -c %s -i %d -t %d -f m -P %d" % (prot_switch, dest.getIP(), interval, duration, threads))
+            output = origin.execcmd("iperf %s -c %s -i %d -t %d -f m -P %d" % (prot_switch, destIP, interval, duration, threads))
 
             # Kill server
             dest.execcmd("killall iperf || true")
@@ -114,8 +120,19 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else:
             raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
 
-    def nicdev(self, endpoint):
-        ip = endpoint.getIP()
+    def getIP(self, endpoint, endpointdev=None):
+        # If the device is specified then get the IP for that device
+        if endpointdev is not None:
+            if isinstance(endpoint, xenrt.GenericGuest):
+                (_, _, _, ip) = endpoint.vifs[endpointdev]
+            elif isinstance(endpoint, xenrt.GenericHost):
+                ip = endpoint.getNICAllocatedIPAddress(endpointdev)
+        else:
+            ip = endpoint.getIP()
+        return ip
+
+    def nicdev(self, endpoint, endpointdev=None):
+        ip = self.getIP(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
 
         # Get the device name and MAC address for a given IP address
@@ -138,10 +155,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         dev = dev.replace("virbr","eth")
         return dev, _dev, mac
 
-    def nicinfo(self, endpoint, key_prefix=""):
+    def nicinfo(self, endpoint, endpointdev=None, key_prefix=""):
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
-        dev, _dev, mac = self.nicdev(endpoint)
+        dev, _dev, mac = self.nicdev(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
@@ -229,7 +246,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def rageinfo(self, info = {}):
         if isinstance(self.endpoint0, xenrt.GenericHost):
-            info.update(self.nicinfo(self.endpoint0,"host0:"))
+            info.update(self.nicinfo(self.endpoint0,self.e0dev,"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = "host"
             info["vm0ram"]   = "NULL"
@@ -240,8 +257,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0build"]   = self.endpoint0.productRevision
             info["host0issue"]   = self.getIssue(self.endpoint0)
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint0,"guest0:"))
-            info.update(self.nicinfo(self.endpoint0.host,"host0:"))
+            #info.update(self.nicinfo(self.endpoint0,self.e0dev,"guest0:"))
+            info.update(self.nicinfo(self.endpoint0.host,None,"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = self.endpoint0.distro
             info["vm0ram"]   = self.endpoint0.memory
@@ -252,7 +269,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0build"]   = self.endpoint0.host.productRevision
             info["host0issue"]   = self.getIssue(self.endpoint0.host)
         if isinstance(self.endpoint1, xenrt.GenericHost):
-            info.update(self.nicinfo(self.endpoint1,"host1:"))
+            info.update(self.nicinfo(self.endpoint1,self.e1dev,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = "host"
             info["vm1ram"]   = "NULL"
@@ -263,8 +280,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1build"]   = self.endpoint1.productRevision
             info["host1issue"]   = self.getIssue(self.endpoint1)
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint1,"guest1:"))
-            info.update(self.nicinfo(self.endpoint1.host,"host1:"))
+            #info.update(self.nicinfo(self.endpoint1,self.e1dev,"guest1:"))
+            info.update(self.nicinfo(self.endpoint1.host,None,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = self.endpoint1.distro
             info["vm1ram"]   = self.endpoint1.memory
@@ -337,11 +354,11 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.rageinfo()
 
         # Run some traffic in one direction
-        output = self.runIperf(self.endpoint1, self.endpoint0, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint1, self.e1dev, self.endpoint0, self.e0dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         self.log("iperf.1to0", output)
 
         # Now run traffic in the reverse direction
-        output = self.runIperf(self.endpoint0, self.endpoint1, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint0, self.e0dev, self.endpoint1, self.e1dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         self.log("iperf.0to1", output)
 
         # pause endpoints again to avoid interfering with measurements on other vms

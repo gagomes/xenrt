@@ -11,6 +11,7 @@
 import string, time, re, os.path, random
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 import XenAPI
+from xenrt.lazylog import log, warning
 
 class TCXenServerInstall(xenrt.TestCase):
 
@@ -1798,6 +1799,36 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
             return # Test is skipping
 
         self.compareRpmPackages()
+
+
+class TCDDKVmLifecycleOperation(TCDDKSourceCheck):
+    """TC-21158 Verify DDK VM Lifecycle Operation, Storage and Network tests"""
+
+    def run(self, arglist=None):
+        # Import the DDK VM from "ddk.iso"
+        cli = self.host.getCLIInstance()
+        log("Import the DDK VM")
+        ddkVM = self.host.importDDK()
+        eth = ddkVM.createVIF(bridge=self.host.getPrimaryBridge())
+        ddkVM.start()
+        # Perform lifecycle operation
+        log("Performing lifecycle operations on DDK VM")
+        ddkVM.reboot()
+        ddkVM.shutdown()
+        ddkVM.start()
+        ddkVM.suspend(extraTimeout=3600)
+        ddkVM.resume()
+        ddkVM.migrateVM(self.host, live="true")
+        log("Performing network tests on DDK VM")
+        # Do vif plug/unplug
+        ddkVM.unplugVIF(eth)
+        ddkVM.plugVIF(eth)
+        ddkVM.reboot()
+        log("Performing storage tests on DDK VM")
+        # Do vbd plug/unplug
+        userdevice = ddkVM.createDisk(sizebytes=268435456)
+        ddkVM.unplugDisk(userdevice)
+    
 
 class TCDXenAPISDKSourceCheck(SourceISOCheck): # TC-18004
     """Verify Xen API SDK source iso (xe-phase-3/source-sdk.iso) content for missing RPMs."""

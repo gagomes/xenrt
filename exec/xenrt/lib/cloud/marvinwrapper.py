@@ -52,6 +52,24 @@ class MarvinApi(object):
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
 
+    def command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+        cmd = command()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # The name of the function we need to call on the API is the same as the module name
+        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
+        fn = command.__module__.split(".")[-1]
+        # Then run the command
+        return getattr(self.apiClient, fn)(cmd)
+
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)
         if configSetting == None or len(configSetting) == 0:

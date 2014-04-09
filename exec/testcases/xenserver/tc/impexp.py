@@ -337,7 +337,7 @@ class _ImpExpBase(xenrt.TestCase):
     def preRun(self, host):
         arch = None
         # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = xenrt.command("uname -m").strip()
+        hostarch = host.execdom0("uname -m").strip()
         if hostarch.endswith("64"):
             arch="x86-64"
         self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=arch)

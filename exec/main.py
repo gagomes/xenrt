@@ -1675,7 +1675,7 @@ if setupsharedhost:
         hosttype=sh["PRODUCT_VERSION"]
 
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
-        host.install()
+        host.install(installSRType="ext")
         host.license()
 
 if setupstatichost:

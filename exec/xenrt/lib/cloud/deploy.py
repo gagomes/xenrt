@@ -101,6 +101,13 @@ class DeployerPlugin(object):
         self.currentIPRange = None
         return endAddr
 
+    def getPhysicalNetworkVLAN(self, key, ref):
+        phyNetVLAN = None
+        if ref.has_key('XRT_VLANRangeSize') and ref['XRT_VLANRangeSize'] > 0:
+            phyNetVLANResources = xenrt.resources.getResourceRange('VLAN', ref['XRT_VLANRangeSize'])
+            phyNetVLAN = '%d-%d' % (int(phyNetVLANResources[0].getID()), int(phyNetVLANResources[-1].getID()))
+        return phyNetVLAN
+
     def getHostUrl(self, key, ref):
         return 'http://%s' % (hostAddr)
 

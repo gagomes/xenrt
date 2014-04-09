@@ -16,7 +16,7 @@ __all__ = ["JenkinsBuild","JenkinsObserver"]
 #observer = JenkinsObserver()
 #jenkinsBuild = JenkinsBuild() 
 #jenkinsBuild.findBuild(sha1)
-#jenkinsBuild.attachObserver(buildObserver)
+#jenkinsBuild.attachObserver(observer)
 #observer.waitToFinish()
 #jenkinsBuild.getBuildArtifacts()
 
@@ -227,7 +227,7 @@ class BuildObserver(xenrt.XRTThread):
         startTime = time.time()
         
         while 1: 
-            if self.buildRunning(self._buildObj):
+            if self.buildRunning():
                 time.sleep(10)
             else: 
                 break
@@ -248,14 +248,13 @@ class JenkinsObserver(BuildObserver):
         else:
             raise xenrt.XRTError("Jenkins build observer is already running")
 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
 
         return self._jenkinsBuild.isBuildRunning()
 
     def setBuildParams(self,JenkinsBuild):
 
         self._jenkinsBuild = JenkinsBuild
-        self._buildObj = self._jenkinsBuild.getBuildObj()
 
     def waitToFinish(self):
 

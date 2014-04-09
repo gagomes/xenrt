@@ -181,6 +181,12 @@ def readMachineFromRackTables(machine,kvm=False):
     if not xenrt.TEC().lookupHost(machine,"NICS",None):
         i = 1
         availablePorts = sorted([p for p in ports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e") and p[0] != primaryInterface], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0]))
+        for c in o.getChildren():
+            print c
+            if c.getType() == "PCI Card":
+                cports = c.getPorts()
+                print cports
+                availablePorts.extend(sorted([p for p in cports if (p[2] or ignoreMissingMACs) and p[3] and p[4] and p[0].startswith("e")], key=lambda x: re.sub(r"(\D)(\d)$",r"\g<1>0\g<2>",x[0])))
         for p in availablePorts:
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split("/")

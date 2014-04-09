@@ -161,6 +161,7 @@ def usage(fd):
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
     --nmi <machine>                       Sent NMI to a machine
+    --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
@@ -249,6 +250,7 @@ knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
+mconfig = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -334,6 +336,7 @@ try:
                                       'poweron=',
                                       'powercycle=',
                                       'nmi=',
+                                      'mconfig=',
                                       'bootdiskless=',
                                       'perf-data=',
                                       'runon=',
@@ -695,6 +698,10 @@ try:
             powerhost = value
             poweroperation = "nmi"
             loadmachines = [powerhost]
+            aux = True
+        elif flag == "--mconfig":
+            mconfig = value
+            loadmachines = [value]
             aux = True
         elif flag == "--pdu":
             forcepdu = True
@@ -1766,6 +1773,9 @@ if powercontrol:
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
+
+if mconfig:
+    xenrt.tools.machineXML(mconfig)
 
 if dumpsuite:
     suites = xenrt.suite.getSuites(dumpsuite)

@@ -41,10 +41,6 @@ class BuildCommand(object):
     __metaclass__ = ABCMeta   
     _BuildJob = None
 
-    def __init___(self,buildJob):
-
-        self._BuildJob = buildJob
-
     @abstractmethod
     def invokeBuild(self,buildParams):
         pass
@@ -66,6 +62,10 @@ class BuildCommand(object):
         pass
 
 class JenkinsCommand(BuildCommand):
+
+    def __init___(self,buildJob):
+
+        self._BuildJob = buildJob
 
     def invokeBuild(self,buildParams):
 

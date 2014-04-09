@@ -250,7 +250,7 @@ class JenkinsObserver(BuildObserver):
 
     def buildRunning(self,buildObj):
 
-        return self._jenkinsBuild.isBuildRunning(buildObj)
+        return self._jenkinsBuild.isBuildRunning()
 
     def setBuildParams(self,JenkinsBuild):
 

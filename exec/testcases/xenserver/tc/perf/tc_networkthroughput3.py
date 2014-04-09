@@ -22,7 +22,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         tc_networkthroughput2.TCNetworkThroughputPointToPoint.parseArgs(self, arglist)
 
         self.log(None, "parseArgs:arglist=%s" % (arglist,))
-        self.dom0vcpus   = libperf.getArgument(arglist, "dom0vcpus", int, 4)
+        self.dom0vcpus   = libperf.getArgument(arglist, "dom0vcpus", int, 0)
         self.nr_vm_pairs = libperf.getArgument(arglist, "vmpairs", int, 1)
 
         self.log(None, "nr_vm_pairs=%s" % (self.nr_vm_pairs,))
@@ -90,6 +90,12 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             self.log(None, "esx host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
             return False
         else:
+            if self.dom0vcpus == 0:
+                # don't change anything -- use the default number of dom0 vCPUs and netback threads
+                self.dom0vcpus = self.get_nr_dom0_vcpus(host_endpoint)
+		self.log(None, "xenserver host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
+                return False
+
             nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)
             self.log(None, "nr_dom0_vcpus=%s, nr_dom0_netback_threads=%s, self.dom0vcpus=%s, is_netback_thread_per_vif=%s" % (nr_dom0_vcpus, nr_dom0_netback_threads, self.dom0vcpus, is_netback_thread_per_vif))
             if not is_netback_thread_per_vif:

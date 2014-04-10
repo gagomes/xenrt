@@ -4,7 +4,8 @@ from datetime import datetime
 import jenkinsapi
 from jenkinsapi.jenkins import Jenkins
 from abc import ABCMeta, abstractmethod
-
+import os,subprocess,sys
+from os import listdir
 
 class BuildState: NotRunning, Running = range(2)
 
@@ -129,7 +130,7 @@ class JenkinsBuild(Build):
     __JenkinsURL = "http://cs-jenkins.xenrt.xs.citrite.net:8080"
     __Job = 'Cloudstack'
     __buildObj = None
-    __buildName = 'marvin'
+    __buildName = 'Marvin'
 
     def __init__(self,buildURL = None):
 
@@ -193,9 +194,16 @@ class JenkinsBuild(Build):
 
     def getBuildURL(self):
 
+        k = None
         art = self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
-        tmpURL = art['setup.py'].url
-        buildURL = tmpURL.replace('setup.py','*zip*/%s.zip' % (self.__buildName))
+        for key in art.keys():
+            if self.__buildName in key:
+                k = key
+                break
+        
+        if not k:
+            raise xenrt.XRTError('Build URL not found')
+        buildURL = art[k].url
         return buildURL
 
     def __startNewBuild(self,sha1):
@@ -270,4 +278,39 @@ class JenkinsObserver(BuildObserver):
             return
         self.join()
 
+class InstallBuild(object):
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def downloadBuild(self):
+        pass
+
+    @abstractmethod
+    def installBuild(self):
+        pass
+
+class InstallMarvin(InstallBuild):
+   
+    def __init__(self,sha1,workDir = None):
+
+        self.__sha1 = sha1
+        if not workDir:
+            self.__workDir = xenrt.TEC().tempDir()
+ 
+    def downloadBuild(self):
+
+        observer = JenkinsObserver()
+        jenkinsBuild = JenkinsBuild()
+        jenkinsBuild.findBuild(self.__sha1)
+        jenkinsBuild.attachObserver(observer)
+        observer.waitToFinish()
+        buildURL = jenkinsBuild.getBuildURL()
+        os.system('cd %s && wget %s' % (self.__workDir, buildURL))
+        self.__filename = listdir(self.__workDir)[0]
+  
+    def installBuild(self):
+
+        self.downloadBuild()
+        subprocess.Popen(["easy_install","--install-dir=%s" % self.__workDir,self.__filename],env={"PYTHONPATH":self.__workDir})
+        eggFiles = [f for f in listdir(self.__workDir) if '.egg' in f]
+        for f in eggFiles: sys.path.insert(0,self.__workDir + f)

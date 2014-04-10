@@ -907,6 +907,9 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
 
+        # Creedence
+        self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Clearwater"])
+
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"

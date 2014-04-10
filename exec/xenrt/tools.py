@@ -772,11 +772,13 @@ def processMatrixTests(release=None):
                   ('rhel57','RHEL 5.7'),
                   ('rhel58','RHEL 5.8'),
                   ('rhel59','RHEL 5.9'),
+                  ('rhel510','RHEL 5.10'),
                   ('rhel6','RHEL 6.0'),
                   ('rhel61','RHEL 6.1'),
                   ('rhel62','RHEL 6.2'),
                   ('rhel63','RHEL 6.3'),
                   ('rhel64','RHEL 6.4'),
+                  ('rhel65','RHEL 6.5'),
                   ('centos5','CentOS 5.0'),
                   ('centos51','CentOS 5.1'),
                   ('centos52','CentOS 5.2'),
@@ -787,11 +789,13 @@ def processMatrixTests(release=None):
                   ('centos57','CentOS 5.7'),
                   ('centos58','CentOS 5.8'),
                   ('centos59','CentOS 5.9'),
+                  ('centos510','CentOS 5.10'),
                   ('centos6','CentOS 6.0'),
                   ('centos61','CentOS 6.1'),
                   ('centos62','CentOS 6.2'),
                   ('centos63','CentOS 6.3'),
                   ('centos64','CentOS 6.4'),
+                  ('centos65','CentOS 6.5'),
                   ('oel53','Oracle Enterprise Linux 5.3'),
                   ('oel54','Oracle Enterprise Linux 5.4'),
                   ('oel55','Oracle Enterprise Linux 5.5'),
@@ -799,11 +803,13 @@ def processMatrixTests(release=None):
                   ('oel57','Oracle Enterprise Linux 5.7'),
                   ('oel58','Oracle Enterprise Linux 5.8'),
                   ('oel59','Oracle Enterprise Linux 5.9'),
+                  ('oel510','Oracle Enterprise Linux 5.10'),
                   ('oel6','Oracle Enterprise Linux 6.0'),
                   ('oel61','Oracle Enterprise Linux 6.1'),
                   ('oel62','Oracle Enterprise Linux 6.2'),
                   ('oel63','Oracle Enterprise Linux 6.3'),
                   ('oel64','Oracle Enterprise Linux 6.4'),
+                  ('oel65','Oracle Enterprise Linux 6.5'),
                   ('sles101','SLES10 SP1'),
                   ('sles102','SLES10 SP2'),
                   ('sles103','SLES10 SP3'),
@@ -811,6 +817,7 @@ def processMatrixTests(release=None):
                   ('sles11','SLES11'),
                   ('sles111','SLES11 SP1'),
                   ('sles112','SLES11 SP2'),
+                  ('sles113','SLES11 SP3'),
                   ('ubuntu1004','Ubuntu 10.04'),
                   ('ubuntu1204','Ubuntu 12.04'),
                   ('debian60','Debian 6.0'),
@@ -818,7 +825,7 @@ def processMatrixTests(release=None):
                   ('solaris10u9','Solaris 10u9')]
 
     # List of releases to manage
-    releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Sarasota']
+    releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Creedence','Sarasota']
 
     releaseVersionConfig = {}
     releaseVersionConfig['Backport'] = "Orlando"
@@ -829,7 +836,7 @@ def processMatrixTests(release=None):
     releasesWithoutSeperateMaxMemTests = ['Backport','George','GeorgeU1','MNR','Cowley']
 
     # Mapping of suites to releases in the form Release:(Nightly,Regression, Experimental)
-    suiteMappings = {'Clearwater':('TC-18569','TC-18794','TC-19628'), 'Sarasota': ('TC-18013', 'TC-18016', None)}
+    suiteMappings = {'Creedence':('TC-21159','TC-21163','TC-21190'), 'Sarasota': ('TC-18013', 'TC-18016', None)}
 
     # Mapping of distros to Primary/Secondary/Tertiary for each release
     distrosToRels = {}
@@ -1061,7 +1068,37 @@ def processMatrixTests(release=None):
                                                 'centos58', 'centos59', 'centos63', 'centos64', 'sles112', 'debian70']
 
 
-    # {Sarasota}
+    #  (Creedence)
+    distrosToRels['Creedence'] = {}
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel59','rhel64',
+                                          'sles104','sles112',
+                                          'w2k3eesp2','w2k3eesp2-x64',
+                                          'winxpsp3','vistaeesp2',
+                                          'ws08dcsp2-x86',
+                                          'ws08dcsp2-x64','ws08r2dcsp1-x64',
+                                          'win7sp1-x86','win7sp1-x64',
+                                          'ubuntu1004', 'debian60',
+                                          'oel59','centos59','oel64','centos64',
+                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
+    distrosToRels['Creedence']['secondary'] = ['rhel47','rhel58','sles111','sles103',
+                                            'ws08r2-x64'
+                                            'win7-x86','win7-x64','rhel63','oel63', 'centos63']
+    distrosToRels['Creedence']['tertiary'] = ['rhel46','rhel45',
+                                              'rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'sles102',
+                                              'sles11',
+                                              'centos48','centos47','centos46','centos45',
+                                              'centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'w2k3sesp2',
+                                              'w2k3eer2','w2k3ser2']
+    distrosToRels['Creedence']['level0'] = ['w2k3eesp2']
+    distrosToRels['Creedence']['experimental'] = ['rhel510', 'rhel65', 'oel510', 'oel65',
+                                                  'centos510', 'centos65', 'sles113']
+
+
+    #  (Sarasota)
     distrosToRels['Sarasota'] = {}
     distrosToRels['Sarasota']['primary'] = ['rhel48','rhel59','rhel64',
                                           'sles104','sles112',
@@ -1070,27 +1107,27 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
-                                          'ubuntu1004', 'debian70',
+                                          'ubuntu1004', 'debian60',
                                           'oel59','centos59','oel64','centos64',
-                                          'rhel64', 'centos62', 'oel62', 'ubuntu1204',
-                                          'win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
+                                          'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Sarasota']['secondary'] = ['rhel47','rhel58','sles111','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel63', 'debian60']
+                                            'win7-x86','win7-x64','rhel63','oel63', 'centos63']
     distrosToRels['Sarasota']['tertiary'] = ['rhel46','rhel45',
-                                           'rhel57', 'rhel56', 'rhel55','rhel54','rhel53','rhel52','rhel51',
-                                           'rhel62', 'rhel61', 'rhel6',
-                                           'sles11', 'sles102',
-                                           'centos48', 'centos47', 'centos46', 'centos45',
-                                           'centos58', 'centos57', 'centos56', 'centos55', 'centos54', 'centos53', 'centos52', 'centos51',
-                                           'centos63', 'centos62', 'centos61', 'centos6',
-                                           'oel58', 'oel57', 'oel56', 'oel55','oel56','oel54','oel53',
-                                           'oel63', 'oel62', 'oel61', 'oel6',
-                                           'w2k3sesp2',
-                                           'w2k3eer2','w2k3ser2']
+                                              'rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'sles102',
+                                              'sles11',
+                                              'centos48','centos47','centos46','centos45',
+                                              'centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'w2k3sesp2',
+                                              'w2k3eer2','w2k3ser2']
     distrosToRels['Sarasota']['level0'] = ['w2k3eesp2']
-    distrosToRels['Sarasota']['experimental'] = []
+    distrosToRels['Sarasota']['experimental'] = ['rhel510', 'rhel65', 'oel510', 'oel65',
+                                                  'centos510', 'centos65', 'sles113']
+
+
 
 
     # Do not edit below this line...
@@ -1331,6 +1368,10 @@ def generateSmokeTestSequences(version="Sarasota", regressionSuite="TC-18016", n
     maxtests["Clearwater"]["MaxMem"] = "13419"
     maxtests["Clearwater"]["MaxMem32BitLin"] = "13437"
     maxtests["Clearwater"]["MaxvCPUs"] = "13448"
+    maxtests["Creedence"] = {}
+    maxtests["Creedence"]["MaxMem"] = "13419"
+    maxtests["Creedence"]["MaxMem32BitLin"] = "13437"
+    maxtests["Creedence"]["MaxvCPUs"] = "13448"
     maxtests["Sarasota"] = {}
     maxtests["Sarasota"]["MaxMem"] = "13419"
     maxtests["Sarasota"]["MaxMem32BitLin"] = "13437"

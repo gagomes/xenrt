@@ -129,6 +129,7 @@ class JenkinsBuild(Build):
     __JenkinsURL = "http://cs-jenkins.xenrt.xs.citrite.net:8080"
     __Job = 'Cloudstack'
     __buildObj = None
+    __buildName = 'marvin'
 
     def __init__(self,buildURL = None):
 
@@ -190,6 +191,13 @@ class JenkinsBuild(Build):
 
         return self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
 
+    def getBuildURL(self):
+
+        art = self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
+        tmpURL = art['setup.py'].url
+        buildURL = tmpURL.replace('setup.py','*zip*/%s.zip' % (self.__buildName))
+        return buildURL
+
     def __startNewBuild(self,sha1):
 
         buildParams = {}
@@ -236,7 +244,7 @@ class BuildObserver(xenrt.XRTThread):
                 break
 
     @abstractmethod 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
         pass
 
 class JenkinsObserver(BuildObserver):

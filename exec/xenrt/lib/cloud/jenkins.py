@@ -296,6 +296,8 @@ class InstallMarvin(InstallBuild):
         self.__sha1 = sha1
         if not workDir:
             self.__workDir = xenrt.TEC().tempDir()
+        else:
+            self.__workDir = workDir
  
     def downloadBuild(self):
 
@@ -311,6 +313,7 @@ class InstallMarvin(InstallBuild):
     def installBuild(self):
 
         self.downloadBuild()
-        subprocess.Popen(["easy_install","--install-dir=%s" % self.__workDir,self.__filename],env={"PYTHONPATH":self.__workDir})
+        #subprocess.Popen(["easy_install","--install-dir=%s" % self.__workDir,self.__filename],env={"PYTHONPATH":self.__workDir})
+        os.system('cd && PYTHONPATH=%s easy_install --install-dir=%s %s' %(self.__workDir,self.__workDir,self.__filename))
         eggFiles = [f for f in listdir(self.__workDir) if '.egg' in f]
         for f in eggFiles: sys.path.insert(0,self.__workDir + f)

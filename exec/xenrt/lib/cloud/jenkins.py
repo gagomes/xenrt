@@ -9,7 +9,7 @@ from os import listdir
 
 class BuildState: NotRunning, Running = range(2)
 
-__all__ = ["JenkinsBuild","JenkinsObserver"]
+__all__ = ["JenkinsBuild","JenkinsObserver","InstallMarvin"]
 
 
 #USE

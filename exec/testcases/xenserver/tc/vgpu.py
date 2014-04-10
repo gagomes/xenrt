@@ -1035,7 +1035,7 @@ class _VGPUScalabilityTest(_VGPUBenchmarkTest):
         
         step("Reboot all hosts repeatedly for %d secs" % self.__ONE_DAY_SECS)
         while time.time() < end:
-            self._run_workload(arglist)
+            self._runWorkload(arglist)
             if self.__bootstorm:
                 log("Reboot as bootstorm")
                 self.rebootAllVMs()
@@ -1048,7 +1048,7 @@ class _VGPUScalabilityTest(_VGPUBenchmarkTest):
         step("End of the test: Shutting down all VMs and getting the /proc/meminfo")
         self._measureMetric()
 
-    def _run_workload(self, arglist):
+    def _runWorkload(self, arglist):
         super(_VGPUScalabilityTest, self).run(arglist)
 
              

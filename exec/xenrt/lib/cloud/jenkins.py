@@ -16,7 +16,7 @@ __all__ = ["JenkinsBuild","JenkinsObserver"]
 #observer = JenkinsObserver()
 #jenkinsBuild = JenkinsBuild() 
 #jenkinsBuild.findBuild(sha1)
-#jenkinsBuild.attachObserver(buildObserver)
+#jenkinsBuild.attachObserver(observer)
 #observer.waitToFinish()
 #jenkinsBuild.getBuildArtifacts()
 
@@ -41,7 +41,7 @@ class BuildCommand(object):
     __metaclass__ = ABCMeta   
     _BuildJob = None
 
-    def __init___(self,buildJob):
+    def __init__(self,buildJob):
 
         self._BuildJob = buildJob
 
@@ -129,6 +129,7 @@ class JenkinsBuild(Build):
     __JenkinsURL = "http://cs-jenkins.xenrt.xs.citrite.net:8080"
     __Job = 'Cloudstack'
     __buildObj = None
+    __buildName = 'marvin'
 
     def __init__(self,buildURL = None):
 
@@ -190,6 +191,13 @@ class JenkinsBuild(Build):
 
         return self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
 
+    def getBuildURL(self):
+
+        art = self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
+        tmpURL = art['setup.py'].url
+        buildURL = tmpURL.replace('setup.py','*zip*/%s.zip' % (self.__buildName))
+        return buildURL
+
     def __startNewBuild(self,sha1):
 
         buildParams = {}
@@ -227,7 +235,7 @@ class BuildObserver(xenrt.XRTThread):
         startTime = time.time()
         
         while 1: 
-            if self.buildRunning(self._buildObj):
+            if self.buildRunning():
                 time.sleep(10)
             else: 
                 break
@@ -236,7 +244,7 @@ class BuildObserver(xenrt.XRTThread):
                 break
 
     @abstractmethod 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
         pass
 
 class JenkinsObserver(BuildObserver):
@@ -248,14 +256,13 @@ class JenkinsObserver(BuildObserver):
         else:
             raise xenrt.XRTError("Jenkins build observer is already running")
 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
 
-        return self._jenkinsBuild.isBuildRunning(buildObj)
+        return self._jenkinsBuild.isBuildRunning()
 
     def setBuildParams(self,JenkinsBuild):
 
         self._jenkinsBuild = JenkinsBuild
-        self._buildObj = self._jenkinsBuild.getBuildObj()
 
     def waitToFinish(self):
 

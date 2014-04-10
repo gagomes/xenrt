@@ -36,11 +36,11 @@ class TestNetAppFCInitiatorGroup(XenRTUnitTestCase):
         results = "Mock results"
         self.sd.invoke = Mock(return_value=results)
         self.ig._raiseApiFailure = Mock()
-        comm.return_value.parse_list_message.return_value=parsedMsg
+        comm.return_value.parseListMessage.return_value=parsedMsg
 
         parsedResults = self.ig.list()
        
-        comm.return_value.parse_list_message.assert_called_with(results)
+        comm.return_value.parseListMessage.assert_called_with(results)
         self.assertEqual(parsedMsg, parsedResults) 
     
 
@@ -81,7 +81,7 @@ class TestNetAppInitiatorGroupCommunicator(XenRTUnitTestCase):
 
         self.sd.invoke = Mock(return_value = results)
         self.ig._raiseApiFailure = Mock()
-        self.assertEqual(expected, self.ig.parse_list_message(results))
+        self.assertEqual(expected, self.ig.parseListMessage(results))
 
     """
     Test methods
@@ -102,7 +102,7 @@ class TestNetAppInitiatorGroupCommunicator(XenRTUnitTestCase):
 
     def test_failure_with_non_string_args(self):
         for x in ["bad stuff", 2, ["hi", "bye"], {"name" : "bob"}, None, ""]:
-            self.assertRaises(AttributeError, self.ig.parse_list_message, x)
+            self.assertRaises(AttributeError, self.ig.parseListMessage, x)
     
     @patch("xenrt.storageadmin.NetAppStatus")
     def test_mutiple_igroup_names_and_types(self, nas):
@@ -123,5 +123,5 @@ class TestNetAppInitiatorGroupCommunicator(XenRTUnitTestCase):
         self.ig._raiseApiFailure = Mock()
         expected = {ignameSecond: [ iname + '0', iname+ '1', iname + '2'], 
                     igname: [iname +'0', iname + '1']}
-        self.assertEqual(expected, self.ig.parse_list_message(results))
+        self.assertEqual(expected, self.ig.parseListMessage(results))
         

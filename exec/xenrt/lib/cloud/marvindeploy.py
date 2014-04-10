@@ -15,53 +15,54 @@ class MarvinDeployException(Exception):
 
 class MarvinDeployer(object):
     CONFIG_SCHEMA = {
-                      'config': {
-                        'abstractName': 'Config',
-                        'required': { 'zones': None } },
-                      'zones': {
-                        'abstractName': 'Zone',
-                        'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
-                        'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
-                        'notify'  : { 'name': 'notifyNewElement' } },
-                      'secondaryStorages': {
-                        'abstractName': 'SecondaryStorage',
-                        'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
-                      'physical_networks': {
-                        'abstractName': 'PhysicalNetwork',
-                        'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, },
-                        'defaults': { 'traffictypes': [ { 'typ': 'Guest' }, { 'typ': 'Management' } ],
-                                      'providers': [ { 'name': 'VirtualRouter', 'broadcastdomainrange': 'ZONE' }, { 'name': 'SecurityGroupProvider', 'broadcastdomainrange': 'Pod' } ],
-                                      'broadcastdomainrange': 'Zone' },
-                        'notify'  : { 'traffictypes': 'notifyNetworkTrafficTypes' } },
-                      'traffictypes': {
-                        'abstractName': 'TrafficType',
-                        'required': { 'typ': None } },
-                      'providers': {
-                        'abstractName': 'NetworkProviders',
-                        'required': { 'name': None, 'broadcastdomainrange': None } },
-                      'ipranges': {
-                        'abstractName': 'IPRange',
-                        'required': { 'startip': 'getIPRangeStartAddr', 'endip': 'getIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
-                      'guestIpRanges': {
-                        'abstractName': 'GuestIPRange',
-                        'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
-                      'pods': {
-                        'abstractName': 'Pod',
-                        'required': { 'name': 'getName', 'startip': 'getPodIPStartAddr', 'endip': 'getPodIPEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
-                        'notify'  : { 'name': 'notifyNewElement' } },
-                      'clusters': {
-                        'abstractName': 'Cluster',
-                        'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
-                        'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
-                        'notify'  : { 'clustername': 'notifyNewElement' } },
-                      'primaryStorages': {
-                        'abstractName': 'PrimaryStorage',
-                        'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
-                      'hosts': {
-                        'abstractName': 'Host',
-                        'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
-                        'notify'  : { 'url': 'notifyNewElement' } },
-                    }
+        'config': {
+          'abstractName': 'Config',
+          'required': { 'zones': None } },
+        'zones': {
+          'abstractName': 'Zone',
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
+          'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
+          'notify'  : { 'name': 'notifyNewElement' } },
+        'secondaryStorages': {
+          'abstractName': 'SecondaryStorage',
+          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
+        'physical_networks': {
+          'abstractName': 'PhysicalNetwork',
+          'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
+          'defaults': { 'traffictypes': [ { 'typ': 'Guest' }, { 'typ': 'Management' } ],
+                        'providers': [ { 'name': 'VirtualRouter', 'broadcastdomainrange': 'ZONE' }, { 'name': 'SecurityGroupProvider', 'broadcastdomainrange': 'Pod' } ],
+                        'broadcastdomainrange': 'Zone',
+                        'vlan': None },
+          'notify'  : { 'traffictypes': 'notifyNetworkTrafficTypes' } },
+        'traffictypes': {
+          'abstractName': 'TrafficType',
+          'required': { 'typ': None } },
+        'providers': {
+          'abstractName': 'NetworkProviders',
+          'required': { 'name': None, 'broadcastdomainrange': None } },
+        'ipranges': {
+          'abstractName': 'IPRange',
+          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
+        'guestIpRanges': {
+          'abstractName': 'GuestIPRange',
+          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
+        'pods': {
+          'abstractName': 'Pod',
+          'required': { 'name': 'getName', 'startip': 'getPodIPStartAddr', 'endip': 'getPodIPEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
+          'notify'  : { 'name': 'notifyNewElement' } },
+        'clusters': {
+          'abstractName': 'Cluster',
+          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
+          'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
+          'notify'  : { 'clustername': 'notifyNewElement' } },
+        'primaryStorages': {
+          'abstractName': 'PrimaryStorage',
+          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
+        'hosts': {
+          'abstractName': 'Host',
+          'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
+          'notify'  : { 'url': 'notifyNewElement' } },
+      }
 
     def __init__(self, mgmtServerIp, logger):
         self.marvinCfg = {}

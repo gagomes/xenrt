@@ -44,16 +44,12 @@ class _XSAutoCertKit(xenrt.TestCase):
         
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
-            if "x86_64" in host.execdom0("uname -a"):
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
-                    branch = "car-1401exp"
-                else:
-                    branch = "clearwater-sp1-64bit-expr"
+            if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                branch = "trunk"
+            elif "x86_64" in host.execdom0("uname -a"):
+                branch = "creedence"
             else:
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
-                    branch = "trunk-partner"
-                else:
-                    branch = "clearwater-lcm"
+                branch = "clearwater-lcm"
             build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
             acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 

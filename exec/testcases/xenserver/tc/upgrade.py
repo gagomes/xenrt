@@ -2728,6 +2728,26 @@ class TC9167(_VMToolsUpgrade):
 
     VMNAME = "sarge"
 
+class TC21204(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Centos 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "centos54"
+
+class TC21205(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a OEL 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "oel54"
+
+class TC21206(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a SLES11 VM installed on the previous GA version"""
+
+    VMNAME = "sles11"
+
+class TC21207(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Debian 5.0 VM installed on the previous GA version"""
+
+    VMNAME = "debian50"
+
 class _VMToolsUpgradeNotOutOfDate(_VMToolsUpgrade):
     """MNR non-Windows tools should be up-to-date on Cowley"""
 

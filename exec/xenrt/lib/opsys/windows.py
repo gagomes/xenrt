@@ -77,6 +77,18 @@ class WindowsOS(OS):
     @staticmethod
     def testInit(parent):
         return WindowsOS("win7sp1x86", parent)
+        
+    @property
+    def defaultRootdisk(self):
+        return 20 * xenrt.GIGA
+
+    @property
+    def defaultVcpus(self):
+        return 2
+
+    @property
+    def defaultMemory(self):
+        return 2048    
 
     def __init__(self, distro, parent):
         super(self.__class__, self).__init__(distro, parent)
@@ -84,9 +96,6 @@ class WindowsOS(OS):
         self.distro = distro
         self.isoRepo = xenrt.IsoRepository.Windows
         self.isoName = "%s.iso" % self.distro
-        self.defaultRootdisk = 20 * xenrt.GIGA
-        self.defaultVcpus = 2
-        self.defaultMemory = 2048
         self.vifStem = "eth"
         self.viridian = True
 

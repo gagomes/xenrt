@@ -4360,7 +4360,7 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
         newHost = self.getHost("RESOURCE_HOST_1")
 
         items = self.tcsku.split("/")
-        if len(items == 3):
+        if len(items) == 3:
             distro = items[0]
             arch = items[1]
             memory = items[2]

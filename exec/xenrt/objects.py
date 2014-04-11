@@ -5123,6 +5123,9 @@ class GenericHost(GenericPlace):
         f = file(filename, "w")
         f.write(ay)
         f.close()
+        xenrt.TEC().logverbose("Printing the autoyast1")
+        xenrt.TEC().logverbose("%s"%ay)
+
         
         # Make autoyast file available over HTTP.
         webdir = xenrt.WebDirectory()
@@ -7601,7 +7604,8 @@ class GenericGuest(GenericPlace):
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
-        
+        xenrt.TEC().logverbose("Printing the autoyast")
+        xenrt.TEC().logverbose("%s"%ay)
         for line in ay.splitlines():
             f.write("%s\n" % (line))           
         f.close()

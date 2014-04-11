@@ -4333,3 +4333,27 @@ class TC15290(xenrt.TestCase):
         # check we can't evacuate
         if not guestUuid in h0.execdom0('xe host-get-vms-which-prevent-evacuation uuid=%s' % h0.uuid).strip():
             raise xenrt.XRTFailure("Shouldn't be allowed to evacuate with HVM guest and no PV drivers")
+
+class TCUpgradeVMMigrate(xenrt.TestCase):
+    def run(self, arglist=None):
+        oldHost = self.getHost("RESOURCE_HOST_0")
+        newHost = self.getHost("RESOURCE_HOST_1")
+
+        items = self.tcsku.split("/")
+        if len(items == 3):
+            distro = items[0]
+            arch = items[1]
+            memory = items[2]
+        else:
+            distro = items[0]
+            arch = None
+            memory = items[1]
+
+        if memory[-1] == "M":
+            memory = int(memory[:-1])
+        elif memory[-1] == "G":
+            memory = int(memory[:-1]) * 1024
+
+        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
+        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        g.uninstall()

@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- From Sanibel iSCSI pool rolling upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    <host id="1" />
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian60x86,256M" tc="TC-30000" sku="debian60/x86-32/256M" />
+  </testsequence>
+
+</xenrt>

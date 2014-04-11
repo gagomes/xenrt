@@ -1660,6 +1660,8 @@ class Config:
 
         self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Sarasota"
         self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Sarasota"
+        
+        self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}

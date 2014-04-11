@@ -9,15 +9,15 @@ class Instance(object):
         self.toolstack = xenrt.interfaces.Toolstack(toolstack)
         self.toolstackId = None
         self.name = name
-        self.distro = distro
-        self.vcpus = vcpus
-        self.memory = memory
+        self.distro = distro        
         self.extraConfig = extraConfig
         self.mainip = None
 
         self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk
+        self.vcpus = vcpus or self.os.defaultVcpus
+        self.memory = memory or self.os.defaultMemory
         self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]
 
     @property

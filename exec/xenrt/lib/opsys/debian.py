@@ -121,10 +121,6 @@ class DebianBasedLinux(LinuxOS):
             shutil.rmtree(self.cleanupdir)
         self.cleanupdir = None
 
-    @property
-    def defaultRootdisk(self):
-        return 8 * xenrt.GIGA
-
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead

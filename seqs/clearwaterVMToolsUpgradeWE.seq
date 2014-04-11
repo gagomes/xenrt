@@ -14,6 +14,27 @@
 
   <prepare>
     <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <vm name="centos54">
+        <distro>centos54</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="oel54">
+        <distro>oel54</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="sles11">
+        <distro>sles11</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
       <vm name="rhel52">
         <distro>rhel52</distro>
         <memory>${GUESTMEMORY}</memory>
@@ -56,6 +77,9 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC21204"/>
+      <testcase id="xenserver.tc.upgrade.TC21205"/>
+      <testcase id="xenserver.tc.upgrade.TC21206"/>
       <testcase id="xenserver.tc.upgrade.TC9154"/>
       <testcase id="xenserver.tc.upgrade.TC11416"/>
       <testcase id="xenserver.tc.upgrade.TC9161"/>

@@ -11932,6 +11932,25 @@ done
         args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        
+        args["SUSE Linux Enterprise Server 10 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP2 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP2 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP3 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP3 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP4 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 10 SP4 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
+        args["SUSE Linux Enterprise Server 11 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
 
         for a in args.keys():
             uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)

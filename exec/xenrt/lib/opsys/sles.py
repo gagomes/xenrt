@@ -125,9 +125,9 @@ class SUSEBasedLinux(LinuxOS):
                               desc="SUSE based installation")
         self.parent.stop()
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
-        if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-            self.cleanupIsoAnswerfile()
-            self.parent.ejectIso()
+#        if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+#            self.cleanupIsoAnswerfile()
+#            self.parent.ejectIso()
         self.parent.start()
 
     def waitForBoot(self, timeout):

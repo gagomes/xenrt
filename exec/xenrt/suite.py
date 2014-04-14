@@ -417,9 +417,7 @@ class Suite(SuiteConfigurable):
         waittime = 0
         excllist = self.exclseqs
         if self.sku:
-            excllist = self.sku.exclseqs
-        else:
-            excllist = []
+            excllist.extend(self.sku.exclseqs)
         if self.sku and self.sku.inputs:
             inputs = self.sku.inputs
         else:

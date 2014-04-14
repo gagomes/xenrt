@@ -2278,7 +2278,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+#/sbin/reboot
 ]]>
           </source>
         </script>

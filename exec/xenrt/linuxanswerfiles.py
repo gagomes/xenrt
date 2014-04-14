@@ -348,7 +348,8 @@ class SLESAutoyastFile :
                  kickStartExtra=None,
                  bootDiskSize=None,
                  ossVG=False,
-                 installXenToolsInPostInstall=False):
+                 installXenToolsInPostInstall=False,
+                 rebootAfterInstall = True):
         self.mainDisk = maindisk
         self.pxe=pxe
         self.password=password
@@ -363,12 +364,15 @@ class SLESAutoyastFile :
         self.signalDir=signalDir
         self.bootDiskSize=bootDiskSize
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
+        self.rebootAfterInstall = rebootAfterInstall
     
     def _password(self):
         if not self.password:
             self.password=xenrt.TEC().lookup("ROOT_PASSWORD")
         return self.password
-    
+    def _rebootAfterInstall(self):
+        if self.rebootAfterInstall:
+            return "/sbin/reboot"
     def _timezone(self):
         deftz="UTC"
         return xenrt.TEC().lookup("OPTION_CARBON_TZ", deftz)
@@ -2056,7 +2060,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2175,6 +2179,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,
@@ -2278,7 +2283,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-#/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2393,6 +2398,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,

@@ -863,12 +863,12 @@ umount /tmp/xenrttmpmount
     def _generateSLES11x(self):
         SLES111=["<package>stunnel</package>",
                 "echo ulimit -v unlimited >> /etc/profile.local",
-                "(sleep 120; /sbin/reboot) > /dev/null 2>&1 &",
+                "(sleep 120; %s) > /dev/null 2>&1 &"%(self._rebootAfterInstall()),
                 ""]
         SLES11=["",
                 "",
                "sleep 120",
-               "/sbin/reboot"]
+               "%s"%(self._rebootAfterInstall())]
         diffSLES=[]
         if self.distro.startswith("sles111") or self.distro.startswith("sles112"):
             diffSLES=SLES111

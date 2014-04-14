@@ -11944,12 +11944,12 @@ done
         args["SUSE Linux Enterprise Server 10 SP4 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 SP4 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
 
-        args["SUSE Linux Enterprise Server 11 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 11 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 11 SP1 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 11 SP1 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 11 SP2 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 11 SP2 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["SUSE Linux Enterprise Server 11 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
 
 
         for a in args.keys():

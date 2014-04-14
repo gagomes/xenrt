@@ -251,6 +251,7 @@ class Suite(SuiteConfigurable):
         self.title = "Suite"
         self.sequences = []
         self.includesuites = []
+        self.exclseqs = []
         self.inputs = None
         self.id = None
         self.delay = 0
@@ -294,6 +295,10 @@ class Suite(SuiteConfigurable):
                                         self.delay = int(str(a.data))
                             elif n.localName == "includesuite":
                                 includesuites.append(n)
+                            elif n.localName == "exclude":
+                                for a in n.childNodes:
+                                    if a.nodeType == a.ELEMENT_NODE:
+                                        self.handleExcludeNode(a)
 
         for inc in includes:
             try:
@@ -410,6 +415,7 @@ class Suite(SuiteConfigurable):
         if not re.search(r"^\d+$", testrun):
             raise xenrt.XRTError("Testrun ID '%s' is not valid" % (testrun))
         waittime = 0
+        excllist = self.exclseqs
         if self.sku:
             excllist = self.sku.exclseqs
         else:
@@ -512,12 +518,19 @@ class Suite(SuiteConfigurable):
     def listTCsInSequences(self, quiet=False):
         reply = []
         for s in self.sequences:
+            if s.name in self.exclseqs:
+                continue
             try:
                 reply.extend(s.listTCsInSequence(quiet=quiet))
             except Exception, e:
                 sys.stderr.write("Error processing sequence %s (%s)\n") % (s.name, s.seq)
                 raise
-        return reply
+        filteredReply = []
+        excltcs = ["TC-%s" % x for x in self.findSkippedTcs()]
+        for t in reply:
+            if not t in excltcs:
+                filteredReply.append(t)
+        return filteredReply
 
     def listTCsInSuite(self):
         # Open a link to Jira
@@ -598,6 +611,12 @@ class Suite(SuiteConfigurable):
                 if len(links) > 0:
                     fd.write("Deleting  %s: %s\n" % (s, t.fields.summary))
                     links[0].delete()
+
+    def handleExcludeNode(self, node):
+        if node.localName == "sequence":
+            for a in node.childNodes:
+                if a.nodeType == a.TEXT_NODE:
+                    self.exclseqs.append(expand(str(a.data)))
 
 def getSuites(id):
     """Return a list of suites objects for this ID. If the ID is a filename

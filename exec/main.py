@@ -126,6 +126,7 @@ def usage(fd):
     --delay-for <seconds>                 Amount to delay start of all jobs by
     -d                                    Debug mode for suite submit
     --dump-suite <filename>               Dump test suite config and exit
+    --list-suite-tcs <filename>           List TCs in suite and exit
     --check-suite <filename>              Check test suite config and exit
     --fix-suite <filename>                Fix suite links in JIRA and exit
     --suite-seqs <list>                   Comma separated list of sequence
@@ -234,6 +235,7 @@ bootdiskless = False
 boothost = None
 ro = None
 dumpsuite = None
+listsuitetcs = None
 checksuite = None
 fixsuite = None
 runsuite = None
@@ -343,6 +345,7 @@ try:
                                       'check-suite=',
                                       'fix-suite=',
                                       'dump-suite=',
+                                      'list-suite-tcs=',
                                       'run-suite=',
                                       'suite-seqs=',
                                       'suite-tcs=',
@@ -716,6 +719,9 @@ try:
             aux = True
         elif flag == "--check-suite":
             checksuite = value
+            aux = True
+        elif flag == "--list-suite-tcs":
+            listsuitetcs = value
             aux = True
         elif flag == "--fix-suite":
             fixsuite = value
@@ -1785,6 +1791,15 @@ if dumpsuite:
             suite.setSKU(sku)
     for suite in suites:
         suite.debugPrint(sys.stdout)
+
+if listsuitetcs:
+    suites = xenrt.suite.getSuites(listsuitetcs)
+    if skufile:
+        sku = xenrt.suite.SKU(skufile)
+        for suite in suites:
+            suite.setSKU(sku)
+    for suite in suites:
+        print "\n".join(suite.listTCsInSequences(quiet=True))
 
 if checksuite:
     suites = xenrt.suite.getSuites(checksuite)

@@ -373,6 +373,8 @@ class SLESAutoyastFile :
     def _rebootAfterInstall(self):
         if self.rebootAfterInstall:
             return "/sbin/reboot"
+        else:
+            return ""
     def _timezone(self):
         deftz="UTC"
         return xenrt.TEC().lookup("OPTION_CARBON_TZ", deftz)

@@ -11936,7 +11936,7 @@ done
         args["SUSE Linux Enterprise Server 10 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://10.102.123.220:8000/kickstart3.cfg showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 SP3 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip

@@ -11936,7 +11936,7 @@ done
         args["SUSE Linux Enterprise Server 10 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["SUSE Linux Enterprise Server 10 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["SUSE Linux Enterprise Server 10 SP1 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "graphical utf8 ks=http://10.102.123.220:8000/kickstart1.cfg"# % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["SUSE Linux Enterprise Server 10 SP2 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["SUSE Linux Enterprise Server 10 SP2 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["SUSE Linux Enterprise Server 10 SP3 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip

@@ -123,12 +123,12 @@ class SUSEBasedLinux(LinuxOS):
         xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="SUSE based installation")
-        self.parent.stop()
-        self.parent.poll(xenrt.PowerState.down, timeout=1800)
+#        self.parent.stop()
+#        self.parent.poll(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
-        self.parent.start()
+#        self.parent.start()
 
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH

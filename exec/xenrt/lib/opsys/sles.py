@@ -123,6 +123,8 @@ class SUSEBasedLinux(LinuxOS):
         xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="SUSE based installation")
+        xenrt.TEC().logverbose("Sleeping for 240secs before removing iso")
+        xenrt.sleep(240)
 #        self.parent.stop()
 #        self.parent.poll(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:

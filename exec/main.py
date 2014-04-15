@@ -126,6 +126,7 @@ def usage(fd):
     --delay-for <seconds>                 Amount to delay start of all jobs by
     -d                                    Debug mode for suite submit
     --dump-suite <filename>               Dump test suite config and exit
+    --list-suite-tcs <filename>           List TCs in suite and exit
     --check-suite <filename>              Check test suite config and exit
     --fix-suite <filename>                Fix suite links in JIRA and exit
     --suite-seqs <list>                   Comma separated list of sequence
@@ -161,6 +162,7 @@ def usage(fd):
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
     --nmi <machine>                       Sent NMI to a machine
+    --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
@@ -233,6 +235,7 @@ bootdiskless = False
 boothost = None
 ro = None
 dumpsuite = None
+listsuitetcs = None
 checksuite = None
 fixsuite = None
 runsuite = None
@@ -249,6 +252,7 @@ knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
+mconfig = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -334,12 +338,14 @@ try:
                                       'poweron=',
                                       'powercycle=',
                                       'nmi=',
+                                      'mconfig=',
                                       'bootdiskless=',
                                       'perf-data=',
                                       'runon=',
                                       'check-suite=',
                                       'fix-suite=',
                                       'dump-suite=',
+                                      'list-suite-tcs=',
                                       'run-suite=',
                                       'suite-seqs=',
                                       'suite-tcs=',
@@ -563,14 +569,17 @@ try:
         elif flag == "--shell":
             doshell = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--shell-logs":
             doshell = True
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--ishell-logs":
             doshell = "ipython"
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--priority":
             prio = int(value)
         elif flag == "--perf-upload":
@@ -693,6 +702,10 @@ try:
             poweroperation = "nmi"
             loadmachines = [powerhost]
             aux = True
+        elif flag == "--mconfig":
+            mconfig = value
+            loadmachines = [value]
+            aux = True
         elif flag == "--pdu":
             forcepdu = True
         elif flag == "--bootdiskless":
@@ -706,6 +719,9 @@ try:
             aux = True
         elif flag == "--check-suite":
             checksuite = value
+            aux = True
+        elif flag == "--list-suite-tcs":
+            listsuitetcs = value
             aux = True
         elif flag == "--fix-suite":
             fixsuite = value
@@ -1672,7 +1688,7 @@ if setupsharedhost:
         hosttype=sh["PRODUCT_VERSION"]
 
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
-        host.install()
+        host.install(installSRType="ext")
         host.license()
 
 if setupstatichost:
@@ -1764,6 +1780,9 @@ if powercontrol:
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
 
+if mconfig:
+    xenrt.tools.machineXML(mconfig)
+
 if dumpsuite:
     suites = xenrt.suite.getSuites(dumpsuite)
     if skufile:
@@ -1772,6 +1791,15 @@ if dumpsuite:
             suite.setSKU(sku)
     for suite in suites:
         suite.debugPrint(sys.stdout)
+
+if listsuitetcs:
+    suites = xenrt.suite.getSuites(listsuitetcs)
+    if skufile:
+        sku = xenrt.suite.SKU(skufile)
+        for suite in suites:
+            suite.setSKU(sku)
+    for suite in suites:
+        print "\n".join(suite.listTCsInSequences(quiet=True))
 
 if checksuite:
     suites = xenrt.suite.getSuites(checksuite)

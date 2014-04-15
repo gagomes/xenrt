@@ -2217,6 +2217,10 @@ Add-WindowsFeature as-net-framework"""
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudStackManagementServer()
 
+    def installCloudManagementServer(self):
+        manSvr = xenrt.lib.cloud.ManagementServer(self)
+        manSvr.installCloudManagementServer()
+
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
         
@@ -2488,6 +2492,19 @@ Add-WindowsFeature as-net-framework"""
         else:
             raise xenrt.XRTError("Unimplemented")
 
+    def installLatency(self):
+        """Install Latency into the guest"""
+
+        workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
+        self.execcmd("wget -O - '%s/latency.tgz' | tar -xz -C %s" %
+                     (xenrt.TEC().lookup("TEST_TARBALL_BASE"), workdir))
+
+        if self.getBasicArch() == "x86-64":
+            self.execcmd("cp %s/latency/latency.x86_64 /root/latency" % workdir)
+        else:
+            self.execcmd("cp %s/latency/latency.x86_32 /root/latency" % workdir)
+        self.execcmd("rm -rf %s" % workdir)
+
     def installVSSTools(self):
         """Install Microsoft VSS tools into a Windows XML-RPC guest"""
         g = self.xmlrpcGlobPattern("c:\\vshadow.exe")
@@ -2572,6 +2589,7 @@ Add-WindowsFeature as-net-framework"""
         # Get the CLI RPM from the CD.
         mount = None
         rpm = None
+        hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
         rpmpath = xenrt.TEC().lookup("XE_RPM", None)
         if rpmpath:
@@ -2597,11 +2615,18 @@ Add-WindowsFeature as-net-framework"""
                 try:
                     mount = xenrt.rootops.MountISO(cd)
                     mountpoint = mount.getMount()
-                    rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
-                                     (mountpoint))
-                    rpms.extend(glob.glob(\
-                        "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
-                        (mountpoint)))
+                    if hostarch != "x86_64":
+                        rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
+                            (mountpoint)))
+                    else:
+                        rpms = glob.glob("%s/client_install/xe-cli*86_64.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86_64.rpm" %
+                            (mountpoint)))
                     if len(rpms) > 0:
                         xenrt.TEC().logverbose("Using CLI RPM %s from ISO %s" %
                                                (os.path.basename(rpms[-1]), cd))
@@ -8653,9 +8678,9 @@ class GenericGuest(GenericPlace):
         targetPath = self.tempDir() + "\\vgpudrivers"
 
         try:
-            filename = "332.07_grid_win7_english"
+            filename = "332.83_grid_win8_win7_english"
             if self.xmlrpcGetArch().endswith("64"):
-                filename = "332.07_grid_win7_64bit_english"
+                filename = "332.83_grid_win8_win7_64bit_english"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
             url = "%s/vgpudriver/vmdriver/%s.exe" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)

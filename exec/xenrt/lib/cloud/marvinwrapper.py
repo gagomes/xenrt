@@ -33,11 +33,13 @@ class MarvinApi(object):
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self.logger = logging.getLogger(self.MARVIN_LOGGER)
-        self.logger.setLevel(logging.DEBUG)
-        stream = logging.StreamHandler(stream=self.xenrtStream)
-        stream.setLevel(logging.DEBUG)
-        stream.setFormatter(logFormat)
-        self.logger.addHandler(stream)
+        if len(self.logger.handlers) == 0:
+            # Add a stream handler to the logger and initialise it
+            self.logger.setLevel(logging.DEBUG)
+            stream = logging.StreamHandler(stream=self.xenrtStream)
+            stream.setLevel(logging.DEBUG)
+            stream.setFormatter(logFormat)
+            self.logger.addHandler(stream)
 
         self.mgtSvrDetails = configGenerator.managementServer()
         self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
@@ -49,6 +51,24 @@ class MarvinApi(object):
 
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
+
+    def command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+        cmd = command()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # The name of the function we need to call on the API is the same as the module name
+        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
+        fn = command.__module__.split(".")[-1]
+        # Then run the command
+        return getattr(self.apiClient, fn)(cmd)
 
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)
@@ -87,7 +107,6 @@ class MarvinApi(object):
         xenrt.TEC().logverbose('Template %s ready after %d seconds' % (name, (datetime.now() - startTime).seconds))
 
     def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
-#        sysTemplateLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", 'http://download.cloud.com/templates/4.2/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         sysTemplateiSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", '/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
         if not sysTemplateiSrcLocation:
             raise xenrt.XRTError('Location of system template not specified')
@@ -238,6 +257,39 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
+    def addTemplateIfNotPresent(self, distro, url):
+        templates = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro]
+        if not templates:
+            xenrt.TEC().logverbose("Template is not present, registering")
+            # TODO: Cope with more zones
+            # Should also be able to do "All Zones", but marvin requires a zone to be specified
+
+            zone = Zone.list(self.apiClient)[0].id
+
+            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            Template.register(self.apiClient, {
+                        "zoneid": zone,
+                        "ostype": osname,
+                        "name": distro,
+                        "displaytext": distro,
+                        "ispublic": True,
+                        "url": url,
+                        "format": "VHD"})
+
+        # Now wait until the Template is ready
+        deadline = xenrt.timenow() + 3600
+        xenrt.TEC().logverbose("Waiting for Template to be ready")
+        while xenrt.timenow() <= deadline:
+            try:
+                template = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro][0]
+                if template.isready:
+                    break
+                else:
+                    xenrt.TEC().logverbose("Status: %s" % template.status)
+            except:
+                pass
+            xenrt.sleep(15)
+
     def addIsoIfNotPresent(self, distro, isoName, isoRepo):
         listIsosC = listIsos.listIsosCmd()
         listIsosC.isofilter = "all"
@@ -255,8 +307,10 @@ class MarvinApi(object):
             # Should also be able to do "All Zones", but marvin requires a zone to be specified
 
             zone = Zone.list(self.apiClient)[0].id
-
-            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            if distro:
+                osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            else:
+                osname = "None"
             Iso.create(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,

@@ -1,0 +1,13 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <serial group="HFX1006">
+      <testcase id="xenserver.tc.host.TC20917" />
+    </serial>
+  </testsequence>
+</xenrt>

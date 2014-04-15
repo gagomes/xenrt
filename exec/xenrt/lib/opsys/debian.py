@@ -1,28 +1,27 @@
 import xenrt, os.path, os, shutil
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
+from abc import ABCMeta, abstractproperty
 from zope.interface import implements
 
-__all__ = ["DebianBasedLinux"]
+__all__ = ["DebianLinux", "UbuntuLinux"]
 
 class DebianBasedLinux(LinuxOS):
 
-    debianMappings = {"debian60": "squeeze",
-                      "debian70": "wheezy"}
-
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+    
+    __metaclass__ = ABCMeta
+
+    @abstractproperty
+    def _mappings(self): 
+        """A set of mappings for the distro"""
+        pass
 
     @staticmethod
-    def knownDistro(distro):
-        return distro.startswith("debian") or \
-               distro.startswith("ubuntu")
-
-    @staticmethod
-    def testInit():
-        return DebianBasedLinux("debian70", None)
+    def testInit(parent): raise NotImplementedError()
 
     def __init__(self, distro, parent):
-        super(self.__class__, self).__init__(parent)
+        super(DebianBasedLinux, self).__init__(distro, parent)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -34,15 +33,8 @@ class DebianBasedLinux(LinuxOS):
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
 
-        # TODO: Validate distro
-        # TODO: Look up / work out URLs, don't just hard code!
-
-    @property
-    def isoName(self):
-        if self.distro == "debian60":
-            return "deb6_%s.iso" % self.arch
-        elif self.distro == "debian70":
-            return "deb7_%s.iso" % self.arch
+    @abstractproperty
+    def isoName(self): pass
 
     @property
     def isoRepo(self):
@@ -50,8 +42,8 @@ class DebianBasedLinux(LinuxOS):
 
     @property
     def debianName(self):
-        if self.debianMappings.has_key(self.distro):
-            return self.debianMappings[self.distro]
+        if self._mappings.has_key(self.distro):
+            return self._mappings[self.distro]
         return None
 
     @property
@@ -59,13 +51,19 @@ class DebianBasedLinux(LinuxOS):
         return xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"], None)
 
     @property
-    def installerKernelAndInitRD(self):
+    def _architecture(self):
+        """Convert the architecture post-fix to a string representing the installer base path"""
         if self.arch == "x86-32":
-            darch = "i386"
+            return "i386"
         elif self.arch == "x86-64":
-            darch = "amd64"
+            return "amd64"
         else:
             raise xenrt.XRTError("Cannot identify architecture")
+
+    @property
+    def installerKernelAndInitRD(self):
+
+        darch = self._architecture
 
         # 32-bit Xen guests need to use a special installer kernel, 64-bit and non-Xen we
         # can just use the standard as PVops support works
@@ -123,10 +121,6 @@ class DebianBasedLinux(LinuxOS):
             shutil.rmtree(self.cleanupdir)
         self.cleanupdir = None
 
-    @property
-    def defaultRootdisk(self):
-        return 8 * xenrt.GIGA
-
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
         # TODO: Use the signalling mechanism instead
@@ -145,4 +139,53 @@ class DebianBasedLinux(LinuxOS):
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
-registerOS(DebianBasedLinux)
+class DebianLinux(DebianBasedLinux):
+    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+   
+    @property
+    def _mappings(self):
+        return {"debian60": "squeeze",
+                "debian70": "wheezy"}
+
+    @staticmethod
+    def knownDistro(distro):
+        return distro.startswith("debian")
+    
+    @staticmethod
+    def testInit(parent):
+        return DebianLinux("debian70", parent)
+    
+    @property
+    def isoName(self):
+        if self.distro == "debian60":
+            return "deb6_%s.iso" % self.arch
+        elif self.distro == "debian70":
+            return "deb7_%s.iso" % self.arch
+
+class UbuntuLinux(DebianBasedLinux):
+    """ NOTE: Lucid is not supported on XS 6.2 for ISO install but should work for http install"""
+    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+    
+    @property
+    def _mappings(self):
+        return { "ubuntu1004": "lucid",
+                 "ubuntu1204": "precise"}
+
+    @staticmethod
+    def knownDistro(distro):
+        return distro.startswith("ubuntu")
+
+    @staticmethod
+    def testInit(parent):
+        return UbuntuLinux("ubuntu1204", parent)
+
+    @property
+    def isoName(self):
+        if self.distro == "ubuntu1004":
+            return "ubuntu1004_%s.iso" % self.arch
+        elif self.distro == "ubuntu1204":
+            return "ubuntu1204_%s.iso" % self.arch
+
+
+registerOS(DebianLinux)
+registerOS(UbuntuLinux)

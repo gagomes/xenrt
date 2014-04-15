@@ -1,0 +1,41 @@
+<xenrt>
+
+  <!-- Boston single host upgrade test from Oxford with all the hotfixes on -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PIDIR_BOSTON>/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762</PIDIR_BOSTON>
+    <CARBON_PATCHES_BOSTON>
+        <XS60E001>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E001/52369/hotfix-XS60E001/XS60E001.xsupdate</XS60E001>
+        <XS60E002>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E002/51602/hotfix-XS60E002/XS60E002.xsupdate</XS60E002>
+        <XS60E003>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E003/52017/hotfix-XS60E003/XS60E003.xsupdate</XS60E003>
+        <XS60E004>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E004/52271/hotfix-XS60E004/XS60E004.xsupdate</XS60E004>
+        <XS60E005>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E005/52933/hotfix-XS60E005/XS60E005.xsupdate</XS60E005>
+        <XS60E006>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E006/53206/hotfix-XS60E006/XS60E006.xsupdate</XS60E006>
+        <XS60E007>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E007/53405/hotfix-XS60E007/XS60E007.xsupdate</XS60E007>
+        <XS60E008>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E008/53848/hotfix-XS60E008/XS60E008.xsupdate</XS60E008>
+        <XS60E009>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E009/54377/hotfix-XS60E009/XS60E009.xsupdate</XS60E009>
+        <XS60E010>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E010/53860/hotfix-XS60E010/XS60E010.xsupdate</XS60E010>
+        <XS60E013>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E013/55198/hotfix-XS60E013/XS60E013.xsupdate</XS60E013>
+        <XS60E014>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E014/56511/hotfix-XS60E014/XS60E014.xsupdate</XS60E014>
+        <XS60E015>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E015/56679/hotfix-XS60E015/XS60E015.xsupdate</XS60E015>
+        <XS60E016>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E016/56679/hotfix-XS60E016/XS60E016.xsupdate</XS60E016>
+    </CARBON_PATCHES_BOSTON>
+    <PATCH_DESCRIPTIONS/>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="1">
+      <vm name="LicenseServerForNonV6">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+  </prepare>
+          
+  <testsequence group="Upgrade">
+    <testcase id="xenserver.tc.hotfix.TC15629"/>
+  </testsequence>
+    
+    </xenrt>

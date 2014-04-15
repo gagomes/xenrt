@@ -1,0 +1,103 @@
+<xenrt>
+
+  <!-- Tools ISO hotfix: static ipv6 tests -->
+
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>5</PREPARE_WORKERS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host>
+      <bridge name="internal"/>
+      <vm name="ws08sp2-x86">
+        <distro>ws08sp2-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="vistaeesp2">
+        <distro>vistaeesp2</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win8-x86">
+        <distro>win8-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win81-x86">
+        <distro>win81-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12r2-x64">
+        <distro>ws12r2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws12r2core-x64">
+        <distro>ws12r2core-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <network device="1" bridge="internal"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="ApplyRequiredPatches" blocker="yes">
+      <testcase id="xenserver.install.TCApplyReqdPatches"/>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC18561" />
+      <testcase id="xenserver.tc.upgrade.TC18563" />
+      <testcase id="xenserver.tc.upgrade.TC18564" />
+      <testcase id="xenserver.tc.upgrade.TC20647" />
+      <testcase id="xenserver.tc.upgrade.TC20649" />
+      <testcase id="xenserver.tc.upgrade.TC20653" />
+      <testcase id="xenserver.tc.upgrade.TC20654" />
+    </serial>
+  </testsequence>
+
+</xenrt>
+
+
+
+
+

@@ -107,3 +107,17 @@ class LinuxOS(OS):
 
     def reboot(self):
         self.execSSH("reboot")
+
+    @property
+    def defaultRootdisk(self):
+        return 8 * xenrt.GIGA
+
+    @property
+    def defaultVcpus(self):
+        return 1
+
+    @property
+    def defaultMemory(self):
+        return 256
+
+

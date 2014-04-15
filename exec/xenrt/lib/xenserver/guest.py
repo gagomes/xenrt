@@ -1056,8 +1056,8 @@ default:
             sftp.copyTo(m, "Makefile")
             sftp.copyTo(p, "panic.c")
             self.execguest("make")
-            try: self.execguest("insmod panic.ko", timeout=1)
-            except: pass
+            self.execguest("(sleep 4 && insmod panic.ko) > /dev/null 2>&1 < /dev/null &")
+            xenrt.sleep(5)
 
     def installCitrixCertificate(self):
         # Install the Citrix certificate to those VMs which require it (Vista and onwards)

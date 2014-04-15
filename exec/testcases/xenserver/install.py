@@ -11,6 +11,7 @@
 import string, time, re, os.path, random
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 import XenAPI
+from xenrt.lazylog import log, warning
 
 class TCXenServerInstall(xenrt.TestCase):
 
@@ -1355,6 +1356,7 @@ class SourceISOCheck(xenrt.TestCase):
         """Obtains a list of rpms provided in the source files"""
 
         sourceRpmPackageList = []
+        isosFound = 0
         for sourceFile, sourceBuildPath in self.SOURCE_ISO_FILES.iteritems():
             try:
                 # e.g download xe-phase-3/source-1.iso and list the RPMs.
@@ -1379,20 +1381,22 @@ class SourceISOCheck(xenrt.TestCase):
 
                     # To obtain merged list of unique RPMs.
                     sourceRpmPackageList = sourceRpmPackageList + tmpSourceRpmPackageList
-                else:
-                    xenrt.TEC().skip("Unable to obtain the %s/%s file for %s." %
-                                    (sourceBuildPath, sourceFile, self.APPLIANCE_NAME))
+                    isosFound += 1
             finally:
                 try:
                     if iso:
                         mount.unmount()
                 except:
                     pass
+        if isosFound == 0:
+            xenrt.TEC().skip("Unable to obtain any source ISOs for %s." % (self.APPLIANCE_NAME))
+            return False
         sourceRpmPackageList.sort()
         self.SOURCE_RPM_PACKAGES = sourceRpmPackageList
 
         xenrt.TEC().logverbose("The list of source rpm packages available in %s source ISO are \n%s " %
                                     (self.APPLIANCE_NAME, "\n".join(map(str, self.SOURCE_RPM_PACKAGES))))
+        return True
 
     def ignoreRpmPackagesFromComparison(self):
         """Ignores the specified packages from comparision"""
@@ -1467,7 +1471,7 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
     """Verify dom0 source iso (xe-phase-3/source-1.iso & source-4.iso) for missing RPMs."""
 
     APPLIANCE_NAME = "Dom0"
-    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-1.iso': 'xe-phase-3', 'source-4.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
 
     IGNORE_EXTRA_RPM_PACKAGES = ['libev', 'perf-tools'] # in addition to the list of base packages.
                                                         # perf-tools missing from tampa onwards
@@ -1483,7 +1487,8 @@ class TCDom0SourceCheck(SourceISOCheck): # TC-17998
         self.setInstalledRpmPackages(installedRpmList)
 
         # Download xe-phase-3/source-1.iso and xe-phase-3/source-4.iso.
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.ignoreRpmPackagesFromComparison()
 
@@ -1538,7 +1543,8 @@ class TCDLVMSourceCheck(SourceISOCheck): # TC-17999
         self.setInstalledRpmPackages(installedRpmList)
 
         # Download xe-phase-3/source-dlvm.iso
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.ignoreRpmPackagesFromComparison()
 
@@ -1602,7 +1608,8 @@ class TCVPXWLBSourceCheck(SourceISOCheck): # TC-18000
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-wlb.iso
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.compareRpmPackages()
 
@@ -1691,7 +1698,8 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-conversion.iso
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.compareRpmPackages()
 
@@ -1752,7 +1760,8 @@ class TCDVSControllerSourceCheck(SourceISOCheck): # TC-18002
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-dvsc.iso
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.compareRpmPackages()
 
@@ -1760,7 +1769,7 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
     """Verify DDK iso (xe-phase-3/source-ddk.iso) content for missing RPMs."""
 
     APPLIANCE_NAME = "DDK VM"
-    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
 
     # In addition to the list of base packages, we have ...
     IGNORE_EXTRA_RPM_PACKAGES = ['PyPAM', 'SDL', 'biosdevname', 'blktap', 'dbus', 'device-mapper-multipath', 
@@ -1786,9 +1795,40 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
         self.ignoreRpmPackagesFromComparison()
 
         # Download xe-phase-3/source-ddk.iso
-        self.setSourceRpmPackages()
+        if not self.setSourceRpmPackages():
+            return # Test is skipping
 
         self.compareRpmPackages()
+
+
+class TCDDKVmLifecycleOperation(TCDDKSourceCheck):
+    """TC-21158 Verify DDK VM Lifecycle Operation, Storage and Network tests"""
+
+    def run(self, arglist=None):
+        # Import the DDK VM from "ddk.iso"
+        cli = self.host.getCLIInstance()
+        log("Import the DDK VM")
+        ddkVM = self.host.importDDK()
+        eth = ddkVM.createVIF(bridge=self.host.getPrimaryBridge())
+        ddkVM.start()
+        # Perform lifecycle operation
+        log("Performing lifecycle operations on DDK VM")
+        ddkVM.reboot()
+        ddkVM.shutdown()
+        ddkVM.start()
+        ddkVM.suspend(extraTimeout=3600)
+        ddkVM.resume()
+        ddkVM.migrateVM(self.host, live="true")
+        log("Performing network tests on DDK VM")
+        # Do vif plug/unplug
+        ddkVM.unplugVIF(eth)
+        ddkVM.plugVIF(eth)
+        ddkVM.reboot()
+        log("Performing storage tests on DDK VM")
+        # Do vbd plug/unplug
+        userdevice = ddkVM.createDisk(sizebytes=268435456)
+        ddkVM.unplugDisk(userdevice)
+    
 
 class TCDXenAPISDKSourceCheck(SourceISOCheck): # TC-18004
     """Verify Xen API SDK source iso (xe-phase-3/source-sdk.iso) content for missing RPMs."""

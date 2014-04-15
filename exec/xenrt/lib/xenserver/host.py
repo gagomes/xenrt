@@ -71,7 +71,7 @@ CLI_NATIVE = 3          # New style CLI
 def hostFactory(hosttype):
     if hosttype == "Sarasota":
         return xenrt.lib.xenserver.SarasotaHost
-    elif hosttype == "Clearwater":
+    elif hosttype in ("Clearwater", "Creedence"):
         return xenrt.lib.xenserver.ClearwaterHost
     elif hosttype in ("Tampa", "Tallahassee"):
         return xenrt.lib.xenserver.TampaHost
@@ -86,7 +86,7 @@ def hostFactory(hosttype):
     return xenrt.lib.xenserver.Host
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Sarasota"):
+    if mastertype in ("Clearwater", "Creedence", "Sarasota"):
         return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
@@ -4334,6 +4334,10 @@ done
             self.setHostParam("other-config:rrd_update_interval", "2")
             self.execdom0("/opt/xensource/bin/xe-toolstack-restart")
         self.storageLinkTailor()
+        if self.lookup("DEBUG_CP7440", False, boolean=True):
+            # Start a flow count script
+            xenrt.TEC().logverbose("Starting flowCheck.sh to monitor the OVS flow table size")
+            self.execdom0("%s/flowCheck.sh > /dev/null 2>&1 < /dev/null &" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
 
     def storageLinkTailor(self):            
         if self.execdom0("test -e /opt/Citrix/StorageLink/bin", retval="code") == 0:
@@ -11891,10 +11895,8 @@ done
             pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
 
-        
     def tailorForCloudStack(self):
         # Set the Linux templates with PV args to autoinstall
-
         myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
 
         args = {}
@@ -11903,14 +11905,40 @@ done
         args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
         args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
 
+        args["Ubuntu Lucid Lynx 10.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Lucid Lynx 10.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Precise Pangolin 12.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Precise Pangolin 12.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["Red Hat Enterprise Linux 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
+        args["CentOS 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
+        args["Oracle Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
         for a in args.keys():
             uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
             if len(uuids) == 0:
                 xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
                 continue
             self.genParamSet("template", uuids[0], "PV-args", args[a])
-
-
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):
@@ -12249,6 +12277,14 @@ class EXTStorageRepository(StorageRepository):
 
     def create(self, device, physical_size=0, content_type=""):
         self._create("ext", {"device":device})
+
+class LVMStorageRepository(StorageRepository):
+
+    SHARED = False
+    CLEANUP = "destroy"
+
+    def create(self, device, physical_size=0, content_type=""):
+        self._create("lvm", {"device":device})
 
 class IntegratedCVSMStorageRepository(StorageRepository):
     SHARED = True

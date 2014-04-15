@@ -14,6 +14,14 @@ class XLToolstack(object):
         # XL only works with Xen, so we will always be returning Xen
         return xenrt.HypervisorType.xen
 
+    def instanceSupportedLifecycleOperations(self, instance):
+        ops = [xenrt.LifecycleOperation.start,
+               xenrt.LifecycleOperation.stop,
+               xenrt.LifecycleOperation.reboot,
+               xenrt.LifecycleOperation.livemigrate,
+               xenrt.LifecycleOperation.suspend,
+               xenrt.LifecycleOperation.resume]
+
     def startInstance(self, instance, on):
         host = self.hosts[0] # TODO: use on to identify the right host
         host.createInstance(self.generateXLConfig(instance), instance.toolstackId)
@@ -244,6 +252,9 @@ disk = [ %s ]
         # TODO: handle paused / crashed etc
         return xenrt.PowerState.up
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        raise xenrt.XRTError("Not implemented")
+    
     def ejectInstanceIso(self, instance):
         raise xenrt.XRTError("Not implemented")
 

@@ -33,6 +33,19 @@ class CloudStack(object):
         # TODO actually determine what hypervisor is selected for the given instance
         return xenrt.HypervisorType.xen
 
+    def instanceSupportedLifecycleOperations(self, instance):
+        ops = [xenrt.LifecycleOperation.start,
+               xenrt.LifecycleOperation.stop,
+               xenrt.LifecycleOperation.reboot,
+               xenrt.LifecycleOperation.destroy,
+               xenrt.LifecycleOperation.snapshot]
+
+        if not isinstance(instance.os, xenrt.lib.opsys.WindowsOS) or \
+                (instance.extraConfig.has_key("CCP_PV_TOOLS") and instance.extraConfig['CCP_PV_TOOLS']):
+            ops.append(xenrt.LifecycleOperation.livemigrate)
+        
+        return ops
+
     def createInstance(self,
                        distro,
                        name=None,
@@ -44,31 +57,47 @@ class CloudStack(object):
                        startOn=None,
                        installTools=True,
                        useTemplateIfAvailable=True):
-
+        
         if not name:
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
+    
+        template = None        
 
-        supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
+        # If we can use a template and it exists, use it
+        if useTemplateIfAvailable:
+            templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
+            if templateDir:
+                url = "%s/%s.vhd.bz2" % (templateDir, distro)
+                if xenrt.TEC().fileExists(url):
+                    self.marvin.addTemplateIfNotPresent(distro, url)
+                    template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
+            # If we use a template, we can't specify the disk size
+            diskOffering=None        
 
-        for m in supportedInstallMethods:
-            if m in instance.os.supportedInstallMethods:
-                instance.os.installMethod = m
-                break
+        # If we don't have a template, do ISO instead
+        if not template:
+            self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+            template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
+            supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
 
-        if not instance.os.installMethod:
-            raise xenrt.XRTError("No compatible install method found")
+            for m in supportedInstallMethods:
+                if m in instance.os.supportedInstallMethods:
+                    instance.os.installMethod = m
+                    break
 
-        self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+            if not instance.os.installMethod:
+                raise xenrt.XRTError("No compatible install method found")
+            # TODO support different disk offerings
+            #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
+            diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
+
 
         zone = Zone.list(self.marvin.apiClient)[0].id
         # TODO support different service offerings
-        svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
+        #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
+        svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
-        # TODO support different disk offerings
-        diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id
-
-        template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
         rsp = VirtualMachine.create(self.marvin.apiClient, {
@@ -86,15 +115,20 @@ class CloudStack(object):
 
         xenrt.TEC().logverbose("Starting VM")
 
-        self.startInstance(instance)
+        # If we don't have an install method, we created this from a template, so we just need to start it.
+        if not instance.os.installMethod:
+            instance.start()
+        else:
+            self.startInstance(instance)
 
-        if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-            xenrt.TEC().logverbose("Generating answer file")
-            instance.os.generateIsoAnswerfile()
+            if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                xenrt.TEC().logverbose("Generating answer file")
+                instance.os.generateIsoAnswerfile()
 
-        xenrt.TEC().logverbose("Waiting for install complete")
-        instance.os.waitForInstallCompleteAndFirstBoot()
+            xenrt.TEC().logverbose("Waiting for install complete")
+            instance.os.waitForInstallCompleteAndFirstBoot()
         
+        # We don't install the tools as part of template generation, so install these all the time
         if installTools:
             self.installPVTools(instance)
 
@@ -108,9 +142,15 @@ class CloudStack(object):
         distro = [x.value for x in tags if x.key=="distro"][0]
 
         # TODO: Sort out the other arguments here
-        instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
+        instance = xenrt.lib.Instance(toolstack=self,
+                                      name=name,
+                                      distro=distro,
+                                      vcpus=0,
+                                      memory=0)
         instance.toolstackId = vm.id
         instance.populateFromExisting()
+        # TODO: Assuming for now the PV tools are installed
+        instance.extraConfig['CCP_PV_TOOLS'] = True
         return instance
 
     def destroyInstance(self, instance):
@@ -119,6 +159,21 @@ class CloudStack(object):
         cmd.expunge = True
         self.marvin.apiClient.destroyVirtualMachine(cmd)
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        if isoRepo:
+            self.marvin.addIsoIfNotPresent(None, isoName, isoRepo)
+        listIsosC = listIsos.listIsosCmd()
+        listIsosC.name=isoName
+        isoId = self.marvin.apiClient.listIsos(listIsosC)[0].id
+
+        attachIsoC = attachIso.attachIsoCmd()
+        attachIsoC.id = isoId
+        attachIsoC.virtualmachineid = instance.toolstackId
+        self.marvin.apiClient.attachIso(attachIsoC)
+
+        # Allow the CD to appear
+        xenrt.sleep(30)
+
     def installPVTools(self, instance):
         try:
             installer = xenrt.lib.cloud.pvtoolsinstall.pvToolsInstallerFactory(self, instance)
@@ -126,6 +181,7 @@ class CloudStack(object):
             xenrt.TEC().logverbose("No PV tools installer found for instance")
         else:
             installer.install()
+            instance.extraConfig['CCP_PV_TOOLS'] = True
 
     def getInstanceIP(self, instance, timeout, level):
         cmd = listNics.listNicsCmd()
@@ -251,3 +307,43 @@ class CloudStack(object):
         cmd = revertToVMSnapshot.revertToVMSnapshotCmd()
         cmd.vmsnapshotid = self.getSnapshotId(instance, name)
         self.marvin.apiClient.revertToVMSnapshot(cmd)
+
+    def downloadTemplate(self, templateName, downloadLocation):
+        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
+        cmd = extractTemplate.extractTemplateCmd()
+        cmd.mode = "HTTP_DOWNLOAD"
+        cmd.id = template
+        rsp = self.marvin.apiClient.extractTemplate(cmd)
+        xenrt.util.command("wget -nv '%s' -O '%s'" % (rsp.url, downloadLocation))
+        
+    def findOrCreateServiceOffering(self, cpus, memory):               
+        svcOfferingExist = [x for x in ServiceOffering.list(self.marvin.apiClient) if x.cpunumber == cpus and x.memory == memory]        
+        if svcOfferingExist :
+            return svcOfferingExist[0].id
+        else :
+            cmd = {}
+            cmd["cpunumber"]= cpus
+            cmd["memory"] = memory
+            cmd["name"] = "CPUs=%d ,Memory=%d MB offering" %(cpus,memory)
+            cmd["displaytext"] = "New Offering"
+            cmd["cpuspeed"] = 1000
+            xenrt.TEC().logverbose("Creating New Service Offering ")
+            svcOfferingNew = ServiceOffering.create(self.marvin.apiClient,cmd)
+            return svcOfferingNew.id       
+        
+    def findOrCreateDiskOffering(self, disksize):
+        xenrt.log("Inside the disk Offering")        
+        diskOfferingExist = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == disksize]        
+        if diskOfferingExist :
+            return diskOfferingExist[0].id
+        else :
+            cmd = {}
+            cmd["name"]="Disk=%d GB offering" %disksize
+            cmd["displaytext"]="Disk Offering"            
+            cmd["disksize"] = disksize
+            xenrt.TEC().logverbose("Creating new Disk OFfering ")
+            diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
+            return diskOfferingNew.id
+
+
+

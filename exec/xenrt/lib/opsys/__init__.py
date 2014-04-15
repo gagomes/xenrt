@@ -10,8 +10,9 @@ class OS(object):
                           xenrt.interfaces.InstallMethodIso: xenrt.InstallMethod.Iso,
                           xenrt.interfaces.InstallMethodIsoWithAnswerFile: xenrt.InstallMethod.IsoWithAnswerFile}
 
-    def __init__(self, parent):
-        self.parent = parent
+    def __init__(self, distro, parent):
+        self.parent = xenrt.interfaces.OSParent(parent)
+        self.distro = distro
         self.password = None
         self.viridian = False
         self.__installMethod = None
@@ -56,3 +57,6 @@ __all__ = ["OS", "registerOS"]
 from xenrt.lib.opsys.linux import *
 from xenrt.lib.opsys.debian import *
 from xenrt.lib.opsys.windows import *
+from xenrt.lib.opsys.windowspackages import *
+from xenrt.lib.opsys.rhel import *
+

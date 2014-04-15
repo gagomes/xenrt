@@ -14,6 +14,9 @@ def setupNetPeer(netpeer, config):
     tp = config.lookup(["TTCP_PEERS",netpeer])
     mac = tp["MAC"]
     addr = tp["ADDRESS"]
+    intf = "eth0"
+    if tp.has_key("INTERFACE"):
+        intf = tp['INTERFACE']
 
     print "Configuring network test peer %s" % (netpeer)
 
@@ -27,7 +30,7 @@ def setupNetPeer(netpeer, config):
     h.memory = None
     h.vcpus = None
  
-    h.installLinuxVendor("centos64",extrapackages=["xinetd"],kickstart="centos6")
+    h.installLinuxVendor("centos65",extrapackages=["xinetd"],kickstart="centos6")
     print "Centos Installed, tailoring..."
     h.tailor()
     print "Tailoring complete, installing netperf and iperf..."
@@ -67,34 +70,61 @@ def setupNetPeer(netpeer, config):
     sftp = h.sftpClient()
     h.execdom0("modprobe 8021q")
 
+    mask = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"])
+    gw = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
+   
+    h.execdom0("sed -i '/GATEWAY/d' /etc/sysconfig/network")
+    h.execdom0("echo 'GATEWAY=%s' >> /etc/sysconfig/network" % gw)
+
+    netConf = """DEVICE=%s
+BOOTPROTO=static
+IPADDR=%s
+NETMASK=%s
+ONBOOT=yes
+TYPE=Ethernet
+""" % (intf,addr,mask)
+    ifcfg = xenrt.TEC().tempFile()
+    f = file(ifcfg, "w")
+    f.write(netConf)
+    f.close()
+    sftp.copyTo(ifcfg, 
+                "/etc/sysconfig/network-scripts/ifcfg-%s" % intf)
+
     if tp.has_key("VLANS"):
         vlans = tp["VLANS"]
         for vlan in vlans.split(","):
             (vid, net) = vlan.split(":",1)
             (ip, mask) = net.split("/",1)
-            netConf = """DEVICE=eth0.%s
+            netConf = """DEVICE=%s.%s
 BOOTPROTO=static
 IPADDR=%s
 NETMASK=%s
 ONBOOT=yes
 TYPE=Ethernet
 VLAN=yes
-""" % (vid,ip,mask)
+""" % (intf,vid,ip,mask)
             ifcfg = xenrt.TEC().tempFile()
             f = file(ifcfg, "w")
             f.write(netConf)
             f.close()
             sftp.copyTo(ifcfg, 
-                        "/etc/sysconfig/network-scripts/ifcfg-eth0.%s" % (vid))
+                        "/etc/sysconfig/network-scripts/ifcfg-%s.%s" % (intf,vid))
             # And set it up for now
-            h.execdom0("vconfig add eth0 %s" % (vid))
-            h.execdom0("ifconfig eth0.%s %s netmask %s up" % (vid,ip,mask))
+            h.execdom0("vconfig add %s %s" % (intf, vid))
+            h.execdom0("ifconfig %s.%s %s netmask %s up" % (intf,vid,ip,mask))
             print "Configured vlan %s" % (vid)
+
+
 
     # Set up the cleanup script (kills any netserver procs over 7 days old)
     h.execdom0("echo '30 2 * * * root %s/cleanupNetperf.py' >> /etc/crontab" %
                (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-    h.execdom0("/etc/init.d/crond restart")
+
+
+    h.execdom0("sed -i '/UseDNS/d' /etc/ssh/sshd_config")
+    h.execdom0("echo 'UseDNS no' >> /etc/ssh/sshd_config")
+
+    h.reboot()
 
     print "%s has been successfully set up." % (netpeer)
 

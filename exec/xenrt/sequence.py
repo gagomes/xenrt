@@ -969,12 +969,28 @@ class PrepareNode:
         xenrt.TEC().logverbose('Allocate Pools from ID: %d' % (poolIdIndex))
 
         for zone in self.cloudSpec['zones']:
-            
-            for pod in zone['pods']:
+#TODO - Remove
+            if not zone.has_key('physical_networks'):
+                xenrt.TEC().warning('LEGACY_CLOUD_BLOCK add physical_networks element to legacy cloud block')
+                zone['physical_networks'] = [ { "name": "BasicPhyNetwork" } ]
 
+            for pod in zone['pods']:
+#TODO - Remove
+                if pod.has_key('managementIpRangeSize'):
+                    xenrt.TEC().warning('LEGACY_CLOUD_BLOCK managementIpRangeSize no longer valid - use XRT_PodIPRangeSize')
+                    pod['XRT_PodIPRangeSize'] = pod.pop('managementIpRangeSize')
+                if zone['networktype'] == 'Basic' and not pod.has_key('guestIpRanges'):
+                    xenrt.TEC().warning('LEGACY_CLOUD_BLOCK add guestIpRanges element to Basic Zone pods')
+                    pod['guestIpRanges'] = [ { } ]
+                    
                 for cluster in pod['clusters']:
-                    if not cluster.has_key('masterHostId'):
-                        hostIds = range(hostIdIndex, hostIdIndex + cluster['hosts'])
+#TODO - Remove
+                    if cluster.has_key('hosts'):
+                        xenrt.TEC().warning('LEGACY_CLOUD_BLOCK hosts no longer valid - use XRT_Hosts')
+                        cluster['XRT_Hosts'] = cluster.pop('hosts')
+
+                    if not cluster.has_key('XRT_MasterHostId'):
+                        hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                         poolId = poolIdIndex
 
                         simplePoolNode = xml.dom.minidom.Element('pool')
@@ -986,12 +1002,12 @@ class PrepareNode:
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
-                        hostIdIndex += cluster['hosts']
+                        hostIdIndex += cluster['XRT_Hosts']
                         poolIdIndex += 1
 
                         self.handlePoolNode(simplePoolNode, params)
                         poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
-                        cluster['masterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
+                        cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
     
 
     def handlePoolNode(self, node, params):

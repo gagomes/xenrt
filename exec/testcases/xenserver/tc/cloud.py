@@ -1132,3 +1132,22 @@ class TCCloudUpgrade(TCCloudScale):
         setattr(pool_upgrade, "upgradeHook", self)
         self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
 
+class TCCloudAllocateResources(xenrt.TestCase):
+    def run(self, arglist):
+        xenrt.TEC().comment('DNS:     %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0])
+        xenrt.TEC().comment('GATEWAY: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY']))
+        xenrt.TEC().comment('NETMASK: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK']))
+
+        manIP = xenrt.resources.getResourceRange('IP4ADDR', 10)
+        xenrt.TEC().comment('MANAGEMENT ADDR RANGE: %s -> %s' % (manIP[0].getAddr(), manIP[-1].getAddr()))
+        guestIP = xenrt.resources.getResourceRange('IP4ADDR', 10)
+        xenrt.TEC().comment('GUEST ADDR RANGE: %s -> %s' % (guestIP[0].getAddr(), guestIP[-1].getAddr()))
+
+        secondaryStorage = xenrt.ExternalNFSShare()
+        primaryStorage = xenrt.ExternalNFSShare()
+        xenrt.TEC().comment('SECONDARY STORAGE: %s' % (secondaryStorage.getMount()))
+        xenrt.TEC().comment('PRIMARY STORAGE:   %s' % (primaryStorage.getMount()))
+
+        pool = self.getDefaultPool()
+        xenrt.TEC().comment('XS MASTER IP ADDR: %s' % (pool.master.getIP()))
+

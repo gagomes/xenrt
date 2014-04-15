@@ -2513,7 +2513,7 @@ class PhysicalHost:
         return
 
     def exitPowerOff(self):
-        if not self.poweredOffAtExit:
+        if not xenrt.TEC().lookup("NO_HOST_POWEROFF", False, boolean=True) and not self.poweredOffAtExit:
             self.poweredOffAtExit = True
             self.powerctl.off()
 

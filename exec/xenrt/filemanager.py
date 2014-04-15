@@ -100,7 +100,8 @@ class FileManager:
                 return False
             basedir = self._getBaseDir()
             if not basedir:
-                raise xenrt.XRTError("No base directory.")
+                xenrt.TEC().logverbose("No base directory.")
+                return False
             path = "%s/%s" % (basedir, f)
             xenrt.TEC().logverbose("... %s" % (path))
             if os.path.exists(path):

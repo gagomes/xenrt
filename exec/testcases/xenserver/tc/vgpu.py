@@ -309,7 +309,7 @@ class _VGPUTest(xenrt.TestCase, object):
         return None
 
     def installGuestDrivers(self, guest):
-        guest.installNvidiaVGPUDriver(DriverType.Unsigned)
+        guest.installNvidiaVGPUDriver(DriverType.Signed)
 
     def installHostDrivers(self):
         for host in self.getAllHosts():
@@ -377,7 +377,7 @@ class TCVGPUSetup(_VGPUTest):
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
         self.guest.setState("UP")
-        self.guest.installNvidiaVGPUDriver(DriverType.Unsigned)
+        self.guest.installNvidiaVGPUDriver(DriverType.Signed)
 
         if "PassThrough" in self.args['vgpuconfig']:
             autoit = self.guest.installAutoIt()
@@ -1035,7 +1035,7 @@ class _VGPUScalabilityTest(_VGPUBenchmarkTest):
         
         step("Reboot all hosts repeatedly for %d secs" % self.__ONE_DAY_SECS)
         while time.time() < end:
-            self._run_workload(arglist)
+            self._runWorkload(arglist)
             if self.__bootstorm:
                 log("Reboot as bootstorm")
                 self.rebootAllVMs()
@@ -1048,7 +1048,7 @@ class _VGPUScalabilityTest(_VGPUBenchmarkTest):
         step("End of the test: Shutting down all VMs and getting the /proc/meminfo")
         self._measureMetric()
 
-    def _run_workload(self, arglist):
+    def _runWorkload(self, arglist):
         super(_VGPUScalabilityTest, self).run(arglist)
 
              
@@ -3669,7 +3669,7 @@ class TCinstallNVIDIAGuestDrivers(xenrt.TestCase):
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
-        g.installNvidiaVGPUDriver(DriverType.Unsigned)
+        g.installNvidiaVGPUDriver(DriverType.Signed)
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 

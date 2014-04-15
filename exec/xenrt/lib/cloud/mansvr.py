@@ -61,6 +61,9 @@ class ManagementServer(object):
                 self.restart(checkHealth=False, startStop=(reboots > 0))
                 reboots += 1
 
+        if not managementServerOk:
+            raise xenrt.XRTFailure('Management Server not reachable')
+
     def restart(self, checkHealth=True, startStop=False):
         if not startStop:
             self.place.execcmd('service %s-management restart' % (self.cmdPrefix))
@@ -97,8 +100,23 @@ class ManagementServer(object):
 
             self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
+            templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2": "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+
+            for t in templateSubsts.keys():
+                self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
+        xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
+
+    def installApacheProxy(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            self.place.execcmd("yum -y install httpd")
+            self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
+            self.place.execcmd("chkconfig httpd on")
+            self.place.execcmd("service httpd restart")
+
 
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':
@@ -123,6 +141,7 @@ class ManagementServer(object):
 
             self.setupManagementServerDatabase()
             self.setupManagementServer()
+            self.installApacheProxy()
 
     def getLatestMSArtifactsFromJenkins(self):
         jenkinsUrl = 'http://jenkins.buildacloud.org'
@@ -186,3 +205,10 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
 
+    def installCloudManagementServer(self):
+        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+            self.installCloudPlatformManagementServer()
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+            self.installCloudStackManagementServer()
+        else:
+            raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')

@@ -117,7 +117,7 @@ class _ImpExpBase(xenrt.TestCase):
             guest.start()
             guest.check()
 
-    def createGuest(self, host, distro=None, srtype=None, disksize=None):
+    def createGuest(self, host, distro=None, arch=None, srtype=None, disksize=None):
         """Create a guest to be exported, return the guest object"""
         sr = None
         if srtype:
@@ -129,7 +129,7 @@ class _ImpExpBase(xenrt.TestCase):
             if disksize:
                 raise xenrt.XRTError("TC does not support override of "
                                      "disk size for default distro")
-            guest = host.createGenericLinuxGuest(sr=sr)
+            guest = host.createGenericLinuxGuest(arch=arch, sr=sr)
             self.getLogsFrom(guest)
             guest.preCloneTailor()
             return guest
@@ -335,7 +335,12 @@ class _ImpExpBase(xenrt.TestCase):
 
 
     def preRun(self, host):
-        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO)
+        arch = None
+        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
+        hostarch = host.execdom0("uname -m").strip()
+        if hostarch.endswith("64"):
+            arch="x86-64"
+        self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=arch)
         self.guestsToClean.append(self.cliguest)
         if self.CLIDISTRO in ["debian","sarge","etch"] or not self.CLIDISTRO:
             # Need to add an extra disk, as root one is too small

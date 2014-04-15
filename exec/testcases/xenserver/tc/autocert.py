@@ -47,7 +47,7 @@ class _XSAutoCertKit(xenrt.TestCase):
             if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
                 branch = "trunk"
             elif "x86_64" in host.execdom0("uname -a"):
-                branch = "creedence"
+                branch = "clearwater-sp1-64bit-expr"
             else:
                 branch = "clearwater-lcm"
             build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()

@@ -253,6 +253,7 @@ knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
 mconfig = None
+installguest = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -333,6 +334,7 @@ try:
                                       'max-age=',
                                       'install-host=',
                                       'install-linux=',
+                                      'install-guest=',
                                       'cleanup-shared-hosts',
                                       'poweroff=',
                                       'poweron=',
@@ -673,6 +675,11 @@ try:
             remote = True
             installlinux = True
             setvars.append(("RESOURCE_HOST_0", value))
+            verbose = True
+            aux = True
+        elif flag == "--install-guest":
+            remote = True
+            installguest = value
             verbose = True
             aux = True
         elif flag == "--cleanup-shared-hosts":
@@ -1717,6 +1724,36 @@ if installlinux:
     h = xenrt.lib.native.NativeLinuxHost(m)
     h.installLinuxVendor(distro, arch=arch)
 
+if installguest:
+    xenrt.TEC().logdir = xenrt.resources.LogDirectory()
+    distro = config.lookup("DEFAULT_GUEST_DISTRO")
+    dd = distro.rsplit("-", 1)
+    if len(dd) == 2 and dd[1] == "x64":
+        arch = "x86-64"
+        distro = dd[0]
+    else:
+        arch = "x86-32"
+
+    parts = installguest.split("/")
+
+    hostAddr = parts[0]
+    if len(parts) > 1:
+        password = parts[1]
+    else:
+        password = None
+
+
+    machine = xenrt.PhysicalHost("RouterHost", ipaddr = hostAddr)
+    place = xenrt.GenericHost(machine)
+    if password:
+        place.password = password
+    else:
+        place.findPassword()
+    place.checkVersion()
+    host = xenrt.lib.xenserver.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+    place.populateSubclass(host)
+    host.existing()
+    host.createBasicGuest(distro, arch=arch)
 
 if cleanupsharedhosts:
     # Setup logdir

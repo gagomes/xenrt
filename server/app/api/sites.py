@@ -25,7 +25,7 @@ class XenRTSitePage(XenRTAPIPage):
         cur.execute(sql)
         if not cur.fetchone():
             if not createNew:
-                return "ERROR Site does not exist"
+                raise Exception("Could not find site '%s'" % (site))
             # Need to create a new record
             sql = "INSERT into tblSites (site) VALUES ('%s')" % (app.utils.sqlescape(site))
             cur.execute(sql)

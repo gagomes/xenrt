@@ -17,12 +17,15 @@ class XenRTSitePage(XenRTAPIPage):
                         ctrladdr,
                         adminid,
                         maxjobs,
-                        sharedresources):
+                        sharedresources,
+                        createNew=False):
         db = self.getDB()
         cur = db.cursor()
         sql = "SELECT site FROM tblSites WHERE site = '%s'" % (site)
         cur.execute(sql)
         if not cur.fetchone():
+            if not createNew:
+                return "ERROR Site does not exist"
             # Need to create a new record
             sql = "INSERT into tblSites (site) VALUES ('%s')" % (app.utils.sqlescape(site))
             cur.execute(sql)
@@ -133,7 +136,7 @@ class XenRTSDefine(XenRTSitePage):
                 maxjobs = int(form["maxjobs"])
             if not site:
                 return "ERROR missing field"
-            self.scm_site_update(site, status, flags, descr, comment, ctrladdr, adminid, maxjobs, None)
+            self.scm_site_update(site, status, flags, descr, comment, ctrladdr, adminid, maxjobs, None, createNew=True)
             # Add a pseudohost for running host-less jobs
             machine = "_%s" % (site)
             self.scm_machine_update(machine,
@@ -318,3 +321,4 @@ PageFactory(XenRTSList, "slist", "/api/site/list", compatAction="slist")
 PageFactory(XenRTSite, "site", "/api/site/details", compatAction="site")
 PageFactory(XenRTSDefine, "sdefine", "/api/site/define", compatAction="sdefine")
 PageFactory(XenRTSUpdate, "supdate", "/api/site/update", compatAction="supdate")
+PageFactory(XenRTSUnDefine, "sundefine", "/api/site/undefine", compatAction="sundefine")

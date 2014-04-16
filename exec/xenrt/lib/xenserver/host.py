@@ -1444,11 +1444,17 @@ if [ "x$(readlink boot/xen.gz)" = "x$(readlink boot/xen-debug.gz)" ]
 then
     # Remove the trailing '-d' in the filename stem
     NON_DEBUG_XEN=$(basename $(readlink boot/xen.gz) -d.gz).gz
-    if [ -e "boot/${NON_DEBUG_XEN}" ]
-    then
-        rm -f boot/xen.gz
-        ln -s /boot/${NON_DEBUG_XEN} boot/xen.gz
-    fi
+
+# or if the symlink is from xen.gz to xen-debug.gz (as since CP-7811)
+elif [ "x$(readlink boot/xen.gz)" = "xxen-debug.gz" ]
+then
+    NON_DEBUG_XEN=$(basename $(readlink boot/xen-debug.gz) -d.gz).gz
+fi
+
+if [ -e "boot/${NON_DEBUG_XEN}" ]
+then
+    rm -f boot/xen.gz
+    ln -s ${NON_DEBUG_XEN} boot/xen.gz
 fi
 """
 

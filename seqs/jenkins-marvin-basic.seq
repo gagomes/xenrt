@@ -1,0 +1,47 @@
+<xenrt>
+  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Basic networking mode testing -->
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
+  </variables>
+
+  <prepare>
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 5,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 10 }
+              ],
+              "clusters": [
+                { "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ]
+      }
+    </cloud>
+    
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+  </prepare>
+</xenrt>
+

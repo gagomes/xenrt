@@ -110,7 +110,7 @@ class MarvinDeployer(object):
 
     def _notifyFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
         for notifyField in self.CONFIG_SCHEMA[elementKey]['notify']:
-            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]):
+            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]) and elementRef.has_key(notifyField):
                 getattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField])(self.CONFIG_SCHEMA[elementKey]['abstractName'], elementRef[notifyField])
 
     def _processConfigElement(self, element, parentName, deployer):

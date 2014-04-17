@@ -84,6 +84,10 @@ class MarvinApi(object):
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
+    def waitForBuiltInTemplatesReady(self):
+        templateList = Template.list(self.apiClient, templatefilter='all', type='BUILTIN')
+        map(lambda x:self.waitForTemplateReady(x.name), templateList)
+
     def waitForTemplateReady(self, name):
         templateReady = False
         startTime = datetime.now()

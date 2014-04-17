@@ -1,5 +1,5 @@
 <xenrt>
-  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Basic networking mode testing -->
+  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
@@ -13,15 +13,35 @@
   <prepare>
     <cloud>
       { "zones": [
-        { "networktype": "Basic",
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
           "physical_networks": [
-            { "name": "BasicPhyNetwork" }
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 2,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 10 }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 5,
-              "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 10 }
-              ],
               "clusters": [
                 { "XRT_Hosts": 2 }
               ]

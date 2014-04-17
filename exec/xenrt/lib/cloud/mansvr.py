@@ -62,6 +62,9 @@ class ManagementServer(object):
                 reboots += 1
 
         if not managementServerOk:
+            # Store the MS logs
+            unreachableLogDir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'healthFailure')
+            self.getLogs(unreachableLogDir)
             raise xenrt.XRTFailure('Management Server not reachable')
 
     def restart(self, checkHealth=True, startStop=False):

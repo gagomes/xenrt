@@ -11883,7 +11883,7 @@ done
 
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             # Check that we're not using a debugging-enabled Xen by seeing if the "debug=y" flag is present
-            if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code')
+            if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code'):
                 raise xenrt.XRTFailure("Booted a debug=y Xen when FORCE_NON_DEBUG_XEN flag was present")
      
     def postInstall(self):

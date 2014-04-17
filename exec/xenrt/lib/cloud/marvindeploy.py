@@ -16,8 +16,12 @@ class MarvinDeployException(Exception):
 class MarvinDeployer(object):
     CONFIG_SCHEMA = {
         'config': {
-          'abstractName': 'Config',
-          'required': { 'zones': None } },
+          'abstractName': 'MarvinConfig',
+          'required': { 'zones': None },
+          'notify':   { 'globalConfig': 'notifyGlobalConfigChanged' } },
+        'globalConfig': {
+          'abstractName': 'MgmtSvrGlobalConfig',
+          'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
           'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },

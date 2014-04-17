@@ -3,6 +3,7 @@ import logging
 import os, urllib
 from datetime import datetime
 import shutil
+import pprint
 
 import xenrt.lib.cloud
 from xenrt.lib.cloud.marvindeploy import MarvinDeployer
@@ -168,6 +169,9 @@ class DeployerPlugin(object):
     def notifyNetworkTrafficTypes(self, key, value):
         xenrt.TEC().logverbose('notifyNetworkTrafficTypes: key: %s, value %s' % (key, value))
 
+    def notifyGlobalConfigChanged(self, key, value):
+        xenrt.TEC().logverbose("notifyGlobalConfigChanged:\n" + pprint.pformat(value))
+        
 def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))
 
@@ -198,6 +202,10 @@ def deploy(cloudSpec, manSvr=None):
 
     # Create deployment
     marvinCfg.deployMarvinConfig()
+
+    # Restart MS incase any global config setting have been changed
+    manSvr.restart()
+
     # Get deployment logs from the MS
     manSvr.getLogs(deployLogDir)
 

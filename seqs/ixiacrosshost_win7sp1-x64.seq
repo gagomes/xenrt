@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
   </variables>
 
   <scheduler>

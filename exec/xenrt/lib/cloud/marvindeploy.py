@@ -1,6 +1,7 @@
 
 import pprint
 import json
+import copy
 try:
     from marvin import deployDataCenter
     from marvin import jsonHelper
@@ -102,7 +103,7 @@ class MarvinDeployer(object):
 
                 if value == None:
                     if self.CONFIG_SCHEMA[elementKey].has_key('defaults') and self.CONFIG_SCHEMA[elementKey]['defaults'].has_key(requiredField):
-                        value = self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField]
+                        value = copy.deepcopy(self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField])
                     else:
                         raise MarvinDeployException('No value avaialble for required field [%s - %s]' % (elementKey, requiredField))
 

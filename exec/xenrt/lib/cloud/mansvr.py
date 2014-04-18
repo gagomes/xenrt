@@ -19,6 +19,7 @@ class ManagementServer(object):
     def __init__(self, place):
         self.place = place
         self.cmdPrefix = 'cloudstack'
+        self.version = 'Unknown'
 
     def getLogs(self, destDir):
         sftp = self.place.sftpClient()
@@ -63,8 +64,10 @@ class ManagementServer(object):
 
         if not managementServerOk:
             # Store the MS logs
-            unreachableLogDir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'healthFailure')
-            self.getLogs(unreachableLogDir)
+            mgmtSvrHealthCheckFailedLogDir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'healthFailure')
+            if not os.path.exists(mgmtSvrHealthCheckFailedLogDir):
+                os.makedirs(mgmtSvrHealthCheckFailedLogDir)
+            self.getLogs(mgmtSvrHealthCheckFailedLogDir)
             raise xenrt.XRTFailure('Management Server not reachable')
 
     def restart(self, checkHealth=True, startStop=False):
@@ -96,6 +99,8 @@ class ManagementServer(object):
             self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
     def setupManagementServer(self):
+        self.installPackageDependancies()
+
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
             setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
@@ -208,10 +213,42 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
 
+    def determineManagementServerVersion(self):
+        # This method determines the version number of CloudStack or CloudPlatform being used.
+        # TODO - Need to find a better way of doing this
+        versionStrings = ['4.1', '4.2', '4.3', '4.4', 'master']
+        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+            versionsFound = filter(lambda x:x in xenrt.TEC().lookup("CLOUDINPUTDIR", None), versionStrings)
+            if len(versionsFound) == 1:
+                self.version = versionsFound[0]
+            elif len(versionsFound) > 1:
+                xenrt.TEC().logverbose('Multiple version strings matched %s: %s' % (xenrt.TEC().lookup("CLOUDINPUTDIR", None), versionsFound))
+            else:
+                xenrt.TEC().logverbose('No version strings matched %s' % (xenrt.TEC().lookup("CLOUDINPUTDIR", None)))
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+            if xenrt.TEC().lookup('ACS_BRANCH', None) in versionStrings:
+                self.version = xenrt.TEC().lookup('ACS_BRANCH', None)
+            else:
+                xenrt.TEC().logverbose('ACS branch version not recognised')
+        xenrt.TEC().comment('Using Management Server version: %s' % (self.version))
+
+    def installPackageDependancies(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            if self.version in ['4.4', 'master']:
+                # Update Java version
+                javaPackage = 'java-1.7.0-openjdk.x86_64'
+                self.place.execcmd('yum -y install %s' % (javaPackage))
+                javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+                self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
+
     def installCloudManagementServer(self):
+        self.determineManagementServerVersion()
+
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
         elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
             self.installCloudStackManagementServer()
         else:
             raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')
+
+

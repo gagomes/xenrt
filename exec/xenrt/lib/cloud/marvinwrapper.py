@@ -86,13 +86,13 @@ class MarvinApi(object):
 
     def waitForBuiltInTemplatesReady(self):
         templateList = Template.list(self.apiClient, templatefilter='all', type='BUILTIN')
-        map(lambda x:self.waitForTemplateReady(x.name), templateList)
+        map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
 
-    def waitForTemplateReady(self, name):
+    def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
         while((datetime.now() - startTime).seconds < 1800):
-            templateList = Template.list(self.apiClient, templatefilter='all', name=name)
+            templateList = Template.list(self.apiClient, templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
             elif len(templateList) == 1:

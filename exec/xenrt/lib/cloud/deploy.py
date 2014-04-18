@@ -37,10 +37,13 @@ class DeployerPlugin(object):
         nameValue = None
         if key == 'Zone':
             self.currentZoneIx += 1
+            self.currentPodIx = -1
+            self.currentClusterIx = -1
             nameValue = 'XenRT-Zone-%d' % (self.currentZoneIx)
         elif key == 'Pod':
             self.currentPodIx += 1
-            nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)            
+            self.currentClusterIx = -1
+            nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)
         elif key == 'Cluster':
             self.currentClusterIx += 1
             nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
@@ -200,15 +203,17 @@ def deploy(cloudSpec, manSvr=None):
         os.makedirs(deployLogDir)
     shutil.copy(fn, os.path.join(deployLogDir, 'marvin-deploy.cfg'))
 
-    # Create deployment
-    marvinCfg.deployMarvinConfig()
+    try:
+        # Create deployment
+        marvinCfg.deployMarvinConfig()
 
-    # Restart MS incase any global config setting have been changed
-    manSvr.restart()
+        # Restart MS incase any global config setting have been changed
+        manSvr.restart()
 
-    if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
-        marvinApi.waitForBuiltInTemplatesReady()
-    
-    # Get deployment logs from the MS
-    manSvr.getLogs(deployLogDir)
+        if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
+            marvinApi.waitForBuiltInTemplatesReady()
+    finally:
+        # Get deployment logs from the MS
+        manSvr.getLogs(deployLogDir)
+
 

@@ -61,8 +61,8 @@ class SUSEBasedLinux(LinuxOS):
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
                              installOn=self.parent.hypervisorType,
-                             pxe=False,
-                             rebootAfterInstall = False)
+                             pxe=False)
+#                             rebootAfterInstall = False)
 
         ks = ksf.generate()
         f = file(filename, "w")
@@ -84,8 +84,8 @@ class SUSEBasedLinux(LinuxOS):
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
                              installOn=self.parent.hypervisorType,
-                             pxe=False,
-                             rebootAfterInstall = False)
+                             pxe=False)
+#                             rebootAfterInstall = False)
 
         ks = ksf.generate()
         f = file(filename, "w")

@@ -60,8 +60,8 @@
       <marvintests path="smoke/test_disk_offerings.py" class="TestCreateDiskOffering" tags="basic" tc="TC-21099"/>
       <marvintests path="smoke/test_disk_offerings.py" class="TestDiskOfferings" tags="basic" tc="TC-21065"/>
       <marvintests path="smoke/test_global_settings.py" class="TestUpdateConfigWithScope" tags="basic" tc="TC-21126"/>
-      <marvintests path="smoke/test_iso.py" class="TestCreateIso" tags="basic" tc="TC-21060"/>
-      <marvintests path="smoke/test_iso.py" class="TestISO" tags="basic" tc="TC-21095"/>
+      <!--<marvintests path="smoke/test_iso.py" class="TestCreateIso" tags="basic" tc="TC-21060"/>
+      <marvintests path="smoke/test_iso.py" class="TestISO" tags="basic" tc="TC-21095"/>-->
       <marvintests path="smoke/test_multipleips_per_nic.py" class="TestDeployVM" tags="basic" tc="TC-21057"/>
       <marvintests path="smoke/test_nic.py" class="TestNic" tags="basic" tc="TC-21070"/>
       <marvintests path="smoke/test_over_provisioning.py" class="TestUpdateOverProvision" tags="basic" tc="TC-21033"/>
@@ -75,7 +75,7 @@
       <marvintests path="smoke/test_service_offerings.py" class="TestCreateServiceOffering" tags="basic" tc="TC-21090"/>
       <marvintests path="smoke/test_service_offerings.py" class="TestServiceOfferings" tags="basic" tc="TC-21071"/>
       <marvintests path="smoke/test_ssvm.py" class="TestSSVMs" tags="basic" tc="TC-21083"/>
-      <marvintests path="smoke/test_templates.py" class="TestTemplates" tags="basic" tc="TC-21069"/>
+      <!--<marvintests path="smoke/test_templates.py" class="TestTemplates" tags="basic" tc="TC-21069"/>-->
       <marvintests path="smoke/test_vm_iam.py" class="TestVMIam" tags="basic" tc="TC-21094"/>
       <marvintests path="smoke/test_vm_life_cycle.py" class="TestDeployVM" tags="basic" tc="TC-21092"/>
       <marvintests path="smoke/test_vm_life_cycle.py" class="TestVMLifeCycle" tags="basic" tc="TC-21067"/>

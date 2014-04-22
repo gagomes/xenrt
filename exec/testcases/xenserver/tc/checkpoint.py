@@ -882,7 +882,10 @@ class TC9217(_CheckpointOperation):
 
     def prepare(self, arglist):
         _CheckpointOperation.prepare(self, arglist)
-        self.cliguest = self.host.createGenericLinuxGuest()
+        hostarch = self.host.execdom0("uname -m").strip()
+        if hostarch.endswith("64"):
+            arch="x86-64"
+        self.cliguest = self.host.createGenericLinuxGuest(arch=arch)
         self.uninstallOnCleanup(self.cliguest)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",

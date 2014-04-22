@@ -145,10 +145,11 @@ class _ImpExpBase(xenrt.TestCase):
             guest.check()
             return guest
         else:
-            if re.search(r"64$", distro):
-                arch = "x86-64"
-            else:
-                arch = "x86-32"
+            if not arch:
+                if re.search(r"64$", distro):
+                    arch = "x86-64"
+                else:
+                    arch = "x86-32"
             disks = []
             if disksize:
                 disks.append(("0", disksize, False))

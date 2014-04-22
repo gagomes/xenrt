@@ -623,10 +623,11 @@ class TC6829(_ImpExpBase):
 class TC6830(_ImpExpBase):
     """Basic functional import/export test (extra VIFs+VBDs)"""
 
-    def createGuest(self, host, distro=None, srtype=None, disksize=None):
+    def createGuest(self, host, distro=None, arch=None, srtype=None, disksize=None):
         g = _ImpExpBase.createGuest(self,
                                     host,
                                     distro=distro,
+                                    arch = arch,
                                     srtype=srtype,
                                     disksize=disksize)
         # Add additional VIF and VBD

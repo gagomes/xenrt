@@ -51,6 +51,11 @@ class TCDEMUFuzzer(xenrt.TestCase):
             timeout = int(modifier)
             log("Using timeout from given submit command.")
 
+        modifier = xenrt.TEC().lookup("seed", None)
+        if modifier and modifier != "":
+            seed = modifier
+            log("Using seed from given submit command.")
+
         log("Create an empty guest with Windows 7 template")
         name = xenrt.randomGuestName()
         template = xenrt.lib.xenserver.getTemplate(self.host, "win7sp1")

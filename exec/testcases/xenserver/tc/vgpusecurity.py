@@ -37,20 +37,20 @@ class TCDEMUFuzzer(xenrt.TestCase):
 
     def run(self, arglist=[]):
         """Do testing tasks in run"""
-        
+
         # Read/initialize variables.
         args = xenrt.util.strlistToDict(arglist)
         iterations = args.get("iterations") or "0"
         logperiteration = args.get("logperiteration") or "1000"
-        timeout = args.get("timeout") or "60"
+        timeout = args.get("timeout") or "180"
         timeout = int(timeout)
-        seed = "%x" % random.randint(0, 0xffffffff)
-        
+        seed = args.get("seed") or "%x" % random.randint(0, 0xffffffff)
+
         modifier = xenrt.TEC().lookup("timeout", None)
         if modifier and modifier > 0:
             timeout = int(modifier)
             log("Using timeout from given submit command.")
-        
+
         log("Create an empty guest with Windows 7 template")
         name = xenrt.randomGuestName()
         template = xenrt.lib.xenserver.getTemplate(self.host, "win7sp1")

@@ -112,6 +112,10 @@ class RHELBasedLinux(LinuxOS):
     def defaultRootdisk(self):
         return 8 * xenrt.GIGA
 
+    @property
+    def defaultMemory(self):
+        return 1024
+
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down
 

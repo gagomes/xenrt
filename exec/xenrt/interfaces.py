@@ -6,6 +6,12 @@ class Toolstack(Interface):
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
+    def instanceResidentOn(instance):
+        """Return the place of residence of the current instance"""
+
+    def instanceCanMigrateTo(instance):
+        """Return a list of locations to which the instance can migrate"""
+
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 

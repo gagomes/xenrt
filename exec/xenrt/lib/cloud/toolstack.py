@@ -2,7 +2,7 @@ import xenrt
 import logging
 import os, urllib
 from datetime import datetime
-
+from xenrt.lazylog import log
 from zope.interface import implements
 
 import xenrt.lib.cloud
@@ -32,6 +32,14 @@ class CloudStack(object):
     def instanceHypervisorType(self, instance):
         # TODO actually determine what hypervisor is selected for the given instance
         return xenrt.HypervisorType.xen
+
+    def instanceResidentOn(self, instance):
+        return [x.hostname for x in VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)][0]
+
+    def instanceCanMigrateTo(self, instance): 
+        cmd = findHostsForMigration.findHostsForMigrationCmd()
+        cmd.virtualmachineid = instance.toolstackId
+        return [x.name for x in self.marvin.apiClient.findHostsForMigration(cmd)]
 
     def instanceSupportedLifecycleOperations(self, instance):
         ops = [xenrt.LifecycleOperation.start,
@@ -215,6 +223,9 @@ class CloudStack(object):
         raise xenrt.XRTError("Not implemented")
 
     def migrateInstance(self, instance, to, live=True):
+        if not live:
+            raise xenrt.XRTError("Non-live migrate is not supported")
+
         cmd = migrateVirtualMachine.migrateVirtualMachineCmd()
         cmd.virtualmachineid = instance.toolstackId
         cmd.hostid = [x for x in Host.list(self.marvin.apiClient, name=to) if x.name==to][0].id

@@ -1,16 +1,19 @@
-import xenrt, os.path, os, shutil
+import xenrt
+import os.path
+import os
+import shutil
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import RHELKickStartFile
-from abc import ABCMeta, abstractproperty
 from zope.interface import implements
+
 
 __all__ = ["RHELLinux", "CentOSLinux", "OELLinux"]
 
+
 class RHELBasedLinux(LinuxOS):
 
-    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
-    
-    __metaclass__ = ABCMeta
+    implements(xenrt.interfaces.InstallMethodPV,
+               xenrt.interfaces.InstallMethodIsoWithAnswerFile)
 
     def __init__(self, distro, parent):
         super(RHELBasedLinux, self).__init__(distro, parent)
@@ -43,7 +46,8 @@ class RHELBasedLinux(LinuxOS):
 
     @property
     def installURL(self):
-        return xenrt.TEC().lookup(["RPM_SOURCE", self.distro, self.arch, "HTTP"], None)
+        return xenrt.TEC().lookup(["RPM_SOURCE", self.distro,
+                                   self.arch, "HTTP"], None)
 
     @property
     def installerKernelAndInitRD(self):
@@ -51,12 +55,14 @@ class RHELBasedLinux(LinuxOS):
         return ("%s/vmlinuz" % (basePath), "%s/initrd.img" % basePath)
 
     def generateAnswerfile(self, webdir):
-        """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
+        """Generate an answerfile and put it in the provided webdir,
+        returning any command line arguments needed to boot the OS"""
+
         kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
-        
-        self.nfsdir = xenrt.NFSDirectory()  
-        ksf=RHELKickStartFile(self.distro,
+
+        self.nfsdir = xenrt.NFSDirectory()
+        ksf = RHELKickStartFile(self.distro,
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
@@ -72,15 +78,16 @@ class RHELBasedLinux(LinuxOS):
         webdir.copyIn(filename)
         url = webdir.getURL(os.path.basename(filename))
 
-        # TODO: handle native where console is different, and handle other interfaces
+        # TODO: handle native where console is different,
+        # and handle other interfaces
         return ["graphical", "utf8", "ks=%s" % url]
-       
+
     def generateIsoAnswerfile(self):
         kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
-        
-        self.nfsdir = xenrt.NFSDirectory()  
-        ksf=RHELKickStartFile(self.distro,
+
+        self.nfsdir = xenrt.NFSDirectory()
+        ksf = RHELKickStartFile(self.distro,
                              self._maindisk,
                              self.nfsdir.getMountURL(""),
                              repository=self.installURL,
@@ -95,7 +102,7 @@ class RHELBasedLinux(LinuxOS):
 
         installIP = self.parent.getIP(600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
-        
+
         self.cleanupdir = path
         try:
             os.makedirs(path)
@@ -144,13 +151,15 @@ class RHELBasedLinux(LinuxOS):
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
+
 class RHELLinux(RHELBasedLinux):
-    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
-   
+    implements(xenrt.interfaces.InstallMethodPV,
+               xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+
     @staticmethod
     def knownDistro(distro):
         return distro.startswith("rhel")
-    
+
     @staticmethod
     def testInit(parent):
         return RHELLinux("rhel6", parent)
@@ -161,9 +170,11 @@ class RHELLinux(RHELBasedLinux):
             return None
         return self._defaultIsoName
 
+
 class CentOSLinux(RHELBasedLinux):
-    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
-    
+    implements(xenrt.interfaces.InstallMethodPV,
+               xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+
     @staticmethod
     def knownDistro(distro):
         return distro.startswith("centos")
@@ -178,13 +189,15 @@ class CentOSLinux(RHELBasedLinux):
             return None
         return self._defaultIsoName
 
+
 class OELLinux(RHELBasedLinux):
-    implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
-   
+    implements(xenrt.interfaces.InstallMethodPV,
+               xenrt.interfaces.InstallMethodIsoWithAnswerFile)
+
     @staticmethod
     def knownDistro(distro):
         return distro.startswith("oel")
-    
+
     @staticmethod
     def testInit(parent):
         return OELLinux("oel6", parent)
@@ -195,7 +208,10 @@ class OELLinux(RHELBasedLinux):
             return None
         return self._defaultIsoName
 
+    @property
+    def defaultMemory(self):
+        return 1610
+
 registerOS(RHELLinux)
 registerOS(CentOSLinux)
 registerOS(OELLinux)
-

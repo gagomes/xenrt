@@ -29,6 +29,10 @@ class XenRTSchedule(XenRTAPIPage):
         outfh.close()
         if not ret:
             ret = ""
+        if self.mutex:
+            if self.mutex_held:
+                self.release_lock()
+            self.mutex.close()
         return ret
 
     def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=False):

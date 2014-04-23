@@ -9,15 +9,15 @@ class Instance(object):
         self.toolstack = xenrt.interfaces.Toolstack(toolstack)
         self.toolstackId = None
         self.name = name
-        self.distro = distro
-        self.vcpus = vcpus
-        self.memory = memory
+        self.distro = distro        
         self.extraConfig = extraConfig
         self.mainip = None
 
         self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk
+        self.vcpus = vcpus or self.os.defaultVcpus
+        self.memory = memory or self.os.defaultMemory
         self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]
 
     @property
@@ -27,6 +27,14 @@ class Instance(object):
     @property
     def supportedLifecycleOperations(self):
         return self.toolstack.instanceSupportedLifecycleOperations(self)
+
+    @property
+    def canMigrateTo(self):
+        return self.toolstack.instanceCanMigrateTo(self)
+
+    @property
+    def residentOn(self, instance):
+        return self.toolstack.instanceResidentOn(self, instance)
 
     def populateFromExisting(self, ip=None):
         if ip:
@@ -112,6 +120,9 @@ class Instance(object):
 
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
+
+    def setIso(self, isoName, isoRepo=None):
+        return self.toolstack.setInstanceIso(self, isoName, isoRepo)
 
     def ejectIso(self):
         return self.toolstack.ejectInstanceIso(self)

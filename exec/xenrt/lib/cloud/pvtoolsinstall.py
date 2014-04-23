@@ -2,7 +2,6 @@ import xenrt
 import logging
 import os, urllib, string
 from datetime import datetime
-from xenrt.lib.cloud.windowspackages import DotNetFour, WindowsImagingComponent
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
@@ -34,17 +33,7 @@ class PVToolsInstaller(object):
 class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
     
     def _loadToolsIso(self):
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.name="xs-tools.iso"
-        isoId = self.cloudstack.marvin.apiClient.listIsos(listIsosC)[0].id
-
-        attachIsoC = attachIso.attachIsoCmd()
-        attachIsoC.id = isoId
-        attachIsoC.virtualmachineid = self.instance.toolstackId
-        self.cloudstack.marvin.apiClient.attachIso(attachIsoC)
-
-        # Allow the CD to appear
-        xenrt.sleep(30)
+        self.instance.setIso("xs-tools.iso")
     
     def _installMsi(self):
         self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
@@ -126,21 +115,21 @@ class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
         
         return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
 
-    def _dotNetInstaller(self):
+    def _installDotNet(self):
         """ 
         Factory class method to get the installer for the required dot net version
         @return A appropriate .NET framework installer class
         @rtype WindowsPackage
         """
-        return DotNetFour(self.instance)
+        self.instance.os.ensurePackageInstalled(".NET 4")
 
-    def _WIC(self):
+    def _installWIC(self):
         """ 
         Factory class method to get the Windows Imaging Component 
         @return A appropriate package to install WIC
         @rtype WindowsPackage
         """
-        return WindowsImagingComponent(self.instance)
+        self.instance.os.ensurePackageInstalled("WIC")
 
     def _installRunOncePVDriversInstallScript(self):
         self.instance.os.sendFile("%s/distutils/soon.exe" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),"c:\\soon.exe")
@@ -191,8 +180,8 @@ at > c:\\xenrtatlog.txt
         return string.join(u, "\n")
 
     def install(self):
-        self._WIC().bestEffortInstall()
-        self._dotNetInstaller().bestEffortInstall()
+        self._installWIC()
+        self._installDotNet()
         self._loadToolsIso()
         self._installRunOncePVDriversInstallScript()
         self._installMsi()

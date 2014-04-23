@@ -3,6 +3,7 @@ import logging
 import os, urllib
 from datetime import datetime
 import shutil
+import pprint
 
 import xenrt.lib.cloud
 from xenrt.lib.cloud.marvindeploy import MarvinDeployer
@@ -36,10 +37,13 @@ class DeployerPlugin(object):
         nameValue = None
         if key == 'Zone':
             self.currentZoneIx += 1
+            self.currentPodIx = -1
+            self.currentClusterIx = -1
             nameValue = 'XenRT-Zone-%d' % (self.currentZoneIx)
         elif key == 'Pod':
             self.currentPodIx += 1
-            nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)            
+            self.currentClusterIx = -1
+            nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)
         elif key == 'Cluster':
             self.currentClusterIx += 1
             nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
@@ -101,6 +105,13 @@ class DeployerPlugin(object):
         self.currentIPRange = None
         return endAddr
 
+    def getPhysicalNetworkVLAN(self, key, ref):
+        phyNetVLAN = None
+        if ref.has_key('XRT_VLANRangeSize') and ref['XRT_VLANRangeSize'] > 0:
+            phyNetVLANResources = xenrt.resources.getResourceRange('VLAN', ref['XRT_VLANRangeSize'])
+            phyNetVLAN = '%d-%d' % (int(phyNetVLANResources[0].getID()), int(phyNetVLANResources[-1].getID()))
+        return phyNetVLAN
+
     def getHostUrl(self, key, ref):
         return 'http://%s' % (hostAddr)
 
@@ -161,6 +172,9 @@ class DeployerPlugin(object):
     def notifyNetworkTrafficTypes(self, key, value):
         xenrt.TEC().logverbose('notifyNetworkTrafficTypes: key: %s, value %s' % (key, value))
 
+    def notifyGlobalConfigChanged(self, key, value):
+        xenrt.TEC().logverbose("notifyGlobalConfigChanged:\n" + pprint.pformat(value))
+        
 def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))
 
@@ -189,8 +203,17 @@ def deploy(cloudSpec, manSvr=None):
         os.makedirs(deployLogDir)
     shutil.copy(fn, os.path.join(deployLogDir, 'marvin-deploy.cfg'))
 
-    # Create deployment
-    marvinCfg.deployMarvinConfig()
-    # Get deployment logs from the MS
-    manSvr.getLogs(deployLogDir)
+    try:
+        # Create deployment
+        marvinCfg.deployMarvinConfig()
+
+        # Restart MS incase any global config setting have been changed
+        manSvr.restart()
+
+        if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
+            marvinApi.waitForBuiltInTemplatesReady()
+    finally:
+        # Get deployment logs from the MS
+        manSvr.getLogs(deployLogDir)
+
 

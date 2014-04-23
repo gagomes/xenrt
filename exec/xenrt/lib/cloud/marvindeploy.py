@@ -1,6 +1,7 @@
 
 import pprint
 import json
+import copy
 try:
     from marvin import deployDataCenter
     from marvin import jsonHelper
@@ -15,53 +16,58 @@ class MarvinDeployException(Exception):
 
 class MarvinDeployer(object):
     CONFIG_SCHEMA = {
-                      'config': {
-                        'abstractName': 'Config',
-                        'required': { 'zones': None } },
-                      'zones': {
-                        'abstractName': 'Zone',
-                        'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
-                        'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
-                        'notify'  : { 'name': 'notifyNewElement' } },
-                      'secondaryStorages': {
-                        'abstractName': 'SecondaryStorage',
-                        'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
-                      'physical_networks': {
-                        'abstractName': 'PhysicalNetwork',
-                        'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, },
-                        'defaults': { 'traffictypes': [ { 'typ': 'Guest' }, { 'typ': 'Management' } ],
-                                      'providers': [ { 'name': 'VirtualRouter', 'broadcastdomainrange': 'ZONE' }, { 'name': 'SecurityGroupProvider', 'broadcastdomainrange': 'Pod' } ],
-                                      'broadcastdomainrange': 'Zone' },
-                        'notify'  : { 'traffictypes': 'notifyNetworkTrafficTypes' } },
-                      'traffictypes': {
-                        'abstractName': 'TrafficType',
-                        'required': { 'typ': None } },
-                      'providers': {
-                        'abstractName': 'NetworkProviders',
-                        'required': { 'name': None, 'broadcastdomainrange': None } },
-                      'ipranges': {
-                        'abstractName': 'IPRange',
-                        'required': { 'startip': 'getIPRangeStartAddr', 'endip': 'getIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
-                      'guestIpRanges': {
-                        'abstractName': 'GuestIPRange',
-                        'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
-                      'pods': {
-                        'abstractName': 'Pod',
-                        'required': { 'name': 'getName', 'startip': 'getPodIPStartAddr', 'endip': 'getPodIPEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
-                        'notify'  : { 'name': 'notifyNewElement' } },
-                      'clusters': {
-                        'abstractName': 'Cluster',
-                        'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
-                        'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
-                        'notify'  : { 'clustername': 'notifyNewElement' } },
-                      'primaryStorages': {
-                        'abstractName': 'PrimaryStorage',
-                        'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
-                      'hosts': {
-                        'abstractName': 'Host',
-                        'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
-                        'notify'  : { 'url': 'notifyNewElement' } },
-                    }
+        'config': {
+          'abstractName': 'MarvinConfig',
+          'required': { 'zones': None },
+          'notify':   { 'globalConfig': 'notifyGlobalConfigChanged' } },
+        'globalConfig': {
+          'abstractName': 'MgmtSvrGlobalConfig',
+          'required': { 'name': None, 'value': None } },
+        'zones': {
+          'abstractName': 'Zone',
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
+          'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
+          'notify'  : { 'name': 'notifyNewElement' } },
+        'secondaryStorages': {
+          'abstractName': 'SecondaryStorage',
+          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
+        'physical_networks': {
+          'abstractName': 'PhysicalNetwork',
+          'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
+          'defaults': { 'traffictypes': [ { 'typ': 'Guest' }, { 'typ': 'Management' } ],
+                        'providers': [ { 'name': 'VirtualRouter', 'broadcastdomainrange': 'ZONE' }, { 'name': 'SecurityGroupProvider', 'broadcastdomainrange': 'Pod' } ],
+                        'broadcastdomainrange': 'Zone',
+                        'vlan': None },
+          'notify'  : { 'traffictypes': 'notifyNetworkTrafficTypes' } },
+        'traffictypes': {
+          'abstractName': 'TrafficType',
+          'required': { 'typ': None } },
+        'providers': {
+          'abstractName': 'NetworkProviders',
+          'required': { 'name': None, 'broadcastdomainrange': None } },
+        'ipranges': {
+          'abstractName': 'IPRange',
+          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
+        'guestIpRanges': {
+          'abstractName': 'GuestIPRange',
+          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
+        'pods': {
+          'abstractName': 'Pod',
+          'required': { 'name': 'getName', 'startip': 'getPodIPStartAddr', 'endip': 'getPodIPEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
+          'notify'  : { 'name': 'notifyNewElement' } },
+        'clusters': {
+          'abstractName': 'Cluster',
+          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
+          'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
+          'notify'  : { 'clustername': 'notifyNewElement' } },
+        'primaryStorages': {
+          'abstractName': 'PrimaryStorage',
+          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
+        'hosts': {
+          'abstractName': 'Host',
+          'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
+          'notify'  : { 'url': 'notifyNewElement' } },
+      }
 
     def __init__(self, mgmtServerIp, logger):
         self.marvinCfg = {}
@@ -97,7 +103,7 @@ class MarvinDeployer(object):
 
                 if value == None:
                     if self.CONFIG_SCHEMA[elementKey].has_key('defaults') and self.CONFIG_SCHEMA[elementKey]['defaults'].has_key(requiredField):
-                        value = self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField]
+                        value = copy.deepcopy(self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField])
                     else:
                         raise MarvinDeployException('No value avaialble for required field [%s - %s]' % (elementKey, requiredField))
 
@@ -105,7 +111,7 @@ class MarvinDeployer(object):
 
     def _notifyFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
         for notifyField in self.CONFIG_SCHEMA[elementKey]['notify']:
-            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]):
+            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]) and elementRef.has_key(notifyField):
                 getattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField])(self.CONFIG_SCHEMA[elementKey]['abstractName'], elementRef[notifyField])
 
     def _processConfigElement(self, element, parentName, deployer):

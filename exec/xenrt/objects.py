@@ -2669,7 +2669,7 @@ Add-WindowsFeature as-net-framework"""
         # Get the CLI RPM from the CD.
         mount = None
         rpm = None
-        hostarch = xenrt.command("uname -m").strip()
+        hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
         rpmpath = xenrt.TEC().lookup("XE_RPM", None)
         if rpmpath:

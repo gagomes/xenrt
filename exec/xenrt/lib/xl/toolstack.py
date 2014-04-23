@@ -14,6 +14,12 @@ class XLToolstack(object):
         # XL only works with Xen, so we will always be returning Xen
         return xenrt.HypervisorType.xen
 
+    def instanceCanMigrateTo(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
+    def instanceResidentOn(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
     def instanceSupportedLifecycleOperations(self, instance):
         ops = [xenrt.LifecycleOperation.start,
                xenrt.LifecycleOperation.stop,
@@ -252,6 +258,9 @@ disk = [ %s ]
         # TODO: handle paused / crashed etc
         return xenrt.PowerState.up
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        raise xenrt.XRTError("Not implemented")
+    
     def ejectInstanceIso(self, instance):
         raise xenrt.XRTError("Not implemented")
 

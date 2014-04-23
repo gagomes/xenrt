@@ -145,10 +145,11 @@ class _ImpExpBase(xenrt.TestCase):
             guest.check()
             return guest
         else:
-            if re.search(r"64$", distro):
-                arch = "x86-64"
-            else:
-                arch = "x86-32"
+            if not arch:
+                if re.search(r"64$", distro):
+                    arch = "x86-64"
+                else:
+                    arch = "x86-32"
             disks = []
             if disksize:
                 disks.append(("0", disksize, False))
@@ -337,7 +338,7 @@ class _ImpExpBase(xenrt.TestCase):
     def preRun(self, host):
         arch = None
         # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
-        hostarch = xenrt.command("uname -m").strip()
+        hostarch = host.execdom0("uname -m").strip()
         if hostarch.endswith("64"):
             arch="x86-64"
         self.cliguest = self.createGuest(host, distro=self.CLIDISTRO, arch=arch)
@@ -622,10 +623,11 @@ class TC6829(_ImpExpBase):
 class TC6830(_ImpExpBase):
     """Basic functional import/export test (extra VIFs+VBDs)"""
 
-    def createGuest(self, host, distro=None, srtype=None, disksize=None):
+    def createGuest(self, host, distro=None, arch=None, srtype=None, disksize=None):
         g = _ImpExpBase.createGuest(self,
                                     host,
                                     distro=distro,
+                                    arch = arch,
                                     srtype=srtype,
                                     disksize=disksize)
         # Add additional VIF and VBD

@@ -2261,7 +2261,7 @@ sock.close()
         f = file(t, "w")
         f.write(guestScript)
         f.close()
-        sftp.copyTo(t, "/tmp/local/send.py")
+        sftp.copyTo(t, "/tmp/send.py")
         
     def run(self,arglist):
     
@@ -2285,7 +2285,7 @@ sock.close()
 
         #start send.py multiple times on guest
         for i in range(5):
-            self.guest.execguest("python /tmp/local/send.py")
+            self.guest.execguest("python /tmp/send.py")
 
         #try a guest force-reboot
         cli=self.host.getCLIInstance()

@@ -2728,6 +2728,26 @@ class TC9167(_VMToolsUpgrade):
 
     VMNAME = "sarge"
 
+class TC21204(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Centos 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "centos54"
+
+class TC21205(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a OEL 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "oel54"
+
+class TC21206(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a SLES11 VM installed on the previous GA version"""
+
+    VMNAME = "sles11"
+
+class TC21207(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Debian 5.0 VM installed on the previous GA version"""
+
+    VMNAME = "debian50"
+
 class _VMToolsUpgradeNotOutOfDate(_VMToolsUpgrade):
     """MNR non-Windows tools should be up-to-date on Cowley"""
 
@@ -4333,3 +4353,27 @@ class TC15290(xenrt.TestCase):
         # check we can't evacuate
         if not guestUuid in h0.execdom0('xe host-get-vms-which-prevent-evacuation uuid=%s' % h0.uuid).strip():
             raise xenrt.XRTFailure("Shouldn't be allowed to evacuate with HVM guest and no PV drivers")
+
+class TCUpgradeVMMigrate(xenrt.TestCase):
+    def run(self, arglist=None):
+        oldHost = self.getHost("RESOURCE_HOST_0")
+        newHost = self.getHost("RESOURCE_HOST_1")
+
+        items = self.tcsku.split("/")
+        if len(items) == 3:
+            distro = items[0]
+            arch = items[1]
+            memory = items[2]
+        else:
+            distro = items[0]
+            arch = None
+            memory = items[1]
+
+        if memory[-1] == "M":
+            memory = int(memory[:-1])
+        elif memory[-1] == "G":
+            memory = int(memory[:-1]) * 1024
+
+        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
+        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        g.uninstall()

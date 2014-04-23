@@ -52,6 +52,24 @@ class MarvinApi(object):
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
 
+    def command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+        cmd = command()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # The name of the function we need to call on the API is the same as the module name
+        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
+        fn = command.__module__.split(".")[-1]
+        # Then run the command
+        return getattr(self.apiClient, fn)(cmd)
+
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)
         if configSetting == None or len(configSetting) == 0:
@@ -66,11 +84,15 @@ class MarvinApi(object):
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
-    def waitForTemplateReady(self, name):
+    def waitForBuiltInTemplatesReady(self):
+        templateList = Template.list(self.apiClient, templatefilter='all', type='BUILTIN')
+        map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
+
+    def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
         while((datetime.now() - startTime).seconds < 1800):
-            templateList = Template.list(self.apiClient, templatefilter='all', name=name)
+            templateList = Template.list(self.apiClient, templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
             elif len(templateList) == 1:
@@ -289,8 +311,10 @@ class MarvinApi(object):
             # Should also be able to do "All Zones", but marvin requires a zone to be specified
 
             zone = Zone.list(self.apiClient)[0].id
-
-            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            if distro:
+                osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            else:
+                osname = "None"
             Iso.create(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,

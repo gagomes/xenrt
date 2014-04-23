@@ -6,6 +6,12 @@ class Toolstack(Interface):
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
+    def instanceResidentOn(instance):
+        """Return the place of residence of the current instance"""
+
+    def instanceCanMigrateTo(instance):
+        """Return a list of locations to which the instance can migrate"""
+
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 
@@ -42,6 +48,9 @@ class Toolstack(Interface):
     def getInstancePowerState(instance):
         """Get the current power state for the specified instance"""
 
+    def setInstanceIso(instance, isoName, isoRepo):
+        """Set the ISO in the instance"""
+
     def ejectInstanceIso(instance):   
         """Eject the ISO from the specified instance"""
 
@@ -55,7 +64,9 @@ class Toolstack(Interface):
         """Revert an Instance to a named snapshot"""
 
 class OSParent(Interface):
+
     name = Attribute("Name of the OS")
+
     hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
 
     def getIP(timeout, level):
@@ -70,12 +81,23 @@ class OSParent(Interface):
     def ejectIso():
         """Eject the ISO from the OS container"""
 
+    def setIso(isoName, isoRepo):
+        """Set the ISO to the specified iso"""
+
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
 class OS(Interface):
+
     installMethod = Attribute("Selected installation method")
+
     defaultRootdisk = Attribute("Default rootdisk size")
+
+    defaultVcpus = Attribute("Default number of vCPUs")
+
+    defaultRootdisk = Attribute("Default root disk size")
+
+    defaultMemory = Attribute("Default memory size")
 
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""

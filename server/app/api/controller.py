@@ -55,7 +55,7 @@ class XenRTMConfig(XenRTAPIPage):
         machine = form['machine']
         if form.has_key("generated"):
             try:
-                xrtcmd = "--run-tool \"machineXML('%s')\"" % (machine)
+                xrtcmd = "--mconfig %s" % (machine)
                 
                 # Form a command line to launch the suite
                 cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]

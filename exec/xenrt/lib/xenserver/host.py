@@ -71,7 +71,7 @@ CLI_NATIVE = 3          # New style CLI
 def hostFactory(hosttype):
     if hosttype == "Sarasota":
         return xenrt.lib.xenserver.SarasotaHost
-    elif hosttype == "Clearwater":
+    elif hosttype in ("Clearwater", "Creedence"):
         return xenrt.lib.xenserver.ClearwaterHost
     elif hosttype in ("Tampa", "Tallahassee"):
         return xenrt.lib.xenserver.TampaHost
@@ -86,7 +86,7 @@ def hostFactory(hosttype):
     return xenrt.lib.xenserver.Host
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Sarasota"):
+    if mastertype in ("Clearwater", "Creedence", "Sarasota"):
         return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool

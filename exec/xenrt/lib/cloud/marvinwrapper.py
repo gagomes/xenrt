@@ -506,7 +506,7 @@ class TCMarvinTestRunner(xenrt.TestCase):
                 config = eval(arg.split('=')[1])
                 self.marvinApi.setCloudGlobalConfig(config['key'],config['value'] ,restartManagementServer=config['restartManagementServer'])
             else :
-                raise xenrt.XRTException("Unknown arguments specified ")
+                raise xenrt.XRTError("Unknown arguments specified ")
 
         # Add check to make this optional
         #self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')

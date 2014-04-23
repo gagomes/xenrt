@@ -53,7 +53,7 @@
                 { "XRT_GuestIPRangeSize": 10 }
               ],
               "clusters": [
-                { "XRT_Hosts": 2 }
+                { "XRT_Hosts": 1 }
               ]
             }
           ]

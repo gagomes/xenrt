@@ -25,25 +25,108 @@ __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "produc
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
-    XENRT_SOCKET_TIMEOUT = 600
-    
-    # Borrowed from python 2.6 library
+
+    # Borrowed from python 2.3 library
     def connect(self):
         """Connect to the host and port specified in __init__."""
-        self.timeout =  self.XENRT_SOCKET_TIMEOUT
-        self.sock = socket.create_connection((self.host, self.port),
-                                             self.timeout)
-        if self._tunnel_host:
-            self._tunnel()
+        msg = "getaddrinfo returns an empty list"
+        for res in socket.getaddrinfo(self.host, self.port, 0,
+                                      socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                self.sock = socket.socket(af, socktype, proto)
+                self.sock.settimeout(600) # This is XenSource
+                if self.debuglevel > 0:
+                    print "connect: (%s, %s)" % (self.host, self.port)
+                self.sock.connect(sa)
+            except socket.error, msg:
+                if self.debuglevel > 0:
+                    print 'connect fail:', (self.host, self.port)
+                if self.sock:
+                    self.sock.close()
+                self.sock = None
+                continue
+            break
+        if not self.sock:
+            raise socket.error, msg
 
-class MyReallyImpatientHTTPConnection(MyHTTPConnection):
-    XENRT_SOCKET_TIMEOUT = 5
+class MyReallyImpatientHTTPConnection(httplib.HTTPConnection):
 
-class MyImpatientHTTPConnection(MyHTTPConnection):
-    XENRT_SOCKET_TIMEOUT = 30
+    # Borrowed from python 2.3 library
+    def connect(self):
+        """Connect to the host and port specified in __init__."""
+        msg = "getaddrinfo returns an empty list"
+        for res in socket.getaddrinfo(self.host, self.port, 0,
+                                      socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                self.sock = socket.socket(af, socktype, proto)
+                self.sock.settimeout(5) # This is XenSource
+                if self.debuglevel > 0:
+                    print "connect: (%s, %s)" % (self.host, self.port)
+                self.sock.connect(sa)
+            except socket.error, msg:
+                if self.debuglevel > 0:
+                    print 'connect fail:', (self.host, self.port)
+                if self.sock:
+                    self.sock.close()
+                self.sock = None
+                continue
+            break
+        if not self.sock:
+            raise socket.error, msg
 
-class MyPatientHTTPConnection(MyHTTPConnection):
-    XENRT_SOCKET_TIMEOUT = 86400
+class MyImpatientHTTPConnection(httplib.HTTPConnection):
+
+    # Borrowed from python 2.3 library
+    def connect(self):
+        """Connect to the host and port specified in __init__."""
+        msg = "getaddrinfo returns an empty list"
+        for res in socket.getaddrinfo(self.host, self.port, 0,
+                                      socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                self.sock = socket.socket(af, socktype, proto)
+                self.sock.settimeout(30) # This is XenSource
+                if self.debuglevel > 0:
+                    print "connect: (%s, %s)" % (self.host, self.port)
+                self.sock.connect(sa)
+            except socket.error, msg:
+                if self.debuglevel > 0:
+                    print 'connect fail:', (self.host, self.port)
+                if self.sock:
+                    self.sock.close()
+                self.sock = None
+                continue
+            break
+        if not self.sock:
+            raise socket.error, msg
+
+class MyPatientHTTPConnection(httplib.HTTPConnection):
+
+    # Borrowed from python 2.3 library
+    def connect(self):
+        """Connect to the host and port specified in __init__."""
+        msg = "getaddrinfo returns an empty list"
+        for res in socket.getaddrinfo(self.host, self.port, 0,
+                                      socket.SOCK_STREAM):
+            af, socktype, proto, canonname, sa = res
+            try:
+                self.sock = socket.socket(af, socktype, proto)
+                self.sock.settimeout(86400) # This is XenSource
+                if self.debuglevel > 0:
+                    print "connect: (%s, %s)" % (self.host, self.port)
+                self.sock.connect(sa)
+            except socket.error, msg:
+                if self.debuglevel > 0:
+                    print 'connect fail:', (self.host, self.port)
+                if self.sock:
+                    self.sock.close()
+                self.sock = None
+                continue
+            break
+        if not self.sock:
+            raise socket.error, msg
 
 class MyHTTP(httplib.HTTP):
 

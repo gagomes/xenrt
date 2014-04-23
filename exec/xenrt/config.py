@@ -2816,6 +2816,12 @@ class Config:
         
         # Carabosse: kexec-tools, xen-bugtool, xapi-core, xapi-networkd, xapi-noarch, xapi-rrdd, xapi-xenopsd, xen-firmware, xen-hypervisor, xen-tools . Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033 
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E036/77411/hotfix-XS61E036/XS61E036.xsupdate"
+        
+        # Dodger: xapi, xen. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"] = "/usr/groups/build/tampa-lcm/84860/hotfix-XS61E037/XS61E037.xsupdate"
+        
+        # MrToad: xen-tools. Rolls up XS61E010, XS61E029
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/build/tampa-lcm/84220/hotfix-XS61E038/XS61E038.xsupdate"
       
       
       
@@ -3009,7 +3015,8 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF29"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"]
         self.config["CARBON_PATCHES_TAMPA"]["HF34"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"]
         self.config["CARBON_PATCHES_TAMPA"]["HF35"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF36"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}

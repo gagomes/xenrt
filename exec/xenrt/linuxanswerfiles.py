@@ -864,7 +864,7 @@ umount /tmp/xenrttmpmount
                "sleep 120",
                "/sbin/reboot"]
         diffSLES=[]
-        if self.distro.startswith("sles111") or self.distro.startswith("sles112"):
+        if re.match(r'sles11[123]', self.distro):
             diffSLES=SLES111
         else:
             diffSLES=SLES11

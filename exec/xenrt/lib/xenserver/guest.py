@@ -315,7 +315,7 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.isoname and  "win81" in self.isoname:
+        if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
             rootdisk=32000
         if distro:

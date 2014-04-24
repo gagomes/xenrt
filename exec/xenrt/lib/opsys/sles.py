@@ -123,14 +123,17 @@ class SLESBasedLinux(LinuxOS):
         xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="SUSE based installation")
-        xenrt.TEC().logverbose("Sleeping for 240secs before removing iso")
-        xenrt.sleep(240)
-#        self.parent.stop()
-#        self.parent.poll(xenrt.PowerState.down, timeout=1800)
+        if 'sles10' in self.distro:
+            xenrt.TEC().logverbose("Sleeping for 240secs before removing iso")
+            xenrt.sleep(240)
+        else:
+            self.parent.stop()
+            self.parent.poll(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
             self.cleanupIsoAnswerfile()
             self.parent.ejectIso()
-#        self.parent.start()
+        if not 'sles10' in self.distro:
+            self.parent.start()
 
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH

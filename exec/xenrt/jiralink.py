@@ -25,8 +25,8 @@ class JiraLink:
     def __init__(self):
         # JIRA settings
         self.JIRA_URL = xenrt.TEC().lookup("JIRA_URL", None) 
-        self.JIRA_USER = xenrt.TEC().lookup("JIRA_USERNAME", "xenrt")
-        self.JIRA_PASS = xenrt.TEC().lookup("JIRA_PASSWORD", "xensource")
+        self.JIRA_USER = xenrt.TEC().lookup("JIRA_USERNAME")
+        self.JIRA_PASS = xenrt.TEC().lookup("JIRA_PASSWORD")
 
         self.FAIL_PROJ = xenrt.TEC().lookup("JIRA_FAIL", "CA")
         self.ERR_PROJ = xenrt.TEC().lookup("JIRA_ERROR", "CA")

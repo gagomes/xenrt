@@ -1451,7 +1451,7 @@ then
     NON_DEBUG_XEN=$(basename $(readlink boot/xen-debug.gz) -d.gz).gz
 fi
 
-if [ -e "boot/${NON_DEBUG_XEN}" ]
+if [ -n "${NON_DEBUG_XEN}" -a -e "boot/${NON_DEBUG_XEN}" ]
 then
     rm -f boot/xen.gz
     ln -s ${NON_DEBUG_XEN} boot/xen.gz

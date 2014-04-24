@@ -29,10 +29,6 @@ class TCTimeVMMigrateDowntime(libperf.PerfTestCase):
         self.initialiseHostList()
         self.configureAllHosts()
 
-        # Use local storage
-        sruuid = self.host.execdom0("xe sr-list 'name-label=Local storage' host=%s params=uuid --minimal" % self.host.getName()).strip()
-        xenrt.TEC().logverbose("sruuid of local storage is %s" % sruuid)
-
     def prepareVM(self):
         if self.useImportedVM:
             # Get a handle on local storage

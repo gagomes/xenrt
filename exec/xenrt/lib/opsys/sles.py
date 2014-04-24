@@ -6,14 +6,14 @@ from zope.interface import implements
 
 __all__ = ["SLESLinux"]
 
-class SUSEBasedLinux(LinuxOS):
+class SLESBasedLinux(LinuxOS):
 
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
     __metaclass__ = ABCMeta
 
     def __init__(self, distro, parent):
-        super(SUSEBasedLinux, self).__init__(distro, parent)
+        super(SLESBasedLinux, self).__init__(distro, parent)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -141,7 +141,7 @@ class SUSEBasedLinux(LinuxOS):
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
 
-class SLESLinux(SUSEBasedLinux):
+class SLESLinux(SLESBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
     
     @staticmethod

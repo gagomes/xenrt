@@ -74,9 +74,9 @@ class TCTimeVMMigrateDowntime(libperf.PerfTestCase):
             libperf.outputToResultsFile(migrateLogfile, line)
 
     def timeMigrate(self):
-        # Watch for the downtime in two different ways
+        # Watch for the downtime by repeated pinging
         t1 = DowntimeWatcherPing(self, self.host, self.vm)
-        t2 = DowntimeWatcherRunning(self, self.host, self.vm)
+        t2 = DowntimeWatcherNull(self, self.host, self.vm)
         watcherThreads = [t1, t2]
 
         for t in watcherThreads:
@@ -93,7 +93,7 @@ class TCTimeVMMigrateDowntime(libperf.PerfTestCase):
 
         # Get the downtime from each thread
         times = [t.getTime() for t in watcherThreads]
-        # Convert None into "" -- sometimes DowntimeWatcherRunning doesn't set a valid time
+        # Convert None into "" in case the thread doesn't set a valid time
         times = ["" if (t is None) else t for t in times]
         # Also include the total time
         times.append(str(totaltimesecs))
@@ -148,20 +148,6 @@ class DowntimeWatcherPing(DowntimeWatcher):
         # Get the last line of the output
         self.time = str(droppedpings * interval)
 
-class DowntimeWatcherRunning(DowntimeWatcher):
+class DowntimeWatcherNull(DowntimeWatcher):
     def __init__(self, tc, host, vm):
         DowntimeWatcher.__init__(self, tc, host, vm)
-
-    def run(self):
-        # In Orlando, xentop doesn't use VM names, but rather "Domain-<domid>". So find out the domid.
-        domid = int(self.host.execdom0("list_domains | grep %s | awk -F\| '{print $1}'" % self.vm.getUUID()).strip())
-        alternativeName = "Domain-%d" % domid
-
-        # Kick off a script to monitor the downtime (based on xentop)
-        cmd = "xentop -b -d 0 | perl -n -e 'if (/^\s*NAME/) { if ($state && $numvms == 1) { $finish = `date +%%s.%%N`; chop $finish; chop $start; my $diff = $finish - $start; print \"$diff\\n\"; exit } $numvms = 0; } ++$numvms if (/^\s*%s/ || /^\s*%s/); if (/-s----/) { $start = `date +%%s.%%N` if !$state; $state = 1 }'" % (self.vm.getName(), alternativeName)
-        xenrt.TEC().logverbose("cmd is [%s]" % cmd)
-        output = self.host.execdom0(cmd)
-        # warning: output is very large: lots of errors during downtime
-
-        # Get the last line of the output
-        self.time = output.strip().split('\n')[-1]

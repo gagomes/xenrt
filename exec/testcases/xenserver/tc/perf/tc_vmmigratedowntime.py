@@ -18,18 +18,13 @@ class TCTimeVMMigrateDowntime(libperf.PerfTestCase):
     def prepare(self, arglist=None):
         # Parse generic args
         self.parseArgs(arglist)
-
+ 
         # Parse args relating to this test
-        for arg in arglist:
-            l = string.split(arg, "=", 1)
-            if l[0] == 'guest':
-                self.vmname = l[1]
-            elif l[0] == 'vmimage':
-                self.vmimage = l[1]
-            elif l[0] == 'numiters':
-                self.numiters = int(l[1])
-            elif l[0] == 'useimportedvm':
-                self.useImportedVM = True
+        self.log(None, "parseArgs:arglist=%s" % (arglist,))
+        self.vmname        = libperf.getArgument(arglist, "guest",         str, None)
+        self.vmimage       = libperf.getArgument(arglist, "vmimage",       str, None)
+        self.numiters      = libperf.getArgument(arglist, "numiters",      int, 100)
+        self.useImportedVM = libperf.getArgument(arglist, "useimportedvm", int, False)
 
         self.initialiseHostList()
         self.configureAllHosts()

@@ -939,6 +939,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_56_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.6 (64-bit),Red Hat Enterprise Linux 5.6 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_57"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_57_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_510"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_510_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.3 (32-bit),Oracle Enterprise Linux 5.3"
@@ -955,6 +957,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_58_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_59"] = "Oracle Enterprise Linux 5 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_59_64"] = "Oracle Enterprise Linux 5 (64-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_510"] = "Oracle Enterprise Linux 5 (32-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_510_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
@@ -977,6 +981,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_56_64"] = "CentOS 5 (64-bit),CentOS 5.6 (64-bit),CentOS 5.6 x64,CentOS 5.6 (64-bit),CentOS 5.6 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_57"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_57_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_510"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_510_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
@@ -1026,7 +1032,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
+        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos510,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Sarasota"]["MIN_VM_MEMORY"] = "128"
@@ -1894,6 +1900,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel510"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel6"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MAXMEMORY"] = "8192"
@@ -1966,6 +1976,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos59"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos59"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos510"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos6"] = {}
         self.config["GUEST_LIMITATIONS"]["centos6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos6"]["MAXMEMORY"] = "8192"
@@ -2014,6 +2028,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel59"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["oel59"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["oel510"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["oel6"] = {}
         self.config["GUEST_LIMITATIONS"]["oel6"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel6"]["MAXMEMORY"] = "8192"

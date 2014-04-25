@@ -181,6 +181,7 @@ class ManagementServer(object):
             xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
 
         lastGoodBuild = view[jobKey].get_last_good_build()
+        xenrt.GEC().dbconnect.jobUpdate("ACSINPUTDIR", lastGoodBuild.baseurl)
         artifactsDict = lastGoodBuild.get_artifact_dict()
 
         artifactKeys = filter(lambda x:x.startswith('cloudstack-management-') or x.startswith('cloudstack-common-') or x.startswith('cloudstack-awsapi-'), artifactsDict.keys())

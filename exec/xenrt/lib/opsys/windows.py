@@ -99,7 +99,7 @@ class WindowsOS(OS):
         self.vifStem = "eth"
         self.viridian = True
 
-    def ensurePackageInstalled(self, package, installOptions={}):
+    def ensurePackageInstalled(self, package):
         global packageList
         installer = None
         for p in packageList:
@@ -107,7 +107,7 @@ class WindowsOS(OS):
                 installer = p(self)
         if not installer:
             raise xenrt.XRTError("No installer found for package %s" % package)
-        installer.ensureInstalled(installOptions)
+        installer.ensureInstalled()
 
     def isPackageInstalled(self, package, installOptions={}):
         global packageList

@@ -1,7 +1,6 @@
 import xenrt
 from testing import XenRTUnitTestCase
 from mock import Mock, PropertyMock
-from xenrt.lib.cloud.windowspackages import WindowsPackage, WindowsImagingComponent, DotNetFour
 
 """Tests"""
 class TestParseSectionedConfig(XenRTUnitTestCase):

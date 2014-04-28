@@ -218,12 +218,15 @@ class Guest(xenrt.GenericGuest):
         if self.template and (re.search("[Ww]in", self.template)):
             self.windows = True
             self.vifstem = self.VIFSTEMHVM
+            self.hasSSH = False
         elif self.template and (re.search("Solaris", self.template)):
             self.windows = False
             self.vifstem = self.VIFSTEMSOLPV
+            self.hasSSH = True
         else:
             self.windows = False
             self.vifstem = self.VIFSTEMPV
+            self.hasSSH = True
 
         self.noguestagent = False
         if host:
@@ -1021,7 +1024,8 @@ class Guest(xenrt.GenericGuest):
         return self.virDomain.maxMemory() // 1024
     def cpuget(self):
         #return self.virDomain.vcpusFlags(0)
-        return self.virDomain.vcpus()
+        return self.virDomain.info()[3]
+
     def memset(self, memory):
         xenrt.TEC().logverbose("Setting %s memory to %uMB" % (self.name, memory))
         self.memory = memory
@@ -1141,8 +1145,15 @@ class Guest(xenrt.GenericGuest):
         r = re.search(r"<mac address='([^']*)'/>", self._getXML())
         if r:
             mac = r.group(1)
-            xenrt.TEC().progress("Looking for VM IP address using arpwatch.")
-            self.mainip = self.getHost().arpwatch(self.host.getDefaultInterface(), mac, timeout=300)
+            r2 = re.search(r"<source bridge='([^']*)'/>", self._getXML())
+            if r2:
+                bridge = r2.group(1)
+                xenrt.TEC().logverbose("Guest's VIF is on '%s'" % bridge)
+            else:
+                bridge = self.host.getDefaultInterface()
+                xenrt.TEC().logverbose("Could not find bridge name in XML; arpwatching on host's default interface")
+            xenrt.TEC().progress("Looking for VM IP address on %s using arpwatch." % (bridge))
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=300)
             if not self.mainip:
                 raise xenrt.XRTFailure("Did not find an IP address.")
 
@@ -1247,17 +1258,24 @@ class Guest(xenrt.GenericGuest):
 
         # clone disks
         xmlstr = self._getXML()
+        xenrt.TEC().logverbose("xmlstr=%s" % (xmlstr,))
         xmldom = xml.dom.minidom.parseString(xmlstr)
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
             source = node.getElementsByTagName("source")[0]
             sourcefile = source.getAttribute("file")
-            sr = self.host.srs[self.host.getSRNameFromPath(sourcefile)]
-            vdiname = sr.getVDINameFromPath(sourcefile)
-
-            newdiskname = vdiname.replace(self.name, newname)
-            if newdiskname == vdiname:
-                newdiskname = sr.generateCloneName(vdiname)
+            xenrt.TEC().logverbose("sourcefile=%s" % (sourcefile,))
             try:
+                #sr can be none if it doesn't have []s (eg. if a cdrom is present)
+                #if this is the case, currently we don't clone
+                #TODO: what is the proper action if there are no []s in sourcefile?
+                sr = self.host.srs[self.host.getSRNameFromPath(sourcefile)]
+                xenrt.TEC().logverbose("sr=%s" % (sr,))
+                vdiname = sr.getVDINameFromPath(sourcefile)
+                xenrt.TEC().logverbose("vdiname=%s" % (vdiname,))
+
+                newdiskname = vdiname.replace(self.name, newname)
+                if newdiskname == vdiname:
+                    newdiskname = sr.generateCloneName(vdiname)
                 if operation == "copy":
                     newdisk = sr.copyVDI(vdiname, newdiskname)
                 else:
@@ -1308,8 +1326,8 @@ class Guest(xenrt.GenericGuest):
         snapshot = self.virDomain.snapshotLookupByName(name, 0)
         snapshot.delete(0)
 
-    def tailor(self):
-        pass
+    #def tailor(self):
+    #    pass
 
     def vendorInstallDevicePrefix(self):
         return self._getDiskDevicePrefix()

@@ -1258,6 +1258,10 @@ class PrepareNode:
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["vcpus"] = int(expand(str(a.data), params))
+                elif x.localName == "corespersocket":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            vm["corespersocket"] = int(expand(str(a.data), params))
                 elif x.localName == "memory":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:

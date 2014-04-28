@@ -3000,6 +3000,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF30"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF32"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):

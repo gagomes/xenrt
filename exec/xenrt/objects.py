@@ -2452,43 +2452,40 @@ Add-WindowsFeature as-net-framework"""
                              (workdir))
                 self.execcmd("rm -rf %s" % (workdir))
 
-    def installIperf(self):
+    def installIperf(self, version=""):
         """Install iperf into the guest"""
+
+        if version=="":
+            sfx = "2.0.4"
+        else:
+            sfx = version
+
         if self.windows:
-            self.xmlrpcUnpackTarball("%s/iperf-bin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
-            self.xmlrpcExec("move c:\\iperf-bin\\iperf.exe c:\\")
+            self.xmlrpcUnpackTarball("%s/iperf-bin%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version), "c:\\")
+            self.xmlrpcExec("move c:\\iperf-bin%s\\* c:\\" % (version,))
         else:
             if self.execcmd("test -e /usr/local/bin/iperf -o "
                             "     -e /usr/bin/iperf",
                             retval="code") != 0:
-                #Only for the host, not guest
-                try:
-                    self.execdom0("ls")
-                    self.execcmd("yum --enablerepo=base install -y  gcc-c++")
-                    self.execcmd("yum --enablerepo=base install -y make")
-                except:
-                    pass
                 workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
-                self.execcmd("wget '%s/iperf.tgz' -O %s/iperf.tgz" %
-                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
-                              workdir))
-                self.execcmd("tar -zxf %s/iperf.tgz -C %s" % (workdir, workdir))
-                self.execcmd("tar -zxf %s/iperf/iperf-2.0.4.tar.gz -C %s" %
-                             (workdir, workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && ./configure" %
-                               (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make" % (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make install" %
-                             (workdir))
+                self.execcmd("wget '%s/iperf%s.tgz' -O %s/iperf%s.tgz" %
+                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version,
+                             workdir, version))
+                self.execcmd("tar -zxf %s/iperf%s.tgz -C %s" % (workdir, version, workdir))
+                self.execcmd("tar -zxf %s/iperf%s/iperf-%s.tar.gz -C %s" %
+                             (workdir, version, sfx, workdir))
+                self.execcmd("cd %s/iperf-%s && ./configure" %
+                             (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make" % (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make install" %
+                             (workdir, sfx))
                 self.execcmd("rm -rf %s" % (workdir))
-                self.execcmd("mkdir ~/iperf && cp /usr/local/bin/iperf iperf/iperf")
-
 
     def startIperf(self):
         """Starts iperf as server in the Guest"""
-        
         if self.windows:
-            self.xmlrpcExec("c:\\iperf -s -D", returnerror=False, ignoredata=True)
+            self.xmlrpcExec("start c:\\iperf -s", returnerror=False, ignoredata=True)
+            time.sleep(10) # iperf -s takes some time to kick in
         else:
             raise xenrt.XRTError("Unimplemented")
 
@@ -4461,7 +4458,7 @@ class GenericHost(GenericPlace):
             if sp == "1G":
                 sp = None
             if mac and nw:
-                if network == None or network == nw:
+                if network == None or network == nw or network == "ANY":
                     if (not rspan) or rs:
                         if speed == None or speed == sp or (speed == "1G" and not sp):
                             reply.append(i)
@@ -6554,9 +6551,15 @@ class GenericGuest(GenericPlace):
         try:
             guest_reported = self.getGuestVCPUs()
             dom0_reported = self.getDomainVCPUs()
+
+            if self.corespersocket:
+                corespersocket = int(self.corespersocket)
+            else:
+                corespersocket = 1
+
             xenrt.TEC().logverbose("Guest reports %u CPUs." % (guest_reported))
             xenrt.TEC().logverbose("Domain-0 reports %u CPUs." % (dom0_reported))
-            xenrt.TEC().logverbose("Config reports %u CPUs." % (self.vcpus))
+            xenrt.TEC().logverbose("Config reports %u CPUs (with %u cores per CPU socket)." % (self.vcpus, corespersocket))
 
             if self.vcpus == 0:
                 # vcpus=all
@@ -8048,7 +8051,28 @@ class GenericGuest(GenericPlace):
             if method == "CDROM":
                 self.paramSet("other-config-install-repository", "cdrom")
             else:
-                self.paramSet("other-config-install-repository", repository)
+                if self.host.productType == "kvm":
+                    arch = "amd64" if "64" in self.arch else "i386"
+                    release = re.search("Debian/(\w+)/", repository).group(1)
+                    _url = repository + "/dists/%s/" % (release.lower(), )
+                    boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
+
+                    fk = xenrt.TEC().tempFile()
+                    fr = xenrt.TEC().tempFile()
+                    xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                    xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+                    hdir = self.host.hostTempDir()
+                    try:
+                        sftp = self.host.sftpClient()
+                        sftp.copyTo(fk, "%s/linux" % (hdir, ))
+                        sftp.copyTo(fr, "%s/initrd.gz" % (hdir, ))
+                    finally:
+                        sftp.close()
+                    self.host.execdom0("chmod 777 -R %s" % (hdir, ))
+                    self.kernel = "%s/linux" % (hdir, )
+                    self.initrd = "%s/initrd.gz" % (hdir, )
+                else:
+                    self.paramSet("other-config-install-repository", repository)
 
         # A valid hostname may contain only the numbers 0-9, the lowercase  
         # letters a-z, and the minus sign. It must be between 2 and 63

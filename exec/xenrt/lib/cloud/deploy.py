@@ -181,9 +181,13 @@ def deploy(cloudSpec, manSvr=None):
     # TODO - Get the ManSvr object from the registry
     if not manSvr:
         manSvrVM = xenrt.TEC().registry.guestGet('CS-MS')
-        if not manSvrVM:
-            raise xenrt.XRTError('No management server specified')
-        manSvr = xenrt.lib.cloud.ManagementServer(manSvrVM)
+        toolstack = xenrt.TEC().registry.toolstackGet("cloud")
+        if manSvrVM:
+            manSvr = xenrt.lib.cloud.ManagementServer(manSvrVM)
+        elif toolstack:
+            manSvr = toolstack.mgtsvr
+        else:
+            raise xenrt.XRTError('No management server specified') 
 
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)

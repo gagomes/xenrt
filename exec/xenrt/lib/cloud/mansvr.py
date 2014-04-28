@@ -99,8 +99,6 @@ class ManagementServer(object):
             self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
     def setupManagementServer(self):
-        self.installPackageDependancies()
-
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
             setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
@@ -145,11 +143,11 @@ class ManagementServer(object):
             self.place.execcmd('mkdir cloudplatform')
             self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-            self.place.execcmd('cd %s && ./install.sh -m' % (installDir))
+            self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
-            self.setupManagementServerDatabase()
-            self.setupManagementServer()
-            self.installApacheProxy()
+        self.setupManagementServerDatabase()
+        self.setupManagementServer()
+        self.installApacheProxy()
 
     def getLatestMSArtifactsFromJenkins(self):
         jenkinsUrl = 'http://jenkins.buildacloud.org'
@@ -183,6 +181,7 @@ class ManagementServer(object):
             xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
 
         lastGoodBuild = view[jobKey].get_last_good_build()
+        xenrt.GEC().dbconnect.jobUpdate("ACSINPUTDIR", lastGoodBuild.baseurl)
         artifactsDict = lastGoodBuild.get_artifact_dict()
 
         artifactKeys = filter(lambda x:x.startswith('cloudstack-management-') or x.startswith('cloudstack-common-') or x.startswith('cloudstack-awsapi-'), artifactsDict.keys())
@@ -206,9 +205,9 @@ class ManagementServer(object):
 
     def installCloudStackManagementServer(self):
         placeArtifactDir = self.getLatestMSArtifactsFromJenkins()
-
+        
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')))
+            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
         self.setupManagementServerDatabase()
         self.setupManagementServer()
@@ -232,17 +231,29 @@ class ManagementServer(object):
                 xenrt.TEC().logverbose('ACS branch version not recognised')
         xenrt.TEC().comment('Using Management Server version: %s' % (self.version))
 
-    def installPackageDependancies(self):
+    def preManagementServerInstall(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
             if self.version in ['4.4', 'master']:
-                # Update Java version
-                javaPackage = 'java-1.7.0-openjdk.x86_64'
-                self.place.execcmd('yum -y install %s' % (javaPackage))
-                javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
-                self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
+                self.place.execcmd('cp /etc/yum.repos.d/xenrt.repo /etc/yum.repos.d/xenrt.repo.orig')
+#                self.place.execcmd("sed -i 's/^baseurl=.*/baseurl=http:\/\/mirror.cisp.com\/CentOS\/6\/os\/x86_64\//g' /etc/yum.repos.d/xenrt.repo")
+                self.place.execcmd("sed -i 's/6.3/6.5/g' /etc/yum.repos.d/xenrt.repo")
+#                javaPackage = 'java-1.7.0-openjdk.x86_64'
+#                self.place.execcmd('yum -y install %s' % (javaPackage))
+#                javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+#                self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
+
+    def postManagementServerInstall(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            if self.version in ['4.4', 'master']:
+                self.place.execcmd('mv /etc/yum.repos.d/xenrt.repo.orig /etc/yum.repos.d/xenrt.repo')  
+            if self.version == 'master':
+                self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
+                self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 
     def installCloudManagementServer(self):
         self.determineManagementServerVersion()
+
+        self.preManagementServerInstall()
 
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
@@ -251,4 +262,5 @@ class ManagementServer(object):
         else:
             raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')
 
+        self.postManagementServerInstall()
 

@@ -1360,7 +1360,7 @@ cd -
         # Optionally choose to employ the debug-disabled build by swizzling symlinks in /boot.
         usenondebugxen = ""
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
-            usenondebugxen = self.swizzleSymlinksToUseNonDebugXen()
+            usenondebugxen = self.swizzleSymlinksToUseNonDebugXen(pathprefix="")
 
         firstBootSRSetup = ""
         if firstBootSRInfo:
@@ -1755,27 +1755,27 @@ done
         
         return None
 
-    def swizzleSymlinksToUseNonDebugXen(self):
+    def swizzleSymlinksToUseNonDebugXen(self, pathprefix):
             return """
 # Use the build of xen with debugging disabled
 # Only swizzle if /boot/xen-debug.gz exists and is linked to the same thing as /boot/xen.gz
-if [ "x$(readlink boot/xen.gz)" = "x$(readlink boot/xen-debug.gz)" ]
+if [ "x$(readlink %sboot/xen.gz)" = "x$(readlink %sboot/xen-debug.gz)" ]
 then
     # Remove the trailing '-d' in the filename stem
-    NON_DEBUG_XEN=$(basename $(readlink boot/xen.gz) -d.gz).gz
+    NON_DEBUG_XEN=$(basename $(readlink %sboot/xen.gz) -d.gz).gz
 
 # or if the symlink is from xen.gz to xen-debug.gz (as since CP-7811)
-elif [ "x$(readlink boot/xen.gz)" = "xxen-debug.gz" ]
+elif [ "x$(readlink %sboot/xen.gz)" = "xxen-debug.gz" ]
 then
-    NON_DEBUG_XEN=$(basename $(readlink boot/xen-debug.gz) -d.gz).gz
+    NON_DEBUG_XEN=$(basename $(readlink %sboot/xen-debug.gz) -d.gz).gz
 fi
 
-if [ -n "${NON_DEBUG_XEN}" -a -e "boot/${NON_DEBUG_XEN}" ]
+if [ -n "${NON_DEBUG_XEN}" -a -e "%sboot/${NON_DEBUG_XEN}" ]
 then
-    rm -f boot/xen.gz
-    ln -s ${NON_DEBUG_XEN} boot/xen.gz
+    rm -f %sboot/xen.gz
+    ln -s ${NON_DEBUG_XEN} %sboot/xen.gz
 fi
-"""
+""" % (pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix)
 
     def upgrade(self, newVersion=None, suppackcds=None):
         """Upgrade this host"""
@@ -2341,7 +2341,7 @@ fi
         xenLastModifiedNew = self.execdom0("stat /boot/xen.gz | grep ^Modify")
         if xenLastModified <> xenLastModifiedNew and xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             # It looks like the RPM upgrades touched Xen, so we need to ensure that we're using the non-debug version.
-            self.execdom0(self.swizzleSymlinksToUseNonDebugXen())
+            self.execdom0(self.swizzleSymlinksToUseNonDebugXen(pathprefix="/"))
 
         return reply
 

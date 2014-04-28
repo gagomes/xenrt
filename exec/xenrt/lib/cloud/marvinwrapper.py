@@ -508,8 +508,6 @@ class TCMarvinTestRunner(xenrt.TestCase):
             else :
                 raise xenrt.XRTError("Unknown arguments specified ")
 
-        # Add check to make this optional
-        #self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
 
     def writeRunInfoLog(self, testcaseName, runInfoFile):
         xenrt.TEC().logverbose('-------------------------- START MARVIN LOGS FOR %s --------------------------' % (testcaseName))

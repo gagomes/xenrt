@@ -24,6 +24,7 @@
       <testcase id="xenserver.install.TCXenServerInstall" name="Install18" />
       <testcase id="xenserver.install.TCXenServerInstall" name="Install19" />
       <testcase id="xenserver.install.TCXenServerInstall" name="Install20" />
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="NFSISOSR" />
     </serial>
     <parallel group="VMs">
       <testcase id="xenserver.guest.TCXenServerVendorInstall" name="LinuxRHEL64">

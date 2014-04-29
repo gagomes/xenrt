@@ -1,6 +1,7 @@
 
 import pprint
 import json
+import copy
 try:
     from marvin import deployDataCenter
     from marvin import jsonHelper
@@ -16,8 +17,12 @@ class MarvinDeployException(Exception):
 class MarvinDeployer(object):
     CONFIG_SCHEMA = {
         'config': {
-          'abstractName': 'Config',
-          'required': { 'zones': None } },
+          'abstractName': 'MarvinConfig',
+          'required': { 'zones': None },
+          'notify':   { 'globalConfig': 'notifyGlobalConfigChanged' } },
+        'globalConfig': {
+          'abstractName': 'MgmtSvrGlobalConfig',
+          'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
           'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
@@ -98,7 +103,7 @@ class MarvinDeployer(object):
 
                 if value == None:
                     if self.CONFIG_SCHEMA[elementKey].has_key('defaults') and self.CONFIG_SCHEMA[elementKey]['defaults'].has_key(requiredField):
-                        value = self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField]
+                        value = copy.deepcopy(self.CONFIG_SCHEMA[elementKey]['defaults'][requiredField])
                     else:
                         raise MarvinDeployException('No value avaialble for required field [%s - %s]' % (elementKey, requiredField))
 
@@ -106,7 +111,7 @@ class MarvinDeployer(object):
 
     def _notifyFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
         for notifyField in self.CONFIG_SCHEMA[elementKey]['notify']:
-            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]):
+            if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]) and elementRef.has_key(notifyField):
                 getattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField])(self.CONFIG_SCHEMA[elementKey]['abstractName'], elementRef[notifyField])
 
     def _processConfigElement(self, element, parentName, deployer):

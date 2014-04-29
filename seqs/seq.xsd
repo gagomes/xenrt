@@ -287,6 +287,7 @@
           <xs:attribute name="blocker" use="optional" type="xbool"/>
           <xs:attribute name="prio" use="optional" type="xs:positiveInteger"/>
           <xs:attribute name="tc" use="optional" type="tcIdType"/>
+          <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name="id" use="required" type="tcClassPathType"/>
           <xs:attribute name="name" use="optional" type="tcNameType"/>
         </xs:complexType>
@@ -339,6 +340,7 @@
           </xs:choice>
           <xs:attribute name="blocker" use="optional"  type="xbool"/>
           <xs:attribute name ="group" use="optional" type="groupType"/>
+          <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name ="guest" use="optional" type="xs:string"/>
           <xs:attribute name ="host" use="optional" type="xs:string"/>
           <xs:attribute name ="tc" use="optional" type="xs:string"/>
@@ -364,6 +366,7 @@
           </xs:choice>
           <xs:attribute name="blocker" use="optional"  type="xbool"/>
           <xs:attribute name ="group" use="optional" type="groupType"/>
+          <xs:attribute name ="sku" use="optional" type="xs:string"/>
           <xs:attribute name ="guest" use="optional" type="xs:string"/>
           <xs:attribute name ="workers" use="optional" type="xs:string" />
           <xs:attribute name ="tc" use="optional" type="xs:string"/>

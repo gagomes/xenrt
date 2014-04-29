@@ -84,11 +84,15 @@ class MarvinApi(object):
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
-    def waitForTemplateReady(self, name):
+    def waitForBuiltInTemplatesReady(self):
+        templateList = Template.list(self.apiClient, templatefilter='all', type='BUILTIN')
+        map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
+
+    def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
         while((datetime.now() - startTime).seconds < 1800):
-            templateList = Template.list(self.apiClient, templatefilter='all', name=name)
+            templateList = Template.list(self.apiClient, templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
             elif len(templateList) == 1:
@@ -495,9 +499,15 @@ class TCMarvinTestRunner(xenrt.TestCase):
         self.marvinApi.setCloudGlobalConfig("expunge.workers", "3")
         self.marvinApi.setCloudGlobalConfig("check.pod.cidrs", "true")
         self.marvinApi.setCloudGlobalConfig("direct.agent.load.size", "1000", restartManagementServer=True)
+        
+        #Parse arglist from sequence file to set global settings requried for the particular testcase        
+        for arg in arglist:
+            if arg.startswith('globalconfig'):            
+                config = eval(arg.split('=')[1])
+                self.marvinApi.setCloudGlobalConfig(config['key'],config['value'] ,restartManagementServer=config['restartManagementServer'])
+            else :
+                raise xenrt.XRTError("Unknown arguments specified ")
 
-        # Add check to make this optional
-        self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
 
     def writeRunInfoLog(self, testcaseName, runInfoFile):
         xenrt.TEC().logverbose('-------------------------- START MARVIN LOGS FOR %s --------------------------' % (testcaseName))

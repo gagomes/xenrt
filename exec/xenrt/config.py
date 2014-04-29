@@ -1566,8 +1566,8 @@ class Config:
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel51_x86-64"] = "Oracle Enterprise Linux 5.1 (64-bit)"
         #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-32"] = "Oracle Enterprise Linux 5.10 (32-bit)"
         #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-32"] = "Oracle Enterprise Linux 5.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-64"] = "Oracle Enterprise Linux 5.2 (64-bit)"
+        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-32"] = "Oracle Enterprise Linux 5.2 (32-bit)"
+        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-64"] = "Oracle Enterprise Linux 5.2 (64-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel53_x86-32"] = "Oracle Enterprise Linux 5.3 (32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel53_x86-64"] = "Oracle Enterprise Linux 5.3 (64-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel54_x86-32"] = "Oracle Enterprise Linux 5.4 (32-bit)"
@@ -1581,7 +1581,7 @@ class Config:
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel58_x86-32"] = "Oracle Enterprise Linux 5.8 (32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel58_x86-64"] = "Oracle Enterprise Linux 5.8 (64-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel59_x86-32"] = "Oracle Enterprise Linux 5.9 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel58_x86-64"] = "Oracle Enterprise Linux 5.9 (64-bit)"
+        self.config["CCP_CONFIG"]["OS_NAMES"]["oel59_x86-64"] = "Oracle Enterprise Linux 5.9 (64-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel6_x86-32"] = "Oracle Enterprise Linux 6.0 (32-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel6_x86-64"] = "Oracle Enterprise Linux 6.0 (64-bit)"
         self.config["CCP_CONFIG"]["OS_NAMES"]["oel61_x86-32"] = "Oracle Enterprise Linux 6.1 (32-bit)"
@@ -1677,6 +1677,8 @@ class Config:
 
         self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Sarasota"
         self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Sarasota"
+        
+        self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -2717,11 +2719,13 @@ class Config:
         # Stratus: xen-api, sm. Rolls up XS602E001,XS602E002,XS602E003,XS602E005,XS602E007,XS602E011,XS602E013,XS602E017,XS602E021,XS602E027,XS602E028.
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E030/76582/hotfix-XS602E030/XS602E030.xsupdate"
         
+        # MrToad (PLACEHOLDER): xen-tools . Rolls up XS602E002, XS602E009, XS602E019
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/build/sanibel-lcm/84256/hotfix-XS602E031/XS602E031.xsupdate"
+        
         # Carabosse: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602E004, XS602E008, XS602E014, XS602E016, XS602E018, XS602E020, XS602E022, XS602E023, XS602E025, XS602E026, XS602E029 
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E032/77409/hotfix-XS602E032/XS602E032.xsupdate"
       
-      
-      
+        
       
       
       
@@ -2829,6 +2833,12 @@ class Config:
         
         # Carabosse: kexec-tools, xen-bugtool, xapi-core, xapi-networkd, xapi-noarch, xapi-rrdd, xapi-xenopsd, xen-firmware, xen-hypervisor, xen-tools . Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033 
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E036/77411/hotfix-XS61E036/XS61E036.xsupdate"
+        
+        # Dodger: xapi, xen. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"] = "/usr/groups/build/tampa-lcm/84860/hotfix-XS61E037/XS61E037.xsupdate"
+        
+        # MrToad: xen-tools. Rolls up XS61E010, XS61E029
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/build/tampa-lcm/84220/hotfix-XS61E038/XS61E038.xsupdate"
       
       
       
@@ -2907,10 +2917,10 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1002/77446/hotfix-XS62ESP1002/XS62ESP1002.xsupdate"
         
         # MrToad - xen-tools . Rolls up XS62E015 
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/xen/carbon/clearwater-sp1-lcm/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1003/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
 
         # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/build/clearwater-sp1-lcm/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1004/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
 
 
         return
@@ -3007,6 +3017,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF30"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF32"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
@@ -3022,7 +3033,8 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF29"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"]
         self.config["CARBON_PATCHES_TAMPA"]["HF34"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"]
         self.config["CARBON_PATCHES_TAMPA"]["HF35"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF36"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}

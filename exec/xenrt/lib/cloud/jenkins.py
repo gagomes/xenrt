@@ -9,11 +9,10 @@ from os import listdir
 
 class BuildState: NotRunning, Running = range(2)
 
-__all__ = ["JenkinsBuild","JenkinsObserver","InstallMarvin"]
+__all__ = ["JenkinsBuild","JenkinsObserver","MarvinInstaller"]
 
 
-#USE
-
+#USE (Dont remove the coomented code)
 #observer = JenkinsObserver()
 #jenkinsBuild = JenkinsBuild() 
 #jenkinsBuild.findBuild(sha1)
@@ -70,59 +69,36 @@ class JenkinsCommand(BuildCommand):
 
     def invokeBuild(self,buildParams):
 
-        try:
-            build = self._BuildJob.invoke(buildParams)
-        except Exception, e:
-            raise
- 
         #Returns the jenkin's build obj to get the artifiacts
-        return build
-
+        return self._BuildJob.invoke(buildParams)
+ 
     def getAllBuilds(self):
       
         revDict = {}
-        try:
-            revDict = self._BuildJob.get_revision_dict()
-        except Exception, e:
-            raise
+        revDict = self._BuildJob.get_revision_dict()
    
         #Returns the revision dict eg. {sha1: [1,2,3,4,5]}
         return revDict 
 
     def buildStatus(self,build):
 
-        try:
-            return build.get_status()
-        except Exception, e:
-            raise
+        return build.get_status()
 
     def buildRunning(self,build):
 
-        try:
-            return build.is_running()
-        except Exception, e:
-            raise
+        return build.is_running()
 
     def getBuild(self,buildNum):
 
-        try:
-            return self._BuildJob.get_build(int(buildNum))
-        except Exception, e:
-            raise
+        return self._BuildJob.get_build(int(buildNum))
 
     def getBuildArtifacts(self,build):
 
-        try:
-            return build.get_artifact_dict()
-        except Exception, e:
-            raise
+        return build.get_artifact_dict()
 
     def getJenkinsStatus(self):
 
-        try:
-            return self._BuildJob.is_running()
-        except Exception, e:
-            raise
+        return self._BuildJob.is_running()
 
 class JenkinsBuild(Build):
     
@@ -242,12 +218,9 @@ class BuildObserver(xenrt.XRTThread):
 
         startTime = time.time()
         
-        while 1: 
-            if self.buildRunning():
-                time.sleep(10)
-            else: 
-                break
-
+        while self.buildRunning(): 
+            
+            xenrt.sleep(60)
             if (time.time() - startTime > self.__timeout):
                 break
 
@@ -278,7 +251,7 @@ class JenkinsObserver(BuildObserver):
             return
         self.join()
 
-class InstallBuild(object):
+class BuildInstaller(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -289,7 +262,7 @@ class InstallBuild(object):
     def installBuild(self):
         pass
 
-class InstallMarvin(InstallBuild):
+class MarvinInstaller(BuildInstaller):
    
     def __init__(self,sha1,workDir = None):
 

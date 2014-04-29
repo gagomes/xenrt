@@ -10,8 +10,11 @@
 
 import xenrt
 import libvirt
+import thread
 
 createVM = xenrt.lib.libvirt.createVM
+
+virt_install_lock = thread.allocate_lock()
 
 class KVMGuest(xenrt.lib.libvirt.Guest):
     DEFAULT_DISK_FORMAT = "raw"
@@ -33,7 +36,7 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         return None # use default
 
     def _detectDistro(self):
-        Guest._detectDistro(self)
+        xenrt.lib.libvirt.Guest._detectDistro(self)
         if not self.windows:
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True
@@ -80,6 +83,10 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         args.append("--nonetworks")
         args.append("--graphics vnc,listen=0.0.0.0")
         args.append("--force --boot hd --noreboot")
+
+        virt_install_lock.acquire()
+
+        #critical section: virt-install uses ~/.virtinst exclusively, which creates problems if vms are installed concurrently
         self.host.execvirt("virt-install %s" % (' '.join(args)))
 
         self.virDomain = self.virConn.lookupByName(self.name)
@@ -88,3 +95,5 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         # FIXME: hard-coded
         vdiname = "%s.%s" % (self.name, self.DEFAULT_DISK_FORMAT)
         self.createDisk(rootdisk, sruuid, name=vdiname, format=self.DEFAULT_DISK_FORMAT)
+
+        virt_install_lock.release()

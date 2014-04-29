@@ -18,7 +18,11 @@ __all__ = ["ManagementServer"]
 class ManagementServer(object):
     def __init__(self, place):
         self.place = place
-        self.cmdPrefix = 'cloudstack'
+        self.version = self.determineManagementServerVersion()
+        if self.version in ['3.0.7']:
+            self.cmdPrefix = 'cloud'
+        else:
+            self.cmdPrefix = 'cloudstack'
 
     def getLogs(self, destDir):
         sftp = self.place.sftpClient()
@@ -62,6 +66,11 @@ class ManagementServer(object):
                 reboots += 1
 
         if not managementServerOk:
+            # Store the MS logs
+            mgmtSvrHealthCheckFailedLogDir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'healthFailure')
+            if not os.path.exists(mgmtSvrHealthCheckFailedLogDir):
+                os.makedirs(mgmtSvrHealthCheckFailedLogDir)
+            self.getLogs(mgmtSvrHealthCheckFailedLogDir)
             raise xenrt.XRTFailure('Management Server not reachable')
 
     def restart(self, checkHealth=True, startStop=False):
@@ -137,11 +146,11 @@ class ManagementServer(object):
             self.place.execcmd('mkdir cloudplatform')
             self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-            self.place.execcmd('cd %s && ./install.sh -m' % (installDir))
+            self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
-            self.setupManagementServerDatabase()
-            self.setupManagementServer()
-            self.installApacheProxy()
+        self.setupManagementServerDatabase()
+        self.setupManagementServer()
+        self.installApacheProxy()
 
     def getLatestMSArtifactsFromJenkins(self):
         jenkinsUrl = 'http://jenkins.buildacloud.org'
@@ -175,6 +184,7 @@ class ManagementServer(object):
             xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
 
         lastGoodBuild = view[jobKey].get_last_good_build()
+        xenrt.GEC().dbconnect.jobUpdate("ACSINPUTDIR", lastGoodBuild.baseurl)
         artifactsDict = lastGoodBuild.get_artifact_dict()
 
         artifactKeys = filter(lambda x:x.startswith('cloudstack-management-') or x.startswith('cloudstack-common-') or x.startswith('cloudstack-awsapi-'), artifactsDict.keys())
@@ -198,17 +208,58 @@ class ManagementServer(object):
 
     def installCloudStackManagementServer(self):
         placeArtifactDir = self.getLatestMSArtifactsFromJenkins()
-
+        
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')))
+            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
         self.setupManagementServerDatabase()
         self.setupManagementServer()
 
+    def determineManagementServerVersion(self):
+        # This method determines the version number of CloudStack or CloudPlatform being used.
+        # TODO - Need to find a better way of doing this
+        msVersion = 'Unknown'
+        versionStrings = ['3.0.7', '4.1', '4.2', '4.3', '4.4', 'master']
+        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+            versionsFound = filter(lambda x:x in xenrt.TEC().lookup("CLOUDINPUTDIR", None), versionStrings)
+            if len(versionsFound) == 1:
+                msVersion = versionsFound[0]
+            elif len(versionsFound) > 1:
+                xenrt.TEC().logverbose('Multiple version strings matched %s: %s' % (xenrt.TEC().lookup("CLOUDINPUTDIR", None), versionsFound))
+            else:
+                xenrt.TEC().logverbose('No version strings matched %s' % (xenrt.TEC().lookup("CLOUDINPUTDIR", None)))
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+            if xenrt.TEC().lookup('ACS_BRANCH', None) in versionStrings:
+                msVersion = xenrt.TEC().lookup('ACS_BRANCH', None)
+            else:
+                xenrt.TEC().logverbose('ACS branch version not recognised')
+        xenrt.TEC().comment('Using Management Server version: %s' % (msVersion))
+        return msVersion
+
+    def preManagementServerInstall(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            if self.version in ['4.4', 'master']:
+                self.place.execcmd('cp /etc/yum.repos.d/xenrt.repo /etc/yum.repos.d/xenrt.repo.orig')
+                self.place.execcmd("sed -i 's/6.3/6.5/g' /etc/yum.repos.d/xenrt.repo")
+
+    def postManagementServerInstall(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            if self.version in ['4.4', 'master']:
+                self.place.execcmd('mv /etc/yum.repos.d/xenrt.repo.orig /etc/yum.repos.d/xenrt.repo')  
+            if self.version == 'master':
+                self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
+                self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
+
     def installCloudManagementServer(self):
+
+        self.preManagementServerInstall()
+
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
         elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
             self.installCloudStackManagementServer()
         else:
             raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')
+
+        self.postManagementServerInstall()
+

@@ -28,6 +28,14 @@ class Instance(object):
     def supportedLifecycleOperations(self):
         return self.toolstack.instanceSupportedLifecycleOperations(self)
 
+    @property
+    def canMigrateTo(self):
+        return self.toolstack.instanceCanMigrateTo(self)
+
+    @property
+    def residentOn(self, instance):
+        return self.toolstack.instanceResidentOn(self, instance)
+
     def populateFromExisting(self, ip=None):
         if ip:
             self.mainip = ip

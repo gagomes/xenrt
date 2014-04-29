@@ -409,12 +409,16 @@ class _TransferVM(xenrt.TestCase):
             readOnly = "false"
         else:
             readOnly = "true"
-
+        
+        # Assign xenrt random mac to transferVM instance
+        mac = xenrt.randomMAC()
+        
         hostRef = session.xenapi.host.get_all()[0]
         args = {"vdi_uuid": vdi,
             "transfer_mode": transferMode,
             "use_ssl": ssl,
             "network_uuid": networkuuid,
+            "network_mac": mac,
             "read_only": readOnly}
         ref = session.xenapi.host.call_plugin(hostRef, "transfer", "expose", args)
  

@@ -1,4 +1,3 @@
-
 import xenrt, xenrt.lib.xenserver
 import time
 import datetime
@@ -8,6 +7,8 @@ import IPy
 from lxml import etree
 import re
 from datetime import datetime
+from abc import ABCMeta, abstractmethod, abstractproperty
+from xenrt.lazylog import log, step
 
 use_jenkins_api = True
 try:
@@ -1131,6 +1132,7 @@ class TCCloudUpgrade(TCCloudScale):
                                           skipApplyRequiredPatches=False)
         setattr(pool_upgrade, "upgradeHook", self)
         self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
+
 
 class TCCloudAllocateResources(xenrt.TestCase):
     def run(self, arglist):

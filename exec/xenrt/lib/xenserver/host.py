@@ -1444,11 +1444,17 @@ if [ "x$(readlink boot/xen.gz)" = "x$(readlink boot/xen-debug.gz)" ]
 then
     # Remove the trailing '-d' in the filename stem
     NON_DEBUG_XEN=$(basename $(readlink boot/xen.gz) -d.gz).gz
-    if [ -e "boot/${NON_DEBUG_XEN}" ]
-    then
-        rm -f boot/xen.gz
-        ln -s /boot/${NON_DEBUG_XEN} boot/xen.gz
-    fi
+
+# or if the symlink is from xen.gz to xen-debug.gz (as since CP-7811)
+elif [ "x$(readlink boot/xen.gz)" = "xxen-debug.gz" ]
+then
+    NON_DEBUG_XEN=$(basename $(readlink boot/xen-debug.gz) -d.gz).gz
+fi
+
+if [ -n "${NON_DEBUG_XEN}" -a -e "boot/${NON_DEBUG_XEN}" ]
+then
+    rm -f boot/xen.gz
+    ln -s ${NON_DEBUG_XEN} boot/xen.gz
 fi
 """
 
@@ -1472,6 +1478,10 @@ echo PARTITIONS=\\'/dev/$XRTDISK\\' >> etc/firstboot.d/data/default-storage.conf
 echo TYPE='%s' >> etc/firstboot.d/data/default-storage.conf
 """ % (disk, disk, srtype, srtype)
 
+        setxen = xenrt.TEC().lookup("SETXENCMDLINE", None) #eg. SETXENCMDLINE=x=a,y=b
+        if setxen:
+            args=dict(map(lambda a: tuple(a.split("=")), setxen.split(",")))
+            self.setXenCmdLine(**args)
 
         pifile = "%s/post-install-script-%s" % (workdir,self.getName())
         pi = file(pifile, "w")
@@ -2805,7 +2815,14 @@ done
         if domains.has_key(uuid):
             return domains[uuid][0]
         raise xenrt.XRTError("Domain '%s' not found" % (uuid))
-        
+
+    def installIperf(self, version=""):
+        """Installs the iperf application on the host"""
+        if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
+            self.execdom0("wget %s/iperf%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version))
+            self.execdom0("tar -zxf iperf%s.tgz" % (version,))
+            self.execdom0("ln -s ~/iperf%s/iperf /usr/bin" % (version,))
+
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):
         """Create a new vbridge on the host"""
@@ -4720,7 +4737,7 @@ done
             primaryNICSpeed = self.lookup("NIC_SPEED", None)
             if primaryNICSpeed == "1G":
                 primaryNICSpeed = None
-            if network == "NPRI" and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
+            if (network == "NPRI" or network == "ANY") and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
                 # The primary NIC is also on this network
                 avail = [0] + avail
             nicnodes = phys.getElementsByTagName("NIC")
@@ -8831,6 +8848,11 @@ rm -f /etc/xensource/xhad.conf || true
             return int(r.group(1))
         return None
 
+    def setXenCmdLine(self, set="xen", **kwargs):
+        for key in kwargs:
+            value = kwargs[key]
+            self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
+
 #############################################################################
 
 class MNRHost(Host):
@@ -11859,6 +11881,11 @@ done
             xenrt.TEC().logverbose("Dom0 Pinning status: %s" % vcpuPinningData['pinning'])
             if vcpuPinningData['dom0vCPUs']!='4' or not vcpuPinningData['pinning']:
               raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
+
+        if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
+            # Check that we're not using a debugging-enabled Xen by seeing if the "debug=y" flag is present
+            if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code'):
+                raise xenrt.XRTFailure("Booted a debug=y Xen when FORCE_NON_DEBUG_XEN flag was present")
      
     def postInstall(self):
         TampaHost.postInstall(self)

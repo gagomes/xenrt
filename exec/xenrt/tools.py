@@ -30,8 +30,8 @@ def testrunJSONLoad(tool, params):
     return json.load(urllib.urlopen("%s/rest/inquisitor/latest/%s?os_username=%s&os_password=%s&%s" %
                     (xenrt.TEC().lookup("JIRA_URL", None),
                     tool,
-                    xenrt.TEC().lookup("JIRA_USERNAME", "xenrt"),
-                    xenrt.TEC().lookup("JIRA_PASSWORD", "xensource"),
+                    xenrt.TEC().lookup("JIRA_USERNAME"),
+                    xenrt.TEC().lookup("JIRA_PASSWORD"),
                     params)))
 
 def getIssue(j, issue):

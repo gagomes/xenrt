@@ -43,7 +43,8 @@ __all__ = ["WebDirectory",
            "CentralResource",
            "SharedHost",
            "PrivateVLAN",
-           "ProductLicense"]
+           "ProductLicense",
+           "GlobalResource"]
 
 class DirectoryResource:
 

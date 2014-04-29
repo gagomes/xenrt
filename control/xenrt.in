@@ -3206,7 +3206,6 @@ class XenRTResLock(XenRTCommand):
         u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details), proxies=self.proxies)
 
         ret = u.read()
-        print ret
         data = json.loads(ret)
         
         return data
@@ -3215,7 +3214,7 @@ class XenRTResLock(XenRTCommand):
         if not 'name' in results.keys():
             sys.stderr.write("ERROR: Could not lock resource\n")
             return 1
-        self.printout(json.dumps(results))
+        self.printout(json.dumps(results)+"\n")
         return 0
 
 class XenRTResRelease(XenRTCommand):

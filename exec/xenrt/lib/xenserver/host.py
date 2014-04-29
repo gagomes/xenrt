@@ -1854,6 +1854,11 @@ then
 fi
 """ % (pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix, pathprefix)
 
+    def assertNotRunningDebugXen(self):
+        # Check that we're not using a debugging-enabled Xen by seeing if the "debug=y" flag is present
+        if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code'):
+            raise xenrt.XRTFailure("Booted a debug=y Xen when FORCE_NON_DEBUG_XEN flag was present")
+
     def upgrade(self, newVersion=None, suppackcds=None):
         """Upgrade this host"""
         if not newVersion:            
@@ -2574,6 +2579,7 @@ fi
         if xenLastModified <> xenLastModifiedNew and xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             # It looks like the RPM upgrades touched Xen, so we need to ensure that we're using the non-debug version.
             self.execdom0(self.swizzleSymlinksToUseNonDebugXen(pathprefix="/"))
+            self.assertNotRunningDebugXen()
 
         return reply
 
@@ -11895,9 +11901,7 @@ done
               raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
 
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
-            # Check that we're not using a debugging-enabled Xen by seeing if the "debug=y" flag is present
-            if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code'):
-                raise xenrt.XRTFailure("Booted a debug=y Xen when FORCE_NON_DEBUG_XEN flag was present")
+            self.assertNotRunningDebugXen()
      
     def postInstall(self):
         TampaHost.postInstall(self)

@@ -95,7 +95,56 @@ class XenRTReleaseResource(XenRTResourcePage):
             self.release_lock()
         return ret
 
+class XenRTListResources(XenRTAPIPage):
+    def render(self):
+        ret = ""
+        cur = self.getDB().cursor()
+        cur.execute("SELECT name,site,status,jobid,type FROM tblresources")
+        fmt = "%-12s %-8s %-8s %-8s\n"
+        if not self.request.params.has_key("quiet"):
+            ret += fmt % ("Resource", "Site", "Status", "Type")
+            ret += "====================================================================\n"
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            name = rc[0].strip()
+            if rc[1]:
+                site = rc[1].strip()
+            else:
+                site="(all)"
+            if rc[2] == "locked":
+                job = "%d" % rc[3]
+            else:
+                job = "idle"
+            restype = rc[4].strip()
+            ret += fmt % (name, site, job, restype) 
+        return ret
+
+class XenRTResource(XenRTAPIPage):
+    def render(self):
+        ret = ""
+        cur = self.getDB().cursor()
+        cur.execute("SELECT name, site, status, jobid, type, data FROM tblresources WHERE name='%s'" % self.request.params['resource'])
+
+        rc = cur.fetchone()
+        ret = {}
+        if rc:
+            ret['name'] = rc[0].strip()
+            if rc[1]:
+                ret['site'] = rc[1].strip()
+            else:
+                ret['site'] = None
+            ret['status'] = rc[2].strip()
+            ret['jobid'] = rc[3]
+            ret['type'] = rc[4].strip()
+            ret['data'] = json.loads(rc[5])
+        return json.dumps(ret)
+
+        
 
 PageFactory(XenRTLockResource, "lockresource", "/api/resources/lock", contentType="application/json", compatAction="lockresource")
 PageFactory(XenRTReleaseResource, "releaseresource", "/api/resources/release", contentType="text/plain", compatAction="releaseresource")
+PageFactory(XenRTListResources, "listresource", "/api/resources/list", contentType="text/plain", compatAction="resourcelist")
+PageFactory(XenRTResource, "resource", "/api/resources/details", contentType="application/json", compatAction="resource")
 

@@ -3,6 +3,7 @@ from zope.interface import implements, providedBy
 
 oslist = []
 
+
 class OS(object):
     implements(xenrt.interfaces.OS)
 
@@ -37,14 +38,19 @@ class OS(object):
     def supportedInstallMethods(self):
         # We base this on interfaces
         interfaces = providedBy(self)
-        return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
+        return [method for intf, method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod
     def knownDistro(distro):
         return False
 
+    def assertHealthy(self):
+        raise xenrt.XRTError("Not implemented")
+
+
 def registerOS(os):
     oslist.append(os)
+
 
 def osFactory(distro, parent):
     for o in oslist:

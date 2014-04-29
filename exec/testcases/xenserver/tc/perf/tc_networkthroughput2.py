@@ -75,6 +75,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
         self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
 
+        # Optionally, the sequence file can specify IP addresses to use in each endpoint
+        self.e0ip = libperf.getArgument(arglist, "endpoint0ip", str, None)
+        self.e1ip = libperf.getArgument(arglist, "endpoint1ip", str, None)
+
     def before_prepare(self, arglist=None):
         pass
         ## tag the ipv6 network to be used by VMs
@@ -119,6 +123,17 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             return endpoint
         else:
             raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
+
+    def setIPAddress(self, endpoint, endpointdev, ip):
+        if isinstance(endpoint, xenrt.GenericGuest):
+            # TODO support configuring static IP in Windows guests
+            endpoint.execguest("ifconfig eth%d %s netmask 255.255.255.0" % (endpointdev, ip))
+
+            (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
+            endpoint.vifs[endpointdev] = (eth, bridge, mac, ip)
+        elif isinstance(endpoint, xenrt.GenericHost):
+            # TODO support configuring static IP on hosts
+            pass
 
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
@@ -349,6 +364,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         if 'iperf_installed' not in self.endpoint1.__dict__.keys():
             self.endpoint1.installIperf(version="2.0.5")
             self.endpoint1.iperf_installed = True
+
+        # Give IP addresses to the endpoints if necessary
+        if self.e0ip:
+            self.setIPAddress(self.endpoint0, self.e0dev, self.e0ip)
+        if self.e1ip:
+            self.setIPAddress(self.endpoint1, self.e1dev, self.e1ip)
 
         # Collect as much information as necessary for the rage importer
         self.rageinfo()

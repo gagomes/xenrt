@@ -1677,6 +1677,7 @@ class Config:
 
         self.config["PRODUCT_CODENAMES"]["6.1.50"] = "Sarasota"
         self.config["PRODUCT_CODENAMES"]["6.2.50"] = "Sarasota"
+        self.config["PRODUCT_CODENAMES"]["6.5.50"] = "Sarasota"
         
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
 

@@ -96,6 +96,6 @@ class XenRTReleaseResource(XenRTResourcePage):
         return ret
 
 
-PageFactory(XenRTLockResource, "lockresource", "/api/resources/lock", contentType="application/json")
-PageFactory(XenRTReleaseResource, "releaseresource", "/api/resources/release", contentType="text/plain")
+PageFactory(XenRTLockResource, "lockresource", "/api/resources/lock", contentType="application/json", compatAction="lockresource")
+PageFactory(XenRTReleaseResource, "releaseresource", "/api/resources/release", contentType="text/plain", compatAction="releaseresource")
 

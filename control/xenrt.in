@@ -37,7 +37,7 @@ def urlopen_with_retry(*args, **kwargs):
     i = 0
     retryTimer = 2
     exception = None
-    while i < 7:
+    while i < 1:
         try:
             u = urllib.urlopen(*args, **kwargs)
             if "getcode" in dir(u):
@@ -3190,6 +3190,63 @@ class XenRTConsole(_XenRTControllerOperation):
                 self.printout("%s\n" % line)
         return 0
 
+class XenRTResLock(XenRTCommand):
+   
+    name = "reslock"
+    summary = "Lock a global resource (controller command)"
+    mandatory = "<type> <jobid> <site>"
+    group = "resources"
+
+    def run(self, args):
+        details = {'action': 'lockresource',
+                   'type': args[0],
+                   'job': args[1],
+                   'site': args[2]}
+
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details), proxies=self.proxies)
+
+        ret = u.read()
+        print ret
+        data = json.loads(ret)
+        
+        return data
+
+    def render(self, args, results):
+        if not 'name' in results.keys():
+            sys.stderr.write("ERROR: Could not lock resource\n")
+            return 1
+        self.printout(json.dumps(results))
+        return 0
+
+class XenRTResRelease(XenRTCommand):
+    name = "resrelease"
+    summary = "Release a global resource"
+    mandatory = "<job id or resource name>"
+    group = "resources"
+
+    def run(self, args):
+        details = {'action': 'releaseresource'}
+        try:
+            details['job'] = int(args[0])
+        except:
+            details['name'] = args[0]
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+
+        data = u.read()
+
+        if data[0:5] == "ERROR":
+            reply = ""
+            sys.stderr.write(data)
+        else:
+            reply = "OK"
+        return reply
+
+    def render(self, args, results):
+        print results
+        return 0
+            
+        
 #############################################################################
 
 class Commands:
@@ -3252,6 +3309,8 @@ class Commands:
         self.add(XenRTPower)
         self.add(XenRTSNetwork)
         self.add(XenRTConsole)
+        self.add(XenRTResLock)
+        self.add(XenRTResRelease)
 
     def add(self, cl):
         c = cl(self)

@@ -61,7 +61,7 @@ class XenRTLockResource(XenRTResourcePage):
                 name = rc[0].strip()
                 data = rc[1].strip()
 
-                info = {"name":name, "data":data}
+                info = {"name":name, "data":json.loads(data)}
 
                 sites = rc[2]
                 if sites:

@@ -43,7 +43,9 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
 
     def testInstallStartsInstaller(self):
         """
-        Given 32 bit Vista guest When installing endpoint Then pevista32_730.exe is executed
+        Given 32 bit Vista guest
+        When installing endpoint
+        Then pevista32_730.exe is executed
         """
         guest = makeVista32()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
@@ -56,7 +58,7 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
 
     def testIpAddress(self):
         """
-        Given guest When IP address is asked Then returns the result of guest.getIP
+        When IP address is asked Then returns the result of guest.getIP
         """
         guest = makeVista32()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
@@ -67,7 +69,8 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
 
     def testInstallerForPreVista32(self):
         """
-        Given 32 bit WindowsXP When installing endpoint Then pevista32_730.exe is executed
+        Given 32 bit WindowsXP When installing endpoint
+        Then pevista32_730.exe is executed
         """
         guest = makeXP32()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
@@ -76,7 +79,8 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
 
     def testInstallerForVista64(self):
         """
-        Given 64 bit Vista guest When installing endpoint Then pevista64_730.exe is executed
+        Given 64 bit Vista guest When installing endpoint
+        Then pevista64_730.exe is executed
         """
         guest = makeVista64()
         endpoint = ixiachariot.WindowsEndpoint(guest, 'base_directory')
@@ -87,7 +91,8 @@ class TestWindowsEndpoint(XenRTUnitTestCase):
 class TestPairTest(XenRTUnitTestCase):
     def testGetCommands(self):
         """
-        Given TestPair When asked for the commands Then appropriate commands returned
+        Given TestPair When asked for the commands
+        Then appropriate commands returned
         """
         pairTest = ixiachariot.PairTest('ip1', 'ip2', 'testname', 'jobid')
 
@@ -104,7 +109,7 @@ class TestPairTest(XenRTUnitTestCase):
             '"/cygdrive/c/Program Files/Ixia/IxChariot/fmttst" '
             + r'"C:\\tests\\jobid\\result.tst" '
             + r'-v "C:\\tests\\jobid\\result.csv"',
-            ],
+        ],
             pairTest.getCommands())
 
 
@@ -120,7 +125,8 @@ class FakeHostRegistry(object):
 class TestEndpointFactory(XenRTUnitTestCase):
     def testCreateSetsGuest(self):
         """
-        When client creates an endpoint Then endpoint created with proper parameters
+        When client creates an endpoint
+        Then endpoint created with proper parameters
         """
         fakeHostRegistry = FakeHostRegistry()
         endpoint = ixiachariot.createEndpoint(

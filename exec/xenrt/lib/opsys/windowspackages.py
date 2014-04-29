@@ -14,26 +14,38 @@ class WindowsPackage(object):
         @return: Is the package already installed
         @rytpe: bool
         """
+        if self._os.fileExists("c:\\%s.stamp" % self.__class__.__name__):
+            xenrt.TEC().logverbose("Found stamp file for %s" % self.__class__.__name__)
+            return True
+        else:
+            return self._packageInstalled()
+
+    def _packageInstalled(self):
         return False
+
+    def __writeStampFile(self):
+        if not self._os.fileExists("c:\\%s.stamp" % self.__class__.__name__):
+            self._os.writeFile("c:\\%s.stamp" % self.__class__.__name__, "installed")
 
     @abstractmethod
     def _installPackage(self): 
         """Install the specific package"""
         pass
 
-    def ensureInstalled(self, installOptions={}):
-        if not self.isInstalled(installOptions):
-            self._installPackage(installOptions)
+    def ensureInstalled(self):
+        if not self.isInstalled():
+            self._installPackage()
+        self.__writeStampFile()
 
 class WindowsImagingComponent(WindowsPackage):
     NAME = "WIC"
 
-    def isInstalled(self, installOptions):
+    def _packageInstalled(self):
         """Only required on W2k3 - other versions can be treated as if this is installed"""
 
         return not self._os.distro.startswith("w2k3")
 
-    def _installPackage(self, installOptions):
+    def _installPackage(self):
         self._os.unpackTarball("%s/wic.tgz" %
                              (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                              "c:\\")
@@ -49,7 +61,7 @@ RegisterWindowsPackage(WindowsImagingComponent)
 class DotNet35(WindowsPackage):
     NAME = ".NET 3.5"
 
-    def isInstalled(self):
+    def _packageInstalled(self):
         try:
             val = self._os.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5', 'Install', healthCheckOnFailure=False)
         except:
@@ -84,7 +96,7 @@ RegisterWindowsPackage(DotNet35)
 class DotNet4(WindowsPackage):
     NAME = ".NET 4"
 
-    def _installPackage(self, installOptions):
+    def _installPackage(self):
         self._os.createDir("c:\\dotnet40logs")
         self._os.unpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self._os.execCmd("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
@@ -92,7 +104,7 @@ class DotNet4(WindowsPackage):
         xenrt.sleep(120)
         self._os.waitForBoot(600)
     
-    def isInstalled(self, installOptions):
+    def _packageInstalled(self):
         val = 0
         try:
             val = self._os.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Client', 'Install', healthCheckOnFailure=False)
@@ -105,11 +117,11 @@ RegisterWindowsPackage(DotNet4)
 class DotNet2(WindowsPackage):
     NAME = ".NET 2"
 
-    def isInstalled(self, installOptions):
+    def _packageInstalled(self):
         g = self._os.globPattern("c:\\windows\\Microsoft.NET\\Framework\\v2*\\mscorlib.dll")
         return len(g) > 0
 
-    def _installPackage(self, installOptions):
+    def _installPackage(self):
         if self._os.windowsVersion() == "5.1":
             # CA-41364 need a newer version of windows installer
             self._os.installPackage("WindowsInstaller")

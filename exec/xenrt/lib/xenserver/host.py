@@ -2347,6 +2347,7 @@ fi
         if xenLastModified <> xenLastModifiedNew and xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             # It looks like the RPM upgrades touched Xen, so we need to ensure that we're using the non-debug version.
             self.execdom0(self.swizzleSymlinksToUseNonDebugXen(pathprefix="/"))
+            self.reboot()
             self.assertNotRunningDebugXen()
 
         return reply

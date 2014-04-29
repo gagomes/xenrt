@@ -77,7 +77,7 @@ class XenRTLockResource(XenRTResourcePage):
                 ret = available[0]
         finally:
             self.release_lock()
-        return ret
+        return json.dumps(ret)
 
 class XenRTReleaseResource(XenRTResourcePage):
     def doRender(self):

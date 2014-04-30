@@ -272,5 +272,4 @@ check: install
 	$(SHAREDIR)/exec/main.py --sanity-check
 	cd $(SHAREDIR)/unittests && python runner.py
 	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
-	cd $(SHAREDIR) && pep8 unittests > $(CURRENT_DIR)/pep8.results || true
 

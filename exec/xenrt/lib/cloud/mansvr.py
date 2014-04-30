@@ -126,6 +126,18 @@ class ManagementServer(object):
             self.place.execcmd("chkconfig httpd on")
             self.place.execcmd("service httpd restart")
 
+    def checkJavaVersion(self):
+        if self.place.distro in ['rhel63', 'rhel64', ]:
+            if self.version in ['4.4', 'master']:
+                # Check if Java 1.7.0 is installed
+                if not '1.7.0' in self.place.execcmd('java -version').strip():
+                    self.place.execcmd('yum -y install java*1.7*')
+                    if not '1.7.0' in self.place.execcmd('java -version').strip():
+                        javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+                        self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))
+
+                if not '1.7.0' in self.place.execcmd('java -version').strip():
+                    raise xenrt.XRTError('Failed to install and select Java 1.7')
 
     def installCloudPlatformManagementServer(self):
         if self.place.arch != 'x86-64':
@@ -148,6 +160,7 @@ class ManagementServer(object):
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
             self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
+        self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
@@ -212,6 +225,7 @@ class ManagementServer(object):
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
+        self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
 

@@ -1,6 +1,6 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
     <PREPARE_WORKERS>5</PREPARE_WORKERS>
   </variables>
   <prepare>
@@ -10,7 +10,7 @@
         <distro>win7-x64</distro>
         <memory>2048</memory>
         <postinstall action="disableFirewall" />
-        <postinstall action="installLegacyDrivers" /> <!-- ####LEGACY DRIVERS### -->
+        <postinstall action="installDrivers" />
         <network device="0" />
         <network device="1" bridge="internal"/>
         <disk device="0" size="24" />
@@ -54,6 +54,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="testcases.xenserver.tc.security.TCBadPackets" tc="TC-20828" />
+    <testcase id="testcases.xenserver.tc.security.TCHackersChoiceIPv6Firewall6" tc="TC-20876"/>
+    <testcase id="testcases.xenserver.tc.security.TCHackersChoiceIPv6FloodRouter" tc="TC-20878"/>
   </testsequence>
 </xenrt>

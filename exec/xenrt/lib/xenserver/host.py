@@ -29,6 +29,7 @@ __all__ = ["Host",
            "TampaHost",
            "TampaXCPHost",
            "SarasotaHost",
+           "CreedenceHost",
            "ClearwaterHost",
            "NFSStorageRepository",
            "FileStorageRepository",
@@ -71,7 +72,9 @@ CLI_NATIVE = 3          # New style CLI
 def hostFactory(hosttype):
     if hosttype == "Sarasota":
         return xenrt.lib.xenserver.SarasotaHost
-    elif hosttype in ("Clearwater", "Creedence"):
+    elif hosttype in ("Creedence"):
+        return xenrt.lib.xenserver.CreedenceHost
+    elif hosttype in ("Clearwater"):
         return xenrt.lib.xenserver.ClearwaterHost
     elif hosttype in ("Tampa", "Tallahassee"):
         return xenrt.lib.xenserver.TampaHost
@@ -11966,6 +11969,14 @@ done
                 xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
                 continue
             self.genParamSet("template", uuids[0], "PV-args", args[a])
+
+#############################################################################
+
+class CreedenceHost(ClearwaterHost):
+
+    def __init__(self, machine, productVersion="Creedence", productType="xenserver"):
+            ClearwaterHost.__init__(self,
+                                    machine)
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):

@@ -2669,6 +2669,8 @@ Add-WindowsFeature as-net-framework"""
         if not noAutoDotNetInstall:
             if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
                 self.installDotNet4()
+            if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+                self.installDotNet4()
             elif isinstance(self.host, xenrt.lib.xenserver.BostonHost):
                 self.installDotNet35()
             else:

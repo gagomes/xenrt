@@ -8457,6 +8457,8 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0("rm -f /var/xapi/ha_metadata.db*")
             self.execdom0("rm -f /etc/xensource/xapi_block_startup || true")
             self.execdom0("rm -f /etc/xensource-inventory.prev")
+            # Clear up any static VDIs (this will fail if one is mounted, but should still remove the config)
+            self.execdom0("rm -f /etc/xensource/static-vdis/* || true")
             self.execdom0("mv /etc/xensource-inventory "
                           "/etc/xensource-inventory.prev")
             self.execdom0("cat /etc/xensource-inventory.prev | "

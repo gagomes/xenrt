@@ -146,6 +146,7 @@ class _HASmoketest(xenrt.TestCase):
         if self.pool and self.pool.haEnabled:
             try:
                 self.pool.disableHA(check=False)
+                self.pool.syncDatabase()
             except:
                 pass
 

@@ -28,7 +28,6 @@ class _TimedTestCase(xenrt.TestCase):
         f.write("\n".join(self.timings))
         f.close()
 
-#TestCase 1: Create instance from ISO, and create template from it.
 class _CreateGoldenTemplate(_TimedTestCase):
     """Base class for creating an instance from ISO and a template from it"""
 
@@ -60,7 +59,6 @@ class _CreateGoldenTemplate(_TimedTestCase):
 
         # Create an instance.
         instance = self.cloud.createInstance(distro=instanceDistro, name=instanceName)
-        #instance =  self.cloud.existingInstance(instanceName)
 
         # Create a golden template from the instance.
         self.cloud.createTemplateFromInstance(instance, templateName)
@@ -90,7 +88,8 @@ class _CreateGoldenTemplate(_TimedTestCase):
         xenrt.pfarm(pClone)
         
     def createInstancesFromTemplate(self):
-        # Worker thread function for cloning instances.
+        """Worker thread function for cloning instances"""
+
         while True:
             self.lock.acquire()
             item = None
@@ -110,16 +109,11 @@ class _CreateGoldenTemplate(_TimedTestCase):
             xenrt.TEC().logverbose("Cloning instant to %s" % instanceName)
             self.createInstance(templateName, instanceName)
             
-            # Put it in the registry
-            self.lock.acquire()
-            self.lock.release()
-
     def createInstance(self, templateName, instanceName):
         """Create instance from a template"""
 
         raise xenrt.XRTError("Unimplemented")
 
-#TestCase 2: Create n instances from the template
 class TCCreateInstancesFromTemplate(_CreateGoldenTemplate):
     """Base class for creating an instance from golden template"""
 
@@ -172,8 +166,8 @@ class _ScaleInstanceOperations(_TimedTestCase):
                         filter(lambda x: "clone" in x.name, self.cloud.getAllExistingInstances()))
         self.doInstanceOperations(instances, threads, iterations)
     
-    # This is a separate function so that a derived class can override self.instances
     def doInstanceOperations(self, instances, threads, iterations=1, func=None, timestamps=True):
+        """This is a separate function so that a derived class can override self.instances"""
 
         if func is None:
             func = self.doOperation
@@ -214,7 +208,8 @@ class _ScaleInstanceOperations(_TimedTestCase):
             pass
 
     def doInstanceWorker(self, func):
-        # Worker thread function for performing operations on instances.
+        """Worker thread function for performing operations on instances"""
+
         while True:
             self.lock.acquire()
             instance = None
@@ -254,9 +249,10 @@ class _ScaleInstanceLifecycle(_ScaleInstanceOperations):
         _ScaleInstanceOperations.__init__(self, tcid)
     
     def waitForInstanceBoot(self, instance):
-    # Thread (called by PTask) Waiting for an instance to boot.
+        """Thread (called by PTask) Waiting for an instance to boot"""
+
         try:
-            instance.poll(3600, desc="Instance boot")
+            instance.os.waitForBoot(3600)
             self.addTiming("TIME_INSTANCE_AVAILABLE_%s:%.3f" %
                                 (instance.name, xenrt.util.timenow(float=True)))
             self.addTiming("TIME_INSTANCE_AGENT_%s:N/A" % (instance.name))
@@ -410,28 +406,24 @@ class _ScaleInstanceXenDesktopLifecycle(_ScaleInstanceLifecycle):
 
 # Concerete test cases.
 
-#TestCase 3:
 class TCScaleInstanceXenDesktopStart(_ScaleInstanceXenDesktopLifecycle):
     """Start all these instances, and time when available over XML/RPC"""
 
     def doOperation(self, instance):
         self.xenDesktopStart(instance)
 
-#TestCase 4:
 class TCScaleInstanceXenDesktopReboot(_ScaleInstanceXenDesktopLifecycle):
     """Reboot all instances, and time when available over XML/RPC"""
 
     def doOperation(self, instance):
         self.xenDesktopReboot(instance)
 
-#TestCase 5:
 class TCScaleInstanceXenDesktopStop(_ScaleInstanceXenDesktopLifecycle):
     """Shutdown all instances"""
 
     def doOperation(self, instance):
         self.xenDesktopShutdown(instance)
 
-#TestCase 6:
 class TCScaleInstanceXenDesktopDestroy(_ScaleInstanceXenDesktopLifecycle):
     """Destroy all instances"""
 

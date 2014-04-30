@@ -2351,7 +2351,7 @@ Add-WindowsFeature as-net-framework"""
 
     def installPowerShellSnapIn(self, snapInDirName="XenServerPSSnapIn"):
         """Install the XenCenter PowerShell snap-in."""
-        if isinstance(self, xenrt.lib.xenserver.guest.SarasotaGuest):
+        if isinstance(self, xenrt.lib.xenserver.guest.ClearwaterGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (sdk, tempDir))
@@ -2364,7 +2364,7 @@ Add-WindowsFeature as-net-framework"""
             testRunner = os.path.join(tempDir, "XenServer-SDK/XenServerPowerShell/samples/AutomatedTestCore.ps1")
             xenrt.TEC().logverbose("Sending test runner %s to %s" % (testRunner, targetPath))
             self.xmlrpcSendFile(testRunner, targetPath + "\\AutomatedTestCore.ps1", usehttp=True)
-        
+
         elif isinstance(self, xenrt.lib.xenserver.guest.TampaGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
@@ -2373,7 +2373,7 @@ Add-WindowsFeature as-net-framework"""
             msi = xenrt.command("(cd / && ls %s/XenServer-SDK/%s/*.msi)" % (tempDir, snapInDirName)).strip()
             self.xmlrpcSendFile(msi, "c:\\XenServerPSSnapIn.msi", usehttp=True)
             self.xmlrpcExec("msiexec /i c:\\XenServerPSSnapIn.msi /qn /lv* c:\\pssnapininstall.log")
-            
+
         else:
             snapinstaller = xenrt.TEC().getFile("xe-phase-2/XenServerPSSnapIn.msi")
             self.xmlrpcSendFile(snapinstaller, "c:\\XenServerPSSnapIn.msi", usehttp=True)

@@ -19,7 +19,7 @@ class FakeRandomStringGenerator(object):
 class WindowsIsHealthy(XenRTUnitTestCase):
 
     def setUp(self):
-        #Set up a series of method mocks invlved in assertHealthy
+        # Set up a series of method mocks invlved in assertHealthy
         parent = interfaceMock(xenrt.interfaces.OSParent)
         self.__win = WindowsOS(None, parent)
         self.__randomWord = "SomeRandomStringOrOther"

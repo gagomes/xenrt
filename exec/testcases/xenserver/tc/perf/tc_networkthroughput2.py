@@ -146,8 +146,17 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             ip = endpoint.getIP()
         return ip
 
-    def nicdev(self, endpoint, endpointdev=None):
-        ip = self.getIP(endpoint, endpointdev)
+    def nicdevOfEndpointDev(self, endpoint, endpointdev):
+        ethdev = "eth%d" % (endpointdev)
+        brdev  = endpoint.execcmd("brctl show | fgrep %s | awk '{print $1}'" % (ethdev)).strip()
+        mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (brdev)).strip()
+        return ethdev, brdev, mac
+
+    def nicdev(self, endpoint):
+        ip = self.getIP(endpoint, None)
+        return self.nicdevOfIP(endpoint, ip)
+
+    def nicdevOfIP(self, endpoint, ip):
         endpointHost = self.hostOfEndpoint(endpoint)
 
         # Get the device name and MAC address for a given IP address
@@ -170,10 +179,15 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         dev = dev.replace("virbr","eth")
         return dev, _dev, mac
 
+    # endpoint is always a xenrt.GenericHost
     def nicinfo(self, endpoint, endpointdev=None, key_prefix=""):
+        assert isinstance(endpoint, xenrt.GenericHost)
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
-        dev, _dev, mac = self.nicdev(endpoint, endpointdev)
+        if endpointdev is None:
+            dev, _dev, mac = self.nicdev(endpoint)
+        else:
+            dev, _dev, mac = self.nicdevOfEndpointDev(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))

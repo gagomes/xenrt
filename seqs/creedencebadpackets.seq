@@ -56,10 +56,4 @@
   <testsequence>
     <testcase id="testcases.xenserver.tc.security.TCBadPackets" tc="TC-20828" />
   </testsequence>
-  <testsequence>
-    <testcase id="testcases.xenserver.tc.security.TCHackersChoiceIPv6Firewall6" tc="TC-20876"/>
-  </testsequence>
-  <testsequence>
-    <testcase id="testcases.xenserver.tc.security.TCHackersChoiceIPv6FloodRouter" tc="TC-20878"/>
-  </testsequence>
 </xenrt>

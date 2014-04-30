@@ -86,6 +86,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade zope.interface
 	$(SUDO) easy_install --upgrade nose
 	$(SUDO) easy_install --upgrade mock
+	$(SUDO) easy_install --upgrade pep8
 	$(SUDO) easy_install --upgrade jenkinsapi
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs

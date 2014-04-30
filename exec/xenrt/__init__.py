@@ -3565,3 +3565,4 @@ from xenrt.storageadmin import *
 from xenrt.racktableslink import *
 from xenrt.archive import *
 from xenrt.txt import *
+from xenrt.stringutils import *

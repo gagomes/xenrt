@@ -998,6 +998,7 @@ class PrepareNode:
                         for hostId in hostIds:
                             simpleHostNode = xml.dom.minidom.Element('host')
                             simpleHostNode.setAttribute('id', str(hostId))
+                            simpleHostNode.setAttribute('noisos', 'yes')
                             simplePoolNode.appendChild(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):

@@ -9,6 +9,7 @@ PYTHONLIB ?= /usr/local/lib/python2.6/dist-packages/
 PYTHONLIB2 ?= /usr/local/lib/python2.7/dist-packages/
 JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
+CURRENT_DIR ?= $(shell pwd)
 
 include build/config.mk
 include build/tools.mk
@@ -269,5 +270,6 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd /usr/share/xenrt/unittests && python runner.py
+	cd $(SHAREDIR)/unittests && python runner.py
+	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
 

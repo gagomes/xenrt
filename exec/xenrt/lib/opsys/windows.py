@@ -98,8 +98,9 @@ class WindowsOS(OS):
         self.isoName = "%s.iso" % self.distro
         self.vifStem = "eth"
         self.viridian = True
+        self.__randomStringGenerator = None
 
-    def ensurePackageInstalled(self, package, installOptions={}):
+    def ensurePackageInstalled(self, package):
         global packageList
         installer = None
         for p in packageList:
@@ -107,7 +108,7 @@ class WindowsOS(OS):
                 installer = p(self)
         if not installer:
             raise xenrt.XRTError("No installer found for package %s" % package)
-        installer.ensureInstalled(installOptions)
+        installer.ensureInstalled()
 
     def isPackageInstalled(self, package, installOptions={}):
         global packageList
@@ -1080,5 +1081,26 @@ class WindowsOS(OS):
                        "SZ",
                        "Unrestricted")
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
+
+    def assertHealthy(self):
+       word = self.randomStringGenerator.generate()
+       location = "c:\\xenrthealthcheck"
+       self.createFile(location, word)
+       reread = self.readFile(location)
+       self.removeFile(location)
+       if word not in reread:
+           raise xenrt.XRTError("assertHealthy has failed")
+
+    @property
+    def randomStringGenerator(self):
+        if not self.__randomStringGenerator:
+            return xenrt.stringutils.RandomStringGenerator()
+
+        return self.__randomStringGenerator
+
+    @randomStringGenerator.setter
+    def randomStringGenerator(self, value):
+        self.__randomStringGenerator = value
+
 
 registerOS(WindowsOS)

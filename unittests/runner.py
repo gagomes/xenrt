@@ -10,6 +10,6 @@ path.append(os.path.abspath("../exec"))
 os.environ["PYTHONPATH"] = string.join(path, ":")
 
 #Run the tests using nose
-res = call(["nosetests", "-v"] )
+res = call(["nosetests", "-v", "--with-xunit"] )
 if res != 0:
     raise Exception("Unit tests failed")

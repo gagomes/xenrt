@@ -87,6 +87,10 @@ class OSParent(Interface):
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
+    def assertHealthy():
+        """Quickly assert the health of the instance"""
+
+
 class OS(Interface):
 
     installMethod = Attribute("Selected installation method")
@@ -117,6 +121,9 @@ class OS(Interface):
     def populateFromExisting():
         """Populate class members from an existing OS installaion"""
 
+    def assertHealthy():
+        """Quickly verify that the OS is in a healthy state"""
+
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")
     installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")
@@ -139,3 +146,7 @@ class InstallMethodIsoWithAnswerFile(InstallMethodIso):
     def generateIsoAnswerfile():
         """Generate an answerfile for ISO installation"""
 
+
+class StringGenerator(Interface):
+    def generate(length):
+        """Generate the string fitting the implementation"""

@@ -7606,7 +7606,6 @@ class GenericGuest(GenericPlace):
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
-        
         for line in ay.splitlines():
             f.write("%s\n" % (line))           
         f.close()

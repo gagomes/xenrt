@@ -43,7 +43,8 @@ __all__ = ["WebDirectory",
            "CentralResource",
            "SharedHost",
            "PrivateVLAN",
-           "ProductLicense"]
+           "ProductLicense",
+           "GlobalResource"]
 
 class DirectoryResource:
 
@@ -2933,6 +2934,36 @@ class ProductLicense(CentralResource):
     def getKey(self):
         return xenrt.TEC().lookup(["LICENSES", "PRODUCT_%s" % self.product, self.license])
 
+
+class GlobalResource(CentralResource):
+    def __init__(self, restype):
+        CentralResource.__init__(self)
+
+        startlooking = xenrt.timenow()
+
+        while True:
+            res = xenrt.GEC().dbconnect.jobctrl("reslock", [restype, xenrt.TEC().lookup("JOBID", "0"), xenrt.TEC().lookup("XENRT_SITE")]) 
+            if 'name' in res:
+                self.name = res['name']
+                self.data = res['data']
+                break
+            if xenrt.util.timenow() > (startlooking + 3600):
+                xenrt.TEC().logverbose("Could not lock global resource of type %s" % restype)
+                raise xenrt.XRTError("Timed out waiting for %s to be available" % restype)
+            xenrt.sleep(60)
+        self.acquire("GLOBAL-%s" % (self.name))
+        self.resourceHeld = True
+
+    def release(self, atExit=False):
+        if not xenrt.TEC().lookup("OPTION_KEEP_GLOBAL_LOCKS", False, boolean=True):
+            xenrt.GEC().dbconnect.jobctrl("resrelease", [self.getName()])
+            CentralResource.release(self, atExit)
+        
+    def getName(self):
+        return self.name
+
+    def getData(self):
+        return self.data
 
 def getResourceRange(resourceType, numberRequired):
     loopsToTry = 3

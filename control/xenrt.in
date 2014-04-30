@@ -37,7 +37,7 @@ def urlopen_with_retry(*args, **kwargs):
     i = 0
     retryTimer = 2
     exception = None
-    while i < 1:
+    while i < 7:
         try:
             u = urllib.urlopen(*args, **kwargs)
             if "getcode" in dir(u):

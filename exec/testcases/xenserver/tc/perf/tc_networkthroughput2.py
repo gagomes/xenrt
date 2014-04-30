@@ -260,10 +260,13 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         return issue
 
     def physicalDeviceOf(self, guest, endpointdev):
-        (_, bridge, _, _) = guest.vifs[endpointdev]
-        # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
-        if bridge.startswith("xenbr"):
-            return int(bridge[5:])
+        if endpointdev is None:
+            return None
+        else:
+            (_, bridge, _, _) = guest.vifs[endpointdev]
+            # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
+            if bridge.startswith("xenbr"):
+                return int(bridge[5:])
 
     def rageinfo(self, info = {}):
         if isinstance(self.endpoint0, xenrt.GenericHost):

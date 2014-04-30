@@ -150,6 +150,9 @@ class CloudStack(object):
 
         return instance
 
+    def getAllExistingInstances(self):
+        """Returns all existing instances"""
+        return VirtualMachine.list(self.marvin.apiClient)
 
     def existingInstance(self, name):
 

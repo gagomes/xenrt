@@ -1,5 +1,6 @@
 #!/bin/bash
 set -ex
+echo $PATH
 venvpath=$1
 mkdir -p $venvpath
 virtualenv --system-site-packages $venvpath

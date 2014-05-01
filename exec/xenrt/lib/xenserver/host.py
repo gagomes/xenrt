@@ -11998,6 +11998,9 @@ class CreedenceHost(ClearwaterHost):
     def __init__(self, machine, productVersion="Creedence", productType="xenserver"):
             ClearwaterHost.__init__(self,
                                     machine)
+                                    
+    def getTestHotfix(self, hotfixNumber):
+        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):

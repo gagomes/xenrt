@@ -425,11 +425,6 @@ class CentralResource(object):
         locks = []
         # Static locks
         locks.append(self._listProcess("PV_ISO_LOCK"))
-        # VLAN locks
-        vl = [x for x in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys() if xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", x, "PRIVATE"], False, boolean=True)]
-        if vl:
-            for v in vl:
-                locks.append(self._listProcess("VLAN-%s" % (v)))
         # NetworkTestPeer locks
         ntpl = xenrt.TEC().lookup("TTCP_PEERS",None)
         if ntpl:
@@ -2869,7 +2864,7 @@ class PrivateVLAN(CentralResource):
         while True:
             for v in allVLANs:
                 try:
-                    self.acquire("VLAN-%s" % v, shared=False)
+                    self.acquire("VLAN-%s" % xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ID"]), shared=False)
                     vlan = v
                     self.resourceHeld = True
                     break

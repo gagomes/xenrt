@@ -21,7 +21,9 @@ BUILDDIR=$(mktemp -d)
 rm -rf "$BUILDDIR"
 
 # Install requirements
-pip install -r test-requirements.txt
+pip install \
+    --allow-all-external --allow-unverified PIL \
+    -r test-requirements.txt
 
 # Install xenrt loader
 (

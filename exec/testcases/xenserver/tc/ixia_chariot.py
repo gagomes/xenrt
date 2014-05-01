@@ -21,6 +21,7 @@ class IxiaChariotBasedTest(xenrt.TestCase):
             password=None)
 
         xenrt.log(result)
+        return result
 
     def getConfigValue(self, key):
         return xenrt.TEC().lookup(["IXIA_CHARIOT", key])
@@ -55,8 +56,11 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         pairTest = ixiachariot.PairTest(
             endpoint0.ipAddress, endpoint1.ipAddress, ixiaTest, jobId)
 
+        console = ixiachariot.Console(
+            self.consoleAddress, self.executeOnChariotConsole)
+
         for cmd in pairTest.getCommands():
-            self.executeOnChariotConsole(cmd)
+            console.run(cmd)
 
         logdir = xenrt.TEC().getLogdir()
 

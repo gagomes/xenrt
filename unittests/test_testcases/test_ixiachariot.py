@@ -5,6 +5,7 @@ import textwrap
 from testing import XenRTUnitTestCase
 from xenrt import ixiachariot
 from xenrt import objects
+import xenrt
 
 
 def makeMockWindowsGuest(revision, architecture='x86'):
@@ -133,3 +134,30 @@ class TestEndpointFactory(XenRTUnitTestCase):
             'host/guest', 'distmasterBase', fakeHostRegistry)
 
         self.assertEquals('guest@host', endpoint.guest)
+
+
+class TestChariotConsole(XenRTUnitTestCase):
+    def createConsoleAndMockExecutor(self, name='unnamed'):
+        executor = mock.Mock()
+        console = ixiachariot.Console(name, executor)
+        return console, executor
+
+    def testRunCallsExecutor(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+
+        console.run('something')
+
+        executor.assert_called_once_with('something')
+
+    def testRunNonZeroExecutionResultRaisesXRTError(self):
+        console, executor = self.createConsoleAndMockExecutor(name='console')
+        executor.return_value = 1
+
+        with self.assertRaises(xenrt.XRTError) as ctx:
+            console.run('something')
+
+        self.assertEquals(
+            "Remote command 'something' returned non-zero result code"
+            " while executed on ixia chariot console 'console'",
+            ctx.exception.reason)

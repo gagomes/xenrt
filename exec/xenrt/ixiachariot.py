@@ -1,5 +1,22 @@
 import textwrap
 
+import xenrt
+
+
+class Console(object):
+    def __init__(self, name, executor):
+        self._executor = executor
+        self.name = name
+
+    def run(self, command):
+        return_code = self._executor(command)
+        if 0 != return_code:
+            raise xenrt.XRTError(
+                "Remote command '{0}' returned non-zero result code ".format(
+                    command)
+                + "while executed on ixia chariot console '{0}'".format(
+                    self.name))
+
 
 def createEndpoint(endpointSpec, distmasterBase, hostRegistry):
     host, guestName = endpointSpec.split('/')

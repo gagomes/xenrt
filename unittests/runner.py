@@ -1,6 +1,7 @@
 import os
 import string
 from subprocess import call
+from distutils import spawn
 
 # Fix up the pythonpath
 path = []
@@ -10,7 +11,9 @@ path.append(os.path.abspath("../exec"))
 
 os.environ["PYTHONPATH"] = string.join(path, ":")
 
+noseTestPath = spawn.find_executable("nosetests")
+
 # Run the tests using nose
-res = call(["nosetests", "-v", "--with-xunit"])
+res = call(["coverage", "run", noseTestPath, "-v", "--with-xunit"])
 if res != 0:
     raise Exception("Unit tests failed")

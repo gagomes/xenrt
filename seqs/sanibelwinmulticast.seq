@@ -15,6 +15,7 @@
         <network device="1" bridge="internal"/>
         <disk device="0" size="24" />
       </vm>
+      <storage type="nfs" name="nfssr" default="true"/>
     </host>
   </prepare>
   <testsequence>

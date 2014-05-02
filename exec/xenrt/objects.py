@@ -8683,14 +8683,42 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiaVGPUDriver(self,driverType):
+    def __nvidiaX64GuestDriverName(self, driverType):
+        X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
+        X64_UNSIGNED_FILENAME = "WDDM_x64_332.83.zip"
 
+        defaultFilename = X64_UNSIGNED_FILENAME
         if driverType == 0:
-            self.installNvidiaVGPUSignedDriver()
-        else:
-            self.installNvidiaVGPUUnsignedDriver()
+            defaultFilename = X64_SIGNED_FILENAME
 
-    def installNvidiaVGPUSignedDriver(self):
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X64",
+                                  default=defaultFilename)
+
+    def __nvidiaX86GuestDriverName(self, driverType):
+        X86_SIGNED_FILENAME = "332.83_grid_win8_win7_english.exe"
+        X86_UNSIGNED_FILENAME = "WDDM_x86_332.83.zip"
+
+        defaultFilename = X86_UNSIGNED_FILENAME
+        if driverType == 0:
+            defaultFilename = X86_SIGNED_FILENAME
+
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X86",
+                                  default=defaultFilename)
+
+    def requiredVGPUDriverName(self, driverType):
+        if self.xmlrpcGetArch().endswith("64"):
+            return self.__nvidiaX64GuestDriverName(driverType)
+        else:
+            return self.__nvidiaX86GuestDriverName(driverType)
+
+    def installNvidiaVGPUDriver(self, driverType):
+        driverName = self.requiredVGPUDriverName(driverType)
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver(driverName)
+        else:
+            self.installNvidiaVGPUUnsignedDriver(driverName)
+
+    def installNvidiaVGPUSignedDriver(self, filename):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8699,26 +8727,23 @@ class GenericGuest(GenericPlace):
         if not self.windows:
             raise xenrt.XRTError("vGPU driver is only available on windows guests.")
 
-        # Downloading driver files.
-        targetPath = self.tempDir() + "\\vgpudrivers"
-
         try:
-            filename = "332.83_grid_win8_win7_english"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "332.83_grid_win8_win7_64bit_english"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.exe" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")
             tempdir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (installfile, tempdir))
-            xenrt.command("cd %s && tar -cvf %s %s.exe" % (tempdir, tarball, filename))
+            xenrt.command("cd %s && tar -cvf %s %s" %
+                          (tempdir, tarball, filename))
             self.xmlrpcSendFile("%s/%s" % (tempdir,tarball),"c:\\%s" % tarball)
 
             self.xmlrpcExtractTarball("c:\\%s" % tarball,"c:\\")
 
-            returncode = self.xmlrpcExec("c:\\%s.exe /s /noreboot" % (filename), returnerror=False, returnrc=True, timeout = 600)
+            returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (filename),
+                                          returnerror=False, returnrc=True,
+                                          timeout = 600)
 
             # Wait some time to settle down the driver installer.
             xenrt.sleep(30)
@@ -8734,8 +8759,8 @@ class GenericGuest(GenericPlace):
 
         except xenrt.XRTError as e:
             raise e
-            
-    def installNvidiaVGPUUnsignedDriver(self):
+
+    def installNvidiaVGPUUnsignedDriver(self, filename):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.
@@ -8749,13 +8774,9 @@ class GenericGuest(GenericPlace):
 
         # Downloading driver files.
         targetPath = self.tempDir() + "\\vgpudrivers"
-        #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.83"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")

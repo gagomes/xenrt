@@ -10,7 +10,7 @@
 #
 
 
-import sys, string, os.path, glob, time, re, random, shutil, os, stat, datetime 
+import sys, string, os.path, glob, time, re, random, shutil, os, stat, datetime
 import traceback, threading, types
 import xml.dom.minidom, libxml2
 import tarfile
@@ -39,7 +39,7 @@ __all__ = ["Host",
            "CVSMStorageRepository",
            "NetAppStorageRepository",
            "EQLStorageRepository",
-           "ISOStorageRepository",           
+           "ISOStorageRepository",
            "CIFSStorageRepository",
            "FCStorageRepository",
            "SharedSASStorageRepository",
@@ -69,6 +69,7 @@ CLI_LEGACY_NATIVE = 1   # Old style CLI on an old-style host
 CLI_LEGACY_COMPAT = 2   # Old style CLI on a new host
 CLI_NATIVE = 3          # New style CLI
 
+
 def hostFactory(hosttype):
     if hosttype == "Sarasota":
         return xenrt.lib.xenserver.SarasotaHost
@@ -88,6 +89,7 @@ def hostFactory(hosttype):
         return xenrt.lib.xenserver.MNRHost
     return xenrt.lib.xenserver.Host
 
+
 def poolFactory(mastertype):
     if mastertype in ("Clearwater", "Creedence", "Sarasota"):
         return xenrt.lib.xenserver.ClearwaterPool
@@ -96,6 +98,7 @@ def poolFactory(mastertype):
     elif mastertype in ("MNR", "Cowley", "Oxford"):
         return xenrt.lib.xenserver.MNRPool
     return xenrt.lib.xenserver.Pool
+
 
 def logInstallEvent(func):
     def getHostName(*args, **kwargs):
@@ -129,10 +132,11 @@ def logInstallEvent(func):
             raise
     return wrapper
 
+
 @logInstallEvent
 def createHost(id=0,
-               version=None, 
-               pool=None, 
+               version=None,
+               pool=None,
                name=None,
                dhcp=True,
                license=True,
@@ -11832,10 +11836,19 @@ done
 
         self.genParamSet("gpu-group",gpuGroupUUID,"allocation-algorithm","breadth-first")
 
-    def checkRPMInstalled(self,rpm):
-        #rpm should NOT contain file extn .rpm
+    def checkRPMInstalled(self, rpm):
+        """
+        Check if a specific rpm is installed
+        @param rpm: the rpm name including or excluding the extension '.rpm'
+        @type rpm: string
+        @return If the rpm provided is installed already
+        @rtype boolean
+        """
+
+        #rpm should NOT contain file extn .rpm, so split off any file extension
+        fileWithoutExt = os.path.splitext(rpm)[0]
         try:
-            data = self.execdom0("rpm -qi %s" % rpm)
+            data = self.execdom0("rpm -qi %s" % fileWithoutExt)
         except:
             return False
 
@@ -11845,22 +11858,24 @@ done
             return True
 
     def installNVIDIAHostDrivers(self):
-        rpm="NVIDIA-vgx-xenserver-6.2-331.59.i386"
+        rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
+        rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
+        xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
             return
-      
+
         url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-        hostRPMURL = "%s/vgpudriver/hostdriver/%s.rpm" %(url,rpm)
+        hostRPMURL = "%s/vgpudriver/hostdriver/%s" %(url,rpm)
         hostRPM = xenrt.TEC().getFile(hostRPMURL,hostRPMURL)
 
         try:
             xenrt.checkFileExists(hostRPM)
         except:
             raise xenrt.XRTError("Host RPM not found")
-        
-        hostPath = "/tmp/%s.rpm" % (rpm)
+
+        hostPath = "/tmp/%s" % (rpm)
 
         sh = self.sftpClient()
 
@@ -11869,7 +11884,7 @@ done
         finally:
             sh.close()
 
-        self.execdom0("rpm -ivh /tmp/%s.rpm" % (rpm)) 
+        self.execdom0("rpm -ivh /tmp/%s" % (rpm))
         self.reboot()
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):

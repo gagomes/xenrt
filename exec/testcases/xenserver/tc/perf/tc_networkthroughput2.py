@@ -221,6 +221,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info["iperf_version"] = "%s %s %s" % (ivs[0], ivs[2], ivs[6])
         return dict( [ (("%s%s" % (key_prefix, k)), v) for k,v in info.iteritems() ] )
 
+    def getIssue(self, endpoint):
+        issue = endpoint.execcmd("head -n 1 /etc/issue || true").strip()
+        if issue == "":
+            issue = "no-issue"
+        return issue
+
     def rageinfo(self, info = {}):
         if isinstance(self.endpoint0, xenrt.GenericHost):
             info.update(self.nicinfo(self.endpoint0,"host0:"))
@@ -232,6 +238,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0product"] = self.endpoint0.productType
             info["host0branch"]  = self.endpoint0.productVersion
             info["host0build"]   = self.endpoint0.productRevision
+            info["host0issue"]   = self.getIssue(self.endpoint0)
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint0,"guest0:"))
             info.update(self.nicinfo(self.endpoint0.host,"host0:"))
@@ -243,6 +250,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0product"] = self.endpoint0.host.productType
             info["host0branch"]  = self.endpoint0.host.productVersion
             info["host0build"]   = self.endpoint0.host.productRevision
+            info["host0issue"]   = self.getIssue(self.endpoint0.host)
         if isinstance(self.endpoint1, xenrt.GenericHost):
             info.update(self.nicinfo(self.endpoint1,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
@@ -253,6 +261,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1product"] = self.endpoint1.productType
             info["host1branch"]  = self.endpoint1.productVersion
             info["host1build"]   = self.endpoint1.productRevision
+            info["host1issue"]   = self.getIssue(self.endpoint1)
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint1,"guest1:"))
             info.update(self.nicinfo(self.endpoint1.host,"host1:"))
@@ -264,6 +273,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1product"] = self.endpoint1.host.productType
             info["host1branch"]  = self.endpoint1.host.productVersion
             info["host1build"]   = self.endpoint1.host.productRevision
+            info["host1issue"]   = self.getIssue(self.endpoint1.host)
         kvs = "\n".join(["%s=%s" % (k,info[k]) for k in info.keys()])
         self.log("rageinfo", kvs)
 

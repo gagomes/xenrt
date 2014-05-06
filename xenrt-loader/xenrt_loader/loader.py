@@ -12,13 +12,17 @@ def get_xenrt_root():
     return _xenrt_root
 
 
+def read_file(path):
+    with open(path, 'rb') as fhandle:
+        return fhandle.read()
+
+
 def load_xenrt(xenrt_root):
     sys.path.append(os.path.join(xenrt_root, 'exec'))
     sys.path.append(os.path.join(xenrt_root, 'lib'))
     xenrt_in_path = os.path.join(xenrt_root, 'control', 'xenrt.in')
 
-    with open(xenrt_in_path, 'rb') as xenrt_in_file:
-        xenrt_in_code = xenrt_in_file.read()
+    xenrt_in_code = read_file(xenrt_in_path)
 
     xenrt_ctrl_module = imp.new_module(xenrt_in_path)
     exec(xenrt_in_code, xenrt_ctrl_module.__dict__)

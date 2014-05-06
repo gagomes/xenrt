@@ -15,7 +15,8 @@ except ImportError:
 try:
     from marvin.integration.lib.base import *
 except ImportError:
-    from marvin.lib.base import *
+#    from marvin.lib.base import *
+    pass
 
 
 __all__ = ["MarvinApi"]

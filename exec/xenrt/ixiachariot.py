@@ -4,18 +4,23 @@ import xenrt
 
 
 class Console(object):
-    def __init__(self, name, executor):
+    def __init__(self, name, executor, lock):
         self._executor = executor
         self.name = name
+        self.lock = lock
 
     def run(self, command):
-        return_code = self._executor(command)
-        if 0 != return_code:
-            raise xenrt.XRTError(
-                "Remote command '{0}' returned non-zero result code ".format(
-                    command)
-                + "while executed on ixia chariot console '{0}'".format(
-                    self.name))
+        self.lock.acquire()
+        try:
+            return_code = self._executor(command)
+            if 0 != return_code:
+                raise xenrt.XRTError(
+                    "Remote command '{0}' returned non-zero result code ".format(
+                        command)
+                    + "while executed on ixia chariot console '{0}'".format(
+                        self.name))
+        finally:
+            self.lock.release()
 
 
 def createEndpoint(endpointSpec, distmasterBase, hostRegistry):

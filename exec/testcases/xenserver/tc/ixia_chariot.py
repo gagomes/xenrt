@@ -1,6 +1,18 @@
 import xenrt
 from xenrt import util
 from xenrt import ixiachariot
+from xenrt import resources
+
+
+class XenRTLock(object):
+    def __init__(self):
+        self.resource = None
+
+    def acquire(self):
+        self.resource = resources.GlobalResource('IXIA')
+
+    def release(self):
+        self.resource.release()
 
 
 class IxiaChariotBasedTest(xenrt.TestCase):
@@ -57,7 +69,7 @@ class IxiaChariotBasedTest(xenrt.TestCase):
             endpoint0.ipAddress, endpoint1.ipAddress, ixiaTest, jobId)
 
         console = ixiachariot.Console(
-            self.consoleAddress, self.executeOnChariotConsole)
+            self.consoleAddress, self.executeOnChariotConsole, XenRTLock())
 
         for cmd in pairTest.getCommands():
             console.run(cmd)

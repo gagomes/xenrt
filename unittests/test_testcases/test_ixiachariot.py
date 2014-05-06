@@ -136,10 +136,18 @@ class TestEndpointFactory(XenRTUnitTestCase):
         self.assertEquals('guest@host', endpoint.guest)
 
 
+class NoOpLock(object):
+    def acquire(self):
+        pass
+
+    def release(self):
+        pass
+
+
 class TestChariotConsole(XenRTUnitTestCase):
     def createConsoleAndMockExecutor(self, name='unnamed'):
         executor = mock.Mock()
-        console = ixiachariot.Console(name, executor)
+        console = ixiachariot.Console(name, executor, NoOpLock())
         return console, executor
 
     def testRunCallsExecutor(self):
@@ -161,3 +169,33 @@ class TestChariotConsole(XenRTUnitTestCase):
             "Remote command 'something' returned non-zero result code"
             " while executed on ixia chariot console 'console'",
             ctx.exception.reason)
+
+    def testRunWhenCalledAcquiresLock(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        console.run('some command')
+
+        console.lock.acquire.assert_called_once_with()
+
+    def testRunWhenCalledLockReleased(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        console.run('some command')
+
+        console.lock.release.assert_called_once_with()
+
+    def testRunLockReleasedEvenInCaseOfError(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 1
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        try:
+            console.run('some command')
+        except:
+            pass
+
+        console.lock.release.assert_called_once_with()

@@ -4889,6 +4889,30 @@ class TCDom0Checksums(xenrt.TestCase):
         f = open("%s/md5sums.txt" % (xenrt.TEC().getLogdir()), "w")
         f.write(out)
         f.close()
+        
+class TC21452(xenrt.TestCase):
+    """Testcase to verify whether logrotate -v -f works(CA-108965)"""
+    def prepare(self, arglist=None): 
+        self.host = self.getDefaultHost()
+        self.host.execdom0("echo test > /root/logfile.db")
+        self.host.execdom0("echo -e '/root/logfile.db {\n\trotate 5\n\tmissingok\n}' > /root/log.conf")
+        self.sruuid=self.host.getLocalSR()
+        
+        #Running xe-backup-metadata
+        self.host.execdom0("xe-backup-metadata -c -u %s" % (self.sruuid))
+        
+    def run(self, arglist=None):
+        
+        #Checking working of logrotate -v -f
+        self.host.execdom0("logrotate -v -f /root/log.conf")
+        flist = self.host.execdom0("ls logfile* ", retval="string")
+        if not "logfile.db.1" in flist:
+            raise xenrt.XRTFailure("logrotate -v -f not working")
+        #Running second time xe-backup-metadata
+        res=self.host.execdom0("xe-backup-metadata -c -u %s" % (self.sruuid),retval="string")        
+        r=re.search(r"\n.*/var/run/pool-backup.*\n",res)
+        if r :
+            raise xenrt.XRTFailure(r.group(0))
 
 class TC20917(xenrt.TestCase):
     """Test VM-lifecycle/device unplug after guest xenstore quota reached (HFX-952) """

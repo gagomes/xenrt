@@ -6,7 +6,7 @@ from xenrt import ixiachariot
 class IxiaChariotBasedTest(xenrt.TestCase):
 
     def executeOnChariotConsole(self, cmd):
-        result = xenrt.ssh.SSH(
+        return_code = xenrt.ssh.SSH(
             self.consoleAddress,
             cmd,
             username=self.consoleUser,
@@ -20,8 +20,8 @@ class IxiaChariotBasedTest(xenrt.TestCase):
             outfile=None,
             password=None)
 
-        xenrt.log(result)
-        return result
+        xenrt.log(return_code)
+        return return_code
 
     def getConfigValue(self, key):
         return xenrt.TEC().lookup(["IXIA_CHARIOT", key])

@@ -1664,55 +1664,6 @@ Abort this testcase with: xenrt interact %s -n '%s'
         """
         self.results.perfdata.append((metric, value, units))
 
-    def pdGather(self, dict):
-        """Gather per-guest data for a performance data item."""
-        if self.basename:
-            dict["benchmark"] = self.basename
-
-    def getPerfData(self):
-        """Put together all the performance data we have for this test."""
-        if len(self.results.perfdata) == 0:
-            return None
-        common = {}
-        xenrt.GEC().pdGather(common)
-        self.pdGather(common)
-        g = self.getLocation()
-        if g and isinstance(g, xenrt.GenericGuest):
-            g.pdGather(common)
-            if g.host:
-                g.host.pdGather(common)
-        elif g and isinstance(g, xenrt.GenericHost):
-            # Host level test (i.e. dom0), get host details
-            g.pdGather(common)
-            g.pdGatherGuestLike(common)
-        items = []
-        for pd in self.results.perfdata:
-            metric, value, units = pd
-            if metric != None and value != None:
-                x = {}
-                x.update(common)
-                x["metric"] = metric
-                x["value"] = value
-                if units:
-                    x["units"] = units
-            items.append(x)
-        #print items
-        impl = xml.dom.minidom.getDOMImplementation()
-        newdoc = impl.createDocument(None, "performance", None)
-        for i in items:
-            t = newdoc.createElement("datapoint")
-            newdoc.documentElement.appendChild(t)
-            for k in i.keys():
-                p = newdoc.createElement(k)
-                t.appendChild(p)
-                po = newdoc.createTextNode(str(i[k]))
-                p.appendChild(po)
-        filename = GEC().anontec.tempFile()
-        f = file(filename, "w")
-        newdoc.writexml(f, addindent="  ", newl="\n")
-        f.close()
-        return filename
-
     #########################################################################
     # Utility methods
 
@@ -2958,16 +2909,6 @@ class GlobalExecutionContext:
                                      "%s" % (str(e)))
                     traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().logverbose("Trying to gather performance data.")
-                try:
-                    pdfile = t.getPerfData()
-                    if pdfile:
-                        self.dbconnect.perfUpload(pdfile)
-                        shutil.copyfile(pdfile,
-                                        "%s/perfdata.xml" %
-                                        (t.tec.getLogdir()))
-                except:
-                    t.tec.logverbose("Error gathering performance data")
-                    traceback.print_exc(file=sys.stderr)
                 t.tec.flushLogs()
                 if t.tec.lookup("DB_LOGS_UPLOAD", True, boolean=True):
                     try:
@@ -3393,20 +3334,6 @@ class GlobalExecutionContext:
         sys.stderr.write(s)
         self.addToLogHistory(s)
         return s
-
-    def pdGather(self, dict):
-        """Gather per-job data for a performance data item."""
-        j = self.jobid()
-        if j:
-            dict["jobid"] = "%u" % (j)
-        x = self.config.lookup("JOBTYPE", None)
-        if x:
-            dict["jobtype"] = x
-        x = self.config.lookup("PERFRUN", False, boolean=True)
-        if x:
-            dict["perfrun"] = "yes"
-        else:
-            dict["perfrun"] = "no"
 
     def semaphoreAcquire(self, semclass):
         semclass = string.lower(semclass)

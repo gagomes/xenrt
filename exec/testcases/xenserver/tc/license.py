@@ -222,14 +222,6 @@ class _LicenseBase(xenrt.TestCase):
 
 
     def featureQoS(self):
-        # We can't run this on OEM flash versions, as there's no xensource.log
-        if self.host.embedded and not self.host.embedded_hdd:
-            if xenrt.TEC().lookup("IGNORE_XRT3904", False, boolean=True):
-                xenrt.TEC().warning("XRT-3904 Cannot check QoS on OEM flash")
-                return
-            else:
-                raise xenrt.XRTSkip("XRT-3904 Cannot check QoS on OEM flash")
-
         try:
             g = self.host.createGenericLinuxGuest(start=False)
             self.uninstallOnCleanup(g)
@@ -2868,11 +2860,6 @@ class TC8873(xenrt.TestCase):
     def prepare(self, arglist):
         self.overlay = None
         
-        # Skip this on OEM edition
-        if xenrt.TEC().lookup("OPTION_EMBEDDED_HDD", False, boolean=True) or \
-               xenrt.TEC().lookup("OPTION_EMBEDDED", False, boolean=True):
-            return
-        
         # Build an overlay with a free license
         self.overlay =  xenrt.NFSDirectory()
         self.keyfile = ("%s/keys/xenserver/%s/FG_Free" % 
@@ -2892,12 +2879,6 @@ class TC8873(xenrt.TestCase):
             raise xenrt.XRTError("Overlay application did not work")
 
     def run(self, arglist):
-        # Skip this on OEM edition
-        if xenrt.TEC().lookup("OPTION_EMBEDDED_HDD", False, boolean=True) or \
-               xenrt.TEC().lookup("OPTION_EMBEDDED", False, boolean=True):
-            xenrt.TEC().skip("Skipping on OEM edition")
-            return
-        
         # Check the license used in the overlay is the one in force on
         # the host
 
@@ -2953,20 +2934,8 @@ class TC8867(xenrt.TestCase):
         elif self.SKU:
             self.host.license(sku=self.SKU)
         else:
-            if self.host.embedded:
-                # Install the license from the system /etc image
-                self.host.execdom0("mkdir -p /tmp/TC-8867")
-                self.host.execdom0("mount -obind / /tmp/TC-8867")
-                try:
-                    self.host.execdom0(\
-                        "xe host-license-add host-uuid=%s "
-                        "license-file=/tmp/TC-8867/etc/xensource/license" %
-                        (self.host.getMyHostUUID()))
-                finally:
-                    self.host.execdom0("umount /tmp/TC-8867")
-            else:
-                self.host.execdom0("rm -f /etc/xensource/license")
-                self.host.reboot()
+            self.host.execdom0("rm -f /etc/xensource/license")
+            self.host.reboot()
             if self.EXPIREDAYS and \
                    not self.host.lookup("FG_FREE_NO_ACTIVATION",
                                         False,

@@ -238,10 +238,6 @@ class Guest(xenrt.GenericGuest):
         self.uuid = None
         self.use_ipv6 = xenrt.TEC().lookup('USE_GUEST_IPV6', False, boolean=True)
 
-    def pdGather(self, dict):
-        pass
-
-
     # override these functions to work around libvirt driver limitations.
 
     def _isSuspended(self):

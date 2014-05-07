@@ -1,142 +1,137 @@
 import xenrt
 from testing import XenRTUnitTestCase
 from mock import Mock, PropertyMock
-from xenrt.lib.cloud.windowspackages import WindowsPackage, WindowsImagingComponent, DotNetFour
+from xenrt.lib.opsys.windowspackages import WindowsPackage, WindowsImagingComponent, DotNet4, DotNet35, DotNet2
 
 """ Test Doubles for dependent classes"""
 class WindowsPackageDouble(WindowsPackage):
-    def __init__(self): pass
-    def name(self): "Fake"
+    NAME = "Fake"
+    def __init__(self):
+        self._os = Mock()
     def _installPackage(self): pass
 
 
 """Tests"""
 class TestWindowsPackage(XenRTUnitTestCase):
-    def test_installThrowsIfAlreadyInstalled(self):
-        """
-        Given a bad environment, when a windows package is installed, then an exception will be raised
-        """
-        data = self.combinatorialExcluding([(False,True)],[True, False])
-        self.run_for_many(data, self.__installThrows)
 
-    def __installThrows(self, data):
-        target = self.__setupMock(data)
-        self.assertRaises(xenrt.XRTError, target.install)
-
-    def test_installDoesNotThrow(self):
-        """
-        Given a clean environment, when a windows package is installed, then expect no problems
-        """
-        target = self.__setupMock((False, True))
-        target.install()
-
-    def __setupMock(self, data):
-        installed, supported = data
-        target  = WindowsPackageDouble()
-        target.isInstalled = Mock(return_value = installed)
-        target.isSupported = Mock(return_value = supported)
-        return target
-   
-    def test_bestEffortIsSafeToCall(self):
-        """
-        Given any environment, when a best effort of the windows package installation is made, then expect no exceptions
-        """
-        data = self.combinatorial([True, False])
-        self.run_for_many(data, self.__callBestEffort)
+    def test_packageInstalledIfNotAlready(self):
+        """When ensureInstalled is called and isInstalled returns false, _installPackage should be called"""
+        target = WindowsPackageDouble()
+        target.isInstalled = Mock(return_value = False)
         
-    def __callBestEffort(self, data):
-        target = self.__setupMock(data)
-        target.bestEffortInstall()
-
-    def test_packageIsInstalledIfSituationGood(self):
-        """
-        Given a valid environment, when a windows package is installed, then the install package method should be called
-        """
-        target  = self.__setupMock((False,True))
         mockPackage = Mock()
         target._installPackage = mockPackage
-        target.install()
+        
+        target.ensureInstalled()
+        
         self.assertTrue(mockPackage.called)
-       
+
+    def test_packageNotInstalledIfAlready(self):
+        """When ensureInstalled is called and isInstalled returns true, _installPackage should not be called"""
+        target = WindowsPackageDouble()
+        target.isInstalled = Mock(return_value = True)
+        
+        mockPackage = Mock()
+        target._installPackage = mockPackage
+        
+        target.ensureInstalled()
+        
+        self.assertFalse(mockPackage.called)
+
 
 class TestWICPackage(XenRTUnitTestCase):
-    def test_onlyW2K3isSupported(self):
+    def test_onlyW2K3isNotInstalled(self):
         """
         Given a WIC package, when a win distro is provided, then only W2K3 should be supported
         """
-        data = [("w2k3", True), ("win7", False), ("win7w2k3", False),
-               ("Goldfish", False)]
-        self.run_for_many(data, self.__testInstanceDistroIsSupported)
-
-    def test_alwaysIsNotInstalled(self):
-        """
-        Given a WIC package, when any distro is provided, then show WIC is not installed 
-        """
-        data = [("w2k3", False), ("win7", False), ("win7w2k3", False),
-               ("Goldfish", False)]
+        data = [("w2k3", False), ("win7", True), ("win7w2k3", True),
+               ("Goldfish", True)]
         self.run_for_many(data, self.__testInstanceDistroIsInstalled)
 
     def __setupWic(self, distro):
         os = Mock(spec=xenrt.lib.opsys.WindowsOS)
-        instance = Mock()
-        type(instance).os = PropertyMock(return_value = os) 
-        type(instance).distro = PropertyMock(return_value = distro) 
-        return WindowsImagingComponent(instance)
+        type(os).distro = PropertyMock(return_value = distro)
+        return WindowsImagingComponent(os)
  
     def __testInstanceDistroIsInstalled(self, data):
         distro, expected = data
         wic = self.__setupWic(distro)
-        self.assertFalse(wic.isInstalled())
+        self.assertEqual(wic._packageInstalled(), expected)
 
-    def __testInstanceDistroIsSupported(self, data):
-        distro, expected = data
-        wic = self.__setupWic(distro)
-        supported = wic.isSupported()
-        self.assertEqual(expected, supported, "WIC supported %s: %s, expected: %s" %(distro,supported, expected)) 
+class TestDotNet4Package(XenRTUnitTestCase):
 
-class TestDotNetFourPackage(XenRTUnitTestCase):
-
-    def test_DotNetFourInstalled(self):
+    def test_DotNet4Installed(self):
         """
         Given a registry lookup responds, when a .NET4 is queried for installation state, then expect that message to be reported
         """
         data = [(1,True), (0, False)]
-        self.run_for_many(data, self.__testDotNetFourInstalled)
+        self.run_for_many(data, self.__testDotNet4Installed)
    
-    def __testDotNetFourInstalled(self, data):
+    def __testDotNet4Installed(self, data):
         reg, expected = data
         os = Mock(spec=xenrt.lib.opsys.WindowsOS)
-        instance = Mock()
-        type(instance).os = PropertyMock(return_value = os) 
         os.winRegLookup = Mock(return_value = reg)
-        dn =  DotNetFour(instance)
-        self.assertEqual(expected, dn.isInstalled())
+        dn =  DotNet4(os)
+        self.assertEqual(expected, dn._packageInstalled())
 
-    def test_DotNetFourNotInstallIfExceptionRaised(self):
+    def test_DotNet4NotInstallIfExceptionRaised(self):
         """
         Given the registry lookup for .NET4 throws, when the package installation state is queried, then the response will be false
         """
         os = Mock(spec=xenrt.lib.opsys.WindowsOS)
-        instance = Mock()
-        type(instance).os = PropertyMock(return_value = os) 
         os.winRegLookup = Mock()
         os.winRegLookup.side_effect = Exception("Kaboom!")
-        dn = DotNetFour(instance)
-        self.assertFalse(dn.isInstalled())
-        
-    def test_DotNetFourIsAlwaysSupported(self):
-        """
-        Given any distro, when the .NET4 package is queried as to if it can be supported, then expect the answer to be true
-        """
-        data = [("w2k3", True), ("win7", True), ("BobsYourUncle", True)]
-        self.run_for_many(data, self.__testDotNetFourIsAlwaysSupported)
+        dn = DotNet4(os)
+        self.assertFalse(dn._packageInstalled())
 
-    def __testDotNetFourIsAlwaysSupported(self, data):
-        distro, expected = data
+class TestDotNet35Package(XenRTUnitTestCase):
+
+    def test_DotNet35Installed(self):
+        """
+        Given a registry lookup responds, when a .NET3.5 is queried for installation state, then expect that message to be reported
+        """
+        data = [(1,True), (0, False)]
+        self.run_for_many(data, self.__testDotNet35Installed)
+   
+    def __testDotNet35Installed(self, data):
+        reg, expected = data
         os = Mock(spec=xenrt.lib.opsys.WindowsOS)
-        instance = Mock()
-        type(instance).os = PropertyMock(return_value = os) 
-        type(instance).distro = PropertyMock(return_value = distro) 
-        dn = DotNetFour(instance)
-        self.assertEqual(expected, dn.isSupported())
-         
+        os.winRegLookup = Mock(return_value = reg)
+        dn =  DotNet35(os)
+        self.assertEqual(expected, dn._packageInstalled())
+
+    def test_DotNet35NotInstallIfExceptionRaised(self):
+        """
+        Given the registry lookup for .NET3.5 throws, when the package installation state is queried, then the response will be false
+        """
+        os = Mock(spec=xenrt.lib.opsys.WindowsOS)
+        os.winRegLookup = Mock()
+        os.winRegLookup.side_effect = Exception("Kaboom!")
+        dn = DotNet35(os)
+        self.assertFalse(dn._packageInstalled())
+
+class TestDotNet2Package(XenRTUnitTestCase):
+
+    def test_DotNet2Installed(self):
+        """
+        Given a glob responds, when a .NET 2 is queried for installation state, then expect that message to be reported
+        """
+        data = [(100,True), (0, False)]
+        self.run_for_many(data, self.__testDotNet2Installed)
+   
+    def __testDotNet2Installed(self, data):
+        count, expected = data
+        os = Mock(spec=xenrt.lib.opsys.WindowsOS)
+        os.globPattern = Mock(return_value = range(count))
+        dn =  DotNet2(os)
+        self.assertEqual(expected, dn._packageInstalled())
+
+    def test_DotNet35NotInstallIfExceptionRaised(self):
+        """
+        Given the registry lookup for .NET3.5 throws, when the package installation state is queried, then the response will be false
+        """
+        os = Mock(spec=xenrt.lib.opsys.WindowsOS)
+        os.winRegLookup = Mock()
+        os.winRegLookup.side_effect = Exception("Kaboom!")
+        dn = DotNet35(os)
+        self.assertFalse(dn._packageInstalled())

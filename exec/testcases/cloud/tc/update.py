@@ -27,8 +27,19 @@ class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
 
 class TCCloudUpdate(xenrt.TestCase):
     DO_UPDATE = False
+    USE_EXISTING_TEMPLATES = True
 #    DISTROS = ['debian70_x86-64', 'win7sp1-x86']
-    DISTROS = ['win7sp1-x86']
+    DISTROS = ['rhel64_x86-64']
+
+    def tailorBuiltInTemplate(self, template):
+        if 'password' not in xenrt.TEC().lookup('ROOT_PASSWORDS'):
+            xenrt.TEC().config.setVariable('ROOT_PASSWORDS', 'password ' + xenrt.TEC().lookup('ROOT_PASSWORDS'))
+            xenrt.TEC().logverbose('ROOT_PASSWORDS: %s' % (xenrt.TEC().lookup('ROOT_PASSWORDS')))
+        if len(filter(lambda x:x.key == 'distro', template.tags)) == 0:
+            if 'CentOS' in template.ostypename and '5.6' in template.ostypename and '64' in template.ostypename:
+                xenrt.lib.cloud.Tag.create(self.cloud.marvin.apiClient, [template.id], "Template", {"distro": 'centos56_x86-64'})
+            else:
+                raise xenrt.XRTError('Unknown built in template type')
 
     def prepare(self, arglist):
         # Ignore hotfix options when running the lib upgrade code
@@ -40,15 +51,33 @@ class TCCloudUpdate(xenrt.TestCase):
         capacity = xenrt.lib.cloud.Capacities.list(self.cloud.marvin.apiClient, zoneid=self.zone.id, type=8)[0]
         instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.DISTROS)
 
-        # Create templates
         self.templates = {}
-        for distro in self.DISTROS:
-            distroName = distro.replace('_','-')
-            instance = self.cloud.createInstance(distro=distro, name='%s-template' % (distroName))
-            templateName = '%s-tplt' % (distroName)
-            self.cloud.createTemplateFromInstance(instance, templateName)
-            instance.destroy()
-            self.templates[distroName] = templateName
+
+        if self.USE_EXISTING_TEMPLATES:
+            existingTemplates = xenrt.lib.cloud.Template.list(self.cloud.marvin.apiClient, templatefilter='all', zoneid=self.zone.id)
+            templatesToUse = filter(lambda x:x.templatetype != 'SYSTEM' and x.templatetype != 'BUILTIN', existingTemplates)
+            if len(templatesToUse) == 0:
+                templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates) 
+                map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
+
+            xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
+            self.DISTROS = []
+            for template in templatesToUse:
+                distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
+                distroName = distro.replace('_','-')
+                self.templates[distroName] = template.name
+        else:
+            # Create templates
+            for distro in self.DISTROS:
+                distroName = distro.replace('_','-')
+                instance = self.cloud.createInstance(distro=distro, name='%s-template' % (distroName))
+                templateName = '%s-tplt' % (distroName)
+                self.cloud.createTemplateFromInstance(instance, templateName)
+                instance.destroy()
+                self.templates[distroName] = templateName
+
+        for distro, template in self.templates.items():
+            xenrt.TEC().logverbose('Distro: %s, Template: %s' % (distro, template))
 
         # Create instances
         self.instances = []
@@ -131,6 +160,7 @@ class TCCloudUpdate(xenrt.TestCase):
 
     def checkInstanceHealth(self, instance):
         xenrt.TEC().logverbose('Check health for instance [VM-Name: %s] IP Addr: %s' % (instance.name, instance.getIP()))
+        instance.assertHealthy()
 
     def verifyCloud(self, hostUpdated, postFixString):
         newInstanceName = '%s-%s' % (postFixString, hostUpdated.getName())

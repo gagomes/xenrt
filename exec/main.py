@@ -1587,6 +1587,7 @@ if cleanuplocks:
     jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
     canClean = dict((x, xenrt.canCleanJobResources(x)) for x in jobs)
     jobsForMachinePowerOff = [] 
+    jobsForGlobalRelease = []
     try:
         for lock in locks:
             if lock[1]:
@@ -1626,6 +1627,8 @@ if cleanuplocks:
                         os.rmdir(path)
                         if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
+                        if lock[0].startswith("GLOBAL"):
+                            jobsForGlobalRelease.append(lock[2]['jobid'])
                         print "Lock released"
                 else:
                     print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
@@ -1637,7 +1640,9 @@ if cleanuplocks:
         for m in machinesToPowerOff:
             machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
             machine.powerctl.off()
-            
+    
+    for j in set(jobsForGlobalRelease):
+        xenrt.GEC().dbconnect.jobctrl("resrelease", [j])
 
 if releaselock:
     cr = xenrt.resources.CentralResource()

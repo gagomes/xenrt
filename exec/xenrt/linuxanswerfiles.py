@@ -348,7 +348,8 @@ class SLESAutoyastFile :
                  kickStartExtra=None,
                  bootDiskSize=None,
                  ossVG=False,
-                 installXenToolsInPostInstall=False):
+                 installXenToolsInPostInstall=False,
+                 rebootAfterInstall = True):
         self.mainDisk = maindisk
         self.pxe=pxe
         self.password=password
@@ -363,12 +364,17 @@ class SLESAutoyastFile :
         self.signalDir=signalDir
         self.bootDiskSize=bootDiskSize
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
+        self.rebootAfterInstall = rebootAfterInstall
     
     def _password(self):
         if not self.password:
             self.password=xenrt.TEC().lookup("ROOT_PASSWORD")
         return self.password
-    
+    def _rebootAfterInstall(self):
+        if self.rebootAfterInstall:
+            return "/sbin/reboot"
+        else:
+            return ""
     def _timezone(self):
         deftz="UTC"
         return xenrt.TEC().lookup("OPTION_CARBON_TZ", deftz)
@@ -857,14 +863,14 @@ umount /tmp/xenrttmpmount
     def _generateSLES11x(self):
         SLES111=["<package>stunnel</package>",
                 "echo ulimit -v unlimited >> /etc/profile.local",
-                "(sleep 120; /sbin/reboot) > /dev/null 2>&1 &",
+                "(sleep 120; %s) > /dev/null 2>&1 &"%(self._rebootAfterInstall()),
                 ""]
         SLES11=["",
                 "",
                "sleep 120",
-               "/sbin/reboot"]
+               "%s"%(self._rebootAfterInstall())]
         diffSLES=[]
-        if self.distro.startswith("sles111") or self.distro.startswith("sles112"):
+        if re.match(r'sles11[123]', self.distro):
             diffSLES=SLES111
         else:
             diffSLES=SLES11
@@ -2056,7 +2062,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2175,6 +2181,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,
@@ -2278,7 +2285,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2393,6 +2400,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,

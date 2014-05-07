@@ -2,13 +2,13 @@
   <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
     <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
     <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
-    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
   </variables>
 
   <prepare>

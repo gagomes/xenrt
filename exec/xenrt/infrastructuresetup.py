@@ -843,11 +843,17 @@ def portConfig(config,switch,port,network):
     vlanstoadd = [config.lookup(["NETWORK_CONFIG","VLANS", x, "ID"]) for x in
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
+    privvlans = config.lookup(["NETWORK_CONFIG", "PRIVATEVLANS"], None)
+    if privvlans:
+        (privvlanstart, privvlanend) = [int(x) for x in privvlans.split("-")]
     vlanstoremove = [x for x in allvlans if x != nativevlan and x not in vlanstoadd]
     if swtype == "HP6120XG":
         print "vlan %s untagged %s" % (nativevlan, port)
         for v in vlanstoadd:
             print "vlan %s tagged %s" % (v, port)
+        if privvlans:
+            for v in range(privvlanstart, privvlanend+1):
+                print "vlan %d tagged %s" % (v, port)
         for v in vlanstoremove:
             print "no vlan %s untagged %s" % (v, port)
     elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5"):
@@ -856,6 +862,8 @@ def portConfig(config,switch,port,network):
         print "switchport general pvid %s" % nativevlan
         print "switchport general allowed vlan add %s untagged" % nativevlan
         print "switchport general allowed vlan add %s tagged" % ",".join(vlanstoadd)
+        if privvlans:
+            print "switchport general allowed vlan add %s-%s tagged" % (privvlanstart, privvlanend)
         print "switchport general allowed vlan remove %s" % ",".join(vlanstoremove)
         print "spanning-tree portfast"
         print "mtu 9216"
@@ -868,6 +876,8 @@ def portConfig(config,switch,port,network):
         print "switchport trunk native vlan %s" % nativevlan
         print "switchport trunk allowed vlan add %s" % nativevlan
         print "switchport trunk allowed vlan add %s" % ",".join(vlanstoadd)
+        if privvlans:
+            print "switchport trunk allowed vlan add %s-%s" % (privvlanstart, privvlanend)
         print "switchport trunk allowed vlan remove %s" % ",".join(vlanstoremove)
         print "spanning-tree portfast trunk"
         print "exit"
@@ -880,6 +890,10 @@ def portConfig(config,switch,port,network):
         for v in vlanstoadd:
             print "switchport allowed vlan add tagged %s" % v
             print "switchport tagging %s" % v
+        if privvlans:
+            for v in range(privvlanstart, privvlanend+1):
+                print "switchport allowed vlan add tagged %s" % v
+                print "switchport tagging %s" % v
         for v in vlanstoremove:
             print "switchport allowed vlan remove %s" % v
         print "exit"
@@ -890,6 +904,9 @@ def portConfig(config,switch,port,network):
         print "switchport native vlan %s" % nativevlan
         for v in vlanstoadd:
             print "switchport allowed vlan add tagged %s" % v
+        if privvlans:
+            for v in range(privvlanstart, privvlanend+1):
+                print "switchport allowed vlan add tagged %s" % v
         for v in vlanstoremove:
             print "switchport allowed vlan remove %s" % v
         print "exit"

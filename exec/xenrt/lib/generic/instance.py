@@ -2,14 +2,16 @@ import xenrt
 
 from zope.interface import implements
 
+
 class Instance(object):
     implements(xenrt.interfaces.OSParent)
 
-    def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
+    def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None,
+                 rootdisk=None, extraConfig={}):
         self.toolstack = xenrt.interfaces.Toolstack(toolstack)
         self.toolstackId = None
         self.name = name
-        self.distro = distro        
+        self.distro = distro
         self.extraConfig = extraConfig
         self.mainip = None
 
@@ -18,7 +20,8 @@ class Instance(object):
         self.rootdisk = rootdisk or self.os.defaultRootdisk
         self.vcpus = vcpus or self.os.defaultVcpus
         self.memory = memory or self.os.defaultMemory
-        self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]
+        self.vifs = vifs or [("%s0" % (self.os.vifStem), None,
+                              xenrt.randomMAC(), None)]
 
     @property
     def hypervisorType(self):
@@ -62,7 +65,7 @@ class Instance(object):
 
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
-    
+
     def start(self, on=None, timeout=600):
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)
@@ -107,7 +110,7 @@ class Instance(object):
         transitions[xenrt.PowerState.suspended] = {}
         transitions[xenrt.PowerState.suspended][xenrt.PowerState.up] = [self.resume]
         transitions[xenrt.PowerState.suspended][xenrt.PowerState.down] = [self.resume, self.stop]
-        
+
         curState = self.getPowerState()
 
         try:
@@ -135,5 +138,8 @@ class Instance(object):
 
     def revertToSnapshot(self, name):
         return self.toolstack.revertInstanceToSnapshot(self, name)
+
+    def assertHealthy(self):
+        self.os.assertHealthy()
 
 __all__ = ["Instance"]

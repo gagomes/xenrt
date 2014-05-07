@@ -15,5 +15,8 @@
     <serial group="HFX952">
       <testcase id="xenserver.tc.host.TC20917" />
     </serial>
+    <serial group="CA108965">
+      <testcase id="xenserver.tc.host.TC21452" />
+    </serial>
   </testsequence>
 </xenrt>

@@ -9,15 +9,27 @@ set +u
 . .env/bin/activate
 set -u
 
+BUILDDIR=$(mktemp -d)
+(
+    cd $BUILDDIR
+    wget ftp://xmlsoft.org/libxml2/libxml2-2.9.1.tar.gz
+    tar -xzf libxml2-2.9.1.tar.gz
+    cd libxml2-2.9.1/python
+    python setup.py install
+)
+
+rm -rf "$BUILDDIR"
+
 # Install requirements
-pip install -r test-requirements.txt
+pip install \
+    --allow-all-external --allow-unverified PIL \
+    -r test-requirements.txt
 
-# Hacks, so that ../exec and ../lib are on the PYTHONPATH
-readlink -f ../exec > .env/lib/python2.7/site-packages/xenrt-exec.pth
-readlink -f ../lib > .env/lib/python2.7/site-packages/xenrt-lib.pth
-
-# Another hack - so that imports don't fail
-touch ../exec/xenrt/ctrl.py
+# Install xenrt loader
+(
+    cd ../xenrt-loader/
+    python setup.py install
+)
 
 cat << EOF
 DONE
@@ -28,6 +40,6 @@ Activate your virtual environment by:
 
 Run tests:
 
-    nosetests -v
+    nosetests -v --with-xenrt=$(pwd)/..
 
 EOF

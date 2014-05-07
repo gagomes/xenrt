@@ -998,6 +998,7 @@ class PrepareNode:
                         for hostId in hostIds:
                             simpleHostNode = xml.dom.minidom.Element('host')
                             simpleHostNode.setAttribute('id', str(hostId))
+                            simpleHostNode.setAttribute('noisos', 'yes')
                             simplePoolNode.appendChild(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
@@ -1344,8 +1345,8 @@ class PrepareNode:
                     m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
                     if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
                         cleanedGuests.append(m['CSGUEST'])
-                        (hostname, guestname) = m['CSGUEST'].split("/", 1)
-                        host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                        (shostname, guestname) = m['CSGUEST'].split("/", 1)
+                        host = xenrt.SharedHost(shostname, doguests = True).getHost()
                         guest = host.guests[guestname]
                         guest.uninstall()
                 except Exception, e:

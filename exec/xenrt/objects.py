@@ -2434,7 +2434,7 @@ Add-WindowsFeature as-net-framework"""
 
     def installPowerShellSnapIn(self, snapInDirName="XenServerPSSnapIn"):
         """Install the XenCenter PowerShell snap-in."""
-        if isinstance(self, xenrt.lib.xenserver.guest.SarasotaGuest):
+        if isinstance(self, xenrt.lib.xenserver.guest.ClearwaterGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (sdk, tempDir))
@@ -2447,7 +2447,7 @@ Add-WindowsFeature as-net-framework"""
             testRunner = os.path.join(tempDir, "XenServer-SDK/XenServerPowerShell/samples/AutomatedTestCore.ps1")
             xenrt.TEC().logverbose("Sending test runner %s to %s" % (testRunner, targetPath))
             self.xmlrpcSendFile(testRunner, targetPath + "\\AutomatedTestCore.ps1", usehttp=True)
-        
+
         elif isinstance(self, xenrt.lib.xenserver.guest.TampaGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
@@ -2456,7 +2456,7 @@ Add-WindowsFeature as-net-framework"""
             msi = xenrt.command("(cd / && ls %s/XenServer-SDK/%s/*.msi)" % (tempDir, snapInDirName)).strip()
             self.xmlrpcSendFile(msi, "c:\\XenServerPSSnapIn.msi", usehttp=True)
             self.xmlrpcExec("msiexec /i c:\\XenServerPSSnapIn.msi /qn /lv* c:\\pssnapininstall.log")
-            
+
         else:
             snapinstaller = xenrt.TEC().getFile("xe-phase-2/XenServerPSSnapIn.msi")
             self.xmlrpcSendFile(snapinstaller, "c:\\XenServerPSSnapIn.msi", usehttp=True)
@@ -2751,6 +2751,8 @@ Add-WindowsFeature as-net-framework"""
             return
         if not noAutoDotNetInstall:
             if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+                self.installDotNet4()
+            if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
                 self.installDotNet4()
             elif isinstance(self.host, xenrt.lib.xenserver.BostonHost):
                 self.installDotNet35()
@@ -4771,21 +4773,8 @@ class GenericHost(GenericPlace):
             return domains[guest.name][0]
         raise xenrt.XRTError("Domain '%s' not found" % (guest.name))
 
-    def enableGuestConsoleLogger(self, enable=True, persist=False, 
-                                 embedded=False):
+    def enableGuestConsoleLogger(self, enable=True, persist=False):
         """Start and enable to guest console logging daemon"""
-        # If it's embedded, set up an NFS mount for them to be on
-        if embedded:
-            conlogs = xenrt.NFSDirectory()
-            self.execdom0("mkdir -p /tmp/consolelogs")
-            self.execdom0("mount %s /tmp/consolelogs" % 
-                          (conlogs.getMountURL("")))
-            self.execdom0("echo 'mkdir -p /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local")
-            self.execdom0("echo 'mount %s /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local" % (conlogs.getMountURL("")))
-            xenrt.GEC().config.config['GUEST_CONSOLE_LOGDIR'] = "/tmp/consolelogs"
-
         # If the host console daemon has special powers (TM) then use them
         if self.execdom0("grep -q '/local/logconsole/@' /usr/sbin/xenconsoled",
                          retval="code") == 0:
@@ -4929,97 +4918,6 @@ class GenericHost(GenericPlace):
         """Power off a host"""
         self.machine.powerctl.off()
         
-    def pdGather(self, dict):
-        """Gather per-host data for a performance data item."""
-        x = self.getName()
-        if x:
-            dict["machine"] = x
-        if self.productVersion != "unknown":
-            dict["productname"] = self.productVersion
-        else:
-            x = self.lookup("VERSION", None)
-            if x:
-                dict["productname"] = x
-        if self.productRevision != "unknown":
-            dict["productversion"] = self.productRevision
-        else:
-            x = self.lookup("REVISION", None)
-            if x:
-                dict["productversion"] = x
-            else:
-                x = xenrt.TEC().lookup(["CLIOPTIONS", "REVISION"], None)
-                if x:
-                    dict["productversion"] = x
-        try:
-            if self.checkXenCaps("xen-3.0-x86_64"):
-                dict["hvarch"] = "x86-64"
-            elif self.checkXenCaps("xen-3.0-x86_32p"):
-                dict["hvarch"] = "x86-32p"
-            elif self.checkXenCaps("xen-3.0-x86_32"):
-                dict["hvarch"] = "x86-32"
-        except:
-            hvarch = xenrt.TEC().lookup(["CLIOPTIONS", "HYPERVISOR_ARCH"],
-                                        None)
-            if hvarch:
-                dict["hvarch"] = hvarch
-            elif self.arch:
-                dict["hvarch"] = self.arch
-        if self.arch:
-            dict["dom0arch"] = self.arch
-        dict["hostdebug"] = self.lookup("OPTION_DEBUG", False, boolean=True)
-        dom0cpus = self.lookup("OPTION_XE_SMP_DOM0", None)
-        if dom0cpus:
-            dict["dom0cpus"] = dom0cpus
-            
-    def pdGatherGuestLike(self, dict):
-        """Gather data for Domain0 for a performance data item. This
-        will be used when we're running tests in dom0 or on native OSes."""
-        dict["guestname"] = self.pddomaintype
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        else:
-            dict["guesttype"] = string.strip(self.execdom0("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.pddomaintype
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execdom0("uname -r"))
-            except:
-                pass
-        if dict.has_key("productname"):
-            dict["kernelproductname"] = dict["productname"]
-        if dict.has_key("productversion"):
-            dict["kernelproductversion"] = dict["productversion"]
-        if dict.has_key("productspecial"):
-            dict["kernelproductspecial"] = dict["productspecial"]
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.lookup("OPTION_DEBUG",
-                                             False,
-                                             boolean=True)
-        try:
-            dict["vcpus"] = self.getMyVCPUs()
-        except:
-            pass
-        try:
-            m = self.getMyMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        try:
-            if self.windows:
-                # Record extra disks. Ignore root disk.
-                dict["extradisks"] = len(self.xmlrpcListDisks() - 1)
-        except:
-            pass
-        # XXX storagetype
-
     def installLinuxVendor(self,
                            distro,
                            kickstart=None,
@@ -7345,74 +7243,6 @@ class GenericGuest(GenericPlace):
             reply.append("pae")
         return reply
 
-    def pdGather(self, dict):
-        """Gather per-guest data for a performance data item."""
-        if self.name:
-            dict["guestname"] = self.name
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        elif not self.windows:
-            dict["guesttype"] = string.strip(self.execguest("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.getDomainType()
-        except:
-            pass
-        try:
-            dict["domainflags"] = string.join(self.getDomainFlags(), ",")
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execguest("uname -r"))
-            except:
-                pass
-        if not self.windows:
-            if self.host.productVersion != "unknown":
-                dict["kernelproductname"] = self.host.productVersion
-            else:
-                x = self.host.lookup("VERSION", None)
-                if x:
-                    dict["kernelproductname"] = x
-            if self.host.productRevision != "unknown":
-                dict["kernelproductversion"] = self.host.productRevision
-            else:
-                x = self.host.lookup("REVISION", None)
-                if x:
-                    dict["kernelproductversion"] = x
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.host.lookup("OPTION_DEBUG",
-                                                  False,
-                                                  boolean=True)
-        if self.windows:
-            # XXX need a check for PV drivers on Linux
-            dict["pvdrivers"] = self.enlightenedDrivers
-        try:
-            dict["vcpus"] = self.getGuestVCPUs()
-        except:
-            pass
-        try:
-            m = self.getGuestMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        # XXX storagetype
-        try:
-            alone = True
-            domid = self.getDomid()
-            domains = self.host.listDomains()
-            for d in domains.values():
-                if d[0] != 0 and d[0] != domid:
-                    alone = False
-                    break
-            dict["alone"] = alone
-        except:
-            pass
-
     def installVendor(self,
                       distro,
                       repository,
@@ -7687,7 +7517,6 @@ class GenericGuest(GenericPlace):
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
-        
         for line in ay.splitlines():
             f.write("%s\n" % (line))           
         f.close()
@@ -8765,14 +8594,42 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiaVGPUDriver(self,driverType):
+    def __nvidiaX64GuestDriverName(self, driverType):
+        X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
+        X64_UNSIGNED_FILENAME = "WDDM_x64_332.83.zip"
 
+        defaultFilename = X64_UNSIGNED_FILENAME
         if driverType == 0:
-            self.installNvidiaVGPUSignedDriver()
-        else:
-            self.installNvidiaVGPUUnsignedDriver()
+            defaultFilename = X64_SIGNED_FILENAME
 
-    def installNvidiaVGPUSignedDriver(self):
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X64",
+                                  default=defaultFilename)
+
+    def __nvidiaX86GuestDriverName(self, driverType):
+        X86_SIGNED_FILENAME = "332.83_grid_win8_win7_english.exe"
+        X86_UNSIGNED_FILENAME = "WDDM_x86_332.83.zip"
+
+        defaultFilename = X86_UNSIGNED_FILENAME
+        if driverType == 0:
+            defaultFilename = X86_SIGNED_FILENAME
+
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X86",
+                                  default=defaultFilename)
+
+    def requiredVGPUDriverName(self, driverType):
+        if self.xmlrpcGetArch().endswith("64"):
+            return self.__nvidiaX64GuestDriverName(driverType)
+        else:
+            return self.__nvidiaX86GuestDriverName(driverType)
+
+    def installNvidiaVGPUDriver(self, driverType):
+        driverName = self.requiredVGPUDriverName(driverType)
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver(driverName)
+        else:
+            self.installNvidiaVGPUUnsignedDriver(driverName)
+
+    def installNvidiaVGPUSignedDriver(self, filename):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8781,26 +8638,23 @@ class GenericGuest(GenericPlace):
         if not self.windows:
             raise xenrt.XRTError("vGPU driver is only available on windows guests.")
 
-        # Downloading driver files.
-        targetPath = self.tempDir() + "\\vgpudrivers"
-
         try:
-            filename = "332.83_grid_win8_win7_english"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "332.83_grid_win8_win7_64bit_english"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.exe" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")
             tempdir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (installfile, tempdir))
-            xenrt.command("cd %s && tar -cvf %s %s.exe" % (tempdir, tarball, filename))
+            xenrt.command("cd %s && tar -cvf %s %s" %
+                          (tempdir, tarball, filename))
             self.xmlrpcSendFile("%s/%s" % (tempdir,tarball),"c:\\%s" % tarball)
 
             self.xmlrpcExtractTarball("c:\\%s" % tarball,"c:\\")
 
-            returncode = self.xmlrpcExec("c:\\%s.exe /s /noreboot" % (filename), returnerror=False, returnrc=True, timeout = 600)
+            returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (filename),
+                                          returnerror=False, returnrc=True,
+                                          timeout = 600)
 
             # Wait some time to settle down the driver installer.
             xenrt.sleep(30)
@@ -8816,8 +8670,8 @@ class GenericGuest(GenericPlace):
 
         except xenrt.XRTError as e:
             raise e
-            
-    def installNvidiaVGPUUnsignedDriver(self):
+
+    def installNvidiaVGPUUnsignedDriver(self, filename):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.
@@ -8831,13 +8685,9 @@ class GenericGuest(GenericPlace):
 
         # Downloading driver files.
         targetPath = self.tempDir() + "\\vgpudrivers"
-        #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.83"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")

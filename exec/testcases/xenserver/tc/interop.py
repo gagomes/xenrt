@@ -509,7 +509,7 @@ class TCXsXdBvt(xenrt.TestCase):
 
     def executeASFShellCommand(self, asfCont, command, csvFormat=False):
         csvFormatStr = csvFormat and '| convertto-csv' or ''
-        commandStr = 'c:\\asf\\asfshell.ps1; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (command, csvFormatStr)
+        commandStr = 'cd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (self.ASF_WORKING_DIR, command, csvFormatStr)
         rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True).splitlines()
         rData = []
         storeLines = False
@@ -558,14 +558,14 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         asfRepository = 'bruin'
         testSuites = ['Common', 'TestApi', 'LayoutBvts']
 
+        # Install tests
         try:
-            rData = self.executePowershellASFCommand(asfCont, '.\\InstallTests.ps1 -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), returndata=True, timeout=300)
+            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
         except xenrt.XRTFailure, e:
             xenrt.TEC().logverbose('Try again - issue being investigated: %s' % (e.data))
-            rData = self.executePowershellASFCommand(asfCont, '.\\InstallTests.ps1 -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD), returndata=True, timeout=300)
+            rData = self.executeASFShellCommand(asfCont, 'Install-Tests -Repository %s -TestSuites %s -UserName %s -Password %s' % (asfRepository, ','.join(testSuites), self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD))
 
-        for line in rData.splitlines():
-            xenrt.TEC().logverbose(line)
+        map(lambda x:xenrt.TEC().logverbose(x), rData)
 
         self.executeASFShellCommand(asfCont, 'New-AsfHypervisor -HypName %s -Url http://%s -Username root -Password %s -Network %s' % (host.getName(), host.getIP(), host.password, self.ASF_NETWORK_NAME))
         self.executeASFShellCommand(asfCont, 'Import-AsfTemplateFromHypervisor -HypName %s | Add-AsfHypervisorTemplate -HypName %s' % (host.getName(), host.getName()))
@@ -587,6 +587,9 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role VDAWorkstation | Set-AsfRoleHost -HypVmNameLabel %s -Hostname V-%s' % (clientTemplates[0][1], clientTemplates[0][2]))
         self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role DDC | Set-AsfRoleHost -HypVmNameLabel %s' % (serverTemplates[0][1]))
 
+        # Temp - workaround
+        asfCont.xmlrpcExec('copy c:\\asf\\bin\\JonasCntrl.dll c:\\asf')
+
         patchStr = ''
         patchList = host.parameterList('patch-list', params=['name-label'])
         if len(patchList) > 0:
@@ -602,7 +605,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         self.executeASFShellCommand(asfCont, 'Set-AsfBuildConfig -BuildId XenServer -BuildNumber %s' % (versionStr))
 
         if xenrt.TEC().lookup("DOUBLE_ASF_TIMEOUTS", False, boolean=True):        
-            filename = "%s\\RegressionSuite.exe.config" % (self.ASF_WORKING_DIR)
+            filename = "%s\\bin\\RegressionSuite.exe.config" % (self.ASF_WORKING_DIR)
             fileData = asfCont.xmlrpcReadFile(filename=filename)
             newFileData = re.sub('<add key="TIMEOUT_SCALE_FACTOR" value=".*"',
                                  '<add key="TIMEOUT_SCALE_FACTOR" value="%d"' % (2), fileData)
@@ -728,28 +731,19 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         asfLogSrcDir = "%s\\Reports" % (self.ASF_WORKING_DIR)
         logDirList = asfCont.xmlrpcGlobpath("%s\\*\\*" % (asfLogSrcDir))
-        # Sort into execution order - most recent last
-        logDirList.sort()
+        # Remove self test dir
+        logDirList = filter(lambda x:'SelfTest' not in x, logDirList)
+        envCreateDir = filter(lambda x:'EnvCreate' in x, logDirList)[0]
+        envCreateLogFilePath = '%s\\GlobalLog.txt' % (envCreateDir)
+        asfCont.xmlrpcGetFile2(envCreateLogFilePath, os.path.join(logsubdir, 'envcreate-GlobalLog.txt'))
 
-        asfResultsDir = logDirList[-1]
-        try:
-            val = self.executeASFShellCommand(asfCont, 'Get-AsfBuildConfig -BuildId XenServer', csvFormat=True)
-            buildData = map(lambda x:x.replace('"', '').split(','), val)
-            asfResultDirList = filter(lambda x:buildData[2][3] in x, logDirList)
-            if len(asfResultDirList) == 1:
-                asfResultsDir = asfResultDirList[0]
-            else:
-                xenrt.TEC().warning('Could not find unique ASF results directory based on build [%s]' % (buildData[2][3]))
-        except Exception, e:
-            xenrt.TEC().warning('Failed to get build name. Exception: %s' % (e))
-
+        logDirList = filter(lambda x:'EnvCreate' not in x, logDirList)
+        if not len(logDirList) == 1:
+            xenrt.TEC().warning('Could not find unique ASF results directory')
+        asfResultsDir = logDirList[0]
         xenrt.TEC().logverbose('Using ASF Results Path: %s' % (asfResultsDir))
-        for asfLogFile in ['GlobalLog.txt', 'starttestenv.log']:
-            try:
-                asfLogFilePath = '%s\\%s' % (asfResultsDir, asfLogFile)
-                asfCont.xmlrpcGetFile2(asfLogFilePath, os.path.join(logsubdir, asfLogFile))
-            except Exception, e:
-                xenrt.TEC().logverbose("Failed to get ASF log [%s], Exception: %s" % (asfLogFilePath, str(e)))
+        asfLogFilePath = '%s\\GlobalLog.txt' % (asfResultsDir)
+        asfCont.xmlrpcGetFile2(asfLogFilePath, os.path.join(logsubdir, 'GlobalLog.txt'))
 
         return os.path.join(logsubdir, 'GlobalLog.txt')
 
@@ -791,8 +785,8 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         version = self.host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if version == '6.2.50':
-            xenrt.TEC().warning('Using Clearwater Templates for trunk')
+        if version == '6.2.50' or version == '6.4.90':
+            xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
             version = '6.2.0'
 
         if xenrt.TEC().lookup("EXISTING_TEMPLATES", False, boolean=True):

@@ -2518,12 +2518,6 @@ class TC8537(xenrt.TestCase):
                                                                   "TC853x")
         if not self.USE_VHD:
             # Hack the SM to use a different name for the MGT volume
-            if self.host.embedded:
-                # Make the SM drivers writable
-                smdir = self.host.hostTempDir()
-                self.host.execdom0("cp -a /opt/xensource/sm %s" % (smdir))
-                self.host.execdom0("mount -obind %s/sm /opt/xensource/sm" %
-                                   (smdir))
             self.host.execdom0("sed -e's/MDVOLUME_NAME = \"MGT\"/MDVOLUME_NAME = \"XenRTMGT\"/' -i /opt/xensource/sm/LVHDSR.py")
         try:
             self.sr.create(self.lun, subtype="lvm", findSCSIID=True, noiqnset=True)
@@ -2542,9 +2536,6 @@ class TC8537(xenrt.TestCase):
         finally:
             if not self.USE_VHD:
                 self.host.execdom0("sed -e's/MDVOLUME_NAME = \"XenRTMGT\"/MDVOLUME_NAME = \"MGT\"/' -i /opt/xensource/sm/LVHDSR.py")
-                if self.host.embedded:
-                    self.host.execdom0("umount /opt/xensource/sm")
-                    self.host.execdom0("rm -rf %s" % (smdir))
 
     def run(self, arglist):
 

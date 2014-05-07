@@ -8,10 +8,16 @@ import tarfile
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
     from marvin import configGenerator
 except ImportError:
     pass
+
+try:
+    from marvin.integration.lib.base import *
+except ImportError:
+#    from marvin.lib.base import *
+    pass
+
 
 __all__ = ["MarvinApi"]
 
@@ -45,8 +51,15 @@ class MarvinApi(object):
         self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
         self.mgtSvrDetails.user = self.MS_USERNAME
         self.mgtSvrDetails.passwd = self.MS_PASSWORD
-        
-        self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
+        try:
+            self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
+        except AttributeError:
+            dbDetails = configGenerator.dbServer()
+            dbDetails.dbSvr = mgtSvr.place.getIP()
+            dbDetails.passd = dbDetails.passwd
+            self.testClient = cloudstackTestClient.CSTestClient(mgmt_details=self.mgtSvrDetails, dbsvr_details=dbDetails, logger=self.logger)
+            self.testClient.createTestClient()
+
         self.apiClient = self.testClient.getApiClient()
 
         #TODO - Fix this
@@ -111,11 +124,12 @@ class MarvinApi(object):
         xenrt.TEC().logverbose('Template %s ready after %d seconds' % (name, (datetime.now() - startTime).seconds))
 
     def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
-        sysTemplateiSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", '/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2')
-        if not sysTemplateiSrcLocation:
-            raise xenrt.XRTError('Location of system template not specified')
-        xenrt.TEC().logverbose('Using System Template: %s' % (sysTemplateiSrcLocation))
-        sysTemplateFile = xenrt.TEC().getFile(sysTemplateiSrcLocation)
+        # Check if a non-default system template has been specified
+        sysTemplateSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", self.mgtSvr.lookup("DEFAULT_SYSTEM_TEMPLATE", None))
+        if not sysTemplateSrcLocation:
+            raise xenrt.XRTError('Failed to find system template location')
+        xenrt.TEC().logverbose('Using System Template: %s' % (sysTemplateSrcLocation))
+        sysTemplateFile = xenrt.TEC().getFile(sysTemplateSrcLocation)
         webdir = xenrt.WebDirectory()
         webdir.copyIn(sysTemplateFile)
         sysTemplateUrl = webdir.getURL(os.path.basename(sysTemplateFile))
@@ -270,7 +284,7 @@ class MarvinApi(object):
 
             zone = Zone.list(self.apiClient)[0].id
 
-            osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+            osname = self.mgtSvr.lookup(["OS_NAMES", distro])
             Template.register(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,
@@ -312,7 +326,7 @@ class MarvinApi(object):
 
             zone = Zone.list(self.apiClient)[0].id
             if distro:
-                osname = xenrt.TEC().lookup(["CCP_CONFIG", "OS_NAMES", distro])
+                osname = self.mgtSvr.lookup(["OS_NAMES", distro])
             else:
                 osname = "None"
             Iso.create(self.apiClient, {
@@ -499,9 +513,15 @@ class TCMarvinTestRunner(xenrt.TestCase):
         self.marvinApi.setCloudGlobalConfig("expunge.workers", "3")
         self.marvinApi.setCloudGlobalConfig("check.pod.cidrs", "true")
         self.marvinApi.setCloudGlobalConfig("direct.agent.load.size", "1000", restartManagementServer=True)
+        
+        #Parse arglist from sequence file to set global settings requried for the particular testcase        
+        for arg in arglist:
+            if arg.startswith('globalconfig'):            
+                config = eval(arg.split('=')[1])
+                self.marvinApi.setCloudGlobalConfig(config['key'],config['value'] ,restartManagementServer=config['restartManagementServer'])
+            else :
+                raise xenrt.XRTError("Unknown arguments specified ")
 
-        # Add check to make this optional
-        self.marvinApi.waitForTemplateReady('CentOS 5.6(64-bit) no GUI (XenServer)')
 
     def writeRunInfoLog(self, testcaseName, runInfoFile):
         xenrt.TEC().logverbose('-------------------------- START MARVIN LOGS FOR %s --------------------------' % (testcaseName))

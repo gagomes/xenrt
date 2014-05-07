@@ -1066,18 +1066,6 @@ class _TCVDICreate(xenrt.TestCase):
             if not self.SRTYPE == "lvmoiscsi":
                 raise xenrt.XRTError("Need to use lvmoiscsi SR for this TC")
             # Hack the SM to use a different name for the MGT volume
-            if self.host.embedded:
-                # Make the SM drivers writable
-                smdir = self.host.hostTempDir()
-                self.host.execdom0("cp -a /opt/xensource/sm %s" % (smdir))
-                self.host.execdom0("mount -obind %s/sm /opt/xensource/sm" %
-                                   (smdir))
-                if self.host is not self.master:
-                    smdir2 = self.master.hostTempDir()
-                    self.master.execdom0("cp -a /opt/xensource/sm %s" %
-                                         (smdir2))
-                    self.master.execdom0("mount -obind %s/sm /opt/xensource/sm"
-                                         % (smdir2))
             self.host.execdom0("sed -e's/MDVOLUME_NAME = \"MGT\"/MDVOLUME_NAME = \"XenRTMGT\"/' -i /opt/xensource/sm/LVHDSR.py")
             if self.host is not self.master:
                 self.master.execdom0("sed -e's/MDVOLUME_NAME = \"MGT\"/MDVOLUME_NAME = \"XenRTMGT\"/' -i /opt/xensource/sm/LVHDSR.py")
@@ -1093,12 +1081,6 @@ class _TCVDICreate(xenrt.TestCase):
                 self.host.execdom0("sed -e's/MDVOLUME_NAME = \"XenRTMGT\"/MDVOLUME_NAME = \"MGT\"/' -i /opt/xensource/sm/LVHDSR.py")
                 if self.host is not self.master:
                     self.master.execdom0("sed -e's/MDVOLUME_NAME = \"XenRTMGT\"/MDVOLUME_NAME = \"MGT\"/' -i /opt/xensource/sm/LVHDSR.py")
-                if self.host.embedded:
-                    self.host.execdom0("umount /opt/xensource/sm")
-                    self.host.execdom0("rm -rf %s" % (smdir))
-                    if self.host is not self.master:
-                        self.master.execdom0("umount /opt/xensource/sm")
-                        self.master.execdom0("rm -rf %s" % (smdir2))
             self.tempsr.introduce()
             # Check the SR is showing as legacy
             try:
@@ -2255,18 +2237,8 @@ class _TCLVHDLeafCoalesce(xenrt.TestCase):
             if self.WINDOWS:            
                 self.guest = self.host.createGenericWindowsGuest(sr=self.srs[0])
             else:
-                if self.host.embedded:
-                    # Not using createGenericLinuxGuest because we cannot
-                    # import into legacy VDIs using the FIST point (XRT-8251)
-                    self.guest = xenrt.lib.xenserver.guest.createVM(\
-                        self.host,
-                        xenrt.randomGuestName(),
-                        xenrt.TEC().lookup("LVHD_LEAF_OEM_DISTRO", "debian50"),
-                        sr=self.srs[0],
-                        vifs=xenrt.lib.xenserver.Guest.DEFAULT)
-                else:
-                    self.guest = self.host.createGenericLinuxGuest(\
-                        sr=self.srs[0])
+                self.guest = self.host.createGenericLinuxGuest(\
+                    sr=self.srs[0])
             self.uninstallOnCleanup(self.guest)
         finally:
             if self.ORIGINAL_VDI_TYPE == "LV":

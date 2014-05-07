@@ -126,56 +126,18 @@ class TCXenServerDebianInstall(xenrt.TestCase):
         self.guest = g
         self.getLogsFrom(g)
 
-        if host.embedded and not re.search("debian\d+", distro):
-            # See if we have a suitable image available to import, otherwise
-            # skip...
-            # TODO Look for other verions of the exports...
-            imagefile = "%s/%s-4.1.img" % (xenrt.TEC().lookup("VM_IMAGES_DIR"),
-                                           distro)
-            if not os.path.exists(imagefile):
-                xenrt.TEC().skip("No image available for %s on OEM" % (distro))
-                return
-
-            xenrt.TEC().logverbose("Using image file %s" % (imagefile))
-            if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
+        if vcpus != None:
+            g.setVCPUs(vcpus)
+        if memory != None:
+            g.setMemory(memory)
+        
+        if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
                               False,
                               boolean=True):
-                xenrt.TEC().skip("Skipping because of --noinstall option")
-            else:
-                g.distro = distro
-                g.importVM(host, imagefile, sr=sr)
-                g.paramSet("PV-args", "noninteractive")
-                if not bridge:
-                    bridge = host.getPrimaryBridge()
-                g.vifs = [("%s0" % (g.vifstem), bridge, xenrt.randomMAC(), None)]
-                if vifs != g.DEFAULT:
-                    for i in range(vifs - 1):
-                        g.vifs.append(("%s%d" % (g.vifstem, i+1), bridge, xenrt.randomMAC(), None))
-                for v in g.vifs:
-                    eth, bridge, mac, ip = v
-                    g.createVIF(eth, bridge, mac)
-                if vcpus != None:
-                    g.cpuset(vcpus)
-                if memory != None:
-                    g.memset(memory)
-                # TODO: extradisks
-                # Make sure tools and kernel are up to date
-                g.start()
-                g.installTools()
-                g.check()
+            xenrt.TEC().skip("Skipping because of --noinstall option")
         else:
-            if vcpus != None:
-                g.setVCPUs(vcpus)
-            if memory != None:
-                g.setMemory(memory)
-            
-            if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
-                                  False,
-                                  boolean=True):
-                xenrt.TEC().skip("Skipping because of --noinstall option")
-            else:
-                g.install(host, distro=distro, sr=sr, vifs=vifs, extradisks=extradisks, bridge=bridge)
-                g.check()
+            g.install(host, distro=distro, sr=sr, vifs=vifs, extradisks=extradisks, bridge=bridge)
+            g.check()
 
         xenrt.TEC().registry.guestPut(guestname, g)
         xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,

@@ -57,46 +57,8 @@ class _Hotfix(xenrt.TestCase):
         cmd = 'mkdir -p %s && echo "%s" > %s/%s' % (dir, rpms, dir, hf)
         xenrt.ssh.SSH(xenrt.TEC().lookup("MASTER_DISTFILES_SYNC_HOST"), cmd, "xenrtd")
     
-    def doHotfixesOEM(self, version, hotfixes):
-        for hf in hotfixes:
-            update = xenrt.TEC().lookup(\
-                ["OEM_UPDATE_%s" % (version.upper()), hf.upper()])
-            patches = self.host.minimalList("patch-list")
-            updatefile = xenrt.TEC().getFile(update)
-            if not updatefile:
-                raise xenrt.XRTError("Couldn't retrieve %s." % (update))
-            if updatefile[-4:] == ".bz2":
-                newfile = "%s/update.fs" % (xenrt.TEC().getWorkdir())
-                shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-                xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-                try:
-                    self.host.applyOEMUpdate(newfile)
-                    if self.POOLED:
-                        self.slave.applyOEMUpdate(newfile)
-                finally:
-                    os.unlink(newfile)
-            else:
-                self.host.applyOEMUpdate(updatefile)
-                if self.POOLED:
-                    self.slave.applyOEMUpdate(updatefile)
-            if self.POOLED:
-                self.host.reboot()
-                self.slave.reboot()
-            else:
-                self.host.reboot()
-            patches2 = self.host.minimalList("patch-list")
-            self.host.execdom0("xe patch-list")
-            if len(patches2) <= len(patches):
-                raise xenrt.XRTFailure("Patch list did not grow after update "
-                                       "application %s/%s" % (version, hf))
-            xenrt.TEC().comment("Applied update %s to initial version %s" %
-                                (hf, version))
-
     def doHotfixes(self, version, branch, hotfixes):
-        if self.host.embedded:
-            self.doHotfixesOEM(version, hotfixes)
-        else:
-            self.doHotfixesRetail(version, branch, hotfixes)
+        self.doHotfixesRetail(version, branch, hotfixes)
     
     def preCheck(self):
         pass
@@ -180,17 +142,8 @@ class _Hotfix(xenrt.TestCase):
 
         if self.CHECKVM:
             # Install a VM
-            if self.host.embedded:
-                # Just an empty shell of a VM
-                template = self.host.getTemplate("other")
-                cli = self.host.getCLIInstance()
-                args = []
-                args.append("template=\"%s\"" % (template))
-                args.append("new-name-label=%s" % (xenrt.randomGuestName()))
-                self.guest = cli.execute("vm-install", string.join(args)).strip()
-            else:
-                self.guest = self.host.createGenericLinuxGuest()
-                self.guest.shutdown()
+            self.guest = self.host.createGenericLinuxGuest()
+            self.guest.shutdown()
 
 
         initialBranch = self.INITIAL_BRANCH
@@ -310,80 +263,11 @@ class _Hotfix(xenrt.TestCase):
                 if self.POOLED and not self.slave.getMyHostUUID() in hosts:
                     raise xenrt.XRTFailure("Patch %s not applied to the slave" % puuid)
 
-    def doHotfixOEM(self):
-        if self.NEGATIVE:
-            raise xenrt.XRTError("Negative update application test not "
-                                 "applicable for OEM edition")
-        # Perform the update. Note this may be an upgrade as well.
-        update = xenrt.TEC().lookup("THIS_UPDATE")
-        updatefile = xenrt.TEC().getFile(update)
-        if not updatefile:
-            raise xenrt.XRTError("Couldn't retrieve %s." % (update))
-        if updatefile[-4:] == ".bz2":
-            newfile = "%s/update.fs" % (xenrt.TEC().getWorkdir())
-            shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-            xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-            try:
-                self.host.applyOEMUpdate(newfile)
-                if self.POOLED:
-                    self.slave.applyOEMUpdate(newfile)
-            finally:
-                os.unlink(newfile)
-        else:
-            self.host.applyOEMUpdate(updatefile)
-            if self.POOLED:
-                self.slave.applyOEMUpdate(updatefile)
-        if self.POOLED:
-            self.host.reboot()
-            self.slave.reboot()
-        else:
-            self.host.reboot()
-
-        # If this was an upgrade we may need to upgrade the host objects
-        # Probably ought to do the pool object too but let's see if we
-        # can get away with that...
-        v = xenrt.TEC().lookup("PRODUCT_VERSION")
-        if v != self.currentversion:
-            hosts = [self.host]
-            if self.POOLED:
-                hosts.append(self.slave)
-            for host in hosts:
-                xenrt.lib.xenserver.cli.clearCacheFor(host.machine)
-                host.tailored = False
-                newHost = xenrt.lib.xenserver.hostFactory(v)(host.machine, productVersion=v)
-                host.populateSubclass(newHost)
-                host.replaced = newHost
-                try:
-                    xenrt.TEC().registry.hostReplace(self, newHost)
-                except:
-                    pass
-                if host == hosts[0]:
-                    self.host = newHost
-                else:
-                    self.slave = newHost
-            self.currentversion = v
-
-        # Check the patches
-        patches = self.host.minimalList("patch-list")
-        self.host.execdom0("xe patch-list")
-        # Make sure all hosts have all patches
-        for puuid in patches:
-            hosts = self.host.genParamGet("patch", puuid, "hosts").split(", ")
-            if not self.host.getMyHostUUID() in hosts:
-                raise xenrt.XRTFailure("Patch %s not applied to the master" %
-                                       (puuid))
-            if self.POOLED and not self.slave.getMyHostUUID() in hosts:
-                raise xenrt.XRTFailure("Patch %s not applied to the slave" %
-                                       (puuid))
-
     def doHotfix(self):
-        if self.host.embedded:
-            self.doHotfixOEM()
-        else:
-            self.doHotfixRetail()
+        self.doHotfixRetail()
 
     def checkHotfixContents(self):
-        if not self.host.embedded and (isinstance(self.host, xenrt.lib.xenserver.BostonHost) or self.host.productVersion == "Oxford"):
+        if isinstance(self.host, xenrt.lib.xenserver.BostonHost) or self.host.productVersion == "Oxford":
             remotefn = "/tmp/XSUPDATE"
             sftp = self.host.sftpClient()
             hotfix = xenrt.TEC().lookup("THIS_HOTFIX")
@@ -552,13 +436,8 @@ class _Hotfix(xenrt.TestCase):
         
     def checkGuest(self):
         # Check the VM
-        if self.host.embedded:
-            guests = self.host.minimalList("vm-list")
-            if not self.guest in guests:
-                raise xenrt.XRTFailure("VM missing")
-        else:
-            self.guest.start()
-            self.guest.shutdown()
+        self.guest.start()
+        self.guest.shutdown()
 
     def checkNTP(self, master):
         if master:
@@ -591,16 +470,15 @@ class _Hotfix(xenrt.TestCase):
         if self.runSubcase("doHotfix", (), "Patch", "Apply") != xenrt.RESULT_PASS:
             return
         
-        if not self.NEGATIVE and not self.host.embedded:
+        if not self.NEGATIVE:
             self.runSubcase("checkPatchList", (), "PatchList", "Initial")
 
-        if not self.host.embedded:
-            # Reboot into the patched installation
-            self.host.reboot()
-            if self.POOLED:
-                self.slave.reboot()
+        # Reboot into the patched installation
+        self.host.reboot()
+        if self.POOLED:
+            self.slave.reboot()
 
-        if not self.POOLED and not self.NEGATIVE and not self.host.embedded:
+        if not self.POOLED and not self.NEGATIVE:
             self.runSubcase("checkDriverDisks", (), "Check", "DriverDisks")
             
         if not self.NEGATIVE:
@@ -1993,127 +1871,6 @@ class TC17660(_TampaOriginalSanibelAllHF):
     """Rolling pool upgrade from Sanibel RTM (original) plus all the hotfixes of Sanibel"""
     POOLED = True
 
-#############################################################################
-# OEM update checks (including rolled up hotfix reporting)
-# These OEM specific tests are deprecated in favour of the generalised
-# tests above
-
-# Base versions
-class _MiamiOEMRTM(_Hotfix):
-    INITIAL_VERSION = "Miami"
-    
-class _MiamiOEMHF1(_MiamiOEMRTM):
-    INITIAL_HOTFIXES = ["HF1"]
-
-class _MiamiOEMHF2(_MiamiOEMRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2"]
-
-class _MiamiOEMHF3(_MiamiOEMRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2", "HF3"]
-
-class _OrlandoOEMRTM(_Hotfix):
-    INITIAL_VERSION = "Orlando"
-
-class _OrlandoOEMHF1(_OrlandoOEMRTM):
-    INITIAL_HOTFIXES = ["HF1"]
-    
-class _OrlandoOEMHF2(_OrlandoOEMRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2"]
-
-class _OrlandoOEMHF3(_OrlandoOEMRTM):
-    INIITAL_HOTFIXES = ["HF1", "HF2", "HF3"]
-
-class _GeorgeOEMRTM(_Hotfix):
-    INITIAL_VERSION = "George"
-
-class _GeorgeOEMHF1(_GeorgeOEMRTM):
-    INITIAL_HOTFIXES = ["HF1"]
-
-class _GeorgeOEMHF2(_GeorgeOEMRTM):
-    INITIAL_HOTFIXES = ["HF1", "HF2"]
-    
-# Upgrades
-class _OrlandoOEMRTMviaMiamiHF3(_MiamiOEMHF3):
-    UPGRADE_VERSIONS = ["Orlando"]
-    UPGRADE_HOTFIXES = [[]]
-
-class _GeorgeOEMRTMviaOrlandoHF3(_OrlandoOEMHF3):
-    UPGRADE_VERSIONS = ["George"]
-    UPGRADE_HOTFIXES = [[]]
-
-class _GeorgeOEMRTMviaOrlandoHF3viaMiamiHF3(_MiamiOEMHF3):
-    UPGRADE_VERSIONS = ["Orlando", "George"]
-    UPGRADE_HOTFIXES = [["HF1","HF2","HF3"],[]]
-
-class _GeorgeOEMHF2viaGeorgeOEMRTM(_GeorgeOEMRTM):
-    UPGRADE_VERSIONS = ["George"]
-    UPGRADE_HOTFIXES = [["HF1", "HF2"]]
-
-class _GeorgeOEMHF2viaOrlandoHF3viaMiamiHF3(_MiamiOEMHF3):
-    UPGRADE_VERSIONS = ["Orlando", "George"]
-    UPGRADE_HOTFIXES = [["HF1","HF2","HF3"],["HF1","HF2"]]
-
-# Single host testcases
-class TC8900(_OrlandoOEMRTM):
-    """OEM update from Orlando RTM"""
-    pass
-
-class TC8901(_OrlandoOEMHF1):
-    """OEM update from Orlando HF1 via Orlando RTM"""
-    pass
-
-class TC8902(_OrlandoOEMHF2):
-    """OEM update from Orlando HF2 via Orlando RTM and HF1"""
-    pass
-
-class TC10750(_OrlandoOEMHF3):
-    """OEM update from Orlando HF3 via Orlando RTM, HF1 and HF2"""
-    pass
-
-class TC8896(_MiamiOEMRTM):
-    """OEM update from Miami RTM"""
-    pass
-
-class TC8897(_MiamiOEMHF1):
-    """OEM update from Miami HF1 via Miami RTM"""
-    pass
-
-class TC8898(_MiamiOEMHF2):
-    """OEM update from Miami HF2 via Miami RTM and HF1"""
-    pass
-
-class TC8899(_MiamiOEMHF3):
-    """OEM update from Miami HF3 via Miami RTM, HF1 and HF2"""
-    pass
-
-class TC8903(_OrlandoOEMRTMviaMiamiHF3):
-    """OEM update from Orlando RTM via Miami RTM, Miami HF1, 2 and 3"""
-    pass
-
-class TC10751(_GeorgeOEMRTMviaOrlandoHF3):
-    """OEM update from George RTM via Orlando RTM, HF1, HF2 and HF3"""
-    pass
-
-class TC10752(_GeorgeOEMRTMviaOrlandoHF3viaMiamiHF3):
-    """OEM update from George RTM via Miami RTM, HF1, HF2, HF3, Orlando RTM, HF1, HF2 and HF3"""
-    pass
-
-class TC11573(_GeorgeOEMHF2viaGeorgeOEMRTM):
-    """OEM update from George Update 2 via George RTM"""
-    pass
-
-class TC11574(_GeorgeOEMHF2viaOrlandoHF3viaMiamiHF3):
-    """OEM update from George Update 2 via Miami RTM, HF1, HF2, HF3, Orlando RTM, HF1, HF2 and HF3"""
-    pass
-
-class TC10744(_GeorgeOEMRTM):
-    """OEM update from George RTM"""
-    pass
-
-class TC11575(_GeorgeOEMHF2):
-    """OEM update from George Update 2"""
-    pass
-    
 class TCUnsignedHotfixChecks(xenrt.TestCase):
     """Unsigned hotfix contents and metadata checks"""
     def run(self, arglist):

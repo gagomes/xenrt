@@ -62,8 +62,6 @@ class Guest(xenrt.GenericGuest):
                                                 "name-label",
                                                 template)
             if tuuid == "":
-                # Cover the case where it's an embedded debian install
-                # from an image but we still specify the template...
                 xenrt.TEC().logverbose("Cannot find template %s on host" % 
                                        (template))
             else:
@@ -383,16 +381,11 @@ class Guest(xenrt.GenericGuest):
             vers = float(r.group(1))
         else:
             vers = 0.0
-        if re.search(r"ebian", self.template) and \
-               self.getHost().embedded and vers < 5.0:
-            self.installDebianEmbedded(sruuid, vifs=self.vifs)
-            vifsdone = True
-        else:                
-            self.createGuestFromTemplate(self.template, 
-                                         sruuid, 
-                                         ni=ni,
-                                         guestparams=guestparams, 
-                                         rootdisk=rootdisk)
+        self.createGuestFromTemplate(self.template, 
+                                     sruuid, 
+                                     ni=ni,
+                                     guestparams=guestparams, 
+                                     rootdisk=rootdisk)
 
         # Attaching root disk and extra disks for LUN Per VDI guests.
         if rawHBAVDIs:
@@ -624,39 +617,6 @@ class Guest(xenrt.GenericGuest):
         self.xmlrpcShutdown()
         self.poll("DOWN", timeout=360)
 
-    def installDebianEmbedded(self, sruuid=None, vifs=None):
-        imagefile = "%s/%s-4.1.img" % (xenrt.TEC().lookup("VM_IMAGES_DIR"),
-                                       self.distro)
-        if not os.path.exists(imagefile):
-            raise xenrt.XRTError("No image available for %s on OEM" % 
-                                 (self.distro))
-        self.importVM(self.getHost(), imagefile, sr=sruuid)
-        self.paramSet("PV-args", "noninteractive")
-        if vifs:
-            for v in vifs:
-                eth, bridge, mac, ip = v
-                self.createVIF(eth, bridge, mac)
-        if self.memory:
-            self.memset(self.memory)
-        else:
-            self.memory = self.memget()
-        if self.vcpus:
-            self.cpuset(self.vcpus)
-        else:
-            self.vcpus = self.cpuget()
-        self.setHostnameViaXenstore()
-
-        # Update tools
-        self.start()
-        self.installTools(reboot=False, updateKernel=False)
-        self.shutdown()
-
-        # Remove the CD drive we added when installing tools. This is
-        # to make the VM match the config of the template-installed
-        # one on retail.
-        self.removeCD()
-
-    
     def insertToolsCD(self):
         isos = self.getHost().findISOs()
         if self.windows:

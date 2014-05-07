@@ -387,9 +387,6 @@ class TCLicenseRestrictions(xenrt.TestCase):
 
     def qos(self, allowed):
         # We can't run this on OEM flash versions, as there's no xensource.log
-        if self.host.embedded and not self.host.embedded_hdd:
-            raise xenrt.XRTSkip("XRT-3904 Cannot check QoS on OEM flash")
-
         try:
             guest = self.guestToClone.cloneVM(name="qos%s" % (self.skutype))
             self.guestsToShutdown.append(guest)

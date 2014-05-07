@@ -554,12 +554,7 @@ class _HATest(xenrt.TestCase):
 
     def poweroff(self, host, cycle=False):
         try:
-            if host.embedded:
-                host.execdom0("mount -o remount,barrier=1 /.state")
-                host.execdom0("mount -o remount,barrier=1 /var/xsconfig/* || "
-                              "true")
-            else:
-                host.execdom0("mount -o remount,barrier=1 /")
+            host.execdom0("mount -o remount,barrier=1 /")
             host.execdom0("sync")
         except:
             pass
@@ -3866,23 +3861,6 @@ class TC8468(xenrt.TestCase):
         self.pool = self.getDefaultPool()
         self.lcModified = None
 
-        # If this is OEM flash, check if xensource.log is enabled
-        if self.pool.master.embedded and \
-           self.pool.master.execdom0("grep xensource.log "
-                                     "/etc/xensource/log.conf",
-                                     retval="code") > 0:
-            self.pool.master.execdom0("cp -f /etc/xensource/log.conf "
-                                      "/etc/xensource/log.conf.xenrt")
-            lines = ["debug;;file:/var/log/xensource.log",
-                     "info;;file:/var/log/xensource.log",
-                     "warn;;file:/var/log/xensource.log",
-                     "error;;file:/var/log/xensource.log"]
-            for l in lines:
-                self.pool.master.execdom0("echo '%s' >> "
-                                          "/etc/xensource/log.conf" % (l))
-            self.lcModified = self.pool.master # Just in case master changes
-            self.pool.master.restartToolstack()
-
         # Set up the iSCSI HA SR
         self.lun = xenrt.ISCSITemporaryLun(300)
         self.sr = xenrt.lib.xenserver.host.ISCSIStorageRepository(\
@@ -3982,23 +3960,6 @@ class TC8469(xenrt.TestCase):
         self.lun = None
         self.pool = self.getDefaultPool()
         self.lcModified = None
-
-        # If this is OEM flash, check if xensource.log is enabled
-        if self.pool.master.embedded and \
-           self.pool.master.execdom0("grep xensource.log "
-                                     "/etc/xensource/log.conf",
-                                     retval="code") > 0:
-            self.pool.master.execdom0("cp -f /etc/xensource/log.conf "
-                                      "/etc/xensource/log.conf.xenrt")
-            lines = ["debug;;file:/var/log/xensource.log",
-                     "info;;file:/var/log/xensource.log",
-                     "warn;;file:/var/log/xensource.log",
-                     "error;;file:/var/log/xensource.log"]
-            for l in lines:
-                self.pool.master.execdom0("echo '%s' >> "
-                                          "/etc/xensource/log.conf" % (l))
-            self.lcModified = self.pool.master # Just in case master changes
-            self.pool.master.restartToolstack()
 
         self.pifs = []
         cli = self.pool.getCLIInstance()

@@ -4690,21 +4690,8 @@ class GenericHost(GenericPlace):
             return domains[guest.name][0]
         raise xenrt.XRTError("Domain '%s' not found" % (guest.name))
 
-    def enableGuestConsoleLogger(self, enable=True, persist=False, 
-                                 embedded=False):
+    def enableGuestConsoleLogger(self, enable=True, persist=False):
         """Start and enable to guest console logging daemon"""
-        # If it's embedded, set up an NFS mount for them to be on
-        if embedded:
-            conlogs = xenrt.NFSDirectory()
-            self.execdom0("mkdir -p /tmp/consolelogs")
-            self.execdom0("mount %s /tmp/consolelogs" % 
-                          (conlogs.getMountURL("")))
-            self.execdom0("echo 'mkdir -p /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local")
-            self.execdom0("echo 'mount %s /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local" % (conlogs.getMountURL("")))
-            xenrt.GEC().config.config['GUEST_CONSOLE_LOGDIR'] = "/tmp/consolelogs"
-
         # If the host console daemon has special powers (TM) then use them
         if self.execdom0("grep -q '/local/logconsole/@' /usr/sbin/xenconsoled",
                          retval="code") == 0:

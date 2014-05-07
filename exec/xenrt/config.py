@@ -1102,7 +1102,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["LOCAL_DISK_TiB"] = "6"
 
         # Creedence
-        self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Clearwater"])
+        self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Sarasota"])
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

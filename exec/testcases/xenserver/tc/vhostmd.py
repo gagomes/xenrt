@@ -217,8 +217,9 @@ class TC15961(xenrt.TestCase):
             err += " cpu"
         if rss >= 2000:
             err += " rss"
-        if vsz >= 5000:
-            err += " vsz"
+        #commenting check for VSZ as it doesn't give measure of memory demand made by process
+        #if vsz >= 5000:
+        #    err += " vsz"
         if "" != err:
             outList = [strList[0], strList[1], percentCpu, rss, vsz]
             raise xenrt.XRTFailure("Excessive performance impact on" + err,

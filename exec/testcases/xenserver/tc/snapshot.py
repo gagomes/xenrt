@@ -2587,6 +2587,71 @@ class TC11740(_VMSnapshotBase):
         uuid = self.guest.snapshot(quiesced=True)
         self.removeTemplateOnCleanup(self.guest.host, uuid)
 
+class TC20976(xenrt.TestCase):
+    """HFX820 Test to check cached file of base VDI image is deleted by cleanup.py -c"""
+    VDISIZE="1GiB"
+   
+    def prepare(self,arglist=[]):
+        
+        self.host=self.getDefaultHost()
+        g=self.host.listGuests(running=True)
+        self.guest=self.host.getGuest(g[0])    
+        self.guest.shutdown()
+        self.host.disable()
+        self.host.enableCaching()
+        self.host.enable()      
+        self.nfsuuid=self.host.getSRs(type="nfs")[0]
+        self.vdiuuid=self.host.createVDI(self.VDISIZE,sruuid=self.nfsuuid,name="vdi1")
+        self.host.genParamSet("vdi",self.vdiuuid,"allow-caching","true")
+        self.host.genParamSet("vdi",self.vdiuuid,"on-boot","persist")
+        
+       
+    def run(self, arglist=[]):
+        
+        step("Create vhd cache files")
+        self.guest.start()
+        vdiSnapshot=self.host.snapshotVDI(self.vdiuuid)
+        args = ["device=%s" % "autodetect", 
+                "vdi-uuid=%s"  % vdiSnapshot,
+                "vm-uuid=%s" % self.guest.uuid,
+                ]
+        
+        cli = self.host.getCLIInstance()
+        vbd = cli.execute("vbd-create", string.join(args), strip=True)
+
+        xenrt.TEC().logverbose("Plugging VBD on %s" % self.guest.getName())
+        cli.execute("vbd-plug", "uuid=%s" % vbd)
+        self.cachefiles = self.host.execdom0("ls /var/run/sr-mount/%s/*.vhdcache" % \
+                                           (self.host.getLocalSR())).strip().splitlines() 
+        if len(self.cachefiles)!=2:
+            raise xenrt.XRTFailure(".vhdcache files were not generated")
+        for i in self.cachefiles:
+            xenrt.TEC().logverbose(i)
+        
+        step("Unplugging and deleting snapshot VDI")
+        cli.execute("vbd-unplug", "uuid=%s" % vbd)
+        cli.execute("vdi-destroy","uuid=%s" % vdiSnapshot)
+        self.cachefiles = self.host.execdom0("ls /var/run/sr-mount/%s/*.vhdcache" % \
+                                           (self.host.getLocalSR())).strip().splitlines()
+        if len(self.cachefiles) != 1 :
+            raise xenrt.XRTFailure("vdi-destroy didn't delete cached file")
+        
+        step("Listing cached file left in local storage")
+        xenrt.TEC().logverbose(self.cachefiles[0])
+        
+        step("Updating time of host")
+        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("echo \" The current time\" `date` ")
+        #Updating system time by 2 hours
+        self.host.execdom0("echo \" The current time\" `date -s \"2 hours\"` ")
+
+        step("Delete vhd cache file")
+        #Deleting cached base image file that was there for more than 2 hours 
+        #Executing cleanup script
+        self.host.execdom0("/opt/xensource/sm/cleanup.py -u %s -c 2" %(self.host.getLocalSR()))                                           
+        baseCacheFile=self.host.execdom0("test -e /var/run/sr-mount/%s/*.vhdcache", retval="code")
+        if not baseCacheFile:
+            raise xenrt.XRTFailure("Cached base VDI image was not deleted")
 
 class TC17898(xenrt.TestCase):
     """ Snapshot load distribution across pool slaves """

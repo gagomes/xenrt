@@ -1,0 +1,28 @@
+<xenrt>
+   <variables>
+     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+     <PREPARE_WORKERS>1</PREPARE_WORKERS>
+   </variables>
+    
+   <prepare>  
+    
+     <host id="0">
+       <vm name="Linux">
+       <distro>debian60</distro>
+       <network device="0"/>
+       <postinstall action="preCloneTailor"/>
+       </vm>
+       <storage type="nfs" name="nfs1" default="false" />
+     </host>
+     
+   </prepare>
+  
+  <testsequence>
+    <serial group="HostInstall">
+       <testcase id="xenserver.tc.cache.TC20976">
+       </testcase>
+    </serial>
+  </testsequence>
+  
+</xenrt>

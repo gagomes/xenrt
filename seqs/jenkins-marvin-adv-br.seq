@@ -9,7 +9,6 @@
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
     <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
-    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
   </variables>
 
   <prepare>

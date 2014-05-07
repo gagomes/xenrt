@@ -9,6 +9,6 @@
   </prepare>
 
   <testsequence>
-      <testcase id="testcases.xenserver.tc.vgpu.creedencevgpuScalabilityK1.seq"  tc="TC-20839"/>
+      <testcase id="testcases.xenserver.tc.vgpu.ScalabilityVGPUWin7x86K100BS"  tc="TC-20839"/>
   </testsequence>
 </xenrt>

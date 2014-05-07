@@ -369,15 +369,6 @@ class TestCaseWrapper(xenrt.TestCase):
         
             ssh.close()
 
-    def pdGather(self, dict):
-        """Gather per-test data for a performance data item."""
-        if self.testname:
-            dict["benchmark"] = self.testname
-        if self.bmversion:
-            dict["bmversion"] = self.bmversion
-        if self.bmspecial:
-            dict["bmspecial"] = self.bmspecial
-
 class LoopingTestCase(xenrt.TestCase):
 
     initialState = None

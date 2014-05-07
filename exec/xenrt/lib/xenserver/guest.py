@@ -3747,17 +3747,6 @@ exit /B 1
             pass
         return reply
     
-    def pdGather(self, dict):
-        if self.windows:
-            pv = self.getPVDriverVersion()
-            if pv:
-                dict["kernelproductversion"] = pv
-        try:
-            dict["storagetype"] = self.getDiskSRType()
-        except:
-            pass
-        xenrt.GenericGuest.pdGather(self, dict)
-           
     def sendSysRq(self, key):
         self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
                                 "-domid %u -key %s" % (self.getDomid(), key))

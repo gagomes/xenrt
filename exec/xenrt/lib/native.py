@@ -82,14 +82,6 @@ class NativeHost(xenrt.GenericPlace):
         self.password = xenrt.TEC().lookup("NATIVE_WINPE_PASSWORD")
         self.productVersion=productVersion
 
-    def pdGather(self, dict):
-        # TODO
-        pass
-
-    def pdGatherGuestLike(self, dict):
-        # TODO
-        pass
-
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Check the location is healthy."""
         # TODO

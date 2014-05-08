@@ -17,6 +17,7 @@ __all__ = ["CloudStack"]
 
 import xenrt.lib.cloud.pvtoolsinstall
 
+
 class CloudStack(object):
     implements(xenrt.interfaces.Toolstack)
 
@@ -33,10 +34,17 @@ class CloudStack(object):
         # TODO actually determine what hypervisor is selected for the given instance
         return xenrt.HypervisorType.xen
 
-    def instanceResidentOn(self, instance):
-        return [x.hostname for x in VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)][0]
+    def _vmListProvider(self, toolstackid):
+        """
+        Add method wrapper for the marvin external API
+        This will allow the unit tests to not depend on Marvin
+        """
+        return VirtualMachine.list(self.marvin.apiClient, id=toolstackid)
 
-    def instanceCanMigrateTo(self, instance): 
+    def instanceResidentOn(self, instance):
+        return [x.hostname for x in self._vmListProvider(instance.toolstackId)][0]
+
+    def instanceCanMigrateTo(self, instance):
         cmd = findHostsForMigration.findHostsForMigrationCmd()
         cmd.virtualmachineid = instance.toolstackId
         return [x.name for x in self.marvin.apiClient.findHostsForMigration(cmd)]

@@ -271,3 +271,49 @@ class KVMHost(xenrt.lib.libvirt.Host):
         a string containing XML or a XML DOM node."""
         pass
 
+    def tailorForCloudStack(self, isCCP):
+        """Tailor this host for use with ACS/CCP"""
+
+        if isCCP:
+            # TODO: Check hostname is fqdn
+            self.execdom0("yum erase qemu-kvm")
+            # TODO: Install CloudPlatform packages (where from?)
+
+            # NFS services
+            self.execdom0("service rpcbind start")
+            self.execdom0("service nfs start")
+            self.execdom0("chkconfig rpcbind on")
+            self.execdom0("chkconfig nfs on")
+
+            # iptables tweak
+            self.execdom0("iptables -D FORWARD -p icmp -j ACCEPT")
+            self.execdom0("service iptables save")
+
+            # Start NTP
+            self.execdom0("service ntpd start")
+            self.execdom0("chkconfig ntpd on")
+
+            # TODO: Set up /etc/cloudstack/agent/agent.properties
+            # public.network.device
+            # private.network.device
+        else:
+            self.execdom0("yum install cloudstack-agent")
+            # TODO: Set in /etc/libvirt/libvirtd.conf
+            # listen_tls = 0
+            # listen_tcp = 1
+            # tcp_port = "16509"
+            # auth_tcp = "none"
+            # mdns_adv = 0
+
+            # TODO: Modify /etc/sysconfig/libvirtd
+            # LIBVIRTD_ARGS="--listen"
+
+            # TODO: Modify /etc/libvirt/qemu.conf
+            # vnc_listen = "0.0.0.0"
+
+            self.execdom0("service libvirtd restart")
+
+            # TODO: check selinux
+
+            # TODO: Networking
+

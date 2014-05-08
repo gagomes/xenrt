@@ -18,7 +18,7 @@ __all__ = ["ManagementServer"]
 class ManagementServer(object):
     def __init__(self, place):
         self.place = place
-        self.__isCCP = True
+        self.isCCP = True
         self.__version = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
@@ -229,7 +229,7 @@ class ManagementServer(object):
         return placeArtifactDir
 
     def installCloudStackManagementServer(self):
-        self.__isCCP = False
+        self.isCCP = False
         placeArtifactDir = self.getLatestMSArtifactsFromJenkins()
         
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -280,7 +280,7 @@ class ManagementServer(object):
 
     def postManagementServerInstall(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if not self.__isCCP and self.version in ['4.4', 'master']:
+            if not self.isCCP and self.version in ['4.4', 'master']:
                 self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
                 self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 

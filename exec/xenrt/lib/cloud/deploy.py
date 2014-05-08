@@ -21,8 +21,9 @@ class DeployerPlugin(object):
     DEFAULT_POD_IP_RANGE = 10
     DEFAULT_GUEST_IP_RANGE = 20
 
-    def __init__(self, marvinApi):
+    def __init__(self, marvinApi, isCCP):
         self.marvin = marvinApi
+        self.isCCP = isCCP
 
         self.currentZoneIx = -1
         self.currentPodIx = -1
@@ -122,8 +123,9 @@ class DeployerPlugin(object):
         return xenrt.TEC().lookup("ROOT_PASSWORD")
 
     def getHypervisorType(self, key, ref):
-        # TODO - enable support for other HVs
-        return 'XenServer'
+        if ref.has_key('hypervisor'):
+            return ref['hypervisor']
+        return 'XenServer' # Default to XenServer if not specified
 
     def getPrimaryStorageName(self, key, ref):
         return '%s-Primary-Store' % (self.currentPodName)
@@ -156,6 +158,22 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
             hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
+        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'kvm' and ref.has_key('XRTKVMHostIds'):
+            hostIds = ref['XRT_KVMHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId))
+                try:
+                    h.tailorForCloudStack(self.isCCP)
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': hostObject.getIP() })
         elif ref.has_key('XRT_NumberOfHosts'):
             map(lambda x:hosts.append({}), range(ref['XRT_NumberOfHosts']))
         return hosts
@@ -195,7 +213,7 @@ def deploy(cloudSpec, manSvr=None):
     marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
     marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
 
-    deployerPlugin = DeployerPlugin(marvinApi)
+    deployerPlugin = DeployerPlugin(marvinApi, isCCP=manSvr.isCCP)
     marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

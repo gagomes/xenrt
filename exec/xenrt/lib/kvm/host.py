@@ -137,7 +137,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         return eth.replace("eth","virbr")
 
     def getPrimaryBridge(self):
-        return self.getBridge(self.default_eth)
+        return self.getBridge(self.getDefaultInterface())
 
     def createNetwork(self, name="bridge"):
         self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
@@ -151,7 +151,23 @@ class KVMHost(xenrt.lib.libvirt.Host):
         self.productRevision = self.execdom0("uname -r | cut -d'-' -f1")
 
     def getDefaultInterface(self):
-        """Return the enumeration ID for the configured default interface."""
+        """Return the device for the configured default interface."""
+        mac = self.lookup("MAC_ADDRESS", None)
+        if mac:
+            try:
+                ifdata = self.execdom0("ifconfig -a | grep HWaddr")
+                for l in ifdata.splitlines():
+                    ls = l.split()
+                    if not ls[0].startswith("eth"):
+                        continue # Ignore any existing bridge devices
+                    if ls[4].lower() == mac.lower():
+                        return ls[0]
+                
+                raise xenrt.XRTFailure("Could not find an interface for %s" % (mac))
+            except Exception, e:
+                xenrt.TEC().warning("Exception looking up default interface: "
+                                    "%s" % (str(e)))
+        # Otherwise fall back to the default
         return self.default_eth
 
     def createNetworkTopology(self, topology):

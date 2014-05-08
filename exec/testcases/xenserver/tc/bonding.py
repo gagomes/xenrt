@@ -2098,7 +2098,7 @@ class _BondBalance(_AggregateBondTest):
         ignoreMACs = []
         for i in range(4):
             g = self.guests[i]
-            g.execcmd("killall iperf")
+            g.execcmd("killall iperf", level=xenrt.RC_OK)
             ignoreMACs.append(self.gmacs[g])
         time.sleep(2)
         for i in range(4):
@@ -2119,7 +2119,7 @@ class _BondBalance(_AggregateBondTest):
         # Stop any remaining iperf processes
         for g in self.guests:
             try:
-                g.execcmd("killall iperf")
+                g.execcmd("killall iperf", level=xenrt.RC_OK)
                 time.sleep(2)
                 g.execcmd("cat /tmp/iperf.log")
             except:

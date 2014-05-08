@@ -921,6 +921,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                         "[0-9a-f]{12}",
                         "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                         track[2])
+        track2 = re.sub(r"ovs-vswitchd\.\d+\.ctl", "ovs-vswitchd.xxxx.ctl", track2)
         track2 = re.sub(r"\d+\.\d+\.\d+\.\d+", "xxx.xxx.xxx.xxx", track2)
         track2 = re.sub(r"pid \d+", "pid xxxxx", track2)
         track2 = re.sub(r"/xe-cli-[0-9\.]+-.*\.rpm",

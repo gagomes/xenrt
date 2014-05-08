@@ -5,7 +5,10 @@
   </variables>
 
   <prepare>
-    <host id="0" />
+    <pool>
+      <storage type="nfs" name="NFSSR" default="true"/>
+      <host id="0" />
+    </pool>
   </prepare>
 
   <testsequence>

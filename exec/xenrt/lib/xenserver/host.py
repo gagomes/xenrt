@@ -1382,6 +1382,11 @@ echo TYPE='%s' >> etc/firstboot.d/data/default-storage.conf
             args=dict(map(lambda a: tuple(a.split("=")), setxen.split(",")))
             self.setXenCmdLine(**args)
 
+        setkernel = xenrt.TEC().lookup("SETKERNELCMDLINE", None) #eg. SETKERNELCMDLINE=x=a,y=b
+        if setkernel:
+            args=dict(map(lambda a: tuple(a.split("=")), setkernel.split(",")))
+            self.setXenCmdLine(set="dom0", **args)
+
         pifile = "%s/post-install-script-%s" % (workdir,self.getName())
         pi = file(pifile, "w")
         pitext = """#!/bin/bash

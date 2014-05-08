@@ -274,10 +274,38 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def tailorForCloudStack(self, isCCP):
         """Tailor this host for use with ACS/CCP"""
 
+        # Common operations
+        # hostname --fqdn must give a response
+        self.execdom0("echo '%s %s.%s %s' >> /etc/hosts" %
+                      (self.getIP(),
+                       self.getName(),
+                       self.lookup("DNS_DOMAIN", "xenrt")
+                       self.getName()))
+
+        # Start NTP
+        self.execdom0("service ntpd start")
+        self.execdom0("chkconfig ntpd on")
+
+        # Set up a yum repository so we can actually install packages
+        self.updateYumConfig(self.distro, self.arch)
+
         if isCCP:
-            # TODO: Check hostname is fqdn
-            self.execdom0("yum erase qemu-kvm")
-            # TODO: Install CloudPlatform packages (where from?)
+            # Citrix CloudPlatform specific operations
+
+            self.execdom0("yum erase -y qemu-kvm")
+            # Install CloudPlatform packages
+            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            if not cloudInputDir:
+                raise xenrt.XRTError("No CLOUDINPUTDIR specified")
+            ccpTar = xenrt.TEC().getFile(cloudInputDir)
+            webdir = xenrt.WebDirectory()
+            webdir.copyIn(ccpTar)
+            ccpUrl = webdir.getURL(os.path.basename(ccpTar))
+            self.execdom0('wget %s -O /tmp/cp.tar.gz' % (ccpUrl))
+            webdir.remove()
+            self.execdom0("cd /tmp && tar -xvzf cp.tar.gz -C /tmp/cloudplatform")
+            installDir = os.path.dirname(self.execdom0('find /tmp/cloudplatform/ -type f -name install.sh'))
+            self.execdom0("cd %s && ./install.sh -a" % (installDir))
 
             # NFS services
             self.execdom0("service rpcbind start")
@@ -285,20 +313,15 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig rpcbind on")
             self.execdom0("chkconfig nfs on")
 
-            # iptables tweak
-            self.execdom0("iptables -D FORWARD -p icmp -j ACCEPT")
-            self.execdom0("service iptables save")
-
-            # Start NTP
-            self.execdom0("service ntpd start")
-            self.execdom0("chkconfig ntpd on")
-
             # TODO: Set up /etc/cloudstack/agent/agent.properties
             # public.network.device
             # private.network.device
         else:
-            self.execdom0("yum install cloudstack-agent")
+            # Apache CloudStack specific operations
+
+            # TODO: Install cloudstack-agent (where from?)
             # TODO: Set in /etc/libvirt/libvirtd.conf
+            # (we have already set some of this)
             # listen_tls = 0
             # listen_tcp = 1
             # tcp_port = "16509"

@@ -148,9 +148,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def nicdevOfEndpointDev(self, endpoint, endpointdev):
         ethdev = "eth%d" % (endpointdev)
-        brdev  = endpoint.execcmd("brctl show | fgrep %s | awk '{print $1}'" % (ethdev)).strip()
-        mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (brdev)).strip()
-        return ethdev, brdev, mac
+        mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (ethdev)).strip()
+        return ethdev, mac
 
     def nicdev(self, endpoint):
         ip = self.getIP(endpoint, None)
@@ -177,7 +176,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         dev = _dev.replace("xenbr","eth")
         dev = dev.replace("virbr","eth")
-        return dev, _dev, mac
+        return dev, mac
 
     # endpoint is always a xenrt.GenericHost
     def nicinfo(self, endpoint, endpointdev=None, key_prefix=""):
@@ -185,9 +184,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
         if endpointdev is None:
-            dev, _dev, mac = self.nicdev(endpoint)
+            dev, mac = self.nicdev(endpoint)
         else:
-            dev, _dev, mac = self.nicdevOfEndpointDev(endpoint, endpointdev)
+            dev, mac = self.nicdevOfEndpointDev(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
@@ -243,7 +242,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         info = {}
         info["nic_physdev"] = dev
-        info["nic_brdev"] = _dev
         info["nic_desc"] = dev_desc
         info.update(ethtool)
         info.update(ethtool_i)
@@ -341,7 +339,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def setup_gro(self):
         def setgro(endpoint):
-            dev, _dev, mac = self.nicdev(endpoint)
+            dev, mac = self.nicdev(endpoint)
             if self.gro in ["on", "off"]:
                 endpoint.execcmd("ethtool -K %s gro %s" % (dev, self.gro))
             elif self.gro in ["default", ""]:

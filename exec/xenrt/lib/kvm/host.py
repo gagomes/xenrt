@@ -301,7 +301,9 @@ class KVMHost(xenrt.lib.libvirt.Host):
             cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
+            xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
             ccpTar = xenrt.TEC().getFile(cloudInputDir)
+            xenrt.TEC().logverbose("Got %s" % ccpTar)
             webdir = xenrt.WebDirectory()
             webdir.copyIn(ccpTar)
             ccpUrl = webdir.getURL(os.path.basename(ccpTar))

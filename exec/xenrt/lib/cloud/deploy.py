@@ -161,7 +161,7 @@ class DeployerPlugin(object):
         elif ref.has_key('hypervisor') and ref['hypervisor'] == 'kvm' and ref.has_key('XRTKVMHostIds'):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
-                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId))
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 try:
                     h.tailorForCloudStack(self.isCCP)
                 except:

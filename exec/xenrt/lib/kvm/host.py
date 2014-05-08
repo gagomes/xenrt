@@ -309,7 +309,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             ccpUrl = webdir.getURL(os.path.basename(ccpTar))
             self.execdom0('wget %s -O /tmp/cp.tar.gz' % (ccpUrl))
             webdir.remove()
-            self.execdom0("cd /tmp && tar -xvzf cp.tar.gz -C /tmp/cloudplatform")
+            self.execdom0("cd /tmp && mkdir cloudplatform && tar -xvzf cp.tar.gz -C /tmp/cloudplatform")
             installDir = os.path.dirname(self.execdom0('find /tmp/cloudplatform/ -type f -name install.sh'))
             self.execdom0("cd %s && ./install.sh -a" % (installDir))
 

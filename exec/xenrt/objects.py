@@ -3283,7 +3283,8 @@ DHCPServer = 1
         if not url:
             return False
         try:
-            url = os.path.join(url, 'Server')
+            if not distro.startswith("centos"):
+                url = os.path.join(url, 'Server')
             self.execcmd("for r in /etc/yum.repos.d/*.repo; "
                          "   do mv $r $r.orig; done")
             c = """[base]

@@ -97,6 +97,10 @@ def createHost(id=0,
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
 
+    # TODO: Remove me
+    # Temporary hack for testing tailoring support
+    host.tailorForCloudStack(True)
+
     return host
 
 class KVMHost(xenrt.lib.libvirt.Host):

@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, urllib
+import re, urllib, os.path
 
 import xenrt
 

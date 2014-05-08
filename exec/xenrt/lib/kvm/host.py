@@ -283,7 +283,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         self.execdom0("echo '%s %s.%s %s' >> /etc/hosts" %
                       (self.getIP(),
                        self.getName(),
-                       self.lookup("DNS_DOMAIN", "xenrt")
+                       self.lookup("DNS_DOMAIN", "xenrt"),
                        self.getName()))
 
         # Start NTP

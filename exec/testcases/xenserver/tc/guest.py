@@ -1692,7 +1692,7 @@ class TCCentosUpgrade(xenrt.TestCase):
             g.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
 
         # Apply the update and reboot
-        g.execguest("yum update -y")
+        g.execguest("yum update -y", timeout=7200)
         g.reboot()
 
         # Now verify the guest works by doing some lifecyle ops

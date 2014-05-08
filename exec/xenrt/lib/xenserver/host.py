@@ -10975,10 +10975,6 @@ done
 
 class CreedenceHost(ClearwaterHost):
 
-    def __init__(self, machine, productVersion="Creedence", productType="xenserver"):
-            ClearwaterHost.__init__(self,
-                                    machine)
-                                    
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
@@ -10988,7 +10984,9 @@ class SarasotaHost(ClearwaterHost):
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
         ClearwaterHost.__init__(self,
-                                machine)
+                                machine,
+                                productVersion=productVersion,
+                                productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 

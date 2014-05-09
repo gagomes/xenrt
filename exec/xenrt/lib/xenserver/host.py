@@ -7832,8 +7832,8 @@ rm -f /etc/xensource/xhad.conf || true
 class MNRHost(Host):
     """Represents a MNR+ host"""
 
-    def __init__(self, machine, productVersion="MNR"):
-        Host.__init__(self, machine, productVersion=productVersion)
+    def __init__(self, machine, productVersion="MNR",productType="xenserver"):
+        Host.__init__(self, machine, productVersion=productVersion,productType=productType)
         self.special["dom0 uses hvc"] = True
         self.controller = None
 

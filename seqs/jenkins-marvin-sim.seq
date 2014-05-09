@@ -16,7 +16,6 @@
         <disk device="0" size="20" />
       </vm>
     </sharedhost>
-    <cloud></cloud>
   </prepare>
 </xenrt>
 

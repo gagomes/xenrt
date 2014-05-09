@@ -1377,16 +1377,6 @@ echo PARTITIONS=\\'/dev/$XRTDISK\\' >> etc/firstboot.d/data/default-storage.conf
 echo TYPE='%s' >> etc/firstboot.d/data/default-storage.conf
 """ % (disk, disk, srtype, srtype)
 
-        setxen = xenrt.TEC().lookup("SETXENCMDLINE", None) #eg. SETXENCMDLINE=x=a,y=b
-        if setxen:
-            args=dict(map(lambda a: tuple(a.split("=")), setxen.split(",")))
-            self.setXenCmdLine(**args)
-
-        setkernel = xenrt.TEC().lookup("SETKERNELCMDLINE", None) #eg. SETKERNELCMDLINE=x=a,y=b
-        if setkernel:
-            args=dict(map(lambda a: tuple(a.split("=")), setkernel.split(",")))
-            self.setXenCmdLine(set="dom0", **args)
-
         pifile = "%s/post-install-script-%s" % (workdir,self.getName())
         pi = file(pifile, "w")
         pitext = """#!/bin/bash
@@ -10890,6 +10880,20 @@ done
             xenrt.TEC().logverbose("Dom0 Pinning status: %s" % vcpuPinningData['pinning'])
             if vcpuPinningData['dom0vCPUs']!='4' or not vcpuPinningData['pinning']:
               raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
+
+        setxen = xenrt.TEC().lookup("SETXENCMDLINE", None) #eg. SETXENCMDLINE=x=a,y=b
+        if setxen:
+            args=dict(map(lambda a: tuple(a.split("=")), setxen.split(",")))
+            self.setXenCmdLine(**args)
+
+        setkernel = xenrt.TEC().lookup("SETKERNELCMDLINE", None) #eg. SETKERNELCMDLINE=x=a,y=b
+        if setkernel:
+            args=dict(map(lambda a: tuple(a.split("=")), setkernel.split(",")))
+            self.setXenCmdLine(set="dom0", **args)
+
+        if setxen or setkernel:
+            xenrt.TEC().logverbose("changed boot params; reboot required")
+            self.reboot()
 
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             self.assertNotRunningDebugXen()

@@ -123,6 +123,9 @@ class ManagementServer(object):
 
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
+
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            self.tailorForSimulator()
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
@@ -273,6 +276,10 @@ class ManagementServer(object):
 
             xenrt.TEC().comment('Using Management Server version: %s' % (self.__version))
         return self.__version
+
+    def tailorForSimulator(self):
+        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
+        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

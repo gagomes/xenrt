@@ -4120,6 +4120,55 @@ class TC12156(_HASmokeTestWithPathDown):
     """HA smoke test with secondary FC path down."""
     FAILURE_PATH = 1
 
+class TC21455(xenrt.TestCase):
+    """Test to verify multipathd restarts and reload after segmentation fault HFX-989 and HFX-988"""
+    
+    def prepare(self,arglist=None):
+        
+        self.host=self.getDefaultHost()
+        self.host.enableMultipathing()
+
+    def run(self,arglist=None):
+       
+         # Killing existing Multipathd daemon
+        commandOutput = self.host.execdom0("killall multipathd; exit 0").strip()
+        if "multipathd: no process killed" in commandOutput:
+            xenrt.TEC().logverbose("No previously running multipathd process to terminate.")
+        else: 
+            pid = self.host.execdom0("pidof multipathd || true").strip()
+            if pid == "":
+                xenrt.TEC().logverbose("The previously running multipathd process is terminated.")
+            else:
+                raise xenrt.XRTFailure("The previously running multipathd deamon is still running.")
+
+        #mutlipathd should reload in <<2min+2s
+        timeout=122
+        deadline=xenrt.timenow()+timeout
+        while(xenrt.timenow()<=deadline):
+            pid = self.host.execdom0("pidof multipathd || true").strip()
+            if pid :
+                xenrt.TEC().logverbose("Multipathd restarted with process id %d" % (pid))
+                break
+        if(xenrt.timenow() > deadline):
+            raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")
+        
+        #creating FC SR  
+        fcLun = self.host.lookup("SR_FCHBA", "LUN0")
+        scsiid = self.host.lookup(["FC",fcLun, "SCSIID"], None)
+        fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host, "fc")
+        fcSR.create(scsiid, multipathing=True)
+        activeMPathBeforeFailover = self.host.getMultipathInfo(onlyActive=True)
+        self.host.disableFCPort(0)
+        xenrt.sleep(100)
+        activeMPathAfterFailover = self.host.getMultipathInfo(onlyActive=True)
+        if (len(activeMPathAfterFailover[scsiid])!= len(activeMPathBeforeFailover[scsiid])-1):
+            raise xenrt.XRTFailure("expected %d paths active" % (len(activeMPathBeforeFailover[scsiid])-1))
+        self.host.enableFCPort(0)
+        xenrt.sleep(100)
+        activeMPathRestored = self.host.getMultipathInfo(onlyActive=True)
+        if (len(activeMPathRestored[scsiid])!= len(activeMPathBeforeFailover[scsiid])):
+            raise xenrt.XRTFailure("original path did not get restored")
+
 class TC18155(xenrt.TestCase):
     """Test that xapi attaches the MGT volume to the multipath node rather than the raw disk node after a reboot (HFX-447)"""
     

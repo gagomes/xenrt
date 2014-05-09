@@ -124,30 +124,37 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else:
             raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
 
+    def ethOfDev(self, endpoint, endpointdev):
+        assert isinstance(endpoint, xenrt.GenericHost)
+        return endpoint.getNIC(endpointdev)
+
     def setIPAddress(self, endpoint, endpointdev, ip):
         if isinstance(endpoint, xenrt.GenericGuest):
-            # TODO support configuring static IP in Windows guests
-            endpoint.execguest("ifconfig eth%d %s netmask 255.255.255.0" % (endpointdev, ip))
-
             (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
+            # TODO support configuring static IP in Windows guests
+            endpoint.execguest("ifconfig %s %s netmask 255.255.255.0" % (eth, ip))
             endpoint.vifs[endpointdev] = (eth, bridge, mac, ip)
+        elif isinstance(endpoint, xenrt.lib.xenserver.Host):
+            raise xenrt.XRTError("setting IP on XenServer PIF is not yet implemented")
         elif isinstance(endpoint, xenrt.GenericHost):
-            # TODO support configuring static IP on hosts
-            pass
+            endpoint.execcmd("ifconfig %s %s netmask 255.255.255.0" % (self.ethOfDev(endpoint, endpointdev), ip))
 
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
         if endpointdev is not None:
             if isinstance(endpoint, xenrt.GenericGuest):
                 (_, _, _, ip) = endpoint.vifs[endpointdev]
-            elif isinstance(endpoint, xenrt.GenericHost):
+            elif isinstance(endpoint, xenrt.lib.xenserver.Host):
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)
+            elif isinstance(endpoint, xenrt.GenericHost):
+                ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (self.ethOfDev(endpoint, endpointdev))).strip()
         else:
             ip = endpoint.getIP()
         return ip
 
     def nicdevOfEndpointDev(self, endpoint, endpointdev):
-        ethdev = "eth%d" % (endpointdev)
+        assert isinstance(endpoint, xenrt.GenericHost)
+        ethdev = self.ethOfDev(endpoint, endpointdev)
         mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (ethdev)).strip()
         return ethdev, mac
 

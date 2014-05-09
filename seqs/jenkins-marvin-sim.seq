@@ -2,6 +2,7 @@
   <!-- This sequence is executed by Jenkins to create and start a Simulator build of CCP -->
   <variables>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <USE_CCP_SIMULATOR>yes</USE_CCP_SIMULATOR>
   </variables>
 
   <prepare>

@@ -212,7 +212,11 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         if "ethtool-P:Permanent address" in ethtool_P:
             pa = ethtool_P["ethtool-P:Permanent address"].strip().upper()
             m  = mac.strip().upper()
-            if pa != m:
+            xenrt.TEC().logverbose("ethtool -i output is: %s" % (ethtool_i))
+            if ethtool_i["ethtool-i:driver"] == "mlx4_en" and pa == "00:00:00:00:00:00":
+                # This has been observed on CentOS 6.5, despite it working fine on XenServer with the same driver version and firmware version
+                xenrt.TEC().logverbose("Permanent address of %s is zero. Not sure why, but it's not a problem." % (dev,))
+            elif pa != m:
                 raise xenrt.XRTError("ethtool_P permanent address '%s' is different from mac from ifconfig '%s'" % (pa, m))
         pci_id = ethtool_i["ethtool-i:bus-info"][5:]
         dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]

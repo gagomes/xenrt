@@ -2169,6 +2169,14 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
 
+        self.config["LINUX_UPDATE"] = {}
+        self.config["LINUX_UPDATE"]["rhel5"] = "rhel510"
+        self.config["LINUX_UPDATE"]["rhel6"] = "rhel65"
+        self.config["LINUX_UPDATE"]["oel5"] = "oel510"
+        self.config["LINUX_UPDATE"]["oel6"] = "oel65"
+        self.config["LINUX_UPDATE"]["centos5"] = "centos510"
+        self.config["LINUX_UPDATE"]["centos6"] = "centos65"
+
         self.config["PRODUCT_KEYS"] = {}
 
         self.config["SERVICE_PACKS"] = {}

@@ -3279,6 +3279,22 @@ DHCPServer = 1
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
+        doUpdate = False
+        # If we should update this to the lastest versino
+        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
+            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+            match = ""
+            # Look for the longest match
+            for i in updateMap.keys():
+                if distro.startswith(i) and len(i) > len(match):
+                    match = i
+            # if we find one, we need to upgrade
+            if match:
+                newdistro = updateMap[match]
+                if newdistro != distro:
+                    doUpdate = True
+                    distro = newdistro
+
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
             return False
@@ -3291,8 +3307,10 @@ DHCPServer = 1
 name=CentOS-$releasever - Base
 baseurl=%s
 gpgcheck=0
-exclude=kernel*, *xen*
 """ % (url)
+            # If we're upgrading then we can't exclude the kernel
+            if not doUpdate:
+                c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
             f = file(fn, "w")
@@ -3302,6 +3320,17 @@ exclude=kernel*, *xen*
             sftp.close()
         except:
             return False
+        if doUpdate:
+            # Do the upgrade
+            self.execcmd("yum update -y", timeout=3600)
+            # Cleanup the repositories again
+            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                         "   do mv $r $r.orig; done")
+            sftp = self.sftpClient()
+            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
+            sftp.close()
+            # And reboot to start the new system
+            self.reboot()
         return True
 
     def getExtraLogs(self, directory):

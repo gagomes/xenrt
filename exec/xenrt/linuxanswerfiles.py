@@ -87,6 +87,8 @@ class RHELKickStartFile :
     sed -i '/^serial/d' /boot/grub/grub.conf
     sed -i '/^terminal/d' /boot/grub/grub.conf
 
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
 
     mkdir /tmp/xenrttmpmount
     mount -onolock -t nfs %s /tmp/xenrttmpmount

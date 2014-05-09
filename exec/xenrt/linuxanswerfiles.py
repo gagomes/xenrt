@@ -273,6 +273,7 @@ umount /tmp/xenrttmpmount
         out = """install
 text
 %s
+key --skip
 lang en_US.UTF-8
 langsupport --default=en_US.UTF-8 en_US.UTF-8
 keyboard us

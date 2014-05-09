@@ -1,8 +1,8 @@
 <xenrt>
-  <!-- C SDK built and run from the command line -->
+  <!-- Java SDK built and run from the command line -->
   
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host id="0">
@@ -17,7 +17,7 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.gui.TCCSDKUnitTests" tc="TC-20913">
+    <testcase id="xenserver.gui.TCJavaSDKUnitTests" tc="TC-20911">
         <!-- Name of the VM to run the tests -->
         <arg>runner_vm=ubuntu1004_runner</arg> 
     </testcase>

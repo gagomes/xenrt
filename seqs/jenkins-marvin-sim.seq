@@ -1,0 +1,22 @@
+<xenrt>
+  <!-- This sequence is executed by Jenkins to create and start a Simulator build of CCP -->
+  <variables>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+
+  <prepare>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+    <cloud></cloud>
+  </prepare>
+</xenrt>
+

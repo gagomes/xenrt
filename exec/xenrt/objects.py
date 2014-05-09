@@ -3330,6 +3330,7 @@ gpgcheck=0
             sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
             sftp.close()
             # And reboot to start the new system
+            self.distro=distro
             self.reboot()
         return True
 

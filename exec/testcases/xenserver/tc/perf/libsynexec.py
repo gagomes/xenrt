@@ -6,7 +6,7 @@ def _initialise(host, prog):
     host.execcmd("wget -O - '%s/synexec.tgz' | tar -xz -C %s" %
                  (xenrt.TEC().lookup("TEST_TARBALL_BASE"), workdir))
 
-    if host.getBasicArch() == "x86-64":
+    if host.execcmd("uname -m").strip() == "x86_64":
         host.execcmd("cp %s/synexec/%s.x86_64 /root/%s" % (workdir, prog, prog))
     else:
         host.execcmd("cp %s/synexec/%s.x86_32 /root/%s" % (workdir, prog, prog))

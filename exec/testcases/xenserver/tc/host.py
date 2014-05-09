@@ -99,9 +99,6 @@ class TC6859(xenrt.TestCase):
             filename = "%s/system-status.%s" % (d, format)
             desc, oem = self.FORMATS[format]
 
-            # Some formats are not available on OEM editions
-            if self.host.embedded and not oem:
-                continue
             
             # Get the status report
             args = []
@@ -214,9 +211,6 @@ class TC7827(xenrt.TestCase):
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
-        if self.host.embedded:
-            xenrt.TEC().skip("XRT-4039 Cannot run on OEM edition")
-            return
 
         if not self.host.isSvmHardware():
             raise xenrt.XRTError("Not running on SVM hardware")
@@ -1021,12 +1015,7 @@ class TC8309(xenrt.TestCase):
         host.execdom0("touch /var/lock/subsys/TEST.STAMP")
 
         # Hard power cycle
-        if host.embedded:
-            host.execdom0("mount -o remount,barrier=1 /.state")
-            host.execdom0("mount -o remount,barrier=1 /var/xsconfig/* || "
-                          "true")
-        else:
-            host.execdom0("mount -o remount,barrier=1 /")
+        host.execdom0("mount -o remount,barrier=1 /")
         host.execdom0("sync")
         host.machine.powerctl.cycle()
         xenrt.sleep(180)
@@ -1052,11 +1041,7 @@ class TC8341(xenrt.TestCase):
  
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
-        if self.host.embedded:
-            # Use the state partition
-            volume = "/.state"
-        else:
-            volume = "/"
+        volume = "/"
         self.rootdisk = self.host.execdom0("df -h %s | "
                                            "tail -n 1 | "
                                            "cut -f 1 -d ' '" % (volume)).strip()
@@ -1530,10 +1515,6 @@ class TC8904(xenrt.TestCase):
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        if self.host.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM editions")
-            return
-
         self.hf = self.host.getTestHotfix(1)
         
         patchesBefore = self.host.minimalList("patch-list")
@@ -4889,6 +4870,30 @@ class TCDom0Checksums(xenrt.TestCase):
         f = open("%s/md5sums.txt" % (xenrt.TEC().getLogdir()), "w")
         f.write(out)
         f.close()
+        
+class TC21452(xenrt.TestCase):
+    """Testcase to verify whether logrotate -v -f works(CA-108965)"""
+    def prepare(self, arglist=None): 
+        self.host = self.getDefaultHost()
+        self.host.execdom0("echo test > /root/logfile.db")
+        self.host.execdom0("echo -e '/root/logfile.db {\n\trotate 5\n\tmissingok\n}' > /root/log.conf")
+        self.sruuid=self.host.getLocalSR()
+        
+        #Running xe-backup-metadata
+        self.host.execdom0("xe-backup-metadata -c -u %s" % (self.sruuid))
+        
+    def run(self, arglist=None):
+        
+        #Checking working of logrotate -v -f
+        self.host.execdom0("logrotate -v -f /root/log.conf")
+        flist = self.host.execdom0("ls logfile* ", retval="string")
+        if not "logfile.db.1" in flist:
+            raise xenrt.XRTFailure("logrotate -v -f not working")
+        #Running second time xe-backup-metadata
+        res=self.host.execdom0("xe-backup-metadata -c -u %s" % (self.sruuid),retval="string")        
+        r=re.search(r"\n.*/var/run/pool-backup.*\n",res)
+        if r :
+            raise xenrt.XRTFailure(r.group(0))
 
 class TC20917(xenrt.TestCase):
     """Test VM-lifecycle/device unplug after guest xenstore quota reached (HFX-952) """

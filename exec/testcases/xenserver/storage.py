@@ -1115,61 +1115,6 @@ class TCStorage(xenrt.TestCase):
             env["APT_CACHER"] = aptcacher
         if "TOOLS_ROOT" in self.capabilities:
             env["TOOLS_ROOT"] = self.toolsRoot
-        if host.embedded and "SKIP_DUMMYLVM" in self.capabilities:
-            env["SKIP_DUMMYLVM"] = "true"
-
-        # If we're running on an embedded edition without Debian templates
-        # use an imported VM image instead.
-        if host.embedded:
-            # Build a script to install and set up a VM
-            imagefile = "%s/etch-4.1.img" % (xenrt.TEC().lookup("VM_IMAGES_DIR"))
-            clibinary = cli.xePath()
-            importcmd = xenrt.lib.xenserver.buildCommandLine(host,
-                                                             "vm-import",
-                                                             "filename=%s" %
-                                                             (imagefile))
-            paramcmd = xenrt.lib.xenserver.buildCommandLine(host,
-                                                            "vm-param-set")
-            data = """#!/bin/bash
-# Arg 1: VM Name
-# Arg 2: Memory
-# Arg 3: SRID
-
-set -e
-
-XE='%s'
-
-# Import the VM image
-if [ -n "$3" ]; then
-    x=`$XE %s sr-uuid=$3`
-else
-    x=`$XE %s`
-fi
-VMUUID=`echo "$x" | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' -o`
-
-# Set VM parameters
-$XE %s uuid=$VMUUID name-label=\"$1\" PV-args=noninteractive
-if [ -n "$2" ]; then
-    $XE %s uuid=$VMUUID memory-dynamic-max=${2}MiB memory-dynamic-min=${2}MiB
-    $XE %s uuid=$VMUUID memory-static-max=${2}MiB memory-static-min=${2}MiB
-fi
-
-echo $VMUUID
-""" % (clibinary,
-       importcmd,
-       importcmd,
-       paramcmd,
-       paramcmd,
-       paramcmd)
-                                                            
-            vminstall = "%s/%s-vminstall.sh" % (self.tec.getLogdir(), smtest)
-            f = file(vminstall, "w")
-            f.write(data)
-            f.close()
-            os.chmod(vminstall,
-                     stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
-
-            env["VM_INSTALL_CMD"] = vminstall
 
         # Run the test script
         os.chmod("%s/tests/%s.sh" % (self.tec.getWorkdir(), smtest),

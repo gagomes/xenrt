@@ -211,8 +211,9 @@ def deploy(cloudSpec, manSvr=None):
         # Create deployment
         marvinCfg.deployMarvinConfig()
 
-        # Restart MS incase any global config setting have been changed
-        manSvr.restart()
+        # Restart MS if any global config setting have been changed
+        if cloudSpec.has_key('globalConfig'):
+            manSvr.restart()
 
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvinApi.waitForBuiltInTemplatesReady()

@@ -731,28 +731,19 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         asfLogSrcDir = "%s\\Reports" % (self.ASF_WORKING_DIR)
         logDirList = asfCont.xmlrpcGlobpath("%s\\*\\*" % (asfLogSrcDir))
-        # Sort into execution order - most recent last
-        logDirList.sort()
+        # Remove self test dir
+        logDirList = filter(lambda x:'SelfTest' not in x, logDirList)
+        envCreateDir = filter(lambda x:'EnvCreate' in x, logDirList)[0]
+        envCreateLogFilePath = '%s\\GlobalLog.txt' % (envCreateDir)
+        asfCont.xmlrpcGetFile2(envCreateLogFilePath, os.path.join(logsubdir, 'envcreate-GlobalLog.txt'))
 
-        asfResultsDir = logDirList[-1]
-        try:
-            val = self.executeASFShellCommand(asfCont, 'Get-AsfBuildConfig -BuildId XenServer', csvFormat=True)
-            buildData = map(lambda x:x.replace('"', '').split(','), val)
-            asfResultDirList = filter(lambda x:buildData[2][3] in x, logDirList)
-            if len(asfResultDirList) == 1:
-                asfResultsDir = asfResultDirList[0]
-            else:
-                xenrt.TEC().warning('Could not find unique ASF results directory based on build [%s]' % (buildData[2][3]))
-        except Exception, e:
-            xenrt.TEC().warning('Failed to get build name. Exception: %s' % (e))
-
+        logDirList = filter(lambda x:'EnvCreate' not in x, logDirList)
+        if not len(logDirList) == 1:
+            xenrt.TEC().warning('Could not find unique ASF results directory')
+        asfResultsDir = logDirList[0]
         xenrt.TEC().logverbose('Using ASF Results Path: %s' % (asfResultsDir))
-        for asfLogFile in ['GlobalLog.txt', 'starttestenv.log']:
-            try:
-                asfLogFilePath = '%s\\%s' % (asfResultsDir, asfLogFile)
-                asfCont.xmlrpcGetFile2(asfLogFilePath, os.path.join(logsubdir, asfLogFile))
-            except Exception, e:
-                xenrt.TEC().logverbose("Failed to get ASF log [%s], Exception: %s" % (asfLogFilePath, str(e)))
+        asfLogFilePath = '%s\\GlobalLog.txt' % (asfResultsDir)
+        asfCont.xmlrpcGetFile2(asfLogFilePath, os.path.join(logsubdir, 'GlobalLog.txt'))
 
         return os.path.join(logsubdir, 'GlobalLog.txt')
 

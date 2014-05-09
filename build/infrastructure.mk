@@ -89,6 +89,8 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade pep8
 	$(SUDO) easy_install --upgrade jenkinsapi
 	$(SUDO) easy_install --upgrade virtualenv
+	$(SUDO) easy_install --upgrade fs
+	$(SUDO) easy_install --upgrade coverage
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y python-m2crypto

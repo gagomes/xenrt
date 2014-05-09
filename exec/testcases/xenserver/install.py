@@ -39,11 +39,6 @@ class TCXenServerInstall(xenrt.TestCase):
         timezone = "UTC"
         ntpserver = None
         noprepare = False
-        embedded = xenrt.TEC().lookup("OPTION_EMBEDDED", False, boolean=True)
-        if not embedded:
-            embedded = xenrt.TEC().lookup("OPTION_EMBEDDED_HDD",
-                                          False,
-                                          boolean=True)
         netapp = False
         eql = False
         fcsr = None
@@ -94,8 +89,6 @@ class TCXenServerInstall(xenrt.TestCase):
                     ntpserver = l[1]
                 elif l[0] == "noprepare":
                     noprepare = True
-                elif l[0] == "embedded":
-                    embedded = True
                 elif l[0] == "fc" or l[0] == "FC":
                     fcsr = "yes"
                 elif l[0] == "sas" or l[0] == "SAS":
@@ -107,10 +100,6 @@ class TCXenServerInstall(xenrt.TestCase):
                 elif l[0] == "ipv6":
                     ipv6_mode = l[1]
                     
-        if embedded and multi:
-            raise xenrt.XRTError("Multiple install of embedded image not "
-                                 "supported")
-
         if not multi:
             # The machine name might be a variable we need to look up
             mname = xenrt.TEC().lookup(machine, machine)
@@ -228,20 +217,17 @@ class TCXenServerInstall(xenrt.TestCase):
                 xenrt.TEC().registry.hostPut(machine, host)
                 xenrt.TEC().skip("Skipping because of --noprepare option")
             else:
-                if embedded:
-                    host.installEmbedded(interfaces=interfaces)
-                else:
-                    handle = host.install(interfaces=interfaces,
-                                          primarydisk=primarydisk,
-                                          guestdisks=disks,
-                                          source=source,
-                                          extracds=extracds,
-                                          installsource=installsource,
-                                          async=multi,
-                                          installSRType=installSRType,
-                                          timezone=timezone,
-                                          ntpserver=ntpserver,
-                                          bootloader=bootloader)
+                handle = host.install(interfaces=interfaces,
+                                      primarydisk=primarydisk,
+                                      guestdisks=disks,
+                                      source=source,
+                                      extracds=extracds,
+                                      installsource=installsource,
+                                      async=multi,
+                                      installSRType=installSRType,
+                                      timezone=timezone,
+                                      ntpserver=ntpserver,
+                                      bootloader=bootloader)
                 if multi:
                     tocomplete.append((host,
                                        handle,
@@ -251,32 +237,12 @@ class TCXenServerInstall(xenrt.TestCase):
                     installs.append((host, handle))
                 else:
                     time.sleep(180)
-                    if embedded:
-                        if host.special.has_key('legacy embedded install method'):
-                            # Clean the local disks again. This is in case the
-                            # local disk wasn't available in the bootstrap
-                            # environment. If we used the built-in firstboot
-                            # revert-to-factory then skip this cleanup
-                            if host.execdom0("grep -q xenrt-revert-to-factory "
-                                             "/etc/init.d/xs-test",
-                                             retval="code") != 0:
-                                host.cleanLocalDisks()
-                                host.removeEmbeddedState()
-                        host._clearObjectCache()
-                        host.reboot()
-                        time.sleep(120)
-                        if not xenrt.TEC().lookup("OPTION_NO_DISK_CLAIM",
-                                                  False,
-                                                  boolean=True):
-                            host.getLocalSR()
-                        host.setHostParam("name-label", host.getName())
-                    if not embedded:
-                        host.check(interfaces=interfaces,
-                                   primarydisk=primarydisk,
-                                   guestdisks=disks,
-                                   timezone=timezone,
-                                   ntpserver=ntpserver)
-                                        
+                    host.check(interfaces=interfaces,
+                               primarydisk=primarydisk,
+                               guestdisks=disks,
+                               timezone=timezone,
+                               ntpserver=ntpserver)
+                                    
         if xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"], False,
                               boolean=True) or noprepare:
             return

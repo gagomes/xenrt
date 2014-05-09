@@ -72,11 +72,7 @@ class TCCLI(xenrt.TestCase):
         sftp.copyTreeTo(d, "/tmp/rt")
         if host.execdom0("test -e /opt/xensource/bin/gtclient",
                          retval="code") != 0:
-            if host.embedded:
-                host.execdom0("mkdir -p /tmp/bin")
-                host.execdom0("cp -p /tmp/rt/gtclient /tmp/bin")
-            else:
-                host.execdom0("cp -p /tmp/rt/gtclient /opt/xensource/bin/")
+            host.execdom0("cp -p /tmp/rt/gtclient /opt/xensource/bin/")
 
         # Binaries that aren't in the per-build output
         xenrt.getTestTarball("api", extract=True, copy=False)
@@ -314,10 +310,7 @@ class TCCLI(xenrt.TestCase):
         else:
             targ = "-t %s" % (selected_tests)
         intf = string.replace(host.getPrimaryBridge(), "xenbr", "eth")
-        if host.embedded:
-            pathstr = "${PATH}:.:/tmp/bin"
-        else:
-            pathstr = "${PATH}:."
+        pathstr = "${PATH}:."
         commands = ["cd /tmp/rt",
                     "export PATH=%s" % (pathstr),
                     "test_host %s -v %s -i %s" %
@@ -1611,10 +1604,6 @@ class TCPatchApply(xenrt.TestCase):
         else:
             self.host = self.getDefaultHost()
 
-        if self.host.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM edition")
-            return
-
         self.runSubcase("patch1", (), "TCPatchApply", "Test1")
         self.runSubcase("patch2", (), "TCPatchApply", "Test2")
         self.runSubcase("patch3", (), "TCPatchApply", "Test3")
@@ -1656,10 +1645,6 @@ class TC7351(xenrt.TestCase):
 
     def run(self, arglist):
         host = self.getDefaultHost()
-
-        if host.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM edition")
-            return
 
         patchfile = host.getTestHotfix(1)
         xenrt.TEC().logverbose("Performing patch-upload/patch-destroy loop")

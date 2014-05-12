@@ -55,6 +55,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.gro      = libperf.getArgument(arglist, "gro", str, "default")
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
+        # Optionally, the sequence file can specify which eth device to use in each endpoint
+        self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
+        self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
+
+        # Optionally, the sequence file can specify IP addresses to use in each endpoint
+        self.e0ip = libperf.getArgument(arglist, "endpoint0ip", str, None)
+        self.e1ip = libperf.getArgument(arglist, "endpoint1ip", str, None)
+
     def prepare(self, arglist=None):
         self.basicPrepare(arglist)
 
@@ -70,14 +78,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             raise xenrt.XRTError("Failed to find an endpoint")
         self.endpoint0 = self.getGuestOrHostFromName(e0)
         self.endpoint1 = self.getGuestOrHostFromName(e1)
-
-        # Optionally, the sequence file can specify which eth device to use in each endpoint
-        self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
-        self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
-
-        # Optionally, the sequence file can specify IP addresses to use in each endpoint
-        self.e0ip = libperf.getArgument(arglist, "endpoint0ip", str, None)
-        self.e1ip = libperf.getArgument(arglist, "endpoint1ip", str, None)
 
     def before_prepare(self, arglist=None):
         pass

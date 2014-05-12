@@ -1,9 +1,7 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Clearwater
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
@@ -12,19 +10,16 @@
     <parallel group="MaxMem32BitLin_0" workers="1">
       <testcase id="xenserver.tc.smoketest.TC13438" prio="3" tc="TC-13438"/>
       <testcase id="xenserver.tc.smoketest.TC13443" prio="3" tc="TC-13443"/>
-      <testcase id="xenserver.tc.smoketest.TC13444" prio="3" tc="TC-13444"/>
       <testcase id="xenserver.tc.smoketest.TC13445" prio="3" tc="TC-13445"/>
       <testcase id="xenserver.tc.smoketest.TC13446" prio="3" tc="TC-13446"/>
-      <testcase id="xenserver.tc.smoketest.TC15460" prio="3" tc="TC-15460"/>
-      <testcase id="xenserver.tc.smoketest.TC15461" prio="3" tc="TC-15461"/>
-      <testcase id="xenserver.tc.smoketest.TC15463" prio="3" tc="TC-15463"/>
-      <testcase id="xenserver.tc.smoketest.TC15912" prio="3" tc="TC-15912"/>
-      <testcase id="xenserver.tc.smoketest.TC15913" prio="3" tc="TC-15913"/>
-      <testcase id="xenserver.tc.smoketest.TC15914" prio="3" tc="TC-15914"/>
-      <testcase id="xenserver.tc.smoketest.TC17275" prio="3" tc="TC-17275"/>
-      <testcase id="xenserver.tc.smoketest.TC17276" prio="3" tc="TC-17276"/>
-      <testcase id="xenserver.tc.smoketest.TC17277" prio="3" tc="TC-17277"/>
       <testcase id="xenserver.tc.smoketest.TC17754" prio="3" tc="TC-17754"/>
+      <testcase id="xenserver.tc.smoketest.TC21427" prio="3" tc="TC-21427"/>
+      <testcase id="xenserver.tc.smoketest.TC21428" prio="3" tc="TC-21428"/>
+      <testcase id="xenserver.tc.smoketest.TC21429" prio="3" tc="TC-21429"/>
+      <testcase id="xenserver.tc.smoketest.TC21430" prio="3" tc="TC-21430"/>
+      <testcase id="xenserver.tc.smoketest.TC21431" prio="3" tc="TC-21431"/>
+      <testcase id="xenserver.tc.smoketest.TC21432" prio="3" tc="TC-21432"/>
+      <testcase id="xenserver.tc.smoketest.TC21433" prio="3" tc="TC-21433"/>
     </parallel>
   </testsequence>
 </xenrt>

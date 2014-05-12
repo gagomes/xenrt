@@ -29,7 +29,7 @@ def hostFactory(hosttype):
 class Host(xenrt.GenericHost):
 
     eventThread = None
-
+    
     def __init__(self, machine, productType="libvirt", productVersion="libvirt"):
         xenrt.GenericHost.__init__(self, machine,
                                    productType=productType,

@@ -1,25 +1,23 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Clearwater
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
   </prepare>
   <testsequence>
     <parallel group="MaxvCPUs_3" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC17266" prio="4" tc="TC-17266"/>
-      <testcase id="xenserver.tc.smoketest.TC17267" prio="4" tc="TC-17267"/>
-      <testcase id="xenserver.tc.smoketest.TC17268" prio="4" tc="TC-17268"/>
-      <testcase id="xenserver.tc.smoketest.TC17269" prio="4" tc="TC-17269"/>
-      <testcase id="xenserver.tc.smoketest.TC17270" prio="4" tc="TC-17270"/>
-      <testcase id="xenserver.tc.smoketest.TC17271" prio="4" tc="TC-17271"/>
-      <testcase id="xenserver.tc.smoketest.TC17751" prio="4" tc="TC-17751"/>
-      <testcase id="xenserver.tc.smoketest.TC17752" prio="4" tc="TC-17752"/>
-      <testcase id="xenserver.tc.smoketest.TC18433" prio="4" tc="TC-18433"/>
-      <testcase id="xenserver.tc.smoketest.TC18434" prio="4" tc="TC-18434"/>
+      <testcase id="xenserver.tc.smoketest.TC21410" prio="4" tc="TC-21410"/>
+      <testcase id="xenserver.tc.smoketest.TC21411" prio="4" tc="TC-21411"/>
+      <testcase id="xenserver.tc.smoketest.TC21412" prio="4" tc="TC-21412"/>
+      <testcase id="xenserver.tc.smoketest.TC21413" prio="4" tc="TC-21413"/>
+      <testcase id="xenserver.tc.smoketest.TC21414" prio="4" tc="TC-21414"/>
+      <testcase id="xenserver.tc.smoketest.TC21415" prio="4" tc="TC-21415"/>
+      <testcase id="xenserver.tc.smoketest.TC21416" prio="4" tc="TC-21416"/>
+      <testcase id="xenserver.tc.smoketest.TC21417" prio="4" tc="TC-21417"/>
+      <testcase id="xenserver.tc.smoketest.TC21418" prio="4" tc="TC-21418"/>
+      <testcase id="xenserver.tc.smoketest.TC21419" prio="4" tc="TC-21419"/>
     </parallel>
   </testsequence>
 </xenrt>

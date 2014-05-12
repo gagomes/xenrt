@@ -1,9 +1,7 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Sarasota
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
@@ -19,7 +17,7 @@
       <testcase id="xenserver.tc.smoketest.TC13459" prio="4" tc="TC-13459"/>
       <testcase id="xenserver.tc.smoketest.TC13464" prio="4" tc="TC-13464"/>
       <testcase id="xenserver.tc.smoketest.TC13466" prio="4" tc="TC-13466"/>
-      <testcase id="xenserver.tc.smoketest.TC13471" prio="4" tc="TC-13471"/>
+      <testcase id="xenserver.tc.smoketest.TC13467" prio="4" tc="TC-13467"/>
     </parallel>
   </testsequence>
 </xenrt>

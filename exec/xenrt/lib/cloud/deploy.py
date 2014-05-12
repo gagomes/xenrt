@@ -158,7 +158,7 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
             hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
-        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRTKVMHostIds'):
+        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRT_KVMHostIds'):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))

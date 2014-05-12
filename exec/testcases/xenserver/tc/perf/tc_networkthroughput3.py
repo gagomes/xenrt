@@ -208,7 +208,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             self.pause('paused before run_synexec_master')  # pause the tc and wait for user assistance
         return endpoint.execcmd(cmd)
 
-    def runIperf(self, origin, dest, interval=1, duration=30, threads=1, protocol="tcp"):
+    def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
 
         prot_switch = None
         if protocol == "tcp":   prot_switch = ""
@@ -234,8 +234,9 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             for i in range(len(origin_endpoints)):
                 o = origin_endpoints[i]
                 d   = dest_endpoints[i]
+                destIP = self.getIP(d, destdev)
                 self.run_synexec_slave(o, synexec_session)
-                o.execcmd("echo %s > %s" % (d.getIP(), iperf_in_file))
+                o.execcmd("echo %s > %s" % (destIP, iperf_in_file))
 
             # 3. create synexec master script in endpoint 0 to run iperf -c in each slave
             master_script_path = "/tmp/synexec.master.in"
@@ -288,6 +289,14 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         for i in range(0, self.nr_vm_pairs):
             fn(endpoints[i])
 
+    def setIPFromPattern(self, endpoint, endpointdev, ippattern, offset=0):
+        i = offset
+        for ep in self.endpoints_of(endpoint):
+            # Replace the "%" in the pattern with the index of the endpoint
+            ip = ippattern.replace("%", str(i))
+            self.setIPAddress(ep, endpointdev, ip)
+            i = i+1
+
     def run(self, arglist=None):
 
         # set up gro if required
@@ -302,6 +311,12 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
             self.log(None, "g=%s, self.endpoint0=%s, self.endpoint1=%s, self.endpoints_of(self.endpoint0)=%s, self.endpoints_of(self.endpoint1)=%s" % (g, self.endpoint0, self.endpoint1, self.endpoints_of(self.endpoint0), self.endpoints_of(self.endpoint1)))
             if g not in self.endpoints_of(self.endpoint0) and g not in self.endpoints_of(self.endpoint1):
                 self.shutdown_endpoint(g)
+
+        # Give IP addresses to the endpoints if necessary
+        if self.e0ip:
+            self.setIPFromPattern(self.endpoint0, self.e0dev, self.e0ip, offset=0)
+        if self.e1ip:
+            self.setIPFromPattern(self.endpoint1, self.e1dev, self.e1ip, offset=128)
 
         # Collect as much information as necessary for the rage importer
         info = {}
@@ -324,12 +339,12 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         self.rageinfo(info = info)
 
         # Run some traffic in one direction between all pairs simultaneously
-        output = self.runIperf(self.endpoint1, self.endpoint0, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint1, self.e1dev, self.endpoint0, self.e0dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         for i in range(0, len(output)):
             self.log("iperf.1to0.%d" % (i,), output[i])
 
         # Now run traffic in the reverse direction between all pairs simultaneously
-        output = self.runIperf(self.endpoint0, self.endpoint1, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint0, self.e0dev, self.endpoint1, self.e1dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         for i in range(0, len(output)):
             self.log("iperf.0to1.%d" % (i,), output[i])
 

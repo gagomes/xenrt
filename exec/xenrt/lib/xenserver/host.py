@@ -514,6 +514,7 @@ class Host(xenrt.GenericHost):
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm"
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -1247,7 +1248,7 @@ ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
         v6hack = ""
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
         if upgrade and not mockd:
             # Set up a temporary WWW directory to hold the v6testd
             v6webdir = xenrt.WebDirectory()
@@ -7832,8 +7833,8 @@ rm -f /etc/xensource/xhad.conf || true
 class MNRHost(Host):
     """Represents a MNR+ host"""
 
-    def __init__(self, machine, productVersion="MNR"):
-        Host.__init__(self, machine, productVersion=productVersion)
+    def __init__(self, machine, productVersion="MNR",productType="xenserver"):
+        Host.__init__(self, machine, productVersion=productVersion,productType=productType)
         self.special["dom0 uses hvc"] = True
         self.controller = None
 
@@ -10295,7 +10296,7 @@ class ClearwaterHost(TampaHost):
     
     def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
 
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
         if mockd:
             xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
         else:
@@ -10342,7 +10343,7 @@ class ClearwaterHost(TampaHost):
     def installMockLicenseD(self):
 
         filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
 
         try:
             xenrt.checkFileExists(mockd)
@@ -10974,13 +10975,16 @@ done
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):
-
+    
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
+    
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
         ClearwaterHost.__init__(self,

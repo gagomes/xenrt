@@ -1822,6 +1822,12 @@ class TCWith16Nics(xenrt.TestCase):
         
         self.all_pifs = set([self.host.parseListForUUID("pif-list", "MAC", self.host.getNICMACAddress(x))
                             for x in ([0] + self.host.listSecondaryNICs(network="NPRI"))])
+        
+        #Check if the pifs are valid
+        for pif in self.all_pifs:
+            if not pif or (',' in pif):
+                raise xenrt.XRTError("Pifs are not ready to bond. There are existing bonds present probably")
+        
         self.management_pif = self.host.parseListForUUID("pif-list", "management", "true")
 
 

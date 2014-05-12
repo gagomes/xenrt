@@ -2622,14 +2622,16 @@ class TC12423(xenrt.TestCase):
             self.host.execdom0("ifconfig %s down" % nic)
         
         # remove bond from bridge - we'll re-add this later.
-        self.host.execdom0("brctl delif xapi1 %s" % bondDevice)
+        bondNetwork = self.host.genParamGet("pif", bondPifUUID, "network-uuid")
+        bridge = self.host.genParamGet("network", bondNetwork, "bridge")
+        self.host.execdom0("brctl delif %s %s" % (bridge, bondDevice))
         
         time.sleep(10)
         
         # bring up nics and bond in order which is known to set promiscuity ref-count incorrectly. 
         for nic in nics:
             self.host.execdom0("ifconfig %s up" % nic)
-        self.host.execdom0("brctl addif xapi1 %s" % bondDevice)
+        self.host.execdom0("brctl addif %s %s" % (bridge, bondDevice))
         
         # check both nics are in promiscuous mode
         self.assertInPromiscMode(nics)

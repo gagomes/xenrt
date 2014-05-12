@@ -3,7 +3,6 @@
   
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
-    <PREPARE_WORKERS>1</PREPARE_WORKERS>
   </variables>
   <prepare>
     <host id="0">

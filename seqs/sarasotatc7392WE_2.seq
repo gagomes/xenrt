@@ -1,17 +1,13 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Sarasota
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
   </prepare>
   <testsequence>
     <parallel group="HVM5G2C_2" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC18429" prio="4" tc="TC-18429"/>
-      <testcase id="xenserver.tc.smoketest.TC18430" prio="4" tc="TC-18430"/>
       <testcase id="xenserver.tc.smoketest.TC18431" prio="4" tc="TC-18431"/>
       <testcase id="xenserver.tc.smoketest.TC18432" prio="4" tc="TC-18432"/>
       <testcase id="xenserver.tc.smoketest.TC20539" prio="4" tc="TC-20539"/>
@@ -20,6 +16,8 @@
       <testcase id="xenserver.tc.smoketest.TC20570" prio="4" tc="TC-20570"/>
       <testcase id="xenserver.tc.smoketest.TC20591" prio="4" tc="TC-20591"/>
       <testcase id="xenserver.tc.smoketest.TC20592" prio="4" tc="TC-20592"/>
+      <testcase id="xenserver.tc.smoketest.TC20593" prio="4" tc="TC-20593"/>
+      <testcase id="xenserver.tc.smoketest.TC20594" prio="4" tc="TC-20594"/>
     </parallel>
   </testsequence>
 </xenrt>

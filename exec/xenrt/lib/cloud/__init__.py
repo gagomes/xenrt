@@ -1,3 +1,5 @@
+import xenrt
+
 try:
     from marvin import cloudstackTestClient
     from marvin.integration.lib.base import *

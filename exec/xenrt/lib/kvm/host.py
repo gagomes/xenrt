@@ -329,23 +329,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
             artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-agent-"])
             self.execdom0("rpm -ivh %s/cloudstack-agent-*.rpm" % artifactDir)
 
-            # TODO: Set in /etc/libvirt/libvirtd.conf
-            # (we have already set some of this)
-            # listen_tls = 0
-            # listen_tcp = 1
-            # tcp_port = "16509"
-            # auth_tcp = "none"
-            # mdns_adv = 0
-
-            # TODO: Modify /etc/sysconfig/libvirtd
-            # LIBVIRTD_ARGS="--listen"
-
-            # TODO: Modify /etc/libvirt/qemu.conf
-            # vnc_listen = "0.0.0.0"
-
+            # Modify /etc/libvirt/qemu.conf
+            self.execdom0("sed -i 's/\\# vnc_listen = \"0.0.0.0\"/vnc_listen = \"0.0.0.0\"/' /etc/libvirt/qemu.conf")
             self.execdom0("service libvirtd restart")
 
-            # TODO: check selinux
+            # Ensure SELinux is in permissive mode
+            self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
+            self.execdom0("/usr/sbin/setenforce permissive")
 
-            # TODO: Networking
+            # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/Local%20Storage' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'public.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
 

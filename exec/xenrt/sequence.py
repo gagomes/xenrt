@@ -1023,7 +1023,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productVersion', 'rhel63-x64')
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 self.handleHostNode(simpleHostNode, params)
-                            cluster['XRT_KVMHostIds'] = hostIds.join(',')
+                            cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
     def handlePoolNode(self, node, params):
         pool = {}

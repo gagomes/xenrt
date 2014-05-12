@@ -18,7 +18,7 @@ __all__ = ["ManagementServer"]
 class ManagementServer(object):
     def __init__(self, place):
         self.place = place
-        self.isCCP = True
+        self.__isCCP = None
         self.__version = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
@@ -149,6 +149,7 @@ class ManagementServer(object):
                     raise xenrt.XRTError('Failed to install and select Java 1.7')
 
     def installCloudPlatformManagementServer(self):
+        self.__isCCP = True
         if self.place.arch != 'x86-64':
             raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
@@ -175,7 +176,7 @@ class ManagementServer(object):
         self.installApacheProxy()
 
     def installCloudStackManagementServer(self):
-        self.isCCP = False
+        self.__isCCP = False
         placeArtifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self.place,
                                                                          ["cloudstack-management-",
                                                                           "cloudstack-common-",
@@ -223,6 +224,15 @@ class ManagementServer(object):
 
             xenrt.TEC().comment('Using Management Server version: %s' % (self.__version))
         return self.__version
+
+    @property
+    def isCCP(self):
+        if self.__isCCP is None:
+            # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
+            # Currently we use the existing of the cloudPlatform webapp module for this
+            self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
+
+        return self.__isCCP
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

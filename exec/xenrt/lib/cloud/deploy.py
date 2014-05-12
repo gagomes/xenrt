@@ -21,9 +21,8 @@ class DeployerPlugin(object):
     DEFAULT_POD_IP_RANGE = 10
     DEFAULT_GUEST_IP_RANGE = 20
 
-    def __init__(self, marvinApi, isCCP):
+    def __init__(self, marvinApi):
         self.marvin = marvinApi
-        self.isCCP = isCCP
 
         self.currentZoneIx = -1
         self.currentPodIx = -1
@@ -163,7 +162,7 @@ class DeployerPlugin(object):
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 try:
-                    h.tailorForCloudStack(self.isCCP)
+                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
                 except:
                     xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
 
@@ -213,7 +212,7 @@ def deploy(cloudSpec, manSvr=None):
     marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
     marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
 
-    deployerPlugin = DeployerPlugin(marvinApi, isCCP=manSvr.isCCP)
+    deployerPlugin = DeployerPlugin(marvinApi)
     marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

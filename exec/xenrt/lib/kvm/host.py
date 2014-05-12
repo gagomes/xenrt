@@ -97,10 +97,6 @@ def createHost(id=0,
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
 
-    # TODO: Remove me
-    # Temporary hack for testing tailoring support
-    host.tailorForCloudStack(True)
-
     return host
 
 class KVMHost(xenrt.lib.libvirt.Host):
@@ -319,9 +315,9 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig rpcbind on")
             self.execdom0("chkconfig nfs on")
 
-            # TODO: Set up /etc/cloudstack/agent/agent.properties
-            # public.network.device
-            # private.network.device
+            # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'public.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
         else:
             # Apache CloudStack specific operations
 

@@ -319,6 +319,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig nfs on")
 
             # Set up /etc/cloudstack/agent/agent.properties
+            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/Local%20Storage' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'public.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'private.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
         else:

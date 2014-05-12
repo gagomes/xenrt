@@ -2696,6 +2696,9 @@ class Config:
         # Blunt: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034.
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E035/75824/hotfix-XS60E035/XS60E035.xsupdate"
         
+        # MrToad (PLACEHOLDER): xen-tools . Rolls up nothing.
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/build/boston-lcm/84221/hotfix-XS60E036/XS60E036.xsupdate"
+        
         # Carabosse: kexec-tools, openssl,  vncterm, xen-device-mode, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035 
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
        
@@ -2935,8 +2938,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007.
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC008/77183/hotfix-XS602ECC008/XS602ECC008.xsupdate"
-      
-      
+        
+        # MrToad - xen-tools . Rolls up nothing. 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -2977,6 +2981,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS62E002, XS62E009 .
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E014/77605/hotfix-XS62E014/XS62E014.xsupdate"
+        
+        # MrToad (PLACEHOLDER): xen-tools . Rools up XS62E008
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/xen/carbon/clearwater-lcm/83715/hotfix-XS62E015/XS62E015.xsupdate"
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"

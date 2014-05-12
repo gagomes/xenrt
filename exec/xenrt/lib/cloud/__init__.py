@@ -1,4 +1,5 @@
 import xenrt
+import os.path
 
 try:
     from marvin import cloudstackTestClient

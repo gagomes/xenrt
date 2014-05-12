@@ -18,7 +18,7 @@
     <!--no pool here, the hosts can have different cpus-->
     <host id="0">
       <NETWORK>
-        <PHYSICAL network="ANY" name="NET_MGMT">
+        <PHYSICAL name="NET_MGMT">
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
@@ -39,7 +39,7 @@
     </host>
     <host id="1">
       <NETWORK>
-        <PHYSICAL network="ANY" name="NET_MGMT">
+        <PHYSICAL name="NET_MGMT">
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>

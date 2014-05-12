@@ -11,6 +11,7 @@
 import re, urllib, os.path
 
 import xenrt
+import xenrt.lib.cloud
 
 __all__ = ["createHost",
            "KVMHost"]
@@ -274,6 +275,8 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def tailorForCloudStack(self, isCCP):
         """Tailor this host for use with ACS/CCP"""
 
+        # TODO: Add a check that we haven't already tailored the host
+
         # Common operations
         # hostname --fqdn must give a response
         self.execdom0("echo '%s %s.%s %s' >> /etc/hosts" %
@@ -321,7 +324,10 @@ class KVMHost(xenrt.lib.libvirt.Host):
         else:
             # Apache CloudStack specific operations
 
-            # TODO: Install cloudstack-agent (where from?)
+            # Install cloudstack-agent
+            artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-agent-"])
+            self.execdom0("rpm -ivh %s/cloudstack-agent-*.rpm" % artifactDir)
+
             # TODO: Set in /etc/libvirt/libvirtd.conf
             # (we have already set some of this)
             # listen_tls = 0

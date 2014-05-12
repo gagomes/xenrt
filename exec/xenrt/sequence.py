@@ -1013,7 +1013,7 @@ class PrepareNode:
                             self.handlePoolNode(simplePoolNode, params)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
                             cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
-                    elif cluster['hypervisor'] == "kvm":
+                    elif cluster['hypervisor'] == "KVM":
                         if not cluster.has_key('XRT_KVMHostIds'):
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                             for hostId in hostIds:
@@ -1021,6 +1021,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'kvm')
                                 simpleHostNode.setAttribute('productVersion', 'rhel63-x64')
+                                simpleHostNode.setAttribute('noisos', 'yes')
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_KVMHostIds'] = hostIds.join(',')
 

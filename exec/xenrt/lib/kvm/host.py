@@ -84,6 +84,12 @@ def createHost(id=0,
     networkConfig += "</network>"
     host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
 
+    # Sometimes the networking changes can break our virConn, needed for the
+    # SR creation step. As a quick fix lets just reestablish it and let the old
+    # one be GC'd
+    # TODO: Optimise the libvirt support so this is automatic
+    host.virConn = host._openVirConn()
+
     # Create local storage with type EXT
     host.execdom0("lvcreate VGXenRT -l 100%FREE --name lv_storage")
     sr = xenrt.lib.kvm.EXTStorageRepository(host, "Local Storage")

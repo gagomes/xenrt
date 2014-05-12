@@ -173,7 +173,7 @@ class DeployerPlugin(object):
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
-                hosts.append({ 'url': hostObject.getIP() })
+                hosts.append({ 'url': h.getIP() })
         elif ref.has_key('XRT_NumberOfHosts'):
             map(lambda x:hosts.append({}), range(ref['XRT_NumberOfHosts']))
         return hosts

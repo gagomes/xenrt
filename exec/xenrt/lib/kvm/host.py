@@ -332,8 +332,18 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Apache CloudStack specific operations
 
             # Install cloudstack-agent
-            artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-agent-"])
-            self.execdom0("rpm -ivh %s/cloudstack-agent-*.rpm" % artifactDir)
+            # TODO: For 4.4 we probably need Java 1.7 - need to handle this
+            self.execdom0("yum install -y java-1.6.0 ipset jakarta-commons-daemon")
+            # TODO: Don't hardcode the jsvc URL
+            jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            webdir = xenrt.WebDirectory()
+            webdir.copyIn(jsvc)
+            jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
+            webdir.remove()
+            self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-common-", "cloudstack-agent-"])
+            self.execdom0("rpm -ivh %s/cloudstack-*.rpm" % artifactDir)
 
             # Modify /etc/libvirt/qemu.conf
             self.execdom0("sed -i 's/\\# vnc_listen = \"0.0.0.0\"/vnc_listen = \"0.0.0.0\"/' /etc/libvirt/qemu.conf")

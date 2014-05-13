@@ -334,8 +334,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Apache CloudStack specific operations
 
             # Install cloudstack-agent
-            # TODO: For 4.4 we probably need Java 1.7 - need to handle this
-            self.execdom0("yum install -y java-1.6.0 ipset jakarta-commons-daemon jna")
+            # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
+            #  java-1.7.0, so we need to update-alternatives to use it)
+            self.execdom0("yum install -y java-1.6.0 java*1.7* ipset jakarta-commons-daemon jna")
+            if not '1.7.0' in self.execdom0('java -version').strip():
+                javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+                self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
             # TODO: Don't hardcode the jsvc URL
             jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
             webdir = xenrt.WebDirectory()

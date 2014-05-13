@@ -123,21 +123,40 @@ class MarvinApi(object):
 
         xenrt.TEC().logverbose('Template %s ready after %d seconds' % (name, (datetime.now() - startTime).seconds))
 
-    def copySystemTemplateToSecondaryStorage(self, storagePath, provider):
-        # Check if a non-default system template has been specified
-        sysTemplateSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", self.mgtSvr.lookup("DEFAULT_SYSTEM_TEMPLATE", None))
-        if not sysTemplateSrcLocation:
-            raise xenrt.XRTError('Failed to find system template location')
-        xenrt.TEC().logverbose('Using System Template: %s' % (sysTemplateSrcLocation))
+    def copySystemTemplatesToSecondaryStorage(self, storagePath, provider):
+        # Load templates for this version
+        templates = self.mgtSvr.lookup("SYSTEM_TEMPLATES", None)
+        if not templates:
+            raise xenrt.XRTError('Failed to find system templates')
+
+        # Check if any non-default system templates have been specified
+        # These should be added in the form -D CLOUD_SYS_TEMPLATES/hypervisor=url
+        sysTemplates = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATES", {})
+        for s in sysTemplates:
+            templates[s] = sysTemplates[s]
+
+        # Legacy XenServer template support
+        sysTemplateSrcLocation = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATE", None)
+        if sysTemplateSrcLocation:
+            xenrt.TEC().warning("Use of CLOUD_SYS_TEMPLATE is deprecated, use CLOUD_SYS_TEMPLATES/xenserver instead")
+            templates['xenserver'] = sysTemplateSrcLocation
+
+        xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
         sysTemplateFile = xenrt.TEC().getFile(sysTemplateSrcLocation)
         webdir = xenrt.WebDirectory()
-        webdir.copyIn(sysTemplateFile)
-        sysTemplateUrl = webdir.getURL(os.path.basename(sysTemplateFile))
-
         if provider == 'NFS':
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
             installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
-            self.mgtSvr.place.execcmd('%s -m /media -u %s -h xenserver -F' % (installSysTmpltLoc, sysTemplateUrl), timeout=60*60)
+
+        for hv in templates:
+            templateFile = xenrt.TEC().getFile(templates[hv])
+            webdir.copyIn(templateFile)
+            templateUrl = webdir.getURL(os.path.basename(templateFile))
+
+            if provider == 'NFS':
+                self.mgtSvr.place.execcmd('%s -m /media -u %s -h %s -F' % (installSysTmpltLoc, templateUrl, hv), timeout=60*60)
+
+        if provider == 'NFS':
             self.mgtSvr.place.execcmd('umount /media')
         webdir.remove()
 
@@ -165,7 +184,7 @@ class MarvinApi(object):
                 storagePath = secondaryStorage.getMount()
                 url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
 
-            self.copySystemTemplateToSecondaryStorage(storagePath, provider) 
+            self.copySystemTemplatesToSecondaryStorage(storagePath, provider) 
 
         secondaryStorageC = addSecondaryStorage.addSecondaryStorageCmd()
         secondaryStorageC.zoneid = zone.id

@@ -10,7 +10,7 @@ class TestSLESLinuxOverrides(XenRTUnitTestCase):
     def testKnownDistroOverride(self):
         """
         Given a string representing a distro, When the class is asked if it is supported, 
-        Then expect only RHEL based distros to return true
+        Then expect only SLES based distros to return true
 
         """
         data = { ("sles", True), ("sles11", True), ("centos", False), ("oel", False)} 

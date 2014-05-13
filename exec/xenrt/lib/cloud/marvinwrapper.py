@@ -142,7 +142,6 @@ class MarvinApi(object):
             templates['xenserver'] = sysTemplateSrcLocation
 
         xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
-        sysTemplateFile = xenrt.TEC().getFile(sysTemplateSrcLocation)
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))

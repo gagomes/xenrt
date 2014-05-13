@@ -192,6 +192,7 @@ class ManagementServer(object):
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
+        self.installApacheProxy()
 
     @property
     def version(self):

@@ -174,13 +174,19 @@ class XenRTSchedule(XenRTAPIPage):
                 still_needed = machines_required - len(selected)
 
                 if still_needed > 0:
-                    self.scm_select_machines(outfh, machines,
+
+                    #use commas in CLUSTER to express 'schedule in one of these n clusters'
+                    for c in string.split(cluster, ","):
+                        #seek until finding a suitable cluster
+                        if self.scm_select_machines(outfh, machines,
                                         still_needed,
                                         selected,
                                         site,
-                                        cluster,
+                                        c,
                                         details,
-                                        verbose=verbose)
+                                        verbose=verbose):
+                            break
+
                 if len(selected) < machines_required:
                     continue
 

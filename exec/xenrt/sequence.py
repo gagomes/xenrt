@@ -1022,6 +1022,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productType', 'kvm')
                                 simpleHostNode.setAttribute('productVersion', 'rhel63-x64')
                                 simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 

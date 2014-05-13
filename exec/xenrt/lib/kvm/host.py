@@ -91,10 +91,11 @@ def createHost(id=0,
     host.virConn = host._openVirConn()
 
     # Create local storage with type EXT
-    host.execdom0("lvcreate VGXenRT -l 100%FREE --name lv_storage")
-    sr = xenrt.lib.kvm.EXTStorageRepository(host, "LocalStorage")
-    sr.createOn("/dev/VGXenRT/lv_storage")
-    host.addSR(sr, default=True)
+    if installSRType != "no":
+        host.execdom0("lvcreate VGXenRT -l 100%FREE --name lv_storage")
+        sr = xenrt.lib.kvm.EXTStorageRepository(host, "LocalStorage")
+        sr.createOn("/dev/VGXenRT/lv_storage")
+        host.addSR(sr, default=True)
 
     # SELinux support for NFS SRs on KVM (eg. for ISO files)
     # https://bugzilla.redhat.com/show_bug.cgi?id=589922
@@ -141,7 +142,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         return "/var/run/sr-mount/%s" % (urllib.quote(srname), )
 
     def getBridge(self, eth):
-        return eth.replace("eth","virbr")
+        return eth.replace("eth","cloudbr")
 
     def getPrimaryBridge(self):
         return self.getBridge(self.getDefaultInterface())
@@ -325,7 +326,6 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig nfs on")
 
             # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/LocalStorage' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
         else:
@@ -354,7 +354,6 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("/usr/sbin/setenforce permissive")
 
             # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/LocalStorage' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
             self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 

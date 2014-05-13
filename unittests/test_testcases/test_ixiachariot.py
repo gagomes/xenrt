@@ -5,6 +5,7 @@ import textwrap
 from testing import XenRTUnitTestCase
 from xenrt import ixiachariot
 from xenrt import objects
+import xenrt
 
 
 def makeMockWindowsGuest(revision, architecture='x86'):
@@ -133,3 +134,68 @@ class TestEndpointFactory(XenRTUnitTestCase):
             'host/guest', 'distmasterBase', fakeHostRegistry)
 
         self.assertEquals('guest@host', endpoint.guest)
+
+
+class NoOpLock(object):
+    def acquire(self):
+        pass
+
+    def release(self):
+        pass
+
+
+class TestChariotConsole(XenRTUnitTestCase):
+    def createConsoleAndMockExecutor(self, name='unnamed'):
+        executor = mock.Mock()
+        console = ixiachariot.Console(name, executor, NoOpLock())
+        return console, executor
+
+    def testRunCallsExecutor(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+
+        console.run('something')
+
+        executor.assert_called_once_with('something')
+
+    def testRunNonZeroExecutionResultRaisesXRTError(self):
+        console, executor = self.createConsoleAndMockExecutor(name='console')
+        executor.return_value = 1
+
+        with self.assertRaises(xenrt.XRTError) as ctx:
+            console.run('something')
+
+        self.assertEquals(
+            "Remote command 'something' returned non-zero result code"
+            " while executed on ixia chariot console 'console'",
+            ctx.exception.reason)
+
+    def testRunWhenCalledAcquiresLock(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        console.run('some command')
+
+        console.lock.acquire.assert_called_once_with()
+
+    def testRunWhenCalledLockReleased(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 0
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        console.run('some command')
+
+        console.lock.release.assert_called_once_with()
+
+    def testRunLockReleasedEvenInCaseOfError(self):
+        console, executor = self.createConsoleAndMockExecutor()
+        executor.return_value = 1
+        console.lock = mock.Mock(spec=NoOpLock)
+
+        try:
+            console.run('some command')
+        except:
+            pass
+
+        console.lock.release.assert_called_once_with()

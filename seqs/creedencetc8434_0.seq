@@ -1,9 +1,7 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Clearwater
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
@@ -13,7 +11,6 @@
       <testcase id="xenserver.tc.smoketest.TC8437" prio="3" tc="TC-8437"/>
       <testcase id="xenserver.tc.smoketest.TC8438" prio="3" tc="TC-8438"/>
       <testcase id="xenserver.tc.smoketest.TC8441" prio="3" tc="TC-8441"/>
-      <testcase id="xenserver.tc.smoketest.TC8598" prio="3" tc="TC-8598"/>
       <testcase id="xenserver.tc.smoketest.TC9107" prio="3" tc="TC-9107"/>
       <testcase id="xenserver.tc.smoketest.TC11917" prio="3" tc="TC-11917"/>
       <testcase id="xenserver.tc.smoketest.TC11918" prio="3" tc="TC-11918"/>
@@ -25,6 +22,7 @@
       <testcase id="xenserver.tc.smoketest.TC18427" prio="3" tc="TC-18427"/>
       <testcase id="xenserver.tc.smoketest.TC18428" prio="3" tc="TC-18428"/>
       <testcase id="xenserver.tc.smoketest.TC20536" prio="3" tc="TC-20536"/>
+      <testcase id="xenserver.tc.smoketest.TC20537" prio="3" tc="TC-20537"/>
     </parallel>
   </testsequence>
 </xenrt>

@@ -21,6 +21,9 @@ class Toolstack(Interface):
     def existingInstance(name):
         """Return an existing instance with the specified name"""
 
+    def getAllExistingInstances():
+        """Returns all existing instances"""
+
     def getInstanceIP(instance, timeout, level):
         """Get the IP for the specified instance, with timeout"""
 

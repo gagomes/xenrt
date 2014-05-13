@@ -10,6 +10,9 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    def getAllExistingInstances(self):
+        raise xenrt.XRTError("Not implemented")
+
     def instanceHypervisorType(self, instance):
         # XL only works with Xen, so we will always be returning Xen
         return xenrt.HypervisorType.xen

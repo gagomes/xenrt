@@ -1444,10 +1444,6 @@ class TC7985(xenrt.TestCase):
         host1 = self.getHost("RESOURCE_HOST_1")
         host2 = self.getHost("RESOURCE_HOST_2")
 
-        if host0.embedded or host1.embedded or host2.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM edition")
-            return
-        
         host0.resetToFreshInstall()
         host1.resetToFreshInstall()
         host2.resetToFreshInstall()
@@ -1570,9 +1566,6 @@ class TC8905(xenrt.TestCase):
 
     def prepare(self, arglist=None):
         self.pool = self.getDefaultPool()
-        if self.pool.master.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM editions")
-            return
 
         # Get the sample patches, and apply the simple one
         self.workdir = xenrt.TEC().getWorkdir()

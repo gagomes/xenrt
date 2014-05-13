@@ -8,7 +8,6 @@
     <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
-    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
   </variables>
 
   <prepare>

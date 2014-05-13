@@ -1676,3 +1676,30 @@ class TCVerifyVMCorruption(xenrt.TestCase):
             pass
         else:
             raise xenrt.XRTFailure("Xapi fix to avoid VM corruption during Migration has Failed")
+
+class TCCentosUpgrade(xenrt.TestCase):
+    """Verify a CentOS upgrade is successful"""
+
+    def run(self, arglist):
+        g = self.getGuest(arglist[0])
+        # Remove the XenRT repo and reenable the centos one
+        g.execguest("rm /etc/yum.repos.d/xenrt.repo")
+        g.execguest("rename '.orig' '' /etc/yum.repos.d/*.orig")
+        # Add a proxy if we know about one
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            g.execguest("sed -i '/proxy/d' /etc/yum.conf")
+            g.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+
+        # Apply the update and reboot
+        g.execguest("yum update -y", timeout=7200)
+        g.reboot()
+
+        # Now verify the guest works by doing some lifecyle ops
+        g.shutdown()
+        g.start()
+        g.reboot()
+        g.suspend()
+        g.resume()
+        g.migrateVM(self.getDefaultHost(), live=False)
+        g.migrateVM(self.getDefaultHost(), live=True)

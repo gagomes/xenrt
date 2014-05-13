@@ -2201,10 +2201,6 @@ class TC8396(xenrt.TestCase):
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
-        if host.embedded or host.embedded_hdd:
-            xenrt.TEC().skip("Embedded editions do not have an install-log")
-            return
-
         host.findPassword()
 
         # After build 12455 install-log is dropped in /var/log/installer rather
@@ -3165,9 +3161,9 @@ class TCDisableHostnameAD(xenrt.TestCase):
         
         # check if dnsHostName is saved with domain name in AD server
         r = authserver.place.xmlrpcExec("dsquery * -filter samaccountname=%s$ -attr dnshostname" % (hostname), returndata=True)
-        if dnsHostname not in r:
+        if string.lower(dnsHostname) not in r:
             raise xenrt.XRTFailure("Hostname present on AD server not as expected")
-        xenrt.TEC().logverbose("Hostname present on AD server as expected: %s" % (dnsHostname))
+        xenrt.TEC().logverbose("Hostname present on AD server as expected: %s" % r)
 
 class TC1660(xenrt.TestCase):
     """Verify there are no clear-text passwords in xen-bugtool output"""

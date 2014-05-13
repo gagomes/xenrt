@@ -542,8 +542,12 @@ class Config:
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_56_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.6 (64-bit),Oracle Enterprise Linux 5.6 x64"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_57"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.7 (32-bit),Oracle Enterprise Linux 5.7"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_57_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.7 (64-bit),Oracle Enterprise Linux 5.7 x64"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_510"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.7 (32-bit),Oracle Enterprise Linux 5.7"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_510_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.7 (64-bit),Oracle Enterprise Linux 5.7 x64"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_47"] = "CentOS 4.7 (32-bit),CentOS 4.7"
@@ -566,6 +570,12 @@ class Config:
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_57_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_6"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_63"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_63_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_64"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_64_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_65"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
+        self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_CENTOS_65_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit),Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit),Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Boston"]["TEMPLATE_OTHER_MEDIA"] = "Other install media"
@@ -715,6 +725,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_59_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_47"] = "CentOS 4.7 (32-bit),CentOS 4.7"
@@ -735,6 +747,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_56_64"] = "CentOS 5 (64-bit),CentOS 5.6 (64-bit),CentOS 5.6 x64,CentOS 5.6 (64-bit),CentOS 5.6 x64"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_57"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_57_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_510"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_510_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_6"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
@@ -907,9 +921,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
 
-        # Creedence
-        self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Clearwater"])
-
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
@@ -939,8 +950,12 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_56_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.6 (64-bit),Red Hat Enterprise Linux 5.6 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_57"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_57_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_510"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_510_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.3 (32-bit),Oracle Enterprise Linux 5.3"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.3 (64-bit),Oracle Enterprise Linux 5.3 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_54"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.4 (32-bit),Oracle Enterprise Linux 5.4"
@@ -955,8 +970,12 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_58_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_59"] = "Oracle Enterprise Linux 5 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_59_64"] = "Oracle Enterprise Linux 5 (64-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_510"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.10 (32-bit),Oracle Enterprise Linux 5.10"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_510_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.10 (64-bit),Oracle Enterprise Linux 5.10 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_47"] = "CentOS 4.7 (32-bit),CentOS 4.7"
@@ -977,8 +996,12 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_56_64"] = "CentOS 5 (64-bit),CentOS 5.6 (64-bit),CentOS 5.6 x64,CentOS 5.6 (64-bit),CentOS 5.6 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_57"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_57_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_510"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_510_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1204"] = "Ubuntu Precise Pangolin 12.04 (32-bit),Ubuntu Precise Pangolin 12.04"
@@ -1026,7 +1049,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
+        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos510,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Sarasota"]["MIN_VM_MEMORY"] = "128"
@@ -1091,6 +1114,9 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Sarasota"]["VIF_PER_VM"] = "7"
         self.config["VERSION_CONFIG"]["Sarasota"]["LOCAL_DISK_TiB"] = "6"
+
+        # Creedence
+        self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Sarasota"])
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}
@@ -1456,162 +1482,177 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
 
-        # Supporting CCP.
-        self.config["CCP_CONFIG"] = {}
-        self.config["CCP_CONFIG"]["OS_NAMES"] = {}
-        self.config["CCP_CONFIG"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3eesp2-x64"] = "Windows Server 2003 Enterprise Edition(64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["w2k3sesp2"] = "Windows Server 2003 Standard Edition(32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["debian60_x86-32"] = "Debian GNU/Linux 6(64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["debian60_x86-64"] = "Debian GNU/Linux 6(64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["debian70_x86-32"] = "Debian GNU/Linux 7(32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["debian70_x86-64"] = "Debian GNU/Linux 7(64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["ubuntu1004_x86-32"] = "Ubuntu 10.04 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["ubuntu1004_x86-64"] = "Ubuntu 10.04 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["ubuntu1204_x86-32"] = "Ubuntu 12.04 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["ubuntu1204_x86-64"] = "Ubuntu 12.04 (64-bit)"
+        # Config for CCP / ACS
+        self.config["CLOUD_CONFIG"] = {}
+        self.config["CLOUD_CONFIG"]["3.0.7"] = {}
+        self.config["CLOUD_CONFIG"]["3.0.7"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2-x64"] = "Windows Server 2003 Enterprise Edition(64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3sesp2"] = "Windows Server 2003 Standard Edition(32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["win7sp1-x86"] = "Windows 7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-32"] = "Debian GNU/Linux 6(64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian60_x86-64"] = "Debian GNU/Linux 6(64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian70_x86-32"] = "Debian GNU/Linux 7(32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["debian70_x86-64"] = "Debian GNU/Linux 7(64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1004_x86-32"] = "Ubuntu 10.04 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1004_x86-64"] = "Ubuntu 10.04 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-32"] = "Ubuntu 12.04 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-64"] = "Ubuntu 12.04 (64-bit)"
 
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel2_x86-32"] = "Red Hat Enterprise Linux 2" # assuming 32-bit
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel3_x86-32"] = "Red Hat Enterprise Linux 3(32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel3_x86-64"] = "Red Hat Enterprise Linux 3(64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel4_x86-64"] = "Red Hat Enterprise Linux 4(64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel38_x86-32"] = "Red Hat Enterprise Linux 3.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel41_x86-32"] = "Red Hat Enterprise Linux 4.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel44_x86-32"] = "Red Hat Enterprise Linux 4.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel45_x86-32"] = "Red Hat Enterprise Linux 4.5 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel46_x86-32"] = "Red Hat Enterprise Linux 4.6 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel47_x86-32"] = "Red Hat Enterprise Linux 4.7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel48_x86-32"] = "Red Hat Enterprise Linux 4.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel5_x86-32"] = "Red Hat Enterprise Linux 5.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel5_x86-64"] = "Red Hat Enterprise Linux 5.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel51_x86-32"] = "Red Hat Enterprise Linux 5.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel51_x86-64"] = "Red Hat Enterprise Linux 5.1 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel510_x86-32"] = "Red Hat Enterprise Linux 5.10 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel510_x86-64"] = "Red Hat Enterprise Linux 5.10 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel52_x86-32"] = "Red Hat Enterprise Linux 5.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel52_x86-64"] = "Red Hat Enterprise Linux 5.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel53_x86-32"] = "Red Hat Enterprise Linux 5.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel53_x86-64"] = "Red Hat Enterprise Linux 5.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel54_x86-32"] = "Red Hat Enterprise Linux 5.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel54_x86-64"] = "Red Hat Enterprise Linux 5.4 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel55_x86-32"] = "Red Hat Enterprise Linux 5.5 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel55_x86-64"] = "Red Hat Enterprise Linux 5.5 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel56_x86-32"] = "Red Hat Enterprise Linux 5.6 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel56_x86-64"] = "Red Hat Enterprise Linux 5.6 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel57_x86-32"] = "Red Hat Enterprise Linux 5.7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel57_x86-64"] = "Red Hat Enterprise Linux 5.7 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel58_x86-32"] = "Red Hat Enterprise Linux 5.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel58_x86-64"] = "Red Hat Enterprise Linux 5.8 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel59_x86-32"] = "Red Hat Enterprise Linux 5.9 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel58_x86-64"] = "Red Hat Enterprise Linux 5.9 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel6_x86-32"] = "Red Hat Enterprise Linux 6.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel6_x86-64"] = "Red Hat Enterprise Linux 6.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel61_x86-32"] = "Red Hat Enterprise Linux 6.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel61_x86-64"] = "Red Hat Enterprise Linux 6.1 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel62_x86-32"] = "Red Hat Enterprise Linux 6.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel62_x86-64"] = "Red Hat Enterprise Linux 6.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel63_x86-32"] = "Red Hat Enterprise Linux 6.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel63_x86-64"] = "Red Hat Enterprise Linux 6.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel64_x86-32"] = "Red Hat Enterprise Linux 6.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["rhel64_x86-64"] = "Red Hat Enterprise Linux 6.4 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel2_x86-32"] = "Red Hat Enterprise Linux 2" # assuming 32-bit
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel3_x86-32"] = "Red Hat Enterprise Linux 3(32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel3_x86-64"] = "Red Hat Enterprise Linux 3(64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel4_x86-64"] = "Red Hat Enterprise Linux 4(64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel38_x86-32"] = "Red Hat Enterprise Linux 3.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel41_x86-32"] = "Red Hat Enterprise Linux 4.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel44_x86-32"] = "Red Hat Enterprise Linux 4.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel45_x86-32"] = "Red Hat Enterprise Linux 4.5 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel46_x86-32"] = "Red Hat Enterprise Linux 4.6 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel47_x86-32"] = "Red Hat Enterprise Linux 4.7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel48_x86-32"] = "Red Hat Enterprise Linux 4.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel5_x86-32"] = "Red Hat Enterprise Linux 5.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel5_x86-64"] = "Red Hat Enterprise Linux 5.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel51_x86-32"] = "Red Hat Enterprise Linux 5.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel51_x86-64"] = "Red Hat Enterprise Linux 5.1 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel510_x86-32"] = "Red Hat Enterprise Linux 5.10 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel510_x86-64"] = "Red Hat Enterprise Linux 5.10 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel52_x86-32"] = "Red Hat Enterprise Linux 5.2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel52_x86-64"] = "Red Hat Enterprise Linux 5.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel53_x86-32"] = "Red Hat Enterprise Linux 5.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel53_x86-64"] = "Red Hat Enterprise Linux 5.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel54_x86-32"] = "Red Hat Enterprise Linux 5.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel54_x86-64"] = "Red Hat Enterprise Linux 5.4 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel55_x86-32"] = "Red Hat Enterprise Linux 5.5 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel55_x86-64"] = "Red Hat Enterprise Linux 5.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel56_x86-32"] = "Red Hat Enterprise Linux 5.6 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel56_x86-64"] = "Red Hat Enterprise Linux 5.6 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel57_x86-32"] = "Red Hat Enterprise Linux 5.7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel57_x86-64"] = "Red Hat Enterprise Linux 5.7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel58_x86-32"] = "Red Hat Enterprise Linux 5.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel58_x86-64"] = "Red Hat Enterprise Linux 5.8 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel59_x86-32"] = "Red Hat Enterprise Linux 5.9 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel58_x86-64"] = "Red Hat Enterprise Linux 5.9 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel6_x86-32"] = "Red Hat Enterprise Linux 6.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel6_x86-64"] = "Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel61_x86-32"] = "Red Hat Enterprise Linux 6.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel61_x86-64"] = "Red Hat Enterprise Linux 6.1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel62_x86-32"] = "Red Hat Enterprise Linux 6.2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel62_x86-64"] = "Red Hat Enterprise Linux 6.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel63_x86-32"] = "Red Hat Enterprise Linux 6.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel63_x86-64"] = "Red Hat Enterprise Linux 6.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel64_x86-32"] = "Red Hat Enterprise Linux 6.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel64_x86-64"] = "Red Hat Enterprise Linux 6.4 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
 
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos43_x86-32"] = "CentOS 4.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos43_x86-64"] = "CentOS 4.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos45_x86-32"] = "CentOS 4.5 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos46_x86-32"] = "CentOS 4.6 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos47_x86-32"] = "CentOS 4.7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos48_x86-32"] = "CentOS 4.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos50_x86-32"] = "CentOS 5.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos50_x86-64"] = "CentOS 5.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos51_x86-32"] = "CentOS 5.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos51_x86-64"] = "CentOS 5.1 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-32"] = "Oracle Enterprise Linux 5.10 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos52_x86-32"] = "CentOS 5.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos52_x86-64"] = "CentOS 5.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos53_x86-32"] = "CentOS 5.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos53_x86-64"] = "CentOS 5.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos54_x86-32"] = "CentOS 5.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos54_x86-64"] = "CentOS 5.4 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos55_x86-32"] = "CentOS 5.5 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos55_x86-64"] = "CentOS 5.5 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos56_x86-32"] = "CentOS 5.6 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos56_x86-64"] = "CentOS 5.6 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos57_x86-32"] = "CentOS 5.7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos57_x86-64"] = "CentOS 5.7 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos58_x86-32"] = "CentOS 5.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos58_x86-64"] = "CentOS 5.8 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos59_x86-32"] = "CentOS 5.9 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos59_x86-64"] = "CentOS 5.9 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos60_x86-32"] = "CentOS 6.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos60_x86-64"] = "CentOS 6.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos61_x86-32"] = "CentOS 6.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos61_x86-64"] = "CentOS 6.1 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos62_x86-32"] = "CentOS 6.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos62_x86-64"] = "CentOS 6.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos63_x86-32"] = "CentOS 6.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos63_x86-64"] = "CentOS 6.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos64_x86-32"] = "CentOS 6.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["centos64_x86-64"] = "CentOS 6.4 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["centos65_x86-32"] = "CentOS 6.5 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["centos65_x86-64"] = "CentOS 6.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-32"] = "CentOS 4.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-64"] = "CentOS 4.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos45_x86-32"] = "CentOS 4.5 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos46_x86-32"] = "CentOS 4.6 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos47_x86-32"] = "CentOS 4.7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos48_x86-32"] = "CentOS 4.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos50_x86-32"] = "CentOS 5.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos50_x86-64"] = "CentOS 5.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos51_x86-32"] = "CentOS 5.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos51_x86-64"] = "CentOS 5.1 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel510_x86-32"] = "Oracle Enterprise Linux 5.10 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos52_x86-32"] = "CentOS 5.2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos52_x86-64"] = "CentOS 5.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos53_x86-32"] = "CentOS 5.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos53_x86-64"] = "CentOS 5.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos54_x86-32"] = "CentOS 5.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos54_x86-64"] = "CentOS 5.4 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos55_x86-32"] = "CentOS 5.5 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos55_x86-64"] = "CentOS 5.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos56_x86-32"] = "CentOS 5.6 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos56_x86-64"] = "CentOS 5.6 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos57_x86-32"] = "CentOS 5.7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos57_x86-64"] = "CentOS 5.7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos58_x86-32"] = "CentOS 5.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos58_x86-64"] = "CentOS 5.8 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos59_x86-32"] = "CentOS 5.9 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos59_x86-64"] = "CentOS 5.9 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos60_x86-32"] = "CentOS 6.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos60_x86-64"] = "CentOS 6.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos61_x86-32"] = "CentOS 6.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos61_x86-64"] = "CentOS 6.1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos62_x86-32"] = "CentOS 6.2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos62_x86-64"] = "CentOS 6.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos63_x86-32"] = "CentOS 6.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos63_x86-64"] = "CentOS 6.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos64_x86-32"] = "CentOS 6.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos64_x86-64"] = "CentOS 6.4 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos65_x86-32"] = "CentOS 6.5 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos65_x86-64"] = "CentOS 6.5 (64-bit)"
 
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel5_x86-32"] = "Oracle Enterprise Linux 5.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel5_x86-64"] = "Oracle Enterprise Linux 5.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel51_x86-32"] = "Oracle Enterprise Linux 5.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel51_x86-64"] = "Oracle Enterprise Linux 5.1 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-32"] = "Oracle Enterprise Linux 5.10 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-32"] = "Oracle Enterprise Linux 5.2 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel52_x86-64"] = "Oracle Enterprise Linux 5.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel53_x86-32"] = "Oracle Enterprise Linux 5.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel53_x86-64"] = "Oracle Enterprise Linux 5.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel54_x86-32"] = "Oracle Enterprise Linux 5.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel54_x86-64"] = "Oracle Enterprise Linux 5.4 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel55_x86-32"] = "Oracle Enterprise Linux 5.5 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel55_x86-64"] = "Oracle Enterprise Linux 5.5 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel56_x86-32"] = "Oracle Enterprise Linux 5.6 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel56_x86-64"] = "Oracle Enterprise Linux 5.6 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel57_x86-32"] = "Oracle Enterprise Linux 5.7 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel57_x86-64"] = "Oracle Enterprise Linux 5.7 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel58_x86-32"] = "Oracle Enterprise Linux 5.8 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel58_x86-64"] = "Oracle Enterprise Linux 5.8 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel59_x86-32"] = "Oracle Enterprise Linux 5.9 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel59_x86-64"] = "Oracle Enterprise Linux 5.9 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel6_x86-32"] = "Oracle Enterprise Linux 6.0 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel6_x86-64"] = "Oracle Enterprise Linux 6.0 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel61_x86-32"] = "Oracle Enterprise Linux 6.1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel61_x86-64"] = "Oracle Enterprise Linux 6.1 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel62_x86-32"] = "Oracle Enterprise Linux 6.2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel62_x86-64"] = "Oracle Enterprise Linux 6.2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel63_x86-32"] = "Oracle Enterprise Linux 6.3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel63_x86-64"] = "Oracle Enterprise Linux 6.3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel64_x86-32"] = "Oracle Enterprise Linux 6.4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["oel64_x86-64"] = "Oracle Enterprise Linux 6.4 (64-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel65_x86-32"] = "Oracle Enterprise Linux 6.5 (32-bit)"
-        #self.config["CCP_CONFIG"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles10_x86-32"] = "SUSE Linux Enterprise Server 10 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles10_x86-64"] = "SUSE Linux Enterprise Server 10 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles101_x86-32"] = "SUSE Linux Enterprise Server 10 SP1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles101_x86-64"] = "SUSE Linux Enterprise Server 10 SP1 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles102_x86-32"] = "SUSE Linux Enterprise Server 10 SP2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles102_x86-64"] = "SUSE Linux Enterprise Server 10 SP2 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles103_x86-32"] = "SUSE Linux Enterprise Server 10 SP3 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles103_x86-64"] = "SUSE Linux Enterprise Server 10 SP3 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles104_x86-32"] = "SUSE Linux Enterprise Server 10 SP4 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles104_x86-64"] = "SUSE Linux Enterprise Server 10 SP4 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel5_x86-32"] = "Oracle Enterprise Linux 5.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel5_x86-64"] = "Oracle Enterprise Linux 5.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel51_x86-32"] = "Oracle Enterprise Linux 5.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel51_x86-64"] = "Oracle Enterprise Linux 5.1 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel510_x86-32"] = "Oracle Enterprise Linux 5.10 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel52_x86-32"] = "Oracle Enterprise Linux 5.2 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel52_x86-64"] = "Oracle Enterprise Linux 5.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel53_x86-32"] = "Oracle Enterprise Linux 5.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel53_x86-64"] = "Oracle Enterprise Linux 5.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel54_x86-32"] = "Oracle Enterprise Linux 5.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel54_x86-64"] = "Oracle Enterprise Linux 5.4 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel55_x86-32"] = "Oracle Enterprise Linux 5.5 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel55_x86-64"] = "Oracle Enterprise Linux 5.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel56_x86-32"] = "Oracle Enterprise Linux 5.6 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel56_x86-64"] = "Oracle Enterprise Linux 5.6 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel57_x86-32"] = "Oracle Enterprise Linux 5.7 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel57_x86-64"] = "Oracle Enterprise Linux 5.7 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel58_x86-32"] = "Oracle Enterprise Linux 5.8 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel58_x86-64"] = "Oracle Enterprise Linux 5.8 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel59_x86-32"] = "Oracle Enterprise Linux 5.9 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel59_x86-64"] = "Oracle Enterprise Linux 5.9 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel6_x86-32"] = "Oracle Enterprise Linux 6.0 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel6_x86-64"] = "Oracle Enterprise Linux 6.0 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel61_x86-32"] = "Oracle Enterprise Linux 6.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel61_x86-64"] = "Oracle Enterprise Linux 6.1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel62_x86-32"] = "Oracle Enterprise Linux 6.2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel62_x86-64"] = "Oracle Enterprise Linux 6.2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel63_x86-32"] = "Oracle Enterprise Linux 6.3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel63_x86-64"] = "Oracle Enterprise Linux 6.3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel64_x86-32"] = "Oracle Enterprise Linux 6.4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel64_x86-64"] = "Oracle Enterprise Linux 6.4 (64-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel65_x86-32"] = "Oracle Enterprise Linux 6.5 (32-bit)"
+        #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles10_x86-32"] = "SUSE Linux Enterprise Server 10 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles10_x86-64"] = "SUSE Linux Enterprise Server 10 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles101_x86-32"] = "SUSE Linux Enterprise Server 10 SP1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles101_x86-64"] = "SUSE Linux Enterprise Server 10 SP1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles102_x86-32"] = "SUSE Linux Enterprise Server 10 SP2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles102_x86-64"] = "SUSE Linux Enterprise Server 10 SP2 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles103_x86-32"] = "SUSE Linux Enterprise Server 10 SP3 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles103_x86-64"] = "SUSE Linux Enterprise Server 10 SP3 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles104_x86-32"] = "SUSE Linux Enterprise Server 10 SP4 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles104_x86-64"] = "SUSE Linux Enterprise Server 10 SP4 (64-bit)"
 
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles11_x86-32"] = "SUSE Linux Enterprise Server 11 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles11_x86-64"] = "SUSE Linux Enterprise Server 11 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles111_x86-32"] = "SUSE Linux Enterprise Server 11 SP1 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles111_x86-64"] = "SUSE Linux Enterprise Server 11 SP1 (64-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles112_x86-32"] = "SUSE Linux Enterprise Server 11 SP2 (32-bit)"
-        self.config["CCP_CONFIG"]["OS_NAMES"]["sles112_x86-64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit)"
-        
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles11_x86-32"] = "SUSE Linux Enterprise Server 11 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles11_x86-64"] = "SUSE Linux Enterprise Server 11 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles111_x86-32"] = "SUSE Linux Enterprise Server 11 SP1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles111_x86-64"] = "SUSE Linux Enterprise Server 11 SP1 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles112_x86-32"] = "SUSE Linux Enterprise Server 11 SP2 (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles112_x86-64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit)"
+
+        self.config["CLOUD_CONFIG"]["4.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["3.0.7"])
+
+        self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
+
+        self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
+        self.config["CLOUD_CONFIG"]["4.3"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+
+        self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
+        self.config["CLOUD_CONFIG"]["4.4"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
+
+        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
+
+
         self.config["GUEST_VIFS_centos41"] = "3"
         self.config["GUEST_VIFS_centos42"] = "3"
         self.config["GUEST_VIFS_centos43"] = "3"
@@ -1912,6 +1953,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel59"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel510"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel6"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MAXMEMORY"] = "8192"
@@ -1932,6 +1977,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel64"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel64"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhel65"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel65"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos45"] = {}
         self.config["GUEST_LIMITATIONS"]["centos45"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["centos45"]["MAXMEMORY"] = "16384"
@@ -1984,6 +2033,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos59"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos59"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos510"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos6"] = {}
         self.config["GUEST_LIMITATIONS"]["centos6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos6"]["MAXMEMORY"] = "8192"
@@ -2004,6 +2057,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos64"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos64"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos64"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos65"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos65"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["oel53"] = {}
         self.config["GUEST_LIMITATIONS"]["oel53"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel53"]["MAXMEMORY"] = "65536"
@@ -2032,6 +2089,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel59"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel59"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["oel59"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["oel510"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["oel6"] = {}
         self.config["GUEST_LIMITATIONS"]["oel6"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel6"]["MAXMEMORY"] = "8192"
@@ -2052,6 +2113,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel64"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel64"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["oel64"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel65"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel65"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["sles92"] = {}
         self.config["GUEST_LIMITATIONS"]["sles92"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["sles92"]["MAXMEMORY"] = "16384"
@@ -2631,6 +2696,9 @@ class Config:
         # Blunt: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034.
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E035/75824/hotfix-XS60E035/XS60E035.xsupdate"
         
+        # MrToad (PLACEHOLDER): xen-tools . Rolls up nothing.
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/build/boston-lcm/84221/hotfix-XS60E036/XS60E036.xsupdate"
+        
         # Carabosse: kexec-tools, openssl,  vncterm, xen-device-mode, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035 
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
        
@@ -2725,7 +2793,9 @@ class Config:
         
         # Carabosse: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602E004, XS602E008, XS602E014, XS602E016, XS602E018, XS602E020, XS602E022, XS602E023, XS602E025, XS602E026, XS602E029 
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E032/77409/hotfix-XS602E032/XS602E032.xsupdate"
-      
+        
+        # Snowball: xapi, xen, kernel, sm. Rolls up XS602E001, XS602E003, XS602E004, XS602E005, XS602E007, XS602E008, XS602E011, XS602E013, XS602E014, XS602E016.XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E030, XS602E032
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E033/84969/hotfix-XS602E033/XS602E033.xsupdate"
         
       
       
@@ -2868,8 +2938,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007.
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC008/77183/hotfix-XS602ECC008/XS602ECC008.xsupdate"
-      
-      
+        
+        # MrToad - xen-tools . Rolls up nothing. 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -2910,6 +2981,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS62E002, XS62E009 .
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E014/77605/hotfix-XS62E014/XS62E014.xsupdate"
+        
+        # MrToad (PLACEHOLDER): xen-tools . Rools up XS62E008
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/xen/carbon/clearwater-lcm/83715/hotfix-XS62E015/XS62E015.xsupdate"
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"
@@ -2922,6 +2996,10 @@ class Config:
 
         # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1004/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
+        
+        # Albert -Xapi, kernel, openvswitch. Rolls up Nothing
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1005/83968/hotfix-XS62ESP1005/XS62ESP1005.xsupdate"
+
 
 
         return
@@ -3020,6 +3098,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF30"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF32"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF33"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
@@ -3054,6 +3133,7 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
         
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

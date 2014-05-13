@@ -2,10 +2,28 @@
   <default name="DISTROS" value="ubuntu1204_x86-32,debian70_x86-64,rhel64_x86-64,centos59_x86-32,oel59_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-    <CLOUD_SYS_TEMPLATE>/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2</CLOUD_SYS_TEMPLATE>
   </variables>
   <prepare>
-    <cloud>{"zones":[{"networktype":"Basic","pods":[{"managementIpRangeSize":5,"clusters":[{"hosts":2}]}]}]}</cloud>
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 5,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 15 }
+              ],
+              "clusters": [
+                { "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ]
+      }
+    </cloud>
     <sharedhost>
       <vm name="CS-MS">
         <distro>rhel63</distro>

@@ -3283,7 +3283,8 @@ DHCPServer = 1
         if not url:
             return False
         try:
-            url = os.path.join(url, 'Server')
+            if not distro.startswith("centos"):
+                url = os.path.join(url, 'Server')
             self.execcmd("for r in /etc/yum.repos.d/*.repo; "
                          "   do mv $r $r.orig; done")
             c = """[base]
@@ -4690,21 +4691,8 @@ class GenericHost(GenericPlace):
             return domains[guest.name][0]
         raise xenrt.XRTError("Domain '%s' not found" % (guest.name))
 
-    def enableGuestConsoleLogger(self, enable=True, persist=False, 
-                                 embedded=False):
+    def enableGuestConsoleLogger(self, enable=True, persist=False):
         """Start and enable to guest console logging daemon"""
-        # If it's embedded, set up an NFS mount for them to be on
-        if embedded:
-            conlogs = xenrt.NFSDirectory()
-            self.execdom0("mkdir -p /tmp/consolelogs")
-            self.execdom0("mount %s /tmp/consolelogs" % 
-                          (conlogs.getMountURL("")))
-            self.execdom0("echo 'mkdir -p /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local")
-            self.execdom0("echo 'mount %s /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local" % (conlogs.getMountURL("")))
-            xenrt.GEC().config.config['GUEST_CONSOLE_LOGDIR'] = "/tmp/consolelogs"
-
         # If the host console daemon has special powers (TM) then use them
         if self.execdom0("grep -q '/local/logconsole/@' /usr/sbin/xenconsoled",
                          retval="code") == 0:
@@ -4848,97 +4836,6 @@ class GenericHost(GenericPlace):
         """Power off a host"""
         self.machine.powerctl.off()
         
-    def pdGather(self, dict):
-        """Gather per-host data for a performance data item."""
-        x = self.getName()
-        if x:
-            dict["machine"] = x
-        if self.productVersion != "unknown":
-            dict["productname"] = self.productVersion
-        else:
-            x = self.lookup("VERSION", None)
-            if x:
-                dict["productname"] = x
-        if self.productRevision != "unknown":
-            dict["productversion"] = self.productRevision
-        else:
-            x = self.lookup("REVISION", None)
-            if x:
-                dict["productversion"] = x
-            else:
-                x = xenrt.TEC().lookup(["CLIOPTIONS", "REVISION"], None)
-                if x:
-                    dict["productversion"] = x
-        try:
-            if self.checkXenCaps("xen-3.0-x86_64"):
-                dict["hvarch"] = "x86-64"
-            elif self.checkXenCaps("xen-3.0-x86_32p"):
-                dict["hvarch"] = "x86-32p"
-            elif self.checkXenCaps("xen-3.0-x86_32"):
-                dict["hvarch"] = "x86-32"
-        except:
-            hvarch = xenrt.TEC().lookup(["CLIOPTIONS", "HYPERVISOR_ARCH"],
-                                        None)
-            if hvarch:
-                dict["hvarch"] = hvarch
-            elif self.arch:
-                dict["hvarch"] = self.arch
-        if self.arch:
-            dict["dom0arch"] = self.arch
-        dict["hostdebug"] = self.lookup("OPTION_DEBUG", False, boolean=True)
-        dom0cpus = self.lookup("OPTION_XE_SMP_DOM0", None)
-        if dom0cpus:
-            dict["dom0cpus"] = dom0cpus
-            
-    def pdGatherGuestLike(self, dict):
-        """Gather data for Domain0 for a performance data item. This
-        will be used when we're running tests in dom0 or on native OSes."""
-        dict["guestname"] = self.pddomaintype
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        else:
-            dict["guesttype"] = string.strip(self.execdom0("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.pddomaintype
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execdom0("uname -r"))
-            except:
-                pass
-        if dict.has_key("productname"):
-            dict["kernelproductname"] = dict["productname"]
-        if dict.has_key("productversion"):
-            dict["kernelproductversion"] = dict["productversion"]
-        if dict.has_key("productspecial"):
-            dict["kernelproductspecial"] = dict["productspecial"]
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.lookup("OPTION_DEBUG",
-                                             False,
-                                             boolean=True)
-        try:
-            dict["vcpus"] = self.getMyVCPUs()
-        except:
-            pass
-        try:
-            m = self.getMyMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        try:
-            if self.windows:
-                # Record extra disks. Ignore root disk.
-                dict["extradisks"] = len(self.xmlrpcListDisks() - 1)
-        except:
-            pass
-        # XXX storagetype
-
     def installLinuxVendor(self,
                            distro,
                            kickstart=None,
@@ -7263,74 +7160,6 @@ class GenericGuest(GenericPlace):
         if re.search("pae\s+1", data):
             reply.append("pae")
         return reply
-
-    def pdGather(self, dict):
-        """Gather per-guest data for a performance data item."""
-        if self.name:
-            dict["guestname"] = self.name
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        elif not self.windows:
-            dict["guesttype"] = string.strip(self.execguest("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.getDomainType()
-        except:
-            pass
-        try:
-            dict["domainflags"] = string.join(self.getDomainFlags(), ",")
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execguest("uname -r"))
-            except:
-                pass
-        if not self.windows:
-            if self.host.productVersion != "unknown":
-                dict["kernelproductname"] = self.host.productVersion
-            else:
-                x = self.host.lookup("VERSION", None)
-                if x:
-                    dict["kernelproductname"] = x
-            if self.host.productRevision != "unknown":
-                dict["kernelproductversion"] = self.host.productRevision
-            else:
-                x = self.host.lookup("REVISION", None)
-                if x:
-                    dict["kernelproductversion"] = x
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.host.lookup("OPTION_DEBUG",
-                                                  False,
-                                                  boolean=True)
-        if self.windows:
-            # XXX need a check for PV drivers on Linux
-            dict["pvdrivers"] = self.enlightenedDrivers
-        try:
-            dict["vcpus"] = self.getGuestVCPUs()
-        except:
-            pass
-        try:
-            m = self.getGuestMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        # XXX storagetype
-        try:
-            alone = True
-            domid = self.getDomid()
-            domains = self.host.listDomains()
-            for d in domains.values():
-                if d[0] != 0 and d[0] != domid:
-                    alone = False
-                    break
-            dict["alone"] = alone
-        except:
-            pass
 
     def installVendor(self,
                       distro,

@@ -144,7 +144,6 @@ def createHost(id=0,
                productType=None,
                productVersion=None,
                withisos=False,
-               embedded=None,
                noisos=None,
                overlay=None,
                installSRType=None,
@@ -197,12 +196,6 @@ def createHost(id=0,
 
     if addToLogCollectionList and xenrt.TEC().tc:
         xenrt.TEC().tc.getLogsFrom(host)
-    if embedded == None:
-        embedded = xenrt.TEC().lookup("OPTION_EMBEDDED", False, boolean=True)
-        if not embedded:
-            embedded = xenrt.TEC().lookup("OPTION_EMBEDDED_HDD",
-                                          False,
-                                          boolean=True)
     nameserver = None
     hostname = None
     ipv6_addr = None
@@ -278,37 +271,14 @@ def createHost(id=0,
     else:
         primarydisk = host.getInstallDisk(ccissIfAvailable=host.USE_CCISS)
 
-    if embedded:
-        if overlay:
-            raise xenrt.XRTError("Harness overlay not supported for embedded")
-        host.installEmbedded(interfaces=interfaces)
-        xenrt.sleep(180)
-        if host.special.has_key('legacy embedded install method'):
-            # Clean the local disks again. This is in case the
-            # local disk wasn't available in the bootstrap
-            # environment. If we used the built-in firstboot
-            # revert-to-factory then skip this cleanup
-            if host.execdom0("grep -q xenrt-revert-to-factory /etc/init.d/xs-test",
-                             retval="code") != 0:
-                host.cleanLocalDisks()
-                host.removeEmbeddedState()
-        host._clearObjectCache()
-        host.reboot()
-        xenrt.sleep(120)
-        if not xenrt.TEC().lookup("OPTION_NO_DISK_CLAIM",
-                                  False,
-                                  boolean=True):
-            host.getLocalSR()
-        host.setHostParam("name-label", host.getName())
-    else:
-        handle = host.install(interfaces=interfaces,
-                              nameserver=nameserver,
-                              primarydisk=primarydisk,
-                              guestdisks=guestdisks,
-                              overlay=overlay,
-                              installSRType=installSRType,
-                              hostname=hostname,
-                              suppackcds=suppackcds)
+    handle = host.install(interfaces=interfaces,
+                          nameserver=nameserver,
+                          primarydisk=primarydisk,
+                          guestdisks=guestdisks,
+                          overlay=overlay,
+                          installSRType=installSRType,
+                          hostname=hostname,
+                          suppackcds=suppackcds)
 
     if license:
         if not usev6testd:
@@ -343,21 +313,6 @@ def createHost(id=0,
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
         papp = host.applyRequiredPatches()
-
-    if papp and embedded:
-        # Temporary fix to update the host object in a upgrade type of update
-        # pending a proper fix as XRT-5179.
-        # If the productVersion after the update(s) is different to what
-        # we have now "upgrade" the host object.zzz
-        host.checkVersion()
-        if hosttype != host.productVersion:
-            xenrt.TEC().comment("Detected upgrade of %s from %s to %s" %
-                                (host.getName(), hosttype, host.productVersion))
-            newHost = xenrt.lib.xenserver.hostFactory(host.productVersion)(host.machine, productVersion=host.productVersion)
-            host.populateSubclass(newHost)
-            xenrt.TEC().registry.hostReplace(host, newHost)
-            host = newHost
-            host.postUpgrade()
 
     if withisos:
         srs = []
@@ -416,15 +371,6 @@ def productPatchPathForVersionPatch(version, patchid):
                              (version, patchid))
     return patch
 
-def productOEMUpdatePathForVersionPatch(version, patchid):
-    """Return the path to the specified OEM update for this version."""
-    patch = xenrt.TEC().lookup(["OEM_UPDATE_%s" % (version.upper()),
-                                patchid.upper()], None)
-    if not patch:
-        raise xenrt.XRTError("No patch path set for for %s %s" %
-                             (version, patchid))
-    return patch
-
 def createHostViaVersionPath(id=0,
                              pool=None,
                              name=None,
@@ -433,7 +379,6 @@ def createHostViaVersionPath(id=0,
                              diskCount=1,
                              versionPath=None,
                              withisos=False,
-                             embedded=None,
                              noisos=None,
                              overlay=None,
                              installSRType=None,
@@ -464,7 +409,6 @@ def createHostViaVersionPath(id=0,
                       diskCount=diskCount,
                       productVersion=currentMajorVersion,
                       withisos=withisos,
-                      embedded=embedded,
                       noisos=noisos,
                       overlay=overlay,
                       installSRType=installSRType,
@@ -502,39 +446,15 @@ def upgradeHostViaVersionPath(host, versionPath, currentVersion=None):
             xenrt.TEC().logverbose(\
                 "upgradeHostViaVersionPath update %s with %s" %
                 (currentMajorVersion, item))
-            if host.embedded:
-                patchpath = productOEMUpdatePathForVersionPatch(\
-                    currentMajorVersion,
-                    item)
-            else:
-                patchpath = productPatchPathForVersionPatch(\
-                    currentMajorVersion,
-                    item)
+            patchpath = productPatchPathForVersionPatch(\
+                currentMajorVersion,
+                item)
             patches = host.minimalList("patch-list")
-            if host.embedded:
-                updatefile = xenrt.TEC().getFile(patchpath)
-                if not updatefile:
-                    raise xenrt.XRTError("Unable to retrieve update %s" %
-                                         (patchpath))
-                if updatefile[-4:] == ".bz2":
-                    newfile = "%s/update-%08x.fs" % \
-                              (xenrt.TEC().getWorkdir(),
-                               random.randint(0, 0x7fffffff))
-                    shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-                    xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-                    try:
-                        host.applyOEMUpdate(newfile)
-                    finally:
-                        os.unlink(newfile)
-                else:
-                    host.applyOEMUpdate(updatefile)
-                host.reboot()
-            else:
-                pfile = xenrt.TEC().getFile(patchpath)
-                if not pfile:
-                    raise xenrt.XRTError("Unable to retrieve hotfix %s" %
-                                         (patchpath))
-                host.applyPatch(pfile, applyGuidance=True)
+            pfile = xenrt.TEC().getFile(patchpath)
+            if not pfile:
+                raise xenrt.XRTError("Unable to retrieve hotfix %s" %
+                                     (patchpath))
+            host.applyPatch(pfile, applyGuidance=True)
             patches2 = host.minimalList("patch-list")
             host.execdom0("xe patch-list")
             if len(patches2) <= len(patches):
@@ -594,6 +514,7 @@ class Host(xenrt.GenericHost):
     INSTALL_INTERFACE_SPEC = "MAC"
     LINUX_INTERFACE_PREFIX = "xenbr"
     USE_CCISS = True
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm"
 
     def __init__(self, machine, productVersion="Orlando", productType="xenserver"):
         xenrt.GenericHost.__init__(self,
@@ -605,8 +526,6 @@ class Host(xenrt.GenericHost):
         self.pool = None
         self.dom0uuid = None
         self.templates = None
-        self.embedded = False
-        self.embedded_hdd = False
         self.uuid = None
         self.tailored = None
         self.bootLun = None
@@ -664,8 +583,6 @@ class Host(xenrt.GenericHost):
         x.pool = self.pool
         if x.pool:
             x.pool.updateHostObject(self, x)
-        x.embedded = self.embedded
-        x.embedded_hdd = self.embedded_hdd
         x.i_cd = self.i_cd
         x.i_primarydisk = self.i_primarydisk
         x.i_guestdisks = self.i_guestdisks
@@ -713,11 +630,6 @@ class Host(xenrt.GenericHost):
 
     def existing(self, doguests=True):
         """Initialise this host object from an existing installed host"""
-        # Check if this is embedded
-        if self.execdom0("grep -q '/ squashfs' /proc/mounts", retval="code") \
-                == 0:
-            self.embedded = True
-            
         # Check the management host address
         ip = self.execdom0("xe host-param-get uuid=%s param-name=address" %
                            (self.getMyHostUUID())).strip()
@@ -1336,7 +1248,7 @@ ln -s %s opt/xensource/sm/%s
 """ % (srfile, srtarget, srfile, srtarget, srfile)
 
         v6hack = ""
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
         if upgrade and not mockd:
             # Set up a temporary WWW directory to hold the v6testd
             v6webdir = xenrt.WebDirectory()
@@ -1888,90 +1800,10 @@ done
 
     def _upgrade(self, newVersion, suppackcds=None):
         # Upgrade to the current version
-        if self.embedded:
-            # Figure out the update filename etc
-            signedupdate = xenrt.TEC().lookup(\
-                "OEM_UPGRADE_%s" % (newVersion.upper()), None)
-            eiu = xenrt.TEC().lookup("EMBEDDED_IMAGE_UPDATE", None)
-            esu = xenrt.TEC().lookup("EMBEDDED_SIGNED_UPDATE",
-                                     False,
-                                     boolean=True)
-            if signedupdate or (eiu and esu):
-                if signedupdate:
-                    imgfile = xenrt.TEC().getFile(signedupdate)
-                else:
-                    # We're using a signed update, so find it and apply it
-                    basename = xenrt.TEC().lookup("EMBEDDED_IMAGE_UPDATE")
-                    imgfile = None
-                    for p in ["", "oem-phase-1/", "oem-phase-2/"]:
-                        imgfile = xenrt.TEC().getFile("%s%s" % (p,basename))
-                        if imgfile:
-                            break
-                    if not imgfile:
-                        raise xenrt.XRTError("Embedded update (%s) not found" %
-                                             (basename))
-                    
-                self.applyOEMUpdate(imgfile)
-                self.reboot()
-                self.installComplete((None, None, None),
-                                     waitfor=False,
-                                     upgrade=True)
-                self.postUpgrade()
-                return
-
-            basename = xenrt.TEC().lookup("EMBEDDED_IMAGE_UPDATE", None)
-            if basename:
-                basenames = [basename]
-            else:
-                eiStem = xenrt.TEC().lookup("EMBEDDED_IMAGE", "embedded.img")
-                # Strip off the extension
-                eiStem = os.path.splitext(eiStem)[0]
-                # We're looking for a .fs, or a .fs.bz2 with the right name
-                basenames = ["%s.fs" % (eiStem), "%s.fs.bz2" % (eiStem)]
-            # Try and find a basename
-            imgfile = None
-            for b in basenames:
-                for p in ["", "oem-phase-1/", "oem-phase-2/"]:                
-                    imgfile = xenrt.TEC().getFile("%s%s" % (p,b))
-                    if imgfile:
-                        break
-            if not imgfile:
-                raise xenrt.XRTError("No XE embedded filesystem (%s) found" %
-                                     (basenames))
-
-            filetodelete = None
-            try:
-                # Decompress it if it's .bz2
-                if imgfile[-4:] == ".bz2":
-                    xenrt.TEC().logverbose("Decompressing update image")
-                    idir = xenrt.TEC().tempDir()
-                    newfile = "%s/embedded.fs" % (idir)
-                    shutil.copyfile(imgfile, "%s.bz2" % (newfile))
-                    filetodelete = "%s.bz2" % (newfile)
-                    xenrt.command("bunzip2 %s.bz2" % (newfile))
-                    imgfile = newfile
-                    filetodelete = newfile
-                if imgfile[-6:] == ".xsoem":
-                    skipsig = False
-                else:
-                    skipsig = True
-                self.applyOEMUpdate(imgfile, skipsig=skipsig)
-            finally:
-                if filetodelete:
-                    try:
-                        os.unlink(filetodelete)
-                    except:
-                        pass
-            self.reboot()
-            self.installComplete((None, None, None),
-                                 waitfor=False,
-                                 upgrade=True)
-            self.postUpgrade()
-        else:
-            self.install(upgrade=True, suppackcds=suppackcds)
-            
-            if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
-                self.applyRequiredPatches()
+        self.install(upgrade=True, suppackcds=suppackcds)
+        
+        if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
+            self.applyRequiredPatches()
 
     def applyWorkarounds(self):
         """Apply any workarounds to this host"""
@@ -2109,39 +1941,6 @@ done
         except:
             pass
 
-        # Check we have booted into the correct type of image
-        if self.embedded:
-            # Flash or HDD, check the common first
-            try:
-                device = self.embeddedRootDevice(sysblock=True)
-            except:
-                raise xenrt.XRTError(\
-                    "Host !%s has not booted into an embedded image" %
-                    (self.getName()))
-            f = self.findUSBDevice()
-            if f:
-                f = f[5:]
-            if self.embedded_hdd:
-                if f and f == device:
-                    raise xenrt.XRTError(\
-                        "Host !%s has booted with a flash root device" %
-                        (self.getName()))
-            else:
-                if not f or f != device:
-                    raise xenrt.XRTError(\
-                        "Host !%s has not booted with a flash root device" %
-                        (self.getName()))
-        else:
-            # Make sure this isn't embedded
-            try:
-                device = self.embeddedRootDevice(sysblock=True)
-            except:
-                pass
-            else:
-                raise xenrt.XRTError(\
-                    "Host !%s has booted into an embedded image" %
-                    (self.getName()))
-
         dom0cpus = xenrt.TEC().lookup("OPTION_XE_SMP_DOM0", None)
         if dom0cpus:
             if dom0cpus == "ALL":
@@ -2202,19 +2001,11 @@ done
         # Enable guest console logging
         if xenrt.TEC().lookup("ENABLE_VM_CONSOLE_LOGS", True, boolean=True):
             try:
-                self.enableGuestConsoleLogger(persist=True, embedded=self.embedded)
+                self.enableGuestConsoleLogger(persist=True)
             except Exception, e:
                 xenrt.TEC().warning("Exception while enabling guest console "
                 "logger: " + str(e))
 
-        if xenrt.TEC().lookup("OPTION_OEM_ALL_LOGS", False, boolean=True):
-            xenrt.TEC().comment("Enabling extra OEM logging")
-            if self.execdom0("test -e /etc/xensource/xenstored-no-access-log",
-                             retval="code") == 0:
-                self.execdom0("rm -f /etc/xensource/xenstored-no-access-log")
-                self.reboot()
-            self.execdom0("rm -f /etc/xensource/no_sm_log")
-                
         xenrt.TEC().progress("Completed installation of XenServer host")
 
         if upgrade:
@@ -2427,48 +2218,6 @@ done
             guidanceList = self.minimalList("patch-list params=after-apply-guidance hosts:contains=%s" % self.uuid)
             guidance = [guide for guide in set(guidanceList) if guide and guidanceList.count(guide)>existingGuidanceList.count(guide) ]
             self.applyGuidance( guidance)
-
-        # OEM_UPDATE contains any updates to be applied regardless of
-        # the product version being installed. It is either a comma separated
-        # list of update paths or a tree of variables of update paths.
-        updates = xenrt.TEC().lookupLeaves("OEM_UPDATE")
-        if len(updates) == 1:
-            # Possibly legacy use with a comma-separated list
-            updates = string.split(updates[0], ",")
-
-        # OEM_UPDATE_<version> (where <version> is upper case) is a
-        # per-version set of updates using the same syntax as OEM_UPDATE
-        vupdates = xenrt.TEC().lookupLeaves("OEM_UPDATE_%s" % self.productVersion.upper())
-        if len(vupdates) == 1:
-            # Possibly legacy use with a comma-separated list
-            vupdates = string.split(vupdates[0], ",")
-        updates.extend(vupdates)
-
-        # Apply all updates we found
-        for update in [x for x in updates if x != "None"]:
-            xenrt.TEC().progress("Applying OEM update %s" % (update))
-            updatefile = xenrt.TEC().getFile(update)
-            if not updatefile: raise xenrt.XRTError("Couldn't retrieve %s." % (update))
-            if updatefile[-4:] == ".bz2":
-                newfile = "%s/update_%s" % (xenrt.TEC().getWorkdir(),
-                                            self.getName())
-                shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-                xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-                try:
-                    self.applyOEMUpdate(newfile)
-                finally:
-                    os.unlink(newfile)
-            else:
-                self.applyOEMUpdate(updatefile)
-            self.reboot()
-        if len([x for x in updates if x != "None"]) > 0:
-            if xenrt.TEC().lookup("ENABLE_VM_CONSOLE_LOGS", True, boolean=True):
-                try:
-                    self.enableGuestConsoleLogger(persist=True,embedded=True)
-                except Exception, e:
-                    xenrt.TEC().warning("Exception while enabling guest console "
-                                        "logger: " + str(e))
-            reply = True
 
         # Apply any upgraded RPMs. CARBON_RPM_UPDATES contains any
         # RPMs to be applied regardless of the product version being
@@ -3020,88 +2769,44 @@ done
                 self.getTemplate("debian"),
                 self,
                 password=xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN"))
-            if self.embedded:
-                # Import a static VM image
-                xenrt.TEC().logverbose("Import a static VM image")
-                t.setHost(self)
-                t.distro = "etch"
-                imagefile = "%s/etch-4.1.img" % (xenrt.TEC().lookup("VM_IMAGES_DIR"))
-                t.importVM(self, imagefile, sr=sr)
-                t.paramSet("PV-args", "noninteractive")
-                if bridge:
-                    br = bridge
-                else:
-                    br = self.getPrimaryBridge()
-                if not br:
-                    raise xenrt.XRTError("Host has no bridge")
-                t.vifs = [("eth0", br, xenrt.randomMAC(), None)]
-                for v in t.vifs:
-                    eth, bridge, mac, ip = v
-                    t.createVIF(eth, bridge, mac)
-
-                t.use_ipv6 = use_ipv6
-                if not use_ipv6:
-                    t.use_ipv6 = self.lookup('USE_GUEST_IPV6', False, boolean=True)
-
-
-                # Make sure tools are up to date (XRT-3897)
-                # We allow extra time for the first boot because the age of
-                # the template may cause a forced fsck on boot
-                t.start(extratime=True)
-                t.installTools(reboot=False, updateKernel=False)
-                t.shutdown()
-
-                # Remove the CD drive we added when installing tools. This is
-                # to make the VM match the config of the template-installed
-                # one on retail.
-                t.removeCD()
-
-                if vcpus != None:
-                    t.setVCPUs(vcpus)
-                if memory != None:
-                    t.setMemory(memory)
-
-                if start:
-                    t.start()
+            # Install from Debian template
+            xenrt.TEC().logverbose("Install from Debian template")
+            if disksize == None:
+                disksize = t.DEFAULT
+            if vcpus != None:
+                t.setVCPUs(vcpus)
+            if memory != None:
+                t.setMemory(memory)
+            if bridge:
+                vifs = [("eth0", bridge, xenrt.randomMAC(), None)]
+                t.install(self,
+                          distro="debian",
+                          start=start,
+                          sr=sr,
+                          vifs=vifs,
+                          rootdisk=disksize,
+                          use_ipv6=use_ipv6,
+                          rawHBAVDIs=rawHBAVDIs)
             else:
-                # Install from Debian template
-                xenrt.TEC().logverbose("Install from Debian template")
-                if disksize == None:
-                    disksize = t.DEFAULT
-                if vcpus != None:
-                    t.setVCPUs(vcpus)
-                if memory != None:
-                    t.setMemory(memory)
-                if bridge:
-                    vifs = [("eth0", bridge, xenrt.randomMAC(), None)]
-                    t.install(self,
-                              distro="debian",
-                              start=start,
-                              sr=sr,
-                              vifs=vifs,
-                              rootdisk=disksize,
-                              use_ipv6=use_ipv6,
-                              rawHBAVDIs=rawHBAVDIs)
-                else:
-                    t.install(self,
-                              distro="debian",
-                              start=start,
-                              sr=sr,
-                              rootdisk=disksize,
-                              use_ipv6=use_ipv6,
-                              rawHBAVDIs=rawHBAVDIs)
-                # Make sure the tools and kernel are up to date (CA-35375)
-                try:
-                    # Only do this if the tools are out of date, and if we started
-                    # the VM (CA-35436)
-                    if start and t.paramGet("PV-drivers-up-to-date") != "true":
-                        t.installTools(updateKernel=allowUpdateKernel)
-                        # Remove the CD drive to match original behaviour (CA-35385)
-                        t.removeCD()
-                except Exception, e:
-                    xenrt.TEC().logverbose("Exception updating tools on Etch VM:"
-                                           " %s" % (str(e)))
-                
+                t.install(self,
+                          distro="debian",
+                          start=start,
+                          sr=sr,
+                          rootdisk=disksize,
+                          use_ipv6=use_ipv6,
+                          rawHBAVDIs=rawHBAVDIs)
+            # Make sure the tools and kernel are up to date (CA-35375)
+            try:
+                # Only do this if the tools are out of date, and if we started
+                # the VM (CA-35436)
+                if start and t.paramGet("PV-drivers-up-to-date") != "true":
+                    t.installTools(updateKernel=allowUpdateKernel)
+                    # Remove the CD drive to match original behaviour (CA-35385)
+                    t.removeCD()
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception updating tools on Etch VM:"
+                                       " %s" % (str(e)))
+            
             return t
 
     def createGenericWindowsGuest(self,
@@ -3835,34 +3540,6 @@ done
         cli.execute("patch-destroy",
                     "uuid=%s" % (uuid))
 
-    def applyOEMUpdate(self, patchfile, skipsig=None):
-        """Upload an OEM update to the host"""
-        cli = self.getCLIInstance()
-        xenrt.TEC().logverbose("Applying OEM update %s" % (patchfile))
-        # Consider automatically skipping the OEM signature check if
-        # we haven't specified a skipsig behaviour
-        if skipsig == None and patchfile[-6:] != ".xsoem":
-            skipsig = True
-        didskip = False
-        if (xenrt.TEC().lookup("OEM_SKIP_SIGNATURE", False, boolean=True) or \
-            skipsig) and skipsig != False:
-            self.execdom0("touch /etc/xensource/skipsignature")
-            didskip = True
-            xenrt.TEC().warning("Skipping OEM update signature check")
-        try:
-            cli.execute("update-upload", "file-name=\"%s\" host-uuid=\"%s\"" % 
-                        (patchfile,self.getMyHostUUID()))
-        finally:
-            if didskip:
-                self.execdom0("rm -f /etc/xensource/skipsignature")
-        if xenrt.TEC().lookup("WORKAROUND_CA30130", False, boolean=True):
-            xenrt.TEC().warning("Using CA-30130 workaround")
-            try:
-                cli.execute("pool-sync-database")
-            except Exception, e:
-                xenrt.TEC().warning("Exception running pool-sync-database in "
-                                    "CA-30130 workaround: %s" % (str(e)))
-
     def uploadBugReport(self):
         xenrt.TEC().logverbose("Uploading bugreport.")
         cli = self.getCLIInstance()
@@ -4289,11 +3966,6 @@ done
         self.postBoot()
 
     def postBoot(self, sleeptime=120):
-        if self.embedded:
-            if self.execdom0("ps axfww | grep -q xenrt-write-counte[r] ",
-                             retval="code") != 0:
-                self.execdom0("nohup /etc/xenrt-write-counter.sh > /dev/null "
-                              "2>&1 < /dev/null &")
         xenrt.sleep(sleeptime)
         
 
@@ -4346,8 +4018,6 @@ done
 
     def tailor(self):
         xenrt.GenericHost.tailor(self)
-        if self.embedded:
-            self.enableWriteCounter()
         if self.lookup("DEBUG_CA12048", False, boolean=True):
             xenrt.TEC().warning("Enabling debugging for CA-12048")
             eth = self.getDefaultInterface()
@@ -6306,708 +5976,6 @@ done
                     "uuid=%s is-a-template=false" % (templateuuid))
         cli.execute("vm-uninstall", "uuid=%s --force" % (templateuuid))
 
-    #########################################################################
-    # Embedded edition methods
-    def getEmbeddedImage(self, image):
-        """Return the path to the embedded image to use and its basename."""
-        if image:
-            imgfile = image
-            basename = os.path.basename(imgfile)
-        else:
-            # Look up a file to install
-            basename = xenrt.TEC().lookup("EMBEDDED_IMAGE", "embedded.img")
-            imgfile = xenrt.TEC().getFile(basename)
-            if not imgfile:
-                imgfile = xenrt.TEC().getFile("oem-phase-1/%s" % (basename))
-            if not imgfile:
-                imgfile = xenrt.TEC().getFile("oem-phase-2/%s" % (basename))
-            if not imgfile:
-                raise xenrt.XRTError("No XE embedded image file (%s) found" %
-                                     (basename))
-        return (imgfile, basename)
-
-    def installOEMViaInstaller(self,
-                               interfaces=[(None,
-                                            "yes",
-                                            "dhcp",
-                                            None,
-                                            None,
-                                            None)],
-                               image=None,
-                               flash=False,
-                               ramdisk_size=1000 * xenrt.KILO):
-        """Install a OEM HDD/flash image using the PXE/answerfile mechanism."""
-        self.embedded = True
-
-        workdir = xenrt.TEC().getWorkdir()
-        toDelete = []
-        
-        xenrt.TEC().progress("Starting installation of OEM host on %s" %
-                             (self.machine.name))
-
-        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        comport = str(int(serport) + 1)
-
-        if xenrt.TEC().lookup("OEM_CLEAN_LOCAL_DISKS", False, boolean=True):
-            # Boot the host with a network booted Linux image
-            pxe = self.bootRamdiskLinux()
-            self.execdom0("mount -t tmpfs xxx /tmp")
-    
-            # Blank the partition tables of any fixed disks so that the
-            # product will install SRs on them.
-            # This will help if the disk previously had a GPT partition
-            self.cleanLocalDisks()
-        
-        # If the image or EMBEDDED_IMAGE has been specified as a .iso file
-        # then assume this to be the recovery CD which also contains the
-        # image file. Otherwise assume it's the image file and look for a
-        # recovery CD with the same name stem.
-        ifile = image
-        if not ifile:
-            ifile = xenrt.TEC().lookup("EMBEDDED_IMAGE", "embedded.img")
-        if ifile[-4:] == ".iso":
-            cdfile = xenrt.TEC().getFile(ifile)
-            if not cdfile:
-                cdfile = xenrt.TEC().getFile("oem-phase-1/%s" % (ifile))
-            if not cdfile:
-                cdfile = xenrt.TEC().getFile("oem-phase-2/%s" % (ifile))
-            if not cdfile:
-                raise xenrt.XRTError("No recovery CD image file (%s) found" %
-                                     (ifile))
-            xenrt.checkFileExists(cdfile)
-            # Get the image from the CD
-            xenrt.TEC().logverbose("Using image from ISO %s" % (cdfile))
-            stem = os.path.basename(cdfile).split(".")[0]
-            mount = xenrt.MountISO(cdfile)
-            try:
-                mountpoint = mount.getMount()
-                basename = None
-                for suffix in ["img.bz2"]:
-                    b = "%s.%s" % (stem, suffix)
-                    if os.path.exists("%s/%s" % (mountpoint, b)):
-                        basename = b
-                        break
-                if not basename:
-                    raise xenrt.XRTError("Could not find the OEM image on "
-                                         "the recovery ISO")
-                d = xenrt.TEC().tempDir()
-                imgfile = "%s/%s" % (d, basename)
-                toDelete.append(imgfile)
-                shutil.copyfile("%s/%s" % (mountpoint, b), imgfile)
-            finally:
-                mount.unmount()
-        else:
-            imgfile, basename = self.getEmbeddedImage(image)
-
-            # Extract boot files from the CD, assume the stem of the ISO name
-            # matches the stem of the image name.
-            stem = basename.split(".")[0]
-            cdname = "%s.recovery.iso" % (stem)
-            cdfile = xenrt.TEC().getFile(cdname)
-            if not cdfile:
-                cdfile = xenrt.TEC().getFile("oem-phase-1/%s" % (cdname))
-            if not cdfile:
-                cdfile = xenrt.TEC().getFile("oem-phase-2/%s" % (cdname))
-            if not cdfile:
-                raise xenrt.XRTError("No recovery CD image file (%s) found" %
-                                     (cdname))
-            xenrt.checkFileExists(cdfile)
-        
-        # Get a PXE directory to put boot files in
-        pxe = xenrt.PXEBoot()
-
-        # Pull installer boot files from CD image and put into PXE
-        # directory
-        xenrt.TEC().logverbose("Using ISO %s" % (cdfile))
-        mount = xenrt.MountISO(cdfile)
-        try:
-            mountpoint = mount.getMount()
-            pxe.copyIn("%s/boot/*" % (mountpoint))
-            pxe.copyIn("%s/recovery.img" % (mountpoint))
-            xenfiles = glob.glob("%s/boot/xen*" % (mountpoint))
-            xenfiles.extend(glob.glob("%s/boot/xen.gz" % (mountpoint)))
-            if len(xenfiles) == 0:
-                raise xenrt.XRTError("Could not find a xen* file to boot")
-            xenfile = os.path.basename(xenfiles[-1])
-            kernelfiles = glob.glob("%s/boot/vmlinuz*" % (mountpoint))
-            if len(kernelfiles) == 0:
-                raise xenrt.XRTError("Could not find a vmlinuz* file to boot")
-        finally:
-            mount.unmount()
-        
-        # Create an NFS directory for images, signals, etc.
-        nfsdir = xenrt.NFSDirectory()
-
-        try:
-            # Copy the image file to the NFS directory
-            nfsdir.copyIn(imgfile)
-
-            # Prepare an answerfile for install
-            eth, a, b, c, d, e, f, g, h = interfaces[0]
-            if eth:
-                mgmtnet = eth
-            else:
-                v = self.lookup(["CLIOPTIONS", "REVISION"], "0")
-                mac = self.lookup("MAC_ADDRESS", None)
-                if mac and v > "4.1.920-10405":
-                    # We have CA-21060 support for MAC address
-                    mgmtnet = mac.lower()
-                else:
-                    # We have to use eth name
-                    self.special['getDefaultInterface no PIF check'] = True
-                    mgmtnet = self.getDefaultInterface()
-                    del self.special['getDefaultInterface no PIF check']
-            if flash:
-                disk = self.lookup("USB_BOOT_DEVICE")
-                mode = "oemflash"
-            else:
-                disk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
-                mode = "oemhdd"
-            ansfile = "%s/%s-install.xml" % (workdir, self.getName())
-            url = nfsdir.getMountURL("")
-            purl = nfsdir.getURL("post-install-script-%s" % (self.getName()))
-            furl = nfsdir.getURL("install-failed-script-%s" % (self.getName()))
-
-            anstext = """<?xml version="1.0"?>
-<installation mode="%s" srtype="%s">
-<primary-disk>%s</primary-disk>
-<source type="nfs">%s</source>
-<post-install-script>%s</post-install-script>
-<install-failed-script>%s</install-failed-script>
-<xenrt scorch="true" serial="%s">%s</xenrt>
-</installation>
-""" % (mode, self.lookup("INSTALL_SR_TYPE", "lvm"),
-       disk,
-       nfsdir.getMountURL(basename),
-       purl,
-       furl,
-       serport,
-       mgmtnet)
-
-            ans = file(ansfile, "w")
-            ans.write(anstext)
-            ans.close()
-            nfsdir.copyIn(ansfile)
-            xenrt.TEC().copyToLogDir(ansfile)
-
-            if flash:
-                killflash = ""
-            else:
-                killflash = """
-# If we know we have a USB stick in this box dd zeros on to it to make sure
-# it doesn't boot
-if [ -n "%s" ]; then
-    dd if=/dev/zero of=/dev/%s count=1024
-fi
-""" % (self.lookup("USB_BOOT_DEVICE", ""), self.lookup("USB_BOOT_DEVICE", ""))
-
-            # Create the installer post-install script
-            pifile = "%s/post-install-script-%s" % (workdir,self.getName())
-            pi = file(pifile, "w")
-            pitext = """#!/bin/bash
-%s
-# Signal XenRT that we've finished
-mkdir /tmp/xenrttmpmount
-mount -t nfs %s /tmp/xenrttmpmount
-touch /tmp/xenrttmpmount/.xenrtsuccess
-umount /tmp/xenrttmpmount
-sleep 30
-""" % (killflash, nfsdir.getMountURL(""))
-            pi.write(pitext)
-            pi.close()
-            nfsdir.copyIn(pifile)
-            xenrt.TEC().copyToLogDir(pifile)
-
-            # Create a script to run on install failure (on builds that
-            # support this)
-            fifile = "%s/install-failed-script-%s" % (workdir,self.getName())
-            fi = file(fifile, "w")
-            fitext = """#!/bin/bash
-        
-# Signal XenRT that we've failed
-mkdir /tmp/xenrttmpmount
-mount -t nfs %s /tmp/xenrttmpmount
-echo "Failed install" > /tmp/failedinstall
-cat /tmp/failedinstall /tmp/install-log > /tmp/xenrttmpmount/.xenrtsuccess
-umount /tmp/xenrttmpmount
-
-# Now stop here so we don't boot loop
-while true; do
-    sleep 30
-done
-""" % (nfsdir.getMountURL(""))
-            fi.write(fitext)
-            fi.close()
-            nfsdir.copyIn(fifile)
-            xenrt.TEC().copyToLogDir(fifile)
-
-            # Set the boot files and options for PXE
-            pxe.setSerial(serport, serbaud)
-            chainusbboot = self.lookup("PXE_CHAIN_USB_BOOT", None)
-            chainlocal = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
-            if flash and chainusbboot:
-                pxe.addEntry("local", boot="chainlocal", options=chainusbboot)
-            elif chainlocal:
-                pxe.addEntry("local", boot="chainlocal", options=chainlocal)
-            else:
-                pxe.addEntry("local", boot="local")
-            pxecfg = pxe.addEntry("oemhddinstall", default=1, boot="mboot")
-            kernelfile = os.path.basename(kernelfiles[-1])
-            pxecfg.mbootSetKernel(xenfile)
-            pxecfg.mbootSetModule1(kernelfile)
-            pxecfg.mbootSetModule2("recovery.img")
-        
-            pxecfg.mbootArgsKernelAdd("watchdog")
-            pxecfg.mbootArgsKernelAdd("com%s=%s,8n1" % (comport, serbaud))
-            pxecfg.mbootArgsKernelAdd("console=com%s,tty" % (comport))
-            pxecfg.mbootArgsModule1Add("root=/dev/ram0")
-            pxecfg.mbootArgsModule1Add("console=tty0")
-            pxecfg.mbootArgsModule1Add("console=ttyS%s,%sn8" % (serport, serbaud))
-            pxecfg.mbootArgsModule1Add("ramdisk_size=65536")
-            if flash:
-                pxecfg.mbootArgsModule1Add("install_oem_to_flash")
-            else:
-                pxecfg.mbootArgsModule1Add("install_oem_to_disk")
-            pxecfg.mbootArgsModule1Add("rt_answerfile=%s" %
-                                       (nfsdir.getURL("%s-install.xml" %
-                                                      (self.getName()))))
-            pxecfg.mbootArgsModule1Add("output=ttyS0")
-            mac = self.lookup("MAC_ADDRESS", None)
-            if mac:
-                pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
-        
-            # Set up PXE for installer boot
-            pxefile = pxe.writeOut(self.machine)
-            pfname = os.path.basename(pxefile)
-            xenrt.TEC().copyToLogDir(pxefile,target="%s.pxe.txt" % (pfname))
-
-            # Reboot the host into the installer
-            self.machine.powerctl.cycle()
-            xenrt.TEC().progress("Rebooted host to start installation.")
-
-            # Monitor for installation complete
-            try:
-                xenrt.waitForFile("%s/.xenrtsuccess" % (nfsdir.path()),
-                                  1800,
-                                  desc="Installer boot on !%s" %
-                                  (self.getName()))
-            except xenrt.XRTException, e:
-                if not re.search("timed out", e.reason):
-                    raise e
-                # Try again if this is a known BIOS/hardware boot problem
-                if not self.checkForHardwareBootProblem(True):
-                    raise e
-                xenrt.waitForFile("%s/.xenrtsuccess" % (nfsdir.path()),
-                                  1800,
-                                  desc="Installer boot on !%s" %
-                                  (self.getName()))
-            self.checkHostInstallReport("%s/.xenrtsuccess" % (nfsdir.path()))
-            xenrt.TEC().progress("Installation complete, waiting for host "
-                                 "boot.")
-
-            # Boot the local disk  - we need to update this before the machine
-            # reboots after setting the signal flag.
-            pxe.setDefault("local")
-            pxe.writeOut(self.machine)
-
-            # Delete any files we no longer need
-            for f in toDelete:
-                try:
-                    os.unlink(f)
-                except:
-                    pass
-
-            handle = (None, None, pxe)
-            self.password = self.lookup("EMBEDDED_PASSWORD")
-            self.installComplete(handle, waitfor=False)
-        finally:
-            # Remove the NFS directory to avoid leaking the space used by the
-            # image file
-            nfsdir.remove()
-            
-        # If we wanted a VHD local SR remove the default LVM one(s) and
-        # replace with VHD
-        srtype = self.lookup("INSTALL_SR_TYPE", "lvm")
-        if srtype == "ext":
-            # Get all local LVM SRs
-            srs = self.getSRs(type="lvm", local=True)
-
-            # Record the devices
-            devices = []
-            for sr in srs:
-                pbd = self.parseListForOtherParam("pbd-list",
-                                                  "sr-uuid",
-                                                  sr,
-                                                  "uuid")
-                device = self.genParamGet("pbd", pbd, "device-config", "device")
-                devices.append(device)
-
-            # Destroy the SRs
-            for sr in srs:
-                self.destroySR(sr)
-
-            # Create new SRs on the same devices
-            cli = self.getCLIInstance()
-            newsrs = []
-            for device in devices:
-                args = []
-                args.append("content-type=")
-                args.append("physical-size=0")
-                args.append("host-uuid=%s" % (self.getMyHostUUID()))
-                args.append("type=%s" % (srtype))
-                args.append("device-config:device=%s" % (device))
-                args.append("name-label=Local%s-%s" % (srtype, device))
-                sr = cli.execute("sr-create", string.join(args), strip=True)
-                newsrs.append(sr)
-
-            # Make one of these the default SR for everything (to match what
-            # the LVM one was)
-            if len(newsrs) > 0:
-                firstsr = newsrs[0]
-                self.setHostParam("suspend-image-sr-uuid", firstsr)
-                self.setHostParam("crash-dump-sr-uuid", firstsr)
-                p = self.minimalList("pool-list")[0]
-                self.genParamSet("pool", p, "default-SR", firstsr)
-
-        return None
-
-    def installEmbedded(self,
-                        ramdisk_size=1000 * xenrt.KILO,
-                        interfaces=[(None, "yes", "dhcp", None, None, None)],
-                        image=None):
-        """Install a XE-embedded image to a host's USB storage"""
-        # If the build supports it use the installer ISO
-        pxeok = self.special.has_key('Supports OEM install via host installer') \
-            and self.special['Supports OEM install via host installer']
-        usb = self.lookup("USB_BOOT_DEVICE", None)
-        v = self.lookup(["CLIOPTIONS", "REVISION"], "0")
-        self.embedded_hdd = self.lookup("OPTION_EMBEDDED_HDD", False, boolean=True)
-        flash = not self.embedded_hdd
-        useOldMethod = self.lookup("OPTION_NO_OEM_INSTALLER", False,
-                                   boolean=True)
-        
-        if (pxeok and usb and v > "4.2.920-10409" and not useOldMethod) or \
-           not flash:
-            self.installOEMViaInstaller(interfaces=interfaces,
-                                        image=image,
-                                        flash=flash,
-                                        ramdisk_size=ramdisk_size)
-            return None
-
-        imgfile, basename = self.getEmbeddedImage(image)
-        if basename[-4:] == ".iso":
-            # We'll assume this is a recovery CD and it contains a version
-            # that is capable of being installed in that way.
-            xenrt.TEC().warning("Embedded image is an ISO. Assuming this is "
-                                "a recovery CD image that can install the "
-                                "product.")
-            self.installOEMViaInstaller(interfaces=interfaces,
-                                        image=image,
-                                        flash=flash,
-                                        ramdisk_size=ramdisk_size)
-            return None
-
-        self.embedded = True
-        self.special['legacy embedded install method'] = True
-
-        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        comport = str(int(serport) + 1)
-
-        # Boot the host with a network booted Linux image
-        pxe = self.bootRamdiskLinux()
-        self.execdom0("mount -t tmpfs xxx /tmp")
-
-        # Blank the partition tables of any fixed disks so that the
-        # product will install SRs on them.
-        # This will help if the disk previously had a GPT partition
-        self.cleanLocalDisks()
-        
-        # Copy the embedded image to the USB stick on the host
-        self.execdom0("modprobe usb-storage")
-        xenrt.sleep(30)
-        usbdevice = self.findUSBDevice()
-        if not usbdevice:
-            raise xenrt.XRTError("Could not find the USB device")
-        xenrt.TEC().logverbose("Using USB device presented as %s" % (usbdevice))
-
-        # Get the size of the USB device for a later check
-        usbdevicesize = int(self.execdom0("cat /sys/block/%s/size" %
-                                          (os.path.basename(usbdevice)))) * 512
-        
-        bzip2rpm = None
-        newfile = None
-
-        # If we have an image the host cannot decompress then do it here
-        if basename[-4:] == ".bz2":
-            # See if the bootstrap image on the host is missing bunzip2
-            if self.execdom0("test -e /usr/bin/bunzip2", retval="code") != 0:
-                # Try to install it (this is a bit of a hack)
-                try:
-                    repository = string.split(xenrt.TEC().lookup(["RPM_SOURCE",
-                                                                  "rhel5",
-                                                                  "x86-32",
-                                                                  "HTTP"]))[0]
-                    bzip2rpm = "%s/bzip2-1.0.3-3.i386.rpm" % \
-                               (xenrt.TEC().tempDir())
-                    xenrt.util.command("wget %s/Server/bzip2-1.0.3-3.i386.rpm "
-                                       "-O %s" % (repository, bzip2rpm))
-                    sftp = self.sftpClient()
-                    try:
-                        sftp.copyTo(bzip2rpm, "/tmp/bzip2-1.0.3-3.i386.rpm")
-                    finally:
-                        sftp.close()
-                    self.execdom0("rpm --install /tmp/bzip2-1.0.3-3.i386.rpm")
-                except Exception, e:
-                    xenrt.TEC().logverbose("Exception trying to install bzip2 "
-                                           "into bootstrap image, using local "
-                                           "decompression instead: %s" %
-                                           (str(e)))
-                    bzip2rpm = None
-            # Recheck for bunzip2 and decompress locally if we still don't
-            # have it
-            if self.execdom0("test -e /usr/bin/bunzip2", retval="code") != 0:
-                newfile = "%s/embedded.img" % (xenrt.TEC().getWorkdir())
-                shutil.copyfile(imgfile, "%s.bz2" % (newfile))
-                xenrt.command("bunzip2 %s.bz2" % (newfile))
-                imgfile = newfile
-                basename = "embedded.img"
-
-        # Copy the image to the host and dd to the flash. This can be retried
-        # if there is a failure
-        try:
-            attempt = 0
-            while True:
-                attempt = attempt + 1
-                xenrt.TEC().logverbose("Attempt %u to dd the image" %
-                                       (attempt))
-                # Copy the image to the host
-                sftp = self.sftpClient()
-                try:
-                    sftp.copyTo(imgfile, "/tmp/embedded.img")
-                finally:
-                    sftp.close()
-                # Copy the image to flash
-                if basename[-4:] == ".bz2":
-                    dd = "bunzip2 -c /tmp/embedded.img | dd"
-                elif basename[-3:] == ".gz":
-                    dd = "gunzip -c /tmp/embedded.img | dd"
-                else:
-                    dd = "dd if=/tmp/embedded.img"
-                try:
-                    command = "%s of=%s bs=4096" % (dd, usbdevice)
-                    xenrt.TEC().tc.runAsync(self, command, 1800)
-                    break
-                except Exception, e:
-                    if attempt < 3:
-                        xenrt.TEC().warning("Retrying image dd after "
-                                            "exception: %s" % (str(e)))
-                        self.machine.powerctl.cycle()
-                        xenrt.sleep(120)
-                        self.waitForSSH(600)
-                        if self.execdom0("uname -r | grep -q xenrt",
-                                         retval="code") != 0:
-                            raise xenrt.XRTError("Did not reboot into "
-                                                 "ramdisk image (retry loop)")
-                        self.execdom0("mount -t tmpfs xxx /tmp")
-                        self.execdom0("modprobe usb-storage")
-                        xenrt.sleep(30)
-                        # We'll assume the USB device is the same as last boot
-
-                        # Reinstall the bzip2 RPM if we did this last time
-                        if bzip2rpm:
-                            sftp = self.sftpClient()
-                            try:
-                                sftp.copyTo(bzip2rpm,
-                                            "/tmp/bzip2-1.0.3-3.i386.rpm")
-                            finally:
-                                sftp.close()
-                            self.execdom0("rpm --install "
-                                          "/tmp/bzip2-1.0.3-3.i386.rpm")
-                    else:
-                        raise e
-        finally:
-            # If we had a temporary decompressed image then remove it
-            if newfile:
-                try:
-                    os.unlink(newfile)
-                except:
-                    pass
-
-        # Reboot so we can mess with the image for tailoring
-        self.execdom0("/sbin/reboot")
-        xenrt.sleep(120)
-        self.waitForSSH(600)
-        if self.execdom0("uname -r | grep -q xenrt", retval="code") != 0:
-            raise xenrt.XRTError("Did not reboot into ramdisk image (2nd)")
-
-        self.execdom0("modprobe usb-storage")
-        xenrt.sleep(30)
-
-        # Check the USB device is still at the same device node by checking
-        # the size matches the size from before reboot
-        sizenow = int(self.execdom0("cat /sys/block/%s/size" %
-                                    (os.path.basename(usbdevice)))) * 512
-        if sizenow != usbdevicesize:
-            usbdevice = self.findUSBDevice()
-            xenrt.TEC().logverbose("USB device has changed node to %s" %
-                                   (usbdevice))
-
-        # To enable auto network setup
-        eth, a, b, c, d, e = interfaces[0]
-        if not eth:
-            eth = self.getDefaultInterface()
-        if xenrt.TEC().lookup("FORCE_E2LABEL", False, boolean=True):
-            self.execdom0("e2label %s1 rt-%s" % (usbdevice, eth))
-        else:
-            self.execdom0("mount LABEL=IHVCONFIG /mnt")
-            self.execdom0("echo %s > /mnt/xenrt" % (eth))
-            self.execdom0("umount /mnt")
-
-        # Use built-in revert-to-factory if available
-        self.execdom0("mount LABEL=IHVCONFIG /mnt")
-        self.execdom0("echo yesimeanit > /mnt/xenrt-revert-to-factory")
-        self.execdom0("umount /mnt")
-
-        # Serial support changed somewhere around build 6300 - currently no way
-        # of determining what build we're using at this point so can't decide
-        # which to use...
-        if True:
-            self.execdom0("mount LABEL=IHVCONFIG /mnt")
-            self.execdom0("echo 'CONSOLE=/dev/ttyS%s' > /mnt/linux.opt" % 
-                          (serport))
-            self.execdom0("echo 'com%s=%s,8n1 console=com%s,tty' > "
-                          "/mnt/xen.opt" % (comport,serbaud,comport))
-            self.execdom0("umount /mnt")
-        else:
-            # Change the default boot target to be the serial one
-            self.execdom0("mount %s1 /mnt" % (usbdevice))
-            if self.execdom0("test -e /mnt/boot/extlinux.conf", retval="code") \
-                   != 0:
-                raise xenrt.XRTError("/boot/extlinux.conf not found in image")
-            mods = []
-            mods.append('-e"s/ com.=/ com%s=/g"' % (comport))
-            mods.append('-e"s/console=com./console=com%s/g"' % (comport))
-            mods.append('-e"s/ttyS./ttyS%s/g"' % (serport))
-            mods.append('-e"s/115200/%s/g"' % (serbaud))
-            mods.append('-e"s/9600/%s/g"' % (serbaud))
-            for b in ["stinyrd", "tinyrd"]:
-                if self.execdom0("grep -i -q '^label %s' "
-                                 "/mnt/boot/extlinux.conf" % (b),
-                                 retval="code") == 0:
-                    self.execdom0("mv /mnt/boot/extlinux.conf "
-                                  "/mnt/boot/extlinux.conf.orig")
-                    self.execdom0("sed -re's/^default .*$/default %s/' %s"
-                                  "< /mnt/boot/extlinux.conf.orig "
-                                  "> /mnt/boot/extlinux.conf" %
-                                  (b, string.join(mods)))
-                    break
-
-        # Reboot into the embedded image
-        pxe.setDefault("local")
-        pxe.writeOut(self.machine)
-        self.execdom0("/sbin/reboot")
-        handle = (None, None, pxe)
-        self.password = self.lookup("EMBEDDED_PASSWORD")
-        self.installComplete(handle, waitfor=False)
-        return None        
-
-    def getOEMManufacturer(self):
-        if not self.embedded:
-            raise xenrt.XRTError("Asked for OEM manufacturer on a non-embedded install")
-
-        return self.getHostParam("software-version",key="oem_manufacturer")
-
-    def embeddedRootDevice(self, sysblock=False):
-        """Returns the device in a form (optionally suitable for /sys/block)
-        (usually "sda") for the embedded root drive."""
-        rwext = string.strip(self.execdom0("grep /.flash /proc/mounts | "
-                                           "awk '{print $1}'"))
-        if rwext == "":
-            rwext = string.strip(self.execdom0("grep /.state /proc/mounts | "
-                                               "awk '{print $1}'"))
-        if rwext == "":
-            raise xenrt.XRTError("Could not determine the flash device")
-        device = xenrt.extractDevice(rwext[5:], sysblock=sysblock)
-        return device
-
-    def removeEmbeddedState(self):
-        """Moves the embedded edition state to a graveyard location that
-        will get deleted on the next boot."""
-        if self.execdom0("test -d /.flash", retval="code") == 0:
-            flash = "/.flash"
-        elif self.execdom0("test -d /.state", retval="code") == 0:
-            flash = "/.state"
-        else:
-            raise xenrt.XRTError("Could not find the embedded writable "
-                                 "directory")
-        self.execdom0("mkdir -p %s/graveyard" % (flash))
-        self.execdom0("rm -rf %s/rt-*/var/log/*" % (flash))
-        self.execdom0("rm -rf %s/rt-*/etc/opt/*" % (flash))
-        self.execdom0("rm -rf %s/xe-*/var/log/*" % (flash))
-        self.execdom0("rm -rf %s/xe-*/etc/opt/*" % (flash))
-        try:
-            self.execdom0("mv %s/rt-* %s/graveyard" % (flash, flash))
-        except:
-            pass
-        try:
-            self.execdom0("mv %s/xe-* %s/graveyard" % (flash, flash))
-        except:
-            pass
-    
-    def enableWriteCounter(self,device=None):
-        """Enable logging of write statistics for the USB device."""
-
-        append = "-%s" % (device)
-
-        if not device:
-            # Find the device for our USB stick
-            device = self.embeddedRootDevice(sysblock=True)
-            append = ""
-
-        # Build a logging script
-        devfile = "/sys/block/%s/stat" % (device)
-        partfiles = []
-        try:
-            partfiles = string.split(self.execdom0("ls /sys/block/%s/%s*/stat" %
-                                                   (device, device)))
-        except:
-            pass
-        script = """%s!/bin/bash
-while true; do
-  TS=$(date +%%s)
-  DEVW=$(awk '{print $7}' %s)
-  PARTW=""
-""" % ('#', devfile)
-        for partfile in partfiles:
-            script = script + """  PARTW="$PARTW $(awk '{print $4}' %s)"\n""" \
-                % (partfile)
-        script = script + \
-            """  echo $TS $DEVW$PARTW >> /var/log/xenrt-write-counter%s.log\n
-  sleep 60
-done
-""" % (append)
-        tmpfile = xenrt.TEC().tempFile()
-        f = file(tmpfile, "w")
-        f.write(script)
-        f.close()
-        sftp = self.sftpClient()
-        try:
-            sftp.copyTo(tmpfile, "/etc/xenrt-write-counter%s.sh" % (append))
-        finally:
-            sftp.close()
-
-        if self.execdom0("grep -q xenrt-write-counter%s\\.sh /etc/rc.d/rc.local" % 
-                        (append),retval="code") != 0:
-            self.execdom0("echo 'nohup /etc/xenrt-write-counter%s.sh "
-                          "> /dev/null 2>&1 < /dev/null &' >> /etc/rc.d/rc.local" %
-                          (append))
-        if self.execdom0("ps axfww | grep -q xenrt-write-counte[r]%s\\.sh " %
-                         (append),retval="code") != 0:
-            self.execdom0("nohup /etc/xenrt-write-counter%s.sh > /dev/null "
-                          "2>&1 < /dev/null &" % (append))
-
     def getAPISession(self, username=None, password=None, local=False,
                       slave=False, secure=True):
         """Return a logged in Xen API session to this host/pool."""
@@ -8449,8 +7417,6 @@ rm -f /etc/xensource/xhad.conf || true
         else:
             self.execdom0("/etc/init.d/xapi stop || true")
             self.execdom0("rm -f /etc/firstboot.d/state/*")
-            if not (self.embedded or self.embedded_hdd):
-                self.execdom0("rm -f /etc/firstboot.d/data/host.conf || true")
             self.execdom0("echo -n master > /etc/xensource/pool.conf")
             self.execdom0("rm -f /etc/xensource/ptoken")
             self.execdom0("rm -f /etc/xensource/xapi-ssl.pem")
@@ -8462,7 +7428,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0("rm -f /etc/xensource/xapi_block_startup || true")
             self.execdom0("rm -f /etc/xensource-inventory.prev")
             # Clear up any static VDIs (this will fail if one is mounted, but should still remove the config)
-            self.execdom0("rm -f /etc/xensource/static-vdis/* || true")
+            self.execdom0("rm -rf /etc/xensource/static-vdis/* || true")
             self.execdom0("mv /etc/xensource-inventory "
                           "/etc/xensource-inventory.prev")
             self.execdom0("cat /etc/xensource-inventory.prev | "
@@ -8867,8 +7833,8 @@ rm -f /etc/xensource/xhad.conf || true
 class MNRHost(Host):
     """Represents a MNR+ host"""
 
-    def __init__(self, machine, productVersion="MNR"):
-        Host.__init__(self, machine, productVersion=productVersion)
+    def __init__(self, machine, productVersion="MNR",productType="xenserver"):
+        Host.__init__(self, machine, productVersion=productVersion,productType=productType)
         self.special["dom0 uses hvc"] = True
         self.controller = None
 
@@ -11330,7 +10296,7 @@ class ClearwaterHost(TampaHost):
     
     def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
 
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
         if mockd:
             xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
         else:
@@ -11377,7 +10343,7 @@ class ClearwaterHost(TampaHost):
     def installMockLicenseD(self):
 
         filename = "mockd.rpm"
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd-0-0.i686.rpm")
+        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
 
         try:
             xenrt.checkFileExists(mockd)
@@ -12009,21 +10975,22 @@ done
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):
-
-    def __init__(self, machine, productVersion="Creedence", productType="xenserver"):
-            ClearwaterHost.__init__(self,
-                                    machine)
-                                    
+    
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
+    
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False
+    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
         ClearwaterHost.__init__(self,
-                                machine)
+                                machine,
+                                productVersion=productVersion,
+                                productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 

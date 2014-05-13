@@ -3,7 +3,7 @@
   <!-- OS functional test sequence: win81-x86 and win81-x64 -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
   </variables>
 

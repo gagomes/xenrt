@@ -269,7 +269,7 @@ class Host(_Entity):
                 xenrt.TEC().logverbose("Rebooting host...")
                 self.ref.reboot()
 
-            mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd*")
+            mockd = xenrt.TEC().getFile(self.ref.V6MOCKD_LOCATION)
             if mockd:
                 try:
                     xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")

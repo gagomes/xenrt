@@ -504,7 +504,17 @@ New config: %s
                         "VM gave itself a link-local address.")
             raise
         newfield = self.getConfig()
-        self.verify(oldfield, newfield)
+        extraRebootCount=2
+        while extraRebootCount:
+            try:
+                extraRebootCount-=1
+                self.verify(oldfield, newfield)               
+                break
+            except xenrt.XRTFailure, e:
+                self.guest.reboot()
+        
+        if not extraRebootCount :
+            self.verify(oldfield, newfield)
 
 
 class TC9276(_VerifyNic):

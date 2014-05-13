@@ -18,6 +18,7 @@ __all__ = ["ManagementServer"]
 class ManagementServer(object):
     def __init__(self, place):
         self.place = place
+        self.place.addExtraLogFile("/var/log/cloudstack")
         self.__isCCP = None
         self.__version = None
         if self.version in ['3.0.7']:
@@ -233,7 +234,7 @@ class ManagementServer(object):
     def isCCP(self):
         if self.__isCCP is None:
             # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
-            # Currently we use the existing of the cloudPlatform webapp module for this
+            # Currently we use the existance of the cloudPlatform webapp module for this
             self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
 
         return self.__isCCP

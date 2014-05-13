@@ -324,7 +324,7 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
             total_nr_hosts = 1
         else:
             total_nr_hosts = 2
-        vifs_per_vm = 1
+        vifs_per_vm = len(self.endpoint0.vifs) # assume same number of vifs on each endpoint
         info["vifs_per_vm"] = vifs_per_vm
         info["total_nr_hosts"] = total_nr_hosts
         total_nr_vifs_per_host  = vifs_per_vm * (self.nr_vm_pairs * 2) / total_nr_hosts

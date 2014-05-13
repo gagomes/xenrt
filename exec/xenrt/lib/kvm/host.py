@@ -92,7 +92,7 @@ def createHost(id=0,
 
     # Create local storage with type EXT
     host.execdom0("lvcreate VGXenRT -l 100%FREE --name lv_storage")
-    sr = xenrt.lib.kvm.EXTStorageRepository(host, "Local Storage")
+    sr = xenrt.lib.kvm.EXTStorageRepository(host, "LocalStorage")
     sr.createOn("/dev/VGXenRT/lv_storage")
     host.addSR(sr, default=True)
 

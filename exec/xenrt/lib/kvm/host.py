@@ -282,7 +282,9 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def tailorForCloudStack(self, isCCP):
         """Tailor this host for use with ACS/CCP"""
 
-        # TODO: Add a check that we haven't already tailored the host
+        # Check that we haven't already tailored the host
+        if self.execdom0("ls /var/lib/xenrt/cloudTailored", retval="code") == 0:
+            return
 
         # Common operations
         # hostname --fqdn must give a response
@@ -327,9 +329,6 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig rpcbind on")
             self.execdom0("chkconfig nfs on")
 
-            # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
         else:
             # Apache CloudStack specific operations
 
@@ -359,7 +358,10 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
 
-            # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        # Set up /etc/cloudstack/agent/agent.properties
+        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 
+        # Write the stamp file to record this has already been done
+        self.execdom0("mkdir -p /var/lib/xenrt")
+        self.execdom0("touch /var/lib/xenrt/cloudTailored")

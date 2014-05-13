@@ -64,7 +64,7 @@ class DeployerPlugin(object):
         secondaryStorage = xenrt.ExternalNFSShare()
         storagePath = secondaryStorage.getMount()
         url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-        self.marvin.copySystemTemplateToSecondaryStorage(storagePath, 'NFS')
+        self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
         return url
 
     def getSecondaryStorageProvider(self, key, ref):

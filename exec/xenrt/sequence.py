@@ -1020,7 +1020,7 @@ class PrepareNode:
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'kvm')
-                                simpleHostNode.setAttribute('productVersion', 'rhel63-x64')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 self.handleHostNode(simpleHostNode, params)

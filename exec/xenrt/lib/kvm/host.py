@@ -75,12 +75,12 @@ def createHost(id=0,
 
     host.execvirt("virsh net-destroy default")
     host.execvirt("virsh net-undefine default")
-    host.createNetwork("virbr0")
+    host.createNetwork("cloudbr0")
 
     networkConfig  = "<network>"
-    networkConfig += "<name>virbr0</name>"
+    networkConfig += "<name>cloudbr0</name>"
     networkConfig += "<forward mode='bridge'/>"
-    networkConfig += "<bridge name='virbr0'/>"
+    networkConfig += "<bridge name='cloudbr0'/>"
     networkConfig += "</network>"
     host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
 
@@ -325,9 +325,9 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("chkconfig nfs on")
 
             # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/Local%20Storage' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'public.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'private.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/LocalStorage' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
         else:
             # Apache CloudStack specific operations
 
@@ -354,7 +354,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("/usr/sbin/setenforce permissive")
 
             # Set up /etc/cloudstack/agent/agent.properties
-            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/Local%20Storage' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'public.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
-            self.execdom0("echo 'private.network.device=virbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'local.storage.path=/var/run/sr-mount/LocalStorage' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 

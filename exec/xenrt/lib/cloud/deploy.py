@@ -79,7 +79,7 @@ class DeployerPlugin(object):
         ipRangeSize = self.DEFAULT_POD_IP_RANGE
         if ref.has_key('XRT_PodIPRangeSize'):
             ipRangeSize = ref['XRT_PodIPRangeSize']
-        self.currentIPRange = xenrt.resources.getResourceRange('IP4ADDR', ipRangeSize)
+        self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
         return self.currentIPRange[0].getAddr()
 
     def getPodIPEndAddr(self, key, ref):
@@ -95,7 +95,7 @@ class DeployerPlugin(object):
         ipRangeSize = self.DEFAULT_GUEST_IP_RANGE
         if ref.has_key('XRT_GuestIPRangeSize'):
             ipRangeSize = ref['XRT_GuestIPRangeSize']
-        self.currentIPRange = xenrt.resources.getResourceRange('IP4ADDR', ipRangeSize)
+        self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
         return self.currentIPRange[0].getAddr()
 
     def getGuestIPRangeEndAddr(self, key, ref):
@@ -108,7 +108,7 @@ class DeployerPlugin(object):
     def getPhysicalNetworkVLAN(self, key, ref):
         phyNetVLAN = None
         if ref.has_key('XRT_VLANRangeSize') and ref['XRT_VLANRangeSize'] > 0:
-            phyNetVLANResources = xenrt.resources.getResourceRange('VLAN', ref['XRT_VLANRangeSize'])
+            phyNetVLANResources = xenrt.PrivateVLAN.getVLANRange(ref['XRT_VLANRangeSize'])
             phyNetVLAN = '%d-%d' % (int(phyNetVLANResources[0].getID()), int(phyNetVLANResources[-1].getID()))
         return phyNetVLAN
 

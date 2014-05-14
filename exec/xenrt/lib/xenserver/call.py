@@ -169,7 +169,7 @@ echo master > /etc/xensource/pool.conf
 xe host-apply-edition edition=platinum"""
         master = self.context.entities["Pool"].ref.master
         #from Clearwater onwards no platinum licensing present
-        mockd = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i686/v6mockd*")
+        mockd = xenrt.TEC().getFile(master.V6MOCKD_LOCATION)
         if mockd:
            s=s.replace("edition=platinum", "edition=free")
            

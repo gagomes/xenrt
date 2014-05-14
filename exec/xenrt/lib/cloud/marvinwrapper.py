@@ -210,7 +210,7 @@ class MarvinApi(object):
 
     def addPod(self, name, zone, netmask=None, gateway=None, managementIpRangeSize=5):
         args = locals()
-        ipResources = xenrt.resources.getResourceRange('IP4ADDR', args.pop('managementIpRangeSize'))
+        ipResources = xenrt.StaticIP4Addr.getIPRange(args.pop('managementIpRangeSize'))
         args['zoneid'] = args.pop('zone').id
         args['startip'] = ipResources[0].getAddr()
         args['endip'] = ipResources[-1].getAddr()
@@ -220,7 +220,7 @@ class MarvinApi(object):
 
     def addPublicIpRange(self, pod, networkid=None, forvirtualnetwork='false', netmask=None, gateway=None, publicIpRangeSize=5, vlan='untagged'):
         args = locals()
-        ipResources = xenrt.resources.getResourceRange('IP4ADDR', args.pop('publicIpRangeSize'))
+        ipResources = xenrt.StaticIP4Addr.getIPRange(args.pop('publicIpRangeSize'))
         pod = args.pop('pod')
         args['zoneid'] = pod.zoneid
         args['podid'] = None
@@ -232,7 +232,7 @@ class MarvinApi(object):
         return PublicIpRange.create(self.apiClient, args)
 
     def addNetworkIpRange(self, pod, physicalNetwork, netmask=None, gateway=None, ipRangeSize=5, vlan='untagged'):
-        ipResources = xenrt.resources.getResourceRange('IP4ADDR', ipRangeSize)
+        ipResources = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
         ipRangeC = createVlanIpRange.createVlanIpRangeCmd()
         ipRangeC.forvirtualnetwork = 'false'
         ipRangeC.vlan = vlan

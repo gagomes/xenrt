@@ -24,7 +24,6 @@
     </host>
     <host id="1">
       <storage type="lvmoiscsi" name="lvmoiscsisr" />
-      <storage type="netapp" name="netappsr" />
       <storage type="nfs" name="nfssr" />
       <vm name="DemoLinux">
         <distro>debian60</distro>
@@ -40,7 +39,6 @@
     </host>
     <host id="2">
       <storage type="lvmoiscsi" name="lvmoiscsisr" />
-      <storage type="netapp" name="netappsr" />
       <storage type="nfs" name="nfssr" />
     </host>
   </prepare>
@@ -48,11 +46,9 @@
   <testsequence>
     <serial group="TransferVM">
       <testcase id="testcases.xenserver.tc.appliance.TC11457"/>
-      <testcase id="testcases.xenserver.tc.appliance.TC11458"/>
       <testcase id="testcases.xenserver.tc.appliance.TC11459"/>
       <testcase id="testcases.xenserver.tc.appliance.TC11460"/>
       <testcase id="testcases.xenserver.tc.appliance.TC11461"/>
-      <testcase id="testcases.xenserver.tc.appliance.TC11462"/>
       <testcase id="testcases.xenserver.tc.appliance.TC11463"/>
     </serial>
   </testsequence>

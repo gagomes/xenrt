@@ -322,6 +322,15 @@ class CentralResource(object):
         self.resourceHeld = held
         xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
+    @staticmethod
+    def isLocked(id):
+        d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+        lockfile = "%s/%s" % (d, md5.new(id).hexdigest())
+        if os.path.exists(lockfile):
+            return True
+        else:
+            return False
+
     def createLockDir(self):
         d = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
         os.makedirs(d)
@@ -2738,25 +2747,159 @@ def getBuildServer(arch):
     xenrt.TEC().registry.buildServerPut(bs.hostname, bs)
     return bs
 
-class _StaticIPAddr(CentralResource):
-
+class _NetworkResourceFromRange(CentralResource):
     LOCKID = None
+    KEEPOPTION = None
+
+    @classmethod
+    def _getRange(cls, size, available, **kwargs):
+        cr = xenrt.resources.CentralResource()
+        attempts = 0
+        while True:
+            ret = []
+            try:
+                xenrt.TEC().logverbose("About to lock range of network resources - current locking status")
+                cr.logList()
+                # Iterate through every possible starting point for a range
+                for i in xrange(len(available)):
+                    rangeToTry = available[i:i+size]
+                    # Exit the loop if we've got beyond the point where there are enough addresses beyond it
+                    if len(rangeToTry) < size:
+                        break
+                    rangeOK = True
+                    # Check each address in this range to see if it's locked
+                    for a in rangeToTry:
+                        if cls.isLocked("%s-%s" % (cls.LOCKID, a)):
+                            rangeOK = False
+                            break
+                    # If none of them are locked, then attempt to lock them all. This could fail, in which case we'll sleep for a minute and try again
+                    if rangeOK:
+                        for a in rangeToTry:
+                            try:
+                                ret.append(cls._rangeFactory(a, **kwargs))
+                            except Exception, e:
+                                for r in ret:
+                                    r.release()
+                                raise xenrt.XRTError("Could not lock all network resources")
+                        break
+                if len(ret) == 0:
+                    raise xenrt.XRTError("Could not find a suitable range to lock")
+            except Exception, e:
+                if attempts > 30:
+                    raise
+                attempts += 1
+                xenrt.TEC().logverbose("Could not lock - %s, sleeping before retry" % str(e))
+                # Sleep for a random time to avoid conflicts with another process
+                xenrt.sleep(60 + random.randint(0,10))
+            else:
+                break
+        return ret
+    
+    def _lockResourceFromRange(self, available, specified=False):
+        CentralResource.__init__(self, held=False)
+        name = None
+        startlooking = xenrt.util.timenow()
+        # Find one of the targets that is available
+        while True:
+            for a in available:
+                try:
+                    self.acquire("%s-%s" % (self.LOCKID, a))
+                    name = a
+                    self.resourceHeld = True
+                    break
+                except xenrt.XRTError:
+                    continue
+            if name:
+                break
+            # If an IP has been specified, we'll fail fast
+            if specified or xenrt.util.timenow() > (startlooking + 3600):
+                xenrt.TEC().logverbose("Could not lock IP Address, current central resource status:")
+                self.logList()
+                raise xenrt.XRTError("Timed out waiting for an IP Range to be "
+                                     "available")
+            xenrt.sleep(60)
+        return name
+        
+    def release(self, atExit=False):
+        if not xenrt.TEC().lookup(self.KEEPOPTION, False, boolean=True):
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            CentralResource.release(self, atExit)
+
+    @classmethod
+    def _rangeFactory(cls, **kwargs):
+        raise xenrt.XRTError("Not implemented")
+
+class PrivateVLAN(_NetworkResourceFromRange):
+    LOCKID = "VLAN"
+    KEEPOPTION="OPTION_KEEP_VLANS"
+
+    @classmethod
+    def _rangeFactory(cls, vlan):
+        return cls(vlan=vlan)
+
+    @classmethod
+    def getVLANRange(cls, size):
+        vlans = cls._getAllVLANsInRange()
+        return cls._getRange(size, vlans)
+
+    @classmethod
+    def _getAllVLANsInRange(cls):
+        vrange = xenrt.TEC().lookup(["NETWORK_CONFIG", "PRIVATEVLANS"])
+        (start, end) = [int(x) for x in vrange.split("-")]
+        return range(start, end+1)
+
+    def __init__(self, vlan=None):
+        CentralResource.__init__(self)
+        if not vlan:
+            xenrt.TEC().logverbose("About to attempt to lock VLAN - current central resource status:")
+            self.logList()
+        vlans = self._getAllVLANsInRange()
+       
+        # Filter out based on IP. This is safer than just populating addrs with the specified IP, as it ensures it is a valid IP
+        if vlan:
+            vlans = [x for x in vlans if x==vlan]
+
+        self.id = self._lockResourceFromRange(vlans, vlan)
+
+    def getName(self):
+        return "VLAN%d" % self.id
+
+    def getID(self):
+        return self.id
+    
+
+class _StaticIPAddr(_NetworkResourceFromRange):
+
     POOLSTART = None
     POOLEND = None
+    KEEPOPTION="OPTION_KEEP_STATIC_IPS"
 
-    def __init__(self,  network="NPRI"):
+    @classmethod
+    def _rangeFactory(cls, ip, network):
+        return cls(network=network, ip=ip)
+
+    @classmethod
+    def getIPRange(cls, size, network="NPRI"):
+        addrs = [x.strCompressed() for x in cls._getAllAddressesInRange(network)]
+        return cls._getRange(size, addrs, network=network)
+
+    @classmethod
+    def _getAllAddressesInRange(cls, network):
         if network == "NPRI":
             configpath = ["NETWORK_CONFIG", "DEFAULT"]
         elif network == "NSEC":
             configpath = ["NETWORK_CONFIG", "SECONDARY"]
         else:
             configpath = ["NETWORK_CONFIG", "VLANS", network]
-        CentralResource.__init__(self)
-        xenrt.TEC().logverbose("About to attempt to lock IP address - current central resource status:")
-        self.logList()
-        configpath.append(self.POOLSTART)
+        
+        configpath.append(cls.POOLSTART)
         rangestart = xenrt.TEC().lookup(configpath, None)
-        configpath[-1] = self.POOLEND
+        configpath[-1] = cls.POOLEND
         rangeend = xenrt.TEC().lookup(configpath, None)
         if not rangestart or not rangeend:
             raise xenrt.XRTError("No valid static IP range specified")
@@ -2765,45 +2908,26 @@ class _StaticIPAddr(CentralResource):
         rangeendip = IPy.IP(rangeend)
 
         addrs = [rangestartip]
-        while addrs[-1] <= rangeendip:
+        while addrs[-1] < rangeendip:
             addrs.append(IPy.IP(addrs[-1].int() + 1))
-        
-        CentralResource.__init__(self, held=False)
-        name = None
-        startlooking = xenrt.util.timenow()
-        # Find one of the targets that is available
-        while True:
-            for a in addrs:
-                try:
-                    n = a.strCompressed()
-                    self.acquire("%s-%s" % (self.LOCKID, n))
-                    name = n
-                    self.resourceHeld = True
-                    break
-                except xenrt.XRTError:
-                    continue
-            if name:
-                break
-            if xenrt.util.timenow() > (startlooking + 3600):
-                xenrt.TEC().logverbose("Could not lock IP Address, current central resource status:")
-                self.logList()
-                raise xenrt.XRTError("Timed out waiting for an IP Range to be "
-                                     "available")
-            xenrt.sleep(60)
-        self.addr = name
+        return addrs
+
+
+    def __init__(self,  network="NPRI", ip=None):
+        CentralResource.__init__(self)
+        if not ip:
+            xenrt.TEC().logverbose("About to attempt to lock IP address - current central resource status:")
+            self.logList()
+        addrs = self._getAllAddressesInRange(network)
+       
+        # Filter out based on IP. This is safer than just populating addrs with the specified IP, as it ensures it is a valid IP
+        if ip:
+            addrs = [x for x in addrs if x==IPy.IP(ip)]
+
+        self.addr = self._lockResourceFromRange([x.strCompressed() for x in addrs], ip)
     
     def getAddr(self):
         return self.addr
-
-    def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_STATIC_IPS", False, boolean=True):
-            if atExit:
-                for host in xenrt.TEC().registry.hostList():
-                    if host == "SHARED":
-                        continue
-                    h = xenrt.TEC().registry.hostGet(host)
-                    h.machine.exitPowerOff()
-            CentralResource.release(self, atExit)
 
 class StaticIP4Addr(_StaticIPAddr):
     LOCKID = "IP4ADDR"
@@ -2851,7 +2975,7 @@ class SharedHost:
                         pass
                     self.getHost().execdom0("xe vm-uninstall uuid=%s --force" % (vm))
             
-class PrivateVLAN(CentralResource):
+class PrivateVLANold(CentralResource):
     """A VLAN that we have temporary exclusive access to."""
 
     def __init__(self):
@@ -2959,58 +3083,3 @@ class GlobalResource(CentralResource):
 
     def getData(self):
         return self.data
-
-def getResourceRange(resourceType, numberRequired):
-    loopsToTry = 3
-
-    lastResourceInt = None
-    resourceInt = None
-    resourceList = []
-    resource = None
-    while len(resourceList) < numberRequired:
-        if resourceType == 'IP4ADDR':
-            resource = xenrt.StaticIP4Addr()
-            resourceInt = IPy.IP(resource.getAddr()).int()
-        elif resourceType == 'IP6ADDR':
-            resource = xenrt.StaticIP6Addr()
-            resourceInt = IPy.IP(resource.getAddr()).int()
-        elif resourceType == 'VLAN':
-            resource = xenrt.PrivateVLAN()
-            resourceInt = int(resource.getID())
-        else:
-            raise xenrt.XRTError('Invalid resource type: %s' % (resourceType))
-
-        try:
-            if lastResourceInt != None:
-                if resourceInt != lastResourceInt + 1:
-                    # Free all aquired IP addresses
-                    map(lambda x:x.release(), resourceList)
-                    resourceList = []
-                elif resourceInt < lastResourceInt:
-                    # Failed to find a block of resources during this pass - decrement loop counter and try again
-                    map(lambda x:x.release(), resourceList)
-                    resourceList = []
-                    loopsToTry -= 1
-                    if loopsToTry < 1:
-                        resource.release()
-                        raise xenrt.XRTError('Failed to allocate %d block of resource: %s' % (numberRequired, resourceType))
-
-            resourceList.append(resource)
-            lastResourceInt = resourceInt
-        except Exception, e:
-            # Attept to free all resources
-            resource.release()
-            map(lambda x:x.release(), resourceList)
-            raise xenrt.XRTError('Error during %s resource range allocation' % (resourceType))
-
-    if len(resourceList) != numberRequired:
-        xenrt.TEC().logverbose('Requested %d resources of type %s - %d were allocated' % (numberRequired, resourceType, len(resourceList)))
-        raise xenrt.XRTError('Failed to allocate resources: %s' % (resourceType))
-
-    if resourceType in ['IP4ADDR', 'IP6ADDR']:
-        xenrt.TEC().logverbose('Resources allocated: Type: %s, Range: %s -> %s' % (resourceType, resourceList[0].getAddr(), resourceList[-1].getAddr()))
-    else:
-        xenrt.TEC().logverbose('Resources allocated: Type: %s, Range: %s -> %s' % (resourceType, resourceList[0].getID(), resourceList[-1].getID()))
- 
-    return resourceList
-

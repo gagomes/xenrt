@@ -1101,32 +1101,33 @@ def processMatrixTests(release=None):
 
     #  (Sarasota)
     distrosToRels['Sarasota'] = {}
-    distrosToRels['Sarasota']['primary'] = ['rhel48','rhel59','rhel64',
-                                          'sles104','sles112',
+    distrosToRels['Sarasota']['primary'] = ['rhel48','rhel510','rhel65',
+                                          'sles104','sles113',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel59','centos59','oel64','centos64',
+                                          'oel510','centos510','oel65','centos65',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Sarasota']['secondary'] = ['rhel47','rhel58','sles111','sles103',
+    distrosToRels['Sarasota']['secondary'] = ['rhel47','rhel59','sles112','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel63','oel63', 'centos63']
+                                            'win7-x86','win7-x64','rhel64','oel64', 'centos64']
     distrosToRels['Sarasota']['tertiary'] = ['rhel46','rhel45',
-                                              'rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'rhel63',
                                               'sles102',
-                                              'sles11',
+                                              'sles11','sles111',
                                               'centos48','centos47','centos46','centos45',
-                                              'centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'oel63','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
     distrosToRels['Sarasota']['level0'] = ['w2k3eesp2']
-    distrosToRels['Sarasota']['experimental'] = ['rhel510', 'rhel65', 'oel510', 'oel65',
-                                                  'centos510', 'centos65', 'sles113']
+    distrosToRels['Sarasota']['experimental'] = []
 
 
 

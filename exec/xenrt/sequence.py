@@ -1137,10 +1137,10 @@ class PrepareNode:
             host["version"] = None
         host["productType"] = expand(node.getAttribute("productType"), params)
         if not host["productType"]:
-            host["productType"] = xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver")
+            host["productType"] = "xenserver"
         host["productVersion"] = expand(node.getAttribute("productVersion"), params)
         if not host["productVersion"] or host["productVersion"] == "DEFAULT":
-            host["productVersion"] = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+            host["productVersion"] = None
         host["installSRType"] = expand(node.getAttribute("installsr"), params)
         if not host["installSRType"]:
             host["installSRType"] = None

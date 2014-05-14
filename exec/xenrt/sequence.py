@@ -1026,6 +1026,8 @@ class PrepareNode:
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
+                            hostIdIndex += cluster['XRT_Hosts']
+
     def handlePoolNode(self, node, params):
         pool = {}
 

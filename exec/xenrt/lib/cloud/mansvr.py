@@ -109,8 +109,11 @@ class ManagementServer(object):
             self.place.execcmd('mysqladmin -u root password xensource')
             self.place.execcmd('service mysqld restart')
 
-            setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            self.tailorForSimulator()
+
+        setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+        self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
     def setupManagementServer(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -125,8 +128,6 @@ class ManagementServer(object):
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.tailorForSimulator()
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))

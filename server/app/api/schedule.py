@@ -174,13 +174,15 @@ class XenRTSchedule(XenRTAPIPage):
                 still_needed = machines_required - len(selected)
 
                 if still_needed > 0:
+
                     self.scm_select_machines(outfh, machines,
-                                        still_needed,
-                                        selected,
-                                        site,
-                                        cluster,
-                                        details,
-                                        verbose=verbose)
+                                         still_needed,
+                                         selected,
+                                         site,
+                                         cluster,
+                                         details,
+                                         verbose=verbose)
+
                 if len(selected) < machines_required:
                     continue
 

@@ -989,27 +989,44 @@ class PrepareNode:
                         xenrt.TEC().warning('LEGACY_CLOUD_BLOCK hosts no longer valid - use XRT_Hosts')
                         cluster['XRT_Hosts'] = cluster.pop('hosts')
 
-                    if not cluster.has_key('XRT_MasterHostId'):
-                        hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                        poolId = poolIdIndex
+                    if not cluster.has_key('hypervisor'):
+                        cluster['hypervisor'] = "XenServer"
 
-                        simplePoolNode = xml.dom.minidom.Element('pool')
-                        simplePoolNode.setAttribute('id', str(poolId))
-                        for hostId in hostIds:
-                            simpleHostNode = xml.dom.minidom.Element('host')
-                            simpleHostNode.setAttribute('id', str(hostId))
-                            simpleHostNode.setAttribute('noisos', 'yes')
-                            simplePoolNode.appendChild(simpleHostNode)
+                    if cluster['hypervisor'] == "XenServer":
+                        if not cluster.has_key('XRT_MasterHostId'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            poolId = poolIdIndex
+
+                            simplePoolNode = xml.dom.minidom.Element('pool')
+                            simplePoolNode.setAttribute('id', str(poolId))
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simplePoolNode.appendChild(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
-                        hostIdIndex += cluster['XRT_Hosts']
-                        poolIdIndex += 1
+                            hostIdIndex += cluster['XRT_Hosts']
+                            poolIdIndex += 1
 
-                        self.handlePoolNode(simplePoolNode, params)
-                        poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
-                        cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
-    
+                            self.handlePoolNode(simplePoolNode, params)
+                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
+                            cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
+                    elif cluster['hypervisor'] == "KVM":
+                        if not cluster.has_key('XRT_KVMHostIds'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'kvm')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
+
+                            hostIdIndex += cluster['XRT_Hosts']
 
     def handlePoolNode(self, node, params):
         pool = {}

@@ -1485,7 +1485,8 @@ class Config:
         # Config for CCP / ACS
         self.config["CLOUD_CONFIG"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"] = {}
-        self.config["CLOUD_CONFIG"]["3.0.7"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"] = {}
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
@@ -1645,10 +1646,11 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
 
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
-        self.config["CLOUD_CONFIG"]["4.3"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
-        self.config["CLOUD_CONFIG"]["4.4"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
 

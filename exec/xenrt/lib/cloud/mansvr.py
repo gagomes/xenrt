@@ -18,7 +18,8 @@ __all__ = ["ManagementServer"]
 class ManagementServer(object):
     def __init__(self, place):
         self.place = place
-        self.__isCCP = True
+        self.place.addExtraLogFile("/var/log/cloudstack")
+        self.__isCCP = None
         self.__version = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
@@ -108,8 +109,11 @@ class ManagementServer(object):
             self.place.execcmd('mysqladmin -u root password xensource')
             self.place.execcmd('service mysqld restart')
 
-            setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
-            self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            self.tailorForSimulator()
+
+        setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
+        self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
     def setupManagementServer(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -124,8 +128,6 @@ class ManagementServer(object):
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.tailorForSimulator()
         self.restart()
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
@@ -152,6 +154,7 @@ class ManagementServer(object):
                     raise xenrt.XRTError('Failed to install and select Java 1.7')
 
     def installCloudPlatformManagementServer(self):
+        self.__isCCP = True
         if self.place.arch != 'x86-64':
             raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
@@ -177,63 +180,13 @@ class ManagementServer(object):
         self.setupManagementServer()
         self.installApacheProxy()
 
-    def getLatestMSArtifactsFromJenkins(self):
-        jenkinsUrl = 'http://jenkins.buildacloud.org'
-
-        j = Jenkins(jenkinsUrl)
-        # TODO - Add support for getting a specific build (not just the last good one)?
-        branch = xenrt.TEC().lookup('ACS_BRANCH', 'master')
-        if not branch in j.views.keys():
-            raise xenrt.XRTError('Could not find ACS_BRANCH %s' % (branch))
-
-        view = j.views[branch]
-        xenrt.TEC().logverbose('View %s has jobs: %s' % (branch, view.keys()))
-
-        jobKey = None
-        if 'package-%s-%s' % (self.place.distro, branch) in view.keys():
-            jobKey = 'package-%s-%s' % (self.place.distro, branch)
-        else:
-            packageType = 'deb'
-            if self.place.distro.startswith('rhel') or self.place.distro.startswith('centos'):
-                packageType = 'rpm'
-
-            if 'package-%s-%s' % (packageType, branch) in view.keys():
-                jobKey = 'package-%s-%s' % (packageType, branch)
-
-            if 'cloudstack-%s-package-%s' % (branch, packageType) in view.keys():
-                jobKey = 'cloudstack-%s-package-%s' % (branch, packageType)
-
-        if not jobKey:
-            raise xenrt.XRTError('Failed to find a jenkins job for creating MS package')
-        else:
-            xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
-
-        lastGoodBuild = view[jobKey].get_last_good_build()
-        xenrt.GEC().dbconnect.jobUpdate("ACSINPUTDIR", lastGoodBuild.baseurl)
-        artifactsDict = lastGoodBuild.get_artifact_dict()
-
-        artifactKeys = filter(lambda x:x.startswith('cloudstack-management-') or x.startswith('cloudstack-common-') or x.startswith('cloudstack-awsapi-'), artifactsDict.keys())
-
-        placeArtifactDir = '/tmp/csartifacts'
-        self.place.execcmd('mkdir %s' % (placeArtifactDir))
-
-        xenrt.TEC().logverbose('Using CloudStack Build: %d, Timestamp %s' % (lastGoodBuild.get_number(), lastGoodBuild.get_timestamp().strftime('%d-%b-%y %H:%M:%S')))
-        
-        # Copy artifacts into the temp directory
-        localFiles = [xenrt.TEC().getFile(artifactsDict[x].url) for x in artifactKeys]
-
-        webdir = xenrt.WebDirectory()
-        for f in localFiles:
-            webdir.copyIn(f)
-            self.place.execcmd('wget %s -P %s' % (webdir.getURL(os.path.basename(f)), placeArtifactDir))
-
-        webdir.remove()
-
-        return placeArtifactDir
-
     def installCloudStackManagementServer(self):
         self.__isCCP = False
-        placeArtifactDir = self.getLatestMSArtifactsFromJenkins()
+        placeArtifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self.place,
+                                                                         ["cloudstack-management-",
+                                                                          "cloudstack-common-",
+                                                                          "cloudstack-awsapi-"],
+                                                                         updateInputDir=True)
         
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
@@ -278,6 +231,15 @@ class ManagementServer(object):
             xenrt.TEC().comment('Using Management Server version: %s' % (self.__version))
         return self.__version
 
+    @property
+    def isCCP(self):
+        if self.__isCCP is None:
+            # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
+            # Currently we use the existance of the cloudPlatform webapp module for this
+            self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
+
+        return self.__isCCP
+
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
@@ -289,7 +251,7 @@ class ManagementServer(object):
 
     def postManagementServerInstall(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if not self.__isCCP and self.version in ['4.4', 'master']:
+            if not self.isCCP and self.version in ['4.4', 'master']:
                 self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
                 self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 

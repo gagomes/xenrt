@@ -56,7 +56,7 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
 
     def _attachDevice(self, devicexmlstr, hotplug=False):
         oldxmlstr = self._getXML()
-        newxmlstr = oldxmlstr.replace("<devices>", "<devices>" + devicexmlstr)
+        newxmlstr = oldxmlstr.replace("</devices>", devicexmlstr + "\n  </devices>")
         self._redefineXML(newxmlstr)
 
     def _updateDevice(self, devicexmlstr, hotplug=False):

@@ -8056,6 +8056,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxSetKernel("linux")
             pxecfg.linuxArgsKernelAdd("vga=normal")
             pxecfg.linuxArgsKernelAdd("auto=true priority=critical")
+            pxecfg.linuxArgsKernelAdd("interface=eth0")
             pxecfg.linuxArgsKernelAdd("url=%s" % (webdir.getURL(preseedfile)))
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.gz")))

@@ -335,6 +335,24 @@ reboot
     def getBridge(self, eth):
         return eth.replace("vmnic","vSwitch")
 
+    def getNICPIF(self, assumedid):
+        """ Return the PIF UUID for the assumed enumeration ID (integer)"""
+        if assumedid == 0:
+            mac = self.lookup("MAC_ADDRESS", None)
+            if not mac:
+                xenrt.TEC().logverbose("We have no record of MAC address for default interface")
+                return self.getDefaultInterface()
+        else:
+            mac = self.lookup(["NICS", "NIC%u" % (assumedid), "MAC_ADDRESS"],
+                              None)
+        if not mac:
+            raise xenrt.XRTError("NIC%u not configured for %s" %
+                                 (assumedid, self.getName()))
+        mac = xenrt.util.normaliseMAC(mac)
+
+        # Iterate over vmnics to find a matching device
+	return self.execdom0("esxcfg-nics -l | fgrep -i %s | awk '{print $1}' | head -n 1" % (mac)).strip()
+
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
@@ -350,10 +368,9 @@ reboot
             xenrt.TEC().logverbose("Processing p=%s" % (p,))
             # create only on single nic non vlan nets
             if len(nicList) == 1  and len(vlanList) == 0:
-                eth = nicList[0]
+                pri_eth = self.getNICPIF(nicList[0])
 
                 # Set up new vSwitch if necessary
-                pri_eth = "vmnic%s" % (eth,)
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
                 pri_bridge = self.getBridge(pri_eth)
                 has_pri_bridge = self.execdom0("esxcfg-vswitch -l | grep '^%s '|wc -l" % (pri_bridge,)).strip() != "0"

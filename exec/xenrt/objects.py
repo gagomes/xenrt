@@ -2184,7 +2184,7 @@ Add-WindowsFeature as-net-framework"""
             self.xmlrpcUnpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
             self.xmlrpcExec("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
             self.reboot()
-        
+
     def isDotNet4Installed(self):
         try:
             val = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Client', 'Install', healthCheckOnFailure=False)
@@ -2208,6 +2208,37 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcUnpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self.xmlrpcExec("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
         self.reboot()
+
+    def getDotNet45Version(self):
+        version = None
+        try:
+            rawVersion = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full', 'Release', healthCheckOnFailure=False)
+            if rawVersion == 378389:
+                version = '4.5'
+            elif rawVersion == 378675 or rawVersion == 378758:
+                version = '4.5.1'
+            elif rawVersion == 379893:
+                version = '4.5.2'
+            else:
+                xenrt.TEC().logverbose('Unknown .Net 4.5 version found: %d' % (rawVersion))
+        except:
+            xenrt.TEC().logverbose('No .Net 4.5 version found')
+
+        if version:
+            xenrt.TEC().logverbose('Detected %s .Net version installed on guest %s' % (version, self.name))
+        return version
+
+    def installDotNet451(self):
+        """Install .NET 4.5.1 into a Windows XML-RPC guest"""
+        currentDotNet45Version = self.getDotNet45Version()
+        if currentDotNet45Version == None or currentDotNet45Version == '4.5':
+            xenrt.TEC().logverbose("Installing .NET 4.5.1.")
+            self.xmlrpcCreateDir("c:\\dotnet451logs")
+            self.xmlrpcUnpackTarball("%s/dotnet451.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
+            self.xmlrpcExec("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
+            self.reboot()
+        else:
+            xenrt.TEC().logverbose('.NET %s version already installed' % (currentDotNet45Version))
 
     def installCloudPlatformManagementServer(self):
         manSvr = xenrt.lib.cloud.ManagementServer(self)

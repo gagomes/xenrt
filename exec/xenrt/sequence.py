@@ -1200,7 +1200,7 @@ class PrepareNode:
             host["version"] = None
         host["productType"] = expand(node.getAttribute("productType"), params)
         if not host["productType"]:
-            host["productType"] = "xenserver"
+            host["productType"] = xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver")
         host["productVersion"] = expand(node.getAttribute("productVersion"), params)
         if not host["productVersion"] or host["productVersion"] == "DEFAULT":
             host["productVersion"] = None
@@ -2100,6 +2100,8 @@ class HostInstallWorker(_InstallWorker):
         elif specProductType == "kvm":
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
+            # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
+            work["productVersion"] = xenrt.TEC().lookup("PRODUCT_VERSION", None)
             xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
             xenrt.lib.hyperv.createHost(**work)

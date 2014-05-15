@@ -246,7 +246,9 @@ class ManagementServer(object):
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
-        self.place.execcmd('grep "INSERT INTO\|VALUES" /usr/share/cloudstack-management/setup/templates.simulator.sql >> /usr/share/cloudstack-management/setup/templates.sql')
+#        self.place.execcmd('grep "INSERT INTO\|VALUES" /usr/share/cloudstack-management/setup/templates.simulator.sql >> /usr/share/cloudstack-management/setup/templates.sql')
+        self.place.execcmd('wget http://files.uk.xensource.com/usr/groups/xenrt/cloud/templates.simulator.sql -O /tmp/ts.sql')
+        self.place.execcmd('grep "INSERT INTO\|VALUES" /tmp/ts.sql >> /usr/share/cloudstack-management/setup/templates.sql')
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

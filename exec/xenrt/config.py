@@ -1723,6 +1723,12 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["6.5.50"] = "Sarasota"
         
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.93"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}

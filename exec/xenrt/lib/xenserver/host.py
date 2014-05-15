@@ -13493,7 +13493,16 @@ class Pool:
         """Retrieve recommendations from WLB"""
         cli = self.getCLIInstance()
         data = cli.execute("pool-retrieve-wlb-recommendations")
-        return xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        recs = xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        #CA-80791
+        recs = dict(map(lambda x:(re.sub(r'\(.+\)$', '', x),recs[x]), recs))
+        return recs
+
+    def retrieveWLBDiagnostics(self):
+        """Retrieve log file contents from WLB"""
+        cli = self.getCLIInstance()
+        data = cli.execute("pool-retrieve-wlb-diagnostics")
+        return xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
 
     def retrieveWLBReport(self, report, filename=None, params={}):
         """Retrieve the specified WLB report into the specified file"""

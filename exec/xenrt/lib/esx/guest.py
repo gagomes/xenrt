@@ -113,14 +113,15 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)
         reply = {}
+        dev = 0
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("interface"):
             if node.getAttribute("type") == "bridge":
-                # FIXME: hardcoded stuff
                 bridge = node.getElementsByTagName("source")[0].getAttribute("bridge")
-                nic = "VM Kernel"
+                nic = "eth%d" % (dev)
                 mac = node.getElementsByTagName("mac")[0].getAttribute("address")
                 ip = None
                 reply[nic] = (mac, ip, bridge)
+                dev = dev+1
         xmldom.unlink()
         return reply
 

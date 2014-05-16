@@ -813,6 +813,14 @@ class Guest(xenrt.GenericGuest):
         </interface>""" % (mac, bridge, "<model type='%s'/>" % model if model else "")
         self._attachDevice(vifxmlstr)
 
+        if not eth in [x[0] for x in self.vifs]:
+            self.vifs.append((eth, bridge, mac, None))
+        else:
+            index = [i for i,x in enumerate(self.vifs) if x[0] == eth][0]
+            oldeth, oldbridge, oldmac, oldip = self.vifs[index]
+            if bridge != oldbridge:
+                self.vifs[index] = (oldeth, bridge, oldmac, oldip)
+
     def getVIFs(self):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)

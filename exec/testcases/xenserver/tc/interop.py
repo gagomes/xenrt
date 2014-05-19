@@ -1131,8 +1131,8 @@ class TCOpenStackSmokeTest(xenrt.TestCase):
         devstack = self.getGuest("DevStackOSDomU")
         devstack.execguest(
             "cd /opt/stack/tempest "
-            "&& nosetests -sv --nologcapture --attr=type=smoke tempest "
-            "</dev/null",
+            "&& sudo pip install tox==1.6.1 "
+            "&& tox -esmoke </dev/null",
             username="stack",
             timeout=14400
         )

@@ -10,7 +10,7 @@
 #
 
 
-import sys, string, os.path, glob, time, re, random, shutil, os, stat, datetime
+import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
 import traceback, threading, types
 import xml.dom.minidom, libxml2
 import tarfile
@@ -2937,8 +2937,69 @@ done
                 except:
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
-        if vcpus != None:
-            guest.setVCPUs(vcpus)
+
+        if guest.windows:
+            default_max_sockets = self.getNoOfCPUSockets() # or getSocketsonHost()
+            default_max_cps = 1 # cps = cores-per-socket
+
+            max_sockets = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXSOCKETS"], None)
+            max_cores = xenrt.TEC().lookup(["GUEST_LIMITATIONS", distro, "MAXCORES"], None)
+
+            if max_sockets:
+                max_sockets = int(max_sockets)
+                if max_cores:
+                    max_cores = int(max_cores)
+                else:
+                    # recent OSes are only restricted by sockets (and c-p-s implicit physical limitation)
+                    max_cores = None
+            elif max_cores:
+                    # some old OSes doesn't distinguish on cores and sockets
+                    max_cores = int(max_cores)
+                    max_sockets = max_cores
+            else:
+                # No known restriction
+                max_sockets = None
+                max_cores = None
+
+            xenrt.TEC().logverbose("MAXSOCKETS is %s, MAXCORES is %s" % (max_sockets, max_cores))
+
+            if vcpus != None:
+                xenrt.TEC().logverbose("Setting guest vCPUs to %s" % vcpus)
+                guest.setVCPUs(vcpus)
+
+                possible_socket_values = range(int(math.log(max_sockets or default_max_sockets, 2)) + 1)
+                # if sockets = 1, possible values are [0]
+                # if sockets = 2 or 3, possible values are [0, 1]
+                # if sockets = 4 or 5 or 6 or 7, possible values are [0, 1, 2]
+                # if sockets = 8, possible values are [0, 1, 2, 3]
+
+                sockets = int(math.pow(2, random.choice(possible_socket_values)))
+                # possible number of sockets are 2^0= 1, 2^1=2, 2^2=4, 2^3=8
+
+                cps = int(math.ceil(float(vcpus)/float(sockets))) # cores per socket
+                xenrt.TEC().logverbose("Setting guest cores-per-socket to %s" % cps)
+                guest.setCoresPerSocket(cps)
+            else:
+                configs = []
+                for i in range(int(math.log(max_sockets or default_max_sockets, 2)) + 1):
+                    sockets = int(math.pow(2, i))
+                    for j in range(i, int(math.log(max_cores or sockets * default_max_cps, 2)) + 1):
+                        cores = int(math.pow(2, j))
+                        configs.append({ 'sockets': sockets,
+                                         'cores': cores,
+                                         'cps': cores / sockets })
+
+                xenrt.TEC().logverbose("Available configurations to pick:%s" % configs)
+                random_conf = random.choice(configs)
+                xenrt.TEC().logverbose("The random configuration picked for test:%s" % random_conf)
+
+                # Setting guest cores(vCPUs) and cores-per-socket.
+                guest.setVCPUs(random_conf['cores']) # Or use template default vCPUs?
+                guest.setCoresPerSocket(random_conf['cps'])
+        else:
+            if vcpus != None:
+                guest.setVCPUs(vcpus)
+
         if memory != None:
             guest.setMemory(memory)
         if (not disksize) or disksize == None or disksize == guest.DEFAULT:

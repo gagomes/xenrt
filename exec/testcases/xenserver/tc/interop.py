@@ -992,11 +992,17 @@ class TC15726(TCXenConvert):
     DISTRO = "vistaeesp2"
     VERSION = 24
 
+
 class TCInstallOpenStack(xenrt.TestCase):
 
     def prepare(self, arglist):
 
-        listing = [x.strip() for x in xenrt.util.command("wget --spider --recursive http://downloads.vmd.citrix.com/OpenStack/ --no-verbose -l 1 2>&1 | grep '200 OK' | awk '{ print $4}'").splitlines()]
+        listing = [x.strip() for x in xenrt.util.command(
+            "wget --spider "
+            "--recursive http://downloads.vmd.citrix.com/OpenStack/ "
+            "--no-verbose -l 1 2>&1 "
+            "| grep '200 OK' "
+            "| awk '{ print $4}'").splitlines()]
 
         xvaURL = None
         xvaDate = None
@@ -1007,13 +1013,13 @@ class TCInstallOpenStack(xenrt.TestCase):
             m = re.match(".*/devstack-(\d+_\d+_\d+)\.xva", l)
             if m:
                 newDate = time.strptime(m.group(1), "%Y_%m_%d")
-                if not xvaDate or newDate > xvaDate: 
+                if not xvaDate or newDate > xvaDate:
                     xvaDate = newDate
                     xvaURL = l
             m = re.match(".*/novaplugins-(\d+_\d+_\d+)\.iso", l)
             if m:
                 newDate = time.strptime(m.group(1), "%Y_%m_%d")
-                if not suppPackDate or newDate > suppPackDate: 
+                if not suppPackDate or newDate > suppPackDate:
                     suppPackDate = newDate
                     suppPackURL = l
 
@@ -1024,9 +1030,13 @@ class TCInstallOpenStack(xenrt.TestCase):
         self.sp = xenrt.TEC().getFile(suppPackURL)
 
     def installSuppPack(self):
-        if not "novaplugin:novaplugins" in self.host.execdom0("ls /etc/xensource/installed-repos"):
+        installedRepos = self.host.execdom0(
+            "ls /etc/xensource/installed-repos")
+
+        if not "novaplugin:novaplugins" in installedRepos:
             self.host.sftpClient().copyTo(self.sp, "/root/novaplugins.iso")
-            self.host.execdom0("xe-install-supplemental-pack /root/novaplugins.iso")
+            self.host.execdom0(
+                "xe-install-supplemental-pack /root/novaplugins.iso")
 
     def getSlave(self):
         slave = self.getGuest("slave")
@@ -1037,26 +1047,34 @@ class TCInstallOpenStack(xenrt.TestCase):
 
     def injectPassword(self):
         slave = self.getSlave()
-        rootVDIUUID = self.host.minimalList("vbd-list", "vdi-uuid", "userdevice=0 vm-uuid=%s" % self.devstack.getUUID())[0]
-        vbdUUID = self.cli.execute("vbd-create", "vdi-uuid=%s vm-uuid=%s device=1" % (rootVDIUUID, slave.getUUID())).strip()
+        rootVDIUUID = self.host.minimalList(
+            "vbd-list",
+            "vdi-uuid",
+            "userdevice=0 vm-uuid=%s" % self.devstack.getUUID())[0]
+        vbdUUID = self.cli.execute(
+            "vbd-create",
+            "vdi-uuid=%s vm-uuid=%s device=1" % (
+                rootVDIUUID, slave.getUUID())).strip()
         self.cli.execute("vbd-plug", "uuid=%s" % vbdUUID)
 
         device = self.host.genParamGet("vbd", vbdUUID, "device")
 
         slave.execguest("fdisk -l /dev/%s" % device)
         slave.execguest("mount /dev/%s1 /mnt" % device)
-        
-        slave.execguest("sed -i /XENAPI_PASSWORD/d /mnt/opt/stack/devstack/localrc")
-        slave.execguest("echo 'XENAPI_PASSWORD=%s' >> /mnt/opt/stack/devstack/localrc" % self.host.password)
+
+        slave.execguest(
+            "sed -i /XENAPI_PASSWORD/d /mnt/opt/stack/devstack/localrc")
+        slave.execguest(
+            "echo 'XENAPI_PASSWORD=%s' "
+            ">> /mnt/opt/stack/devstack/localrc" % self.host.password)
 
         slave.execguest("umount /dev/%s1" % device)
 
         self.cli.execute("vbd-unplug", "uuid=%s" % vbdUUID)
         self.cli.execute("vbd-destroy", "uuid=%s" % vbdUUID)
 
-
     def importXVA(self):
-        self.devstack = self.host.guestFactory()(\
+        self.devstack = self.host.guestFactory()(
             "DevStackOSDomU", "NO_TEMPLATE",
             password=xenrt.TEC().lookup("DEFAULT_PASSWORD"))
         self.devstack.host = self.host
@@ -1065,9 +1083,14 @@ class TCInstallOpenStack(xenrt.TestCase):
         self.devstack.password="citrix"
 
     def fixDevstackNetwork(self):
-        vifUUID = self.host.minimalList("vif-list", args="device=0 vm-uuid=%s" % self.devstack.getUUID())[0]
+        vifUUID = self.host.minimalList(
+            "vif-list",
+            args="device=0 vm-uuid=%s" % self.devstack.getUUID())[0]
         self.cli.execute("vif-destroy", "uuid=%s" % vifUUID)
-        self.devstack.createVIF("eth0", self.host.getPrimaryBridge(), xenrt.randomMAC())        
+        self.devstack.createVIF(
+            "eth0",
+            self.host.getPrimaryBridge(),
+            xenrt.randomMAC())
 
     def run(self, arglist):
         self.host = self.getDefaultHost()
@@ -1083,18 +1106,33 @@ class TCInstallOpenStack(xenrt.TestCase):
         while xenrt.util.timenow() < deadline:
             time.sleep(15)
             try:
-                self.devstack.execguest("grep -q 'stack.sh completed in' /tmp/devstack/log/stack.log", username="stack")
+                self.devstack.execguest(
+                    "grep -q 'stack.sh completed in' "
+                    "/tmp/devstack/log/stack.log", username="stack")
             except:
                 continue
             break
-        self.devstack.execguest("test -e /var/run/devstack.succeeded", username="stack")
+        self.devstack.execguest(
+            "test -e /var/run/devstack.succeeded", username="stack")
+
 
 class TCOpenStackExercise(xenrt.TestCase):
     def run(self, arglist):
         devstack = self.getGuest("DevStackOSDomU")
-        devstack.execguest("cd /opt/stack/devstack && ./exercise.sh", username="stack", timeout=14400)
+        devstack.execguest(
+            "cd /opt/stack/devstack && ./exercise.sh",
+            username="stack",
+            timeout=14400
+        )
+
 
 class TCOpenStackSmokeTest(xenrt.TestCase):
     def run(self, arglist):
         devstack = self.getGuest("DevStackOSDomU")
-        devstack.execguest("cd /opt/stack/tempest && nosetests -sv --nologcapture --attr=type=smoke tempest </dev/null", username="stack", timeout=14400)
+        devstack.execguest(
+            "cd /opt/stack/tempest "
+            "&& nosetests -sv --nologcapture --attr=type=smoke tempest "
+            "</dev/null",
+            username="stack",
+            timeout=14400
+        )

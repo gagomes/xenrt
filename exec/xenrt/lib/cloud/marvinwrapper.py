@@ -62,9 +62,6 @@ class MarvinApi(object):
 
         self.apiClient = self.testClient.getApiClient()
 
-        #TODO - Fix this
-        self.apiClient.hypervisor = 'XenServer'
-
     def command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
         # First we create the command
@@ -270,7 +267,7 @@ class MarvinApi(object):
 
     def addPrimaryStorage(self, name, cluster, primaryStorageUrl=None, primaryStorageSRName=None):
         args = { 'name': name, 'zoneid': cluster.zoneid, 'podid': cluster.podid, 'clusterid': cluster.id }
-        if primaryStorageSRName and self.apiClient.hypervisor == 'XenServer':
+        if primaryStorageSRName:
             args['url'] = 'presetup://localhost/%s' % (primaryStorageSRName)
         elif primaryStorageUrl:
             args['url'] = primaryStorageUrl

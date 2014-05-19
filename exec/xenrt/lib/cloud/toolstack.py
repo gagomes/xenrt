@@ -4,6 +4,7 @@ import os, urllib
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements
+from collections import Counter
 
 import xenrt.lib.cloud
 try:
@@ -21,6 +22,18 @@ import xenrt.lib.cloud.pvtoolsinstall
 class CloudStack(object):
     implements(xenrt.interfaces.Toolstack)
 
+    # Mapping Cloud hypervisor strings to the XenRT HypervisorType enum
+    __hypervisorTypeMapping = {"XenServer": xenrt.HypervisorType.xen,
+                     "KVM": xenrt.HypervisorType.kvm,
+                     "VMware": xenrt.HypervisorType.vmware,
+                     "Hyperv": xenrt.HypervisorType.hyperv,
+                     "BareMetal": xenrt.HypervisorType.native,
+                     "Simulator": xenrt.HypervisorType.simulator}
+
+    # Mapping of HypervisorTypes to template formats
+    __templateFormats = {xenrt.HypervisorType.xen: "VHD",
+                         xenrt.HypervisorType.kvm: "QCOW2"}
+
     def __init__(self, place=None, ip=None):
         assert place or ip
         if not place:
@@ -31,18 +44,18 @@ class CloudStack(object):
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
     def instanceHypervisorType(self, instance):
-        return [self._hypervisorToHypervisorType(x.hypervisor) for x in self._vmListProvider(instance.tolstackId)][0]
+        return self.hypervisorToHypervisorType(self._vmListProvider(instance.tolstackId)[0].hypervisor)
 
-    def _hypervisorToHypervisorType(self, hypervisor):
-        hvMapping = {"XenServer": xenrt.HypervisorType.xen,
-                     "KVM": xenrt.HypervisorType.kvm,
-                     "VMware": xenrt.HypervisorType.vmware,
-                     "Hyperv": xenrt.HypervisorType.hyperv,
-                     "BareMetal": xenrt.HypervisorType.native,
-                     "Simulator": xenrt.HypervisorType.simulator}
-        if hypervisor in hvMapping.keys():
-            return hvMapping[hypervisor]
-        raise xenrt.XRTError("Unknown cloud hypervisor type: %s" % hypervisor)
+    def hypervisorToHypervisorType(self, hypervisor):
+        if hypervisor in self.__hypervisorTypeMapping.keys():
+            return __hypervisorTypeMapping[hypervisor]
+        raise xenrt.XRTError("Unknown cloud hypervisor: %s" % hypervisor)
+
+    def hypervisorTypeToHypervisor(self, hypervisorType):
+        try:
+            return (h for h,hv in self.__hypervisorTypeMapping.items() if hv == hypervisorType).next()
+        except StopIteration:
+            raise xenrt.XRTError("Unknown XenRT hypervisorType: %s" % hypervisorType)
 
     def _vmListProvider(self, toolstackid):
         """
@@ -52,7 +65,7 @@ class CloudStack(object):
         return VirtualMachine.list(self.marvin.apiClient, id=toolstackid)
 
     def instanceResidentOn(self, instance):
-        return [x.hostname for x in self._vmListProvider(instance.toolstackId)][0]
+        return self._vmListProvider(instance.toolstackId)[0].hostname
 
     def instanceCanMigrateTo(self, instance):
         cmd = findHostsForMigration.findHostsForMigrationCmd()
@@ -82,21 +95,35 @@ class CloudStack(object):
                        extraConfig={},
                        startOn=None,
                        installTools=True,
-                       useTemplateIfAvailable=True):
+                       useTemplateIfAvailable=True,
+                       hypervisorType=None,
+                       zone=None):
         
         if not name:
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
     
+        if startOn:
+            # Ignore any provided hypervisorType and set this based on the host
+            hypervisorType = self.hypervisorToHypervisorType(Host.list(self.marvin.apiClient, name=startOn)[0].hypervisor)
+
         template = None        
 
         # If we can use a template and it exists, use it
         if useTemplateIfAvailable:
+            if not hypervisorType:
+                hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient)]
+                hypervisor = Counter(hypervisors).most_common(1)[0][0]
+                hypervisorType = self.hypervisorToHypervisorType(hypervisor)
+            else:
+                hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
+
+            templateFormat = self.__templateFormats[hypervisorType]
             templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
             if templateDir:
-                url = "%s/%s.vhd.bz2" % (templateDir, distro)
+                url = "%s/%s/%s.%s.bz2" % (templateDir, hypervisor, distro, templateFormat.lower())
                 if xenrt.TEC().fileExists(url):
-                    self.marvin.addTemplateIfNotPresent(distro, url)
+                    self.marvin.addTemplateIfNotPresent(hypervisor, templateFormat, distro, url)
                     template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
             # If we use a template, we can't specify the disk size
             diskOffering=None        
@@ -118,23 +145,30 @@ class CloudStack(object):
             #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
             diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
 
-
-        zone = Zone.list(self.marvin.apiClient)[0].id
+        if zone:
+            zoneid = Zone.list(self.marvin.apiClient, name=zone)[0].id
+        else:
+            zoneid = Zone.list(self.marvin.apiClient)[0].id
         # TODO support different service offerings
         #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
         svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
 
         xenrt.TEC().logverbose("Deploying VM")
-        # TODO support startOn parameter to choose a specific cluster (and therefore hypervisor type)
-        rsp = VirtualMachine.create(self.marvin.apiClient, {
-                                        "serviceoffering": svcOffering,
-                                        "zoneid": zone,
-                                        "displayname": name,
-                                        "name": name,
-                                        "template": template,
-                                        "diskoffering": diskOffering},
-                                    startvm=False)
+        params = {
+                  "serviceoffering": svcOffering,
+                  "zoneid": zoneid,
+                  "displayname": name,
+                  "name": name,
+                  "template": template,
+                  "diskoffering": diskOffering
+                 }
+        if hypervisorType:
+            params["hypervisor"] = self.hypervisorTypeToHypervisor(hypervisorType)
+        if startOn:
+            params["hostid"] = Host.list(self.marvin.apiClient, name=startOn)[0].id
+
+        rsp = VirtualMachine.create(self.marvin.apiClient, params, startvm=False)
 
         instance.toolstackId = rsp.id
 

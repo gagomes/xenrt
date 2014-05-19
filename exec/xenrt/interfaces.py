@@ -15,7 +15,7 @@ class Toolstack(Interface):
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 
-    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable):
+    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
         """Create and install and instance on this toolstack"""
 
     def existingInstance(name):

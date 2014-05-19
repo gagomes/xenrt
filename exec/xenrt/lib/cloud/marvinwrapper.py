@@ -293,7 +293,7 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
-    def addTemplateIfNotPresent(self, distro, url):
+    def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url):
         templates = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro]
         if not templates:
             xenrt.TEC().logverbose("Template is not present, registering")
@@ -310,7 +310,8 @@ class MarvinApi(object):
                         "displaytext": distro,
                         "ispublic": True,
                         "url": url,
-                        "format": "VHD"})
+                        "hypervisor": hypervisor,
+                        "format": templateFormat})
 
         # Now wait until the Template is ready
         deadline = xenrt.timenow() + 3600

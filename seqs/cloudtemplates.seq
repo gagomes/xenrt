@@ -19,4 +19,12 @@
       </vm>
     </sharedhost>
   </prepare>
+
+  <testsequence>
+    <testcase id="cloud.maintenance.TCGenerateTemplate">
+      <arg>debian70_x86-32</arg>
+      <arg>debian70_x86-64</arg>        
+    </testcase>
+  </testsequence>
+
 </xenrt>

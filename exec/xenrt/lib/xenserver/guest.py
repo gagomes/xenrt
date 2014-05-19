@@ -3931,7 +3931,10 @@ exit /B 1
         cli = self.getCLIInstance()
         data = cli.execute("vm-retrieve-wlb-recommendations",
                            "uuid=%s" % (self.getUUID()))
-        return xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        recs = xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        #CA-80791
+        recs = dict(map(lambda x:(re.sub(r'\(.+\)$', '', x),recs[x]), recs))
+        return recs
 
     def vendorInstallDevicePrefix(self):
         return "xvd"

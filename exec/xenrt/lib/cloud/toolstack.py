@@ -31,8 +31,18 @@ class CloudStack(object):
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
     def instanceHypervisorType(self, instance):
-        # TODO actually determine what hypervisor is selected for the given instance
-        return xenrt.HypervisorType.xen
+        return [self._hypervisorToHypervisorType(x.hypervisor) for x in self._vmListProvider(instance.tolstackId)][0]
+
+    def _hypervisorToHypervisorType(self, hypervisor):
+        hvMapping = {"XenServer": xenrt.HypervisorType.xen,
+                     "KVM": xenrt.HypervisorType.kvm,
+                     "VMware": xenrt.HypervisorType.vmware,
+                     "Hyperv": xenrt.HypervisorType.hyperv,
+                     "BareMetal": xenrt.HypervisorType.native,
+                     "Simulator": xenrt.HypervisorType.simulator}
+        if hypervisor in hvMapping.keys():
+            return hvMapping[hypervisor]
+        raise xenrt.XRTError("Unknown cloud hypervisor type: %s" % hypervisor)
 
     def _vmListProvider(self, toolstackid):
         """
@@ -116,6 +126,7 @@ class CloudStack(object):
 
 
         xenrt.TEC().logverbose("Deploying VM")
+        # TODO support startOn parameter to choose a specific cluster (and therefore hypervisor type)
         rsp = VirtualMachine.create(self.marvin.apiClient, {
                                         "serviceoffering": svcOffering,
                                         "zoneid": zone,
@@ -253,7 +264,7 @@ class CloudStack(object):
     def createTemplateFromInstance(self, instance, templateName):
         origState = instance.getPowerState()
         instance.setPowerState(xenrt.PowerState.down)
-        
+
         volume = Volume.list(self.marvin.apiClient, virtualmachineid=instance.toolstackId, type="ROOT")[0].id
 
         vm = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0]

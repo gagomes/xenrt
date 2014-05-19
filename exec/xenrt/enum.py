@@ -32,6 +32,9 @@ class HypervisorType(Enum):
     xen = "xen"
     native = "native"
     kvm = "kvm"
+    vmware = "vmware"
+    hyperv = "hyperv"
+    simulator = "simulator"
     other = "other"
 
 class InstallMethod(Enum):

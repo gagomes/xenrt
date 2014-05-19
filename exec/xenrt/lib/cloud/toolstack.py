@@ -44,15 +44,18 @@ class CloudStack(object):
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
     def instanceHypervisorType(self, instance, nativeCloudType=False):
+        """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
         hypervisor = self._vmListProvider(instance.tolstackId)[0].hypervisor
         return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
 
     def hypervisorToHypervisorType(self, hypervisor):
+        """Map a cloud hypervisor string to a xenrt.HypervisorType enum"""
         if hypervisor in self.__hypervisorTypeMapping.keys():
             return __hypervisorTypeMapping[hypervisor]
         raise xenrt.XRTError("Unknown cloud hypervisor: %s" % hypervisor)
 
     def hypervisorTypeToHypervisor(self, hypervisorType):
+        """Map a xenrt.HypervisorType enum to a cloud hypervisor string"""
         try:
             return (h for h,hv in self.__hypervisorTypeMapping.items() if hv == hypervisorType).next()
         except StopIteration:
@@ -85,6 +88,12 @@ class CloudStack(object):
             ops.append(xenrt.LifecycleOperation.livemigrate)
         
         return ops
+
+    def _getDefaultHypervisor(self):
+        hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient)]
+        if len(hypervisors) > 0:
+            return Counter(hypervisors).most_common(1)[0][0]
+        return "XenServer"
 
     def createInstance(self,
                        distro,
@@ -121,8 +130,7 @@ class CloudStack(object):
         # If we can use a template and it exists, use it
         if useTemplateIfAvailable:
             if not hypervisor:
-                hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient)]
-                hypervisor = Counter(hypervisors).most_common(1)[0][0]
+                hypervisor = self._getDefaultHypervisor()
             templateFormat = self._templateFormats[hypervisor]
             templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
             if templateDir:
@@ -170,6 +178,12 @@ class CloudStack(object):
                  }
         if hypervisor:
             params["hypervisor"] = hypervisor
+            self.marvin.apiClient.hypervisor = hypervisor
+        else:
+            # No hypervisor defined - Marvin pre 4.4 requires one to be defined
+            # so we need to determine what to use (note this has no effect on
+            # Marvin post 4.4)
+            self.marvin.apiClient.hypervisor = self._getDefaultHypervisor()
         if startOn:
             params["hostid"] = startOnId
 

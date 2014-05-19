@@ -300,6 +300,7 @@ class MarvinApi(object):
             zone = Zone.list(self.apiClient)[0].id
 
             osname = self.mgtSvr.lookup(["OS_NAMES", distro])
+            self.apiClient.hypervisor = hypervisor # Needed by Marvin pre-4.4
             Template.register(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,

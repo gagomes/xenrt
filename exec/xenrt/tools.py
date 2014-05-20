@@ -1064,7 +1064,7 @@ def processMatrixTests(release=None):
                                            'w2k3sesp2',
                                            'w2k3eer2','w2k3ser2']
     distrosToRels['Clearwater']['level0'] = ['w2k3eesp2']
-    distrosToRels['Clearwater']['experimental'] = ['rhel58', 'rhel59', 'rhel63', 'rhel64', 'oel58', 'oel59', 'oel63', 'oel64',
+    distrosToRels['Clearwater']['experimental'] = ['rhel58', 'rhel59', 'rhel63', 'rhel64', 'oel58', 'oel59','oel510', 'oel63', 'oel64','oel65',
                                                 'centos58', 'centos59', 'centos63', 'centos64', 'sles112', 'debian70']
 
 

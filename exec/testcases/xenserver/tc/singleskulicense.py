@@ -315,6 +315,11 @@ class SingleSkuBase(xenrt.TestCase):
         # This is to verify the number of licenses used
         self.verifyLicenseServer(reset = True)
 
+class TC21468(SingleSkuBase):
+    def postRun(self):
+        #This is for WLB functional tests which need a licensed XS.
+        pass
+
 class LicensedSystem(SingleSkuBase):
 
     def preLicenseApplyAction(self):

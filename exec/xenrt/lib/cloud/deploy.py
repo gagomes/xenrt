@@ -213,7 +213,7 @@ def deploy(cloudSpec, manSvr=None):
     marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
 
     deployerPlugin = DeployerPlugin(marvinApi)
-    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,manSvr.place.username, manSvr.place.findPassword())
+    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.findPassword())
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 
     # Store the JSON Marvin config file

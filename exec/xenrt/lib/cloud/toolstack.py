@@ -166,6 +166,21 @@ class CloudStack(object):
         #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
         svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
+        # Do we need to sort out a security group?
+        if Zone.list(self.marvin.apiClient, id=zoneid)[0].securitygroupsenabled:
+            secGroups = SecurityGroup.list(self.marvin.apiClient, securitygroupname="xenrt_default_sec_grp")
+            if not isinstance(secGroups, list):
+                secGroup = SecurityGroup.create(self.marvin.apiClient, {"name": "xenrt_default_sec_grp"})
+                secGroup.authorize(self.marvin.apiClient, {"protocol": "TCP",
+                                                           "startport": 0,
+                                                           "endport": 65535,
+                                                           "cidrlist": "0.0.0.0/0"})
+                secGroup.authorize(self.marvin.apiClient, {"protocol": "ICMP",
+                                                           "cidrlist": "0.0.0.0/0"})
+                secGroupId = secGroup.id
+            else:
+                secGroupId = secGroups[0].id
+
 
         xenrt.TEC().logverbose("Deploying VM")
         params = {
@@ -175,7 +190,7 @@ class CloudStack(object):
                   "name": name,
                   "template": template,
                   "diskoffering": diskOffering,
-                  "mode": "basic"
+                  "securitygroupids": [secGroupId]
                  }
         if hypervisor:
             params["hypervisor"] = hypervisor

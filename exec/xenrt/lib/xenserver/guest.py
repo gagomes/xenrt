@@ -185,7 +185,7 @@ class Guest(xenrt.GenericGuest):
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
 
-        if self.distro and self.distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),","):
+        if self.distro and not self.distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),","):
             self.noguestagent = True
 
         if not self.windows:
@@ -272,8 +272,8 @@ class Guest(xenrt.GenericGuest):
         if distro and distro.startswith("solaris"):
             self.enlightenedDrivers = False
 
-        if distro and distro in \
-               string.split(self.getHost().lookup("NO_GUEST_AGENT", ""), ","):
+        if distro and not distro in \
+               string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ","):
             self.noguestagent = True
 
         # Hack to use correct kickstart for rhel6
@@ -444,7 +444,7 @@ class Guest(xenrt.GenericGuest):
 
         # Windows needs to install from a CD
         if not self.windows:
-            if distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),
+            if not distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),
                                       ","):
                 self.noguestagent = True
         if self.windows:

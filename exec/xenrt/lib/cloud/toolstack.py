@@ -174,7 +174,8 @@ class CloudStack(object):
                   "displayname": name,
                   "name": name,
                   "template": template,
-                  "diskoffering": diskOffering
+                  "diskoffering": diskOffering,
+                  "mode": "basic"
                  }
         if hypervisor:
             params["hypervisor"] = hypervisor

@@ -723,6 +723,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_58_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_59"] = "Oracle Enterprise Linux 5 (32-bit)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_59_64"] = "Oracle Enterprise Linux 5 (64-bit)"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_510"] = "Oracle Enterprise Linux 5 (32-bit)"
+        self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_510_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Tampa"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"

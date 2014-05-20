@@ -32,6 +32,7 @@ NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
 
 REVISION	= $(GIT) --git-dir=$(1)/.git --work-tree=$(1) log -1 --pretty=format:"$(notdir $(1)):%H"
 
+CONSKEY=$(shell cat $(ROOT)/$(INTERNAL)/keys/ssh/id_rsa_cons)
 
 .PHONY: update 
 update: $(XENRT) $(INTERNAL)
@@ -247,6 +248,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
 	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
+	-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
 	chmod --reference $@.in $@
 	

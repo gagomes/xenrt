@@ -99,8 +99,10 @@ class RHELKickStartFile :
     def _generateKS(self):
         if self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
             kf=self._generate6()
-        else:
+        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5"):
             kf=self._generate5()
+        else:
+            kf=self._generate4()
         return kf
 
     def _key(self):
@@ -268,6 +270,70 @@ umount /tmp/xenrttmpmount
         else:   
             return out
                 
+    def _generate4(self):
+        
+        out = """install
+text
+%s
+lang en_US.UTF-8
+langsupport --default=en_US.UTF-8 en_US.UTF-8
+keyboard us
+network --device %s --bootproto dhcp
+rootpw --iscrypted %s
+firewall --enabled --ssh 
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %s
+bootloader --location=mbr --append="console=ttyS0,115200n8"
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --linux --all --initlabel
+part /boot --fstype "ext3" --size=%d --ondisk=%s
+part pv.8 --size=0 --grow --ondisk=%s --maxsize=12000
+volgroup VolGroup00 --pesize=32768 pv.8
+logvol / --fstype ext3 --name=LogVol00 --vgname=VolGroup00 --size=1024 --grow
+logvol swap --fstype swap --name=LogVol01 --vgname=VolGroup00 --size=1000
+%s
+%s
+
+%%packages
+@ admin-tools
+@ text-internet
+@ dialup
+@ server-cfg
+@ development-tools
+@ development-libs
+bridge-utils
+lvm2
+grub
+e2fsprogs
+%s
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+       
+        out = out+ """
+%%post
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+        return out
+
     def _generate5(self):
         
         out = """install

@@ -1485,7 +1485,8 @@ class Config:
         # Config for CCP / ACS
         self.config["CLOUD_CONFIG"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"] = {}
-        self.config["CLOUD_CONFIG"]["3.0.7"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"] = {}
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
@@ -1645,10 +1646,11 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
 
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
-        self.config["CLOUD_CONFIG"]["4.3"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
-        self.config["CLOUD_CONFIG"]["4.4"]["DEFAULT_SYSTEM_TEMPLATE"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
 
@@ -1721,6 +1723,12 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["6.5.50"] = "Sarasota"
         
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.93"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -2704,6 +2712,9 @@ class Config:
         # Blunt: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034.
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E035/75824/hotfix-XS60E035/XS60E035.xsupdate"
         
+        # MrToad (PLACEHOLDER): xen-tools . Rolls up nothing.
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/build/boston-lcm/84221/hotfix-XS60E036/XS60E036.xsupdate"
+        
         # Carabosse: kexec-tools, openssl,  vncterm, xen-device-mode, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035 
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
        
@@ -2943,8 +2954,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007.
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC008/77183/hotfix-XS602ECC008/XS602ECC008.xsupdate"
-      
-      
+        
+        # MrToad - xen-tools . Rolls up nothing. 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -2985,6 +2997,9 @@ class Config:
         
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS62E002, XS62E009 .
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E014/77605/hotfix-XS62E014/XS62E014.xsupdate"
+        
+        # MrToad (PLACEHOLDER): xen-tools . Rools up XS62E008
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/xen/carbon/clearwater-lcm/83715/hotfix-XS62E015/XS62E015.xsupdate"
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"
@@ -2997,6 +3012,10 @@ class Config:
 
         # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1004/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
+        
+        # Albert -Xapi, kernel, openvswitch. Rolls up Nothing
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1005/83968/hotfix-XS62ESP1005/XS62ESP1005.xsupdate"
+
 
 
         return
@@ -3130,6 +3149,7 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
         
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

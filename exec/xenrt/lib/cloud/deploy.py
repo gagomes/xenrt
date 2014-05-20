@@ -64,7 +64,7 @@ class DeployerPlugin(object):
         secondaryStorage = xenrt.ExternalNFSShare()
         storagePath = secondaryStorage.getMount()
         url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-        self.marvin.copySystemTemplateToSecondaryStorage(storagePath, 'NFS')
+        self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
         return url
 
     def getSecondaryStorageProvider(self, key, ref):
@@ -122,8 +122,9 @@ class DeployerPlugin(object):
         return xenrt.TEC().lookup("ROOT_PASSWORD")
 
     def getHypervisorType(self, key, ref):
-        # TODO - enable support for other HVs
-        return 'XenServer'
+        if ref.has_key('hypervisor'):
+            return ref['hypervisor']
+        return 'XenServer' # Default to XenServer if not specified
 
     def getPrimaryStorageName(self, key, ref):
         return '%s-Primary-Store' % (self.currentPodName)
@@ -156,6 +157,22 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
             hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
+        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRT_KVMHostIds'):
+            hostIds = ref['XRT_KVMHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
+                try:
+                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
         elif ref.has_key('XRT_NumberOfHosts'):
             map(lambda x:hosts.append({}), range(ref['XRT_NumberOfHosts']))
         return hosts

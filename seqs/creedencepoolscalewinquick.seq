@@ -4,6 +4,7 @@
   <default name="THREADS" value="2"/>
   <default name="USE_INTELLICACHE" value="yes"/>
   <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="NUMBEROFSLAVESTOREBOOT" value="1"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -62,6 +63,9 @@
     <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" />
     <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" />
     <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462">
+        <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
+    </testcase>
     
     
   </testsequence>

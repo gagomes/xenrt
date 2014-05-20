@@ -7428,7 +7428,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0("rm -f /etc/xensource/xapi_block_startup || true")
             self.execdom0("rm -f /etc/xensource-inventory.prev")
             # Clear up any static VDIs (this will fail if one is mounted, but should still remove the config)
-            self.execdom0("rm -f /etc/xensource/static-vdis/* || true")
+            self.execdom0("rm -rf /etc/xensource/static-vdis/* || true")
             self.execdom0("mv /etc/xensource-inventory "
                           "/etc/xensource-inventory.prev")
             self.execdom0("cat /etc/xensource-inventory.prev | "
@@ -13493,7 +13493,16 @@ class Pool:
         """Retrieve recommendations from WLB"""
         cli = self.getCLIInstance()
         data = cli.execute("pool-retrieve-wlb-recommendations")
-        return xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        recs = xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        #CA-80791
+        recs = dict(map(lambda x:(re.sub(r'\(.+\)$', '', x),recs[x]), recs))
+        return recs
+
+    def retrieveWLBDiagnostics(self):
+        """Retrieve log file contents from WLB"""
+        cli = self.getCLIInstance()
+        data = cli.execute("pool-retrieve-wlb-diagnostics")
+        return xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
 
     def retrieveWLBReport(self, report, filename=None, params={}):
         """Retrieve the specified WLB report into the specified file"""

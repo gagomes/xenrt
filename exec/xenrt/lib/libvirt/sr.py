@@ -221,7 +221,11 @@ class EXTStorageRepository(StorageRepository):
     def createOn(self, lvdevice):
         """Creates an EXT SR on a logical volume."""
         self.host.execdom0("mkfs -t ext3 %s" % lvdevice)
-        self._create("fs", "<device path='%s'/>" % lvdevice, "")
+        path = self.getPath()
+        self.host.execdom0("mkdir -p %s" % path)
+        self.host.execdom0("mount %s %s" % (lvdevice, path))
+        self.host.execdom0("echo '%s %s ext3 defaults 1 1' >> /etc/fstab" % (lvdevice, path))
+        self._create("dir", "", "<path>%s</path>" % path)
 
 class NFSStorageRepository(StorageRepository):
     """Models an NFS SR"""

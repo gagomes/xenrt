@@ -160,6 +160,8 @@ class DebianLinux(DebianBasedLinux):
         if self.distro == "debian60":
             return "deb6_%s.iso" % self.arch
         elif self.distro == "debian70":
+            if xenrt.TEC().lookup("USE_AUTO_ISO", False, boolean=True):
+                return "auto_deb7_%s.iso" % self.arch
             return "deb7_%s.iso" % self.arch
 
 class UbuntuLinux(DebianBasedLinux):

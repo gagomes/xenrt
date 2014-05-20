@@ -170,7 +170,9 @@ class CloudStack(object):
         if Zone.list(self.marvin.apiClient, id=zoneid)[0].securitygroupsenabled:
             secGroups = SecurityGroup.list(self.marvin.apiClient, securitygroupname="xenrt_default_sec_grp")
             if not isinstance(secGroups, list):
-                secGroup = SecurityGroup.create(self.marvin.apiClient, {"name": "xenrt_default_sec_grp"})
+                domainid = Domain.list(self.marvin.apiClient, name='ROOT')[0].id
+                accountid = Account.list(self.marvin.apiClient, domain='ROOT')[0].id
+                secGroup = SecurityGroup.create(self.marvin.apiClient, {"name": "xenrt_default_sec_grp"}, account=accountid, domainid=domainid)
                 secGroup.authorize(self.marvin.apiClient, {"protocol": "TCP",
                                                            "startport": 0,
                                                            "endport": 65535,

@@ -2301,12 +2301,13 @@ Add-WindowsFeature as-net-framework"""
         return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
+        version = 0.0
         try:
-            return float(self.winRegLookup("HKLM", 
-                "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", 
-                "PowerShellVersion"))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
         except:
-            return 0.0
+            pass
+        return version
 
     def installPowerShell(self):
         """Install PowerShell into a Windows XML-RPC guest."""
@@ -2343,12 +2344,10 @@ Add-WindowsFeature as-net-framework"""
     def installPowerShell20(self, reboot=True):
         """Install PowerShell 2.0 into a Windows XML-RPC guest. Note this 
         op requires a reboot to finish install using Win Update"""
-        try:
-            if self.getPowershellVersion() >= 2.0:
-                xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
-                return
-        except:
-            pass
+        if self.getPowershellVersion() >= 2.0:
+            xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
+            return
+
         if self.xmlrpcWindowsVersion() == "6.0":
             if self.xmlrpcGetArch() == "amd64": 
                 exe = "Windows6.0-KB968930-x64.msu"
@@ -2371,6 +2370,30 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcExec("%s\\powershell20\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
         if reboot:
             self.reboot()
+
+    def installPowerShell30(self, reboot=True, verifyInstall=True):
+        """Install PowerShell 3.0 into a Windows XML-RPC guest. Note this
+        op requires a reboot to finish install using Win Update"""
+        if self.getPowershellVersion() >= 3.0:
+            xenrt.TEC().logverbose("PowerShell 3.0 or above installed.")
+            return
+
+        if self.xmlrpcWindowsVersion() == "6.1":
+            self.installDotNet4()
+            if self.xmlrpcGetArch() == "amd64":
+                exe = "Windows6.1-KB2506143-x64.msu"
+            else:
+                exe = "Windows6.1-KB2506143-x86.msu"
+        else:
+            raise xenrt.XRTError("PowerShell 3.0 installer is not \
+            available for Windows version %s" % self.xmlrpcWindowsVersion())
+        t = self.xmlrpcTempDir()
+        self.xmlrpcUnpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
+        self.xmlrpcExec("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
+        if reboot:
+            self.reboot()
+            if verifyInstall and self.getPowershellVersion() < 3.0:
+                raise xenrt.XRTError('Failed to install PowerShell v3.0')
 
     def enablePowerShellUnrestricted(self):
         """Allow the running of unsigned PowerShell scripts."""

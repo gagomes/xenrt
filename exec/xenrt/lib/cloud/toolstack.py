@@ -45,7 +45,7 @@ class CloudStack(object):
 
     def instanceHypervisorType(self, instance, nativeCloudType=False):
         """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
-        hypervisor = self._vmListProvider(instance.tolstackId)[0].hypervisor
+        hypervisor = self._vmListProvider(instance.toolstackId)[0].hypervisor
         return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
 
     def hypervisorToHypervisorType(self, hypervisor):

@@ -3332,8 +3332,12 @@ DHCPServer = 1
         try:
             if not distro.startswith("centos"):
                 url = os.path.join(url, 'Server')
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
+            try:
+                # Try to rename the files to .orig. This could fail if they don't exist
+                self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                             "   do mv $r $r.orig; done")
+            except:
+                pass
             c = """[base]
 name=CentOS-$releasever - Base
 baseurl=%s
@@ -3361,6 +3365,7 @@ gpgcheck=0
             sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
             sftp.close()
             # And reboot to start the new system
+            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
             self.distro=distro
             self.reboot()
         return True

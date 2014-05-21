@@ -1,5 +1,6 @@
 import xenrt
 import os.path
+import sys
 
 try:
     from marvin import cloudstackTestClient
@@ -8,7 +9,7 @@ try:
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
-    pass
+    sys.stderr.write("Could not import cloud libraries\n")
 
 def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
     jenkinsUrl = 'http://jenkins.buildacloud.org'

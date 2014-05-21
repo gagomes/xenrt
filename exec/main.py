@@ -172,6 +172,8 @@ def usage(fd):
     --setup-static-guest <guest>          Setup a Static Windows Guest
     --max-age <seconds>                   Only refresh a guest if it is older than <seconds>
 
+    --install-packages                    Install packages required for a job
+
 """ % (sys.argv[0]))
 
 # Parse command line
@@ -254,6 +256,7 @@ historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
 mconfig = None
 installguest = None
+installpackages = False
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -359,7 +362,8 @@ try:
                                       'run-tool=',
                                       'show-network',
                                       'show-network6',
-                                      'pdu'])
+                                      'pdu',
+                                      'install-packages'])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -765,6 +769,9 @@ try:
         elif flag == "--show-network6":
             shownetwork = True
             shownetwork6 = True
+            aux = True
+        elif flag == "--install-packages":
+            installpackages = True
             aux = True
             
 except getopt.GetoptError:
@@ -1383,6 +1390,14 @@ if shownetwork:
         if kvm:
             print "        %s %s-KVM" % (kvm, machine)
 
+if installpackages:
+    print "Evaluating whether we need marvin to be installed"
+    if xenrt.TEC().lookup("CLOUDINPUTDIR", None):
+        xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
+    else:
+        print "CLOUDINPUTDIR not specified, so marvin is not required"
+    sys.exit(0)
+
 if switchconfig:
     if len(optargs) != 1:
         raise xenrt.XRTError("Must specify a machine")
@@ -1873,7 +1888,7 @@ if runsuite:
 
 if runtool:
     eval("xenrt.tools." + runtool)
-    
+
 # We set the aux variable if the script is being used for things other
 # than test running.
 if aux:

@@ -1048,23 +1048,23 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel57','centos57','oel61','centos61',
-                                          'rhel62', 'centos62', 'oel62', 'ubuntu1204',
+                                          'oel510','centos57','centos61',
+                                          'rhel62', 'centos62', 'oel62', 'ubuntu1204','oel65',
                                           'win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Clearwater']['secondary'] = ['rhel47','rhel56','sles11','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel6','oel6', 'centos6']
+                                            'win7-x86','win7-x64','rhel6','oel61', 'centos6']
     distrosToRels['Clearwater']['tertiary'] = ['rhel46','rhel45','rhel55','rhel54','rhel53','rhel52',
                                            'rhel51','sles102',
                                            'centos48','centos47','centos46',
                                            'centos45','centos56' 'centos55','centos54','centos53',
                                            'centos52','centos51',
-                                           'oel55','oel56','oel54','oel53',
+                                           'oel57','oel56','oel55','oel54','oel53','oel6',
                                            'w2k3sesp2',
                                            'w2k3eer2','w2k3ser2']
     distrosToRels['Clearwater']['level0'] = ['w2k3eesp2']
-    distrosToRels['Clearwater']['experimental'] = ['rhel58', 'rhel59', 'rhel63', 'rhel64', 'oel58', 'oel59','oel510', 'oel63', 'oel64','oel65',
+    distrosToRels['Clearwater']['experimental'] = ['rhel58', 'rhel59', 'rhel63', 'rhel64', 'oel58', 'oel59', 'oel63', 'oel64',
                                                 'centos58', 'centos59', 'centos63', 'centos64', 'sles112', 'debian70']
 
 

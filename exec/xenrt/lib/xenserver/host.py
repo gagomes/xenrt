@@ -1817,6 +1817,10 @@ done
                           "--state NEW -d %s -j ACCEPT" %
                           (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
             self.execdom0("service iptables save")
+        if xenrt.TEC().lookup("WORKAROUND_CA136054", False, boolean=True):
+            xenrt.TEC().warning("Applying CA-136054 workaround")
+            self.execdom0("mkdir -p /usr/lib/xen/bin")
+            self.execdom0("ln -s /usr/lib64/xen/bin/vgpu /usr/lib/xen/bin/vgpu || true")
 
     def findUSBDevice(self):
         """Find the block device node corresponding to a USB flash device."""

@@ -458,7 +458,6 @@ class TC10844(TCPVSBVT):
     
 # class TC10847(TCPVSBVT):
 
-
 class TCXdAsfSetup(xenrt.TestCase):
 
     XD_SVC_ACCOUNT_USERNAME = 'ENG\\svc_testautomation'
@@ -788,7 +787,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         version = host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if version == '6.2.50' or version == '6.4.90':
+        if host.productVersion == 'Creedence' or host.productVersion == 'Sarasota':
             xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
             version = '6.2.0'
 

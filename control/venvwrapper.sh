@@ -12,10 +12,16 @@ source $venvpath/bin/activate
 
 shift
 
-cmd=$1
+path=`dirname $1`
+
+cp -R $path $venvpath/exec
+
+cmd=`basename $1`
 
 shift
-python $cmd --install-packages "$@"
-python $cmd "$@"
+
+set +e
+python $venvpath/exec/$cmd --install-packages "$@"
+python $venvpath/exec/$cmd "$@"
 
 rm -rf $venvpath

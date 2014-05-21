@@ -90,7 +90,7 @@ class CloudStack(object):
         return ops
 
     def _getDefaultHypervisor(self):
-        hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient)]
+        hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient, type="routing")]
         if len(hypervisors) > 0:
             return Counter(hypervisors).most_common(1)[0][0]
         return "XenServer"

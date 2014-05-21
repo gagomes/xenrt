@@ -191,8 +191,7 @@ class CloudStack(object):
                   "displayname": name,
                   "name": name,
                   "template": template,
-                  "diskoffering": diskOffering,
-                  "securitygroupids": [secGroupId]
+                  "diskoffering": diskOffering
                  }
         if hypervisor:
             params["hypervisor"] = hypervisor
@@ -205,7 +204,7 @@ class CloudStack(object):
         if startOn:
             params["hostid"] = startOnId
 
-        rsp = VirtualMachine.create(self.marvin.apiClient, params, startvm=False)
+        rsp = VirtualMachine.create(self.marvin.apiClient, params, startvm=False, securitygroupids=[secGroupId])
 
         instance.toolstackId = rsp.id
 

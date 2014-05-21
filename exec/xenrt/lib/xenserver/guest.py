@@ -3578,6 +3578,9 @@ exit /B 1
     def installTools(self, source=None, reboot=True, updateKernel=True):
         """Install tools package into a guest"""
 
+        if self.windows:
+            return
+
         # Locate the tools ISO.
         if not source:
             source = xenrt.TEC().lookup("OPTION_DRIVER_ISO", None)

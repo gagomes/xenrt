@@ -1022,17 +1022,17 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'solaris10u9','ubuntu1004', 'debian60',
-                                          'oel57','centos57','oel61','centos61',
+                                          'oel510','centos57','oel65','centos61',
                                           'rhel62', 'centos62', 'oel62', 'ubuntu1204']
     distrosToRels['Tampa']['secondary'] = ['rhel47','rhel56','sles11','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel6','oel6', 'centos6']
+                                            'win7-x86','win7-x64','rhel6','oel61', 'centos6']
     distrosToRels['Tampa']['tertiary'] = ['rhel46','rhel45','rhel55','rhel54','rhel53','rhel52',
                                            'rhel51','rhel5','sles102',
                                            'centos48','centos47','centos46',
                                            'centos45','centos56' 'centos55','centos54','centos53',
                                            'centos52','centos51','centos5',
-                                           'oel55','oel56','oel54','oel53',
+                                           'oel57','oel56','oel55','oel54','oel53','oel6',
                                            'w2k3sesp2',
                                            'w2k3eer2','w2k3ser2']
     distrosToRels['Tampa']['level0'] = ['w2k3eesp2']

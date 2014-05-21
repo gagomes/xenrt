@@ -1392,7 +1392,7 @@ if shownetwork:
 
 if installpackages:
     print "Evaluating whether we need marvin to be installed"
-    if xenrt.TEC().lookup("CLOUDINPUTDIR", None):
+    if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
         xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
     else:
         print "CLOUDINPUTDIR not specified, so marvin is not required"

@@ -993,9 +993,10 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'solaris10u9','ubuntu1004', 'debian60',
-                                          'oel56','centos56','oel6','oel57',
-                                          'centos57','rhel57','centos6','w2k3eesp2pae']
-    distrosToRels['Sanibel']['secondary'] = ['rhel47','rhel55','sles11','sles103',
+                                          'oel510','centos56','oel6','oel57','oel65',
+                                          'centos57','rhel57','centos63','centos64','centos65',
+                                          'w2k3eesp2pae']
+    distrosToRels['Sanibel']['secondary'] = ['rhel47','rhel55','sles11','sles103','centos6','oel56',
                                             'w2k3eesp1',
                                             'vistaeesp1','vistaeesp1-x64',
                                             'ws08-x86','ws08-x64', 'ws08r2-x64'

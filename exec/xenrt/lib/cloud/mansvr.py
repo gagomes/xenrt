@@ -237,9 +237,9 @@ class ManagementServer(object):
     @property
     def isCCP(self):
         if self.__isCCP is None:
-            # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
-            # Currently we use the existance of the cloudPlatform webapp module for this
-            self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
+            # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
+            # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None
 
         return self.__isCCP
 

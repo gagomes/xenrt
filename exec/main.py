@@ -254,6 +254,7 @@ knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
+noloadmachines = False
 mconfig = None
 installguest = None
 installpackages = False
@@ -772,6 +773,7 @@ try:
             aux = True
         elif flag == "--install-packages":
             installpackages = True
+            noloadmachines = True
             aux = True
             
 except getopt.GetoptError:
@@ -908,7 +910,7 @@ if loadmachines:
                 xenrt.readMachineFromRackTables(m)
             except:
                 pass
-elif config.lookup("XENRT_SITE", None):
+elif config.lookup("XENRT_SITE", None) and not noloadmachines:
     sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
     for m in sitemachines:
         if m not in config.lookup("HOST_CONFIGS", {}).keys():
@@ -1131,6 +1133,37 @@ def existingLocations():
         guestIndex = guestIndex + 1
 
     return runon
+
+def findSeqFile(config):
+    # Try the following locations for a seqfile:
+    #   1. CWD
+    #   2. $XENRT_CONF/seqs
+    #   3. $XENRT_BASE/seqs
+    #   4. File supplied through controller
+    search = ["."]
+    p = config.lookup("XENRT_CONF", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    p = config.lookup("XENRT_BASE", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    usefilename = None
+    for p in search:
+        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
+        filename = "%s/%s" % (p, seqfile)
+        if os.path.exists(filename):
+            usefilename = filename
+            break
+    p = config.lookup("CUSTOM_SEQUENCE", None)
+    if p:
+        xenrt.TEC().logverbose("Looking for seq file on controller ...")
+        sf = xenrt.TEC().tempFile()
+        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
+        f = file(sf, "w")
+        f.write(data)
+        f.close()
+        usefilename = sf
+    return usefilename 
 
 running = None
 
@@ -1392,6 +1425,21 @@ if shownetwork:
 
 if installpackages:
     print "Evaluating whether we need marvin to be installed"
+    seq = findSeqFile(config)
+    if seq:
+        xenrt.TEC().comment("Loading seq file %s" % (seq))
+        try:
+            xenrt.TestSequence(seq, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
+        except Exception, e:
+            xenrt.TEC().warning("Could not load seq file - %s" % str(e))
+        
+        # Variables defined on the command line take precedence over those
+        # specified by the sequence so we reapply the command line variables
+        # the config after reading the sequence file
+        for sv in setvars:
+            var, value = sv
+            config.setVariable(var, value)
+
     if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
         xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
     else:
@@ -2162,34 +2210,7 @@ if testcase:
         if config.isVerbose():
             traceback.print_exc(file=sys.stderr)
 else:
-    # Try the following locations for a seqfile:
-    #   1. CWD
-    #   2. $XENRT_CONF/seqs
-    #   3. $XENRT_BASE/seqs
-    #   4. File supplied through controller
-    search = ["."]
-    p = config.lookup("XENRT_CONF", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    p = config.lookup("XENRT_BASE", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    usefilename = None
-    for p in search:
-        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
-        filename = "%s/%s" % (p, seqfile)
-        if os.path.exists(filename):
-            usefilename = filename
-            break
-    p = config.lookup("CUSTOM_SEQUENCE", None)
-    if p:
-        xenrt.TEC().logverbose("Looking for seq file on controller ...")
-        sf = xenrt.TEC().tempFile()
-        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
-        f = file(sf, "w")
-        f.write(data)
-        f.close()
-        usefilename = sf
+    usefilename = findSeqFile(config)
     if usefilename:
         xenrt.TEC().comment("Using sequence file %s" % (usefilename))
     else:

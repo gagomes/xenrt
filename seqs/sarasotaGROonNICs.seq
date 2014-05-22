@@ -14,7 +14,7 @@
 
   <testsequence>
     <serial group="GRONetperfTests">
-      <testcase id="xenserver.tc.vswitch.NetworkThroughputwithGRO" tc="TC-19992"/>
+      <testcase id="xenserver.tc.vswitch.NetworkThroughputwithGroOn" tc="TC-19992"/>
       <testcase id="xenserver.tc.vswitch.TC19993" tc="TC-19993"/>
       <testcase id="xenserver.tc.vswitch.TC19994" tc="TC-19994"/>
       <testcase id="xenserver.tc.vswitch.TC20877" tc="TC-20877"/>

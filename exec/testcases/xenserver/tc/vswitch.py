@@ -2916,23 +2916,125 @@ class NetworkThroughputwithGRO(_VSwitch):
         self.host1.uninstallAllGuests()
         self.host2.uninstallAllGuests()
 
-class TC19993(NetworkThroughputwithGRO):
+class NetworkThroughputwithGroOn(NetworkThroughputwithGRO):
+
+    def prepare(self, arglist=None):
+        self.host1 = self.getHost("RESOURCE_HOST_0")
+        self.host2 = self.getHost("RESOURCE_HOST_1")        
+        self.tx = self.host1.createBasicGuest(distro=self.SOURCE)
+        self.rx = self.host2.createBasicGuest(distro=self.TARGET)
+        
+        #Retreive MAC for the eth0 of both the vms         
+        vuuid = self.host1.parseListForUUID("vif-list","vm-uuid",self.tx.getUUID(),"device=0" )        
+        self.tx_mac  = self.host1.genParamGet("vif", vuuid, "MAC")
+        vuuid = self.host2.parseListForUUID("vif-list","vm-uuid",self.rx.getUUID(),"device=0" )        
+        self.rx_mac  = self.host2.genParamGet("vif", vuuid, "MAC")
+        
+        # Turn off the GRO on all the NICS on rx host
+        if False in map(lambda x: self.setGRO(self.host2, "eth%d" %x, state='off'), [0]+self.host2.listSecondaryNICs()):
+            raise xenrt.XRTFailure("Failure while disabling gro on host 2 - %s" % self.host2)
+        
+        # Install netperf
+        time.sleep(60)
+        guests = self.tx, self.rx
+        self.prepareGuests(guests=guests)
+        
+    def run(self, arglist=None):
+        
+        # Let the netserver run on the rx and measure throughput from tx
+        self.tx.execguest("killall netserver")
+        # Stop iptables
+        try:
+            self.rx.execguest("service iptables stop")
+        except Exception,e:
+            log("No service in the name of iptables")            
+        
+        xenrt.log("Measure throughput for nic 0")
+        self.runThroughput(0)
+        
+        rx_nics = self.host2.listSecondaryNICs() 
+        #Measure throughput for all the secondary NICS available on receiving host
+        for nic in rx_nics :
+            #Ensure that we have only those vifs attached to BOTH the vms that we want to test
+            self.tx.unplugVIF("eth0")
+            self.tx.removeVIF("eth0")
+            self.rx.unplugVIF("eth0")
+            self.rx.removeVIF("eth0")
+            #Create the vif associated with the nic to be tested on both the vms 
+            self.tx.createVIF(bridge="xenbr%d"%nic,plug=True, mac=self.tx_mac)
+            #Unset mainip and reboot the guest so it the new ip gets populated to mainip
+            self.tx.mainip = None
+            self.tx.reboot()
+            self.rx.createVIF(bridge="xenbr%d"%nic,plug=True, mac=self.rx_mac)
+            self.rx.mainip = None
+            self.rx.reboot()
+            if self.TARGET == "w2k3eesp2": #Need to update the drivers for a Legacy Win VM                
+                self.rx.updateVIFDriver()
+                self.rx.reboot()            
+            if not self.rx.windows:
+                self.rx.execguest("netserver -p %s" % (self.PORT))
+            else:
+                self.rx.xmlrpcExec("START C:\\netserver -p %s" % self.PORT)
+            
+            #Measure throughput for the current nic 
+            self.runThroughput(nic)
+            
+        if self.NICSNOTTESTED:
+            raise xenrt.XRTFailure("The following nics on host %s were not tested - %s" %
+                                    (self.host2, self.NICSNOTTESTED))
+    
+    def runThroughput(self, rx_nic):
+        """Measures network throughput for rx_nic with only rx_nic connected to both the vms"""
+        #Set the main ip to the ip on nic0 vif
+        self.tx.mainip = self.tx.execguest("ifconfig eth0 | grep 'inet addr' | awk -F: '{print $2}' | awk '{print $1}'" ).strip()
+        if not self.tx.mainip:
+            raise xenrt.XRTFailure("No IP found for tx eth0 vif" )
+        
+        vif = self.rx.getVIF(bridge="xenbr%d"%rx_nic)
+
+        #Run the throughput tests (with GRO off and on) for rx_nic
+        step("Testing GRO disabled throughput for nic %d (on rx)" %rx_nic)
+        self.setGRO(self.host2, "eth%d" %rx_nic, state='off')
+
+        res = self._internalNetperf(test="TCP_STREAM", 
+                                    source=self.tx, target=vif[1])
+        log("Results with GRO disabled for nic %d (on rx): %s" % 
+            (rx_nic,str(res)))
+
+        #Enable GRO on rx_nic
+        if not self.setGRO(self.host2, "eth%d" %rx_nic, state='on'):
+            raise xenrt.XRTFailure("Failure while enabling gro on host 2 - %s, NIC %d" % 
+                                    (self.host2,rx_nic))
+
+        step("Testing GRO enabled throughput for nic %d (on rx)" %rx_nic)
+        res = self._internalNetperf(test="TCP_STREAM", 
+                                    source=self.tx, target=vif[1])
+        log("Results with GRO enabled for nic %d (on rx): %s" % 
+            (rx_nic,str(res)))
+            
+        if res[1] == 0.0:
+            xenrt.TEC().warning("Netperf test (with GRO enabled) between %s and %s on nic %d (on rx) returned 0" %
+                                    (self.SOURCE, self.TARGET, rx_nic))
+            self.NICSNOTTESTED.append(rx_nic)
+            
+
+class TC19993(NetworkThroughputwithGroOn):
     SOURCE="centos57"
     TARGET="sles111"
 
-class TC19994(NetworkThroughputwithGRO):
+class TC19994(NetworkThroughputwithGroOn):
     SOURCE="centos64"
     TARGET="ubuntu1204"
 
-class TC20874(NetworkThroughputwithGRO):
+class TC20874(NetworkThroughputwithGroOn):
     SOURCE="centos64"
     TARGET="win7sp1-x86"
     
-class TC20877(NetworkThroughputwithGRO):
+class TC20877(NetworkThroughputwithGroOn):
     SOURCE="centos64"
     TARGET="win8-x64"
 
-class TC20875(NetworkThroughputwithGRO):
+class TC20875(NetworkThroughputwithGroOn):
     SOURCE="centos64"
     TARGET="w2k3eesp2"
 

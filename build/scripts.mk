@@ -164,7 +164,7 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf ../../control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
 
 control/xrt:
 	$(info Creating link to $@...)

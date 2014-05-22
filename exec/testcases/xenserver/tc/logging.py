@@ -304,6 +304,11 @@ class TC19175(xenrt.TestCase):
         if self.host.special['Network subsystem type'] == "vswitch":
             ExpDirectories.append('/var/log/openvswitch/')
             DirectoriesToCheck += ' /var/log/openvswitch'
+        
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost): 
+            ExpDirectories.append('/var/log/tapback/')
+            DirectoriesToCheck += ' /var/log/tapback'
+        
         ActDirectories = self.host.execdom0("ls -d /var/log/*/").split("\n")[:-1]
         xenrt.TEC().logverbose("Expected Directories in /var/log %s" %(ExpDirectories))
         xenrt.TEC().logverbose("Optional Directories in /var/log %s" %(OptDirectories))

@@ -164,15 +164,17 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf ../../control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
 
 control/xrt:
 	$(info Creating link to $@...)
-	ln -sf ../exec/main.py $(SHAREDIR)/$@
+	rm $(SHAREDIR)/$@
+	echo '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	chmod a+x $(SHAREDIR)/$@
 
 xrt:
 	$(info Creating link to $@...)
-	$(SUDO) ln -sf $(SHAREDIR)/exec/main.py $(BINDIR)/$@
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)

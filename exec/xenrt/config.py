@@ -155,6 +155,9 @@ class Config:
         self.config["WINDOWS_INSTALL_ISOS"] = {}
         self.config["WINDOWS_INSTALL_ISOS"]["ADMINISTRATOR_PASSWORD"] = "xensource"
 
+
+        self.config["BUILTIN_XS_GUEST_AGENT"] = "sarge,etch"
+
         # Configuration specific to particular versions of the product
         self.config["VERSION_CONFIG"] = {}
         self.config["VERSION_CONFIG"]["Rio"] = {}
@@ -179,7 +182,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Rio"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Rio"]["DOM0_DISTRO"] = "centos5"
         self.config["VERSION_CONFIG"]["Rio"]["EXPFAIL_HIBERNATE"] = "w2k3eesp2-x64,w2kassp4"
-        self.config["VERSION_CONFIG"]["Rio"]["NO_GUEST_AGENT"] = "rhel45,rhel5,centos45,centos5,sles10,sles101"
         self.config["VERSION_CONFIG"]["Miami"] = {}
         self.config["VERSION_CONFIG"]["Miami"]["TEMPLATE_NAME_DEBIAN"] = "Debian Etch 4.0"
         self.config["VERSION_CONFIG"]["Miami"]["TEMPLATE_NAME_DEBIAN_SARGE"] = "Debian Sarge 3.1"
@@ -214,7 +216,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Miami"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Miami"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Miami"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Miami"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel5,rhel51,centos45,centos46,centos5,centos51,sles10,sles101"
         self.config["VERSION_CONFIG"]["Miami"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["Miami"]["MAX_CONCURRENT_VIFS"] = "400"
         self.config["VERSION_CONFIG"]["Miami"]["VCPU_IS_SINGLE_CORE"] = "yes"
@@ -267,7 +268,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Orlando"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Orlando"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Orlando"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Orlando"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel5,rhel51,rhel52,centos45,centos46,centos47,centos5,centos51,centos52,sles94,sles10,sles101,sles102,fc8,fc9"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_CONCURRENT_VIFS"] = "1050"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_VDIS_PER_SR_ext"] = "1024"
@@ -343,7 +343,6 @@ class Config:
         self.config["VERSION_CONFIG"]["George"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["George"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["George"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["George"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel5,rhel51,rhel52,rhel53,centos45,centos46,centos47,centos5,centos51,centos52,centos53,sles94,sles10,sles101,sles102,sles11,sles111,fc8,fc9,debian50"
         self.config["VERSION_CONFIG"]["George"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["George"]["MAX_CONCURRENT_VIFS"] = "1050"
         self.config["VERSION_CONFIG"]["George"]["MAX_VDIS_PER_SR_ext"] = "1024"
@@ -448,7 +447,6 @@ class Config:
         self.config["VERSION_CONFIG"]["MNR"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["MNR"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["MNR"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["MNR"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel6,oel53,oel54,oel55,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,sles94,sles10,sles101,sles102,sles103,sles11,sles111,fc8,fc9,debian50,debian60"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_HOST_MEMORY"] = "262144"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["MNR"]["MIN_VM_MEMORY"] = "128"
@@ -616,7 +614,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Boston"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Boston"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Boston"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel6,rhel61,oel53,oel54,oel55,oel56,oel57,oel6,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos6,sles94,sles10,sles101,sles102,sles103,sles104,sles11,sles111,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,ubuntu1004"
         self.config["VERSION_CONFIG"]["Boston"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Boston"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Boston"]["MIN_VM_MEMORY"] = "128"
@@ -796,7 +793,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Tampa"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Tampa"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Tampa"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Tampa"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel6,oel61,oel62,oel63,oel64,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Tampa"]["MIN_VM_MEMORY"] = "128"
@@ -1049,7 +1045,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos510,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Sarasota"]["MIN_VM_MEMORY"] = "128"
@@ -1723,6 +1718,12 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["6.5.50"] = "Sarasota"
         
         self.config["PRODUCT_CODENAMES"]["6.4.90"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.91"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.92"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.93"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -2184,6 +2185,14 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["debian70"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
+
+        self.config["LINUX_UPDATE"] = {}
+        self.config["LINUX_UPDATE"]["rhel5"] = "rhel510"
+        self.config["LINUX_UPDATE"]["rhel6"] = "rhel65"
+        self.config["LINUX_UPDATE"]["oel5"] = "oel510"
+        self.config["LINUX_UPDATE"]["oel6"] = "oel65"
+        self.config["LINUX_UPDATE"]["centos5"] = "centos510"
+        self.config["LINUX_UPDATE"]["centos6"] = "centos65"
 
         self.config["PRODUCT_KEYS"] = {}
 

@@ -1,0 +1,36 @@
+<xenrt>
+
+  <!-- WLB BST SEQUENCE -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <host id="2"/>
+      <storage type="nfs" name="NFS" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="AVPXWLBInstall" blocker="yes">
+      <testcase id="xenserver.tc.appliance.TC12766">
+      </testcase>
+    </serial>
+    <serial group="VPXWLB">
+      <testcase id="xenserver.tc.kirkwood.TC13479"/>
+      <testcase id="xenserver.tc.kirkwood.TC13480"/>
+      <testcase id="xenserver.tc.kirkwood.TC13481"/>
+      <testcase id="xenserver.tc.kirkwood.TC13482"/>
+      <testcase id="xenserver.tc.kirkwood.TC13483"/>
+      <testcase id="xenserver.tc.kirkwood.TC13484"/>
+      <testcase id="xenserver.tc.kirkwood.TC18154"/>
+      <testcase id="xenserver.tc.kirkwood.TC18157"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -123,7 +123,10 @@ class ManagementServer(object):
 
             self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
-            templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2": "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+            templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
+                                "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                              "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
+                                "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
@@ -243,7 +246,9 @@ class ManagementServer(object):
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
-        self.place.execcmd('grep "INSERT INTO\|VALUES" /usr/share/cloudstack-management/setup/templates.simulator.sql >> /usr/share/cloudstack-management/setup/templates.sql')
+#        self.place.execcmd('grep "INSERT INTO\|VALUES" /usr/share/cloudstack-management/setup/templates.simulator.sql >> /usr/share/cloudstack-management/setup/templates.sql')
+        self.place.execcmd('wget http://files.uk.xensource.com/usr/groups/xenrt/cloud/templates.simulator.sql -O /tmp/ts.sql')
+        self.place.execcmd('grep "INSERT INTO\|VALUES" /tmp/ts.sql >> /usr/share/cloudstack-management/setup/templates.sql')
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

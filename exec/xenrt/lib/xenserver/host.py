@@ -1820,6 +1820,10 @@ fi
                           "--state NEW -d %s -j ACCEPT" %
                           (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
             self.execdom0("service iptables save")
+        if xenrt.TEC().lookup("WORKAROUND_CA136054", False, boolean=True):
+            xenrt.TEC().warning("Applying CA-136054 workaround")
+            self.execdom0("mkdir -p /usr/lib/xen/bin")
+            self.execdom0("ln -s /usr/lib64/xen/bin/vgpu /usr/lib/xen/bin/vgpu || true")
 
     def findUSBDevice(self):
         """Find the block device node corresponding to a USB flash device."""
@@ -10029,6 +10033,70 @@ class BostonHost(MNRHost):
         self.execdom0("sed -i 's/xen_netback.netback_max_rx_protocol=0//g' /boot/extlinux.conf")
         MNRHost.disableCC(self, reboot)
 
+    def tailorForCloudStack(self):
+        # Set the Linux templates with PV args to autoinstall
+        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+
+        args = {}
+        args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Wheezy 7.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["Ubuntu Lucid Lynx 10.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Lucid Lynx 10.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Precise Pangolin 12.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+        args["Ubuntu Precise Pangolin 12.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
+
+        args["Red Hat Enterprise Linux 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
+        args["CentOS 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+
+        args["Oracle Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        
+        args["SUSE Linux Enterprise Server 10 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP3 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP3 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP4 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 10 SP4 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+
+        args["SUSE Linux Enterprise Server 11 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+        args["SUSE Linux Enterprise Server 11 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
+
+
+        for a in args.keys():
+            uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
+            if len(uuids) == 0:
+                xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
+                continue
+            self.genParamSet("template", uuids[0], "PV-args", args[a])
+
 #############################################################################
 class BostonXCPHost(BostonHost):
   
@@ -10933,70 +11001,6 @@ done
         except:
             pass
         xenrt.TEC().logverbose(self.execdom0("cat /tmp/vifdebug.%d.log" % int(domid)))
-
-    def tailorForCloudStack(self):
-        # Set the Linux templates with PV args to autoinstall
-        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
-
-        args = {}
-        args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Debian Wheezy 7.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Debian Squeeze 6.0 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Debian Squeeze 6.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-
-        args["Ubuntu Lucid Lynx 10.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Ubuntu Lucid Lynx 10.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Ubuntu Precise Pangolin 12.04 (32-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-        args["Ubuntu Precise Pangolin 12.04 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
-
-        args["Red Hat Enterprise Linux 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Red Hat Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-
-        args["CentOS 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 4.7 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 4.8 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["CentOS 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-
-        args["Oracle Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
-        
-        args["SUSE Linux Enterprise Server 10 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP3 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP3 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP4 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 10 SP4 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-
-        args["SUSE Linux Enterprise Server 11 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 11 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 11 SP1 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 11 SP1 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 11 SP2 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-        args["SUSE Linux Enterprise Server 11 SP2 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
-
-
-        for a in args.keys():
-            uuids = self.minimalList("template-list", args="name-label=\"%s\"" % a)
-            if len(uuids) == 0:
-                xenrt.TEC().logverbose("Warning - could not find template for %s" % a)
-                continue
-            self.genParamSet("template", uuids[0], "PV-args", args[a])
 
 #############################################################################
 
@@ -13519,7 +13523,16 @@ class Pool:
         """Retrieve recommendations from WLB"""
         cli = self.getCLIInstance()
         data = cli.execute("pool-retrieve-wlb-recommendations")
-        return xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        recs = xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        #CA-80791
+        recs = dict(map(lambda x:(re.sub(r'\(.+\)$', '', x),recs[x]), recs))
+        return recs
+
+    def retrieveWLBDiagnostics(self):
+        """Retrieve log file contents from WLB"""
+        cli = self.getCLIInstance()
+        data = cli.execute("pool-retrieve-wlb-diagnostics")
+        return xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
 
     def retrieveWLBReport(self, report, filename=None, params={}):
         """Retrieve the specified WLB report into the specified file"""

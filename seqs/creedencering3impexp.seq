@@ -12,7 +12,7 @@
   </prepare>
 
   <testsequence group="ImpExp">
-    <testcase id="xenserver.tc.impexp.TC9040" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC12565" prio="3"/>
   </testsequence>
 
 </xenrt>

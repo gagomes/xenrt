@@ -228,7 +228,6 @@ class Guest(xenrt.GenericGuest):
             self.vifstem = self.VIFSTEMPV
             self.hasSSH = True
 
-        self.noguestagent = False
         if host:
             self.virConn = host.virConn
         if password:
@@ -376,10 +375,6 @@ class Guest(xenrt.GenericGuest):
 
         if distro and distro.startswith("solaris"):
             self.enlightenedPlatform = False
-
-        if distro and distro in \
-               string.split(self.getHost().lookup("NO_GUEST_AGENT", ""), ","):
-            self.noguestagent = True
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
@@ -545,10 +540,6 @@ class Guest(xenrt.GenericGuest):
                 self.createDisk(sizebytes=int(size)*xenrt.MEGA)
 
         # Windows needs to install from a CD
-        if not self.windows:
-            if distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),
-                                      ","):
-                self.noguestagent = True
         if self.windows:
             self.installWindows(self.isoname)
         elif repository and not isoname:
@@ -968,11 +959,6 @@ class Guest(xenrt.GenericGuest):
 
         if not self.distro:
             self._detectDistro()
-
-        if self.distro and \
-            self.distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),
-                                        ","):
-            self.noguestagent = True
 
         # Get VIF details
         vifs = self.getVIFs()

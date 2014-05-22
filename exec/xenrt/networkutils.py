@@ -6,13 +6,29 @@
 # Copyright (c) 2012 XenSource, Inc. All use and distribution of this
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by XenSource, Inc. All other rights reserved.
-import math, threading, re, time, string, subprocess, os, random
+import math, threading, re, time, string, subprocess, os, random, socket
 import xenrt, xenrt.networkutils
 from abc import ABCMeta, abstractmethod
 from xenrt.lazylog import step, comment, log, warning
 
 # Symbols we want to export from the package.
-__all__ = ["Scapy, TcpDump", "HackersChoiceFirewall6Ubuntu", "HackersChoiceFloodRouter26Ubuntu"]
+__all__ = ["Scapy", "TcpDump", "Telnet", "HackersChoiceFirewall6Ubuntu", "HackersChoiceFloodRouter26Ubuntu"]
+
+class Telnet:
+    """Telnet is a utility for network service reachability test."""
+
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+
+    def run(self):
+        try:
+            s = socket.create_connection((self.host, self.port), 5)
+            s.close()
+            return True
+        except:
+            pass
+        return False
 
 class Scapy:
     """Scapy is a utility for creating and sending network packets. http://www.secdev.org/projects/scapy/"""

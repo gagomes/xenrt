@@ -4057,6 +4057,8 @@ def createVM(host,
     if preinstalledTemplates:
         t = preinstalledTemplates[0]
         g = host.guestFactory()(displayname, host=host)
+        g.arch = arch
+        g.distro=distro
         if vcpus:
             g.setVCPUs(vcpus)
         if corespersocket:

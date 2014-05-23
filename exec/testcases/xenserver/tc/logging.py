@@ -305,7 +305,7 @@ class TC19175(xenrt.TestCase):
             ExpDirectories.append('/var/log/openvswitch/')
             DirectoriesToCheck += ' /var/log/openvswitch'
         
-        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost): 
+        if xenrt.TEC().lookup("PRODUCT_VERSION") == "Creedence":
             ExpDirectories.append('/var/log/tapback/')
             DirectoriesToCheck += ' /var/log/tapback'
         

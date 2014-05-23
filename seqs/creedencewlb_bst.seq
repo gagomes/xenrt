@@ -4,19 +4,37 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
   </variables>
 
   <prepare>
-    <pool>
-      <host id="0"/>
-      <host id="1"/>
+    <host id="0">
+      <vm name="LicenseServer">
+        <file>%LICENSE_SERVER_XVA%</file>
+        <postinstall action="installV6LicenseServer"/>
+      </vm>
+    </host>
+    <pool id="0">
+      <host id="1">
+        <vm name="linux">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      </host>
       <host id="2"/>
+      <host id="3"/>
       <storage type="nfs" name="NFS" default="true"/>
     </pool>
   </prepare>
 
   <testsequence>
+    <serial group="SingleSkuPool" blocker="yes">
+      <testcase id="xenserver.tc.singleskulicense.TC21468" name="TC21468" tc="TC-21468">
+        <arg>system=pool</arg>
+        <arg>edition=per-socket</arg>
+      </testcase>
+    </serial>
     <serial group="AVPXWLBInstall" blocker="yes">
       <testcase id="xenserver.tc.appliance.TC12766">
       </testcase>

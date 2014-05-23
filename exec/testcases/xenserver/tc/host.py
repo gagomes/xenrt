@@ -2169,7 +2169,7 @@ class _HostMemoryVerif(xenrt.TestCase):
         # For the moment, only cases without balloning are considered
 
         # Current dual-compatible mode:
-        if not (-1 <= mem_info['vm_mem_spec'] - mem_info['vm_mem_guest'] <= 4 + 1):
+        if not (-1 <= abs(mem_info['vm_mem_spec'] - mem_info['vm_mem_guest'])<= 8 + 1):
         # When non-ballooning versions are dropped:
         # if abs(mem_info['mem_mem_guest'] + 4 - mem_info['vm_mem_spec']) > 1:
             reason.append(

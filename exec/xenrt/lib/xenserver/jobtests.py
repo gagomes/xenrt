@@ -58,11 +58,11 @@ class JTPasswords(xenrt.JobTest):
 
     IGNORE_PASSWORDS = ['xensource', 'administrator', 'admin', 'password']
     PRE_COMMANDS = ["rm -rf /root/support-unpacked && mkdir /root/support-unpacked && tar -xf /root/support.tar.bz2 -C /root/support-unpacked"]
-    CHECK_COMMANDS = ["find /var/log -exec zgrep -H -E %s {} \\;",
-                      "find /tmp -wholename \"/tmp/local\" -prune -o -wholename \"/tmp/xencert_isl.conf\" -prune -o -name \\* -exec grep -H -E %s {} \\; 2>/dev/null",
-                      "ps ax | grep -v grep | grep -E %s  || [ $? -eq 1 ] && true",
-                      "grep -r -E %s /root/support-unpacked  || [ $? -eq 1 ] && true",
-                      "find /etc -wholename \"/etc/iscsi\" -prune -o -type f -exec grep -r -E -H %s {} \; || [ $? -eq 1 ] && true"]
+    CHECK_COMMANDS = ["find /var/log -exec zgrep -H -E -C 5 %s {} \\;",
+                      "find /tmp -wholename \"/tmp/local\" -prune -o -wholename \"/tmp/xencert_isl.conf\" -prune -o -name \\* -exec grep -H -E -C 5%s {} \\; 2>/dev/null",
+                      "ps ax | grep -v grep | grep -E -C 5 %s  || [ $? -eq 1 ] && true",
+                      "grep -r -E -C 5 %s /root/support-unpacked  || [ $? -eq 1 ] && true",
+                      "find /etc -wholename \"/etc/iscsi\" -prune -o -type f -exec grep -r -E -H -C 5 %s {} \; || [ $? -eq 1 ] && true"]
 
 
     def postJob(self):
@@ -86,11 +86,15 @@ class JTPasswords(xenrt.JobTest):
             except Exception, e:
                 xenrt.TEC().logverbose("Failed to execute %s - %s" % (c, str(e)))
                 
+        xenrt.TEC().logverbose("Looking for the following plaintext passwords in the log files: %s" %(self.passwords))
+        
         for c in self.CHECK_COMMANDS:
             cmd = c % ("\"%s\"" % string.join([re.escape(x) for x in self.passwords], "|"))
             try:
                 lines = self.host.execdom0(cmd)
                 if len(lines.strip()) > 0:
+                    xenrt.TEC().logverbose("Plain text password \"%s\" exists in the log file" %(x))
+                    xenrt.TEC().logverbose("Following lines in the logs contain plain text passwords:\n%s" %(lines))
                     foundPasswords.append(c)
             except Exception, e:
                 xenrt.TEC().logverbose("Failed to execute %s - %s" % (cmd, str(e)))

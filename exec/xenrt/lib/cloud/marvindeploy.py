@@ -69,7 +69,7 @@ class MarvinDeployer(object):
           'notify'  : { 'url': 'notifyNewElement' } },
       }
 
-    def __init__(self, mgmtServerIp, logger):
+    def __init__(self, mgmtServerIp, logger,username,passwd):
         self.marvinCfg = {}
         self.marvinCfg['dbSvr'] = {}
         self.marvinCfg['dbSvr']['dbSvr'] = mgmtServerIp
@@ -80,7 +80,9 @@ class MarvinDeployer(object):
 
         self.marvinCfg['mgtSvr'] = []
         self.marvinCfg['mgtSvr'].append({ 'mgtSvrIp': mgmtServerIp,
-                                          'port'    : 8096 })
+                                          'port'    : 8096 ,
+                                          'user' : username,
+                                          'passwd' : passwd})
 
         self.marvinCfg['zones'] = []
         self.logger = logger

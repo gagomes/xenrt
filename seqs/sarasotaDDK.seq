@@ -12,6 +12,7 @@
 
   <testsequence group="DDK">
     <testcase id="xenserver.tc.ddk.TC21003" />
+    <testcase id="xenserver.tc.ddk.TC21473" />	
   </testsequence>
 
 </xenrt>

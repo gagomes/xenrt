@@ -272,7 +272,4 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd $(SHAREDIR)/unittests && python runner.py
-	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
-	mv $(SHAREDIR)/unittests/.coverage $(CURRENT_DIR)/
-	cd $(CURRENT_DIR) && coverage xml --include="$(SHAREDIR)/*" && sed -ie "s,$(SHAREDIR)/,,g" coverage.xml
+	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)

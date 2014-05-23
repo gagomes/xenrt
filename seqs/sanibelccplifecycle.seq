@@ -1,5 +1,5 @@
 <xenrt>
-  <default name="DISTROS" value="ubuntu1004_x86-32,debian60_x86-64,rhel61_x86-64,centos57_x86-32,oel57_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
+  <default name="DISTROS" value="debian60_x86-64,rhel6_x86-64,centos57_x86-32,oel57_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
   <variables>
     <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
   </variables>

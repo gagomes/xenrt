@@ -4,6 +4,7 @@ import os, urllib
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements
+from collections import namedtuple
 
 import xenrt.lib.cloud
 try:
@@ -367,5 +368,10 @@ class CloudStack(object):
             diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
             return diskOfferingNew.id
 
+    def instanceHypervisorType(self, instance):
+        hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
+        host = self.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
+        return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
 
 

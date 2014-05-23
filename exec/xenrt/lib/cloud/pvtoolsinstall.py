@@ -30,12 +30,6 @@ class PVToolsInstaller(object):
     def supportedInstaller(cloudstack, instance):
         return False
 
-    @staticmethod
-    def _getHypervisorAndVersion(cloudstack, instance):
-        host = cloudstack.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
-        hostdetails = cloudstack.marvin.command(listHosts.listHostsCmd, id=host)[0]
-        return (hostdetails.hypervisor, hostdetails.hypervisorversion)
-
 class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
     
     def _loadToolsIso(self):
@@ -77,12 +71,11 @@ class WindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        (hypervisor, version) = PVToolsInstaller._getHypervisorAndVersion(cloudstack, instance)
-        if hypervisor != 'XenServer':
+        hypervisor = cloudstack.instanceHypervisorType(instance)
+        if hypervisor.type != 'XenServer':
             return False
-        if version < "6.1":
+        if hypervisor.version < "6.1":
             return False
-
         #Name strings from /vol/xenrtdata/iso
         if next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
             return False
@@ -119,10 +112,10 @@ class LegacyWindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        (hypervisor, version) = PVToolsInstaller._getHypervisorAndVersion(cloudstack, instance)
-        if hypervisor != 'XenServer':
+        hypervisor = cloudstack.instanceHypervisorType(instance)
+        if hypervisor.type != 'XenServer':
             return False
-        if version < "6.1":
+        if hypervisor.version < "6.1":
             return False
 
         #Name strings from /vol/xenrtdata/iso
@@ -210,10 +203,10 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         @return Is the current instance support
         @rtype Boolean
         """
-        (hypervisor, version) = PVToolsInstaller._getHypervisorAndVersion(cloudstack, instance)
-        if hypervisor != 'XenServer':
+        hypervisor = cloudstack.instanceHypervisorType(instance)
+        if hypervisor.type != 'XenServer':
             return False
-        if version > "6.1":
+        if hypervisor.version >= "6.1":
             return False
 
         return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)

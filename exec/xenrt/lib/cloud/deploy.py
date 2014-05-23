@@ -209,9 +209,6 @@ def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
 
-    marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
-    marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
-
     deployerPlugin = DeployerPlugin(marvinApi)
     marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)

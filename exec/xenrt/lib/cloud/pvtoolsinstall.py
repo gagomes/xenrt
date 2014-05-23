@@ -212,6 +212,8 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
 
     def _installMsi(self):
+        # Kill the autorun version
+        self.instance.os.killAll("xensetup.exe")
         self.instance.os.startCmd("d:\\xensetup.exe /S")
 
     def _pollForCompletion(self):

@@ -67,37 +67,50 @@ class Instance(object):
         raise xenrt.XRTError("Not implemented")
 
     def start(self, on=None, timeout=600):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
 
     def reboot(self, force=False, timeout=600, osInitiated=False):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before rebooting must be up")
         if osInitiated:
             self.os.reboot()
             xenrt.sleep(120)
         else:
             self.toolstack.rebootInstance(self, force)
         self.os.waitForBoot(timeout)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after reboot should be up")
 
     def stop(self, force=False, osInitiated=False):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before shutting down must be up")
         if osInitiated:
             self.os.shutdown()
             self.poll(xenrt.PowerState.down)
         else:
             self.toolstack.stopInstance(self, force)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.down, "Power state after shutdown should be down")
 
     def suspend(self):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before suspend down must be up")
         self.toolstack.suspendInstance(self)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.suspended, "Power state after suspend should be suspended")
 
     def resume(self, on=None):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.suspended, "Power state before resume down must be suspended")
         self.toolstack.resumeInstance(self, on)
         self.os.waitForBoot(60)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after resume should be up")
 
     def destroy(self):
         self.toolstack.destroyInstance(self)
 
     def migrate(self, to, live=True):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before migrate must be up")
         self.toolstack.migrateInstance(self, to, live)
         self.os.waitForBoot(60)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after migrate should be up")
+        xenrt.xrtCheck(self.residentOn == to, "Resident on after migrate should be %s" % to)
 
     def setPowerState(self, powerState):
         transitions = {}

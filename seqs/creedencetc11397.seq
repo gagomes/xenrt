@@ -43,7 +43,6 @@
       <testcase id="xenserver.tc.vswitch.TC11512"/>
       <testcase id="xenserver.tc.vswitch.TC11515"/>
       <testcase id="xenserver.tc.vswitch.TC11406"/>
-      <testcase id="xenserver.tc.vswitch.TCFlowEvictionThreshold" name="TC-19936" tc="TC-19936"/>
     </serial>
     <serial>
       <finally>

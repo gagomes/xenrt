@@ -878,7 +878,7 @@ class TC18491(xenrt.TestCase):
         self.host.execdom0("xe vm-import filename=/mnt/nfs/v6vpx11-12_unzipped.xva > /dev/null 2>&1 </dev/null &")
         
         # sleep for 23 hours, 59 mins
-        time.sleep(60 * 60)
+        time.sleep((24 * 3600) - 1)
         
         # return vif-rate to normal
         self.guest.setVIFRate("eth0", None)

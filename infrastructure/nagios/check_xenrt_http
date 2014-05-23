@@ -18,7 +18,7 @@ def getTextFromXmlNode(node):
 
 paths = ["FORCE_HTTP_FETCH", "JIRA_URL", "RPM_SOURCE_HTTP", "TESTRUN_URL"]
 
-configstr=os.popen("xrt --dump-config").readlines()
+configstr=os.popen("/usr/share/xenrt/exec/main.py --dump-config").readlines()
 
 config = {}
 r = re.compile("^(.*)='(.*)'$")

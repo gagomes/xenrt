@@ -882,17 +882,17 @@ class TC8623(_HostEvacuateRecBase):
 class TC8624(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM to the host itself"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = False
 class TC8625(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM that's not resident on the host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     VM_OFF_HOST = False
 class TC8626(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        non agile VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = False
 
 class TC8627(_KirkwoodErrorBase):
@@ -1185,17 +1185,17 @@ class TC8629(_PoolRecommendationBase):
 class TC8631(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to an
        offline / unavailable host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_OFFLINE = True
 class TC8632(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to a
        host it's already resident on"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = True
 class TC8634(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a non agile
        VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = True
 
 class TC8633(_KirkwoodErrorBase):

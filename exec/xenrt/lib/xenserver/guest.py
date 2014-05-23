@@ -4076,6 +4076,8 @@ def createVM(host,
         xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
                                        memory=memory,
                                        distro=distro)
+        for p in postinstall:
+            eval("g.%s()" % (p))
         return g
     else:
         if distro.startswith("generic-"): 

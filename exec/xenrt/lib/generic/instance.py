@@ -90,12 +90,14 @@ class Instance(object):
 
     def resume(self, on=None):
         self.toolstack.resumeInstance(self, on)
+        self.os.waitForBoot(60)
 
     def destroy(self):
         self.toolstack.destroyInstance(self)
 
     def migrate(self, to, live=True):
         self.toolstack.migrateInstance(self, to, live)
+        self.os.waitForBoot(60)
 
     def setPowerState(self, powerState):
         transitions = {}

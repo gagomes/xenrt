@@ -34,7 +34,7 @@ class TestPVToolsInstallerSupport(XenRTUnitTestCase):
 
         hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
         hv = hypervisorInfo(hypervisor, hypervisorVersion)
-        cs.instanceHypervisorType = Mock(return_value=hv)
+        cs.instanceHypervisorTypeAndVersion = Mock(return_value=hv)
         return (cs, win)
         
     def __testWindowsXenServerDistroSupported(self, data):

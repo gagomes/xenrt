@@ -71,7 +71,7 @@ class WindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        hypervisor = cloudstack.instanceHypervisorType(instance)
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance)
         if hypervisor.type != 'XenServer':
             return False
         if hypervisor.version < "6.1":
@@ -112,7 +112,7 @@ class LegacyWindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        hypervisor = cloudstack.instanceHypervisorType(instance)
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance)
         if hypervisor.type != 'XenServer':
             return False
         if hypervisor.version < "6.1":
@@ -203,7 +203,7 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         @return Is the current instance support
         @rtype Boolean
         """
-        hypervisor = cloudstack.instanceHypervisorType(instance)
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance)
         if hypervisor.type != 'XenServer':
             return False
         if hypervisor.version >= "6.1":

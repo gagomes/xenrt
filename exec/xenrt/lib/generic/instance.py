@@ -36,8 +36,8 @@ class Instance(object):
         return self.toolstack.instanceCanMigrateTo(self)
 
     @property
-    def residentOn(self, instance):
-        return self.toolstack.instanceResidentOn(self, instance)
+    def residentOn(self):
+        return self.toolstack.instanceResidentOn(self)
 
     def populateFromExisting(self, ip=None):
         if ip:

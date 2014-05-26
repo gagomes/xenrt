@@ -16,7 +16,7 @@ class LifecycleOperation(object):
         pass
 
     def supported(self, instance):
-        ops = instance.supportedLifecycleOperations()
+        ops = instance.supportedLifecycleOperations
         return self._type() in ops
 
     @abstractmethod

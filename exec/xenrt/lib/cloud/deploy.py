@@ -33,6 +33,8 @@ class DeployerPlugin(object):
         self.currentClusterName = None
         self.currentIPRange = None
 
+        self.initialSecStorageUrl = None
+
     def getName(self, key, ref):
         nameValue = None
         if key == 'Zone':
@@ -61,9 +63,9 @@ class DeployerPlugin(object):
 
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        if self.marvin.initialSecStorageUrl:
-            url = self.marvin.initialSecStorageUrl
-            self.marvin.initialSecStorageUrl = None
+        if self.initialSecStorageUrl:
+            url = self.initialSecStorageUrl
+            self.initialSecStorageUrl = None
         else:
             url = self.marvin.createSecondaryStorage("NFS")
         return url
@@ -211,6 +213,8 @@ def deploy(cloudSpec, manSvr=None):
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
 
     deployerPlugin = DeployerPlugin(marvinApi)
+    deployerPlugin.initialSecStorageUrl = manSvr.initialSecStorageUrl
+    manSvr.initialSecStorageUrl = None
     marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

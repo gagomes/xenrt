@@ -64,7 +64,6 @@ class MarvinApi(object):
 
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
-        self.initialSecStorageUrl = None
 
     def command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""

@@ -26,8 +26,6 @@ class ManagementServer(object):
         else:
             self.cmdPrefix = 'cloudstack'
 
-        self.initialSecStorageUrl = None
-
     def getLogs(self, destDir):
         sftp = self.place.sftpClient()
         manSvrLogsLoc = self.place.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
@@ -142,7 +140,7 @@ class ManagementServer(object):
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
-        self.initialSecStorageUrl = marvinApi.createSecondaryStorage("NFS")
+        self.place.special['initialSecStorageUrl'] = marvinApi.createSecondaryStorage("NFS")
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:

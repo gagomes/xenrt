@@ -213,8 +213,9 @@ def deploy(cloudSpec, manSvr=None):
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
 
     deployerPlugin = DeployerPlugin(marvinApi)
-    deployerPlugin.initialSecStorageUrl = manSvr.initialSecStorageUrl
-    manSvr.initialSecStorageUrl = None
+    if manSvr.place.special.has_key('initialSecStorageUrl') and manSvr.place.special['initialSecStorageUrl']:
+        deployerPlugin.initialSecStorageUrl = manSvr.place.special['initialSecStorageUrl']
+        manSvr.place.special['initialSecStorageUrl'] = None
     marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

@@ -138,6 +138,9 @@ class ManagementServer(object):
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
+        # Create one secondary storage, to speed up deployment.
+        # Additional locations will need to be created during deployment
+        marvinApi.initialSecStorageUrl = marvinApi.createSecondaryStorage("NFS")
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:

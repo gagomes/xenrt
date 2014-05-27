@@ -60,7 +60,7 @@ class CloudStack(object):
     def hypervisorToHypervisorType(self, hypervisor):
         """Map a cloud hypervisor string to a xenrt.HypervisorType enum"""
         if hypervisor in self.__hypervisorTypeMapping.keys():
-            return __hypervisorTypeMapping[hypervisor]
+            return self.__hypervisorTypeMapping[hypervisor]
         raise xenrt.XRTError("Unknown cloud hypervisor: %s" % hypervisor)
 
     def hypervisorTypeToHypervisor(self, hypervisorType):

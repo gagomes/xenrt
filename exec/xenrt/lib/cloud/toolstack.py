@@ -239,7 +239,7 @@ class CloudStack(object):
             if installTools:
                 self.installPVTools(instance)
 
-        finally:
+        except Exception, ex:
             try:
                 instance.screenshot(xenrt.TEC().getLogdir())
             except Exception, e:
@@ -251,7 +251,7 @@ class CloudStack(object):
                 instance.os.getLogs(d)   
             except Exception, e:
                 xenrt.TEC().logverbose("Could not get logs - %s" % str(e))
-
+            raise ex
         return instance
 
     def getAllExistingInstances(self):

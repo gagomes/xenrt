@@ -152,16 +152,16 @@ class CloudStack(object):
 
         finally:
             try:
-                instance.screenshot(xenrt.TEC().getLogDir())
-            except:
-                pass
+                instance.screenshot(xenrt.TEC().getLogdir())
+            except Exception, e:
+                xenrt.TEC().logverbose("Could not take screenshot - %s" % str(e))
             try:
-                d = "%s/%s" % (base, place.getName())
+                d = "%s/%s" % (xenrt.TEC().getLogdir(), instance.name)
                 if not os.path.exists(d):
                     os.makedirs(d)
                 instance.os.getLogs(d)   
-            except:
-                pass
+            except Exception, e:
+                xenrt.TEC().logverbose("Could not get logs - %s" % str(e))
 
         return instance
 

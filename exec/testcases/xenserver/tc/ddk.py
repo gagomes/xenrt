@@ -71,7 +71,7 @@ class TC21003(xenrt.TestCase):
 class TC21473(xenrt.TestCase):
     """Verify that kernel ABI is not broken"""
 
-    def test_kabi(self, module):
+    def testKabi(self, module):
         
         # delete existing kabi modules
         rpms = self.host.execdom0('rpm -qa | grep test_kabi ; true').splitlines()
@@ -156,7 +156,7 @@ class TC21473(xenrt.TestCase):
         
         test_ok = True
         for module in test_modules:
-            if not self.test_kabi(module):
+            if not self.testKabi(module):
                 test_ok = False
                 xenrt.TEC().logverbose('%s is incompatible with %s' % 
                                        (os.path.basename(module), uname_r))

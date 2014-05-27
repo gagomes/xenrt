@@ -157,4 +157,7 @@ class Instance(object):
     def assertHealthy(self):
         self.os.assertHealthy()
 
+    def screenshot(self, path):
+        return self.toolstack.instanceScreenshot(self, path)
+
 __all__ = ["Instance"]

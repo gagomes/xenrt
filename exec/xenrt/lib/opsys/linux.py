@@ -51,6 +51,21 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
+    def getLogs(self, path):
+        sftp = self.sftpClient()
+        sftp.copyLogsFrom(["/var/log/messages",
+                           "/var/log/syslog",
+                           "/var/log/daemon.log",
+                           "/var/log/kern.log"], path)
+
+
+    def sftpClient(self):
+        """Get a SFTP client object to the guest"""
+        return xenrt.ssh.SFTPSession(self.parent.getIP(),
+                                     username="root",
+                                     password=self.password,
+                                     level=xenrt.RC_FAIL)
+
     def populateFromExisting(self):
         self.findPassword()
 

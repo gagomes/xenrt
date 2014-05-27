@@ -149,6 +149,8 @@ class TCCloudGuestLifeCycle(xenrt.TestCase):
         self.__instance = self.__ts.createInstance(self.__distro,
                                                   useTemplateIfAvailable=False)
 
+        self.getLogsFrom(self.__instance)
+
     def run(self, arglist):
         operations = [StopInstance(self.__ts), StartInstance(self.__ts),
                       SuspendInstance(self.__ts), ResumeInstance(self.__ts),

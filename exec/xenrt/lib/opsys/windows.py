@@ -100,6 +100,10 @@ class WindowsOS(OS):
         self.viridian = True
         self.__randomStringGenerator = None
 
+    @property
+    def canonicalDistroName(self):
+        return "%s" % (self.distro)
+    
     def ensurePackageInstalled(self, package):
         global packageList
         installer = None

@@ -66,6 +66,9 @@ class Toolstack(Interface):
     def revertInstanceToSnapshot(instance, name):
         """Revert an Instance to a named snapshot"""
 
+    def instanceScreenshot(instance, path):
+        """Screenshot an instance"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")
@@ -105,6 +108,8 @@ class OS(Interface):
     defaultRootdisk = Attribute("Default root disk size")
 
     defaultMemory = Attribute("Default memory size")
+
+    canonicalDistroName = Attribute("Canonical distro name")
 
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""

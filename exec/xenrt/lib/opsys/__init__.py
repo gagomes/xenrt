@@ -1,5 +1,6 @@
 import xenrt
 from zope.interface import implements, providedBy
+from abc import abstractproperty
 
 oslist = []
 
@@ -18,6 +19,10 @@ class OS(object):
         self.viridian = False
         self.__installMethod = None
 
+    @abstractproperty
+    def canonicalDistroName(self):
+        pass
+    
     def findPassword(self):
         """Try some passwords to determine which to use"""
         return
@@ -47,6 +52,8 @@ class OS(object):
     def assertHealthy(self):
         raise xenrt.XRTError("Not implemented")
 
+    def getLogs(self, path):
+        pass
 
 def registerOS(os):
     oslist.append(os)

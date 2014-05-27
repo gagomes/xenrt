@@ -10,7 +10,7 @@
 #
 
 
-import sys, string, os.path, glob, time, re, random, shutil, os, stat, datetime
+import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
 import traceback, threading, types
 import xml.dom.minidom, libxml2
 import tarfile
@@ -2937,8 +2937,37 @@ done
                 except:
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
-        if vcpus != None:
-            guest.setVCPUs(vcpus)
+
+        if guest.windows:
+            # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+            cpuCoresonHost = self.getCPUCores()
+            socketsonHost  = self.getSocketsonHost()
+            maxCoresPerSocket = cpuCoresonHost / socketsonHost
+            xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
+                                                            (cpuCoresonHost, socketsonHost, maxCoresPerSocket))
+            if vcpus != None:
+                xenrt.TEC().logverbose("Setting guest vCPUs to %s" % vcpus)
+                guest.setVCPUs(vcpus)
+
+                # This gives us all the factors of the vcpus specified
+                possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+                xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+
+                # This eliminates the factors that would exceed the host's cores per socket
+                validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+                xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+
+                # Then choose a value from here
+                coresPerSocket = random.choice(validCoresPerSocket)
+
+                xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                guest.setCoresPerSocket(coresPerSocket)
+            else: # Use template default vCPUs to workout core-per-socket
+                    pass
+        else:
+            if vcpus != None:
+                guest.setVCPUs(vcpus)
+
         if memory != None:
             guest.setMemory(memory)
         if (not disksize) or disksize == None or disksize == guest.DEFAULT:

@@ -48,6 +48,15 @@ class CloudStack(object):
         hypervisor = self._vmListProvider(instance.toolstackId)[0].hypervisor
         return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
 
+    def instanceHypervisorTypeAndVersion(self, instance, nativeCloudType=False):
+        hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
+        host = self.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
+        if nativeCloudType:
+            return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
+        else:
+            return hypervisorInfo(hypervisorToHypervisorType(hostdetails.hypervisor), hostdetails.hypervisorversion)
+
     def hypervisorToHypervisorType(self, hypervisor):
         """Map a cloud hypervisor string to a xenrt.HypervisorType enum"""
         if hypervisor in self.__hypervisorTypeMapping.keys():
@@ -446,12 +455,6 @@ class CloudStack(object):
             xenrt.TEC().logverbose("Creating new Disk Offering ")
             diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
             return diskOfferingNew.id
-
-    def instanceHypervisorTypeAndVersion(self, instance):
-        hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
-        host = self.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
-        hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
-        return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
 
     def instanceScreenshot(self, instance, destdir):
         keys={"apikey": self.marvin.userApiClient.connection.apiKey,

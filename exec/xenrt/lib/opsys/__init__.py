@@ -47,6 +47,8 @@ class OS(object):
     def assertHealthy(self):
         raise xenrt.XRTError("Not implemented")
 
+    def getLogs(self, path):
+        pass
 
 def registerOS(os):
     oslist.append(os)

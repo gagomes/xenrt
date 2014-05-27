@@ -66,6 +66,9 @@ class Toolstack(Interface):
     def revertInstanceToSnapshot(instance, name):
         """Revert an Instance to a named snapshot"""
 
+    def instanceScreenshot(instance, path):
+        """Screenshot an instance"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")

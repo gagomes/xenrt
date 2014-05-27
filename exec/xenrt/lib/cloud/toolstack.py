@@ -78,76 +78,90 @@ class CloudStack(object):
         if not name:
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
-    
-        template = None        
-
-        # If we can use a template and it exists, use it
-        if useTemplateIfAvailable:
-            templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
-            if templateDir:
-                url = "%s/%s.vhd.bz2" % (templateDir, distro)
-                if xenrt.TEC().fileExists(url):
-                    self.marvin.addTemplateIfNotPresent(distro, url)
-                    template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
-            # If we use a template, we can't specify the disk size
-            diskOffering=None        
-
-        # If we don't have a template, do ISO instead
-        if not template:
-            self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
-            template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
-            supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
-
-            for m in supportedInstallMethods:
-                if m in instance.os.supportedInstallMethods:
-                    instance.os.installMethod = m
-                    break
-
-            if not instance.os.installMethod:
-                raise xenrt.XRTError("No compatible install method found")
-            # TODO support different disk offerings
-            #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
-            diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
-
-
-        zone = Zone.list(self.marvin.apiClient)[0].id
-        # TODO support different service offerings
-        #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
-        svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
-
-
-        xenrt.TEC().logverbose("Deploying VM")
-        rsp = VirtualMachine.create(self.marvin.apiClient, {
-                                        "serviceoffering": svcOffering,
-                                        "zoneid": zone,
-                                        "displayname": name,
-                                        "name": name,
-                                        "template": template,
-                                        "diskoffering": diskOffering},
-                                    startvm=False)
-
-        instance.toolstackId = rsp.id
-
-        Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
-
-        xenrt.TEC().logverbose("Starting VM")
-
-        # If we don't have an install method, we created this from a template, so we just need to start it.
-        if not instance.os.installMethod:
-            instance.start()
-        else:
-            self.startInstance(instance)
-
-            if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-                xenrt.TEC().logverbose("Generating answer file")
-                instance.os.generateIsoAnswerfile()
-
-            xenrt.TEC().logverbose("Waiting for install complete")
-            instance.os.waitForInstallCompleteAndFirstBoot()
+        try:
         
-        # We don't install the tools as part of template generation, so install these all the time
-        if installTools:
-            self.installPVTools(instance)
+            template = None        
+
+            # If we can use a template and it exists, use it
+            if useTemplateIfAvailable:
+                templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
+                if templateDir:
+                    url = "%s/%s.vhd.bz2" % (templateDir, distro)
+                    if xenrt.TEC().fileExists(url):
+                        self.marvin.addTemplateIfNotPresent(distro, url)
+                        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
+                # If we use a template, we can't specify the disk size
+                diskOffering=None        
+
+            # If we don't have a template, do ISO instead
+            if not template:
+                self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
+                template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
+                supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
+
+                for m in supportedInstallMethods:
+                    if m in instance.os.supportedInstallMethods:
+                        instance.os.installMethod = m
+                        break
+
+                if not instance.os.installMethod:
+                    raise xenrt.XRTError("No compatible install method found")
+                # TODO support different disk offerings
+                #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
+                diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
+
+
+            zone = Zone.list(self.marvin.apiClient)[0].id
+            # TODO support different service offerings
+            #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
+            svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
+
+
+            xenrt.TEC().logverbose("Deploying VM")
+            rsp = VirtualMachine.create(self.marvin.apiClient, {
+                                            "serviceoffering": svcOffering,
+                                            "zoneid": zone,
+                                            "displayname": name,
+                                            "name": name,
+                                            "template": template,
+                                            "diskoffering": diskOffering},
+                                        startvm=False)
+
+            instance.toolstackId = rsp.id
+
+            Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
+
+            xenrt.TEC().logverbose("Starting VM")
+
+            # If we don't have an install method, we created this from a template, so we just need to start it.
+            if not instance.os.installMethod:
+                instance.start()
+            else:
+                self.startInstance(instance)
+
+                if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                    xenrt.TEC().logverbose("Generating answer file")
+                    instance.os.generateIsoAnswerfile()
+
+                xenrt.TEC().logverbose("Waiting for install complete")
+                instance.os.waitForInstallCompleteAndFirstBoot()
+            
+            # We don't install the tools as part of template generation, so install these all the time
+            if installTools:
+                self.installPVTools(instance)
+
+        finally:
+            try:
+                instance.screenshot(xenrt.TEC().getLogDir())
+            except:
+                pass
+            try:
+                d = "%s/%s" % (base, place.getName())
+                if not os.path.exists(d):
+                    os.makedirs(d)
+                instance.os.getLogs(d)   
+            except:
+                pass
 
         return instance
 
@@ -374,7 +388,7 @@ class CloudStack(object):
         hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
         return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
 
-    def instanceScreenshot(self, instance, destdir):
+    def instanceScreenshot(self, instance, path):
         keys={"apikey": self.marvin.userApiClient.connection.apiKey,
               "cmd": "access",
               "vm": instance.toolstackId}
@@ -392,7 +406,7 @@ class CloudStack(object):
         
         xenrt.TEC().logverbose("Calculated %s as URL of image" % imgurl)
 
-        imglocation = "%s/%s_%s.jpg" % (destdir, instance.name, instance.toolstackId)
+        imglocation = "%s/%s_%s.jpg" % (path, instance.name, instance.toolstackId)
 
         f = open(imglocation, "w")
         u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))

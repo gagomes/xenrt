@@ -1000,7 +1000,28 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if not "IGNORE" in tag:
             xenrt.TEC().warning(tag + text)
 
-    def _getRemoteLogsFrom(self, place, extraPaths=None):
+    def _getRemoteLogsFrom(self, obj, extraPaths=None):
+        if isinstance(obj, xenrt.GenericPlace): 
+            self._getRemoteLogsFromPlace(obj, extraPaths)
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            self._getRemoteLogsFromInstance(obj, extraPaths)
+
+    def _getRemoteLogsFromInstance(self, instance, extraPaths):
+        if xenrt.TEC().lookup("NO_GUEST_LOGS", False, boolean=True):
+            return
+
+        base = self.tec.getLogdir()
+        try:
+            instance.screenshot(base)
+        except:
+            xenrt.TEC().logverbose("Could not get screenshot from %s" % instance.name)
+
+        d = "%s/%s" % (base, instance.name)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        instance.os.getLogs(d)
+
+    def _getRemoteLogsFromPlace(self, place, extraPaths=None):
         """Fetch logs etc. from a host or guest.
 
         @param place: an instance of L{GenericPlace} to fetch from
@@ -1479,13 +1500,19 @@ Abort this testcase with: xenrt interact %s -n '%s'
 
         sftp.close()
 
+    def getLogObjName(self, obj):
+        if isinstance(obj, xenrt.GenericPlace): 
+            return obj.getName()
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            return obj.name
+
     def _getRemoteLogs(self):
         """Fetch logs from all hosts and guests registered for log collection.
         """
         if xenrt.TEC().lookup("NOLOGS", False, boolean=True):
             return
         xenrt.TEC().logverbose("Getting logs from %s." % 
-                              ([x.getName() for x in self.logsfrom.keys()]))
+                              ([self.getLogObjName(x) for x in self.logsfrom.keys()]))
         for h in self.logsfrom.keys():
             paths = self.logsfrom[h]
             try:
@@ -1515,7 +1542,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         @param place: an instance of L{GenericPlace} to fetch from
         @param paths: a list of extra paths for log files to capture
         """
-        if not isinstance(place, xenrt.GenericPlace):
+        if not isinstance(place, xenrt.GenericPlace) and not isinstance(place, xenrt.lib.generic.Instance):
             raise xenrt.XRTError("Only objects extending GenericPlace can be registered for log collection")
 
         if self.logsfrom.has_key(place):

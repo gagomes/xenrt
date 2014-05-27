@@ -276,4 +276,7 @@ disk = [ %s ]
     def revertInstanceToSnapshot(self, instance, name):
         raise xenrt.XRTError("Not implemented")
 
+    def instanceScreenshot(self, instance, path):
+        raise xenrt.XRTError("Not implemented")
+
 __all__ = ["XLToolstack"]

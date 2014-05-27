@@ -28,6 +28,31 @@ class XenRTLogStream(object):
     def flush(self):
         pass
 
+class CloudApi(object):
+    def __init__(self, apiClient):
+        self.apiClient = apiClient
+
+    def __command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+        cls = eval("%s.%sCmd" % (command, command))
+        cmd = cls()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # Then run the command
+        return getattr(self.apiClient, command)(cmd)
+
+    def __getattr__(self, attr):
+        def wrapper(**kwargs):
+            return self.__command(attr, **kwargs)
+        return wrapper
+
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
     
@@ -62,28 +87,13 @@ class MarvinApi(object):
 
         self.apiClient = self.testClient.getApiClient()
         self.__userApiClient = None
+        self.cloudApi = CloudApi(self.apiClient)
 
     @property
     def userApiClient(self):
         if not self.__userApiClient:
             self.__userApiClient = self.testClient.createUserApiClient("admin", None)
         return self.__userApiClient
-
-    def command(self, command, **kwargs):
-        """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
-        # First we create the command
-        cls = eval("%s.%sCmd" % (command, command))
-        cmd = cls()
-        # Then iterate through the parameters
-        for k in kwargs.keys():
-            # If the command doesn't already have that member, it's not a valid parameter
-            if not cmd.__dict__.has_key(k):
-                raise xenrt.XRTError("Command does not have parameter %s" % k)
-            # Set the member value
-            cmd.__dict__[k] = kwargs[k]
-        
-        # Then run the command
-        return getattr(self.apiClient, command)(cmd)
 
     def createSecondaryStorage(self, secStorageType):
         xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")

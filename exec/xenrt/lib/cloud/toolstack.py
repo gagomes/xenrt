@@ -50,8 +50,8 @@ class CloudStack(object):
 
     def instanceHypervisorTypeAndVersion(self, instance, nativeCloudType=False):
         hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
-        host = self.marvin.command("listVirtualMachines", id=instance.toolstackId)[0].hostid
-        hostdetails = self.marvin.command("listHosts", id=host)[0]
+        host = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.cloudApi.listHosts(id=host)[0]
         if nativeCloudType:
             return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
         else:

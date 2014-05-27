@@ -491,8 +491,15 @@ class CloudStack(object):
 
         imglocation = "%s/%s_%s.jpg" % (path, instance.name, instance.toolstackId)
 
+        u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
+        u.read()
+        u.close()
+        
+        xenrt.sleep(1)
+
         f = open(imglocation, "w")
         u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
         f.write(u.read())
         f.close()
+        u.close()
         return imglocation

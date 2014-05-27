@@ -7833,7 +7833,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
     def _findXenBinary(self, binary):
-        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin"]
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin"]
         for p in paths:
             joinedPath = os.path.join(p, binary)
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:

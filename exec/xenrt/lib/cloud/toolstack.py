@@ -55,7 +55,7 @@ class CloudStack(object):
         if nativeCloudType:
             return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
         else:
-            return hypervisorInfo(hypervisorToHypervisorType(hostdetails.hypervisor), hostdetails.hypervisorversion)
+            return hypervisorInfo(self.hypervisorToHypervisorType(hostdetails.hypervisor), hostdetails.hypervisorversion)
 
     def hypervisorToHypervisorType(self, hypervisor):
         """Map a cloud hypervisor string to a xenrt.HypervisorType enum"""

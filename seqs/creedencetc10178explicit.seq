@@ -1,0 +1,20 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="CoresPerSocketVariants">
+      <testcase id="xenserver.tc.guest.TC21457" />
+      <testcase id="xenserver.tc.guest.TC21458" />
+      <testcase id="xenserver.tc.guest.TC21459" />
+      <testcase id="xenserver.tc.guest.TC21460" />
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -73,9 +73,10 @@ class MarvinApi(object):
         return self.__userApiClient
 
     def command(self, command, **kwargs):
-        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
+        """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
         # First we create the command
-        cmd = command()
+        cls = eval("%s.%sCmd" % (command, command))
+        cmd = cls()
         # Then iterate through the parameters
         for k in kwargs.keys():
             # If the command doesn't already have that member, it's not a valid parameter
@@ -84,11 +85,8 @@ class MarvinApi(object):
             # Set the member value
             cmd.__dict__[k] = kwargs[k]
         
-        # The name of the function we need to call on the API is the same as the module name
-        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
-        fn = command.__module__.split(".")[-1]
         # Then run the command
-        return getattr(self.apiClient, fn)(cmd)
+        return getattr(self.apiClient, command)(cmd)
 
     def createSecondaryStorage(self, secStorageType):
         xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")

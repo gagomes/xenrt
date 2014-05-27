@@ -384,8 +384,8 @@ class CloudStack(object):
 
     def instanceHypervisorTypeAndVersion(self, instance):
         hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
-        host = self.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
-        hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
+        host = self.marvin.command("listVirtualMachines", id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.command("listHosts", id=host)[0]
         return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
 
     def instanceScreenshot(self, instance, path):

@@ -24,7 +24,6 @@
     </host>
     <host id="1">
       <storage type="lvmoiscsi" name="lvmoiscsisr" />
-      <storage type="netapp" name="netappsr" />
       <storage type="nfs" name="nfssr" />
       <vm name="DemoLinux">
         <distro>debian60</distro>
@@ -40,7 +39,6 @@
     </host>
     <host id="2">
       <storage type="lvmoiscsi" name="lvmoiscsisr" />
-      <storage type="netapp" name="netappsr" />
       <storage type="nfs" name="nfssr" />
     </host>
   </prepare>

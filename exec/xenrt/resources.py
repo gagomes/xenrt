@@ -2960,6 +2960,14 @@ class SharedHost:
     def getHost(self):
         return self.host
 
+    def createTemplate(self, distro, arch, disksize):
+        g = self.getHost().createBasicGuest(name="%s-%s" % (distro, arch), distro=distro, arch=arch, disksize=disksize)
+        if distro.startswith("rhel") or distro.startswith("centos") or distro.startswith("oel"):
+            g.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+        g.shutdown()
+        g.paramSet("name-label", "xenrt-template-%s-%s" % (distro, arch))
+        g.paramSet("is-a-template", "true")
+
     def callback(self):
         if xenrt.TEC().lookup("OPTION_KEEP_UTILITY_VMS", False, boolean=True):
             return

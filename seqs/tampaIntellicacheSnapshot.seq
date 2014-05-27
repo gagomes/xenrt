@@ -20,7 +20,7 @@
   
   <testsequence>
     <serial group="HostInstall">
-       <testcase id="xenserver.tc.cache.TC20976">
+       <testcase id="xenserver.tc.snapshot.TC20976">
        </testcase>
     </serial>
   </testsequence>

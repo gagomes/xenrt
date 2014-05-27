@@ -164,15 +164,17 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf ../../control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
 
 control/xrt:
 	$(info Creating link to $@...)
-	ln -sf ../exec/main.py $(SHAREDIR)/$@
+	rm $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	chmod a+x $(SHAREDIR)/$@
 
 xrt:
 	$(info Creating link to $@...)
-	$(SUDO) ln -sf $(SHAREDIR)/exec/main.py $(BINDIR)/$@
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)
@@ -270,7 +272,4 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd $(SHAREDIR)/unittests && python runner.py
-	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
-	mv $(SHAREDIR)/unittests/.coverage $(CURRENT_DIR)/
-	cd $(CURRENT_DIR) && coverage xml --include="$(SHAREDIR)/*" && sed -ie "s,$(SHAREDIR)/,,g" coverage.xml
+	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)

@@ -2187,9 +2187,9 @@ class TC10016(_V6PlatinumEDN):
     FEATURE = "MarathonPCI"
     ALLOWED = True
 class TC10017(_V6PlatinumEDN):
-    """Verify WLB can be initialised"""
+    """Verify WLB can NOT be initialised"""
     FEATURE = "Kirkwood"
-    ALLOWED = True
+    ALLOWED = False
 class TC11002(_V6PlatinumEDN):
     """Verify DMC can be used"""
     FEATURE = "DMC"

@@ -61,6 +61,13 @@ class MarvinApi(object):
             self.testClient.createTestClient()
 
         self.apiClient = self.testClient.getApiClient()
+        self.__userApiClient = None
+
+    @property
+    def userApiClient(self):
+        if not self.__userApiClient:
+            self.__userApiClient = self.testClient.createUserApiClient("admin", None)
+        return self.__userApiClient
 
     def command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
@@ -79,6 +86,14 @@ class MarvinApi(object):
         fn = command.__module__.split(".")[-1]
         # Then run the command
         return getattr(self.apiClient, fn)(cmd)
+
+    def createSecondaryStorage(self, secStorageType):
+        xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")
+        secondaryStorage = xenrt.ExternalNFSShare()
+        storagePath = secondaryStorage.getMount()
+        url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+        self.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+        return url
 
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)

@@ -2301,12 +2301,13 @@ Add-WindowsFeature as-net-framework"""
         return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
+        version = 0.0
         try:
-            return float(self.winRegLookup("HKLM", 
-                "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", 
-                "PowerShellVersion"))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
         except:
-            return 0.0
+            pass
+        return version
 
     def installPowerShell(self):
         """Install PowerShell into a Windows XML-RPC guest."""
@@ -2343,12 +2344,10 @@ Add-WindowsFeature as-net-framework"""
     def installPowerShell20(self, reboot=True):
         """Install PowerShell 2.0 into a Windows XML-RPC guest. Note this 
         op requires a reboot to finish install using Win Update"""
-        try:
-            if self.getPowershellVersion() >= 2.0:
-                xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
-                return
-        except:
-            pass
+        if self.getPowershellVersion() >= 2.0:
+            xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
+            return
+
         if self.xmlrpcWindowsVersion() == "6.0":
             if self.xmlrpcGetArch() == "amd64": 
                 exe = "Windows6.0-KB968930-x64.msu"
@@ -2371,6 +2370,30 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcExec("%s\\powershell20\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
         if reboot:
             self.reboot()
+
+    def installPowerShell30(self, reboot=True, verifyInstall=True):
+        """Install PowerShell 3.0 into a Windows XML-RPC guest. Note this
+        op requires a reboot to finish install using Win Update"""
+        if self.getPowershellVersion() >= 3.0:
+            xenrt.TEC().logverbose("PowerShell 3.0 or above installed.")
+            return
+
+        if self.xmlrpcWindowsVersion() == "6.1":
+            self.installDotNet4()
+            if self.xmlrpcGetArch() == "amd64":
+                exe = "Windows6.1-KB2506143-x64.msu"
+            else:
+                exe = "Windows6.1-KB2506143-x86.msu"
+        else:
+            raise xenrt.XRTError("PowerShell 3.0 installer is not \
+            available for Windows version %s" % self.xmlrpcWindowsVersion())
+        t = self.xmlrpcTempDir()
+        self.xmlrpcUnpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
+        self.xmlrpcExec("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
+        if reboot:
+            self.reboot()
+            if verifyInstall and self.getPowershellVersion() < 3.0:
+                raise xenrt.XRTError('Failed to install PowerShell v3.0')
 
     def enablePowerShellUnrestricted(self):
         """Allow the running of unsigned PowerShell scripts."""
@@ -3310,20 +3333,42 @@ DHCPServer = 1
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
+        doUpdate = False
+        # If we should update this to the lastest versino
+        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
+            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+            match = ""
+            # Look for the longest match
+            for i in updateMap.keys():
+                if distro.startswith(i) and len(i) > len(match):
+                    match = i
+            # if we find one, we need to upgrade
+            if match:
+                newdistro = updateMap[match]
+                if newdistro != distro:
+                    doUpdate = True
+                    distro = newdistro
+
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
             return False
         try:
             if not distro.startswith("centos"):
                 url = os.path.join(url, 'Server')
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
+            try:
+                # Try to rename the files to .orig. This could fail if they don't exist
+                self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                             "   do mv $r $r.orig; done")
+            except:
+                pass
             c = """[base]
 name=CentOS-$releasever - Base
 baseurl=%s
 gpgcheck=0
-exclude=kernel*, *xen*
 """ % (url)
+            # If we're upgrading then we can't exclude the kernel
+            if not doUpdate:
+                c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
             f = file(fn, "w")
@@ -3333,6 +3378,19 @@ exclude=kernel*, *xen*
             sftp.close()
         except:
             return False
+        if doUpdate:
+            # Do the upgrade
+            self.execcmd("yum update -y", timeout=3600)
+            # Cleanup the repositories again
+            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                         "   do mv $r $r.orig; done")
+            sftp = self.sftpClient()
+            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
+            sftp.close()
+            # And reboot to start the new system
+            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
+            self.distro=distro
+            self.reboot()
         return True
 
     def getExtraLogs(self, directory):
@@ -5282,6 +5340,9 @@ exit 0
     def getVncSnapshot(self,domid,filename):
         """Get a VNC snapshot of domain domid and write it to filename"""
         vncsnapshot = None
+        if self.execdom0("test -e /usr/lib64/xen/bin/vncsnapshot",
+                              retval="code") == 0:
+            vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
         if self.execdom0("test -e /usr/lib/xen/bin/vncsnapshot",
                               retval="code") == 0:
             vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"

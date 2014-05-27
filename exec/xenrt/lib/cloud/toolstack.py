@@ -1,10 +1,10 @@
 import xenrt
 import logging
-import os, urllib
+import os, urllib, re
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements
-from collections import Counter
+from collections import Counter, namedtuple
 
 import xenrt.lib.cloud
 try:
@@ -447,5 +447,34 @@ class CloudStack(object):
             diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
             return diskOfferingNew.id
 
+    def instanceHypervisorTypeAndVersion(self, instance):
+        hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
+        host = self.marvin.command(listVirtualMachines.listVirtualMachinesCmd, id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.command(listHosts.listHostsCmd, id=host)[0]
+        return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
 
+    def instanceScreenshot(self, instance, destdir):
+        keys={"apikey": self.marvin.userApiClient.connection.apiKey,
+              "cmd": "access",
+              "vm": instance.toolstackId}
+        keys['signature'] = self.marvin.userApiClient.connection.sign(keys)
+        frameset = urllib.urlopen("http://%s:8080/client/console?%s" % (self.mgtsvr.place.getIP(), urllib.urlencode(keys))).read()
+        frameurl = re.search("src=\"(.*?)\"", frameset).group(1)
 
+        xenrt.TEC().logverbose("Calculated %s as URL of frame" % frameurl)
+
+        consoleproxy = re.search("(.+?://.+)/", frameurl).group(1)
+        xenrt.TEC().logverbose("Calculated %s as base URL of console proxy" % consoleproxy)
+
+        frame = urllib.urlopen(frameurl).read()
+        imgurl = re.search("'(/ajaximg.*?)'", frame).group(1)
+        
+        xenrt.TEC().logverbose("Calculated %s as URL of image" % imgurl)
+
+        imglocation = "%s/%s_%s.jpg" % (destdir, instance.name, instance.toolstackId)
+
+        f = open(imglocation, "w")
+        u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
+        f.write(u.read())
+        f.close()
+        return imglocation

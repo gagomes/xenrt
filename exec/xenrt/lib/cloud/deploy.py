@@ -33,6 +33,8 @@ class DeployerPlugin(object):
         self.currentClusterName = None
         self.currentIPRange = None
 
+        self.initialSecStorageUrl = None
+
     def getName(self, key, ref):
         nameValue = None
         if key == 'Zone':
@@ -61,10 +63,11 @@ class DeployerPlugin(object):
 
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        secondaryStorage = xenrt.ExternalNFSShare()
-        storagePath = secondaryStorage.getMount()
-        url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-        self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+        if self.initialSecStorageUrl:
+            url = self.initialSecStorageUrl
+            self.initialSecStorageUrl = None
+        else:
+            url = self.marvin.createSecondaryStorage("NFS")
         return url
 
     def getSecondaryStorageProvider(self, key, ref):
@@ -209,11 +212,11 @@ def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
 
-    marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
-    marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
-
     deployerPlugin = DeployerPlugin(marvinApi)
-    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger)
+    if manSvr.place.special.has_key('initialSecStorageUrl') and manSvr.place.special['initialSecStorageUrl']:
+        deployerPlugin.initialSecStorageUrl = manSvr.place.special['initialSecStorageUrl']
+        manSvr.place.special['initialSecStorageUrl'] = None
+    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 
     # Store the JSON Marvin config file

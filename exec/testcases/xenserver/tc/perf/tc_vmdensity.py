@@ -1644,8 +1644,8 @@ class Experiment_vmrun(Experiment):
                         xenrt.TEC().logverbose(out)
                     except Exception, e:
                         xenrt.TEC().logverbose("/etc/init.d/tune-vcpus failed: %s" % e)
-                        xenrt.TEC().logverbose("Trying to use /usr/lib/xen/bin/host-cpu-tune...")
-                        out=host.execdom0("/usr/lib/xen/bin/host-cpu-tune set %s" % tunevcpus)
+                        xenrt.TEC().logverbose("Trying to use host-cpu-tune...")
+                        out=host.execdom0("%s set %s" % (host._findXenBinary("host-cpu-tune"), tunevcpus))
                         xenrt.TEC().logverbose(out)
                     reboot=True 
            

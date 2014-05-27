@@ -443,7 +443,7 @@ class CloudStack(object):
             cmd["name"]="Disk=%d GB offering" %disksize
             cmd["displaytext"]="Disk Offering"            
             cmd["disksize"] = disksize
-            xenrt.TEC().logverbose("Creating new Disk OFfering ")
+            xenrt.TEC().logverbose("Creating new Disk Offering ")
             diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
             return diskOfferingNew.id
 

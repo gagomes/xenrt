@@ -992,8 +992,8 @@ class Guest(xenrt.GenericGuest):
         xenrt.TEC().logverbose("Sleeping for 180 seconds to let the VM run for atleast 2 minutes before crashing")
         time.sleep(180)
         if self.windows:
-            self.host.execdom0("/usr/lib/xen/bin/crash_guest %d" % 
-                               (self.getDomid()))
+            self.host.execdom0("%s %d" % 
+                               (self.host._findXenBinary("crash_guest"), self.getDomid()))
         else:
             panic = """
 #include <linux/module.h>

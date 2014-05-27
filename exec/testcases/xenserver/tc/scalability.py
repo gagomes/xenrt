@@ -177,7 +177,7 @@ class _VMScalability(_Scalability):
         if self.DOM0CPUS:
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
-                out=host.execdom0("/usr/lib/xen/bin/host-cpu-tune set %s xpin" % self.tunevcpus)
+                out=host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus))
                 xenrt.TEC().logverbose(out)
             except:
                 xenrt.TEC().warning("Error while pinning vcpus to Dom0")

@@ -7832,6 +7832,14 @@ rm -f /etc/xensource/xhad.conf || true
             value = kwargs[key]
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
+    def _findXenBinary(self, binary):
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin"]
+        for p in paths:
+            joinedPath = os.path.join(p, binary)
+            if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
+                return joinedPath
+        raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
+
 #############################################################################
 
 class MNRHost(Host):
@@ -10584,21 +10592,18 @@ class ClearwaterHost(TampaHost):
     
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.ClearwaterGuest
-        
-
-        
 
     def setDom0PinningPolicy(self, numberOfvCPUs, pinning):
         if pinning:
             pinningPolicy = self.DOM0_VCPU_PINNED 
         else:
             pinningPolicy = self.DOM0_VCPU_NOT_PINNED
-        self.execdom0('/usr/lib/xen/bin/host-cpu-tune set %s %s' % (numberOfvCPUs, pinningPolicy))
+        self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
         self.reboot()
 
     def getDom0PinningPolicy(self):
         vcpuPinningData = {}
-        output = self.execdom0('/usr/lib/xen/bin/host-cpu-tune show')
+        output = self.execdom0('%s show' % self._findXenBinary('host-cpu-tune'))
         output = output.split(':')[1].strip().split(', ')
         vcpuPinningData['dom0vCPUs'] = output[0]
         if re.search('exclusively pinned', output[1]):
@@ -11042,7 +11047,7 @@ class SarasotaHost(ClearwaterHost):
         return "/usr/lib/xcp/alternatives"
         
     def getXenGuestLocation(self):
-        return "/usr/lib/xen/bin/xenguest"
+        return self._findXenBinary("xenguest")
         
     def getQemuDMWrapper(self):
         return "/usr/libexec/xenopsd/qemu-dm-wrapper"

@@ -5340,6 +5340,9 @@ exit 0
     def getVncSnapshot(self,domid,filename):
         """Get a VNC snapshot of domain domid and write it to filename"""
         vncsnapshot = None
+        if self.execdom0("test -e /usr/lib64/xen/bin/vncsnapshot",
+                              retval="code") == 0:
+            vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
         if self.execdom0("test -e /usr/lib/xen/bin/vncsnapshot",
                               retval="code") == 0:
             vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"

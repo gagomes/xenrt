@@ -109,6 +109,8 @@ class OS(Interface):
 
     defaultMemory = Attribute("Default memory size")
 
+    canonicalDistroName = Attribute("Canonical distro name")
+
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""
 

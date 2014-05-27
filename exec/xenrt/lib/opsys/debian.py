@@ -33,6 +33,10 @@ class DebianBasedLinux(LinuxOS):
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
 
+    @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
+
     @abstractproperty
     def isoName(self): pass
 

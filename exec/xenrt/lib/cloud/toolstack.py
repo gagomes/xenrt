@@ -88,7 +88,7 @@ class CloudStack(object):
                 if templateDir:
                     url = "%s/%s.vhd.bz2" % (templateDir, distro)
                     if xenrt.TEC().fileExists(url):
-                        self.marvin.addTemplateIfNotPresent(distro, url)
+                        self.marvin.addTemplateIfNotPresent(instance.os.canonicalDistroName, url)
                         template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
                 # If we use a template, we can't specify the disk size
                 diskOffering=None        

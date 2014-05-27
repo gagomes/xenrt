@@ -61,9 +61,16 @@ class MarvinApi(object):
             self.testClient.createTestClient()
 
         self.apiClient = self.testClient.getApiClient()
+        self.__userApiClient = None
 
         #TODO - Fix this
         self.apiClient.hypervisor = 'XenServer'
+
+    @property
+    def userApiClient(self):
+        if not self.__userApiClient:
+            self.__userApiClient = self.testClient.createUserApiClient("admin", None)
+        return self.__userApiClient
 
     def command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""

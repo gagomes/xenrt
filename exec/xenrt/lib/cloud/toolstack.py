@@ -489,17 +489,16 @@ class CloudStack(object):
         
         xenrt.TEC().logverbose("Calculated %s as URL of image" % imgurl)
 
-        imglocation = "%s/%s_%s.jpg" % (path, instance.name, instance.toolstackId)
+        for i in range(10):
 
-        u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
-        u.read()
-        u.close()
-        
-        xenrt.sleep(1)
+            imglocation = "%s/%s_%s_%d.jpg" % (path, instance.name, instance.toolstackId, i)
 
-        f = open(imglocation, "w")
-        u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
-        f.write(u.read())
-        f.close()
-        u.close()
+            xenrt.sleep(2)
+
+            f = open(imglocation, "w")
+            u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
+            f.write(u.read())
+            f.close()
+            u.close()
+            xenrt.TEC().logverbose("Saved screenshot as %s" % imglocation)
         return imglocation

@@ -2922,7 +2922,9 @@ class Config:
         
         # MrToad: xen-tools. Rolls up XS61E010, XS61E029
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E038/84220/hotfix-XS61E038/XS61E038.xsupdate"
-      
+        
+        # Dave: kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E039/84261/hotfix-XS61E039/XS61E039.xsupdate"
       
       
       
@@ -3122,11 +3124,10 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF29"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"]
         self.config["CARBON_PATCHES_TAMPA"]["HF34"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF35"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"]
         self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF39"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}

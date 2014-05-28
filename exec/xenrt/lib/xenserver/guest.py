@@ -515,27 +515,25 @@ class Guest(xenrt.GenericGuest):
                                options={"maindisk": dev},
                                start=not dontstartinstall,
                                installXenToolsInPostInstall=installXenToolsInPostInstall)  
-        
+
         # store the distro so it can be used when using --existing or --pool
         if self.distro:
             self.paramSet("other-config:xenrt-distro", self.distro)
 
         if not dontstartinstall:
-            if start:
+            if self.noguestagent and not notools and not installXenToolsInPostInstall:
                 self.start()
-            
+                self.installTools()
+                if not start:
+                    self.shutdown()
+
             xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
                                 "%uMB memory."
                                 % (self.template, self.name, self.vcpus,
                                    self.memory))
-
             ip = self.getIP()
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
-
-            
-            if self.noguestagent and not notools:
-                self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

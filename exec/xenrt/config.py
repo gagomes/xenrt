@@ -2800,8 +2800,8 @@ class Config:
         # Stratus: xen-api, sm. Rolls up XS602E001,XS602E002,XS602E003,XS602E005,XS602E007,XS602E011,XS602E013,XS602E017,XS602E021,XS602E027,XS602E028.
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E030/76582/hotfix-XS602E030/XS602E030.xsupdate"
         
-        # MrToad (PLACEHOLDER): xen-tools . Rolls up XS602E002, XS602E009, XS602E019
-        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/build/sanibel-lcm/84256/hotfix-XS602E031/XS602E031.xsupdate"
+        # MrToad: xen-tools . Rolls up XS602E002, XS602E009, XS602E019
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E031/84256/hotfix-XS602E031/XS602E031.xsupdate"
         
         # Carabosse: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602E004, XS602E008, XS602E014, XS602E016, XS602E018, XS602E020, XS602E022, XS602E023, XS602E025, XS602E026, XS602E029 
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E032/77409/hotfix-XS602E032/XS602E032.xsupdate"
@@ -3109,9 +3109,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF10"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E010"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF30"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF32"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF33"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):

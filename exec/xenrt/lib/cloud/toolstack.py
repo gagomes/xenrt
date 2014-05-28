@@ -176,12 +176,12 @@ class CloudStack(object):
                 if not isinstance(secGroups, list):
                     domainid = self.marvin.cloudApi.listDomains(name='ROOT')[0].id
                     secGroup = self.marvin.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
-                    self.marvin.cloudApi.authorizeSecuritGroupIngress(securitygroupid = secGroup.id,
+                    self.marvin.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
                                                                       protocol="TCP",
                                                                       startport=0,
                                                                       endport=65535,
                                                                       cidrlist = "0.0.0.0/0")
-                    self.marvin.cloudApi.authorizeSecuritGroupIngress(securitygroupid = secGroup.id,
+                    self.marvin.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
                                                                       protocol="ICMP",
                                                                       icmptype=-1,
                                                                       icmpcode=-1,
@@ -217,7 +217,7 @@ class CloudStack(object):
             instance.toolstackId = rsp.id
 
             self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
-                                            resourceType="userVm",
+                                            resourcetype="userVm",
                                             tags=[{"key":"distro", "value":distro}])
 
             xenrt.TEC().logverbose("Starting VM")
@@ -325,7 +325,7 @@ class CloudStack(object):
         self.marvin.cloudApi.migrateVirtualMachine(hostid=hostid, virtualmachineid=instance.toolstackId)
 
     def getInstancePowerState(self, instance):
-        state = self.marvin.cloudApi.listVirtualMahcines(id=instance.toolstackId)[0].state
+        state = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].state
         if state in ("Stopped", "Starting"):
             return xenrt.PowerState.down
         elif state in ("Running", "Stopping"):
@@ -383,7 +383,7 @@ class CloudStack(object):
         instance.toolstackId = rsp.id
 
         self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
-                                        resourceType="userVm",
+                                        resourcetype="userVm",
                                         tags=[{"key":"distro", "value":distro}])
         if start:
             instance.start()
@@ -440,6 +440,8 @@ class CloudStack(object):
             return diskOfferingNew.id
 
     def instanceScreenshot(self, instance, path):
+        if not hasattr(self.marvin.apiClient, "hypervisor"):
+            self.marvin.apiClient.hypervisor = None
         keys={"apikey": self.marvin.userApiClient.connection.apiKey,
               "cmd": "access",
               "vm": instance.toolstackId}

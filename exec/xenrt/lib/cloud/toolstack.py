@@ -83,7 +83,11 @@ class CloudStack(object):
     def instanceCanMigrateTo(self, instance):
         cmd = findHostsForMigration.findHostsForMigrationCmd()
         cmd.virtualmachineid = instance.toolstackId
-        return [x.name for x in self.marvin.apiClient.findHostsForMigration(cmd)]
+        hosts = self.marvin.apiClient.findHostsForMigration(cmd)
+        if hosts is None:
+            return []
+        else:
+            return [h.name for h in hosts]
 
     def instanceSupportedLifecycleOperations(self, instance):
         ops = [xenrt.LifecycleOperation.start,

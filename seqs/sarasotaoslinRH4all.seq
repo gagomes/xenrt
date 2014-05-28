@@ -4,11 +4,11 @@
 
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
-    <DISTROS>rhel45,rhel46,rhel47,rhel48,rhel49</DISTROS>
   </variables>
 
   <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="rhel45,rhel46,rhel47,rhel48,rhel49" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

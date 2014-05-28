@@ -4,11 +4,11 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <DISTROS>sles101,sles102,sles103,sles104</DISTROS>
   </variables>
 
   <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="sles101,sles102,sles103,sles104" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

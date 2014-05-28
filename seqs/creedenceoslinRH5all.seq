@@ -4,11 +4,11 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <DISTROS>rhel50,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510</DISTROS>
   </variables>
 
   <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="rhel50,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

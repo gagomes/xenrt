@@ -4,11 +4,11 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <DISTROS>ubuntu1004,ubuntu1010,ubuntu1104,ubuntu1110,ubuntu1204</DISTROS>
   </variables>
 
   <default name="PARALLEL" value="2" />
   <default name="MIGRATEPAR" value="1" />
+  <default name="DISTROS" value="ubuntu1004,ubuntu1010,ubuntu1104,ubuntu1110,ubuntu1204" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

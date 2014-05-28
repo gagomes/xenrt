@@ -45,7 +45,7 @@ class CloudStack(object):
 
     def instanceHypervisorType(self, instance, nativeCloudType=False):
         """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
-        hypervisor = self._vmListProvider(instance.toolstackId)[0].hypervisor
+        hypervisor = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hypervisor
         return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
 
     def instanceHypervisorTypeAndVersion(self, instance, nativeCloudType=False):
@@ -70,20 +70,11 @@ class CloudStack(object):
         except StopIteration:
             raise xenrt.XRTError("Unknown XenRT hypervisorType: %s" % hypervisorType)
 
-    def _vmListProvider(self, toolstackid):
-        """
-        Add method wrapper for the marvin external API
-        This will allow the unit tests to not depend on Marvin
-        """
-        return VirtualMachine.list(self.marvin.apiClient, id=toolstackid)
-
     def instanceResidentOn(self, instance):
-        return self._vmListProvider(instance.toolstackId)[0].hostname
+        return self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostname
 
     def instanceCanMigrateTo(self, instance):
-        cmd = findHostsForMigration.findHostsForMigrationCmd()
-        cmd.virtualmachineid = instance.toolstackId
-        hosts = self.marvin.apiClient.findHostsForMigration(cmd)
+        hosts = self.marvin.cloudApi.findHostsForMigration(virtualmachineid = instance.toolstackId)
         if hosts is None:
             return []
         else:
@@ -103,7 +94,7 @@ class CloudStack(object):
         return ops
 
     def _getDefaultHypervisor(self):
-        hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient, type="routing")]
+        hypervisors = [h.hypervisor for h in self.marvin.cloudApi.listHosts(type="routing")]
         if len(hypervisors) > 0:
             # TODO reinstate this when all controllers run python >=2.7
             # return Counter(hypervisors).most_common(1)[0][0]
@@ -133,15 +124,15 @@ class CloudStack(object):
             hypervisor = None
             if hypervisorType:
                 hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
-
+            startOnId = None
             if startOn:
-                hosts = Host.list(self.marvin.apiClient, name=startOn)
+                hosts = self.marvin.cloudApi.listHosts(name=startOn)
                 if len(hosts) != 1:
                     raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
                 startOnId = hosts[0].id
                 # Ignore any provided hypervisorType and set this based on the host
                 hypervisor = hosts[0].hypervisor
-
+            
             template = None        
 
             # If we can use a template and it exists, use it
@@ -154,14 +145,14 @@ class CloudStack(object):
                     url = "%s/%s/%s.%s.bz2" % (templateDir, hypervisor, instance.os.canonicalDistroName, templateFormat.lower())
                     if xenrt.TEC().fileExists(url):
                         self.marvin.addTemplateIfNotPresent(hypervisor, templateFormat, instance.os.canonicalDistroName, url)
-                        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == instance.os.canonicalDistroName][0].id
+                        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName][0].id
                 # If we use a template, we can't specify the disk size
                 diskOffering=None        
 
             # If we don't have a template, do ISO instead
             if not template:
                 self.marvin.addIsoIfNotPresent(instance.os.canonicalDistroName, instance.os.isoName, instance.os.isoRepo)
-                template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
+                template = self.marvin.cloudApi.listIsos(name=instance.os.isoName)[0].id
                 supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
 
                 for m in supportedInstallMethods:
@@ -171,30 +162,30 @@ class CloudStack(object):
 
                 if not instance.os.installMethod:
                     raise xenrt.XRTError("No compatible install method found")
-                # TODO support different disk offerings
-                #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
                 diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
 
             if zone:
-                zoneid = Zone.list(self.marvin.apiClient, name=zone)[0].id
+                zoneid = self.marvin.cloudApi.listZones(name=zone)[0].id
             else:
-                zoneid = Zone.list(self.marvin.apiClient)[0].id
-            # TODO support different service offerings
-            #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
+                zoneid = self.marvin.cloudApi.listZones()[0].id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
             # Do we need to sort out a security group?
-            if Zone.list(self.marvin.apiClient, id=zoneid)[0].securitygroupsenabled:
-                secGroups = SecurityGroup.list(self.marvin.apiClient, securitygroupname="xenrt_default_sec_grp")
+            if self.marvin.cloudApi.listZones(id=zoneid)[0].securitygroupsenabled:
+                secGroups = self.marvin.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
                 if not isinstance(secGroups, list):
-                    domainid = Domain.list(self.marvin.apiClient, name='ROOT')[0].id
-                    secGroup = SecurityGroup.create(self.marvin.apiClient, {"name": "xenrt_default_sec_grp"}, account="system", domainid=domainid)
-                    secGroup.authorize(self.marvin.apiClient, {"protocol": "TCP",
-                                                               "startport": 0,
-                                                               "endport": 65535,
-                                                               "cidrlist": "0.0.0.0/0"})
-                    secGroup.authorize(self.marvin.apiClient, {"protocol": "ICMP",
-                                                               "cidrlist": "0.0.0.0/0"})
+                    domainid = self.marvin.cloudApi.listDomains(name='ROOT')[0].id
+                    secGroup = self.marvin.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
+                    self.marvin.cloudApi.authorizeSecuritGroupIngress(securitygroupid = secGroup.id,
+                                                                      protocol="TCP",
+                                                                      startport=0,
+                                                                      endport=65535,
+                                                                      cidrlist = "0.0.0.0/0")
+                    self.marvin.cloudApi.authorizeSecuritGroupIngress(securitygroupid = secGroup.id,
+                                                                      protocol="ICMP",
+                                                                      icmptype=-1,
+                                                                      icmpcode=-1,
+                                                                      cidrlist = "0.0.0.0/0")
                     secGroupId = secGroup.id
                 else:
                     secGroupId = secGroups[0].id
@@ -209,22 +200,25 @@ class CloudStack(object):
                       "template": template,
                       "diskoffering": diskOffering
                      }
-            if hypervisor:
-                params["hypervisor"] = hypervisor
-                self.marvin.apiClient.hypervisor = hypervisor
-            else:
-                # No hypervisor defined - Marvin pre 4.4 requires one to be defined
-                # so we need to determine what to use (note this has no effect on
-                # Marvin post 4.4)
-                self.marvin.apiClient.hypervisor = self._getDefaultHypervisor()
             if startOn:
                 params["hostid"] = startOnId
 
-            rsp = VirtualMachine.create(self.marvin.apiClient, params, startvm=False, securitygroupids=[secGroupId])
+            rsp = self.marvin.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
+                                                            zoneid=zoneid,
+                                                            displayname=name,
+                                                            name=name,
+                                                            templateid=template,
+                                                            diskofferingid=diskOffering,
+                                                            hostid = startOnId,
+                                                            hypervisor=hypervisor,
+                                                            startvm=False,
+                                                            securitygroupids=[secGroupId])
 
             instance.toolstackId = rsp.id
 
-            Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": instance.os.canonicalDistroName})
+            self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
+                                            resourceType="userVm",
+                                            tags=[{"key":"distro", "value":distro}])
 
             xenrt.TEC().logverbose("Starting VM")
 
@@ -262,12 +256,12 @@ class CloudStack(object):
 
     def getAllExistingInstances(self):
         """Returns all existing instances"""
-        return VirtualMachine.list(self.marvin.apiClient)
+        return self.marvin.cloudApi.listVirtualMachines()
 
     def existingInstance(self, name):
 
-        vm = [x for x in VirtualMachine.list(self.marvin.apiClient, name=name) if x.name==name][0]
-        tags = Tag.list(self.marvin.apiClient, resourceid = vm.id)
+        vm = [x for x in self.marvin.cloudApi.listVirtualMachines(name=name) if x.name==name][0]
+        tags = self.marvin.cloudApi.listTags(resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
         # TODO: Sort out the other arguments here
@@ -283,22 +277,14 @@ class CloudStack(object):
         return instance
 
     def destroyInstance(self, instance):
-        cmd = destroyVirtualMachine.destroyVirtualMachineCmd()
-        cmd.id = instance.toolstackId
-        cmd.expunge = True
-        self.marvin.apiClient.destroyVirtualMachine(cmd)
+        self.marvin.cloudApi.destroyVirtualMachine(id=instance.toolstackId, expunge=True)
 
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.marvin.addIsoIfNotPresent(None, isoName, isoRepo)
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.name=isoName
-        isoId = self.marvin.apiClient.listIsos(listIsosC)[0].id
+        isoId = self.marvin.cloudApi.listIsos(name=isoName)[0].id
 
-        attachIsoC = attachIso.attachIsoCmd()
-        attachIsoC.id = isoId
-        attachIsoC.virtualmachineid = instance.toolstackId
-        self.marvin.apiClient.attachIso(attachIsoC)
+        self.marvin.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 
         # Allow the CD to appear
         xenrt.sleep(30)
@@ -313,29 +299,17 @@ class CloudStack(object):
             instance.extraConfig['CCP_PV_TOOLS'] = True
 
     def getInstanceIP(self, instance, timeout, level):
-        cmd = listNics.listNicsCmd()
-        cmd.virtualmachineid=instance.toolstackId
-        instance.mainip = [x.ipaddress for x in NIC.list(self.marvin.apiClient, virtualmachineid = instance.toolstackId) if x.isdefault][0]
+        instance.mainip = [x.ipaddress for x in self.marvin.cloudApi.listNics(virtualmachineid = instance.toolstackId) if x.isdefault][0]
         return instance.mainip
 
     def startInstance(self, instance, on=None):
-        cmd = startVirtualMachine.startVirtualMachineCmd()
-        cmd.id = instance.toolstackId
-        self.marvin.apiClient.startVirtualMachine(cmd)
+        self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId)
 
     def stopInstance(self, instance, force=False):
-        cmd = stopVirtualMachine.stopVirtualMachineCmd()
-        cmd.id = instance.toolstackId
-        if force:
-            cmd.forced = force
-        self.marvin.apiClient.stopVirtualMachine(cmd)
+        self.marvin.cloudApi.stopVirtualMachine(id=instance.toolstackId, forced=force)
 
     def rebootInstance(self, instance, force=False):
-        cmd = rebootVirtualMachine.rebootVirtualMachineCmd()
-        cmd.id = instance.toolstackId
-        if force:
-            cmd.forced = force
-        self.marvin.apiClient.rebootVirtualMachine(cmd)
+        self.marvin.cloudApi.rebootVirtualMachine(id=instance.toolstackId, forced=force)
 
     def suspendInstance(self, instance):
         raise xenrt.XRTError("Not implemented")
@@ -347,13 +321,11 @@ class CloudStack(object):
         if not live:
             raise xenrt.XRTError("Non-live migrate is not supported")
 
-        cmd = migrateVirtualMachine.migrateVirtualMachineCmd()
-        cmd.virtualmachineid = instance.toolstackId
-        cmd.hostid = [x for x in Host.list(self.marvin.apiClient, name=to) if x.name==to][0].id
-        self.marvin.apiClient.migrateVirtualMachine(cmd)
+        hostid = [x for x in self.marvin.cloudApi.listHosts(name=to) if x.name==to][0].id
+        self.marvin.cloudApi.migrateVirtualMachine(hostid=hostid, virtualmachineid=instance.toolstackId)
 
     def getInstancePowerState(self, instance):
-        state = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0].state
+        state = self.marvin.cloudApi.listVirtualMahcines(id=instance.toolstackId)[0].state
         if state in ("Stopped", "Starting"):
             return xenrt.PowerState.down
         elif state in ("Running", "Stopping"):
@@ -364,117 +336,107 @@ class CloudStack(object):
         origState = instance.getPowerState()
         instance.setPowerState(xenrt.PowerState.down)
 
-        volume = Volume.list(self.marvin.apiClient, virtualmachineid=instance.toolstackId, type="ROOT")[0].id
+        volume = self.marvin.cloudApi.listVolumes(virtualmachineid=instance.toolstackId, type="ROOT")[0].id
 
-        vm = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0]
+        vm = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
         ostypeid = vm.guestosid
 
-        tags = Tag.list(self.marvin.apiClient, resourceid = vm.id)
+        tags = self.marvin.cloudApi.listTags(resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
 
-        t = Template.create(self.marvin.apiClient, {
-                            "name": templateName,
-                            "displaytext": templateName,
-                            "ispublic": True,
-                            "ostypeid": ostypeid
-                        }, volumeid = volume)
+        t = self.marvin.cloudApi.createTemplate(
+                            name=templateName,
+                            displaytext=templateName,
+                            ispublic=True,
+                            ostypeid=ostypeid,
+                            volumeid = volume)
         
-        Tag.create(self.marvin.apiClient, [t.id], "Template", {"distro": distro})
+        self.marvin.cloudApi.createTags(resourceids=[t.id],
+                                        resourcetype="Template",
+                                        tags=[{"key":distro, "value":distro}])
         instance.setPowerState(origState)
 
     def createInstanceFromTemplate(self, templateName, name=None, start=True):
         if not name:
             name = xenrt.util.randomGuestName()
-        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
+        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0].id
         
-        tags = Tag.list(self.marvin.apiClient, resourceid = template)
+        tags = self.marvin.cloudApi.listTags(resourceid = template)
         distro = [x.value for x in tags if x.key=="distro"][0]
         
-        zone = Zone.list(self.marvin.apiClient)[0].id
+        zone = self.marvin.cloudApi.listZones()[0].id
         # TODO support different service offerings
-        svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id
+        svcOffering = self.marvin.cloudApi.listServiceOfferings(name = "Medium Instance")[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
-        rsp = VirtualMachine.create(self.marvin.apiClient, {
-                                        "serviceoffering": svcOffering,
-                                        "zoneid": zone,
-                                        "displayname": name,
-                                        "name": name,
-                                        "template": template},
-                                    startvm=False)
+        rsp = self.marvin.cloudApi.deployVirtualMachine(
+                                        serviceofferingid=svcOffering,
+                                        zoneid=zone,
+                                        displayname=name,
+                                        name= name,
+                                        templateid=template,
+                                        startvm=False)
         
         # TODO: Sort out the other arguments here
         instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
         instance.toolstackId = rsp.id
 
-        Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
+        self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
+                                        resourceType="userVm",
+                                        tags=[{"key":"distro", "value":distro}])
         if start:
             instance.start()
 
         return instance
 
     def ejectInstanceIso(self, instance):
-        cmd = detachIso.detachIsoCmd()
-        cmd.virtualmachineid = instance.toolstackId
-        self.marvin.apiClient.detachIso(cmd)
+        self.marvin.cloudApi.detachIso(virtualmachineid = instance.toolstackId)
 
     def createInstanceSnapshot(self, instance, name, memory=False, quiesce=False):
-        cmd = createVMSnapshot.createVMSnapshotCmd()
-        cmd.virtualmachineid = instance.toolstackId
-        cmd.name = name
-        cmd.snapshotmemory=memory
-        cmd.quiesce=quiesce
-        self.marvin.apiClient.createVMSnapshot(cmd)
+        self.marvin.cloudApi.createVMSnapshot(virtualmachineid = instance.toolstackId,
+                                               name = name,
+                                               snapshotmemory=memory,
+                                               quiesce=quiesce)
 
     def getSnapshotId(self, instance, name):
-        return VmSnapshot.list(self.marvin.apiClient, virtualmachineid = instance.toolstackId, name=name)[0].id
+        return self.marvin.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name)[0].id
 
     def deleteInstanceSnapshot(self, instance, name):
-        cmd = deleteVMSnapshot.deleteVMSnapshotCmd()
-        cmd.vmsnapshotid = self.getSnapshotId(instance, name)
-        self.marvin.apiClient.deleteVMSnapshot(cmd)
+        self.marvin.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
 
     def revertInstanceToSnapshot(self, instance, name):
-        cmd = revertToVMSnapshot.revertToVMSnapshotCmd()
-        cmd.vmsnapshotid = self.getSnapshotId(instance, name)
-        self.marvin.apiClient.revertToVMSnapshot(cmd)
+        self.marvin.cloudApi.revertToVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
+
 
     def downloadTemplate(self, templateName, downloadLocation):
-        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
-        cmd = extractTemplate.extractTemplateCmd()
-        cmd.mode = "HTTP_DOWNLOAD"
-        cmd.id = template
-        rsp = self.marvin.apiClient.extractTemplate(cmd)
+        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0].id
+        rsp = self.marvin.cloudApi.extractTemplate(mode = "HTTP_DOWNLOAD", id = template)
         xenrt.util.command("wget -nv '%s' -O '%s'" % (rsp.url, downloadLocation))
         
     def findOrCreateServiceOffering(self, cpus, memory):               
-        svcOfferingExist = [x for x in ServiceOffering.list(self.marvin.apiClient) if x.cpunumber == cpus and x.memory == memory]        
+        svcOfferingExist = [x for x in self.marvin.cloudApi.listServiceOfferings() if x.cpunumber == cpus and x.memory == memory]        
         if svcOfferingExist :
             return svcOfferingExist[0].id
         else :
-            cmd = {}
-            cmd["cpunumber"]= cpus
-            cmd["memory"] = memory
-            cmd["name"] = "CPUs=%d ,Memory=%d MB offering" %(cpus,memory)
-            cmd["displaytext"] = "New Offering"
-            cmd["cpuspeed"] = 1000
             xenrt.TEC().logverbose("Creating New Service Offering ")
-            svcOfferingNew = ServiceOffering.create(self.marvin.apiClient,cmd)
+            svcOfferingNew = self.marvin.cloudApi.createServiceOffering(cpunumber=cpus,
+                                                                         memory=memory,
+                                                                         name="CPUs=%d ,Memory=%d MB offering" %(cpus,memory),
+                                                                         displaytext="New Offering",
+                                                                         cpuspeed=1000)
             return svcOfferingNew.id       
         
     def findOrCreateDiskOffering(self, disksize):
         xenrt.log("Inside the disk Offering")        
-        diskOfferingExist = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == disksize]        
+        diskOfferingExist = [x for x in self.marvin.cloudApi.listDiskOfferings() if x.disksize == disksize]        
         if diskOfferingExist :
             return diskOfferingExist[0].id
         else :
-            cmd = {}
-            cmd["name"]="Disk=%d GB offering" %disksize
-            cmd["displaytext"]="Disk Offering"            
-            cmd["disksize"] = disksize
             xenrt.TEC().logverbose("Creating new Disk Offering ")
-            diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
+            diskOfferingNew = self.marvin.cloudApi.createDiskOffering(disksize=disksize,
+                                                                      name="Disk=%d GB offering" %disksize,
+                                                                      displaytext="Disk Offering")
             return diskOfferingNew.id
 
     def instanceScreenshot(self, instance, path):

@@ -4,7 +4,7 @@ import os, urllib, re
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements
-from collections import Counter, namedtuple
+from collections import namedtuple
 
 import xenrt.lib.cloud
 try:
@@ -101,7 +101,9 @@ class CloudStack(object):
     def _getDefaultHypervisor(self):
         hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient, type="routing")]
         if len(hypervisors) > 0:
-            return Counter(hypervisors).most_common(1)[0][0]
+            # TODO reinstate this when all controllers run python >=2.7
+            # return Counter(hypervisors).most_common(1)[0][0]
+            return xenrt.util.mostCommonInList(hypervisors)
         return "XenServer"
 
     def createInstance(self,

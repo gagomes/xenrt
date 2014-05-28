@@ -1296,3 +1296,9 @@ def xrtAssert(condition, text):
 def xrtCheck(condition, text):
     if not condition:
         raise xenrt.XRTFailure("Check %s failed" % text)
+
+def mostCommonInList(items):
+    counts = {}
+    for i in set(items):
+        counts[i] = len([x for x in items if x==i])
+    return sorted(counts, key=lambda x: counts[x], reverse=True)[0]

@@ -865,7 +865,7 @@ class TCGSOBondedInterface(xenrt.TestCase):
         self.host = self.getDefaultHost()
         cli = self.host.getCLIInstance()
         self.bondSlavePif = cli.execute("bond-list", "params=slaves --minimal").split(';')[0]
-        self.pifDevice = cli.execute("pif-param-get", "param-name=device uuid=%s --minimal" % self.bondSlavePif)
+        self.pifDevice = cli.execute("pif-param-get", "param-name=device uuid=%s --minimal" % self.bondSlavePif).strip()
         
     def run(self, arglist=None):
         step("Set gso off and gro on for bonded interface")

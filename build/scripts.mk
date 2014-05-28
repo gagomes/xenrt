@@ -273,3 +273,9 @@ check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
+
+.PHONY: minimal-check
+minimal-check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)

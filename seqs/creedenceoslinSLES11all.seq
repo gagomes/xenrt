@@ -6,7 +6,7 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
-  <default name="PARALLEL" value="2" />
+  <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
   <default name="DISTROS" value="sles11,sles111,sles112,sles113" />
 

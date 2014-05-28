@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OS functional test sequence: SLES 10 -->
+  <!-- OS functional test sequence: OEL 5 -->
 
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
@@ -8,7 +8,7 @@
 
   <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
-  <default name="DISTROS" value="sles101,sles102,sles103,sles104" />
+  <default name="DISTROS" value="oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

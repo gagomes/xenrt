@@ -6,7 +6,7 @@
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
 
-  <default name="PARALLEL" value="2" />
+  <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
   <default name="DISTROS" value="rhel45,rhel46,rhel47,rhel48,rhel49" />
 

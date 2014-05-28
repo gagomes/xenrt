@@ -6,9 +6,9 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
-  <default name="PARALLEL" value="2" />
+  <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
-  <default name="DISTROS" value="rhel60,rhel61,rhel62,rhel63,rhel64,rhel65" />
+  <default name="DISTROS" value="rhel6,rhel61,rhel62,rhel63,rhel64,rhel65" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

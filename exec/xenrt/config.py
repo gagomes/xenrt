@@ -2709,7 +2709,7 @@ class Config:
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E035/75824/hotfix-XS60E035/XS60E035.xsupdate"
         
         # MrToad (PLACEHOLDER): xen-tools . Rolls up nothing.
-        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/build/boston-lcm/84221/hotfix-XS60E036/XS60E036.xsupdate"
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E036/84221/hotfix-XS60E036/XS60E036.xsupdate"
         
         # Carabosse: kexec-tools, openssl,  vncterm, xen-device-mode, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035 
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
@@ -3101,6 +3101,7 @@ class Config:
         self.config["CARBON_PATCHES_BOSTON"]["HF30"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E030"]
         self.config["CARBON_PATCHES_BOSTON"]["HF31"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E031"]
         self.config["CARBON_PATCHES_BOSTON"]["HF32"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E032"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF36"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"]
         self.config["CARBON_PATCHES_BOSTON"]["HF37"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):

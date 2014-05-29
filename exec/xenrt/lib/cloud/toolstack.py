@@ -309,7 +309,11 @@ class CloudStack(object):
         self.marvin.cloudApi.stopVirtualMachine(id=instance.toolstackId, forced=force)
 
     def rebootInstance(self, instance, force=False):
-        self.marvin.cloudApi.rebootVirtualMachine(id=instance.toolstackId, forced=force)
+        if force:
+            self.stopInstance(instance, True)
+            self.startInstance(instance)
+        else:
+            self.marvin.cloudApi.rebootVirtualMachine(id=instance.toolstackId)
 
     def suspendInstance(self, instance):
         raise xenrt.XRTError("Not implemented")

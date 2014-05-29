@@ -364,7 +364,7 @@ class Registry:
     def instanceGet(self, tag):
         return self.objGet("instance", tag)
 
-    def instanceDelete(self, tag)
+    def instanceDelete(self, tag):
         self.objDelete("instance", tag)
 
     def instanceGetAll(self):

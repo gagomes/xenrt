@@ -19,7 +19,7 @@
           "physical_networks": [
             { "name": "AdvPhyNetwork",
               "isolationmethods": [ "VLAN" ],
-              "XRT_VLANRangeSize": 2,
+              "XRT_VLANRangeSize": 10,
               "traffictypes": [
                 { "typ": "Guest" },
                 { "typ": "Management" },

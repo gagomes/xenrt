@@ -43,6 +43,10 @@ class CloudStack(object):
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
+    @property
+    def name(self):
+        return "CS-%s" % self.mgtsvr.place.mainip
+
     def instanceHypervisorType(self, instance, nativeCloudType=False):
         """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
         hypervisor = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hypervisor
@@ -472,3 +476,7 @@ class CloudStack(object):
             u.close()
             xenrt.TEC().logverbose("Saved screenshot as %s" % imglocation)
         return imglocation
+
+    def getLogs(self, path):
+        sftp = self.mgtsvr.place.sftpClient()
+        sftp.copyLogsFrom(["/var/log/cloudstack"], path)

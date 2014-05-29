@@ -37,7 +37,9 @@ class TCCloudUpdate(xenrt.TestCase):
             xenrt.TEC().logverbose('ROOT_PASSWORDS: %s' % (xenrt.TEC().lookup('ROOT_PASSWORDS')))
         if len(filter(lambda x:x.key == 'distro', template.tags)) == 0:
             if 'CentOS' in template.ostypename and '5.6' in template.ostypename and '64' in template.ostypename:
-                xenrt.lib.cloud.Tag.create(self.cloud.marvin.apiClient, [template.id], "Template", {"distro": 'centos56_x86-64'})
+                self.cloud.marvin.cloudApi.createTags(resourceids=[template.id],
+                                                resourcetype="Template",
+                                                tags=[{"key":"distro", "value":'centos56_x86-64'}])
             else:
                 raise xenrt.XRTError('Unknown built in template type')
 
@@ -47,14 +49,14 @@ class TCCloudUpdate(xenrt.TestCase):
 
         self.cloud = self.getDefaultToolstack()
         # TODO - should get Zone from toolstack object
-        self.zone = xenrt.lib.cloud.Zone.list(self.cloud.marvin.apiClient)[0]
-        capacity = xenrt.lib.cloud.Capacities.list(self.cloud.marvin.apiClient, zoneid=self.zone.id, type=8)[0]
+        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
+        capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zone.id, type=8)[0]
         instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.DISTROS)
 
         self.templates = {}
 
         if self.USE_EXISTING_TEMPLATES:
-            existingTemplates = xenrt.lib.cloud.Template.list(self.cloud.marvin.apiClient, templatefilter='all', zoneid=self.zone.id)
+            existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
             templatesToUse = filter(lambda x:x.templatetype != 'SYSTEM' and x.templatetype != 'BUILTIN', existingTemplates)
             if len(templatesToUse) == 0:
                 templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates) 
@@ -87,24 +89,22 @@ class TCCloudUpdate(xenrt.TestCase):
 
     def setHostResourceState(self, host, maintenance):
         xenrt.TEC().logverbose('Set host: %s to maintenance = %s' % (host.getName(), maintenance))
-        hostId = xenrt.lib.cloud.Host.list(self.cloud.marvin.apiClient, name=host.getName())[0].id
+        hostId = self.cloud.marvin.cloudApi.listHosts(name=host.getName())[0].id
         if maintenance:
-            xenrt.lib.cloud.Host.enableMaintenance(self.cloud.marvin.apiClient, hostId)
+            self.cloud.marvin.cloudApi.prepareHostForMaintenance(id=hostId)
         else:
-            xenrt.lib.cloud.Host.cancelMaintenance(self.cloud.marvin.apiClient, hostId)
+            self.cloud.marvin.cloudApi.cancelHostMaintenance(id=hostId)
 
         expectedResourceState = maintenance and 'Maintenance' or 'Enabled'
         resourceState = None
         while(resourceState != expectedResourceState):
             xenrt.sleep(10)
-            resourceState = xenrt.lib.cloud.Host.list(self.cloud.marvin.apiClient, name=host.getName())[0].resourcestate
+            resourceState = self.cloud.marvin.cloudApi.listHosts(name=host.getName())[0].resourcestate
             xenrt.TEC().logverbose('Waiting for host: %s, Current Resource State: %s, Expected State: %s' % (host.getName(), resourceState, expectedResourceState))
 
     def setClusterManaged(self, clusterid, managed):
-        updateClusterC = xenrt.lib.cloud.updateCluster.updateClusterCmd()
-        updateClusterC.id = clusterid
-        updateClusterC.managedstate = managed and 'Managed' or 'Unmanaged'
-        self.cloud.marvin.apiClient.updateCluster(updateClusterC)
+        self.cloud.marvin.cloudApi.updateCluster(id = clusterid,
+                                              managedstate = managed and 'Managed' or 'Unmanaged')
 
         expectedClusterState = managed and 'Managed' or 'Unmanaged'
         expectedHostState = managed and 'Up' or 'Disconnected'
@@ -112,10 +112,10 @@ class TCCloudUpdate(xenrt.TestCase):
         correctStateReached = False
         while(not correctStateReached):
             xenrt.sleep(10)
-            cluster = xenrt.lib.cloud.Cluster.list(self.cloud.marvin.apiClient,id=clusterid)[0]
+            cluster = self.cloud.marvin.cloudApi.listClusters(id=clusterid)[0]
             xenrt.TEC().logverbose('Waiting for Cluster %s, Current state: Managed=%s, Alloc=%s, expected state: %s' % (cluster.name, cluster.managedstate, cluster.allocationstate, expectedClusterState))
 
-            hostList = xenrt.lib.cloud.Host.list(self.cloud.marvin.apiClient, clusterid=clusterid, type='Routing')
+            hostList = self.cloud.marvin.cloudApi.listHosts(clusterid=clusterid, type='Routing')
             hostListState = map(lambda x:x.state, hostList)
             xenrt.TEC().logverbose('Waiting for host(s) %s, Current State(s): %s' % (map(lambda x:x.name, hostList), hostListState))
 
@@ -126,7 +126,7 @@ class TCCloudUpdate(xenrt.TestCase):
     def call(self, host, preHook, master):
         xenrt.TEC().logverbose('hook called for host: %s, preHook: %s, master %s' % (host.getName(), preHook, master))
         if master:
-            clusterId = xenrt.lib.cloud.Cluster.list(self.cloud.marvin.apiClient)[0].id
+            clusterId = self.cloud.marvin.cloudApi.listClusters()[0].id
             if preHook:
                 self.setHostResourceState(host, maintenance=True)
                 self.setClusterManaged(clusterId, False)

@@ -199,8 +199,6 @@ class CloudStack(object):
 
 
             xenrt.TEC().logverbose("Deploying VM")
-            if startOn:
-                params["hostid"] = startOnId
 
             rsp = self.marvin.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                             zoneid=zoneid,

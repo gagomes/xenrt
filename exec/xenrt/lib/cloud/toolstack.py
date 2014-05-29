@@ -138,11 +138,12 @@ class CloudStack(object):
                 hypervisor = hosts[0].hypervisor
             
             template = None        
+            
+            if not hypervisor:
+                hypervisor = self._getDefaultHypervisor()
 
             # If we can use a template and it exists, use it
             if useTemplateIfAvailable:
-                if not hypervisor:
-                    hypervisor = self._getDefaultHypervisor()
                 templateFormat = self._templateFormats[hypervisor]
                 templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
                 if templateDir:
@@ -196,14 +197,6 @@ class CloudStack(object):
 
 
             xenrt.TEC().logverbose("Deploying VM")
-            params = {
-                      "serviceoffering": svcOffering,
-                      "zoneid": zoneid,
-                      "displayname": name,
-                      "name": name,
-                      "template": template,
-                      "diskoffering": diskOffering
-                     }
             if startOn:
                 params["hostid"] = startOnId
 

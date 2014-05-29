@@ -442,12 +442,9 @@ class CloudStack(object):
             return diskOfferingNew.id
 
     def instanceScreenshot(self, instance, path):
-        if not hasattr(self.marvin.apiClient, "hypervisor"):
-            self.marvin.apiClient.hypervisor = None
-        keys={"apikey": self.marvin.userApiClient.connection.apiKey,
-              "cmd": "access",
+        keys={"cmd": "access",
               "vm": instance.toolstackId}
-        keys['signature'] = self.marvin.userApiClient.connection.sign(keys)
+        keys = self.marvin.signCommand(keys)
         frameset = urllib.urlopen("http://%s:8080/client/console?%s" % (self.mgtsvr.place.getIP(), urllib.urlencode(keys))).read()
         frameurl = re.search("src=\"(.*?)\"", frameset).group(1)
 

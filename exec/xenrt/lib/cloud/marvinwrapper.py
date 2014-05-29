@@ -30,7 +30,7 @@ class XenRTLogStream(object):
 
 class CloudApi(object):
     def __init__(self, apiClient):
-        self.apiClient = apiClient
+        self.__apiClient = apiClient
 
     def __command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
@@ -46,7 +46,7 @@ class CloudApi(object):
             cmd.__dict__[k] = kwargs[k]
         
         # Then run the command
-        return getattr(self.apiClient, command)(cmd)
+        return getattr(self.__apiClient, command)(cmd)
 
     def __getattr__(self, attr):
         def wrapper(**kwargs):
@@ -85,15 +85,22 @@ class MarvinApi(object):
             self.testClient = cloudstackTestClient.CSTestClient(mgmt_details=self.mgtSvrDetails, dbsvr_details=dbDetails, logger=self.logger)
             self.testClient.createTestClient()
 
-        self.apiClient = self.testClient.getApiClient()
-        self.__userApiClient = None
-        self.cloudApi = CloudApi(self.apiClient)
+        self.__apiClient = self.testClient.getApiClient()
+        self.__userApiClientObj = None
+        self.cloudApi = CloudApi(self.__apiClient)
 
     @property
-    def userApiClient(self):
-        if not self.__userApiClient:
-            self.__userApiClient = self.testClient.createUserApiClient("admin", None)
-        return self.__userApiClient
+    def __userApiClient(self):
+        if not self.__userApiClientObj:
+            if not hasattr(self.__apiClient, "hypervisor"):
+                self.__apiClient.hypervisor = None
+            self.__userApiClientObj = self.testClient.createUserApiClient("admin", None)
+        return self.__userApiClientObj
+
+    def signCommand(self, params):
+        params["apikey"] = self.__userApiClient.connection.apiKey
+        params['signature'] = self.__userApiClient.connection.sign(params)
+        return params
 
     def createSecondaryStorage(self, secStorageType):
         xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")

@@ -3944,6 +3944,33 @@ done
     def getCPUCores(self):
         return len(self.minimalList("host-cpu-list", "number"))
 
+    def getNoOfCPUSockets(self):
+        count = 0
+        cpuInfo = self.minimalList("host-param-get", args = "param-name=cpu_info uuid=%s" % self.uuid)
+
+        for info in cpuInfo:
+            if "socket_count" in info:
+                count = info.split(':')[1].strip()
+                break
+        
+        if int(count) == 0:
+            raise xenrt.XRTFailure("Unable to get the socket count")
+        return int(count)
+
+    def getSocketsonHost(self):
+        count = "0"
+        data = self.paramGet("cpu_info")
+
+        for d in data.split(';'):
+            r=re.search(".*socket_count.*\s*\d+",d)
+            if r:
+                count = re.search("\d+",r.group(0)).group(0)
+
+        if int(count) == 0:
+            raise xenrt.XRTFailure("Socket Count returned from CLI: %s" % count)
+        else:
+            return int(count)
+
     def getPhysInfo(self):
         data = self.execdom0("/opt/xensource/debug/xenops physinfo")
         return xenrt.util.strlistToDict(data.splitlines())
@@ -10551,21 +10578,6 @@ class ClearwaterHost(TampaHost):
                             or (edition=="xendesktop" and skuname == "Citrix XenServer for XenDesktop")) :
             raise xenrt.XRTFailure("Sku_Marketing_Name %s doesnt matches with the edition %s" % (skuname,edition))            
 
-    def getNoOfCPUSockets(self):
-
-        cpuInfo = self.minimalList("host-param-get", args = "param-name=cpu_info uuid=%s" % self.uuid)
-
-        count = 0
-        for info in cpuInfo:
-            if "socket_count" in info:
-                count = info.split(':')[1].strip()
-                break
-        
-        if int(count) == 0:
-            raise xenrt.XRTFailure("Unable to get the socket count")
-
-        return int(count)
-
     def installv6dRPM(self):
  
         filename = "v6d.rpm"
@@ -10588,22 +10600,6 @@ class ClearwaterHost(TampaHost):
         self.execdom0("rpm --force -Uvh %s" % (v6rpmPath))
         
         self.execdom0("service v6d restart")
-
-    def getSocketsonHost(self):
-
-        count = "0"
-        data = self.paramGet("cpu_info")
-
-        for d in data.split(';'):
-            r=re.search(".*socket_count.*\s*\d+",d)
-            if r:
-                count = re.search("\d+",r.group(0)).group(0)
-
-        if int(count) == 0:
-            raise xenrt.XRTFailure("Socket Count returned from CLI: %s" % count)
-        else:
-            return int(count)
-
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.

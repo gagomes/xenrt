@@ -1,9 +1,7 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Boston
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
@@ -19,6 +17,7 @@
       <testcase id="xenserver.tc.smoketest.TC13458" prio="4" tc="TC-13458"/>
       <testcase id="xenserver.tc.smoketest.TC13459" prio="4" tc="TC-13459"/>
       <testcase id="xenserver.tc.smoketest.TC13461" prio="4" tc="TC-13461"/>
+      <testcase id="xenserver.tc.smoketest.TC13462" prio="4" tc="TC-13462"/>
     </parallel>
   </testsequence>
 </xenrt>

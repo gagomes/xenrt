@@ -9,7 +9,7 @@ try:
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
-    sys.stderr.write("Could not import cloud libraries\n")
+    pass
 
 def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
     jenkinsUrl = 'http://jenkins.buildacloud.org'

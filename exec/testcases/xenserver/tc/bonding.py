@@ -894,7 +894,7 @@ class TCGSOBondedInterface(xenrt.TestCase):
         self.verifyEthtoolParam("generic-receive-offload", "off")
         
     def verifyEthtoolParam(self, param, expected):
-        command = 'ethtool -k %s | grep "%s: " | cut -d ":" -f 2' % (self.pifDevice, param)
+        command = 'ethtool -k %s | grep "%s: " | cut -d ":" -f 2' % (self.pifDevice, param).strip()
         status = self.host.execdom0(command)
         if status == expected:
             log("%s is %s on bonded interface" % (param, status))

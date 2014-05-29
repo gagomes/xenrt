@@ -15,7 +15,7 @@ class Toolstack(Interface):
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 
-    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable):
+    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
         """Create and install and instance on this toolstack"""
 
     def existingInstance(name):
@@ -66,6 +66,9 @@ class Toolstack(Interface):
     def revertInstanceToSnapshot(instance, name):
         """Revert an Instance to a named snapshot"""
 
+    def instanceScreenshot(instance, path):
+        """Screenshot an instance"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")
@@ -105,6 +108,8 @@ class OS(Interface):
     defaultRootdisk = Attribute("Default root disk size")
 
     defaultMemory = Attribute("Default memory size")
+
+    canonicalDistroName = Attribute("Canonical distro name")
 
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""

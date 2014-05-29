@@ -61,7 +61,7 @@ class RHELKickStartFile :
             kf=self._generateKS()
         else :
         #Native installation
-            kf=self._generate6()               
+            kf=self._generateKS()               
             # Put a fix up script
             # in %post to check that the interface's MAC matches what we
             # expected. This has to be done because NIC enumeration can differ

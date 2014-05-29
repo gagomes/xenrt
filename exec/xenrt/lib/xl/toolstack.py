@@ -108,7 +108,12 @@ class XLToolstack(object):
                        extraConfig={},
                        startOn=None,
                        installTools=True,
-                       useTemplateIfAvailable=True):
+                       useTemplateIfAvailable=True,
+                       hypervisorType=xenrt.HypervisorType.xen):
+
+        if hypervisorType != xenrt.HypervisorType.xen:
+            raise xenrt.XRTError("XL only supports the Xen hypervisor")
+
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         instance.toolstackId = str(uuid.uuid4())
 
@@ -274,6 +279,9 @@ disk = [ %s ]
         raise xenrt.XRTError("Not implemented")
 
     def revertInstanceToSnapshot(self, instance, name):
+        raise xenrt.XRTError("Not implemented")
+
+    def instanceScreenshot(self, instance, path):
         raise xenrt.XRTError("Not implemented")
 
 __all__ = ["XLToolstack"]

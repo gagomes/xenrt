@@ -951,7 +951,7 @@ class PrepareNode:
 
     def handleCloudNode(self, node, params):
         # Load the JSON block from the sequence file
-        self.cloudSpec = json.loads(node.childNodes[0].data)
+        self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
 
 
         # Find allocated host IDs 

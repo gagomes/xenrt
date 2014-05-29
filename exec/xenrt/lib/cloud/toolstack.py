@@ -1,9 +1,10 @@
 import xenrt
 import logging
-import os, urllib
+import os, urllib, re
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements
+from collections import namedtuple
 
 import xenrt.lib.cloud
 try:
@@ -21,6 +22,18 @@ import xenrt.lib.cloud.pvtoolsinstall
 class CloudStack(object):
     implements(xenrt.interfaces.Toolstack)
 
+    # Mapping Cloud hypervisor strings to the XenRT HypervisorType enum
+    __hypervisorTypeMapping = {"XenServer": xenrt.HypervisorType.xen,
+                     "KVM": xenrt.HypervisorType.kvm,
+                     "VMware": xenrt.HypervisorType.vmware,
+                     "Hyperv": xenrt.HypervisorType.hyperv,
+                     "BareMetal": xenrt.HypervisorType.native,
+                     "Simulator": xenrt.HypervisorType.simulator}
+
+    # Mapping of hypervisors to template formats
+    _templateFormats = {"XenServer": "VHD",
+                        "KVM": "QCOW2"}
+
     def __init__(self, place=None, ip=None):
         assert place or ip
         if not place:
@@ -30,9 +43,32 @@ class CloudStack(object):
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
 
-    def instanceHypervisorType(self, instance):
-        # TODO actually determine what hypervisor is selected for the given instance
-        return xenrt.HypervisorType.xen
+    def instanceHypervisorType(self, instance, nativeCloudType=False):
+        """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
+        hypervisor = self._vmListProvider(instance.toolstackId)[0].hypervisor
+        return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
+
+    def instanceHypervisorTypeAndVersion(self, instance, nativeCloudType=False):
+        hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
+        host = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostid
+        hostdetails = self.marvin.cloudApi.listHosts(id=host)[0]
+        if nativeCloudType:
+            return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
+        else:
+            return hypervisorInfo(self.hypervisorToHypervisorType(hostdetails.hypervisor), hostdetails.hypervisorversion)
+
+    def hypervisorToHypervisorType(self, hypervisor):
+        """Map a cloud hypervisor string to a xenrt.HypervisorType enum"""
+        if hypervisor in self.__hypervisorTypeMapping.keys():
+            return self.__hypervisorTypeMapping[hypervisor]
+        raise xenrt.XRTError("Unknown cloud hypervisor: %s" % hypervisor)
+
+    def hypervisorTypeToHypervisor(self, hypervisorType):
+        """Map a xenrt.HypervisorType enum to a cloud hypervisor string"""
+        try:
+            return (h for h,hv in self.__hypervisorTypeMapping.items() if hv == hypervisorType).next()
+        except StopIteration:
+            raise xenrt.XRTError("Unknown XenRT hypervisorType: %s" % hypervisorType)
 
     def _vmListProvider(self, toolstackid):
         """
@@ -42,12 +78,16 @@ class CloudStack(object):
         return VirtualMachine.list(self.marvin.apiClient, id=toolstackid)
 
     def instanceResidentOn(self, instance):
-        return [x.hostname for x in self._vmListProvider(instance.toolstackId)][0]
+        return self._vmListProvider(instance.toolstackId)[0].hostname
 
     def instanceCanMigrateTo(self, instance):
         cmd = findHostsForMigration.findHostsForMigrationCmd()
         cmd.virtualmachineid = instance.toolstackId
-        return [x.name for x in self.marvin.apiClient.findHostsForMigration(cmd)]
+        hosts = self.marvin.apiClient.findHostsForMigration(cmd)
+        if hosts is None:
+            return []
+        else:
+            return [h.name for h in hosts]
 
     def instanceSupportedLifecycleOperations(self, instance):
         ops = [xenrt.LifecycleOperation.start,
@@ -62,6 +102,14 @@ class CloudStack(object):
         
         return ops
 
+    def _getDefaultHypervisor(self):
+        hypervisors = [h.hypervisor for h in Host.list(self.marvin.apiClient, type="routing")]
+        if len(hypervisors) > 0:
+            # TODO reinstate this when all controllers run python >=2.7
+            # return Counter(hypervisors).most_common(1)[0][0]
+            return xenrt.util.mostCommonInList(hypervisors)
+        return "XenServer"
+
     def createInstance(self,
                        distro,
                        name=None,
@@ -72,82 +120,144 @@ class CloudStack(object):
                        extraConfig={},
                        startOn=None,
                        installTools=True,
-                       useTemplateIfAvailable=True):
+                       useTemplateIfAvailable=True,
+                       hypervisorType=None,
+                       zone=None):
         
         if not name:
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
+
+        try:
     
-        template = None        
+            hypervisor = None
+            if hypervisorType:
+                hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
 
-        # If we can use a template and it exists, use it
-        if useTemplateIfAvailable:
-            templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
-            if templateDir:
-                url = "%s/%s.vhd.bz2" % (templateDir, distro)
-                if xenrt.TEC().fileExists(url):
-                    self.marvin.addTemplateIfNotPresent(distro, url)
-                    template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == distro][0].id
-            # If we use a template, we can't specify the disk size
-            diskOffering=None        
+            if startOn:
+                hosts = Host.list(self.marvin.apiClient, name=startOn)
+                if len(hosts) != 1:
+                    raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
+                startOnId = hosts[0].id
+                # Ignore any provided hypervisorType and set this based on the host
+                hypervisor = hosts[0].hypervisor
 
-        # If we don't have a template, do ISO instead
-        if not template:
-            self.marvin.addIsoIfNotPresent(distro, instance.os.isoName, instance.os.isoRepo)
-            template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
-            supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
+            template = None        
 
-            for m in supportedInstallMethods:
-                if m in instance.os.supportedInstallMethods:
-                    instance.os.installMethod = m
-                    break
+            # If we can use a template and it exists, use it
+            if useTemplateIfAvailable:
+                if not hypervisor:
+                    hypervisor = self._getDefaultHypervisor()
+                templateFormat = self._templateFormats[hypervisor]
+                templateDir = xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_HTTP", None)
+                if templateDir:
+                    url = "%s/%s/%s.%s.bz2" % (templateDir, hypervisor, instance.os.canonicalDistroName, templateFormat.lower())
+                    if xenrt.TEC().fileExists(url):
+                        self.marvin.addTemplateIfNotPresent(hypervisor, templateFormat, instance.os.canonicalDistroName, url)
+                        template = [x for x in Template.list(self.marvin.apiClient, templatefilter="all") if x.displaytext == instance.os.canonicalDistroName][0].id
+                # If we use a template, we can't specify the disk size
+                diskOffering=None        
 
+            # If we don't have a template, do ISO instead
+            if not template:
+                self.marvin.addIsoIfNotPresent(instance.os.canonicalDistroName, instance.os.isoName, instance.os.isoRepo)
+                template = Iso.list(self.marvin.apiClient, name=instance.os.isoName)[0].id
+                supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
+
+                for m in supportedInstallMethods:
+                    if m in instance.os.supportedInstallMethods:
+                        instance.os.installMethod = m
+                        break
+
+                if not instance.os.installMethod:
+                    raise xenrt.XRTError("No compatible install method found")
+                # TODO support different disk offerings
+                #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
+                diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
+
+            if zone:
+                zoneid = Zone.list(self.marvin.apiClient, name=zone)[0].id
+            else:
+                zoneid = Zone.list(self.marvin.apiClient)[0].id
+            # TODO support different service offerings
+            #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
+            svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
+
+            # Do we need to sort out a security group?
+            if Zone.list(self.marvin.apiClient, id=zoneid)[0].securitygroupsenabled:
+                secGroups = SecurityGroup.list(self.marvin.apiClient, securitygroupname="xenrt_default_sec_grp")
+                if not isinstance(secGroups, list):
+                    domainid = Domain.list(self.marvin.apiClient, name='ROOT')[0].id
+                    secGroup = SecurityGroup.create(self.marvin.apiClient, {"name": "xenrt_default_sec_grp"}, account="system", domainid=domainid)
+                    secGroup.authorize(self.marvin.apiClient, {"protocol": "TCP",
+                                                               "startport": 0,
+                                                               "endport": 65535,
+                                                               "cidrlist": "0.0.0.0/0"})
+                    secGroup.authorize(self.marvin.apiClient, {"protocol": "ICMP",
+                                                               "cidrlist": "0.0.0.0/0"})
+                    secGroupId = secGroup.id
+                else:
+                    secGroupId = secGroups[0].id
+
+
+            xenrt.TEC().logverbose("Deploying VM")
+            params = {
+                      "serviceoffering": svcOffering,
+                      "zoneid": zoneid,
+                      "displayname": name,
+                      "name": name,
+                      "template": template,
+                      "diskoffering": diskOffering
+                     }
+            if hypervisor:
+                params["hypervisor"] = hypervisor
+                self.marvin.apiClient.hypervisor = hypervisor
+            else:
+                # No hypervisor defined - Marvin pre 4.4 requires one to be defined
+                # so we need to determine what to use (note this has no effect on
+                # Marvin post 4.4)
+                self.marvin.apiClient.hypervisor = self._getDefaultHypervisor()
+            if startOn:
+                params["hostid"] = startOnId
+
+            rsp = VirtualMachine.create(self.marvin.apiClient, params, startvm=False, securitygroupids=[secGroupId])
+
+            instance.toolstackId = rsp.id
+
+            Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": instance.os.canonicalDistroName})
+
+            xenrt.TEC().logverbose("Starting VM")
+
+            # If we don't have an install method, we created this from a template, so we just need to start it.
             if not instance.os.installMethod:
-                raise xenrt.XRTError("No compatible install method found")
-            # TODO support different disk offerings
-            #diskOffering = [x for x in DiskOffering.list(self.marvin.apiClient) if x.disksize == 20][0].id            
-            diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
+                instance.start()
+            else:
+                self.startInstance(instance)
 
+                if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                    xenrt.TEC().logverbose("Generating answer file")
+                    instance.os.generateIsoAnswerfile()
 
-        zone = Zone.list(self.marvin.apiClient)[0].id
-        # TODO support different service offerings
-        #svcOffering = ServiceOffering.list(self.marvin.apiClient, name = "Medium Instance")[0].id        
-        svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
+                xenrt.TEC().logverbose("Waiting for install complete")
+                instance.os.waitForInstallCompleteAndFirstBoot()
+            
+            # We don't install the tools as part of template generation, so install these all the time
+            if installTools:
+                self.installPVTools(instance)
 
-
-        xenrt.TEC().logverbose("Deploying VM")
-        rsp = VirtualMachine.create(self.marvin.apiClient, {
-                                        "serviceoffering": svcOffering,
-                                        "zoneid": zone,
-                                        "displayname": name,
-                                        "name": name,
-                                        "template": template,
-                                        "diskoffering": diskOffering},
-                                    startvm=False)
-
-        instance.toolstackId = rsp.id
-
-        Tag.create(self.marvin.apiClient, [instance.toolstackId], "userVm", {"distro": distro})
-
-        xenrt.TEC().logverbose("Starting VM")
-
-        # If we don't have an install method, we created this from a template, so we just need to start it.
-        if not instance.os.installMethod:
-            instance.start()
-        else:
-            self.startInstance(instance)
-
-            if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-                xenrt.TEC().logverbose("Generating answer file")
-                instance.os.generateIsoAnswerfile()
-
-            xenrt.TEC().logverbose("Waiting for install complete")
-            instance.os.waitForInstallCompleteAndFirstBoot()
-        
-        # We don't install the tools as part of template generation, so install these all the time
-        if installTools:
-            self.installPVTools(instance)
-
+        except Exception, ex:
+            try:
+                instance.screenshot(xenrt.TEC().getLogdir())
+            except Exception, e:
+                xenrt.TEC().logverbose("Could not take screenshot - %s" % str(e))
+            try:
+                d = "%s/%s" % (xenrt.TEC().getLogdir(), instance.name)
+                if not os.path.exists(d):
+                    os.makedirs(d)
+                instance.os.getLogs(d)   
+            except Exception, e:
+                xenrt.TEC().logverbose("Could not get logs - %s" % str(e))
+            raise ex
         return instance
 
     def getAllExistingInstances(self):
@@ -253,7 +363,7 @@ class CloudStack(object):
     def createTemplateFromInstance(self, instance, templateName):
         origState = instance.getPowerState()
         instance.setPowerState(xenrt.PowerState.down)
-        
+
         volume = Volume.list(self.marvin.apiClient, virtualmachineid=instance.toolstackId, type="ROOT")[0].id
 
         vm = VirtualMachine.list(self.marvin.apiClient, id=instance.toolstackId)[0]
@@ -363,9 +473,38 @@ class CloudStack(object):
             cmd["name"]="Disk=%d GB offering" %disksize
             cmd["displaytext"]="Disk Offering"            
             cmd["disksize"] = disksize
-            xenrt.TEC().logverbose("Creating new Disk OFfering ")
+            xenrt.TEC().logverbose("Creating new Disk Offering ")
             diskOfferingNew = DiskOffering.create(self.marvin.apiClient ,cmd)
             return diskOfferingNew.id
 
+    def instanceScreenshot(self, instance, path):
+        keys={"apikey": self.marvin.userApiClient.connection.apiKey,
+              "cmd": "access",
+              "vm": instance.toolstackId}
+        keys['signature'] = self.marvin.userApiClient.connection.sign(keys)
+        frameset = urllib.urlopen("http://%s:8080/client/console?%s" % (self.mgtsvr.place.getIP(), urllib.urlencode(keys))).read()
+        frameurl = re.search("src=\"(.*?)\"", frameset).group(1)
 
+        xenrt.TEC().logverbose("Calculated %s as URL of frame" % frameurl)
 
+        consoleproxy = re.search("(.+?://.+)/", frameurl).group(1)
+        xenrt.TEC().logverbose("Calculated %s as base URL of console proxy" % consoleproxy)
+
+        frame = urllib.urlopen(frameurl).read()
+        imgurl = re.search("'(/ajaximg.*?)'", frame).group(1)
+        
+        xenrt.TEC().logverbose("Calculated %s as URL of image" % imgurl)
+
+        for i in range(10):
+
+            imglocation = "%s/%s_%s_%d.jpg" % (path, instance.name, instance.toolstackId, i)
+
+            xenrt.sleep(2)
+
+            f = open(imglocation, "w")
+            u = urllib.urlopen("%s%s" % (consoleproxy, imgurl))
+            f.write(u.read())
+            f.close()
+            u.close()
+            xenrt.TEC().logverbose("Saved screenshot as %s" % imglocation)
+        return imglocation

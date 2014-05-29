@@ -27,6 +27,10 @@ class SLESBasedLinux(LinuxOS):
         self.nfsdir = None
 
     @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
+    
+    @property
     def _maindisk(self):
         if self.parent.hypervisorType == xenrt.HypervisorType.xen:
             return "xvda"

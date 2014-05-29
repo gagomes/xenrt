@@ -28,6 +28,31 @@ class XenRTLogStream(object):
     def flush(self):
         pass
 
+class CloudApi(object):
+    def __init__(self, apiClient):
+        self.apiClient = apiClient
+
+    def __command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+        cls = eval("%s.%sCmd" % (command, command))
+        cmd = cls()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # Then run the command
+        return getattr(self.apiClient, command)(cmd)
+
+    def __getattr__(self, attr):
+        def wrapper(**kwargs):
+            return self.__command(attr, **kwargs)
+        return wrapper
+
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
     
@@ -61,27 +86,22 @@ class MarvinApi(object):
             self.testClient.createTestClient()
 
         self.apiClient = self.testClient.getApiClient()
+        self.__userApiClient = None
+        self.cloudApi = CloudApi(self.apiClient)
 
-        #TODO - Fix this
-        self.apiClient.hypervisor = 'XenServer'
+    @property
+    def userApiClient(self):
+        if not self.__userApiClient:
+            self.__userApiClient = self.testClient.createUserApiClient("admin", None)
+        return self.__userApiClient
 
-    def command(self, command, **kwargs):
-        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
-        # First we create the command
-        cmd = command()
-        # Then iterate through the parameters
-        for k in kwargs.keys():
-            # If the command doesn't already have that member, it's not a valid parameter
-            if not cmd.__dict__.has_key(k):
-                raise xenrt.XRTError("Command does not have parameter %s" % k)
-            # Set the member value
-            cmd.__dict__[k] = kwargs[k]
-        
-        # The name of the function we need to call on the API is the same as the module name
-        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
-        fn = command.__module__.split(".")[-1]
-        # Then run the command
-        return getattr(self.apiClient, fn)(cmd)
+    def createSecondaryStorage(self, secStorageType):
+        xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")
+        secondaryStorage = xenrt.ExternalNFSShare()
+        storagePath = secondaryStorage.getMount()
+        url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+        self.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+        return url
 
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = Configurations.list(self.apiClient, name=name)
@@ -270,7 +290,7 @@ class MarvinApi(object):
 
     def addPrimaryStorage(self, name, cluster, primaryStorageUrl=None, primaryStorageSRName=None):
         args = { 'name': name, 'zoneid': cluster.zoneid, 'podid': cluster.podid, 'clusterid': cluster.id }
-        if primaryStorageSRName and self.apiClient.hypervisor == 'XenServer':
+        if primaryStorageSRName:
             args['url'] = 'presetup://localhost/%s' % (primaryStorageSRName)
         elif primaryStorageUrl:
             args['url'] = primaryStorageUrl
@@ -293,7 +313,7 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
             allHostsUp = len(hostList) == hostListState.count('Up')
 
-    def addTemplateIfNotPresent(self, distro, url):
+    def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url):
         templates = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro]
         if not templates:
             xenrt.TEC().logverbose("Template is not present, registering")
@@ -303,6 +323,7 @@ class MarvinApi(object):
             zone = Zone.list(self.apiClient)[0].id
 
             osname = self.mgtSvr.lookup(["OS_NAMES", distro])
+            self.apiClient.hypervisor = hypervisor # Needed by Marvin pre-4.4
             Template.register(self.apiClient, {
                         "zoneid": zone,
                         "ostype": osname,
@@ -310,7 +331,8 @@ class MarvinApi(object):
                         "displaytext": distro,
                         "ispublic": True,
                         "url": url,
-                        "format": "VHD"})
+                        "hypervisor": hypervisor,
+                        "format": templateFormat})
 
         # Now wait until the Template is ready
         deadline = xenrt.timenow() + 3600

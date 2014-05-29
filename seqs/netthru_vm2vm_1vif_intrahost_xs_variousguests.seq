@@ -149,35 +149,35 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0</arg>
-	<arg>endpoint1=ubuntu1204-0</arg>
+        <arg>endpoint1=ubuntu1204-0</arg>
       </testcase>
     </serial>
     <serial group="debian60-sles112">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0</arg>
-	<arg>endpoint1=sles112-0</arg>
+        <arg>endpoint1=sles112-0</arg>
       </testcase>
     </serial>
     <serial group="debian60-oel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0</arg>
-	<arg>endpoint1=oel64-0</arg>
+        <arg>endpoint1=oel64-0</arg>
       </testcase>
     </serial>
     <serial group="debian60-centos64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0</arg>
-	<arg>endpoint1=centos64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
       </testcase>
     </serial>
     <serial group="debian60-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -193,35 +193,35 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian70-0</arg>
-	<arg>endpoint1=ubuntu1204-0</arg>
+        <arg>endpoint1=ubuntu1204-0</arg>
       </testcase>
     </serial>
     <serial group="debian70-sles112">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian70-0</arg>
-	<arg>endpoint1=sles112-0</arg>
+        <arg>endpoint1=sles112-0</arg>
       </testcase>
     </serial>
     <serial group="debian70-oel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian70-0</arg>
-	<arg>endpoint1=oel64-0</arg>
+        <arg>endpoint1=oel64-0</arg>
       </testcase>
     </serial>
     <serial group="debian70-centos64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian70-0</arg>
-	<arg>endpoint1=centos64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
       </testcase>
     </serial>
     <serial group="debian70-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=debian70-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -230,35 +230,35 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=ubuntu1204-0</arg>
-	<arg>endpoint1=ubuntu1204-1</arg>
+        <arg>endpoint1=ubuntu1204-1</arg>
       </testcase>
     </serial>
     <serial group="ubuntu1204-sles112">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=ubuntu1204-0</arg>
-	<arg>endpoint1=sles112-0</arg>
+        <arg>endpoint1=sles112-0</arg>
       </testcase>
     </serial>
     <serial group="ubuntu1204-oel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=ubuntu1204-0</arg>
-	<arg>endpoint1=oel64-0</arg>
+        <arg>endpoint1=oel64-0</arg>
       </testcase>
     </serial>
     <serial group="ubuntu1204-centos64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=ubuntu1204-0</arg>
-	<arg>endpoint1=centos64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
       </testcase>
     </serial>
     <serial group="ubuntu1204-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=ubuntu1204-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -267,28 +267,28 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=sles112-0</arg>
-	<arg>endpoint1=sles112-1</arg>
+        <arg>endpoint1=sles112-1</arg>
       </testcase>
     </serial>
     <serial group="sles112-oel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=sles112-0</arg>
-	<arg>endpoint1=oel64-0</arg>
+        <arg>endpoint1=oel64-0</arg>
       </testcase>
     </serial>
     <serial group="sles112-centos64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=sles112-0</arg>
-	<arg>endpoint1=centos64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
       </testcase>
     </serial>
     <serial group="sles112-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=sles112-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -297,21 +297,21 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=oel64-0</arg>
-	<arg>endpoint1=oel64-1</arg>
+        <arg>endpoint1=oel64-1</arg>
       </testcase>
     </serial>
     <serial group="oel64-centos64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=oel64-0</arg>
-	<arg>endpoint1=centos64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
       </testcase>
     </serial>
     <serial group="oel64-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=oel64-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -320,14 +320,14 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=centos64-0</arg>
-	<arg>endpoint1=centos64-1</arg>
+        <arg>endpoint1=centos64-1</arg>
       </testcase>
     </serial>
     <serial group="centos64-rhel64">
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=centos64-0</arg>
-	<arg>endpoint1=rhel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
       </testcase>
     </serial>
 
@@ -336,7 +336,7 @@
       <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
         <arg>threads=1</arg>
         <arg>endpoint0=rhel64-0</arg>
-	<arg>endpoint1=rhel64-1</arg>
+        <arg>endpoint1=rhel64-1</arg>
       </testcase>
     </serial>
 

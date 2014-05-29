@@ -4,6 +4,7 @@ chdir = @sharedir@/server/
 worker-mount = /share/control=start.wsgi
 manage-script-name=true
 processes = @wsgiworkers@
+threads = 4
 stats = :9090
 uid = xenrtd
 gid = xenrtd

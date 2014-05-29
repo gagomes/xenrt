@@ -1196,6 +1196,8 @@ def setupGuest(host, guestname):
     if guestname in host.listGuests():
         guest = host.guestFactory()(guestname)
         guest.existing(host)
+        if guest.getState() == "UP":
+            guest.shutdown(force=True)
         guest.uninstall()
     if xenrt.TEC().lookupHost(guestname, "CPUS", None):
         cpus = int(xenrt.TEC().lookupHost(guestname, "CPUS"))

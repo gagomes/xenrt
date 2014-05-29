@@ -458,7 +458,6 @@ class TC10844(TCPVSBVT):
     
 # class TC10847(TCPVSBVT):
 
-
 class TCXdAsfSetup(xenrt.TestCase):
 
     XD_SVC_ACCOUNT_USERNAME = 'ENG\\svc_testautomation'
@@ -547,11 +546,6 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
                                    returndata=returndata, returnerror=returnerror, returnrc=returnrc,
                                    timeout=timeout)
 
-#    def executePowershellASFCommand(self, asfCont, command, netUse=False, returndata=False, timeout=60):
-#        netUseCommand = netUse and 'net use %s /user:%s %s /persistent:yes;' % (self.XD_DOWNLOADS_PATH, self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD) or ''
-#        setWorkingDirCommand = 'pushd %s' % (self.ASF_WORKING_DIR)
-#        rData = asfCont.xmlrpcExec('%s%s;%s' % (netUseCommand, setWorkingDirCommand, command), powershell=True, returndata=returndata, timeout=timeout)
-#        rData = asfCont.xmlrpcExec('powershell.exe -ExecutionPolicy ByPass %s%s;%s' % (netUseCommand, setWorkingDirCommand, command), returndata=returndata, timeout=timeout)
         return rData
 
 
@@ -582,19 +576,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         serverTemplates = filter(lambda x:x['HypName'] == host.getName() and not x['TemplateName'].startswith('__') and not x['TemplateName'].startswith('ASF') and x['ServerOs'] == 'True', templateList)
         xenrt.TEC().logverbose('Using Server Templates: %s' % (map(lambda x:x['OSName'].strip(), serverTemplates)))
 
-        # TODO - Remove temp
-        self.executeASFShellCommand(asfCont, 'Add-AsfHypervisorTemplate -HypName %s -TemplateName 2012.x64.P1 -Hostname 2012x64p1 -OSName ws2012 -ServerOs 1 -ClientOS 0' % (host.getName())) 
-        self.executeASFShellCommand(asfCont, 'Add-AsfHypervisorTemplate -HypName %s -TemplateName Win8.x86.P1 -Hostname win8x86p1 -OSName Win8 -ServerOs 0 -ClientOS 1' % (host.getName())) 
-
-        self.executeASFShellCommand(asfCont, 'Initialize-Tests C:\\asf\\tests\\layoutbvts\\XenServer')
-
-        self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role CLIENT | Set-AsfRoleHost -HypVmNameLabel %s' % (clientTemplates[0]['TemplateName']))
-        for clientTemplate in clientTemplates:
-            # Limit hostname to 15 chars
-            vdaHostname = 'V-%s'[:15] % (clientTemplate['Hostname'])
-            self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role VDAWorkstation | Set-AsfRoleHost -HypVmNameLabel %s -Hostname %s' % (clientTemplate['TemplateName'], vdaHostname))
-
-        self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role DDC | Set-AsfRoleHost -HypVmNameLabel %s' % (serverTemplates[0]['TemplateName']))
+        self.executeASFShellCommand(asfCont, 'c:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1 -ClientTemplate %s -DdcTemplate %s -VdaTemplates %s' % (clientTemplates[0]['TemplateName'], serverTemplates[0]['TemplateName'], clientTemplates[0]['TemplateName']))
 
         # Temp - workaround
         asfCont.xmlrpcExec('copy c:\\asf\\bin\\JonasCntrl.dll c:\\asf')
@@ -788,7 +770,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
         version = host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if version == '6.2.50' or version == '6.4.90':
+        if host.productVersion == 'Creedence' or host.productVersion == 'Sarasota':
             xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
             version = '6.2.0'
 

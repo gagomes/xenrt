@@ -132,8 +132,15 @@ class ManagementServer(object):
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
         self.restart()
+        marvinApi = xenrt.lib.cloud.MarvinApi(self)
+
+        marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
+        marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
+        # Create one secondary storage, to speed up deployment.
+        # Additional locations will need to be created during deployment
+        self.place.special['initialSecStorageUrl'] = marvinApi.createSecondaryStorage("NFS")
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -237,9 +244,9 @@ class ManagementServer(object):
     @property
     def isCCP(self):
         if self.__isCCP is None:
-            # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
-            # Currently we use the existance of the cloudPlatform webapp module for this
-            self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
+            # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
+            # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None
 
         return self.__isCCP
 

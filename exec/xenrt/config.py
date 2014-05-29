@@ -155,6 +155,9 @@ class Config:
         self.config["WINDOWS_INSTALL_ISOS"] = {}
         self.config["WINDOWS_INSTALL_ISOS"]["ADMINISTRATOR_PASSWORD"] = "xensource"
 
+
+        self.config["BUILTIN_XS_GUEST_AGENT"] = "sarge,etch"
+
         # Configuration specific to particular versions of the product
         self.config["VERSION_CONFIG"] = {}
         self.config["VERSION_CONFIG"]["Rio"] = {}
@@ -179,7 +182,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Rio"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Rio"]["DOM0_DISTRO"] = "centos5"
         self.config["VERSION_CONFIG"]["Rio"]["EXPFAIL_HIBERNATE"] = "w2k3eesp2-x64,w2kassp4"
-        self.config["VERSION_CONFIG"]["Rio"]["NO_GUEST_AGENT"] = "rhel45,rhel5,centos45,centos5,sles10,sles101"
         self.config["VERSION_CONFIG"]["Miami"] = {}
         self.config["VERSION_CONFIG"]["Miami"]["TEMPLATE_NAME_DEBIAN"] = "Debian Etch 4.0"
         self.config["VERSION_CONFIG"]["Miami"]["TEMPLATE_NAME_DEBIAN_SARGE"] = "Debian Sarge 3.1"
@@ -214,7 +216,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Miami"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Miami"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Miami"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Miami"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel5,rhel51,centos45,centos46,centos5,centos51,sles10,sles101"
         self.config["VERSION_CONFIG"]["Miami"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["Miami"]["MAX_CONCURRENT_VIFS"] = "400"
         self.config["VERSION_CONFIG"]["Miami"]["VCPU_IS_SINGLE_CORE"] = "yes"
@@ -267,7 +268,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Orlando"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Orlando"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Orlando"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Orlando"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel5,rhel51,rhel52,centos45,centos46,centos47,centos5,centos51,centos52,sles94,sles10,sles101,sles102,fc8,fc9"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_CONCURRENT_VIFS"] = "1050"
         self.config["VERSION_CONFIG"]["Orlando"]["MAX_VDIS_PER_SR_ext"] = "1024"
@@ -343,7 +343,6 @@ class Config:
         self.config["VERSION_CONFIG"]["George"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["George"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["George"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["George"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel5,rhel51,rhel52,rhel53,centos45,centos46,centos47,centos5,centos51,centos52,centos53,sles94,sles10,sles101,sles102,sles11,sles111,fc8,fc9,debian50"
         self.config["VERSION_CONFIG"]["George"]["MAX_CONCURRENT_VMS"] = "75"
         self.config["VERSION_CONFIG"]["George"]["MAX_CONCURRENT_VIFS"] = "1050"
         self.config["VERSION_CONFIG"]["George"]["MAX_VDIS_PER_SR_ext"] = "1024"
@@ -448,7 +447,6 @@ class Config:
         self.config["VERSION_CONFIG"]["MNR"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["MNR"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["MNR"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["MNR"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel6,oel53,oel54,oel55,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,sles94,sles10,sles101,sles102,sles103,sles11,sles111,fc8,fc9,debian50,debian60"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_HOST_MEMORY"] = "262144"
         self.config["VERSION_CONFIG"]["MNR"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["MNR"]["MIN_VM_MEMORY"] = "128"
@@ -1051,7 +1049,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Sarasota"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Sarasota"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel510,rhel6,rhel61,rhel62,rhel63,rhel64,rhel65,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos510,centos6,centos61,centos62,centos63,centos64,centos65,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,sles113,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Sarasota"]["MIN_VM_MEMORY"] = "128"
@@ -1653,6 +1650,7 @@ class Config:
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-master-kvm.qcow2.bz2"
 
         self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
 
@@ -2193,6 +2191,14 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
 
+        self.config["LINUX_UPDATE"] = {}
+        self.config["LINUX_UPDATE"]["rhel5"] = "rhel510"
+        self.config["LINUX_UPDATE"]["rhel6"] = "rhel65"
+        self.config["LINUX_UPDATE"]["oel5"] = "oel510"
+        self.config["LINUX_UPDATE"]["oel6"] = "oel65"
+        self.config["LINUX_UPDATE"]["centos5"] = "centos510"
+        self.config["LINUX_UPDATE"]["centos6"] = "centos65"
+
         self.config["PRODUCT_KEYS"] = {}
 
         self.config["SERVICE_PACKS"] = {}
@@ -2707,7 +2713,7 @@ class Config:
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E035/75824/hotfix-XS60E035/XS60E035.xsupdate"
         
         # MrToad (PLACEHOLDER): xen-tools . Rolls up nothing.
-        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/build/boston-lcm/84221/hotfix-XS60E036/XS60E036.xsupdate"
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E036/84221/hotfix-XS60E036/XS60E036.xsupdate"
         
         # Carabosse: kexec-tools, openssl,  vncterm, xen-device-mode, xen-hypervisor, xen-tools. Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035 
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
@@ -2798,8 +2804,8 @@ class Config:
         # Stratus: xen-api, sm. Rolls up XS602E001,XS602E002,XS602E003,XS602E005,XS602E007,XS602E011,XS602E013,XS602E017,XS602E021,XS602E027,XS602E028.
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E030/76582/hotfix-XS602E030/XS602E030.xsupdate"
         
-        # MrToad (PLACEHOLDER): xen-tools . Rolls up XS602E002, XS602E009, XS602E019
-        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/build/sanibel-lcm/84256/hotfix-XS602E031/XS602E031.xsupdate"
+        # MrToad: xen-tools . Rolls up XS602E002, XS602E009, XS602E019
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E031/84256/hotfix-XS602E031/XS602E031.xsupdate"
         
         # Carabosse: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602E004, XS602E008, XS602E014, XS602E016, XS602E018, XS602E020, XS602E022, XS602E023, XS602E025, XS602E026, XS602E029 
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E032/77409/hotfix-XS602E032/XS602E032.xsupdate"
@@ -2916,11 +2922,13 @@ class Config:
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E036"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E036/77411/hotfix-XS61E036/XS61E036.xsupdate"
         
         # Dodger: xapi, xen. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036
-        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"] = "/usr/groups/build/tampa-lcm/84860/hotfix-XS61E037/XS61E037.xsupdate"
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E037/84860/hotfix-XS61E037/XS61E037.xsupdate"
         
         # MrToad: xen-tools. Rolls up XS61E010, XS61E029
-        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/build/tampa-lcm/84220/hotfix-XS61E038/XS61E038.xsupdate"
-      
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E038/84220/hotfix-XS61E038/XS61E038.xsupdate"
+        
+        # Dave: kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E039/84261/hotfix-XS61E039/XS61E039.xsupdate"
       
       
       
@@ -2993,7 +3001,7 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E014/77605/hotfix-XS62E014/XS62E014.xsupdate"
         
         # MrToad (PLACEHOLDER): xen-tools . Rools up XS62E008
-        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/xen/carbon/clearwater-lcm/83715/hotfix-XS62E015/XS62E015.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E015/83715/hotfix-XS62E015/XS62E015.xsupdate"
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"
@@ -3097,6 +3105,7 @@ class Config:
         self.config["CARBON_PATCHES_BOSTON"]["HF30"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E030"]
         self.config["CARBON_PATCHES_BOSTON"]["HF31"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E031"]
         self.config["CARBON_PATCHES_BOSTON"]["HF32"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E032"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF36"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"]
         self.config["CARBON_PATCHES_BOSTON"]["HF37"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
@@ -3105,26 +3114,24 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF10"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E010"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF30"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E030"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF32"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF33"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
         self.config["CARBON_PATCHES_SANIBELCC"]["HF04"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC004"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF08"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF09"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF29"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"]
         self.config["CARBON_PATCHES_TAMPA"]["HF34"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E034"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF35"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E035"]
         self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF39"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -3134,11 +3141,11 @@ class Config:
         if branch == "RTM":        
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF08"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E008"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF11"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E011"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]

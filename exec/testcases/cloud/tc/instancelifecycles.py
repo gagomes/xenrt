@@ -142,7 +142,7 @@ class TCCloudGuestLifeCycle(xenrt.TestCase):
         return None
 
     def prepare(self, arglist):
-        self.__ts = xenrt.TEC().registry.toolstackGetDefault()
+        self.__ts = self.getDefaultToolstack()
         step("Spin up a %s" % self.__fetchOsFromArg(arglist))
         self.__distro = self.__fetchOsFromArg(arglist)
 

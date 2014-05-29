@@ -1007,7 +1007,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         elif isinstance(obj, xenrt.lib.generic.Instance):
             self._getRemoteLogsFromInstance(obj, extraPaths)
         elif xenrt.interfaces.Toolstack in providedBy(obj):
-            self._getRemoteLogsFromToolStack(obj, extraPaths)
+            self._getRemoteLogsFromToolstack(obj, extraPaths)
 
     def _getRemoteLogsFromInstance(self, instance, extraPaths):
         if xenrt.TEC().lookup("NO_GUEST_LOGS", False, boolean=True):

@@ -2941,7 +2941,7 @@ done
         if guest.windows:
             # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
             cpuCoresonHost = self.getCPUCores()
-            socketsonHost  = self.getSocketsonHost()
+            socketsonHost  = self.getNoOfSockets()
             maxCoresPerSocket = cpuCoresonHost / socketsonHost
             xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
                                                             (cpuCoresonHost, socketsonHost, maxCoresPerSocket))
@@ -3944,20 +3944,7 @@ done
     def getCPUCores(self):
         return len(self.minimalList("host-cpu-list", "number"))
 
-    def getNoOfCPUSockets(self):
-        count = 0
-        cpuInfo = self.minimalList("host-param-get", args = "param-name=cpu_info uuid=%s" % self.uuid)
-
-        for info in cpuInfo:
-            if "socket_count" in info:
-                count = info.split(':')[1].strip()
-                break
-        
-        if int(count) == 0:
-            raise xenrt.XRTFailure("Unable to get the socket count")
-        return int(count)
-
-    def getSocketsonHost(self):
+    def getNoOfSockets(self):
         count = "0"
         data = self.paramGet("cpu_info")
 
@@ -13879,12 +13866,12 @@ class ClearwaterPool(TampaPool):
             xenrt.TEC().logverbose("Following hosts have not got same editions")
             raise xenrt.XRTFailure(failure)
 
-    def getNoOfCPUSockets(self):
+    def getNoOfSockets(self):
 
         socketCount = 0
 
         for h in self.getHosts():
-            socketCount = socketCount + h.getNoOfCPUSockets()
+            socketCount = socketCount + h.getNoOfSockets()
 
         if socketCount == 0:
             raise xenrt.XRTFailure("There is no socket with in the pool")

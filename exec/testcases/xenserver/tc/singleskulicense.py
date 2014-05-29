@@ -192,9 +192,9 @@ class SingleSkuBase(xenrt.TestCase):
                         obj = self.param['hosts'][0] 
 
                     if not reset:
-                        if not ((obj.getNoOfCPUSockets() + self.param['licenseinuse']) == currentLicinuse):
+                        if not ((obj.getNoOfSockets() + self.param['licenseinuse']) == currentLicinuse):
                             raise xenrt.XRTFailure("No of licenses in use: %d , no of socket in whole pool: %d,"
-                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfCPUSockets(),self.param['licenseinuse']))              
+                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfSockets(),self.param['licenseinuse']))              
                     else:
                         if not (currentLicinuse == self.param['licenseinuse']):    
                             raise xenrt.XRTFailure("All the licenses are not returned to License server,"
@@ -356,7 +356,7 @@ class VerifyHostSocketCount(xenrt.TestCase):
         err = []
         for host in self.hosts: 
             xenrtCount = self.getSocketsFromXenrt(host)
-            cliCount = host.getSocketsonHost()
+            cliCount = host.getNoOfSockets()
             if not (xenrtCount == cliCount): 
                 err.append("Socket count from Xenrt %d and Socket count from CLI %d are not same\n" % (xenrtCount,cliCount))
 

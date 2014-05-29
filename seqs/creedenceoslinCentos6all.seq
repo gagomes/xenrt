@@ -1,14 +1,14 @@
 <xenrt>
 
-  <!-- OS functional test sequence: SLES 10 -->
+  <!-- OS functional test sequence: CentOS 6 -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
   <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
-  <default name="DISTROS" value="sles101,sles102,sles103,sles104" />
+  <default name="DISTROS" value="centos6,centos61,centos62,centos63,centos64" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

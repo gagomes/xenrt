@@ -357,3 +357,15 @@ class Registry:
 
     def toolstackGetAll(self):
         return self.objGetAll("toolstack")
+
+    def instancePut(self, tag, resource):
+        self.objPut("instance", tag, resource)
+
+    def instanceGet(self, tag):
+        return self.objGet("instance", tag)
+
+    def instanceDelete(self, tag)
+        self.objDelete("instance", tag)
+
+    def instanceGetAll(self):
+        return self.objGetAll("instance")

@@ -123,6 +123,8 @@ class CloudStack(object):
             name = xenrt.util.randomGuestName()
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
+        xenrt.TEC().registry.instancePut(name, instance)
+
         try:
     
             hypervisor = None
@@ -267,6 +269,7 @@ class CloudStack(object):
                                       distro=distro,
                                       vcpus=0,
                                       memory=0)
+        xenrt.TEC().registry.instancePut(name, instance)
         instance.toolstackId = vm.id
         instance.populateFromExisting()
         # TODO: Assuming for now the PV tools are installed

@@ -309,7 +309,10 @@ reboot
             xenrt.TEC().progress("Manually installing tools.t00")
 
             toolsFile = "%s/tools.t00" % (mountpoint)
-            destFilePath = "/vmfs/volumes/datastore1/tools.t00"
+
+            # Use the first-named datastore to temporarily dump the file. (Alternatively, could use /tardisks?)
+            firstDatastore = self.execdom0("ls -d /vmfs/volumes/datastore* | head -n 1").strip()
+            destFilePath = "%s/tools.t00" % (firstDatastore)
             sftp = self.sftpClient()
             try:
                 sftp.copyTo(toolsFile, destFilePath)

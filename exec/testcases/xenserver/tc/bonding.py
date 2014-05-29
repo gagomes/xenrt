@@ -878,8 +878,8 @@ class TCGSOBondedInterface(xenrt.TestCase):
         xenrt.sleep(30)
         
         step("Verify GRO and GSO status")
-        self.verifyEthtoolParam("generic-segmentation-offload", "on")
-        self.verifyEthtoolParam("generic-receive-offload", "off")
+        self.verifyEthtoolParam("generic-segmentation-offload", "off")
+        self.verifyEthtoolParam("generic-receive-offload", "on")
             
         step("Set gso on and gro off for bonded interface")
         cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gso='on' --minimal" % self.bondSlavePif)
@@ -890,8 +890,8 @@ class TCGSOBondedInterface(xenrt.TestCase):
         xenrt.sleep(30)
         
         step("Verify GRO and GSO")
-        self.verifyEthtoolParam("generic-segmentation-offload", "off")
-        self.verifyEthtoolParam("generic-receive-offload", "on")
+        self.verifyEthtoolParam("generic-segmentation-offload", "on")
+        self.verifyEthtoolParam("generic-receive-offload", "off")
         
     def verifyEthtoolParam(self, param, expected):
         command = 'ethtool -k %s | grep "%s: " | cut -d ":" -f 2' % (self.pifDevice, param)

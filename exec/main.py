@@ -126,6 +126,7 @@ def usage(fd):
     --delay-for <seconds>                 Amount to delay start of all jobs by
     -d                                    Debug mode for suite submit
     --dump-suite <filename>               Dump test suite config and exit
+    --list-suite-tcs <filename>           List TCs in suite and exit
     --check-suite <filename>              Check test suite config and exit
     --fix-suite <filename>                Fix suite links in JIRA and exit
     --suite-seqs <list>                   Comma separated list of sequence
@@ -161,6 +162,7 @@ def usage(fd):
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
     --nmi <machine>                       Sent NMI to a machine
+    --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
@@ -169,6 +171,8 @@ def usage(fd):
     --setup-static-host <host>            Setup a Static (Xen-On-Xen/Static Windows Guests) host
     --setup-static-guest <guest>          Setup a Static Windows Guest
     --max-age <seconds>                   Only refresh a guest if it is older than <seconds>
+
+    --install-packages                    Install packages required for a job
 
 """ % (sys.argv[0]))
 
@@ -233,6 +237,7 @@ bootdiskless = False
 boothost = None
 ro = None
 dumpsuite = None
+listsuitetcs = None
 checksuite = None
 fixsuite = None
 runsuite = None
@@ -249,6 +254,10 @@ knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
 loadmachines = None
+noloadmachines = False
+mconfig = None
+installguest = None
+installpackages = False
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -329,17 +338,20 @@ try:
                                       'max-age=',
                                       'install-host=',
                                       'install-linux=',
+                                      'install-guest=',
                                       'cleanup-shared-hosts',
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
                                       'nmi=',
+                                      'mconfig=',
                                       'bootdiskless=',
                                       'perf-data=',
                                       'runon=',
                                       'check-suite=',
                                       'fix-suite=',
                                       'dump-suite=',
+                                      'list-suite-tcs=',
                                       'run-suite=',
                                       'suite-seqs=',
                                       'suite-tcs=',
@@ -351,7 +363,8 @@ try:
                                       'run-tool=',
                                       'show-network',
                                       'show-network6',
-                                      'pdu'])
+                                      'pdu',
+                                      'install-packages'])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -563,14 +576,17 @@ try:
         elif flag == "--shell":
             doshell = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--shell-logs":
             doshell = True
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--ishell-logs":
             doshell = "ipython"
             shelllogging = True
             aux = True
+            setvars.append(("NO_HOST_POWEROFF", "yes"))
         elif flag == "--priority":
             prio = int(value)
         elif flag == "--perf-upload":
@@ -666,6 +682,11 @@ try:
             setvars.append(("RESOURCE_HOST_0", value))
             verbose = True
             aux = True
+        elif flag == "--install-guest":
+            remote = True
+            installguest = value
+            verbose = True
+            aux = True
         elif flag == "--cleanup-shared-hosts":
             cleanupsharedhosts = True
             aux = True
@@ -693,6 +714,10 @@ try:
             poweroperation = "nmi"
             loadmachines = [powerhost]
             aux = True
+        elif flag == "--mconfig":
+            mconfig = value
+            loadmachines = [value]
+            aux = True
         elif flag == "--pdu":
             forcepdu = True
         elif flag == "--bootdiskless":
@@ -706,6 +731,9 @@ try:
             aux = True
         elif flag == "--check-suite":
             checksuite = value
+            aux = True
+        elif flag == "--list-suite-tcs":
+            listsuitetcs = value
             aux = True
         elif flag == "--fix-suite":
             fixsuite = value
@@ -742,6 +770,10 @@ try:
         elif flag == "--show-network6":
             shownetwork = True
             shownetwork6 = True
+            aux = True
+        elif flag == "--install-packages":
+            installpackages = True
+            noloadmachines = True
             aux = True
             
 except getopt.GetoptError:
@@ -878,7 +910,7 @@ if loadmachines:
                 xenrt.readMachineFromRackTables(m)
             except:
                 pass
-elif config.lookup("XENRT_SITE", None):
+elif config.lookup("XENRT_SITE", None) and not noloadmachines:
     sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
     for m in sitemachines:
         if m not in config.lookup("HOST_CONFIGS", {}).keys():
@@ -1101,6 +1133,37 @@ def existingLocations():
         guestIndex = guestIndex + 1
 
     return runon
+
+def findSeqFile(config):
+    # Try the following locations for a seqfile:
+    #   1. CWD
+    #   2. $XENRT_CONF/seqs
+    #   3. $XENRT_BASE/seqs
+    #   4. File supplied through controller
+    search = ["."]
+    p = config.lookup("XENRT_CONF", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    p = config.lookup("XENRT_BASE", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    usefilename = None
+    for p in search:
+        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
+        filename = "%s/%s" % (p, seqfile)
+        if os.path.exists(filename):
+            usefilename = filename
+            break
+    p = config.lookup("CUSTOM_SEQUENCE", None)
+    if p:
+        xenrt.TEC().logverbose("Looking for seq file on controller ...")
+        sf = xenrt.TEC().tempFile()
+        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
+        f = file(sf, "w")
+        f.write(data)
+        f.close()
+        usefilename = sf
+    return usefilename 
 
 running = None
 
@@ -1360,6 +1423,36 @@ if shownetwork:
         if kvm:
             print "        %s %s-KVM" % (kvm, machine)
 
+if installpackages:
+    print "Evaluating whether we need marvin to be installed"
+    seq = findSeqFile(config)
+    if seq:
+        xenrt.TEC().comment("Loading seq file %s" % (seq))
+        try:
+            xenrt.TestSequence(seq, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
+        except Exception, e:
+            xenrt.TEC().warning("Could not load seq file - %s" % str(e))
+        
+        # Variables defined on the command line take precedence over those
+        # specified by the sequence so we reapply the command line variables
+        # the config after reading the sequence file
+        for sv in setvars:
+            var, value = sv
+            config.setVariable(var, value)
+
+    if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
+        marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.3")
+        if marvinversion == "4.3":
+            xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
+        elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
+            f = xenrt.TEC().getFile(marvinversion)
+            xenrt.util.command("pip install %s" % f)
+        else:
+            xenrt.util.command("pip install /usr/share/xenrt/marvin-%s.tar.gz" % marvinversion)
+    else:
+        print "CLOUDINPUTDIR not specified, so marvin is not required"
+    sys.exit(0)
+
 if switchconfig:
     if len(optargs) != 1:
         raise xenrt.XRTError("Must specify a machine")
@@ -1564,6 +1657,7 @@ if cleanuplocks:
     jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
     canClean = dict((x, xenrt.canCleanJobResources(x)) for x in jobs)
     jobsForMachinePowerOff = [] 
+    jobsForGlobalRelease = []
     try:
         for lock in locks:
             if lock[1]:
@@ -1603,6 +1697,8 @@ if cleanuplocks:
                         os.rmdir(path)
                         if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
+                        if lock[0].startswith("GLOBAL"):
+                            jobsForGlobalRelease.append(lock[2]['jobid'])
                         print "Lock released"
                 else:
                     print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
@@ -1614,7 +1710,9 @@ if cleanuplocks:
         for m in machinesToPowerOff:
             machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
             machine.powerctl.off()
-            
+    
+    for j in set(jobsForGlobalRelease):
+        xenrt.GEC().dbconnect.jobctrl("resrelease", [j])
 
 if releaselock:
     cr = xenrt.resources.CentralResource()
@@ -1672,7 +1770,7 @@ if setupsharedhost:
         hosttype=sh["PRODUCT_VERSION"]
 
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
-        host.install()
+        host.install(installSRType="ext")
         host.license()
 
 if setupstatichost:
@@ -1701,6 +1799,36 @@ if installlinux:
     h = xenrt.lib.native.NativeLinuxHost(m)
     h.installLinuxVendor(distro, arch=arch)
 
+if installguest:
+    xenrt.TEC().logdir = xenrt.resources.LogDirectory()
+    distro = config.lookup("DEFAULT_GUEST_DISTRO")
+    dd = distro.rsplit("-", 1)
+    if len(dd) == 2 and dd[1] == "x64":
+        arch = "x86-64"
+        distro = dd[0]
+    else:
+        arch = "x86-32"
+
+    parts = installguest.split("/")
+
+    hostAddr = parts[0]
+    if len(parts) > 1:
+        password = parts[1]
+    else:
+        password = None
+
+
+    machine = xenrt.PhysicalHost("RouterHost", ipaddr = hostAddr)
+    place = xenrt.GenericHost(machine)
+    if password:
+        place.password = password
+    else:
+        place.findPassword()
+    place.checkVersion()
+    host = xenrt.lib.xenserver.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+    place.populateSubclass(host)
+    host.existing()
+    host.createBasicGuest(distro, arch=arch)
 
 if cleanupsharedhosts:
     # Setup logdir
@@ -1764,6 +1892,9 @@ if powercontrol:
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
 
+if mconfig:
+    xenrt.tools.machineXML(mconfig)
+
 if dumpsuite:
     suites = xenrt.suite.getSuites(dumpsuite)
     if skufile:
@@ -1772,6 +1903,15 @@ if dumpsuite:
             suite.setSKU(sku)
     for suite in suites:
         suite.debugPrint(sys.stdout)
+
+if listsuitetcs:
+    suites = xenrt.suite.getSuites(listsuitetcs)
+    if skufile:
+        sku = xenrt.suite.SKU(skufile)
+        for suite in suites:
+            suite.setSKU(sku)
+    for suite in suites:
+        print "\n".join(suite.listTCsInSequences(quiet=True))
 
 if checksuite:
     suites = xenrt.suite.getSuites(checksuite)
@@ -1803,7 +1943,7 @@ if runsuite:
 
 if runtool:
     eval("xenrt.tools." + runtool)
-    
+
 # We set the aux variable if the script is being used for things other
 # than test running.
 if aux:
@@ -2077,34 +2217,7 @@ if testcase:
         if config.isVerbose():
             traceback.print_exc(file=sys.stderr)
 else:
-    # Try the following locations for a seqfile:
-    #   1. CWD
-    #   2. $XENRT_CONF/seqs
-    #   3. $XENRT_BASE/seqs
-    #   4. File supplied through controller
-    search = ["."]
-    p = config.lookup("XENRT_CONF", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    p = config.lookup("XENRT_BASE", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    usefilename = None
-    for p in search:
-        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
-        filename = "%s/%s" % (p, seqfile)
-        if os.path.exists(filename):
-            usefilename = filename
-            break
-    p = config.lookup("CUSTOM_SEQUENCE", None)
-    if p:
-        xenrt.TEC().logverbose("Looking for seq file on controller ...")
-        sf = xenrt.TEC().tempFile()
-        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
-        f = file(sf, "w")
-        f.write(data)
-        f.close()
-        usefilename = sf
+    usefilename = findSeqFile(config)
     if usefilename:
         xenrt.TEC().comment("Using sequence file %s" % (usefilename))
     else:

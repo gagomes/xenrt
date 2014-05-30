@@ -218,7 +218,7 @@ class _CCSetup(_SSLCert, _CCBase):
             self.configureForCC()
 
     def installUtilInGuest(self, guest, dest, util = "fill"):
-        srcfile = os.path.expanduser("~/xenrt.hg/progs/%s/%s.c" % (util, util))
+        srcfile = os.path.expanduser("~/xenrt.git/progs/%s/%s.c" % (util, util))
         guest.sftpClient().copyTo(srcfile, "/root/%s.c" % (util,), preserve=False)
         guest.execguest("gcc /root/%s.c --static -Wall -O2 -o %s/%sguest" % (util, dest, util))
 

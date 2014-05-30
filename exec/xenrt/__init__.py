@@ -1000,7 +1000,28 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if not "IGNORE" in tag:
             xenrt.TEC().warning(tag + text)
 
-    def _getRemoteLogsFrom(self, place, extraPaths=None):
+    def _getRemoteLogsFrom(self, obj, extraPaths=None):
+        if isinstance(obj, xenrt.GenericPlace): 
+            self._getRemoteLogsFromPlace(obj, extraPaths)
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            self._getRemoteLogsFromInstance(obj, extraPaths)
+
+    def _getRemoteLogsFromInstance(self, instance, extraPaths):
+        if xenrt.TEC().lookup("NO_GUEST_LOGS", False, boolean=True):
+            return
+
+        base = self.tec.getLogdir()
+        try:
+            instance.screenshot(base)
+        except:
+            xenrt.TEC().logverbose("Could not get screenshot from %s" % instance.name)
+
+        d = "%s/%s" % (base, instance.name)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        instance.os.getLogs(d)
+
+    def _getRemoteLogsFromPlace(self, place, extraPaths=None):
         """Fetch logs etc. from a host or guest.
 
         @param place: an instance of L{GenericPlace} to fetch from
@@ -1376,6 +1397,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
                 self.getResult(code=True) == RESULT_PASS):
             try:
                 vncsnapshot = None
+                if place.execcmd("test -e /usr/lib64/xen/bin/vncsnapshot",
+                                 retval="coed") == 0:
+                    vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
                 if place.execcmd("test -e /usr/lib/xen/bin/vncsnapshot",
                                  retval="code") == 0:
                     vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"
@@ -1476,13 +1500,19 @@ Abort this testcase with: xenrt interact %s -n '%s'
 
         sftp.close()
 
+    def getLogObjName(self, obj):
+        if isinstance(obj, xenrt.GenericPlace): 
+            return obj.getName()
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            return obj.name
+
     def _getRemoteLogs(self):
         """Fetch logs from all hosts and guests registered for log collection.
         """
         if xenrt.TEC().lookup("NOLOGS", False, boolean=True):
             return
         xenrt.TEC().logverbose("Getting logs from %s." % 
-                              ([x.getName() for x in self.logsfrom.keys()]))
+                              ([self.getLogObjName(x) for x in self.logsfrom.keys()]))
         for h in self.logsfrom.keys():
             paths = self.logsfrom[h]
             try:
@@ -1512,7 +1542,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         @param place: an instance of L{GenericPlace} to fetch from
         @param paths: a list of extra paths for log files to capture
         """
-        if not isinstance(place, xenrt.GenericPlace):
+        if not isinstance(place, xenrt.GenericPlace) and not isinstance(place, xenrt.lib.generic.Instance):
             raise xenrt.XRTError("Only objects extending GenericPlace can be registered for log collection")
 
         if self.logsfrom.has_key(place):
@@ -1663,55 +1693,6 @@ Abort this testcase with: xenrt interact %s -n '%s'
         @param units: optional string name for units of the value
         """
         self.results.perfdata.append((metric, value, units))
-
-    def pdGather(self, dict):
-        """Gather per-guest data for a performance data item."""
-        if self.basename:
-            dict["benchmark"] = self.basename
-
-    def getPerfData(self):
-        """Put together all the performance data we have for this test."""
-        if len(self.results.perfdata) == 0:
-            return None
-        common = {}
-        xenrt.GEC().pdGather(common)
-        self.pdGather(common)
-        g = self.getLocation()
-        if g and isinstance(g, xenrt.GenericGuest):
-            g.pdGather(common)
-            if g.host:
-                g.host.pdGather(common)
-        elif g and isinstance(g, xenrt.GenericHost):
-            # Host level test (i.e. dom0), get host details
-            g.pdGather(common)
-            g.pdGatherGuestLike(common)
-        items = []
-        for pd in self.results.perfdata:
-            metric, value, units = pd
-            if metric != None and value != None:
-                x = {}
-                x.update(common)
-                x["metric"] = metric
-                x["value"] = value
-                if units:
-                    x["units"] = units
-            items.append(x)
-        #print items
-        impl = xml.dom.minidom.getDOMImplementation()
-        newdoc = impl.createDocument(None, "performance", None)
-        for i in items:
-            t = newdoc.createElement("datapoint")
-            newdoc.documentElement.appendChild(t)
-            for k in i.keys():
-                p = newdoc.createElement(k)
-                t.appendChild(p)
-                po = newdoc.createTextNode(str(i[k]))
-                p.appendChild(po)
-        filename = GEC().anontec.tempFile()
-        f = file(filename, "w")
-        newdoc.writexml(f, addindent="  ", newl="\n")
-        f.close()
-        return filename
 
     #########################################################################
     # Utility methods
@@ -2513,7 +2494,7 @@ class PhysicalHost:
         return
 
     def exitPowerOff(self):
-        if not self.poweredOffAtExit:
+        if not xenrt.TEC().lookup("NO_HOST_POWEROFF", False, boolean=True) and not self.poweredOffAtExit:
             self.poweredOffAtExit = True
             self.powerctl.off()
 
@@ -2958,16 +2939,6 @@ class GlobalExecutionContext:
                                      "%s" % (str(e)))
                     traceback.print_exc(file=sys.stderr)
                 xenrt.TEC().logverbose("Trying to gather performance data.")
-                try:
-                    pdfile = t.getPerfData()
-                    if pdfile:
-                        self.dbconnect.perfUpload(pdfile)
-                        shutil.copyfile(pdfile,
-                                        "%s/perfdata.xml" %
-                                        (t.tec.getLogdir()))
-                except:
-                    t.tec.logverbose("Error gathering performance data")
-                    traceback.print_exc(file=sys.stderr)
                 t.tec.flushLogs()
                 if t.tec.lookup("DB_LOGS_UPLOAD", True, boolean=True):
                     try:
@@ -3394,20 +3365,6 @@ class GlobalExecutionContext:
         self.addToLogHistory(s)
         return s
 
-    def pdGather(self, dict):
-        """Gather per-job data for a performance data item."""
-        j = self.jobid()
-        if j:
-            dict["jobid"] = "%u" % (j)
-        x = self.config.lookup("JOBTYPE", None)
-        if x:
-            dict["jobtype"] = x
-        x = self.config.lookup("PERFRUN", False, boolean=True)
-        if x:
-            dict["perfrun"] = "yes"
-        else:
-            dict["perfrun"] = "no"
-
     def semaphoreAcquire(self, semclass):
         semclass = string.lower(semclass)
         if self.semaphores.has_key(semclass):
@@ -3565,3 +3522,4 @@ from xenrt.storageadmin import *
 from xenrt.racktableslink import *
 from xenrt.archive import *
 from xenrt.txt import *
+from xenrt.stringutils import *

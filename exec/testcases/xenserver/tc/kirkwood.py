@@ -9,7 +9,7 @@
 #
 
 import re, string, time, traceback, sys, random, types, socket, copy, os
-import xenrt, xenrt.lib.xenserver
+import xenrt, xenrt.lib.xenserver, xenrt.networkutils
 
 class _KirkwoodBase(xenrt.TestCase):
     """Base class for Kirkwood Testcases"""
@@ -181,6 +181,14 @@ class TC8513(_KirkwoodBase):
         # Wait 1 minute and run a check to make sure everything is happy
         time.sleep(60)
         self.pool.checkWLB()
+
+class TC21444(_KirkwoodBase):
+    """Verify that WLB service can be accessible through network"""
+    def run(self, arglist=None):
+        host = self.kwserver.getIP()
+        port = self.wlbappsrv.wlb_port
+        if not xenrt.networkutils.Telnet(host, port).run():
+            raise xenrt.XRTError("WLB service is not up")
 
 class _KirkwoodErrorBase(_KirkwoodBase):
     """Base class for error handling testcases"""
@@ -358,6 +366,25 @@ class TC8544(_KirkwoodErrorBase):
     def runCommand(self):
         self.kirkwood.poolConfig = {'sample':'config'}
         data = self.pool.retrieveWLBConfig()
+
+class TC21450(_KirkwoodErrorBase):
+    """Verify WLB service network connection failure under error condition"""
+    ERRORS = ["ConnectionRefused"]
+
+    def runCommand(self):
+        host = self.kirkwood.ip
+        port = self.kirkwood.port
+        if not xenrt.networkutils.Telnet(host, port).run():
+            raise xenrt.XRTFailure("Command is expected as failure.")
+
+class TC21451(_KirkwoodBase):
+    """Verify that Xapi handles errors from Kirkwood when do multi-initialising"""
+
+    def run(self, arglist=None):
+        url = "%s:%d" % (self.kirkwood.ip, self.kirkwood.port)
+        for i in range(5):
+            self.pool.initialiseWLB(url,self.wlbUsername, self.wlbPassword,
+                                    self.xs_username, self.xs_password)
 
 class _KirkwoodVMRecommendations(_KirkwoodBase):
     """Base class for VM recommendation testcases"""
@@ -855,17 +882,17 @@ class TC8623(_HostEvacuateRecBase):
 class TC8624(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM to the host itself"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = False
 class TC8625(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM that's not resident on the host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     VM_OFF_HOST = False
 class TC8626(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        non agile VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = False
 
 class TC8627(_KirkwoodErrorBase):
@@ -1158,17 +1185,17 @@ class TC8629(_PoolRecommendationBase):
 class TC8631(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to an
        offline / unavailable host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_OFFLINE = True
 class TC8632(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to a
        host it's already resident on"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = True
 class TC8634(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a non agile
        VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = True
 
 class TC8633(_KirkwoodErrorBase):
@@ -1517,6 +1544,8 @@ class TC8982(xenrt.TestCase):
             self.pool.retrieveWLBConfig()
         elif n == 2:
             self.pool.retrieveWLBRecommendations()
+        elif n == 3:
+            self.pool.retrieveWLBDiagnostics()
 
     def disableWLB(self):
         self.pool.disableWLB()
@@ -1538,6 +1567,9 @@ class TC8982(xenrt.TestCase):
                != xenrt.RESULT_PASS:
             return
         if self.runSubcase("retrWLB", (2), "Init", "GetRec") \
+               != xenrt.RESULT_PASS:
+            return
+        if self.runSubcase("retrWLB", (3), "Init", "GetLog") \
                != xenrt.RESULT_PASS:
             return
         if self.runSubcase("disableWLB", (), "Disable", "WLB") \
@@ -1952,6 +1984,22 @@ class _VPXWLBReports(_VPXWLB):
             return None
         return dictionary
 
+    def doVmLiveMigrate(self, args_dictionary):
+        if None == args_dictionary:
+            raise xenrt.XRTFailure("TEST_FAILED. No test arguments received.")
+        host_uuid = args_dictionary["host_uuid"]
+        vmuuid = args_dictionary["vmuuid"]
+        command = "vm-migrate host=" + host_uuid + \
+                  " vm=" + vmuuid + \
+                  " --live" + \
+                  " --force"
+        try:
+            cli = self.pool.getCLIInstance()
+            xenrt.TEC().logverbose("command=" + str(command))
+            cli.execute(command)
+        except:
+            raise xenrt.XRTFailure("Error while doing vm live migrate.")
+
     def doRunBase(self, args_dictionary):
         if None == args_dictionary:
             raise xenrt.XRTFailure("TEST_FAILED. No test arguments received.")
@@ -1975,7 +2023,7 @@ class _VPXWLBReports(_VPXWLB):
                       " Start="      + args_dictionary["Start"]       + \
                       " End="        + args_dictionary["End"]         + \
                       " PoolID="     + pool_uuid
-            if "host_health_history" == report_name:
+            if report_name in ["host_health_history", "vm_performance_history"]:
                 command = command + " HostID=" + host_uuid
             command = command + \
                       " UTCOffset="  + args_dictionary["UTCOffset"] + \
@@ -2227,6 +2275,189 @@ class TC18165(_VPXWLBReports):
         g1 = hosts[index].createGenericLinuxGuest(name=args_dictionary["vmname"],vcpus=1,memory=128)
         self.uninstallOnCleanup(g1)
         args_dictionary["vmuuid"] = str(g1.getInfo()[5])
+        args_dictionary["host_name"] = str(hosts[index].getName())
+        args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
+        args_dictionary["pool_uuid"] = str(self.pool.getUUID())
+        self.doRunBase(args_dictionary)
+
+class TC21445(_VPXWLBReports):
+    """Test optimization performance history report"""
+    def verifyTestPassed(self, report_contents, args_dictionary):
+        # look for optimized_moves records
+        xenrt.TEC().logverbose("Expected optimized_moves records.")
+        pattern = """<optimized_moves>.*</optimized_moves>"""
+        for line in report_contents:
+            if re.search(pattern, line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found optimized_moves record. line = " + str(line))
+                return True
+        return False
+    
+    def run(self, arglist=None):
+        args_list = ["tmp_dir=/tmp/", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=optimization_performance_history", "minutes_per_iteration=5", "iterations=3"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install 2 VMs
+        index = 0
+        g1 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g1)
+        index = 1
+        g2 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g2)
+        args_dictionary["vmuuid-1"] = str(g1.getInfo()[5])
+        args_dictionary["vmuuid-2"] = str(g2.getInfo()[5])
+        args_dictionary["host_name"] = str(hosts[index].getName())
+        args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
+        args_dictionary["pool_uuid"] = str(self.pool.getUUID())
+        self.doRunBase(args_dictionary)
+
+class TC21446(_VPXWLBReports):
+    """Test pool optimization histroy report"""
+    def verifyTestPassed(self, report_contents, args_dictionary):
+        # look for move_time
+        xenrt.TEC().logverbose("Expected move_time keyword.")
+        pattern = "move_time"
+        for line in report_contents:
+            if re.search(pattern, line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found move_time. line = " + str(line))
+                return True
+        return False
+    
+    def run(self, arglist=None):
+        args_list = ["tmp_dir=/tmp/", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=pool_optimization_history", "minutes_per_iteration=5", "iterations=3"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install 2 VMs
+        index = 0
+        g1 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g1)
+        index = 1
+        g2 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g2)
+        args_dictionary["vmuuid-1"] = str(g1.getInfo()[5])
+        args_dictionary["vmuuid-2"] = str(g2.getInfo()[5])
+        args_dictionary["host_name"] = str(hosts[index].getName())
+        args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
+        args_dictionary["pool_uuid"] = str(self.pool.getUUID())
+        self.doRunBase(args_dictionary)
+
+class TC21447(_VPXWLBReports):
+    """Test pool health history report"""
+    def verifyTestPassed(self, report_contents, args_dictionary):
+        # look for host cpu/memory/net metrics.
+        xenrt.TEC().logverbose("Expected host cpu/memory/net metrics.")
+        founds = [False, False, False]
+        for line in report_contents:
+            if re.search("host_cpu", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found host_cpu metric. line = " + str(line))
+                founds[0] = True
+            if re.search("host_memory", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found host_memory metric. line = " + str(line))
+                founds[1] = True
+            if re.search("host_net", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found host_net metric. line = " + str(line))
+                founds[2] = True
+        result = reduce(lambda x,y: x and y, founds)
+        return result
+        
+    def run(self, arglist=None):
+        args_list = ["tmp_dir=/tmp/", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=pool_health_history", "minutes_per_iteration=5", "iterations=3"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install 2 VMs
+        index = 0
+        g1 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g1)
+        index = 1
+        g2 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g2)
+        args_dictionary["vmuuid-1"] = str(g1.getInfo()[5])
+        args_dictionary["vmuuid-2"] = str(g2.getInfo()[5])
+        args_dictionary["host_name"] = str(hosts[index].getName())
+        args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
+        args_dictionary["pool_uuid"] = str(self.pool.getUUID())
+        self.doRunBase(args_dictionary)
+
+class TC21448(_VPXWLBReports):
+    """Test vm movement history report"""
+    def verifyTestPassed(self, report_contents, args_dictionary):
+        # look for move_time
+        xenrt.TEC().logverbose("Expected move_time keyword.")
+        pattern = "move_time"
+        for line in report_contents:
+            if re.search(pattern, line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found move_time. line = " + str(line))
+                return True
+        return False
+    
+    def run(self, arglist=None):
+        args_list = ["tmp_dir=/tmp/", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=vm_movement_history", "minutes_per_iteration=5", "iterations=3"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install 2 VMs
+        index = 0
+        g1 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g1)
+        index = 1
+        g2 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g2)
+        # Migrate 1 VM
+        self.doVmLiveMigrate({"host_uuid":str(hosts[index].getMyHostUUID()),
+                              "vmuuid":str(g1.getInfo()[5])})
+        # Maybe 100 seconds are not enough
+        time.sleep(100)
+        args_dictionary["vmuuid-1"] = str(g1.getInfo()[5])
+        args_dictionary["vmuuid-2"] = str(g2.getInfo()[5])
+        args_dictionary["host_name"] = str(hosts[index].getName())
+        args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
+        args_dictionary["pool_uuid"] = str(self.pool.getUUID())
+        self.doRunBase(args_dictionary)
+
+class TC21449(_VPXWLBReports):
+    """Test vm performance history report"""
+    def verifyTestPassed(self, report_contents, args_dictionary):
+        # look for avg_cpu/avg_free_mem/avg_vif/avg_vbd metrics.
+        xenrt.TEC().logverbose("Expected host avg_cpu/avg_free_mem/avg_vif/avg_vbd metrics.")
+        founds = [False, False, False, False]
+        for line in report_contents:
+            if re.search("avg_cpu", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found avg_cpu metric. line = " + str(line))
+                founds[0] = True
+            if re.search("avg_free_mem", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found avg_free_mem metric. line = " + str(line))
+                founds[1] = True
+            if re.search("avg_vif", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found avg_vif metric. line = " + str(line))
+                founds[2] = True
+            if re.search("avg_vbd", line, re.IGNORECASE):
+                xenrt.TEC().logverbose("Found avg_vbd metric. line = " + str(line))
+                founds[3] = True
+        result = reduce(lambda x,y: x and y, founds)
+        return result
+
+
+    def run(self, arglist=None):
+        args_list = ["tmp_dir=/tmp/", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=vm_performance_history", "minutes_per_iteration=5", "iterations=3"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install 2 VMs
+        index = 0
+        g1 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g1)
+        index = 1
+        g2 = hosts[index].createGenericLinuxGuest(vcpus=2,memory=1024)
+        self.uninstallOnCleanup(g2)
+        args_dictionary["vmuuid-1"] = str(g1.getInfo()[5])
+        args_dictionary["vmuuid-2"] = str(g2.getInfo()[5])
         args_dictionary["host_name"] = str(hosts[index].getName())
         args_dictionary["host_uuid"] = str(hosts[index].getMyHostUUID())
         args_dictionary["pool_uuid"] = str(self.pool.getUUID())

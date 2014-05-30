@@ -2184,7 +2184,7 @@ Add-WindowsFeature as-net-framework"""
             self.xmlrpcUnpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
             self.xmlrpcExec("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
             self.reboot()
-        
+
     def isDotNet4Installed(self):
         try:
             val = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Client', 'Install', healthCheckOnFailure=False)
@@ -2208,6 +2208,37 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcUnpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self.xmlrpcExec("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
         self.reboot()
+
+    def getDotNet45Version(self):
+        version = None
+        try:
+            rawVersion = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full', 'Release', healthCheckOnFailure=False)
+            if rawVersion == 378389:
+                version = '4.5'
+            elif rawVersion == 378675 or rawVersion == 378758:
+                version = '4.5.1'
+            elif rawVersion == 379893:
+                version = '4.5.2'
+            else:
+                xenrt.TEC().logverbose('Unknown .Net 4.5 version found: %d' % (rawVersion))
+        except:
+            xenrt.TEC().logverbose('No .Net 4.5 version found')
+
+        if version:
+            xenrt.TEC().logverbose('Detected %s .Net version installed on guest %s' % (version, self.name))
+        return version
+
+    def installDotNet451(self):
+        """Install .NET 4.5.1 into a Windows XML-RPC guest"""
+        currentDotNet45Version = self.getDotNet45Version()
+        if currentDotNet45Version == None or currentDotNet45Version == '4.5':
+            xenrt.TEC().logverbose("Installing .NET 4.5.1.")
+            self.xmlrpcCreateDir("c:\\dotnet451logs")
+            self.xmlrpcUnpackTarball("%s/dotnet451.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
+            self.xmlrpcExec("c:\\dotnet451\\NDP451-KB2858728-x86-x64-AllOS-ENU.exe /q /norestart /log c:\\dotnet451logs\\dotnet451log", timeout=3600, returnerror=False)
+            self.reboot()
+        else:
+            xenrt.TEC().logverbose('.NET %s version already installed' % (currentDotNet45Version))
 
     def installCloudPlatformManagementServer(self):
         manSvr = xenrt.lib.cloud.ManagementServer(self)
@@ -2270,12 +2301,13 @@ Add-WindowsFeature as-net-framework"""
         return self._xmlrpc().autoitx
 
     def getPowershellVersion(self):
+        version = 0.0
         try:
-            return float(self.winRegLookup("HKLM", 
-                "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", 
-                "PowerShellVersion"))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
         except:
-            return 0.0
+            pass
+        return version
 
     def installPowerShell(self):
         """Install PowerShell into a Windows XML-RPC guest."""
@@ -2312,12 +2344,10 @@ Add-WindowsFeature as-net-framework"""
     def installPowerShell20(self, reboot=True):
         """Install PowerShell 2.0 into a Windows XML-RPC guest. Note this 
         op requires a reboot to finish install using Win Update"""
-        try:
-            if self.getPowershellVersion() >= 2.0:
-                xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
-                return
-        except:
-            pass
+        if self.getPowershellVersion() >= 2.0:
+            xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
+            return
+
         if self.xmlrpcWindowsVersion() == "6.0":
             if self.xmlrpcGetArch() == "amd64": 
                 exe = "Windows6.0-KB968930-x64.msu"
@@ -2341,6 +2371,30 @@ Add-WindowsFeature as-net-framework"""
         if reboot:
             self.reboot()
 
+    def installPowerShell30(self, reboot=True, verifyInstall=True):
+        """Install PowerShell 3.0 into a Windows XML-RPC guest. Note this
+        op requires a reboot to finish install using Win Update"""
+        if self.getPowershellVersion() >= 3.0:
+            xenrt.TEC().logverbose("PowerShell 3.0 or above installed.")
+            return
+
+        if self.xmlrpcWindowsVersion() == "6.1":
+            self.installDotNet4()
+            if self.xmlrpcGetArch() == "amd64":
+                exe = "Windows6.1-KB2506143-x64.msu"
+            else:
+                exe = "Windows6.1-KB2506143-x86.msu"
+        else:
+            raise xenrt.XRTError("PowerShell 3.0 installer is not \
+            available for Windows version %s" % self.xmlrpcWindowsVersion())
+        t = self.xmlrpcTempDir()
+        self.xmlrpcUnpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
+        self.xmlrpcExec("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
+        if reboot:
+            self.reboot()
+            if verifyInstall and self.getPowershellVersion() < 3.0:
+                raise xenrt.XRTError('Failed to install PowerShell v3.0')
+
     def enablePowerShellUnrestricted(self):
         """Allow the running of unsigned PowerShell scripts."""
         self.winRegAdd("HKLM",
@@ -2351,7 +2405,7 @@ Add-WindowsFeature as-net-framework"""
 
     def installPowerShellSnapIn(self, snapInDirName="XenServerPSSnapIn"):
         """Install the XenCenter PowerShell snap-in."""
-        if isinstance(self, xenrt.lib.xenserver.guest.SarasotaGuest):
+        if isinstance(self, xenrt.lib.xenserver.guest.ClearwaterGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (sdk, tempDir))
@@ -2364,7 +2418,7 @@ Add-WindowsFeature as-net-framework"""
             testRunner = os.path.join(tempDir, "XenServer-SDK/XenServerPowerShell/samples/AutomatedTestCore.ps1")
             xenrt.TEC().logverbose("Sending test runner %s to %s" % (testRunner, targetPath))
             self.xmlrpcSendFile(testRunner, targetPath + "\\AutomatedTestCore.ps1", usehttp=True)
-        
+
         elif isinstance(self, xenrt.lib.xenserver.guest.TampaGuest):
             sdk = xenrt.TEC().getFile("xe-phase-2/XenServer-SDK.zip")
             tempDir = xenrt.TEC().tempDir()
@@ -2373,7 +2427,7 @@ Add-WindowsFeature as-net-framework"""
             msi = xenrt.command("(cd / && ls %s/XenServer-SDK/%s/*.msi)" % (tempDir, snapInDirName)).strip()
             self.xmlrpcSendFile(msi, "c:\\XenServerPSSnapIn.msi", usehttp=True)
             self.xmlrpcExec("msiexec /i c:\\XenServerPSSnapIn.msi /qn /lv* c:\\pssnapininstall.log")
-            
+
         else:
             snapinstaller = xenrt.TEC().getFile("xe-phase-2/XenServerPSSnapIn.msi")
             self.xmlrpcSendFile(snapinstaller, "c:\\XenServerPSSnapIn.msi", usehttp=True)
@@ -2452,43 +2506,40 @@ Add-WindowsFeature as-net-framework"""
                              (workdir))
                 self.execcmd("rm -rf %s" % (workdir))
 
-    def installIperf(self):
+    def installIperf(self, version=""):
         """Install iperf into the guest"""
+
+        if version=="":
+            sfx = "2.0.4"
+        else:
+            sfx = version
+
         if self.windows:
-            self.xmlrpcUnpackTarball("%s/iperf-bin.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
-            self.xmlrpcExec("move c:\\iperf-bin\\iperf.exe c:\\")
+            self.xmlrpcUnpackTarball("%s/iperf-bin%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version), "c:\\")
+            self.xmlrpcExec("move c:\\iperf-bin%s\\* c:\\" % (version,))
         else:
             if self.execcmd("test -e /usr/local/bin/iperf -o "
                             "     -e /usr/bin/iperf",
                             retval="code") != 0:
-                #Only for the host, not guest
-                try:
-                    self.execdom0("ls")
-                    self.execcmd("yum --enablerepo=base install -y  gcc-c++")
-                    self.execcmd("yum --enablerepo=base install -y make")
-                except:
-                    pass
                 workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
-                self.execcmd("wget '%s/iperf.tgz' -O %s/iperf.tgz" %
-                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
-                              workdir))
-                self.execcmd("tar -zxf %s/iperf.tgz -C %s" % (workdir, workdir))
-                self.execcmd("tar -zxf %s/iperf/iperf-2.0.4.tar.gz -C %s" %
-                             (workdir, workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && ./configure" %
-                               (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make" % (workdir))
-                self.execcmd("cd %s/iperf-2.0.4 && make install" %
-                             (workdir))
+                self.execcmd("wget '%s/iperf%s.tgz' -O %s/iperf%s.tgz" %
+                             (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version,
+                             workdir, version))
+                self.execcmd("tar -zxf %s/iperf%s.tgz -C %s" % (workdir, version, workdir))
+                self.execcmd("tar -zxf %s/iperf%s/iperf-%s.tar.gz -C %s" %
+                             (workdir, version, sfx, workdir))
+                self.execcmd("cd %s/iperf-%s && ./configure" %
+                             (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make" % (workdir, sfx))
+                self.execcmd("cd %s/iperf-%s && make install" %
+                             (workdir, sfx))
                 self.execcmd("rm -rf %s" % (workdir))
-                self.execcmd("mkdir ~/iperf && cp /usr/local/bin/iperf iperf/iperf")
-
 
     def startIperf(self):
         """Starts iperf as server in the Guest"""
-        
         if self.windows:
-            self.xmlrpcExec("c:\\iperf -s -D", returnerror=False, ignoredata=True)
+            self.xmlrpcExec("start c:\\iperf -s", returnerror=False, ignoredata=True)
+            time.sleep(10) # iperf -s takes some time to kick in
         else:
             raise xenrt.XRTError("Unimplemented")
 
@@ -2589,6 +2640,7 @@ Add-WindowsFeature as-net-framework"""
         # Get the CLI RPM from the CD.
         mount = None
         rpm = None
+        hostarch = self.execcmd("uname -m").strip()
         # Try an explicit path first - this is used for OEM update tests
         rpmpath = xenrt.TEC().lookup("XE_RPM", None)
         if rpmpath:
@@ -2614,11 +2666,18 @@ Add-WindowsFeature as-net-framework"""
                 try:
                     mount = xenrt.rootops.MountISO(cd)
                     mountpoint = mount.getMount()
-                    rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
-                                     (mountpoint))
-                    rpms.extend(glob.glob(\
-                        "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
-                        (mountpoint)))
+                    if hostarch != "x86_64":
+                        rpms = glob.glob("%s/client_install/xe-cli*86.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86.rpm" %
+                            (mountpoint)))
+                    else:
+                        rpms = glob.glob("%s/client_install/xe-cli*86_64.rpm" %
+                                      (mountpoint))
+                        rpms.extend(glob.glob(\
+                            "%s/client_install/xenenterprise-cli-[0-9]*86_64.rpm" %
+                            (mountpoint)))
                     if len(rpms) > 0:
                         xenrt.TEC().logverbose("Using CLI RPM %s from ISO %s" %
                                                (os.path.basename(rpms[-1]), cd))
@@ -2663,6 +2722,8 @@ Add-WindowsFeature as-net-framework"""
             return
         if not noAutoDotNetInstall:
             if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+                self.installDotNet4()
+            if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
                 self.installDotNet4()
             elif isinstance(self.host, xenrt.lib.xenserver.BostonHost):
                 self.installDotNet35()
@@ -3272,19 +3333,42 @@ DHCPServer = 1
         primarily intended for XenServer dom0."""
         if arch == "x86-32p":
             arch = "x86-32"
+        doUpdate = False
+        # If we should update this to the lastest versino
+        if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
+            updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
+            match = ""
+            # Look for the longest match
+            for i in updateMap.keys():
+                if distro.startswith(i) and len(i) > len(match):
+                    match = i
+            # if we find one, we need to upgrade
+            if match:
+                newdistro = updateMap[match]
+                if newdistro != distro:
+                    doUpdate = True
+                    distro = newdistro
+
         url = xenrt.TEC().lookup(["RPM_SOURCE", distro, arch, "HTTP"], None)
         if not url:
             return False
         try:
-            url = os.path.join(url, 'Server')
-            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
-                         "   do mv $r $r.orig; done")
+            if not distro.startswith("centos"):
+                url = os.path.join(url, 'Server')
+            try:
+                # Try to rename the files to .orig. This could fail if they don't exist
+                self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                             "   do mv $r $r.orig; done")
+            except:
+                pass
             c = """[base]
 name=CentOS-$releasever - Base
 baseurl=%s
 gpgcheck=0
-exclude=kernel*, *xen*
 """ % (url)
+            # If we're upgrading then we can't exclude the kernel
+            if not doUpdate:
+                c += "exclude=kernel*, *xen*\n"
             sftp = self.sftpClient()
             fn = xenrt.TEC().tempFile()
             f = file(fn, "w")
@@ -3294,6 +3378,19 @@ exclude=kernel*, *xen*
             sftp.close()
         except:
             return False
+        if doUpdate:
+            # Do the upgrade
+            self.execcmd("yum update -y", timeout=3600)
+            # Cleanup the repositories again
+            self.execcmd("for r in /etc/yum.repos.d/*.repo; "
+                         "   do mv $r $r.orig; done")
+            sftp = self.sftpClient()
+            sftp.copyTo(fn, "/etc/yum.repos.d/xenrt.repo")
+            sftp.close()
+            # And reboot to start the new system
+            xenrt.TEC().comment("Upgraded from %s to %s" % (self.distro, distro))
+            self.distro=distro
+            self.reboot()
         return True
 
     def getExtraLogs(self, directory):
@@ -4453,7 +4550,7 @@ class GenericHost(GenericPlace):
             if sp == "1G":
                 sp = None
             if mac and nw:
-                if network == None or network == nw:
+                if network == None or network == nw or network == "ANY":
                     if (not rspan) or rs:
                         if speed == None or speed == sp or (speed == "1G" and not sp):
                             reply.append(i)
@@ -4683,21 +4780,8 @@ class GenericHost(GenericPlace):
             return domains[guest.name][0]
         raise xenrt.XRTError("Domain '%s' not found" % (guest.name))
 
-    def enableGuestConsoleLogger(self, enable=True, persist=False, 
-                                 embedded=False):
+    def enableGuestConsoleLogger(self, enable=True, persist=False):
         """Start and enable to guest console logging daemon"""
-        # If it's embedded, set up an NFS mount for them to be on
-        if embedded:
-            conlogs = xenrt.NFSDirectory()
-            self.execdom0("mkdir -p /tmp/consolelogs")
-            self.execdom0("mount %s /tmp/consolelogs" % 
-                          (conlogs.getMountURL("")))
-            self.execdom0("echo 'mkdir -p /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local")
-            self.execdom0("echo 'mount %s /tmp/consolelogs' >> "
-                          "/etc/rc.d/rc.local" % (conlogs.getMountURL("")))
-            xenrt.GEC().config.config['GUEST_CONSOLE_LOGDIR'] = "/tmp/consolelogs"
-
         # If the host console daemon has special powers (TM) then use them
         if self.execdom0("grep -q '/local/logconsole/@' /usr/sbin/xenconsoled",
                          retval="code") == 0:
@@ -4841,97 +4925,6 @@ class GenericHost(GenericPlace):
         """Power off a host"""
         self.machine.powerctl.off()
         
-    def pdGather(self, dict):
-        """Gather per-host data for a performance data item."""
-        x = self.getName()
-        if x:
-            dict["machine"] = x
-        if self.productVersion != "unknown":
-            dict["productname"] = self.productVersion
-        else:
-            x = self.lookup("VERSION", None)
-            if x:
-                dict["productname"] = x
-        if self.productRevision != "unknown":
-            dict["productversion"] = self.productRevision
-        else:
-            x = self.lookup("REVISION", None)
-            if x:
-                dict["productversion"] = x
-            else:
-                x = xenrt.TEC().lookup(["CLIOPTIONS", "REVISION"], None)
-                if x:
-                    dict["productversion"] = x
-        try:
-            if self.checkXenCaps("xen-3.0-x86_64"):
-                dict["hvarch"] = "x86-64"
-            elif self.checkXenCaps("xen-3.0-x86_32p"):
-                dict["hvarch"] = "x86-32p"
-            elif self.checkXenCaps("xen-3.0-x86_32"):
-                dict["hvarch"] = "x86-32"
-        except:
-            hvarch = xenrt.TEC().lookup(["CLIOPTIONS", "HYPERVISOR_ARCH"],
-                                        None)
-            if hvarch:
-                dict["hvarch"] = hvarch
-            elif self.arch:
-                dict["hvarch"] = self.arch
-        if self.arch:
-            dict["dom0arch"] = self.arch
-        dict["hostdebug"] = self.lookup("OPTION_DEBUG", False, boolean=True)
-        dom0cpus = self.lookup("OPTION_XE_SMP_DOM0", None)
-        if dom0cpus:
-            dict["dom0cpus"] = dom0cpus
-            
-    def pdGatherGuestLike(self, dict):
-        """Gather data for Domain0 for a performance data item. This
-        will be used when we're running tests in dom0 or on native OSes."""
-        dict["guestname"] = self.pddomaintype
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        else:
-            dict["guesttype"] = string.strip(self.execdom0("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.pddomaintype
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execdom0("uname -r"))
-            except:
-                pass
-        if dict.has_key("productname"):
-            dict["kernelproductname"] = dict["productname"]
-        if dict.has_key("productversion"):
-            dict["kernelproductversion"] = dict["productversion"]
-        if dict.has_key("productspecial"):
-            dict["kernelproductspecial"] = dict["productspecial"]
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.lookup("OPTION_DEBUG",
-                                             False,
-                                             boolean=True)
-        try:
-            dict["vcpus"] = self.getMyVCPUs()
-        except:
-            pass
-        try:
-            m = self.getMyMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        try:
-            if self.windows:
-                # Record extra disks. Ignore root disk.
-                dict["extradisks"] = len(self.xmlrpcListDisks() - 1)
-        except:
-            pass
-        # XXX storagetype
-
     def installLinuxVendor(self,
                            distro,
                            kickstart=None,
@@ -5347,6 +5340,9 @@ exit 0
     def getVncSnapshot(self,domid,filename):
         """Get a VNC snapshot of domain domid and write it to filename"""
         vncsnapshot = None
+        if self.execdom0("test -e /usr/lib64/xen/bin/vncsnapshot",
+                              retval="code") == 0:
+            vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
         if self.execdom0("test -e /usr/lib/xen/bin/vncsnapshot",
                               retval="code") == 0:
             vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"
@@ -6546,9 +6542,15 @@ class GenericGuest(GenericPlace):
         try:
             guest_reported = self.getGuestVCPUs()
             dom0_reported = self.getDomainVCPUs()
+
+            if self.corespersocket:
+                corespersocket = int(self.corespersocket)
+            else:
+                corespersocket = 1
+
             xenrt.TEC().logverbose("Guest reports %u CPUs." % (guest_reported))
             xenrt.TEC().logverbose("Domain-0 reports %u CPUs." % (dom0_reported))
-            xenrt.TEC().logverbose("Config reports %u CPUs." % (self.vcpus))
+            xenrt.TEC().logverbose("Config reports %u CPUs (with %u cores per CPU socket)." % (self.vcpus, corespersocket))
 
             if self.vcpus == 0:
                 # vcpus=all
@@ -7251,74 +7253,6 @@ class GenericGuest(GenericPlace):
             reply.append("pae")
         return reply
 
-    def pdGather(self, dict):
-        """Gather per-guest data for a performance data item."""
-        if self.name:
-            dict["guestname"] = self.name
-        if self.windows:
-            dict["guesttype"] = "Windows"
-        elif not self.windows:
-            dict["guesttype"] = string.strip(self.execguest("uname"))
-        if self.distro:
-            dict["guestversion"] = self.distro
-        try:
-            dict["domaintype"] = self.getDomainType()
-        except:
-            pass
-        try:
-            dict["domainflags"] = string.join(self.getDomainFlags(), ",")
-        except:
-            pass
-        if not self.windows:
-            try:
-                dict["kernelversion"] = string.strip(self.execguest("uname -r"))
-            except:
-                pass
-        if not self.windows:
-            if self.host.productVersion != "unknown":
-                dict["kernelproductname"] = self.host.productVersion
-            else:
-                x = self.host.lookup("VERSION", None)
-                if x:
-                    dict["kernelproductname"] = x
-            if self.host.productRevision != "unknown":
-                dict["kernelproductversion"] = self.host.productRevision
-            else:
-                x = self.host.lookup("REVISION", None)
-                if x:
-                    dict["kernelproductversion"] = x
-        if self.arch:
-            dict["guestarch"] = self.arch
-        if not self.windows:
-            dict["guestdebug"] = self.host.lookup("OPTION_DEBUG",
-                                                  False,
-                                                  boolean=True)
-        if self.windows:
-            # XXX need a check for PV drivers on Linux
-            dict["pvdrivers"] = self.enlightenedDrivers
-        try:
-            dict["vcpus"] = self.getGuestVCPUs()
-        except:
-            pass
-        try:
-            m = self.getGuestMemory()
-            if m != -1:
-                dict["memory"] = m
-        except:
-            pass
-        # XXX storagetype
-        try:
-            alone = True
-            domid = self.getDomid()
-            domains = self.host.listDomains()
-            for d in domains.values():
-                if d[0] != 0 and d[0] != domid:
-                    alone = False
-                    break
-            dict["alone"] = alone
-        except:
-            pass
-
     def installVendor(self,
                       distro,
                       repository,
@@ -7593,7 +7527,6 @@ class GenericGuest(GenericPlace):
         ay=ks.generate()
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
-        
         for line in ay.splitlines():
             f.write("%s\n" % (line))           
         f.close()
@@ -8040,7 +7973,28 @@ class GenericGuest(GenericPlace):
             if method == "CDROM":
                 self.paramSet("other-config-install-repository", "cdrom")
             else:
-                self.paramSet("other-config-install-repository", repository)
+                if self.host.productType == "kvm":
+                    arch = "amd64" if "64" in self.arch else "i386"
+                    release = re.search("Debian/(\w+)/", repository).group(1)
+                    _url = repository + "/dists/%s/" % (release.lower(), )
+                    boot_dir = "main/installer-%s/current/images/netboot/debian-installer/%s/" % (arch, arch)
+
+                    fk = xenrt.TEC().tempFile()
+                    fr = xenrt.TEC().tempFile()
+                    xenrt.getHTTP(_url + boot_dir + "linux", fk)
+                    xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
+                    hdir = self.host.hostTempDir()
+                    try:
+                        sftp = self.host.sftpClient()
+                        sftp.copyTo(fk, "%s/linux" % (hdir, ))
+                        sftp.copyTo(fr, "%s/initrd.gz" % (hdir, ))
+                    finally:
+                        sftp.close()
+                    self.host.execdom0("chmod 777 -R %s" % (hdir, ))
+                    self.kernel = "%s/linux" % (hdir, )
+                    self.initrd = "%s/initrd.gz" % (hdir, )
+                else:
+                    self.paramSet("other-config-install-repository", repository)
 
         # A valid hostname may contain only the numbers 0-9, the lowercase  
         # letters a-z, and the minus sign. It must be between 2 and 63
@@ -8650,14 +8604,42 @@ class GenericGuest(GenericPlace):
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
 
-    def installNvidiaVGPUDriver(self,driverType):
+    def __nvidiaX64GuestDriverName(self, driverType):
+        X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
+        X64_UNSIGNED_FILENAME = "WDDM_x64_332.83.zip"
 
+        defaultFilename = X64_UNSIGNED_FILENAME
         if driverType == 0:
-            self.installNvidiaVGPUSignedDriver()
-        else:
-            self.installNvidiaVGPUUnsignedDriver()
+            defaultFilename = X64_SIGNED_FILENAME
 
-    def installNvidiaVGPUSignedDriver(self):
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X64",
+                                  default=defaultFilename)
+
+    def __nvidiaX86GuestDriverName(self, driverType):
+        X86_SIGNED_FILENAME = "332.83_grid_win8_win7_english.exe"
+        X86_UNSIGNED_FILENAME = "WDDM_x86_332.83.zip"
+
+        defaultFilename = X86_UNSIGNED_FILENAME
+        if driverType == 0:
+            defaultFilename = X86_SIGNED_FILENAME
+
+        return xenrt.TEC().lookup("VGPU_GUEST_DRIVER_X86",
+                                  default=defaultFilename)
+
+    def requiredVGPUDriverName(self, driverType):
+        if self.xmlrpcGetArch().endswith("64"):
+            return self.__nvidiaX64GuestDriverName(driverType)
+        else:
+            return self.__nvidiaX86GuestDriverName(driverType)
+
+    def installNvidiaVGPUDriver(self, driverType):
+        driverName = self.requiredVGPUDriverName(driverType)
+        if driverType == 0:
+            self.installNvidiaVGPUSignedDriver(driverName)
+        else:
+            self.installNvidiaVGPUUnsignedDriver(driverName)
+
+    def installNvidiaVGPUSignedDriver(self, filename):
 
         tarball = "drivers.tgz"
         xenrt.TEC().logverbose("Installing vGPU driver on vm %s" % (self.getName(),))
@@ -8666,26 +8648,23 @@ class GenericGuest(GenericPlace):
         if not self.windows:
             raise xenrt.XRTError("vGPU driver is only available on windows guests.")
 
-        # Downloading driver files.
-        targetPath = self.tempDir() + "\\vgpudrivers"
-
         try:
-            filename = "332.07_grid_win7_english"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "332.07_grid_win7_64bit_english"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.exe" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")
             tempdir = xenrt.TEC().tempDir()
             xenrt.command("cp %s %s" % (installfile, tempdir))
-            xenrt.command("cd %s && tar -cvf %s %s.exe" % (tempdir, tarball, filename))
+            xenrt.command("cd %s && tar -cvf %s %s" %
+                          (tempdir, tarball, filename))
             self.xmlrpcSendFile("%s/%s" % (tempdir,tarball),"c:\\%s" % tarball)
 
             self.xmlrpcExtractTarball("c:\\%s" % tarball,"c:\\")
 
-            returncode = self.xmlrpcExec("c:\\%s.exe /s /noreboot" % (filename), returnerror=False, returnrc=True, timeout = 600)
+            returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (filename),
+                                          returnerror=False, returnrc=True,
+                                          timeout = 600)
 
             # Wait some time to settle down the driver installer.
             xenrt.sleep(30)
@@ -8701,8 +8680,8 @@ class GenericGuest(GenericPlace):
 
         except xenrt.XRTError as e:
             raise e
-            
-    def installNvidiaVGPUUnsignedDriver(self):
+
+    def installNvidiaVGPUUnsignedDriver(self, filename):
 
         """
         Installing NVidia Graphics drivers onto vGPU enabled guest.
@@ -8716,13 +8695,9 @@ class GenericGuest(GenericPlace):
 
         # Downloading driver files.
         targetPath = self.tempDir() + "\\vgpudrivers"
-        #targetPath = "c:\\vgpudrivers"
         try:
-            filename = "WDDM_x86_332.83"
-            if self.xmlrpcGetArch().endswith("64"):
-                filename = "WDDM_x64_332.83"
             urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-            url = "%s/vgpudriver/vmdriver/%s.zip" % (urlprefix, filename)
+            url = "%s/vgpudriver/vmdriver/%s" % (urlprefix, filename)
             installfile = xenrt.TEC().getFile(url)
             if not installfile:
                 raise xenrt.XRTError("Failed to fetch NVidia driver.")

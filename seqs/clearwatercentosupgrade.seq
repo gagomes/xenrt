@@ -1,0 +1,58 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <vm name="centos64-x86">
+          <distro>centos64</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="centos64-x64">
+          <distro>centos64</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="centos59-x86">
+          <distro>centos59</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="centos59-x64">
+          <distro>centos59</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      </host>
+  </prepare>
+
+  <testsequence>
+     <parallel group="VMUpg">
+        <testcase id="testcases.xenserver.tc.guest.TCCentosUpgrade" name="c59x86upg">
+          <arg>centos59-x86</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.guest.TCCentosUpgrade" name="c59x64upg">
+          <arg>centos59-x64</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.guest.TCCentosUpgrade" name="c64x86upg">
+          <arg>centos64-x86</arg>
+        </testcase>
+        <testcase id="testcases.xenserver.tc.guest.TCCentosUpgrade" name="c64x64upg">
+          <arg>centos64-x64</arg>
+        </testcase>
+     </parallel>
+  </testsequence>
+</xenrt>

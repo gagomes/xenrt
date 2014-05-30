@@ -1822,6 +1822,12 @@ class TCWith16Nics(xenrt.TestCase):
         
         self.all_pifs = set([self.host.parseListForUUID("pif-list", "MAC", self.host.getNICMACAddress(x))
                             for x in ([0] + self.host.listSecondaryNICs(network="NPRI"))])
+        
+        #Check if the pifs are valid
+        for pif in self.all_pifs:
+            if not pif or (',' in pif):
+                raise xenrt.XRTError("Pifs are not ready to bond. There are existing bonds present probably")
+        
         self.management_pif = self.host.parseListForUUID("pif-list", "management", "true")
 
 
@@ -2261,7 +2267,7 @@ sock.close()
         f = file(t, "w")
         f.write(guestScript)
         f.close()
-        sftp.copyTo(t, "/tmp/local/send.py")
+        sftp.copyTo(t, "/tmp/send.py")
         
     def run(self,arglist):
     
@@ -2285,7 +2291,7 @@ sock.close()
 
         #start send.py multiple times on guest
         for i in range(5):
-            self.guest.execguest("python /tmp/local/send.py")
+            self.guest.execguest("python /tmp/send.py")
 
         #try a guest force-reboot
         cli=self.host.getCLIInstance()

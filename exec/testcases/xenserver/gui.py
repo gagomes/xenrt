@@ -13,6 +13,7 @@ import xenrt, xenrt.lib.xenserver.cli, xenrt.lib.xenserver
 from xenrt.lazylog import log, step, comment
 from abc import ABCMeta, abstractmethod, abstractproperty
 
+
 class TCGUIJUnit(xenrt.TestCase):
 
     def __init__(self, tcid="TCGUIJUnit"):
@@ -87,6 +88,7 @@ class TCGUIJUnit(xenrt.TestCase):
                 else:
                     result = xenrt.RESULT_PASS
                 self.testcaseResult(None, suite, result)
+
 
 class TCGUISelfTest(xenrt.TestCase):
 
@@ -293,7 +295,7 @@ class TCGUISelfTest(xenrt.TestCase):
 
         if outcome:
             raise outcome
-        
+
     def postRun(self):
         for g in self.guestsToClean:
             try:
@@ -303,6 +305,7 @@ class TCGUISelfTest(xenrt.TestCase):
             g.poll("DOWN", 120, level=xenrt.RC_ERROR)
             g.uninstall()
             time.sleep(15)
+
 
 class _UnitTestMechanism(object):
     """
@@ -353,30 +356,31 @@ class _UnitTestMechanism(object):
 
     @abstractproperty
     def _packageName(self): pass
-    
+
     @abstractproperty
     def _srcPath(self): pass
-    
+
     @abstractproperty
     def results(self): pass
-   
+
     @abstractmethod
     def installDependencies(self): pass
-    
+
     @abstractmethod
     def installSdk(self): pass
-   
+
     @abstractmethod
     def buildTests(self): pass
-    
+
     @abstractmethod
     def runTests(self): pass
-    
+
     @abstractmethod
     def triageTestOutput(self): pass
-    
+
+
 class JavaUnitTestMechanism(_UnitTestMechanism):
-    
+
     __ZIP_DEP_PATH = "XenServer-SDK/XenServerJava/bin"
     __TEST_CODE_PATH = "XenServer-SDK/XenServerJava/samples"
     __TEST_RUNNER = "RunTests"
@@ -389,7 +393,7 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
 
     @property
     def _packageName(self): return "XenServer-SDK.zip"
-    
+
     @property
     def _srcPath(self): return "XenServer-SDK/XenServerJava/src"
 
@@ -405,7 +409,7 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
         log(self._runner.execguest("unzip %s" % sdkLocation))
         log(self._runner.execguest("cp %s/*.jar %s" %(self.__ZIP_DEP_PATH, self._srcPath)))
         return os.path.join(self.TARGET_ROOT, sdkLocation)
-   
+
     def __writeMakeLog(self, message):
         log("Make output in: %s" % self.__BUILD_LOG)
         file("%s/%s" % (xenrt.TEC().getLogdir(), self.__BUILD_LOG), "w").write(message)
@@ -426,12 +430,13 @@ class JavaUnitTestMechanism(_UnitTestMechanism):
        except xenrt.XRTFailure, e:
             log("Running the tests has failed - caputuring the errors for later triage")
             self.__results = str(e.data)
-    
+
     def triageTestOutput(self):
         for e in self.__ERRORS:
             if re.search(e, self.__results):
                 log("Found error indicator %s" % e)
                 raise xenrt.XRTFailure("An error was found while triaging the output")
+
 
 class _SDKUnitTestCase(xenrt.TestCase, object):
     __metaclass__ = ABCMeta
@@ -445,12 +450,12 @@ class _SDKUnitTestCase(xenrt.TestCase, object):
 
     @abstractmethod
     def _createMechanism(self, host, runner): pass
-        
+
     def run(self, arglist):
         host = self.getDefaultHost()
         runner = self.getGuest(self.__vmName(arglist))
         log("Host %s and Runner %s" %(host, runner))
-        
+
         installer = self._createMechanism(host, runner)
         step("Install dependencies....")
         installer.installDependencies()
@@ -467,9 +472,11 @@ class _SDKUnitTestCase(xenrt.TestCase, object):
         step("Tidy up ....")
         installer.removePackage()
 
+
 class TCJavaSDKUnitTests(_SDKUnitTestCase):
     def _createMechanism(self, host, runner):
         return JavaUnitTestMechanism(host, runner) 
+
 
 class CUnitTestMechanism(_UnitTestMechanism):
     __TEST_CODE_PATH = "XenServer-SDK/libxenserver/src/test"
@@ -486,10 +493,10 @@ class CUnitTestMechanism(_UnitTestMechanism):
 
     @property
     def _packageName(self): return "XenServer-SDK.zip"
-    
+
     @property
     def _srcPath(self): return "XenServer-SDK/libxenserver/src"
-   
+
     @property
     def results(self): return str(self.__results)
 
@@ -497,11 +504,11 @@ class CUnitTestMechanism(_UnitTestMechanism):
         sdkLocation = self._getSdk()
         log(self._runner.execguest("unzip %s" % sdkLocation))
         return os.path.join(self.TARGET_ROOT, sdkLocation)
-    
+
     def installDependencies(self):
         deps = ["libxml2-dev", "libcurl3-dev", "unzip"]
         [log(self._runner.execguest("sudo apt-get -y install %s" % p)) for p in deps]
-   
+
     def buildTests(self): 
         log(self._runner.execguest("cd %s && make clean" % self._srcPath))
         log(self._runner.execguest("cd %s && make" % self._srcPath))
@@ -509,11 +516,11 @@ class CUnitTestMechanism(_UnitTestMechanism):
     def __runVmOps(self, localSrName):
         self.__currentTest = self.__TEST_RUNNER
         return self._runner.execguest("cd %s && ./%s https://%s \'%s\' root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP(), localSrName))
-    
+
     def __runGetRecords(self):
         self.__currentTest = self.__TEST_RECORDS
         return self._runner.execguest("cd %s && ./%s https://%s root xenroot" % (self.__TEST_CODE_PATH, self.__currentTest, self._host.getIP()))
-    
+
     def runTests(self):
         localSrName = next(sr for sr in self._host.asXapiObject().SR() if sr.isLocal()).name()
         try:
@@ -522,7 +529,7 @@ class CUnitTestMechanism(_UnitTestMechanism):
         except xenrt.XRTFailure, e:
            log("Test failed: %s" % e)
            self.__results[self.__currentTest]=(e.data)
-    
+
     def triageTestOutput(self): 
         for bad in self.__BADNESS:
             if bad in self.results:
@@ -536,6 +543,7 @@ class CUnitTestMechanism(_UnitTestMechanism):
 class TCCSDKUnitTests(_SDKUnitTestCase):
     def _createMechanism(self, host, runner):
         return CUnitTestMechanism(host, runner) 
+
 
 class _PowerShellSnapTest(xenrt.TestCase):
     """Run the XenServer PowerShell Snap-In Tests."""
@@ -578,25 +586,29 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.guest.xmlrpcExec("c:\\certmgr.exe /add %s "
                               "/s /r localmachine root" % (der_file_win))
         self.host.execdom0("rm -f %s" % (der_file))
-        
+
     def __selectPath(self):
-        if isinstance(self.guest, xenrt.lib.xenserver.guest.SarasotaGuest):
+        if isinstance(self.guest, xenrt.lib.xenserver.guest.ClearwaterGuest):
             return self.__MODULE_PATH
         if self.guest.xmlrpcGetArch() == "amd64":
             return self.__MSI_PATH_64
         else:
             return self.__MSI_PATH_32
-        
+
     def __runTestScript(self):
         nfshost, nfspath = self.nfs.getMount().split(":")
         pathpref = self.__selectPath()
-            
-        if isinstance(self.guest, xenrt.lib.xenserver.guest.SarasotaGuest):
+
+        if isinstance(self.guest, xenrt.lib.xenserver.guest.ClearwaterGuest):
             testScript = self.__SARASOTA_CORE_TEST
             testScriptIncPath = self.__MODULE_PATH + "\\" + testScript
             resultFileName = "C:\\" + testScript.split('.')[0] + "_results.xml"
             self.guest.xmlrpcExec("cd %s" % pathpref)
-            test = "%s %s %s %s %s %s %s" %  (testScriptIncPath, resultFileName, self.host.getIP(), "root", self.host.password, nfshost, nfspath)
+            test = "%s %s %s %s %s %s %s" %  (testScriptIncPath,
+                                              resultFileName,
+                                              self.host.getIP(), "root",
+                                              self.host.password, nfshost,
+                                              nfspath)
             self.guest.xmlrpcExec("%s -command \"Import-Module XenServerPSModule; %s\"" %(self.__POWERSHELL_EXE, test))
             return resultFileName
         else:
@@ -614,14 +626,14 @@ class _PowerShellSnapTest(xenrt.TestCase):
                           ".\\xenserverpssnapin.bat "
                           "\"%s\\automatedtestcore.ps1\" "
                           "c:\\result.xml %s %s %s %s %s" % 
-                          (pathpref, pathpref, self.host.getIP(), "root", 
+                          (pathpref, pathpref, self.host.getIP(), "root",
                            self.host.password, nfshost, nfspath), timeout=1800)
             return "c:\\result.xml"
-    
+
     def run(self, arglist):
         self.nfs = xenrt.ExternalNFSShare()
         resultName = None
-        
+
         try:
             resultName = self.__runTestScript()
         finally:
@@ -635,7 +647,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
             try: self.parseResults(result)
             except: raise xenrt.XRTError("Error parsing XML results file.")
             for x in self.myresults:
-                if x["state"] == "Fail":    
+                if x["state"] == "Fail":
                     raise xenrt.XRTFailure("One or more subcases failed.")
 
     def postRun(self):
@@ -648,7 +660,7 @@ class _PowerShellSnapTest(xenrt.TestCase):
                 self.nfs.release()
             except:
                 pass
-      
+
     def handleTestNode(self, test):
         outcome = {}
         for x in test.childNodes:
@@ -670,81 +682,95 @@ class _PowerShellSnapTest(xenrt.TestCase):
         self.myresults.append(outcome)
 
     def parseResults(self, xmldata):
-        self.myresults = []    
+        self.myresults = []
         xmltree = xml.dom.minidom.parseString(xmldata)
         for x in xmltree.childNodes:
-            if x.nodeName == "results": 
+            if x.nodeName == "results":
                 for y in x.childNodes:
                     if y.nodeName == "group":
                         for z in y.childNodes:
                             if z.nodeName == "test":
                                 self.handleTestNode(z)
 
+
 class TC8300(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2003 EE SP2"""
-    
+
     DISTRO = "w2k3eesp2"
+
 
 class TC8301(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2003 EE SP2 x64"""
-    
+
     DISTRO = "w2k3eesp2-x64"
+
 
 class TC8302(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows XP SP3"""
-    
+
     DISTRO = "winxpsp3"
+
 
 class TC8303(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Vista EE SP1"""
-    
+
     DISTRO = "vistaeesp1"
+
 
 class TC17780(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Vista EE SP2"""
-    
+
     DISTRO = "vistaeesp2"
+
 
 class TC8304(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2008 32 bit"""
-    
+
     DISTRO = "ws08sp2-x86"
+
 
 class TC8305(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2008 64 bit"""
-    
+
     DISTRO = "ws08sp2-x64"
+
 
 class TC19252(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows Server 2012 64 bit"""
-    
+
     DISTRO = "ws12-x64"
+
 
 class TC19253(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 7 32 bit"""
-    
+
     DISTRO = "win7sp1-x86"
+
 
 class TC19254(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 7 64 bit"""
-    
+
     DISTRO = "win7sp1-x64"
+
 
 class TC19255(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 8 32 bit"""
-    
+
     DISTRO = "win8-x86"
+
 
 class TC19256(_PowerShellSnapTest):
     """PowerShell Snap-In test on Windows 8 64 bit"""
-    
+
     DISTRO = "win8-x64"
+
 
 class TC19261(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Server 2003 EE SP2"""
-    
+
     DISTRO = "w2k3eesp2"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
+
 
 class TC19266(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Server 2003 EE SP2 x64"""
@@ -752,56 +778,65 @@ class TC19266(_PowerShellSnapTest):
     DISTRO = "w2k3eesp2-x64"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19257(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows XP SP3"""
-    
+
     DISTRO = "winxpsp3"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19260(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Vista EE SP2"""
-    
+
     DISTRO = "vistaeesp2"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19265(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Server 2008 32 bit"""
-    
+
     DISTRO = "ws08sp2-x86"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19267(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Server 2008 64 bit"""
-    
+
     DISTRO = "ws08sp2-x64"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19262(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows Server 2012 64 bit"""
-    
+
     DISTRO = "ws12-x64"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19258(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows 7 32 bit"""
-    
+
     DISTRO = "win7sp1-x86"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19263(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows 7 64 bit"""
-    
+
     DISTRO = "win7sp1-x64"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19259(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows 8 32 bit"""
-    
+
     DISTRO = "win8-x86"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"
 
+
 class TC19264(_PowerShellSnapTest):
     """Old PowerShell Snap-In test on Windows 8 64 bit"""
-    
+
     DISTRO = "win8-x64"
     SNAPIN_DIR_NAME = "XenServerPSSnapIn_old"

@@ -1,0 +1,344 @@
+<?xml version="1.0"?>
+<!--
+
+  This sequence contains network throughput experiments between
+  pairs of VMs from different distros, on a single host.
+
+  The VMs have 1 vCPU, and we use 1 iperf thread. GRO is off.
+
+-->
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>14</PREPARE_WORKERS>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <NETWORK>
+          <!--<PHYSICAL network="NPRI" jumbo="yes" speed="10G" name="NET_A"> -->
+          <PHYSICAL network="NPRI" jumbo="yes" name="NET_A"> <!-- intrahost doesn't use the 10gb nic, so run with any nic -->
+            <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+        <vm name="debian60-0">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="debian60-1">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="debian70-0">
+          <distro>debian70</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="debian70-1">
+          <distro>debian70</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="ubuntu1204-0">
+          <distro>ubuntu1204</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="ubuntu1204-1">
+          <distro>ubuntu1204</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="sles112-0">
+          <distro>sles112</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="sles112-1">
+          <distro>sles112</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="oel64-0">
+          <distro>oel64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="oel64-1">
+          <distro>oel64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="centos64-0">
+          <distro>centos64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="centos64-1">
+          <distro>centos64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="rhel64-0">
+          <distro>rhel64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+        <vm name="rhel64-1">
+          <distro>rhel64</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+      </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <!-- debian60 with * -->
+    <serial group="debian60-debian60">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=debian60-1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-debian70">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=debian70-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-ubuntu1204">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=ubuntu1204-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-sles112">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=sles112-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-oel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=oel64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=centos64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- debian70 with * -->
+    <serial group="debian70-debian70">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=debian70-1</arg>
+      </testcase>
+    </serial>
+    <serial group="debian70-ubuntu1204">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=ubuntu1204-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian70-sles112">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=sles112-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian70-oel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=oel64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian70-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=centos64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="debian70-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian70-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- ubuntu1204 with * -->
+    <serial group="ubuntu1204-ubuntu1204">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=ubuntu1204-0</arg>
+        <arg>endpoint1=ubuntu1204-1</arg>
+      </testcase>
+    </serial>
+    <serial group="ubuntu1204-sles112">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=ubuntu1204-0</arg>
+        <arg>endpoint1=sles112-0</arg>
+      </testcase>
+    </serial>
+    <serial group="ubuntu1204-oel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=ubuntu1204-0</arg>
+        <arg>endpoint1=oel64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="ubuntu1204-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=ubuntu1204-0</arg>
+        <arg>endpoint1=centos64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="ubuntu1204-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=ubuntu1204-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- sles112 with * -->
+    <serial group="sles112-sles112">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=sles112-0</arg>
+        <arg>endpoint1=sles112-1</arg>
+      </testcase>
+    </serial>
+    <serial group="sles112-oel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=sles112-0</arg>
+        <arg>endpoint1=oel64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="sles112-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=sles112-0</arg>
+        <arg>endpoint1=centos64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="sles112-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=sles112-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- oel64 with * -->
+    <serial group="oel64-oel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=oel64-0</arg>
+        <arg>endpoint1=oel64-1</arg>
+      </testcase>
+    </serial>
+    <serial group="oel64-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=oel64-0</arg>
+        <arg>endpoint1=centos64-0</arg>
+      </testcase>
+    </serial>
+    <serial group="oel64-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=oel64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- centos64 with * -->
+    <serial group="centos64-centos64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=centos64-0</arg>
+        <arg>endpoint1=centos64-1</arg>
+      </testcase>
+    </serial>
+    <serial group="centos64-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=centos64-0</arg>
+        <arg>endpoint1=rhel64-0</arg>
+      </testcase>
+    </serial>
+
+    <!-- rhel64 with * -->
+    <serial group="rhel64-rhel64">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=rhel64-0</arg>
+        <arg>endpoint1=rhel64-1</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+</xenrt>

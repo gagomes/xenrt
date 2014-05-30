@@ -9,10 +9,10 @@
   <testsequence>
     <parallel group="HVM5G2C_4" workers="1">
       <testcase id="xenserver.tc.smoketest.TC17750" prio="4" tc="TC-17750"/>
-      <testcase id="xenserver.tc.smoketest.TC18429" prio="4" tc="TC-18429"/>
-      <testcase id="xenserver.tc.smoketest.TC18430" prio="4" tc="TC-18430"/>
-      <testcase id="xenserver.tc.smoketest.TC18431" prio="4" tc="TC-18431"/>
-      <testcase id="xenserver.tc.smoketest.TC18432" prio="4" tc="TC-18432"/>
+      <testcase id="xenserver.tc.smoketest.TC21396" prio="4" tc="TC-21396"/>
+      <testcase id="xenserver.tc.smoketest.TC21397" prio="4" tc="TC-21397"/>
+      <testcase id="xenserver.tc.smoketest.TC21403" prio="4" tc="TC-21403"/>
+      <testcase id="xenserver.tc.smoketest.TC21404" prio="4" tc="TC-21404"/>
     </parallel>
   </testsequence>
 </xenrt>

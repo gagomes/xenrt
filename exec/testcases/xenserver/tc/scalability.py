@@ -177,7 +177,7 @@ class _VMScalability(_Scalability):
         if self.DOM0CPUS:
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
-                out=host.execdom0("/usr/lib/xen/bin/host-cpu-tune set %s xpin" % self.tunevcpus)
+                out=host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus))
                 xenrt.TEC().logverbose(out)
             except:
                 xenrt.TEC().warning("Error while pinning vcpus to Dom0")
@@ -1830,7 +1830,13 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         self.hostNames = [ host.getName() for host in self.hosts]
         self.host = self.pool.master
         self.numberOfHosts = len(self.hosts)
-                
+        self.numberOfSlavesToReboot = 1
+        if arglist and len(arglist) > 0:
+            for arg in arglist:
+                l = string.split(arg, "=", 1)
+                if l[0] == "numberOfSlavesToReboot":
+                    self.numberOfSlavesToReboot = int(l[1])
+        
         log("Check that all the hosts allocated to the sequence (resource hosts) are present in the pool")
 
         resourceHosts = xenrt.GEC().config.getWithPrefix("RESOURCE_HOST_")
@@ -2175,8 +2181,7 @@ class TCStbltyMSlaveReboot(_Stability):
     def setHostsToBoot(self):
         # reboot half of the slaves
         allSlaves = self.pool.getSlaves()[:]
-        nHostsToBoot = (len(allSlaves)+1) / 2
-        self.hostsToBoot = allSlaves[0:nHostsToBoot]
+        self.hostsToBoot = allSlaves[0:self.numberOfSlavesToReboot]
         random.shuffle(self.hostsToBoot)
 
 class TCStbltyAllHostReboot(_Stability):

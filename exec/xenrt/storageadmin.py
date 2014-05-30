@@ -417,7 +417,7 @@ class NetAppFCStorageArray(StorageArray):
 
 class NetAppInitiatorGroupCommunicator(object):
     
-    def parse_list_message(self, toParse):
+    def parseListMessage(self, toParse):
         """
         Parse a listing of initiator groups from the NetApp listing
         @param toParse: The data from the NetApp
@@ -494,7 +494,7 @@ class NetAppFCInitiatorGroup(StorageElement):
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
         comm = NetAppInitiatorGroupCommunicator()
-        return comm.parse_list_message(results)
+        return comm.parseListMessage(results)
 
     def destroy(self, force):
         """Destroys an existing initiator group."""

@@ -18,13 +18,10 @@ class DebianBasedLinux(LinuxOS):
         pass
 
     @staticmethod
-    def knownDistro(distro): raise NotImplementedError()
-
-    @staticmethod
     def testInit(parent): raise NotImplementedError()
 
     def __init__(self, distro, parent):
-        super(DebianBasedLinux, self).__init__(parent)
+        super(DebianBasedLinux, self).__init__(distro, parent)
 
         if distro.endswith("x86-32") or distro.endswith("x86-64"):
             self.distro = distro[:-7]
@@ -36,8 +33,9 @@ class DebianBasedLinux(LinuxOS):
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
 
-        # TODO: Validate distro
-        # TODO: Look up / work out URLs, don't just hard code!
+    @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
 
     @abstractproperty
     def isoName(self): pass
@@ -126,10 +124,6 @@ class DebianBasedLinux(LinuxOS):
         if self.cleanupdir:
             shutil.rmtree(self.cleanupdir)
         self.cleanupdir = None
-
-    @property
-    def defaultRootdisk(self):
-        return 8 * xenrt.GIGA
 
     def waitForInstallCompleteAndFirstBoot(self):
         # Install is complete when the guest shuts down

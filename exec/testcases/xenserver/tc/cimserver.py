@@ -15,6 +15,7 @@ import xenrt, xenrt.lib.xenserver, XenAPI
 import xml.dom.minidom
 import urllib2
 import datetime, random
+from xenrt.lazylog import log, warning
 
 class _CIMInterface: 
 
@@ -858,7 +859,7 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         #Delete VM using CLI command
         host.execdom0("xe vm-destroy uuid=%s" % (vmuuid))
 
-    def verifyVM(self,vmuuid,vmName,origVMObj,host,createVif):
+    def verifyVM(self,vmuuid,vmName,origVMObj,host,createVif,changeVif=False):
 
         #Copy the original object for the new VM
         newVm =  copy.copy(origVMObj)
@@ -867,14 +868,18 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         newVm.paramSet("platform:device_id", "0002")
         self.uninstallOnCleanup(newVm)
 
-        #considering that there is only one vif with name eth0 
-        if createVif:
+        #considering that there is only one vif with name eth0
+        if (createVif or changeVif):
             mac = xenrt.randomMAC()
             bridge = newVm.host.getPrimaryBridge()
             device = 'eth0'
-            newVm.createVIF(device, bridge, mac)
-
-        #considering that there is only one vif with name eth0          
+            if createVif:
+                newVm.createVIF(device, bridge, mac)
+            else:
+                newVm.changeVIF(device, bridge, mac)
+            
+        
+        #considering that there is only one vif with name eth0
         mac, ip, network = newVm.getVIFs()["eth0"]
         newVm.vifs = [('eth0',network,mac,None)]
  
@@ -1777,7 +1782,7 @@ class ExportImportVM(_CimBase):
         #get the vmuuid of the newly created vm
         vmuuid = self.protocolObj.getVMUUID(vm)
 
-        createVif = True        
+        createVif = True
 
         #verify the newly created vm
         self.verifyVM(vmuuid,self.IMPORTVMNAME,self.guest,self.host,createVif)
@@ -1859,10 +1864,11 @@ class CreateVMFromTemplate(_CimBase):
         #get the vmuuid of the newly created vm 
         vmuuid = self.protocolObj.getVMUUID(vm)
  
-        createVif = False    
+        createVif = False
+        changeVif = True
 
         #verify the newly created vm
-        self.verifyVM(vmuuid,self.CREATEVMNAMEFROMTEMPLATE,self.guest,self.host,createVif)
+        self.verifyVM(vmuuid,self.CREATEVMNAMEFROMTEMPLATE,self.guest,self.host,createVif,changeVif)
 
     def postRun(self):
 
@@ -1932,9 +1938,10 @@ class CopyVM(_CimBase):
         vmuuid = self.protocolObj.getVMUUID(vm)
 
         createVif = False
+        changeVif = True
 
         #verify the newly created vm
-        self.verifyVM(vmuuid,self.COPYVMNAME,self.guest,self.host,createVif)   
+        self.verifyVM(vmuuid,self.COPYVMNAME,self.guest,self.host,createVif,changeVif)
 
     def postRun(self):
 
@@ -3075,9 +3082,10 @@ class SnapShotFunctions(_CimBase):
         newvmuuid = self.protocolObj.getVMUUID(vm)
 
         createVif = False
+        changeVif = True
 
         #verify the newly created vm
-        self.verifyVM(newvmuuid,vmNameForSnapshop,self.guest,self.host,createVif)
+        self.verifyVM(newvmuuid,vmNameForSnapshop,self.guest,self.host,createVif,changeVif)
 
         xenrt.TEC().logverbose("VM with uuid %s created from snapshot %s " % (newvmuuid,snapshotName))
 
@@ -3312,9 +3320,10 @@ class TemplateOperations(_CimBase):
         #get the vmuuid of the newly created vm
         vmuuid = self.protocolObj.getVMUUID(vm)
         createVif = False
+        changeVif = True
 
         #verify the newly created vm
-        self.verifyVM(vmuuid,vmName,self.guest,self.host,createVif)
+        self.verifyVM(vmuuid,vmName,self.guest,self.host,createVif,changeVif)
 
         xenrt.TEC().logverbose("VM created from template %s" % (vmName))
 
@@ -3407,12 +3416,13 @@ class ExportImportSnapshotTree(_CimBase):
             raise xenrt.XRTFailure("Exception caught while trying to get uuid of Imported VM") 
 
         createVif = False
+        changeVif = True
     
         #Change the name of newly created VM
         self.host.execdom0("xe vm-param-set uuid=%s name-label=%s" % (importedGuestuuid,vmImportName)) 
  
         #verify the newly created vm
-        importedVM = self.verifyVM(importedGuestuuid,vmImportName,self.guest,self.host,createVif)
+        importedVM = self.verifyVM(importedGuestuuid,vmImportName,self.guest,self.host,createVif,changeVif)
 
         if self.LARGEVM:
             self.verifySingleSnapshot(importedVM,self.host,importedGuestuuid)

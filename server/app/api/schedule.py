@@ -29,6 +29,10 @@ class XenRTSchedule(XenRTAPIPage):
         outfh.close()
         if not ret:
             ret = ""
+        if self.mutex:
+            if self.mutex_held:
+                self.release_lock()
+            self.mutex.close()
         return ret
 
     def schedule_jobs(self, outfh, dryrun=False, ignore=False, verbose=False):
@@ -170,13 +174,15 @@ class XenRTSchedule(XenRTAPIPage):
                 still_needed = machines_required - len(selected)
 
                 if still_needed > 0:
+
                     self.scm_select_machines(outfh, machines,
-                                        still_needed,
-                                        selected,
-                                        site,
-                                        cluster,
-                                        details,
-                                        verbose=verbose)
+                                         still_needed,
+                                         selected,
+                                         site,
+                                         cluster,
+                                         details,
+                                         verbose=verbose)
+
                 if len(selected) < machines_required:
                     continue
 

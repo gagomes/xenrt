@@ -11,6 +11,7 @@
 import string, time, re, os.path, random
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 import XenAPI
+from xenrt.lazylog import log, warning
 
 class TCXenServerInstall(xenrt.TestCase):
 
@@ -38,11 +39,6 @@ class TCXenServerInstall(xenrt.TestCase):
         timezone = "UTC"
         ntpserver = None
         noprepare = False
-        embedded = xenrt.TEC().lookup("OPTION_EMBEDDED", False, boolean=True)
-        if not embedded:
-            embedded = xenrt.TEC().lookup("OPTION_EMBEDDED_HDD",
-                                          False,
-                                          boolean=True)
         netapp = False
         eql = False
         fcsr = None
@@ -93,8 +89,6 @@ class TCXenServerInstall(xenrt.TestCase):
                     ntpserver = l[1]
                 elif l[0] == "noprepare":
                     noprepare = True
-                elif l[0] == "embedded":
-                    embedded = True
                 elif l[0] == "fc" or l[0] == "FC":
                     fcsr = "yes"
                 elif l[0] == "sas" or l[0] == "SAS":
@@ -106,10 +100,6 @@ class TCXenServerInstall(xenrt.TestCase):
                 elif l[0] == "ipv6":
                     ipv6_mode = l[1]
                     
-        if embedded and multi:
-            raise xenrt.XRTError("Multiple install of embedded image not "
-                                 "supported")
-
         if not multi:
             # The machine name might be a variable we need to look up
             mname = xenrt.TEC().lookup(machine, machine)
@@ -227,20 +217,17 @@ class TCXenServerInstall(xenrt.TestCase):
                 xenrt.TEC().registry.hostPut(machine, host)
                 xenrt.TEC().skip("Skipping because of --noprepare option")
             else:
-                if embedded:
-                    host.installEmbedded(interfaces=interfaces)
-                else:
-                    handle = host.install(interfaces=interfaces,
-                                          primarydisk=primarydisk,
-                                          guestdisks=disks,
-                                          source=source,
-                                          extracds=extracds,
-                                          installsource=installsource,
-                                          async=multi,
-                                          installSRType=installSRType,
-                                          timezone=timezone,
-                                          ntpserver=ntpserver,
-                                          bootloader=bootloader)
+                handle = host.install(interfaces=interfaces,
+                                      primarydisk=primarydisk,
+                                      guestdisks=disks,
+                                      source=source,
+                                      extracds=extracds,
+                                      installsource=installsource,
+                                      async=multi,
+                                      installSRType=installSRType,
+                                      timezone=timezone,
+                                      ntpserver=ntpserver,
+                                      bootloader=bootloader)
                 if multi:
                     tocomplete.append((host,
                                        handle,
@@ -250,32 +237,12 @@ class TCXenServerInstall(xenrt.TestCase):
                     installs.append((host, handle))
                 else:
                     time.sleep(180)
-                    if embedded:
-                        if host.special.has_key('legacy embedded install method'):
-                            # Clean the local disks again. This is in case the
-                            # local disk wasn't available in the bootstrap
-                            # environment. If we used the built-in firstboot
-                            # revert-to-factory then skip this cleanup
-                            if host.execdom0("grep -q xenrt-revert-to-factory "
-                                             "/etc/init.d/xs-test",
-                                             retval="code") != 0:
-                                host.cleanLocalDisks()
-                                host.removeEmbeddedState()
-                        host._clearObjectCache()
-                        host.reboot()
-                        time.sleep(120)
-                        if not xenrt.TEC().lookup("OPTION_NO_DISK_CLAIM",
-                                                  False,
-                                                  boolean=True):
-                            host.getLocalSR()
-                        host.setHostParam("name-label", host.getName())
-                    if not embedded:
-                        host.check(interfaces=interfaces,
-                                   primarydisk=primarydisk,
-                                   guestdisks=disks,
-                                   timezone=timezone,
-                                   ntpserver=ntpserver)
-                                        
+                    host.check(interfaces=interfaces,
+                               primarydisk=primarydisk,
+                               guestdisks=disks,
+                               timezone=timezone,
+                               ntpserver=ntpserver)
+                                    
         if xenrt.TEC().lookup(["CLIOPTIONS", "NOPREPARE"], False,
                               boolean=True) or noprepare:
             return
@@ -1798,6 +1765,36 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
             return # Test is skipping
 
         self.compareRpmPackages()
+
+
+class TCDDKVmLifecycleOperation(TCDDKSourceCheck):
+    """TC-21158 Verify DDK VM Lifecycle Operation, Storage and Network tests"""
+
+    def run(self, arglist=None):
+        # Import the DDK VM from "ddk.iso"
+        cli = self.host.getCLIInstance()
+        log("Import the DDK VM")
+        ddkVM = self.host.importDDK()
+        eth = ddkVM.createVIF(bridge=self.host.getPrimaryBridge())
+        ddkVM.start()
+        # Perform lifecycle operation
+        log("Performing lifecycle operations on DDK VM")
+        ddkVM.reboot()
+        ddkVM.shutdown()
+        ddkVM.start()
+        ddkVM.suspend(extraTimeout=3600)
+        ddkVM.resume()
+        ddkVM.migrateVM(self.host, live="true")
+        log("Performing network tests on DDK VM")
+        # Do vif plug/unplug
+        ddkVM.unplugVIF(eth)
+        ddkVM.plugVIF(eth)
+        ddkVM.reboot()
+        log("Performing storage tests on DDK VM")
+        # Do vbd plug/unplug
+        userdevice = ddkVM.createDisk(sizebytes=268435456)
+        ddkVM.unplugDisk(userdevice)
+    
 
 class TCDXenAPISDKSourceCheck(SourceISOCheck): # TC-18004
     """Verify Xen API SDK source iso (xe-phase-3/source-sdk.iso) content for missing RPMs."""

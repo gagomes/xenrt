@@ -61,7 +61,7 @@ class RHELKickStartFile :
             kf=self._generateKS()
         else :
         #Native installation
-            kf=self._generate6()               
+            kf=self._generateKS()               
             # Put a fix up script
             # in %post to check that the interface's MAC matches what we
             # expected. This has to be done because NIC enumeration can differ
@@ -99,8 +99,10 @@ class RHELKickStartFile :
     def _generateKS(self):
         if self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
             kf=self._generate6()
-        else:
+        elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5"):
             kf=self._generate5()
+        else:
+            kf=self._generate4()
         return kf
 
     def _key(self):
@@ -268,11 +270,76 @@ umount /tmp/xenrttmpmount
         else:   
             return out
                 
+    def _generate4(self):
+        
+        out = """install
+text
+%s
+lang en_US.UTF-8
+langsupport --default=en_US.UTF-8 en_US.UTF-8
+keyboard us
+network --device %s --bootproto dhcp
+rootpw --iscrypted %s
+firewall --enabled --ssh 
+selinux --disabled
+authconfig --enableshadow --enablemd5
+timezone %s
+bootloader --location=mbr --append="console=ttyS0,115200n8"
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --linux --all --initlabel
+part /boot --fstype "ext3" --size=%d --ondisk=%s
+part pv.8 --size=0 --grow --ondisk=%s --maxsize=12000
+volgroup VolGroup00 --pesize=32768 pv.8
+logvol / --fstype ext3 --name=LogVol00 --vgname=VolGroup00 --size=1024 --grow
+logvol swap --fstype swap --name=LogVol01 --vgname=VolGroup00 --size=1000
+%s
+%s
+
+%%packages
+@ admin-tools
+@ text-internet
+@ dialup
+@ server-cfg
+@ development-tools
+@ development-libs
+bridge-utils
+lvm2
+grub
+e2fsprogs
+%s
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+       
+        out = out+ """
+%%post
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+        return out
+
     def _generate5(self):
         
         out = """install
 text
 %s
+key --skip
 lang en_US.UTF-8
 langsupport --default=en_US.UTF-8 en_US.UTF-8
 keyboard us
@@ -348,7 +415,8 @@ class SLESAutoyastFile :
                  kickStartExtra=None,
                  bootDiskSize=None,
                  ossVG=False,
-                 installXenToolsInPostInstall=False):
+                 installXenToolsInPostInstall=False,
+                 rebootAfterInstall = True):
         self.mainDisk = maindisk
         self.pxe=pxe
         self.password=password
@@ -363,12 +431,17 @@ class SLESAutoyastFile :
         self.signalDir=signalDir
         self.bootDiskSize=bootDiskSize
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
+        self.rebootAfterInstall = rebootAfterInstall
     
     def _password(self):
         if not self.password:
             self.password=xenrt.TEC().lookup("ROOT_PASSWORD")
         return self.password
-    
+    def _rebootAfterInstall(self):
+        if self.rebootAfterInstall:
+            return "/sbin/reboot"
+        else:
+            return ""
     def _timezone(self):
         deftz="UTC"
         return xenrt.TEC().lookup("OPTION_CARBON_TZ", deftz)
@@ -857,14 +930,14 @@ umount /tmp/xenrttmpmount
     def _generateSLES11x(self):
         SLES111=["<package>stunnel</package>",
                 "echo ulimit -v unlimited >> /etc/profile.local",
-                "(sleep 120; /sbin/reboot) > /dev/null 2>&1 &",
+                "(sleep 120; %s) > /dev/null 2>&1 &"%(self._rebootAfterInstall()),
                 ""]
         SLES11=["",
                 "",
                "sleep 120",
-               "/sbin/reboot"]
+               "%s"%(self._rebootAfterInstall())]
         diffSLES=[]
-        if self.distro.startswith("sles111") or self.distro.startswith("sles112"):
+        if re.match(r'sles11[123]', self.distro):
             diffSLES=SLES111
         else:
             diffSLES=SLES11
@@ -2056,7 +2129,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2175,6 +2248,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,
@@ -2278,7 +2352,7 @@ touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
 sleep 120
-/sbin/reboot
+%s
 ]]>
           </source>
         </script>
@@ -2393,6 +2467,7 @@ sleep 120
        self._password(),
        self.signalDir,
        self._postInstall(),
+       self._rebootAfterInstall(),
        self.mainDisk,
        self.mainDisk,
        self.mainDisk,

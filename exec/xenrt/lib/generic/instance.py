@@ -2,27 +2,42 @@ import xenrt
 
 from zope.interface import implements
 
+
 class Instance(object):
     implements(xenrt.interfaces.OSParent)
 
-    def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None, rootdisk=None, extraConfig={}):
+    def __init__(self, toolstack, name, distro, vcpus, memory, vifs=None,
+                 rootdisk=None, extraConfig={}):
         self.toolstack = xenrt.interfaces.Toolstack(toolstack)
         self.toolstackId = None
         self.name = name
         self.distro = distro
-        self.vcpus = vcpus
-        self.memory = memory
         self.extraConfig = extraConfig
         self.mainip = None
 
         self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk
-        self.vifs = vifs or [("%s0" % (self.os.vifStem), None, xenrt.randomMAC(), None)]
+        self.vcpus = vcpus or self.os.defaultVcpus
+        self.memory = memory or self.os.defaultMemory
+        self.vifs = vifs or [("%s0" % (self.os.vifStem), None,
+                              xenrt.randomMAC(), None)]
 
     @property
     def hypervisorType(self):
         return self.toolstack.instanceHypervisorType(self)
+
+    @property
+    def supportedLifecycleOperations(self):
+        return self.toolstack.instanceSupportedLifecycleOperations(self)
+
+    @property
+    def canMigrateTo(self):
+        return self.toolstack.instanceCanMigrateTo(self)
+
+    @property
+    def residentOn(self):
+        return self.toolstack.instanceResidentOn(self)
 
     def populateFromExisting(self, ip=None):
         if ip:
@@ -50,37 +65,52 @@ class Instance(object):
 
     def setIP(self, ip):
         raise xenrt.XRTError("Not implemented")
-    
+
     def start(self, on=None, timeout=600):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.down, "Power state before starting must be down")
         self.toolstack.startInstance(self, on)
         self.os.waitForBoot(timeout)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after start should be up")
 
     def reboot(self, force=False, timeout=600, osInitiated=False):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before rebooting must be up")
         if osInitiated:
             self.os.reboot()
             xenrt.sleep(120)
         else:
             self.toolstack.rebootInstance(self, force)
         self.os.waitForBoot(timeout)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after reboot should be up")
 
     def stop(self, force=False, osInitiated=False):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before shutting down must be up")
         if osInitiated:
             self.os.shutdown()
             self.poll(xenrt.PowerState.down)
         else:
             self.toolstack.stopInstance(self, force)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.down, "Power state after shutdown should be down")
 
     def suspend(self):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before suspend down must be up")
         self.toolstack.suspendInstance(self)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.suspended, "Power state after suspend should be suspended")
 
     def resume(self, on=None):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.suspended, "Power state before resume down must be suspended")
         self.toolstack.resumeInstance(self, on)
+        self.os.waitForBoot(60)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after resume should be up")
 
     def destroy(self):
         self.toolstack.destroyInstance(self)
 
     def migrate(self, to, live=True):
+        xenrt.xrtAssert(self.getPowerState() == xenrt.PowerState.up, "Power state before migrate must be up")
         self.toolstack.migrateInstance(self, to, live)
+        self.os.waitForBoot(60)
+        xenrt.xrtCheck(self.getPowerState() == xenrt.PowerState.up, "Power state after migrate should be up")
+        xenrt.xrtCheck(self.residentOn == to, "Resident on after migrate should be %s" % to)
 
     def setPowerState(self, powerState):
         transitions = {}
@@ -95,7 +125,7 @@ class Instance(object):
         transitions[xenrt.PowerState.suspended] = {}
         transitions[xenrt.PowerState.suspended][xenrt.PowerState.up] = [self.resume]
         transitions[xenrt.PowerState.suspended][xenrt.PowerState.down] = [self.resume, self.stop]
-        
+
         curState = self.getPowerState()
 
         try:
@@ -109,6 +139,9 @@ class Instance(object):
     def getPowerState(self):
         return self.toolstack.getInstancePowerState(self)
 
+    def setIso(self, isoName, isoRepo=None):
+        return self.toolstack.setInstanceIso(self, isoName, isoRepo)
+
     def ejectIso(self):
         return self.toolstack.ejectInstanceIso(self)
 
@@ -120,5 +153,11 @@ class Instance(object):
 
     def revertToSnapshot(self, name):
         return self.toolstack.revertInstanceToSnapshot(self, name)
+
+    def assertHealthy(self):
+        self.os.assertHealthy()
+
+    def screenshot(self, path):
+        return self.toolstack.instanceScreenshot(self, path)
 
 __all__ = ["Instance"]

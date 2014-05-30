@@ -9,6 +9,7 @@ PYTHONLIB ?= /usr/local/lib/python2.6/dist-packages/
 PYTHONLIB2 ?= /usr/local/lib/python2.7/dist-packages/
 JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
+CURRENT_DIR ?= $(shell pwd)
 
 include build/config.mk
 include build/tools.mk
@@ -163,15 +164,17 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf ../../control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
 
 control/xrt:
 	$(info Creating link to $@...)
-	ln -sf ../exec/main.py $(SHAREDIR)/$@
+	rm $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	chmod a+x $(SHAREDIR)/$@
 
 xrt:
 	$(info Creating link to $@...)
-	$(SUDO) ln -sf $(SHAREDIR)/exec/main.py $(BINDIR)/$@
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)
@@ -269,5 +272,10 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd /usr/share/xenrt/unittests && python runner.py
+	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 
+.PHONY: minimal-check
+minimal-check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)

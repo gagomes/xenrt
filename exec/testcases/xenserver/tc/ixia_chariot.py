@@ -1,15 +1,27 @@
 import xenrt
 from xenrt import util
 from xenrt import ixiachariot
+from xenrt import resources
+
+
+class XenRTLock(object):
+    def __init__(self):
+        self.resource = None
+
+    def acquire(self):
+        self.resource = resources.GlobalResource('IXIA')
+
+    def release(self):
+        self.resource.release()
 
 
 class IxiaChariotBasedTest(xenrt.TestCase):
 
     def executeOnChariotConsole(self, cmd):
-        result = xenrt.ssh.SSH(
-            ixiachariot.CONSOLE_ADDRESS,
+        return_code = xenrt.ssh.SSH(
+            self.consoleAddress,
             cmd,
-            username=ixiachariot.CONSOLE_USER,
+            username=self.consoleUser,
             level=xenrt.RC_FAIL,
             timeout=300,
             idempotent=False,
@@ -20,7 +32,23 @@ class IxiaChariotBasedTest(xenrt.TestCase):
             outfile=None,
             password=None)
 
-        xenrt.log(result)
+        xenrt.log(return_code)
+        return return_code
+
+    def getConfigValue(self, key):
+        return xenrt.TEC().lookup(["IXIA_CHARIOT", key])
+
+    @property
+    def consoleAddress(self):
+        return self.getConfigValue("CONSOLE_ADDRESS")
+
+    @property
+    def consoleUser(self):
+        return self.getConfigValue("CONSOLE_USER")
+
+    @property
+    def distmasterDir(self):
+        return self.getConfigValue("DISTMASTER_DIR")
 
     def run(self, arglist=None):
         argDict = util.strlistToDict(arglist)
@@ -31,8 +59,8 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         endpoint1 = ixiachariot.createEndpoint(
             argDict['endpointSpec1'], distmasterBase, self)
 
-        endpoint0.install()
-        endpoint1.install()
+        endpoint0.install(self.distmasterDir)
+        endpoint1.install(self.distmasterDir)
 
         ixiaTest = argDict['ixiaTestFile']
         jobId = xenrt.GEC().jobid()
@@ -40,14 +68,17 @@ class IxiaChariotBasedTest(xenrt.TestCase):
         pairTest = ixiachariot.PairTest(
             endpoint0.ipAddress, endpoint1.ipAddress, ixiaTest, jobId)
 
+        console = ixiachariot.Console(
+            self.consoleAddress, self.executeOnChariotConsole, XenRTLock())
+
         for cmd in pairTest.getCommands():
-            self.executeOnChariotConsole(cmd)
+            console.run(cmd)
 
         logdir = xenrt.TEC().getLogdir()
 
         sftpclient = xenrt.ssh.SFTPSession(
-            ixiachariot.CONSOLE_ADDRESS,
-            username=ixiachariot.CONSOLE_USER)
+            self.consoleAddress,
+            username=self.consoleUser)
 
         sftpclient.copyTreeFrom(pairTest.workingDir, logdir + '/results')
         sftpclient.close()

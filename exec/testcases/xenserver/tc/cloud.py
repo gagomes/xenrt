@@ -1,4 +1,3 @@
-
 import xenrt, xenrt.lib.xenserver
 import time
 import datetime
@@ -8,6 +7,8 @@ import IPy
 from lxml import etree
 import re
 from datetime import datetime
+from abc import ABCMeta, abstractmethod, abstractproperty
+from xenrt.lazylog import log, step
 
 use_jenkins_api = True
 try:
@@ -214,49 +215,12 @@ class CitrixCloudBase(xenrt.TestCase):
         return host.genParamGet(ptype='network', uuid=networkUUID, param='name-label')
 
     def getResourceRange(self, resourceType, numberRequired):
-        loopsToTry = 3
-
-        lastResourceInt = None
-        resourceInt = None
-        resourceList = []
-        resource = None
-        while len(resourceList) < numberRequired:
-            if resourceType == 'IP4ADDR':
-                resource = xenrt.StaticIP4Addr()
-                resourceInt = IPy.IP(resource.getAddr()).int()
-            elif resourceType == 'IP6ADDR':
-                resource = xenrt.StaticIP6Addr()
-                resourceInt = IPy.IP(resource.getAddr()).int()
-            elif resourceType == 'VLAN':
-                resource = xenrt.PrivateVLAN()
-                resourceInt = int(resource.getID())
-            else:
-                raise xenrt.XRTError('Invalid resource type: %s' % (resourceType))
-
-            try:
-                if lastResourceInt != None:
-                    if resourceInt != lastResourceInt + 1:
-                        # Free all aquired IP addresses
-                        map(lambda x:x.release(), resourceList)
-                        resourceList = []
-                    elif resourceInt < lastResourceInt:
-                        # Failed to find a block of resources during this pass - decrement loop counter and try again
-                        map(lambda x:x.release(), resourceList)
-                        resourceList = []
-                        loopsToTry -= 1
-                        if loopsToTry < 1:
-                            resource.release()
-                            raise xenrt.XRTError('Failed to allocate %d block of resource: %s' % (numberRequired, resourceType))
-
-                resourceList.append(resource)
-                lastResourceInt = resourceInt
-            except Exception, e:
-                # Attept to free all resources
-                resource.release()
-                map(lambda x:x.release(), resourceList)
-                raise xenrt.XRTError('Error during %s resource range allocation' % (resourceType))
-
-        return resourceList
+        if resourceType == "IP6ADDR":
+            return xenrt.StaticIP6Addr.getIPRange(numberRequired)
+        elif resourceType == "IP4ADDR":
+            return xenrt.StaticIP4Addr.getIPRange(numberRequired)
+        elif resourceType == "VLAN":
+            return xenrt.PrivateVLAN.getVLANRange(numberRequired)
 
     def reserveNetworkResources(self, publicIpSize=10, managementIpSize=5, storageIpSize=5, guestVLANSize=2, useIPv6=False):
         ipResourceType = useIPv6 and 'IP6ADDR' or 'IP4ADDR'
@@ -1131,4 +1095,24 @@ class TCCloudUpgrade(TCCloudScale):
                                           skipApplyRequiredPatches=False)
         setattr(pool_upgrade, "upgradeHook", self)
         self.newPool = self.pool.upgrade(poolUpgrade=pool_upgrade)
+
+
+class TCCloudAllocateResources(xenrt.TestCase):
+    def run(self, arglist):
+        xenrt.TEC().comment('DNS:     %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0])
+        xenrt.TEC().comment('GATEWAY: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY']))
+        xenrt.TEC().comment('NETMASK: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK']))
+
+        manIP = xenrt.StaticIP4Addr.getIPRange(10)
+        xenrt.TEC().comment('MANAGEMENT ADDR RANGE: %s -> %s' % (manIP[0].getAddr(), manIP[-1].getAddr()))
+        guestIP = xenrt.StaticIP4Addr.getIPRange(10)
+        xenrt.TEC().comment('GUEST ADDR RANGE: %s -> %s' % (guestIP[0].getAddr(), guestIP[-1].getAddr()))
+
+        secondaryStorage = xenrt.ExternalNFSShare()
+        primaryStorage = xenrt.ExternalNFSShare()
+        xenrt.TEC().comment('SECONDARY STORAGE: %s' % (secondaryStorage.getMount()))
+        xenrt.TEC().comment('PRIMARY STORAGE:   %s' % (primaryStorage.getMount()))
+
+        pool = self.getDefaultPool()
+        xenrt.TEC().comment('XS MASTER IP ADDR: %s' % (pool.master.getIP()))
 

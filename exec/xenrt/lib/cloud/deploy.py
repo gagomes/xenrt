@@ -2,8 +2,11 @@ import xenrt
 import logging
 import os, urllib
 from datetime import datetime
+import shutil
+import pprint
 
 import xenrt.lib.cloud
+from xenrt.lib.cloud.marvindeploy import MarvinDeployer
 
 __all__ = ["deploy"]
 
@@ -14,81 +17,228 @@ try:
 except ImportError:
     pass
 
+class DeployerPlugin(object):
+    DEFAULT_POD_IP_RANGE = 10
+    DEFAULT_GUEST_IP_RANGE = 20
 
+    def __init__(self, marvinApi):
+        self.marvin = marvinApi
+
+        self.currentZoneIx = -1
+        self.currentPodIx = -1
+        self.currentClusterIx = -1
+
+        self.currentZoneName = None
+        self.currentPodName = None
+        self.currentClusterName = None
+        self.currentIPRange = None
+
+        self.initialSecStorageUrl = None
+
+    def getName(self, key, ref):
+        nameValue = None
+        if key == 'Zone':
+            self.currentZoneIx += 1
+            self.currentPodIx = -1
+            self.currentClusterIx = -1
+            nameValue = 'XenRT-Zone-%d' % (self.currentZoneIx)
+        elif key == 'Pod':
+            self.currentPodIx += 1
+            self.currentClusterIx = -1
+            nameValue = '%s-Pod-%d' % (self.currentZoneName, self.currentPodIx)
+        elif key == 'Cluster':
+            self.currentClusterIx += 1
+            nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
+        xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
+        return nameValue
+
+    def getDNS(self, key, ref):
+        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+
+    def getNetmask(self, key, ref):
+        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+
+    def getGateway(self, key, ref):
+        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+
+    def getSecondaryStorageUrl(self, key, ref):
+        # TODO - Add support for other storage types
+        if self.initialSecStorageUrl:
+            url = self.initialSecStorageUrl
+            self.initialSecStorageUrl = None
+        else:
+            url = self.marvin.createSecondaryStorage("NFS")
+        return url
+
+    def getSecondaryStorageProvider(self, key, ref):
+        return 'NFS'
+
+    def getIPRangeStartAddr(self, key, ref):
+        xenrt.TEC().logverbose('IP Range, %s, %s' % (key, ref))
+
+    def getPodIPStartAddr(self, key, ref):
+        if self.currentIPRange != None:
+            raise xenrt.XRTError('Start IP range addr requested on existing IP range')
+        ipRangeSize = self.DEFAULT_POD_IP_RANGE
+        if ref.has_key('XRT_PodIPRangeSize'):
+            ipRangeSize = ref['XRT_PodIPRangeSize']
+        self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
+        return self.currentIPRange[0].getAddr()
+
+    def getPodIPEndAddr(self, key, ref):
+        if not self.currentIPRange:
+            raise xenrt.XRTError('End IP range addr requested before start')
+        endAddr = self.currentIPRange[-1].getAddr()
+        self.currentIPRange = None
+        return endAddr
+
+    def getGuestIPRangeStartAddr(self, key, ref):
+        if self.currentIPRange != None:
+            raise xenrt.XRTError('Start IP range addr requested on existing IP range')
+        ipRangeSize = self.DEFAULT_GUEST_IP_RANGE
+        if ref.has_key('XRT_GuestIPRangeSize'):
+            ipRangeSize = ref['XRT_GuestIPRangeSize']
+        self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
+        return self.currentIPRange[0].getAddr()
+
+    def getGuestIPRangeEndAddr(self, key, ref):
+        if not self.currentIPRange:
+            raise xenrt.XRTError('End IP range addr requested before start')
+        endAddr = self.currentIPRange[-1].getAddr()
+        self.currentIPRange = None
+        return endAddr
+
+    def getPhysicalNetworkVLAN(self, key, ref):
+        phyNetVLAN = None
+        if ref.has_key('XRT_VLANRangeSize') and ref['XRT_VLANRangeSize'] > 0:
+            phyNetVLANResources = xenrt.PrivateVLAN.getVLANRange(ref['XRT_VLANRangeSize'])
+            phyNetVLAN = '%d-%d' % (int(phyNetVLANResources[0].getID()), int(phyNetVLANResources[-1].getID()))
+        return phyNetVLAN
+
+    def getHostUrl(self, key, ref):
+        return 'http://%s' % (hostAddr)
+
+    def getHostUsername(self, key, ref):
+        return 'root'
+
+    def getHostPassword(self, key, ref):
+        return xenrt.TEC().lookup("ROOT_PASSWORD")
+
+    def getHypervisorType(self, key, ref):
+        if ref.has_key('hypervisor'):
+            return ref['hypervisor']
+        return 'XenServer' # Default to XenServer if not specified
+
+    def getPrimaryStorageName(self, key, ref):
+        return '%s-Primary-Store' % (self.currentPodName)
+
+    def getPrimaryStorageUrl(self, key, ref):
+        # TODO - Add support for other storage types
+        primaryStorage = xenrt.ExternalNFSShare()
+        return 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
+
+    def getHostsForCluster(self, key, ref):
+        xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
+        hosts = []
+        if ref.has_key('hypervisor') and ref['hypervisor'] == 'XenServer' and ref.has_key('XRT_MasterHostId'):
+            # TODO - move this to the host notify block (in notifyNewElement)
+            hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (ref['XRT_MasterHostId']))
+            try:
+                hostObject.tailorForCloudStack()
+            except:
+                xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+            if hostObject.pool:
+                hostObjects = hostObject.pool.getHosts()
+            else:
+                hostObjects = [hostObject]
+            for h in hostObjects:
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+            hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
+        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRT_KVMHostIds'):
+            hostIds = ref['XRT_KVMHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
+                try:
+                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+        elif ref.has_key('XRT_NumberOfHosts'):
+            map(lambda x:hosts.append({}), range(ref['XRT_NumberOfHosts']))
+        return hosts
+
+    def notifyNewElement(self, key, name):
+        xenrt.TEC().logverbose('New Element, key: %s, value: %s' % (key, name))
+        if key == 'Zone':
+            self.currentZoneName = name
+        elif key == 'Pod':
+            self.currentPodName = name
+        elif key == 'Cluster':
+            self.currentClusterName = name
+
+    def notifyNetworkTrafficTypes(self, key, value):
+        xenrt.TEC().logverbose('notifyNetworkTrafficTypes: key: %s, value %s' % (key, value))
+
+    def notifyGlobalConfigChanged(self, key, value):
+        xenrt.TEC().logverbose("notifyGlobalConfigChanged:\n" + pprint.pformat(value))
+        
 def deploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))
 
     # TODO - Get the ManSvr object from the registry
     if not manSvr:
         manSvrVM = xenrt.TEC().registry.guestGet('CS-MS')
-        if not manSvrVM:
-            raise xenrt.XRTError('No management server specified')
-        manSvr = xenrt.lib.cloud.ManagementServer(manSvrVM)
+        toolstack = xenrt.TEC().registry.toolstackGet("cloud")
+        if manSvrVM:
+            manSvr = xenrt.lib.cloud.ManagementServer(manSvrVM)
+        elif toolstack:
+            manSvr = toolstack.mgtsvr
+        else:
+            raise xenrt.XRTError('No management server specified') 
 
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
     marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
 
-    marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
-    marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
+    deployerPlugin = DeployerPlugin(marvinApi)
+    if manSvr.place.special.has_key('initialSecStorageUrl') and manSvr.place.special['initialSecStorageUrl']:
+        deployerPlugin.initialSecStorageUrl = manSvr.place.special['initialSecStorageUrl']
+        manSvr.place.special['initialSecStorageUrl'] = None
+    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
+    marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 
-    zoneNameIx = 0
-    for zoneSpec in cloudSpec['zones']:
-        if not zoneSpec.has_key('name'):
-            zoneSpec['name'] = 'XenRT-Zone-%d' % (zoneNameIx)
-            zoneNameIx += 1
+    # Store the JSON Marvin config file
+    fn = xenrt.TEC().tempFile()
+    marvinCfg.outputAsJSONFile(fn)
+    deployLogDir = os.path.join(xenrt.TEC().getLogdir(), 'cloud', 'deploy')
+    if not os.path.exists(deployLogDir):
+        os.makedirs(deployLogDir)
+    shutil.copy(fn, os.path.join(deployLogDir, 'marvin-deploy.cfg'))
 
-        podSpecs = zoneSpec.pop('pods')
-        zone = marvinApi.addZone(**zoneSpec)
-        # TODO:  Add more options for Sec Store
-        secondaryStroage = marvinApi.addSecondaryStorage(zone)
+    try:
+        # Create deployment
+        marvinCfg.deployMarvinConfig()
 
-        if zone.networktype == 'Basic':
-            phyNetwork = marvinApi.addPhysicalNetwork(name='BasicPhyNetwork', zone=zone, trafficTypeList=['Management', 'Guest'], 
-                                                                                         networkServiceProviderList=['VirtualRouter', 'SecurityGroupProvider'])
-            sharedNetwork = marvinApi.addNetwork(name='BasicSharedNetwork', zone=zone)
-        else:
-            # TODO: Implement advanced zone
-            pass
+        # Restart MS if any global config setting have been changed
+        if cloudSpec.has_key('globalConfig'):
+            manSvr.restart()
+
+        if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
+            marvinApi.waitForBuiltInTemplatesReady()
+    finally:
+        # Get deployment logs from the MS
+        manSvr.getLogs(deployLogDir)
 
 
-        podNameIx = 0
-        for podSpec in podSpecs:
-            if not podSpec.has_key('name'):
-                podSpec['name'] = '%s-Pod-%d' % (zone.name, podNameIx)
-                podNameIx += 1
-
-            clusterSpecs = podSpec.pop('clusters')
-            podSpec['zone'] = zone
-            pod = marvinApi.addPod(**podSpec)
- 
-            #TODO - this is nor correct for advanced zone
-            ipRange = marvinApi.addNetworkIpRange(pod, phyNetwork, ipRangeSize=20)
-
-            clusterNameIx = 0
-            for clusterSpec in clusterSpecs:
-                if not clusterSpec.has_key('name'):
-                    clusterSpec['name'] = '%s-Cluster-%d' % (pod.name, clusterNameIx)
-                    clusterNameIx += 1
-                
-                cluster = marvinApi.addCluster(clusterSpec['name'], pod)
-
-                hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (clusterSpec['masterHostId']))
-                try:
-                    hostObject.tailorForCloudStack()
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
-                host = marvinApi.addHost(cluster, hostObject.getIP())
-
-                try:
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSIP", manSvr.place.getIP()])
-                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostObject.getName(), "CSGUEST", "%s/%s" % (manSvr.place.getHost().getName(), manSvr.place.getName())])
-                except Exception, e:
-                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
-
-                # TODO - Add support for using other storage
-                priStoreName = '%s-PriStore' % (cluster.name)
-                priStore = marvinApi.addPrimaryStorage(priStoreName, cluster)
-
-        zone.update(marvinApi.apiClient, allocationstate='Enabled')
-
-    xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=manSvr.place))

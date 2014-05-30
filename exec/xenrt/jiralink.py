@@ -25,8 +25,8 @@ class JiraLink:
     def __init__(self):
         # JIRA settings
         self.JIRA_URL = xenrt.TEC().lookup("JIRA_URL", None) 
-        self.JIRA_USER = xenrt.TEC().lookup("JIRA_USERNAME", "xenrt")
-        self.JIRA_PASS = xenrt.TEC().lookup("JIRA_PASSWORD", "xensource")
+        self.JIRA_USER = xenrt.TEC().lookup("JIRA_USERNAME")
+        self.JIRA_PASS = xenrt.TEC().lookup("JIRA_PASSWORD")
 
         self.FAIL_PROJ = xenrt.TEC().lookup("JIRA_FAIL", "CA")
         self.ERR_PROJ = xenrt.TEC().lookup("JIRA_ERROR", "CA")
@@ -129,17 +129,17 @@ class JiraLink:
 
             # [GUEST_NAME]/guest-console-logs/console*
             {'file':"*/guest-console-logs/console*", 'desc':"cut here",
-                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
-                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest Stacked Call Trace", 'ignoreAfter': "SysRq :",
-                'pattern':r'(?:.*\n){0,2}(?:.*Call Trace\:.*)(?:.*\n){0,10}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
-                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
-                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
-            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
-                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
+                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'}
+#            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
+#                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest Stacked Call Trace", 'ignoreAfter': "SysRq :",
+#                'pattern':r'(?:.*\n){0,2}(?:.*Call Trace\:.*)(?:.*\n){0,10}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
+#                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
+#                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
+#            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
+#                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
         ]
         desc = "\n"
         for fp in failurepatterns:
@@ -921,6 +921,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                         "[0-9a-f]{12}",
                         "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                         track[2])
+        track2 = re.sub(r"ovs-vswitchd\.\d+\.ctl", "ovs-vswitchd.xxxx.ctl", track2)
         track2 = re.sub(r"\d+\.\d+\.\d+\.\d+", "xxx.xxx.xxx.xxx", track2)
         track2 = re.sub(r"pid \d+", "pid xxxxx", track2)
         track2 = re.sub(r"/xe-cli-[0-9\.]+-.*\.rpm",

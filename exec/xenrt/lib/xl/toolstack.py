@@ -10,9 +10,26 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    def getAllExistingInstances(self):
+        raise xenrt.XRTError("Not implemented")
+
     def instanceHypervisorType(self, instance):
         # XL only works with Xen, so we will always be returning Xen
         return xenrt.HypervisorType.xen
+
+    def instanceCanMigrateTo(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
+    def instanceResidentOn(self, instance):
+        raise xenrt.XRTError("Not implemented")
+
+    def instanceSupportedLifecycleOperations(self, instance):
+        ops = [xenrt.LifecycleOperation.start,
+               xenrt.LifecycleOperation.stop,
+               xenrt.LifecycleOperation.reboot,
+               xenrt.LifecycleOperation.livemigrate,
+               xenrt.LifecycleOperation.suspend,
+               xenrt.LifecycleOperation.resume]
 
     def startInstance(self, instance, on):
         host = self.hosts[0] # TODO: use on to identify the right host
@@ -91,7 +108,12 @@ class XLToolstack(object):
                        extraConfig={},
                        startOn=None,
                        installTools=True,
-                       useTemplateIfAvailable=True):
+                       useTemplateIfAvailable=True,
+                       hypervisorType=xenrt.HypervisorType.xen):
+
+        if hypervisorType != xenrt.HypervisorType.xen:
+            raise xenrt.XRTError("XL only supports the Xen hypervisor")
+
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         instance.toolstackId = str(uuid.uuid4())
 
@@ -244,6 +266,9 @@ disk = [ %s ]
         # TODO: handle paused / crashed etc
         return xenrt.PowerState.up
 
+    def setInstanceIso(self, instance, isoName, isoRepo):
+        raise xenrt.XRTError("Not implemented")
+    
     def ejectInstanceIso(self, instance):
         raise xenrt.XRTError("Not implemented")
 
@@ -254,6 +279,9 @@ disk = [ %s ]
         raise xenrt.XRTError("Not implemented")
 
     def revertInstanceToSnapshot(self, instance, name):
+        raise xenrt.XRTError("Not implemented")
+
+    def instanceScreenshot(self, instance, path):
         raise xenrt.XRTError("Not implemented")
 
 __all__ = ["XLToolstack"]

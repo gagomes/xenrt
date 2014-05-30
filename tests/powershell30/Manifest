@@ -1,0 +1,6 @@
+# Description Microsoft PowerShell 3.0 
+# Status: downloadable
+# Obtaining:
+# Available from http://www.microsoft.com/
+f23ae6f6e02b97e4914cbd044411c054  ./Windows6.1-KB2506143-x64.msu
+daca827fa4eb9bc0e8ed17bb151cf6f0  ./Windows6.1-KB2506143-x86.msu

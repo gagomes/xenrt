@@ -1,9 +1,26 @@
 import textwrap
 
+import xenrt
 
-CONSOLE_ADDRESS = "ixchariot.uk.xensource.com"
-CONSOLE_USER = "matel"
-DISTMASTER_DIR = 'ixiaendpoints'
+
+class Console(object):
+    def __init__(self, name, executor, lock):
+        self._executor = executor
+        self.name = name
+        self.lock = lock
+
+    def run(self, command):
+        self.lock.acquire()
+        try:
+            return_code = self._executor(command)
+            if 0 != return_code:
+                raise xenrt.XRTError(
+                    "Remote command '{0}' returned non-zero result code ".format(
+                        command)
+                    + "while executed on ixia chariot console '{0}'".format(
+                        self.name))
+        finally:
+            self.lock.release()
 
 
 def createEndpoint(endpointSpec, distmasterBase, hostRegistry):
@@ -30,16 +47,16 @@ class WindowsEndpoint(object):
         return 'pe{productName}{bitCount}_730.exe'.format(
             productName=productName, bitCount=bitCount)
 
-    def install(self):
+    def install(self, distmaster_dir):
         tmpDir = self.guest.xmlrpcTempDir()
 
         self.guest.xmlrpcUnpackTarball(
-            '/'.join([self.distmasterBase, DISTMASTER_DIR + '.tgz']),
+            '/'.join([self.distmasterBase, distmaster_dir + '.tgz']),
             tmpDir
         )
 
         endpointInstaller = '\\'.join(
-            [tmpDir, DISTMASTER_DIR, self.installer])
+            [tmpDir, distmaster_dir, self.installer])
 
         self.guest.xmlrpcExec("{0} /S /v/qn".format(endpointInstaller))
 

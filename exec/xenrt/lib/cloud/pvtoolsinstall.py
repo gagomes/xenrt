@@ -2,7 +2,6 @@ import xenrt
 import logging
 import os, urllib, string
 from datetime import datetime
-from xenrt.lib.cloud.windowspackages import DotNetFour, WindowsImagingComponent
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
@@ -34,17 +33,7 @@ class PVToolsInstaller(object):
 class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
     
     def _loadToolsIso(self):
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.name="xs-tools.iso"
-        isoId = self.cloudstack.marvin.apiClient.listIsos(listIsosC)[0].id
-
-        attachIsoC = attachIso.attachIsoCmd()
-        attachIsoC.id = isoId
-        attachIsoC.virtualmachineid = self.instance.toolstackId
-        self.cloudstack.marvin.apiClient.attachIso(attachIsoC)
-
-        # Allow the CD to appear
-        xenrt.sleep(30)
+        self.instance.setIso("xs-tools.iso")
     
     def _installMsi(self):
         self.instance.os.startCmd("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log")
@@ -74,7 +63,7 @@ class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
             else:
                 xenrt.sleep(30)
 
-class WindowsXenServer(WindowsXenServerPVToolsInstaller):
+class WindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
 
     @staticmethod
     def supportedInstaller(cloudstack, instance):
@@ -82,8 +71,11 @@ class WindowsXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        # TODO: Check the instance is running on XenServer
-
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version < "6.1":
+            return False
         #Name strings from /vol/xenrtdata/iso
         if next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
             return False
@@ -112,7 +104,7 @@ class WindowsXenServer(WindowsXenServerPVToolsInstaller):
         self._installMsi()
         self._pollForCompletion()
 
-class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
+class LegacyWindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
 
     @staticmethod
     def supportedInstaller(cloudstack, instance):
@@ -120,27 +112,33 @@ class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version < "6.1":
+            return False
+
         #Name strings from /vol/xenrtdata/iso
         if not next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
             return False
         
         return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
 
-    def _dotNetInstaller(self):
+    def _installDotNet(self):
         """ 
         Factory class method to get the installer for the required dot net version
         @return A appropriate .NET framework installer class
         @rtype WindowsPackage
         """
-        return DotNetFour(self.instance)
+        self.instance.os.ensurePackageInstalled(".NET 4")
 
-    def _WIC(self):
+    def _installWIC(self):
         """ 
         Factory class method to get the Windows Imaging Component 
         @return A appropriate package to install WIC
         @rtype WindowsPackage
         """
-        return WindowsImagingComponent(self.instance)
+        self.instance.os.ensurePackageInstalled("WIC")
 
     def _installRunOncePVDriversInstallScript(self):
         self.instance.os.sendFile("%s/distutils/soon.exe" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),"c:\\soon.exe")
@@ -191,12 +189,46 @@ at > c:\\xenrtatlog.txt
         return string.join(u, "\n")
 
     def install(self):
-        self._WIC().bestEffortInstall()
-        self._dotNetInstaller().bestEffortInstall()
+        self._installWIC()
+        self._installDotNet()
         self._loadToolsIso()
         self._installRunOncePVDriversInstallScript()
         self._installMsi()
         self._pollForCompletion()
 
-registerInstaller(WindowsXenServer)
-registerInstaller(WindowsLegacyXenServer)
+class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
+    @staticmethod
+    def supportedInstaller(cloudstack, instance):
+        """
+        @return Is the current instance support
+        @rtype Boolean
+        """
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version >= "6.1":
+            return False
+
+        return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
+
+    def _installMsi(self):
+        # Kill the autorun version
+        self.instance.os.killAll("xensetup.exe")
+        self.instance.os.startCmd("d:\\xensetup.exe /S")
+
+    def _pollForCompletion(self):
+        deadline = xenrt.util.timenow() + 3600
+        while True:
+            try:
+                if self.instance.os.fileExists("c:\\xenrtatlog.txt"):
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Installer did not appear")
+            
+            xenrt.sleep(30)
+
+registerInstaller(WindowsTampaXenServer)
+registerInstaller(LegacyWindowsTampaXenServer)
+registerInstaller(WindowsPreTampaXenServer)

@@ -62,8 +62,6 @@ class Guest(xenrt.GenericGuest):
                                                 "name-label",
                                                 template)
             if tuuid == "":
-                # Cover the case where it's an embedded debian install
-                # from an image but we still specify the template...
                 xenrt.TEC().logverbose("Cannot find template %s on host" % 
                                        (template))
             else:
@@ -187,7 +185,7 @@ class Guest(xenrt.GenericGuest):
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
 
-        if self.distro and self.distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),","):
+        if self.distro and not self.distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),","):
             self.noguestagent = True
 
         if not self.windows:
@@ -274,8 +272,8 @@ class Guest(xenrt.GenericGuest):
         if distro and distro.startswith("solaris"):
             self.enlightenedDrivers = False
 
-        if distro and distro in \
-               string.split(self.getHost().lookup("NO_GUEST_AGENT", ""), ","):
+        if distro and not distro in \
+               string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ","):
             self.noguestagent = True
 
         # Hack to use correct kickstart for rhel6
@@ -315,7 +313,7 @@ class Guest(xenrt.GenericGuest):
                                      "(arch %s)" % (distro, arch))
 
         self.isoname = isoname
-        if self.isoname and  "win81" in self.isoname:
+        if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
             rootdisk=32000
         if distro:
@@ -383,16 +381,11 @@ class Guest(xenrt.GenericGuest):
             vers = float(r.group(1))
         else:
             vers = 0.0
-        if re.search(r"ebian", self.template) and \
-               self.getHost().embedded and vers < 5.0:
-            self.installDebianEmbedded(sruuid, vifs=self.vifs)
-            vifsdone = True
-        else:                
-            self.createGuestFromTemplate(self.template, 
-                                         sruuid, 
-                                         ni=ni,
-                                         guestparams=guestparams, 
-                                         rootdisk=rootdisk)
+        self.createGuestFromTemplate(self.template, 
+                                     sruuid, 
+                                     ni=ni,
+                                     guestparams=guestparams, 
+                                     rootdisk=rootdisk)
 
         # Attaching root disk and extra disks for LUN Per VDI guests.
         if rawHBAVDIs:
@@ -451,7 +444,7 @@ class Guest(xenrt.GenericGuest):
 
         # Windows needs to install from a CD
         if not self.windows:
-            if distro in string.split(self.getHost().lookup("NO_GUEST_AGENT", ""),
+            if not distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),
                                       ","):
                 self.noguestagent = True
         if self.windows:
@@ -522,27 +515,25 @@ class Guest(xenrt.GenericGuest):
                                options={"maindisk": dev},
                                start=not dontstartinstall,
                                installXenToolsInPostInstall=installXenToolsInPostInstall)  
-        
+
         # store the distro so it can be used when using --existing or --pool
         if self.distro:
             self.paramSet("other-config:xenrt-distro", self.distro)
 
         if not dontstartinstall:
-            if start:
+            if self.noguestagent and not notools and not installXenToolsInPostInstall:
                 self.start()
-            
+                self.installTools()
+                if not start:
+                    self.shutdown()
+
             xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
                                 "%uMB memory."
                                 % (self.template, self.name, self.vcpus,
                                    self.memory))
-
             ip = self.getIP()
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
-
-            
-            if self.noguestagent and not notools:
-                self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
@@ -624,39 +615,6 @@ class Guest(xenrt.GenericGuest):
         self.xmlrpcShutdown()
         self.poll("DOWN", timeout=360)
 
-    def installDebianEmbedded(self, sruuid=None, vifs=None):
-        imagefile = "%s/%s-4.1.img" % (xenrt.TEC().lookup("VM_IMAGES_DIR"),
-                                       self.distro)
-        if not os.path.exists(imagefile):
-            raise xenrt.XRTError("No image available for %s on OEM" % 
-                                 (self.distro))
-        self.importVM(self.getHost(), imagefile, sr=sruuid)
-        self.paramSet("PV-args", "noninteractive")
-        if vifs:
-            for v in vifs:
-                eth, bridge, mac, ip = v
-                self.createVIF(eth, bridge, mac)
-        if self.memory:
-            self.memset(self.memory)
-        else:
-            self.memory = self.memget()
-        if self.vcpus:
-            self.cpuset(self.vcpus)
-        else:
-            self.vcpus = self.cpuget()
-        self.setHostnameViaXenstore()
-
-        # Update tools
-        self.start()
-        self.installTools(reboot=False, updateKernel=False)
-        self.shutdown()
-
-        # Remove the CD drive we added when installing tools. This is
-        # to make the VM match the config of the template-installed
-        # one on retail.
-        self.removeCD()
-
-    
     def insertToolsCD(self):
         isos = self.getHost().findISOs()
         if self.windows:
@@ -1032,8 +990,8 @@ class Guest(xenrt.GenericGuest):
         xenrt.TEC().logverbose("Sleeping for 180 seconds to let the VM run for atleast 2 minutes before crashing")
         time.sleep(180)
         if self.windows:
-            self.host.execdom0("/usr/lib/xen/bin/crash_guest %d" % 
-                               (self.getDomid()))
+            self.host.execdom0("%s %d" % 
+                               (self.host._findXenBinary("crash_guest"), self.getDomid()))
         else:
             panic = """
 #include <linux/module.h>
@@ -3618,6 +3576,9 @@ exit /B 1
     def installTools(self, source=None, reboot=True, updateKernel=True):
         """Install tools package into a guest"""
 
+        if self.windows:
+            return
+
         # Locate the tools ISO.
         if not source:
             source = xenrt.TEC().lookup("OPTION_DRIVER_ISO", None)
@@ -3787,17 +3748,6 @@ exit /B 1
             pass
         return reply
     
-    def pdGather(self, dict):
-        if self.windows:
-            pv = self.getPVDriverVersion()
-            if pv:
-                dict["kernelproductversion"] = pv
-        try:
-            dict["storagetype"] = self.getDiskSRType()
-        except:
-            pass
-        xenrt.GenericGuest.pdGather(self, dict)
-           
     def sendSysRq(self, key):
         self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
                                 "-domid %u -key %s" % (self.getDomid(), key))
@@ -3982,7 +3932,10 @@ exit /B 1
         cli = self.getCLIInstance()
         data = cli.execute("vm-retrieve-wlb-recommendations",
                            "uuid=%s" % (self.getUUID()))
-        return xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        recs = xenrt.util.strlistToDict(data.splitlines()[1:], sep=":", keyonly=False)
+        #CA-80791
+        recs = dict(map(lambda x:(re.sub(r'\(.+\)$', '', x),recs[x]), recs))
+        return recs
 
     def vendorInstallDevicePrefix(self):
         return "xvd"
@@ -4092,173 +4045,203 @@ def createVM(host,
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
-
-    if distro.startswith("generic-"): 
-        distro = distro[8:]
-        if not vifs:
-            # Some tests rely on getting a VIF by default for generic VMs.
-            vifs = xenrt.lib.xenserver.Guest.DEFAULT
-    if distro.lower() == "windows" or distro.lower() == "linux":
-        distro = host.lookup("GENERIC_" + distro.upper() + "_OS"
-                             + (arch.endswith("64") and "_64" or ""),
-                             distro)
-    # Create the guest object.
-    if not template:
-        template = host.getTemplate(distro, arch=arch)
+    
     if suffix:
         displayname = "%s-%s" % (guestname, suffix)
     else:
         displayname = guestname
-    
-    if re.search(r"etch", template or "", flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
-        password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
+   
+    preinstalledTemplates = host.minimalList("template-list", args="name-label=xenrt-template-%s-%s" % (distro, arch), params="name-label")
+    if preinstalledTemplates:
+        t = preinstalledTemplates[0]
+        g = host.guestFactory()(displayname, host=host)
+        g.arch = arch
+        g.distro=distro
+        if vcpus:
+            g.setVCPUs(vcpus)
+        if corespersocket:
+            g.setCoresPerSocket(corespersocket)
+        if memory:
+            g.setMemory(memory)
+        g.createGuestFromTemplate(t, None)
+        g.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
+        g.vifs.sort()
+        g.recreateVIFs(newMACs=True)
+        g.existing(host)
+
+        g.start() 
+        # Store the object in the registry.
+        xenrt.TEC().registry.guestPut(guestname, g)
+        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
+                                       memory=memory,
+                                       distro=distro)
+        for p in postinstall:
+            eval("g.%s()" % (p))
+        return g
     else:
-        password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
-    
-    g = host.guestFactory()(displayname, 
-                            template, 
-                            password=password)
-    g.arch = arch
-    if re.search("[vw]", distro):
-        g.windows = True
-        g.vifstem = g.VIFSTEMHVM
-        g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
-    else:
-        g.windows = False
-        g.vifstem = g.VIFSTEMPV
+        if distro.startswith("generic-"): 
+            distro = distro[8:]
+            if not vifs:
+                # Some tests rely on getting a VIF by default for generic VMs.
+                vifs = xenrt.lib.xenserver.Guest.DEFAULT
+        if distro.lower() == "windows" or distro.lower() == "linux":
+            distro = host.lookup("GENERIC_" + distro.upper() + "_OS"
+                                 + (arch.endswith("64") and "_64" or ""),
+                                 distro)
+        # Create the guest object.
+        if not template:
+            template = host.getTemplate(distro, arch=arch)
+        
+        if re.search(r"etch", template or "", flags=re.IGNORECASE) or re.search(r"Demo Linux VM", template):
+            password = xenrt.TEC().lookup("ROOT_PASSWORD_DEBIAN")
+        else:
+            password = xenrt.TEC().lookup("DEFAULT_PASSWORD")
+        
+        g = host.guestFactory()(displayname, 
+                                template, 
+                                password=password)
+        g.arch = arch
+        if re.search("[vw]", distro):
+            g.windows = True
+            g.vifstem = g.VIFSTEMHVM
+            g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+        else:
+            g.windows = False
+            g.vifstem = g.VIFSTEMPV
 
-    if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
-        vifs = [("0",
-                 host.getPrimaryBridge(),
-                 xenrt.randomMAC(),
-                 None)]
+        if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
+            vifs = [("0",
+                     host.getPrimaryBridge(),
+                     xenrt.randomMAC(),
+                     None)]
 
-    update = []
-    for v in vifs:
-        device, bridge, mac, ip = v
-        device = "%s%s" % (g.vifstem, device)
-        if not bridge:
-            bridge = host.getPrimaryBridge()
-        elif re.search(r"^[0-9]+$", bridge):
-            bridge = host.getBridgeWithMapping(int(bridge))
-        elif not host.getBridgeInterfaces(bridge):
-            br = host.parseListForOtherParam("network-list",
-                                                 "name-label",
-                                                  bridge,
-                                                 "bridge")
-            if br:
-                bridge = br
-            elif not host.getNetworkUUID(bridge):
-                bridge = None
-                
-        if not bridge:
-            raise xenrt.XRTError("Failed to choose a bridge for createVM on "
-                                 "host !%s" % (host.getName()))
-        update.append([device, bridge, mac, ip])
-    vifs = update
+        update = []
+        for v in vifs:
+            device, bridge, mac, ip = v
+            device = "%s%s" % (g.vifstem, device)
+            if not bridge:
+                bridge = host.getPrimaryBridge()
+            elif re.search(r"^[0-9]+$", bridge):
+                bridge = host.getBridgeWithMapping(int(bridge))
+            elif not host.getBridgeInterfaces(bridge):
+                br = host.parseListForOtherParam("network-list",
+                                                     "name-label",
+                                                      bridge,
+                                                     "bridge")
+                if br:
+                    bridge = br
+                elif not host.getNetworkUUID(bridge):
+                    bridge = None
+                    
+            if not bridge:
+                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
+                                     "host !%s" % (host.getName()))
+            update.append([device, bridge, mac, ip])
+        vifs = update
 
-    # The install method doesn't do this for us.
-    if vcpus:
-        g.setVCPUs(vcpus)
-    if corespersocket:
-        g.setCoresPerSocket(corespersocket)
-    if memory:
-        g.setMemory(memory)
+        # The install method doesn't do this for us.
+        if vcpus:
+            g.setVCPUs(vcpus)
+        if corespersocket:
+            g.setCoresPerSocket(corespersocket)
+        if memory:
+            g.setMemory(memory)
 
-    if bootparams:
-        bp = g.getBootParams()
-        if len(bp) > 0: bp += " "
-        bp += bootparams
-        g.setBootParams(bp)
+        if bootparams:
+            bp = g.getBootParams()
+            if len(bp) > 0: bp += " "
+            bp += bootparams
+            g.setBootParams(bp)
 
-    # Try and determine the repository.
-    try:
-        repository = string.split(\
-                        xenrt.TEC().lookup(["RPM_SOURCE", 
-                                             distro, 
-                                             arch, 
-                                             "HTTP"]))[0]            
-    except:
-        repository = None
-    
-    # Work out the ISO name.
-    if not repository:
-        isoname = xenrt.DEFAULT
-    else:
-        isoname = None
+        # Try and determine the repository.
+        try:
+            repository = string.split(\
+                            xenrt.TEC().lookup(["RPM_SOURCE", 
+                                                 distro, 
+                                                 arch, 
+                                                 "HTTP"]))[0]            
+        except:
+            repository = None
+        
+        # Work out the ISO name.
+        if not repository:
+            isoname = xenrt.DEFAULT
+        else:
+            isoname = None
 
-    rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
-    for disk in disks:
-        device, size, format = disk
-        if device == "0":
-            rootdisk = int(size)*xenrt.KILO
-
-    # Install the guest.
-    g.install(host, 
-              distro=distro,
-              vifs=vifs,
-              bridge=bridge,
-              sr=sr,
-              guestparams=guestparams,
-              isoname=isoname,
-              rootdisk=rootdisk,
-              repository=repository,
-              pxe=pxe,
-              notools=notools,
-              use_ipv6=use_ipv6,
-              dontstartinstall=dontstartinstall,
-              installXenToolsInPostInstall=installXenToolsInPostInstall)
-    
-    if not dontstartinstall:
-    
-        g.reboot()
-        g.check()
-        g.shutdown()
-
-        diskstoformat = []
+        rootdisk = xenrt.lib.xenserver.Guest.DEFAULT
         for disk in disks:
             device, size, format = disk
-            if not str(device) == "0":
-                d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
-                if format:
-                    diskstoformat.append(d)
+            if device == "0":
+                rootdisk = int(size)*xenrt.KILO
 
-        g.start()
+        # Install the guest.
+        g.install(host, 
+                  distro=distro,
+                  vifs=vifs,
+                  bridge=bridge,
+                  sr=sr,
+                  guestparams=guestparams,
+                  isoname=isoname,
+                  rootdisk=rootdisk,
+                  repository=repository,
+                  pxe=pxe,
+                  notools=notools,
+                  use_ipv6=use_ipv6,
+                  dontstartinstall=dontstartinstall,
+                  installXenToolsInPostInstall=installXenToolsInPostInstall)
+        
+        if not dontstartinstall:
+        
+            g.reboot()
+            g.check()
+            g.shutdown()
 
-        for d in diskstoformat:
-            if g.windows:
-                letter = g.xmlrpcPartition(d)
-                g.xmlrpcFormat(letter, timeout=3600)
+            diskstoformat = []
+            for disk in disks:
+                device, size, format = disk
+                if not str(device) == "0":
+                    d = g.createDisk(sizebytes=int(size)*xenrt.GIGA,userdevice=device)
+                    if format:
+                        diskstoformat.append(d)
+
+            g.start()
+
+            for d in diskstoformat:
+                if g.windows:
+                    letter = g.xmlrpcPartition(d)
+                    g.xmlrpcFormat(letter, timeout=3600)
+                else:
+                    letter = g.getHost().parseListForOtherParam("vbd-list",
+                                                                "vm-uuid",
+                                                                g.getUUID(),
+                                                                "device",
+                                                                "userdevice=%s" % (d))
+                    g.execguest("mkfs.ext2 /dev/%s" % (letter))
+                    g.execguest("mount /dev/%s /mnt" % (letter))
+
+        # Store the object in the registry.
+        xenrt.TEC().registry.guestPut(guestname, g)
+        xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
+                                       memory=memory,
+                                       distro=distro)
+
+        for p in postinstall:
+            if type(p) == tuple:
+                data, format = p
+                if format == "cmd":
+                    g.xmlrpcWriteFile("c:\\postrun.cmd", data)
+                    g.xmlrpcExec("c:\\postrun.cmd")
+                    g.xmlrpcRemoveFile("c:\\postrun.cmd")
+                elif format == "vbs":
+                    g.xmlrpcWriteFile("c:\\postrun.vbs", data)
+                    g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
+                    g.xmlrpcRemoveFile("c:\\postrun.vbs")
             else:
-                letter = g.getHost().parseListForOtherParam("vbd-list",
-                                                            "vm-uuid",
-                                                            g.getUUID(),
-                                                            "device",
-                                                            "userdevice=%s" % (d))
-                g.execguest("mkfs.ext2 /dev/%s" % (letter))
-                g.execguest("mount /dev/%s /mnt" % (letter))
+                eval("g.%s()" % (p))
 
-    # Store the object in the registry.
-    xenrt.TEC().registry.guestPut(guestname, g)
-    xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
-                                   memory=memory,
-                                   distro=distro)
-
-    for p in postinstall:
-        if type(p) == tuple:
-            data, format = p
-            if format == "cmd":
-                g.xmlrpcWriteFile("c:\\postrun.cmd", data)
-                g.xmlrpcExec("c:\\postrun.cmd")
-                g.xmlrpcRemoveFile("c:\\postrun.cmd")
-            elif format == "vbs":
-                g.xmlrpcWriteFile("c:\\postrun.vbs", data)
-                g.xmlrpcExec("cscript //b //NoLogo c:\\postrun.vbs")
-                g.xmlrpcRemoveFile("c:\\postrun.vbs")
-        else:
-            eval("g.%s()" % (p))
-
-    return g
+        return g
 
 #############################################################################
 

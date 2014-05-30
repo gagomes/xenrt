@@ -5,6 +5,11 @@ from zope.interface import implements
 
 __all__ = ["WindowsOS"]
 
+packageList = []
+
+def RegisterWindowsPackage(package):
+    packageList.append(package)
+
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
     
@@ -72,17 +77,53 @@ class WindowsOS(OS):
     @staticmethod
     def testInit(parent):
         return WindowsOS("win7sp1x86", parent)
+        
+    @property
+    def defaultRootdisk(self):
+        return 20 * xenrt.GIGA
+
+    @property
+    def defaultVcpus(self):
+        return 2
+
+    @property
+    def defaultMemory(self):
+        return 2048    
 
     def __init__(self, distro, parent):
-        super(self.__class__, self).__init__(parent)
+        super(self.__class__, self).__init__(distro, parent)
 
         self.distro = distro
         self.isoRepo = xenrt.IsoRepository.Windows
         self.isoName = "%s.iso" % self.distro
-        self.defaultRootdisk = 20 * xenrt.GIGA
         self.vifStem = "eth"
         self.viridian = True
+        self.__randomStringGenerator = None
 
+    @property
+    def canonicalDistroName(self):
+        return "%s" % (self.distro)
+    
+    def ensurePackageInstalled(self, package):
+        global packageList
+        installer = None
+        for p in packageList:
+            if p.NAME == package:
+                installer = p(self)
+        if not installer:
+            raise xenrt.XRTError("No installer found for package %s" % package)
+        installer.ensureInstalled()
+
+    def isPackageInstalled(self, package, installOptions={}):
+        global packageList
+        installer = None
+        for p in packageList:
+            if p.NAME == package:
+                installer = p(self)
+        if not installer:
+            raise xenrt.XRTError("No installer found for package %s" % package)
+        return installer.isInstalled(installOptions)
+        
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
         self.parent.getIP(10800)
@@ -1036,6 +1077,34 @@ class WindowsOS(OS):
                        "SZ",
                         user.server.domainname)
 
+    def enablePowerShellUnrestricted(self):
+        """Allow the running of unsigned PowerShell scripts."""
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\PowerShell\\1\\ShellIds\\Microsoft.PowerShell",
+                       "ExecutionPolicy",
+                       "SZ",
+                       "Unrestricted")
     # TODO Add JoinDomain and LeaveDomain in context of new object model - currently very tied to host
+
+    def assertHealthy(self):
+       word = self.randomStringGenerator.generate()
+       location = "c:\\xenrthealthcheck"
+       self.createFile(location, word)
+       reread = self.readFile(location)
+       self.removeFile(location)
+       if word not in reread:
+           raise xenrt.XRTError("assertHealthy has failed")
+
+    @property
+    def randomStringGenerator(self):
+        if not self.__randomStringGenerator:
+            return xenrt.stringutils.RandomStringGenerator()
+
+        return self.__randomStringGenerator
+
+    @randomStringGenerator.setter
+    def randomStringGenerator(self, value):
+        self.__randomStringGenerator = value
+
 
 registerOS(WindowsOS)

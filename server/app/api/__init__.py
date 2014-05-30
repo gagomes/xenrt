@@ -371,3 +371,4 @@ import app.api.controller
 import app.api.files
 import app.api.results
 import app.api.guestfile
+import app.api.resources

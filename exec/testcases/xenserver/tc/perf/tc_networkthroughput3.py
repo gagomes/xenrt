@@ -22,7 +22,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         tc_networkthroughput2.TCNetworkThroughputPointToPoint.parseArgs(self, arglist)
 
         self.log(None, "parseArgs:arglist=%s" % (arglist,))
-        self.dom0vcpus   = libperf.getArgument(arglist, "dom0vcpus", int, 4)
+        self.dom0vcpus   = libperf.getArgument(arglist, "dom0vcpus", int, 0)
         self.nr_vm_pairs = libperf.getArgument(arglist, "vmpairs", int, 1)
 
         self.log(None, "nr_vm_pairs=%s" % (self.nr_vm_pairs,))
@@ -30,12 +30,16 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         # - a vm_i_endpoint0 talks only to its partner vm_i_endpoint1 in the pair i
         # - there must be as many netback threads as dom0 vcpus
 
-    def get_vcpus_and_netback_threads(self, host_endpoint, vifs_in_the_host=None):
+    def get_nr_dom0_vcpus(self, host_endpoint):
         nr_dom0_vcpus = int(host_endpoint.execcmd("cat /sys/devices/system/cpu/online").strip().split("-")[1])+1
+        return nr_dom0_vcpus
+
+    def get_vcpus_and_netback_threads(self, host_endpoint, vifs_in_the_host=None):
+        nr_dom0_vcpus = self.get_nr_dom0_vcpus(host_endpoint)
         #netback_per_cpu (tampa, clearwater) uses a "[netback" thread per cpu
         #netback_per_vif (sarasota onwards) uses a "[vif" thread per vif
         nr_netback_threads_per_cpu = int(host_endpoint.execcmd('ps aux| grep "\[netback/*." |grep -v grep | wc -l').strip())
-        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v grep | wc -l').strip())
+        nr_netback_threads_per_vif = int(host_endpoint.execcmd('ps aux| grep "\[vif*." |grep -v dealloc |grep -v grep | wc -l').strip())
 
         # basic sanity checks
         if nr_netback_threads_per_cpu > 0 and nr_netback_threads_per_vif > 0:
@@ -66,36 +70,58 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         return (nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif)
 
     def check_nr_netback_threads(self, host_endpoint, nr_vifs):
-        self.get_vcpus_and_netback_threads(host_endpoint, vifs_in_the_host=nr_vifs)
+        if host_endpoint.productType=="kvm":
+            #no dom0vcpus or netback threads to check for
+            return
+        elif host_endpoint.productType=="esx":
+            #no dom0vcpus or netback threads to check for
+            return
+        else:
+            self.get_vcpus_and_netback_threads(host_endpoint, vifs_in_the_host=nr_vifs)
 
     def changeNetbackThreads(self, host_endpoint):
-
-        nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)
-        self.log(None, "nr_dom0_vcpus=%s, nr_dom0_netback_threads=%s, self.dom0vcpus=%s, is_netback_thread_per_vif=%s" % (nr_dom0_vcpus, nr_dom0_netback_threads, self.dom0vcpus, is_netback_thread_per_vif))
-        if not is_netback_thread_per_vif:
-            if nr_dom0_netback_threads == self.dom0vcpus:
-                # nothing to do
-                return False
+        if host_endpoint.productType=="kvm":
+            #use whatever number of cpus is available in the kvm host
+            self.dom0vcpus = self.get_nr_dom0_vcpus(host_endpoint)
+            self.log(None, "kvm host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
+            return False
+        elif host_endpoint.productType=="esx":
+            self.dom0vcpus = 4
+            self.log(None, "esx host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
+            return False
         else:
-            if nr_dom0_vcpus == self.dom0vcpus:
-                # nothing to do
+            if self.dom0vcpus == 0:
+                # don't change anything -- use the default number of dom0 vCPUs and netback threads
+                self.dom0vcpus = self.get_nr_dom0_vcpus(host_endpoint)
+		self.log(None, "xenserver host %s: detected %s cpus" % (host_endpoint, self.dom0vcpus))
                 return False
 
-        out1 = host_endpoint.execcmd("/opt/xensource/libexec/xen-cmdline --set-xen dom0_max_vcpus=%s" % (self.dom0vcpus,))
-        self.log(None, "set dom0_max_vcpus: result=%s" % (out1,))
-        out2 = host_endpoint.execcmd("/opt/xensource/libexec/xen-cmdline --set-dom0 xen-netback.netback_max_groups=%s" % (self.dom0vcpus,))
-        self.log(None, "set netback_max_groups: result=%s" % (out2,))
-        host_endpoint.reboot()
-        nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)
-        self.log(None, "nr_dom0_vcpus=%s, nr_dom0_netback_threads=%s, self.dom0vcpus=%s, is_netback_thread_per_vif=%s" % (nr_dom0_vcpus, nr_dom0_netback_threads, self.dom0vcpus, is_netback_thread_per_vif))
-        if not is_netback_thread_per_vif:
-            if nr_dom0_netback_threads != self.dom0vcpus:
-                raise Exception("nr_dom0_netback_threads=%s != self.dom0vcpus=%s" % (nr_dom0_netback_threads, self.dom0vcpus))
-        else:
-            if nr_dom0_vcpus != self.dom0vcpus:
-                raise Exception("nr_dom0_vcpus=%s != self.dom0vcpus=%s" % (nr_dom0_vcpus, self.dom0vcpus))
+            nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)
+            self.log(None, "nr_dom0_vcpus=%s, nr_dom0_netback_threads=%s, self.dom0vcpus=%s, is_netback_thread_per_vif=%s" % (nr_dom0_vcpus, nr_dom0_netback_threads, self.dom0vcpus, is_netback_thread_per_vif))
+            if not is_netback_thread_per_vif:
+                if nr_dom0_netback_threads == self.dom0vcpus:
+                    # nothing to do
+                    return False
+            else:
+                if nr_dom0_vcpus == self.dom0vcpus:
+                    # nothing to do
+                    return False
 
-        return True
+            out1 = host_endpoint.execcmd("/opt/xensource/libexec/xen-cmdline --set-xen dom0_max_vcpus=%s" % (self.dom0vcpus,))
+            self.log(None, "set dom0_max_vcpus: result=%s" % (out1,))
+            out2 = host_endpoint.execcmd("/opt/xensource/libexec/xen-cmdline --set-dom0 xen-netback.netback_max_groups=%s" % (self.dom0vcpus,))
+            self.log(None, "set netback_max_groups: result=%s" % (out2,))
+            host_endpoint.reboot()
+            nr_dom0_vcpus, nr_dom0_netback_threads, is_netback_thread_per_vif = self.get_vcpus_and_netback_threads(host_endpoint)
+            self.log(None, "nr_dom0_vcpus=%s, nr_dom0_netback_threads=%s, self.dom0vcpus=%s, is_netback_thread_per_vif=%s" % (nr_dom0_vcpus, nr_dom0_netback_threads, self.dom0vcpus, is_netback_thread_per_vif))
+            if not is_netback_thread_per_vif:
+                if nr_dom0_netback_threads != self.dom0vcpus:
+                    raise Exception("nr_dom0_netback_threads=%s != self.dom0vcpus=%s" % (nr_dom0_netback_threads, self.dom0vcpus))
+            else:
+                if nr_dom0_vcpus != self.dom0vcpus:
+                    raise Exception("nr_dom0_vcpus=%s != self.dom0vcpus=%s" % (nr_dom0_vcpus, self.dom0vcpus))
+
+            return True
 
     def host_of(self, endpoint):
         if isinstance(endpoint, xenrt.GenericGuest):
@@ -135,7 +161,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         if endpoint not in endpoints:
             endpoints[endpoint] = [] # list of vms cloned from endpoint
             self.start_endpoint(endpoint) #required state to install iperf
-            endpoint.installIperf()
+            endpoint.installIperf(version="2.0.5")
             self.install_synexec(endpoint)
 
         # reuse any existing clone

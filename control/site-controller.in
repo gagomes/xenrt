@@ -234,7 +234,7 @@ def start_job(jobid):
         
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
         execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir))
-        execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
+        execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 
         if otherBranch:
             # Try to delete the branch if it exists. Ignore the error
@@ -243,13 +243,13 @@ def start_job(jobid):
             execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch))
 
             execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
-            execCmd("cd %s && git pull" % (_rootdir), errorException=otherBranch)
+            execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
             try:
                 execCmd("cd %s && git merge master --no-edit" % (_rootdir))
             except:
                 execCmd("cd %s && git merge master -m Merge" % (_rootdir))
         
-        execCmd("cd %s/../xenrt-internal.git && git checkout master && git reset --hard && git pull" % (_rootdir), errorException=False)
+        execCmd("cd %s/../xenrt-internal.git && git checkout master && git reset --hard && git pull --ff-only" % (_rootdir), errorException=False)
 
     except Exception, e:
         # Failed set-up, so bail out.
@@ -303,8 +303,17 @@ def start_job(jobid):
             startDebuggerJob(jobid, cmd)
         except Exception as e:
             print 'ERROR here: %s'%(e)
+    elif 'VENV2' in data and data['VENV'] == 'yes':
+        os.system("cd %s && make minimal-install" % (_rootdir))
+        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
+        cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
+        pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
+        com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
     else:
         os.system("cd %s && make minimal-install" % (_rootdir))
+        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
+        cmd.insert(0, "%s/control/venvwrapper.sh" % _sharedir)
+        cmdl = string.join(cmd)
         trace("exec: %s\n" % (cmdl))
         if not debug:
             if logserver:

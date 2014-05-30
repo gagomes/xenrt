@@ -344,9 +344,132 @@ class _TCCoresPerSocket(xenrt.TestCase):
 
         xenrt.TEC().progress("The cores-per-sockets testcase ran successfully. The final results:\n%s" % results)
 
-
 class TC10178(_TCCoresPerSocket):
+    """Cores-per-socket parameter effectiveness on Windows VM"""
     pass
+
+class _TCCoresPerSocketVariants(xenrt.TestCase):
+
+    DISTRO = "win7-x86"
+    CORES = 1
+    SOCKETS = 1
+    CPS = 1
+
+    def prepare(self, arglist=[]):
+        args = xenrt.util.strlistToDict(arglist)
+
+        self.distro = args.get("distro") or self.DISTRO
+        self.cps = args.get("cps") or self.CPS
+
+        self.sockets = args.get("sockets") or self.SOCKETS
+        self.cores = args.get("cores") or self.CORES
+
+        xenrt.TEC().logverbose("SOCKETS is %s, CORES is %s" % (self.sockets, self.cores))
+
+        self.setConfigs()
+
+        xenrt.TEC().logverbose("Configurations to test:\n%s" % self.configs)
+
+        self.host = self.getDefaultHost()
+
+        self.guest = self.host.createBasicGuest(self.distro, name=self.distro)
+
+    def setConfigs(self):
+        self.configs = []
+        self.configs.append({ 'sockets': int(self.sockets),
+                              'cores': int(self.cores),
+                              'cps': int(self.cps) }) # cores / sockets
+
+    def cpsSet(self, num):
+        xenrt.TEC().logverbose("Setting cores-per-socket argument to %i" % num)
+        self.guest.paramSet("platform:cores-per-socket", num)
+
+    def cpsGet(self):
+        try:
+            return int(self.guest.paramGet("platform", "cores-per-socket"))
+        except xenrt.XRTFailure:
+            pass
+
+    def getCPUInfo(self):
+        info =  { 'sockets': self.guest.xmlrpcGetSockets(),
+                  'cores': self.guest.xmlrpcGetCPUs() }
+        xenrt.TEC().logverbose("CPU information on %s: %s" % (self.guest.getName(), info))
+        return info
+
+    def run(self, arglist=[]):
+
+        results = []
+
+        for cpu_conf in self.configs:
+
+            self.guest.shutdown()
+            self.guest.cpuset(cpu_conf['cores'])
+            self.cpsSet(cpu_conf['cps'])
+
+            self.guest.start()
+            cpu_info = self.getCPUInfo()
+
+            self.guest.suspend()
+            self.guest.resume(check=False)
+            cpu_info_1 = self.getCPUInfo()
+
+            self.guest.migrateVM(self.guest.getHost(), live="true")
+            cpu_info_2 = self.getCPUInfo()
+
+            if cpu_info == cpu_info_1 == cpu_info_2:
+                xenrt.TEC().logverbose("CPU information remained the same "
+                                       "after suspend/resume and live migration")
+            else:
+                raise xenrt.XRTFailure("CPU information changed during the process "
+                                       "of suspend/resume and live migration",
+                                       data = (cpu_info, cpu_info_1, cpu_info_2))
+
+            results.append((self.guest.getName(), cpu_conf, cpu_info_2))
+
+        xenrt.TEC().progress("The cores-per-sockets testcase ran successfully. The final results:\n%s" % results)
+
+class TC21457(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using virtual single socket with 4 cores on Windows 8"""
+
+    DISTRO = "win8-x64"
+    CORES = 4
+    SOCKETS = 1
+    CPS = 4
+
+class TC21458(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using virtual dual socket with 2 cores per socket on Windows 7"""
+
+    DISTRO = "win7-x86"
+    CORES = 4
+    SOCKETS = 2
+    CPS = 2
+
+class TC21459(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using 5 cores with 3 cores per socket on Windows Server 2012 R2"""
+
+    DISTRO = "ws12r2-x64"
+    CORES = 5
+    SOCKETS = 2
+    CPS = 3
+
+class TC21460(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using random configuration of cores and sockets"""
+
+    DISTRO = "win7-x86"
+    CORES = 4
+    SOCKETS = 2
+    CPS = 4
+
+    def setConfigs(self):
+        self.configs = []
+        for i in range(int(math.log(self.sockets or self.SOCKETS, 2)) + 1):
+            sockets = int(math.pow(2, i))
+            for j in range(i, int(math.log(self.cores or
+                                           sockets * self.cps, 2)) + 1):
+                cores = int(math.pow(2, j))
+                self.configs.append({ 'sockets': sockets,
+                                      'cores': cores,
+                                      'cps': cores / sockets })
 
 class TC10549(xenrt.TestCase):
     """Testcase for SYMC-SFX - Preserver the Metadata on an exported VM"""
@@ -1676,3 +1799,30 @@ class TCVerifyVMCorruption(xenrt.TestCase):
             pass
         else:
             raise xenrt.XRTFailure("Xapi fix to avoid VM corruption during Migration has Failed")
+
+class TCCentosUpgrade(xenrt.TestCase):
+    """Verify a CentOS upgrade is successful"""
+
+    def run(self, arglist):
+        g = self.getGuest(arglist[0])
+        # Remove the XenRT repo and reenable the centos one
+        g.execguest("rm /etc/yum.repos.d/xenrt.repo")
+        g.execguest("rename '.orig' '' /etc/yum.repos.d/*.orig")
+        # Add a proxy if we know about one
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            g.execguest("sed -i '/proxy/d' /etc/yum.conf")
+            g.execguest("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+
+        # Apply the update and reboot
+        g.execguest("yum update -y", timeout=7200)
+        g.reboot()
+
+        # Now verify the guest works by doing some lifecyle ops
+        g.shutdown()
+        g.start()
+        g.reboot()
+        g.suspend()
+        g.resume()
+        g.migrateVM(self.getDefaultHost(), live=False)
+        g.migrateVM(self.getDefaultHost(), live=True)

@@ -2002,146 +2002,6 @@ class TC12063(TC12058):
     """An upgrade of pre-Cowley to Cowley should retain its preference of multipath driver: dm-multipath"""
     MPP_RDAC = False
 
-class _OEMSingleHostUpgrade(xenrt.TestCase):
-
-    def installOld(self):
-        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
-        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
-        self.host = xenrt.lib.xenserver.createHost(id=0,
-                                                   version=oldversion,
-                                                   productVersion=old,
-                                                   embedded=True,
-                                                   withisos=True)
-
-    def installVMs(self):
-        self.guests = {}
-
-        self.guests['Win32'] = xenrt.lib.xenserver.guest.createVM(\
-            self.host,
-            "Win32",
-            "w2k3eesp2",
-            vifs=[("0", None, xenrt.randomMAC(), None)])
-        self.guests['Win32'].installDrivers()
-        self.guests['Linux'] = xenrt.lib.xenserver.guest.createVM(\
-            self.host,
-            "Linux",
-            "rhel45",
-            vifs=[("0", None, xenrt.randomMAC(), None)])
-
-    def upgrade(self):
-        basename = xenrt.TEC().lookup("EMBEDDED_IMAGE_UPDATE", None)
-        if not basename:
-            basename = xenrt.TEC().lookup("EMBEDDED_IMAGE", "embedded.img")
-        updatefile = xenrt.TEC().getFile(basename)
-        if not updatefile:
-            updatefile = xenrt.TEC().getFile("oem-phase-1/%s" % (basename))
-        if not updatefile:
-            updatefile = xenrt.TEC().getFile("oem-phase-2/%s" % (basename))
-        if not updatefile:
-            raise xenrt.XRTError("No XE embedded image file (%s) found" %
-                                 (basename))
-        self.host.execdom0("touch /etc/xensource/skipsignature")
-        if updatefile[-4:] == ".bz2":
-            newfile = "%s/update_%s" % (xenrt.TEC().getWorkdir(),
-                                        self.host.getName())
-            shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-            xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-            try:
-                xenrt.util.command("stat %s" % (newfile))
-                xenrt.util.command("sha1sum %s" % (newfile))
-                self.host.applyOEMUpdate(newfile)
-            finally:
-                os.unlink(newfile)
-        else:
-            self.host.applyOEMUpdate(updatefile)
-        self.host.reboot()
-        self.host.check()
-
-        # Create a new host object of the correct type
-        v = xenrt.TEC().lookup("PRODUCT_VERSION")
-        newhost = xenrt.lib.xenserver.hostFactory(v)(self.host.machine,
-                                                     productVersion=v)
-
-        # Copy host object metadata from the upgrading host object
-        self.host.populateSubclass(newhost)
-        newhost.tailored = False
-        self.host = newhost
-        self.host.check()
-
-    def checkSRs(self):
-        fail = False
-        xenrt.TEC().logverbose("Checking the same SRs exist after upgrade")
-        srs = self.host.minimalList("sr-list")
-        self.host.getCLIInstance().execute("sr-list")
-        for sr in self.srs:
-            if not sr in srs:
-                xenrt.TEC().logverbose("SR %s missing after upgrade" % (sr))
-                fail = True
-        for sr in srs:
-            if not sr in self.srs:
-                xenrt.TEC().logverbose("New SR %s after upgrade" % (sr))
-                fail = True
-        if fail:
-            raise xenrt.XRTFailure("SRs different after upgrade")
-
-    def upgradeVMs(self):
-        for g in self.guests.values():
-            xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
-            g.start()
-            if g.windows:
-                g.installDrivers()
-            else:
-                g.installTools()
-            g.check()
-
-    def checkVMs(self):
-        for g in self.guests.values():
-            g.suspend()
-            g.resume()
-            g.check()
-            g.suspend()
-            g.resume()
-            g.check()
-            g.reboot()
-            g.shutdown()
-            g.start()
-            g.check()
-
-    def run(self, arglist):
-        # Install a host with the old product build
-        if self.runSubcase("installOld", (), "PrevGA", "Install") != \
-                xenrt.RESULT_PASS:
-            return
-        self.getLogsFrom(self.host)
-        # Get some details from the host to check later
-        self.srs = self.host.minimalList("sr-list")
-        self.host.getCLIInstance().execute("sr-list")
-
-        # Install a selection of VMs on the pool
-        if self.runSubcase("installVMs", (), "PrevGA", "VMInstalls") != \
-                xenrt.RESULT_PASS:
-            return
-        for g in self.guests.values():
-            g.shutdown()
-
-        xenrt.TEC().setInputDir(None)
-        if self.runSubcase("upgrade", (), "Host", "Upgrade") != \
-                xenrt.RESULT_PASS:
-            return
-        if self.runSubcase("checkSRs", (), "Check", "SRs") != \
-                xenrt.RESULT_PASS:
-            return
-        if self.runSubcase("upgradeVMs", (), "Upgrade", "VMs") != \
-                xenrt.RESULT_PASS:
-            return
-        if self.runSubcase("checkVMs", (), "Check", "VMs") != \
-                xenrt.RESULT_PASS:
-            return
-
-class TC8037(_OEMSingleHostUpgrade):
-    """OEM Single host upgrade from previous GA release"""
-    pass
-
 class _TCCrossVersionImport(xenrt.TestCase):
 
     WORKAROUND_CA32958 = False
@@ -2229,7 +2089,12 @@ class _TCCrossVersionImport(xenrt.TestCase):
 
         # Install a VM on the newer host to be the platform for running
         # the import and export commands.
-        self.cliguest = self.host1.createGenericLinuxGuest()
+        arch = None
+        # Create 64-bit guest to run 64-bit xe CLI, when using 64-bit Dom0
+        hostarch = self.host1.execdom0("uname -m").strip()
+        if hostarch.endswith("64"):
+            arch="x86-64"
+        self.cliguest = self.host1.createGenericLinuxGuest(arch=arch)
         self.uninstallOnCleanup(self.cliguest)
         # Need to add an extra disk, as root one is too small
         ud = None
@@ -2723,6 +2588,26 @@ class TC9167(_VMToolsUpgrade):
 
     VMNAME = "sarge"
 
+class TC21204(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Centos 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "centos54"
+
+class TC21205(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a OEL 5.4 VM installed on the previous GA version"""
+
+    VMNAME = "oel54"
+
+class TC21206(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a SLES11 VM installed on the previous GA version"""
+
+    VMNAME = "sles11"
+
+class TC21207(_VMToolsUpgrade):
+    """Upgrade kernel (if available) and tools in a Debian 5.0 VM installed on the previous GA version"""
+
+    VMNAME = "debian50"
+
 class _VMToolsUpgradeNotOutOfDate(_VMToolsUpgrade):
     """MNR non-Windows tools should be up-to-date on Cowley"""
 
@@ -2837,7 +2722,7 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
                 newpool = pool.upgrade(rolling=True)
                 self.poolsToUpgrade[i] = newpool
         else:
-            # It's a hotfix or OEM update
+            # It's a hotfix
             updatefile = xenrt.TEC().getFile(u)
             if not updatefile:
                 raise xenrt.XRTError("Could not retrieve update file %s" % (u))
@@ -2845,22 +2730,7 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
                 xenrt.TEC().logverbose("Applying patch to %s: %s" %
                                        (h.getName(), u))
                 patches = h.minimalList("patch-list")
-                if h.embedded:
-                    if updatefile[-4:] == ".bz2":
-                        newfile = "%s/update-%08x.fs" % \
-                                  (xenrt.TEC().getWorkdir(),
-                                   random.randint(0, 0x7fffffff))
-                        shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-                        xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-                        try:
-                            h.applyOEMUpdate(newfile)
-                        finally:
-                            os.unlink(newfile)
-                    else:
-                        h.applyOEMUpdate(updatefile)
-                    h.reboot()
-                else:
-                    h.applyPatch(updatefile, applyGuidance=True)
+                h.applyPatch(updatefile, applyGuidance=True)
                 patches2 = h.minimalList("patch-list")
                 h.execdom0("xe patch-list")
                 if len(patches2) <= len(patches):
@@ -2870,29 +2740,7 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
             for p in self.poolsToUpgrade:
                 xenrt.TEC().logverbose("Applying patch to pool: %s" % (u))
                 patches = p.master.minimalList("patch-list")
-                if p.master.embedded:
-                    if updatefile[-4:] == ".bz2":
-                        newfile = "%s/update-%08x.fs" % \
-                                  (xenrt.TEC().getWorkdir(),
-                                   random.randint(0, 0x7fffffff))
-                        shutil.copyfile(updatefile, "%s.bz2" % (newfile))
-                        xenrt.util.command("bunzip2 %s.bz2" % (newfile))
-                        try:
-                            p.master.applyOEMUpdate(newfile)
-                            p.master.reboot()
-                            for h in p.getSlaves():
-                                h.applyOEMUpdate(newfile)
-                                h.reboot()
-                        finally:
-                            os.unlink(newfile)
-                    else:
-                        p.master.applyOEMUpdate(updatefile)
-                        p.master.reboot()
-                        for h in p.getSlaves():
-                            h.applyOEMUpdate(updatefile)
-                            h.reboot()
-                else:
-                    p.applyPatch(updatefile, applyGuidance=True)
+                p.applyPatch(updatefile, applyGuidance=True)
                 patches2 = p.master.minimalList("patch-list")
                 p.master.execdom0("xe patch-list")
                 if len(patches2) <= len(patches):
@@ -4328,3 +4176,27 @@ class TC15290(xenrt.TestCase):
         # check we can't evacuate
         if not guestUuid in h0.execdom0('xe host-get-vms-which-prevent-evacuation uuid=%s' % h0.uuid).strip():
             raise xenrt.XRTFailure("Shouldn't be allowed to evacuate with HVM guest and no PV drivers")
+
+class TCUpgradeVMMigrate(xenrt.TestCase):
+    def run(self, arglist=None):
+        oldHost = self.getHost("RESOURCE_HOST_0")
+        newHost = self.getHost("RESOURCE_HOST_1")
+
+        items = self.tcsku.split("/")
+        if len(items) == 3:
+            distro = items[0]
+            arch = items[1]
+            memory = items[2]
+        else:
+            distro = items[0]
+            arch = None
+            memory = items[1]
+
+        if memory[-1] == "M":
+            memory = int(memory[:-1])
+        elif memory[-1] == "G":
+            memory = int(memory[:-1]) * 1024
+
+        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
+        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        g.uninstall()

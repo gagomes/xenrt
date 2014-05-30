@@ -1,7 +1,9 @@
 import xenrt
 from zope.interface import implements, providedBy
+from abc import abstractproperty
 
 oslist = []
+
 
 class OS(object):
     implements(xenrt.interfaces.OS)
@@ -10,12 +12,17 @@ class OS(object):
                           xenrt.interfaces.InstallMethodIso: xenrt.InstallMethod.Iso,
                           xenrt.interfaces.InstallMethodIsoWithAnswerFile: xenrt.InstallMethod.IsoWithAnswerFile}
 
-    def __init__(self, parent):
+    def __init__(self, distro, parent):
         self.parent = xenrt.interfaces.OSParent(parent)
+        self.distro = distro
         self.password = None
         self.viridian = False
         self.__installMethod = None
 
+    @abstractproperty
+    def canonicalDistroName(self):
+        pass
+    
     def findPassword(self):
         """Try some passwords to determine which to use"""
         return
@@ -36,14 +43,21 @@ class OS(object):
     def supportedInstallMethods(self):
         # We base this on interfaces
         interfaces = providedBy(self)
-        return [method for intf,method in self._allInstallMethods.items() if intf in interfaces]
+        return [method for intf, method in self._allInstallMethods.items() if intf in interfaces]
 
     @staticmethod
     def knownDistro(distro):
         return False
 
+    def assertHealthy(self):
+        raise xenrt.XRTError("Not implemented")
+
+    def getLogs(self, path):
+        pass
+
 def registerOS(os):
     oslist.append(os)
+
 
 def osFactory(distro, parent):
     for o in oslist:
@@ -56,3 +70,6 @@ __all__ = ["OS", "registerOS"]
 from xenrt.lib.opsys.linux import *
 from xenrt.lib.opsys.debian import *
 from xenrt.lib.opsys.windows import *
+from xenrt.lib.opsys.windowspackages import *
+from xenrt.lib.opsys.rhel import *
+from xenrt.lib.opsys.sles import *

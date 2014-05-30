@@ -1,25 +1,23 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Sarasota
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
   </prepare>
   <testsequence>
     <parallel group="VMs_8" workers="2">
-      <testcase id="xenserver.tc.smoketest.TC15886" prio="4" tc="TC-15886"/>
-      <testcase id="xenserver.tc.smoketest.TC15887" prio="4" tc="TC-15887"/>
-      <testcase id="xenserver.tc.smoketest.TC15888" prio="4" tc="TC-15888"/>
-      <testcase id="xenserver.tc.smoketest.TC15889" prio="4" tc="TC-15889"/>
-      <testcase id="xenserver.tc.smoketest.TC15890" prio="4" tc="TC-15890"/>
-      <testcase id="xenserver.tc.smoketest.TC17243" prio="4" tc="TC-17243"/>
-      <testcase id="xenserver.tc.smoketest.TC17244" prio="4" tc="TC-17244"/>
-      <testcase id="xenserver.tc.smoketest.TC17245" prio="4" tc="TC-17245"/>
-      <testcase id="xenserver.tc.smoketest.TC17246" prio="4" tc="TC-17246"/>
-      <testcase id="xenserver.tc.smoketest.TC17247" prio="4" tc="TC-17247"/>
+      <testcase id="xenserver.tc.smoketest.TC19635" prio="4" tc="TC-19635"/>
+      <testcase id="xenserver.tc.smoketest.TC19636" prio="4" tc="TC-19636"/>
+      <testcase id="xenserver.tc.smoketest.TC19637" prio="4" tc="TC-19637"/>
+      <testcase id="xenserver.tc.smoketest.TC19638" prio="4" tc="TC-19638"/>
+      <testcase id="xenserver.tc.smoketest.TC19639" prio="4" tc="TC-19639"/>
+      <testcase id="xenserver.tc.smoketest.TC19640" prio="4" tc="TC-19640"/>
+      <testcase id="xenserver.tc.smoketest.TC19641" prio="4" tc="TC-19641"/>
+      <testcase id="xenserver.tc.smoketest.TC19642" prio="4" tc="TC-19642"/>
+      <testcase id="xenserver.tc.smoketest.TC19644" prio="4" tc="TC-19644"/>
+      <testcase id="xenserver.tc.smoketest.TC19645" prio="4" tc="TC-19645"/>
     </parallel>
   </testsequence>
 </xenrt>

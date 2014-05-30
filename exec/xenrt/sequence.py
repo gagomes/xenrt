@@ -951,7 +951,7 @@ class PrepareNode:
 
     def handleCloudNode(self, node, params):
         # Load the JSON block from the sequence file
-        self.cloudSpec = json.loads(node.childNodes[0].data)
+        self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
 
 
         # Find allocated host IDs 
@@ -969,30 +969,64 @@ class PrepareNode:
         xenrt.TEC().logverbose('Allocate Pools from ID: %d' % (poolIdIndex))
 
         for zone in self.cloudSpec['zones']:
-            
+#TODO - Remove
+            if not zone.has_key('physical_networks'):
+                xenrt.TEC().warning('LEGACY_CLOUD_BLOCK add physical_networks element to legacy cloud block')
+                zone['physical_networks'] = [ { "name": "BasicPhyNetwork" } ]
+
             for pod in zone['pods']:
-
+#TODO - Remove
+                if pod.has_key('managementIpRangeSize'):
+                    xenrt.TEC().warning('LEGACY_CLOUD_BLOCK managementIpRangeSize no longer valid - use XRT_PodIPRangeSize')
+                    pod['XRT_PodIPRangeSize'] = pod.pop('managementIpRangeSize')
+                if zone['networktype'] == 'Basic' and not pod.has_key('guestIpRanges'):
+                    xenrt.TEC().warning('LEGACY_CLOUD_BLOCK add guestIpRanges element to Basic Zone pods')
+                    pod['guestIpRanges'] = [ { } ]
+                    
                 for cluster in pod['clusters']:
-                    if not cluster.has_key('masterHostId'):
-                        hostIds = range(hostIdIndex, hostIdIndex + cluster['hosts'])
-                        poolId = poolIdIndex
+#TODO - Remove
+                    if cluster.has_key('hosts'):
+                        xenrt.TEC().warning('LEGACY_CLOUD_BLOCK hosts no longer valid - use XRT_Hosts')
+                        cluster['XRT_Hosts'] = cluster.pop('hosts')
 
-                        simplePoolNode = xml.dom.minidom.Element('pool')
-                        simplePoolNode.setAttribute('id', str(poolId))
-                        for hostId in hostIds:
-                            simpleHostNode = xml.dom.minidom.Element('host')
-                            simpleHostNode.setAttribute('id', str(hostId))
-                            simplePoolNode.appendChild(simpleHostNode)
+                    if not cluster.has_key('hypervisor'):
+                        cluster['hypervisor'] = "XenServer"
+
+                    if cluster['hypervisor'] == "XenServer":
+                        if not cluster.has_key('XRT_MasterHostId'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            poolId = poolIdIndex
+
+                            simplePoolNode = xml.dom.minidom.Element('pool')
+                            simplePoolNode.setAttribute('id', str(poolId))
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simplePoolNode.appendChild(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
-                        hostIdIndex += cluster['hosts']
-                        poolIdIndex += 1
+                            hostIdIndex += cluster['XRT_Hosts']
+                            poolIdIndex += 1
 
-                        self.handlePoolNode(simplePoolNode, params)
-                        poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
-                        cluster['masterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
-    
+                            self.handlePoolNode(simplePoolNode, params)
+                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
+                            cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
+                    elif cluster['hypervisor'] == "KVM":
+                        if not cluster.has_key('XRT_KVMHostIds'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'kvm')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
+
+                            hostIdIndex += cluster['XRT_Hosts']
 
     def handlePoolNode(self, node, params):
         pool = {}
@@ -1242,6 +1276,10 @@ class PrepareNode:
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["vcpus"] = int(expand(str(a.data), params))
+                elif x.localName == "corespersocket":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            vm["corespersocket"] = int(expand(str(a.data), params))
                 elif x.localName == "memory":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
@@ -1324,8 +1362,8 @@ class PrepareNode:
                     m = xenrt.GEC().dbconnect.jobctrl("machine", [hostname])
                     if m.has_key("CSGUEST") and m['CSGUEST'] not in cleanedGuests:
                         cleanedGuests.append(m['CSGUEST'])
-                        (hostname, guestname) = m['CSGUEST'].split("/", 1)
-                        host = xenrt.SharedHost(hostname, doguests = True).getHost()
+                        (shostname, guestname) = m['CSGUEST'].split("/", 1)
+                        host = xenrt.SharedHost(shostname, doguests = True).getHost()
                         guest = host.guests[guestname]
                         guest.uninstall()
                 except Exception, e:

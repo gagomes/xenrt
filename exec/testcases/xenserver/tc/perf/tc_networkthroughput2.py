@@ -1,6 +1,6 @@
 import libperf
 import xenrt
-import random, string
+import random, string, time
 
 # Expects the sequence file to set up two VMs, called 'endpoint0' and 'endpoint1'
 class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
@@ -35,6 +35,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getGuestOrHostFromName(self, name):
         for guest in self.guests:
             if guest.getName() == name:
+                self.log(None, "name=%s -> guest=%s" % (name, guest))
                 return guest
         host = xenrt.TEC().registry.hostGet(name)
         self.log(None, "name=%s -> host=%s" % (name, host))
@@ -51,7 +52,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.threads  = libperf.getArgument(arglist, "threads",  int, 1)
         self.duration = libperf.getArgument(arglist, "duration", int, 30)
         self.protocol = libperf.getArgument(arglist, "protocol", str, "tcp")
-        self.gro      = libperf.getArgument(arglist, "gro", str, "off")
+        self.gro      = libperf.getArgument(arglist, "gro", str, "default")
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
     def prepare(self, arglist=None):
@@ -104,11 +105,21 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         return output
 
+    def hostOfEndpoint(self, endpoint):
+        # Get the host object for this endpoint
+        if isinstance(endpoint, xenrt.GenericGuest):
+            return endpoint.host
+        elif isinstance(endpoint, xenrt.GenericHost):
+            return endpoint
+        else:
+            raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
+
     def nicdev(self, endpoint):
         ip = endpoint.getIP()
+        endpointHost = self.hostOfEndpoint(endpoint)
 
         # Get the device name and MAC address for a given IP address
-        if self.host.productType == "esx":
+        if endpointHost.productType == "esx":
             cmds = [
                 "vmk=$(esxcfg-vmknic -l | fgrep '%s' | awk '{print $1}')" % (ip,),
                 "portgroup=$(esxcli network ip interface list | grep -A 10 \"^$vmk\\$\" | fgrep \"Portgroup:\" | sed 's/^.*: //')",
@@ -117,19 +128,21 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 "mac=$(esxcfg-vmknic -l | fgrep '%s' | awk '{print toupper($8)}')" % (ip,),
                 "echo $nic $mac",
             ]
-	    cmd = "; ".join(cmds)
+            cmd = "; ".join(cmds)
         else:
             cmd = "ifconfig |grep -B 1 '%s'|grep HWaddr|awk '{print $1,$5}'" % (ip,)
 
         _dev, mac = endpoint.execcmd(cmd).split(" ")
 
         dev = _dev.replace("xenbr","eth")
+        dev = dev.replace("virbr","eth")
         return dev, _dev, mac
 
     def nicinfo(self, endpoint, key_prefix=""):
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
         dev, _dev, mac = self.nicdev(endpoint)
+        endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s" % (dev,)).replace(": ","=").split("\n")))
@@ -153,12 +166,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]
         proc_sys_net = kvs2dict("", map2kvs(endpoint.execcmd("find /proc/sys/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         sys_class_net = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/class/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
-        sys_devices = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/devices/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
+        sys_devices = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/devices/system/cpu/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         try:
             xlinfo = kvs2dict("xlinfo:", map2kvs(endpoint.execcmd("xl info").replace(": ","=").split("\n")))
         except Exception, e: #if xl not available, use lscpu for bare metal machines
             xlinfo = {}
-            if self.host.productType == "esx":
+            if endpointHost.productType == "esx":
                 self.log(None, "using vim-cmd: %s" % (e,))
                 cpuinfo = kvs2dict("cpuinfo:", map2kvs(map(lambda x: x.strip(","), endpoint.execcmd("vim-cmd hostsvc/hosthardware | grep -A 6 'cpuInfo = '").replace(" = ","=").split("\n"))))
                 # Note: not a 1-to-1 mapping between ESXi's notions and xl info's notions of these things.
@@ -174,7 +187,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 xlinfo["xlinfo:threads_per_core"] = lscpu["lscpu:Thread(s) per core"]
                 xlinfo["xlinfo:nr_nodes"] = lscpu["lscpu:NUMA node(s)"]
 
-        if self.host.productType == "esx":
+        if endpointHost.productType == "esx":
             # We need to extract at least the equivalent info to the "model name" and "cpu MHz"
             cpuinfo = kvs2dict("cpuinfo:", map(lambda x: map(lambda x: x.strip("\", "), x), map2kvs(endpoint.execcmd("vim-cmd hostsvc/hosthardware | grep -A 8 'cpuPkg = '").replace(" = ","=").split("\n"))))
             cpuinfo["cpuinfo:model name"] = cpuinfo["cpuinfo:description"]
@@ -259,6 +272,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             dev, _dev, mac = self.nicdev(endpoint)
             if self.gro in ["on", "off"]:
                 endpoint.execcmd("ethtool -K %s gro %s" % (dev, self.gro))
+            elif self.gro in ["default", ""]:
+	        self.log(None, "not overriding gro option for %s" % (dev,))
             else:
                 raise xenrt.XRTError("unknown gro option: %s" % (self.gro,))
         if isinstance(self.endpoint0, xenrt.GenericHost):
@@ -275,6 +290,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             if self.endpoint0.getState() == "PAUSED": self.endpoint0.unpause()
         if isinstance(self.endpoint1, xenrt.GenericGuest):
             if self.endpoint1.getState() == "PAUSED": self.endpoint1.unpause()
+        time.sleep(20)
 
     def vmpause(self):
         if isinstance(self.endpoint0, xenrt.GenericGuest):
@@ -301,10 +317,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
         # Install iperf in both places if necessary
         if 'iperf_installed' not in self.endpoint0.__dict__.keys():
-            self.endpoint0.installIperf()
+            self.endpoint0.installIperf(version="2.0.5")
             self.endpoint0.iperf_installed = True
         if 'iperf_installed' not in self.endpoint1.__dict__.keys():
-            self.endpoint1.installIperf()
+            self.endpoint1.installIperf(version="2.0.5")
             self.endpoint1.iperf_installed = True
 
         # Collect as much information as necessary for the rage importer

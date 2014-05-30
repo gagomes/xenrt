@@ -72,11 +72,7 @@ class TCCLI(xenrt.TestCase):
         sftp.copyTreeTo(d, "/tmp/rt")
         if host.execdom0("test -e /opt/xensource/bin/gtclient",
                          retval="code") != 0:
-            if host.embedded:
-                host.execdom0("mkdir -p /tmp/bin")
-                host.execdom0("cp -p /tmp/rt/gtclient /tmp/bin")
-            else:
-                host.execdom0("cp -p /tmp/rt/gtclient /opt/xensource/bin/")
+            host.execdom0("cp -p /tmp/rt/gtclient /opt/xensource/bin/")
 
         # Binaries that aren't in the per-build output
         xenrt.getTestTarball("api", extract=True, copy=False)
@@ -314,10 +310,7 @@ class TCCLI(xenrt.TestCase):
         else:
             targ = "-t %s" % (selected_tests)
         intf = string.replace(host.getPrimaryBridge(), "xenbr", "eth")
-        if host.embedded:
-            pathstr = "${PATH}:.:/tmp/bin"
-        else:
-            pathstr = "${PATH}:."
+        pathstr = "${PATH}:."
         commands = ["cd /tmp/rt",
                     "export PATH=%s" % (pathstr),
                     "test_host %s -v %s -i %s" %
@@ -1531,9 +1524,17 @@ class TCDom0FullPatchApply(xenrt.TestCase):
     def run(self, arglist=None):
         # proper error message is There is not enough space to upload the update
         host = self.getDefaultHost()
-        hotfixPath = host.getTestHotfix(2)
-        host.addHotfixFistFile(hotfixPath)
-        cli = host.getCLIInstance()
+        path = host.getTestHotfix(2)
+        hotfixPath = "/tmp/test-hotfix.unsigned"
+        sftp = host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (path, hotfixPath))
+            sftp.copyTo(path, hotfixPath)
+        finally:
+            sftp.close()
+        sha1 = host.execdom0("sha1sum %s" % hotfixPath).strip()
+        host.execdom0('echo %s > /tmp/fist_allowed_unsigned_patches' % sha1)
 
         host.execdom0("dd count=1 if=/dev/zero of=/root/filldisktmp bs=5M") 
         try:
@@ -1544,10 +1545,10 @@ class TCDom0FullPatchApply(xenrt.TestCase):
         host.execdom0("rm -rf /root/filldisktmp")
 
         try:
-            patchUUID = cli.execute("patch-upload","file-name=\"%s\"" % hotfixPath).strip()
+            patchUUID = host.execdom0("xe patch-upload file-name=%s" % hotfixPath).strip()
             raise xenrt.XRTFailure("No Error message raised")
         except Exception, e:
-            if not "not enough space" in str(e):
+            if not "not enough space" in e.data:
                 xenrt.TEC().logverbose("Error message is not same, its %s" % (str(e)))
                 raise xenrt.XRTFailure("Error message is not correct, its %s" % (str(e)))
 
@@ -1611,10 +1612,6 @@ class TCPatchApply(xenrt.TestCase):
         else:
             self.host = self.getDefaultHost()
 
-        if self.host.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM edition")
-            return
-
         self.runSubcase("patch1", (), "TCPatchApply", "Test1")
         self.runSubcase("patch2", (), "TCPatchApply", "Test2")
         self.runSubcase("patch3", (), "TCPatchApply", "Test3")
@@ -1656,10 +1653,6 @@ class TC7351(xenrt.TestCase):
 
     def run(self, arglist):
         host = self.getDefaultHost()
-
-        if host.embedded:
-            xenrt.TEC().skip("Cannot apply patches to OEM edition")
-            return
 
         patchfile = host.getTestHotfix(1)
         xenrt.TEC().logverbose("Performing patch-upload/patch-destroy loop")

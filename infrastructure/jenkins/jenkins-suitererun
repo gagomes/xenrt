@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 
 import os,urllib,sys,re,jirarest.client
-os.system("make -C /home/xenrtd/xenrt.hg update install")
+os.system("make -C /home/xenrtd/xenrt.git update install")
 
 sr = eval(urllib.urlopen("%sapi/python" % os.environ['SuiteRun']).read())
 

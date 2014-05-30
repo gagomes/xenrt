@@ -68,14 +68,14 @@ extrapackages: extrapackages-install dython-sync
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip
 	# Squeeze only
-	-$(SUDO) apt-get install -y iscsitarget-source
+	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
-	-$(SUDO) apt-get install -y libc6-i386 xcp-xe
+	-$(SUDO) apt-get install -y --force-yes libc6-i386 xcp-xe
 
-	-$(SUDO) apt-get install -y git
-	-$(SUDO) apt-get install -y git-core
+	-$(SUDO) apt-get install -y --force-yes git
+	-$(SUDO) apt-get install -y --force-yes git-core
 
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
@@ -86,10 +86,13 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade zope.interface
 	$(SUDO) easy_install --upgrade nose
 	$(SUDO) easy_install --upgrade mock
+	$(SUDO) easy_install --upgrade pep8
 	$(SUDO) easy_install --upgrade jenkinsapi
+	$(SUDO) easy_install --upgrade virtualenv
+	$(SUDO) easy_install --upgrade fs
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
-	$(SUDO) apt-get install -y python-m2crypto
+	$(SUDO) apt-get install -y --force-yes python-m2crypto
 	$(SUDO) sed -i 's/^URLopener.open_https \=/# Removed as this breaks urllib\n# URLopener.open_https \=/' /usr/share/pyshared/M2Crypto/m2urllib.py
 
 $(SHAREDIR)/images/vms/etch-4.1.img:
@@ -105,7 +108,7 @@ libvirt-pkg:
 ifeq ($(DOLIBVIRT),yes)
 	$(info Installing libvirt after removing old version included in debian package...)
 	$(SUDO) apt-get remove -y libvirt0 python-libvirt
-	$(SUDO) apt-get install -y libgnutls-dev libyajl-dev libdevmapper-dev libcurl4-gnutls-dev python-dev libnl-dev libxml2-dev python-pexpect 
+	$(SUDO) apt-get install -y --force-yes libgnutls-dev libyajl-dev libdevmapper-dev libcurl4-gnutls-dev python-dev libnl-dev libxml2-dev python-pexpect 
 endif
 
 /usr/lib/libvirt-qemu.so.0.1000.0:
@@ -245,7 +248,7 @@ nfs-uninstall:
 dhcpd: files
 ifeq ($(DODHCPD),yes)
 	$(info Installing DHCPD...)
-	$(SUDO) apt-get install -y dhcp3-server
+	$(SUDO) apt-get install -y --force-yes dhcp3-server
 	$(call BACKUP,$(DHCPD))
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
@@ -399,8 +402,8 @@ ifeq ($(BUILDISCSI),no)
 	$(info Skipping iSCSI target setup)
 else
 	$(info Installing ISCSI target...)
-	$(SUDO) apt-get install -y linux-headers-`uname -r`
-	$(SUDO) apt-get install -y iscsitarget iscsitarget-dkms	
+	$(SUDO) apt-get install -y --force-yes linux-headers-`uname -r`
+	$(SUDO) apt-get install -y --force-yes iscsitarget iscsitarget-dkms	
 	$(SUDO) sed -i "s/false/true/" $(ISCSI)
 	$(SUDO) /etc/init.d/iscsitarget restart
 endif
@@ -416,7 +419,7 @@ conserver: files
 ifeq ($(DOCONSERVER),yes)
 	$(call BACKUP,$(CONSERVER))
 	$(SUDO) mv $(ROOT)/$(XENRT)/console.cf $(CONSERVER)
-	$(SUDO) apt-get install -y conserver-server
+	$(SUDO) apt-get install -y --force-yes conserver-server
 	$(SUDO) mv $(ROOT)/$(XENRT)/conserver.cf /etc/conserver/conserver.cf
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/* /etc/conserver/
 	$(SUDO) mkdir -p /local/consoles
@@ -453,7 +456,7 @@ loop:
 nagios:
 ifeq ($(DONAGIOS),yes)
 	$(info Setting up nagios)
-	$(SUDO) apt-get install -y nagios-nrpe-server nagios-plugins
+	$(SUDO) apt-get install -y --force-yes nagios-nrpe-server nagios-plugins
 	$(SUDO) sed -i 's/^allowed_hosts/#allowed_hosts/g' $(NRPE)
 	$(SUDO) sed -i 's/dont_blame_nrpe=0/dont_blame_nrpe=1/g' $(NRPE)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/xenrt.cfg $(NRPECONFDIR)
@@ -538,4 +541,4 @@ infrastructure-uninstall: network-uninstall \
 marvin:
 	$(info Installing marvin)
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
-	sudo easy_install $(SHAREDIR)/marvin.tar.gz
+	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz

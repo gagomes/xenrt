@@ -4,19 +4,19 @@ from datetime import datetime
 import jenkinsapi
 from jenkinsapi.jenkins import Jenkins
 from abc import ABCMeta, abstractmethod
-
+import os,subprocess,sys
+from os import listdir
 
 class BuildState: NotRunning, Running = range(2)
 
-__all__ = ["JenkinsBuild","JenkinsObserver"]
+__all__ = ["JenkinsBuild","JenkinsObserver","MarvinInstaller"]
 
 
-#USE
-
+#USE (Dont remove the coomented code)
 #observer = JenkinsObserver()
 #jenkinsBuild = JenkinsBuild() 
 #jenkinsBuild.findBuild(sha1)
-#jenkinsBuild.attachObserver(buildObserver)
+#jenkinsBuild.attachObserver(observer)
 #observer.waitToFinish()
 #jenkinsBuild.getBuildArtifacts()
 
@@ -41,7 +41,7 @@ class BuildCommand(object):
     __metaclass__ = ABCMeta   
     _BuildJob = None
 
-    def __init___(self,buildJob):
+    def __init__(self,buildJob):
 
         self._BuildJob = buildJob
 
@@ -69,59 +69,36 @@ class JenkinsCommand(BuildCommand):
 
     def invokeBuild(self,buildParams):
 
-        try:
-            build = self._BuildJob.invoke(buildParams)
-        except Exception, e:
-            raise
- 
         #Returns the jenkin's build obj to get the artifiacts
-        return build
-
+        return self._BuildJob.invoke(buildParams)
+ 
     def getAllBuilds(self):
       
         revDict = {}
-        try:
-            revDict = self._BuildJob.get_revision_dict()
-        except Exception, e:
-            raise
+        revDict = self._BuildJob.get_revision_dict()
    
         #Returns the revision dict eg. {sha1: [1,2,3,4,5]}
         return revDict 
 
     def buildStatus(self,build):
 
-        try:
-            return build.get_status()
-        except Exception, e:
-            raise
+        return build.get_status()
 
     def buildRunning(self,build):
 
-        try:
-            return build.is_running()
-        except Exception, e:
-            raise
+        return build.is_running()
 
     def getBuild(self,buildNum):
 
-        try:
-            return self._BuildJob.get_build(int(buildNum))
-        except Exception, e:
-            raise
+        return self._BuildJob.get_build(int(buildNum))
 
     def getBuildArtifacts(self,build):
 
-        try:
-            return build.get_artifact_dict()
-        except Exception, e:
-            raise
+        return build.get_artifact_dict()
 
     def getJenkinsStatus(self):
 
-        try:
-            return self._BuildJob.is_running()
-        except Exception, e:
-            raise
+        return self._BuildJob.is_running()
 
 class JenkinsBuild(Build):
     
@@ -129,6 +106,7 @@ class JenkinsBuild(Build):
     __JenkinsURL = "http://cs-jenkins.xenrt.xs.citrite.net:8080"
     __Job = 'Cloudstack'
     __buildObj = None
+    __buildName = 'Marvin'
 
     def __init__(self,buildURL = None):
 
@@ -190,6 +168,20 @@ class JenkinsBuild(Build):
 
         return self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
 
+    def getBuildURL(self):
+
+        k = None
+        art = self.__JenkinsCommand.getBuildArtifacts(self.__buildObj)
+        for key in art.keys():
+            if self.__buildName in key:
+                k = key
+                break
+        
+        if not k:
+            raise xenrt.XRTError('Build URL not found')
+        buildURL = art[k].url
+        return buildURL
+
     def __startNewBuild(self,sha1):
 
         buildParams = {}
@@ -226,17 +218,14 @@ class BuildObserver(xenrt.XRTThread):
 
         startTime = time.time()
         
-        while 1: 
-            if self.buildRunning(self._buildObj):
-                time.sleep(10)
-            else: 
-                break
-
+        while self.buildRunning(): 
+            
+            xenrt.sleep(60)
             if (time.time() - startTime > self.__timeout):
                 break
 
     @abstractmethod 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
         pass
 
 class JenkinsObserver(BuildObserver):
@@ -248,14 +237,13 @@ class JenkinsObserver(BuildObserver):
         else:
             raise xenrt.XRTError("Jenkins build observer is already running")
 
-    def buildRunning(self,buildObj):
+    def buildRunning(self):
 
-        return self._jenkinsBuild.isBuildRunning(buildObj)
+        return self._jenkinsBuild.isBuildRunning()
 
     def setBuildParams(self,JenkinsBuild):
 
         self._jenkinsBuild = JenkinsBuild
-        self._buildObj = self._jenkinsBuild.getBuildObj()
 
     def waitToFinish(self):
 
@@ -263,4 +251,42 @@ class JenkinsObserver(BuildObserver):
             return
         self.join()
 
+class BuildInstaller(object):
+    __metaclass__ = ABCMeta
 
+    @abstractmethod
+    def downloadBuild(self):
+        pass
+
+    @abstractmethod
+    def installBuild(self):
+        pass
+
+class MarvinInstaller(BuildInstaller):
+   
+    def __init__(self,sha1,workDir = None):
+
+        self.__sha1 = sha1
+        if not workDir:
+            self.__workDir = xenrt.TEC().tempDir()
+        else:
+            self.__workDir = workDir
+ 
+    def downloadBuild(self):
+
+        observer = JenkinsObserver()
+        jenkinsBuild = JenkinsBuild()
+        jenkinsBuild.findBuild(self.__sha1)
+        jenkinsBuild.attachObserver(observer)
+        observer.waitToFinish()
+        buildURL = jenkinsBuild.getBuildURL()
+        os.system('cd %s && wget %s' % (self.__workDir, buildURL))
+        self.__filename = listdir(self.__workDir)[0]
+  
+    def installBuild(self):
+
+        self.downloadBuild()
+        #subprocess.Popen(["easy_install","--install-dir=%s" % self.__workDir,self.__filename],env={"PYTHONPATH":self.__workDir})
+        os.system('cd && PYTHONPATH=%s easy_install --install-dir=%s %s' %(self.__workDir,self.__workDir,self.__filename))
+        eggFiles = [f for f in listdir(self.__workDir) if '.egg' in f]
+        for f in eggFiles: sys.path.insert(0,self.__workDir + f)

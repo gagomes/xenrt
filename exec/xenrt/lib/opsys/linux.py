@@ -1,5 +1,7 @@
-import xenrt, string
+import xenrt
+import string
 from xenrt.lib.opsys import OS
+
 
 class LinuxOS(OS):
     vifStem = "eth"
@@ -18,7 +20,7 @@ class LinuxOS(OS):
                 getreply=True,
                 password=None):
         """Execute a command on the instance.
-    
+
         @param retval:  Whether to return the result code or stdout as a string
             "C{string}" (default), "C{code}"
             if "C{string}" is used then a failure results in an exception
@@ -49,10 +51,25 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
+    def getLogs(self, path):
+        sftp = self.sftpClient()
+        sftp.copyLogsFrom(["/var/log/messages",
+                           "/var/log/syslog",
+                           "/var/log/daemon.log",
+                           "/var/log/kern.log"], path)
+
+
+    def sftpClient(self):
+        """Get a SFTP client object to the guest"""
+        return xenrt.ssh.SFTPSession(self.parent.getIP(),
+                                     username="root",
+                                     password=self.password,
+                                     level=xenrt.RC_FAIL)
+
     def populateFromExisting(self):
         self.findPassword()
 
-    def findPassword(self, ipList = []):
+    def findPassword(self, ipList=[]):
         """Try some passwords to determine which to use"""
         if not self.password or len(ipList) > 0:
             # Use a 30s timeout if we know the IP. If we don't try 10s first
@@ -68,11 +85,14 @@ class LinuxOS(OS):
                         xenrt.TEC().logverbose("Trying %s on %s" % (p, i))
                         try:
                             xenrt.ssh.SSH(i, "true", username="root",
-                                          password=p, level=xenrt.RC_FAIL, timeout=10)
-                            xenrt.TEC().logverbose("Setting my password to %s" % (p))
+                                          password=p, level=xenrt.RC_FAIL,
+                                          timeout=10)
+                            xenrt.TEC().logverbose("Setting my password to %s"
+                                                    % (p))
                             self.password = p
                             if i != self.parent.getIP():
-                                xenrt.TEC().logverbose("Setting my IP to %s" % (i))
+                                xenrt.TEC().logverbose("Setting my IP to %s"
+                                                        % (i))
                                 self.parent.setIP(i)
                             return
                         except:
@@ -107,3 +127,21 @@ class LinuxOS(OS):
 
     def reboot(self):
         self.execSSH("reboot")
+
+    @property
+    def defaultRootdisk(self):
+        return 8 * xenrt.GIGA
+
+    @property
+    def defaultVcpus(self):
+        return 1
+
+    @property
+    def defaultMemory(self):
+        return 256
+
+    def assertHealthy(self):
+        stampFile = "/tmp/healthy"
+        self.execSSH("dd if=/dev/urandom oflag=direct of=%s count=1024"
+                      % stampFile)
+        self.execSSH("dd if=%s iflag=direct of=/dev/null" % stampFile)

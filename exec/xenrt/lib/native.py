@@ -34,7 +34,6 @@ def createHost(id=0,
                productVersion=None,
                productType=None,
                withisos=False,
-               embedded=None,
                noisos=None,
                overlay=None,
                installSRType=None,
@@ -82,14 +81,6 @@ class NativeHost(xenrt.GenericPlace):
         self.pddomaintype = "Native"
         self.password = xenrt.TEC().lookup("NATIVE_WINPE_PASSWORD")
         self.productVersion=productVersion
-
-    def pdGather(self, dict):
-        # TODO
-        pass
-
-    def pdGatherGuestLike(self, dict):
-        # TODO
-        pass
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         """Check the location is healthy."""
@@ -492,23 +483,29 @@ class NativeLinuxHost(xenrt.GenericHost):
         a string containing XML or a XML DOM node."""
         pass
 
-    def installIperf(self):
+    def installIperf(self, version=""):
         """Install iperf into the host"""
+
+        if version=="":
+            sfx = "2.0.4"
+        else:
+            sfx = version
+
         if self.execcmd("test -e /usr/local/bin/iperf -o "
                         "     -e /usr/bin/iperf",
                         retval="code") != 0:
             workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
-            self.execcmd("wget '%s/iperf.tgz' -O %s/iperf.tgz" %
-                         (xenrt.TEC().lookup("TEST_TARBALL_BASE"),
-                          workdir))
-            self.execcmd("tar -zxf %s/iperf.tgz -C %s" % (workdir, workdir))
-            self.execcmd("tar -zxf %s/iperf/iperf-2.0.4.tar.gz -C %s" %
-                         (workdir, workdir))
-            self.execcmd("cd %s/iperf-2.0.4 && ./configure" %
-                           (workdir))
-            self.execcmd("cd %s/iperf-2.0.4 && make" % (workdir))
-            self.execcmd("cd %s/iperf-2.0.4 && make install" %
-                         (workdir))
+            self.execcmd("wget '%s/iperf%s.tgz' -O %s/iperf%s.tgz" %
+                         (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version,
+                          workdir, version))
+            self.execcmd("tar -zxf %s/iperf%s.tgz -C %s" % (workdir, version, workdir))
+            self.execcmd("tar -zxf %s/iperf%s/iperf-%s.tar.gz -C %s" %
+                         (workdir, version, sfx, workdir))
+            self.execcmd("cd %s/iperf-%s && ./configure" %
+                           (workdir, sfx))
+            self.execcmd("cd %s/iperf-%s && make" % (workdir, sfx))
+            self.execcmd("cd %s/iperf-%s && make install" %
+                         (workdir, sfx))
             self.execcmd("rm -rf %s" % (workdir))
 
     def setupDataDisk(self):

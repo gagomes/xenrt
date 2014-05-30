@@ -29,7 +29,7 @@ def hostFactory(hosttype):
 class Host(xenrt.GenericHost):
 
     eventThread = None
-
+    
     def __init__(self, machine, productType="libvirt", productVersion="libvirt"):
         xenrt.GenericHost.__init__(self, machine,
                                    productType=productType,
@@ -322,3 +322,10 @@ class Host(xenrt.GenericHost):
 
     def isEnabled(self):
         return True
+
+    def getDomid(self, guest):
+        """Return the domid of the specified guest."""
+        #TODO: use virsh list output
+        return "unknown"
+
+

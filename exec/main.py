@@ -1772,6 +1772,16 @@ if setupsharedhost:
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        sho = xenrt.SharedHost(sharedhost)
+
+        macs = [sh['MAC']]
+        macs.extend(sh['BOND_NICS'].split(","))
+        pifs = [host.minimalList("pif-list", args="MAC=%s" % x)[0] for x in macs]
+        host.createBond(pifs, dhcp=True, management=True) 
+
+        templates = sh["TEMPLATES"]
+        for t in templates.keys():
+            sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))
 
 if setupstatichost:
     xenrt.infrastructuresetup.setupStaticHost()

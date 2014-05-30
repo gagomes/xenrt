@@ -6017,7 +6017,7 @@ exit 0
                         xenrt.TEC().warning(\
                             "Found known boot problem '%s' for machine %s. "
                             "Power cycling." % (desc, self.getName()))
-                        self.machine.powerctl.cycle()
+                        self.machine.powerctl.cycle(fallback = True)
                         return True
                     break
             if found:
@@ -6030,11 +6030,11 @@ exit 0
             xenrt.TEC().warning("Machine %s is known to have unreliable "
                                 "PXE/BIOS boot, power cycling." %
                                 (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         if self.lookup("CONSOLE_TYPE", None) != "basic" and self.lookup("CONSOLE_TYPE", None) != "slave":
             xenrt.TEC().warning("Machine %s may have unreliable serial output, power cycling." % (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         return False
 

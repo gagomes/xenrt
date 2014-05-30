@@ -2945,7 +2945,7 @@ class SharedHost:
         if not hostname:
             if len(hosts.keys()) == 0:
                 raise xenrt.XRTError("Could not find shared host")
-            hostname = hosts.keys()[0]
+            hostname = random.choice(hosts.keys())
         h = hosts[hostname]
         machine = xenrt.PhysicalHost(hostname, ipaddr = h["ADDRESS"])
         place = xenrt.GenericHost(machine)

@@ -454,8 +454,8 @@ class IPSetNameLengthTest(BackendSwitcher):
     AUGUSTA_ERROR_MESSAGE = "31 char"
     
     # CP-7155 - on Augusta onwards, we only expect 31 character names to work (31 rather than 32 as the last byte is the null byte)
-    def testForAugusta(self, host):     
-        if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+    def testForAugustaOrCreedence(self, host):     
+        if isinstance(host, xenrt.lib.xenserver.SarasotaHost) or isinstance(host, xenrt.lib.xenserver.CreedenceHost):
             step("Testing on an Augusta/post Augusta host with 32 and 31 character strings - CP-7155.")
             self.VALID_NAME = self.AUGUSTA_VALID_NAME
             self.INVALID_NAME = self.AUGUSTA_INVALID_NAME  
@@ -475,7 +475,7 @@ class IPSetNameLengthTest(BackendSwitcher):
         self.clearAllRules()
             
         # check if the test is being carried out on an Augusta/post Augusta host - CP-7155
-        self.testForAugusta(self.host)   
+        self.testForAugustaOrCreedence(self.host)   
             
         step("Testing with an invalid name \"%s\" of length %d." % (self.INVALID_NAME, len(self.INVALID_NAME)))     
         try:

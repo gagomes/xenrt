@@ -125,7 +125,7 @@ class MarvinApi(object):
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
     def waitForBuiltInTemplatesReady(self):
-        templateList = self.cloudApi.listTemplates(templatefilter='all', templatetype='BUILTIN')
+        templateList = [x for x in self.cloudApi.listTemplates(templatefilter='all') if x.templatetype == "BUILTIN"]
         map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
 
     def waitForTemplateReady(self, name, zoneId=None):

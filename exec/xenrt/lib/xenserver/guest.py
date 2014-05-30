@@ -521,11 +521,10 @@ class Guest(xenrt.GenericGuest):
             self.paramSet("other-config:xenrt-distro", self.distro)
 
         if not dontstartinstall:
-            if self.noguestagent and not notools and not installXenToolsInPostInstall:
+            if start:
                 self.start()
+            if self.noguestagent and not notools:
                 self.installTools()
-                if not start:
-                    self.shutdown()
 
             xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
                                 "%uMB memory."

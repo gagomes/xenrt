@@ -356,7 +356,7 @@ class CloudStack(object):
         
         self.marvin.cloudApi.createTags(resourceids=[t.id],
                                         resourcetype="Template",
-                                        tags=[{"key":distro, "value":distro}])
+                                        tags=[{"key":"distro", "value":distro}])
         instance.setPowerState(origState)
 
     def createInstanceFromTemplate(self, templateName, name=None, start=True):

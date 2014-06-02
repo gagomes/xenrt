@@ -8,7 +8,7 @@
 
   <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
-  <default name="DISTROS" value="ubuntu1004,ubuntu1010,ubuntu1104,ubuntu1110,ubuntu1204" />
+  <default name="DISTROS" value="ubuntu1004,ubuntu1104,ubuntu1204" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />

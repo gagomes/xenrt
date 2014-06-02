@@ -30,4 +30,4 @@ $(LINUX_ISOS_OUTPUTS):
 	$(info Building $@...)
 	mkdir -p $(SCRATCHDIR)/tmp/isobuild
 	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@) $(SCRATCHDIR)/tmp/isobuild/$@ nocopy
-	if [ -e $(SCRACHDIR)/tmp/isobuild/$@ ]; then mv $(SCRATCHDIR)/tmp/isobuild/$@ $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@); fi
+	if [ -e $(SCRATCHDIR)/tmp/isobuild/$@ ]; then mv $(SCRATCHDIR)/tmp/isobuild/$@ $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@); fi

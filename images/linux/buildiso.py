@@ -15,7 +15,7 @@ def execcmd(cmd):
 
 def repackiso(inputiso, outputiso, isolinuxfile):
     try:
-        td = tempfile.mkdtemp()
+        td = tempfile.mkdtemp(prefix="isobuild", dir="/local/scratch/tmp")
         print "Created directory %s" % td
         os.mkdir("%s/mp" % td)
         execcmd("sudo mount -o loop,ro %s %s/mp" % (inputiso, td))

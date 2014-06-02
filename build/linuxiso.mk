@@ -9,11 +9,11 @@ LINUX_ISOS_INPLACE_LIST	= $(shell ls $(LINUX_ISOS))
 
 linuxisos:$(LINUX_ISOS_OUTPUTS)
 	$(info Building Linux ISOs...)
-	$(foreach iso,$(LINUX_ISOS_LIST), $(MAKE) $(iso);)
+	$(foreach iso,$(LINUX_ISOS_LIST), $(MAKE) $(iso).linux;)
 
 linuxisos-inplace:
 	$(info Building Linux ISOs in place...)
-	$(foreach iso,$(LINUX_ISOS_INPLACE_LIST), $(MAKE) $(iso).inplace;)
+	$(foreach iso,$(LINUX_ISOS_INPLACE_LIST), $(MAKE) $(iso).linux.inplace;)
 
 $(LINUX_ISOS_OUTPUTS):
 	$(info Creating linux ISO output directory... \($@\))
@@ -21,13 +21,13 @@ $(LINUX_ISOS_OUTPUTS):
 	$(SUDO) chown $(USERID):$(GROUPID) $(IMAGEDIR)
 
 .PHONY: %.iso
-%.iso:
+%.iso.linux:
 	$(info Building $@...)
-	images/linux/buildiso.py $(LINUX_ISOS_INPUTS)/$@ $(LINUX_ISOS_OUTPUTS)/$@
+	images/linux/buildiso.py $(LINUX_ISOS_INPUTS)/$(patsubst %.linux,%,$@) $(LINUX_ISOS_OUTPUTS)/$(patsubst %.linux,%,$@)
 
 .PHONY: %.iso.inplace
 %.iso.inplace:
 	$(info Building $@...)
-	mkdir -p /tmp/linisos
-	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.inplace,%,$@) /tmp/linisos/$@ nocopy
-	if [ -e /tmp/linisos/$@ ]; then mv /tmp/linisos/$@ $(LINUX_ISOS)/$(patsubst %.inplace,%,$@); fi
+	mkdir -p $(SCRATCHDIR)/linisos
+	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@) /tmp/linisos/$@ nocopy
+	if [ -e /tmp/linisos/$@ ]; then mv /tmp/linisos/$@ $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@); fi

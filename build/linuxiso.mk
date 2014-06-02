@@ -4,16 +4,16 @@
 include build/config.mk
 include build/tools.mk
 
-LINUX_ISOS	= $(shell ls $(LINUX_ISOS_INPUTS))
-LINUX_ISOS_INPLACE	= $(shell ls $(LINUX_ISOS))
+LINUX_ISOS_LIST	= $(shell ls $(LINUX_ISOS_INPUTS))
+LINUX_ISOS_INPLACE_LIST	= $(shell ls $(LINUX_ISOS))
 
 linuxisos:$(LINUX_ISOS_OUTPUTS)
 	$(info Building Linux ISOs...)
-	$(foreach iso,$(LINUX_ISOS), $(MAKE) $(iso);)
+	$(foreach iso,$(LINUX_ISOS_LIST), $(MAKE) $(iso);)
 
 linuxisos-inplace:
 	$(info Building Linux ISOs in place...)
-	$(foreach iso,$(LINUX_ISOS_INPLACE), $(MAKE) $(iso).inplace;)
+	$(foreach iso,$(LINUX_ISOS_INPLACE_LIST), $(MAKE) $(iso).inplace;)
 
 $(LINUX_ISOS_OUTPUTS):
 	$(info Creating linux ISO output directory... \($@\))

@@ -18,4 +18,4 @@ $(LINUX_ISOS_OUTPUTS):
 .PHONY: %.iso
 %.iso:
 	$(info Building $@...)
-	images/linux/buildiso.py $(LINUX_ISO_INPUTS)/$@ $(LINUX_ISO_OUTPUTS)/$@
+	images/linux/buildiso.py $(LINUX_ISOS_INPUTS)/$@ $(LINUX_ISOS_OUTPUTS)/$@

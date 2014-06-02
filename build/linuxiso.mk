@@ -4,7 +4,7 @@
 include build/config.mk
 include build/tools.mk
 
-ISOS	= $(ls $(LINUX_ISOS_INPUTS))
+ISOS	= $(shell ls $(LINUX_ISOS_INPUTS))
 
 linuxisos:$(LINUX_ISOS_OUTPUTS)
 	$(info Building Linux ISOs...)
@@ -15,6 +15,7 @@ $(LINUX_ISOS_OUTPUTS):
 	$(SUDO) mkdir -p $(LINUX_ISOS_OUTPUTS)
 	$(SUDO) chown $(USERID):$(GROUPID) $(IMAGEDIR)
 
-.PRECIOUS: $(LINUX_ISOS_OUTPUTS)/%.iso
-$(LINUX_ISOS_OUTPUTS)/%.iso:
+.PHONY: %.iso
+%.iso:
 	$(info Building $@...)
+	images/linux/buildiso.py $(LINUX_ISO_INPUTS)/$@ $(LINUX_ISO_OUTPUTS)/$@

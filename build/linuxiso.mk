@@ -26,7 +26,7 @@ $(LINUX_ISOS_OUTPUTS):
 	images/linux/buildiso.py $(LINUX_ISOS_INPUTS)/$(patsubst %.linux,%,$@) $(LINUX_ISOS_OUTPUTS)/$(patsubst %.linux,%,$@)
 
 .PHONY: %.iso.inplace
-%.iso.inplace:
+%.iso.linux.inplace:
 	$(info Building $@...)
 	mkdir -p $(SCRATCHDIR)/linisos
 	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@) /tmp/linisos/$@ nocopy

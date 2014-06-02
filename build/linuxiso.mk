@@ -12,7 +12,7 @@ linuxisos:$(LINUX_ISOS_OUTPUTS)
 
 $(LINUX_ISOS_OUTPUTS):
 	$(info Creating linux ISO output directory... \($@\))
-	$(SUDO) mkdir -p $(LINUX_ISO_OUTPUTS)
+	$(SUDO) mkdir -p $(LINUX_ISOS_OUTPUTS)
 	$(SUDO) chown $(USERID):$(GROUPID) $(IMAGEDIR)
 
 .PRECIOUS: $(LINUX_ISOS_OUTPUTS)/%.iso

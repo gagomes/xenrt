@@ -28,6 +28,6 @@ $(LINUX_ISOS_OUTPUTS):
 .PHONY: %.iso.inplace
 %.iso.linux.inplace:
 	$(info Building $@...)
-	mkdir -p $(SCRATCHDIR)/linisos
-	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@) /tmp/linisos/$@ nocopy
-	if [ -e /tmp/linisos/$@ ]; then mv /tmp/linisos/$@ $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@); fi
+	mkdir -p $(SCRATCHDIR)/tmp/isobuild
+	images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@) $(SCRATCHDIR)/tmp/isobuild/$@ nocopy
+	if [ -e $(SCRACHDIR)/tmp/isobuild/$@ ]; then mv /tmp/linisos/$@ $(LINUX_ISOS)/$(patsubst %.linux.inplace,%,$@); fi

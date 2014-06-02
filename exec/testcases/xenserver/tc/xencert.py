@@ -13,7 +13,7 @@ class _XSStorageCertKit(xenrt.TestCase):
     """Base class for XenServer Storage Certification Kit"""
 
     XENCERT_ISO = "xencert-supp-pack.iso"
-    XENCERT_RPMS = ["xencert-1.8.0-xs14", "xenserver-transfer-vm"]
+    XENCERT_RPMS = ["xencert", "xenserver-transfer-vm"]
     XENCERT_RPM_REPOS = ["xs:xencert-supp-pack", "xs:xenserver-transfer-vm"]
 
     SR_TYPE = None

@@ -1302,3 +1302,19 @@ def mostCommonInList(items):
     for i in set(items):
         counts[i] = len([x for x in items if x==i])
     return sorted(counts, key=lambda x: counts[x], reverse=True)[0]
+
+def keepSetup():
+    keepOptions = ["OPTION_KEEP_SETUP",
+                   "OPTION_KEEP_ISCSI",
+                   "OPTION_KEEP_NFS",
+                   "OPTION_KEEP_CVSM",
+                   "OPTION_KEEP_VLANS",
+                   "OPTION_KEEP_STATIC_IPS",
+                   "OPTION_KEEP_UTILITY_VMS",
+                   "OPTION_KEEP_GLOBAL_LOCKS"]
+
+    for o in keepOptions:
+        if xenrt.TEC().lookup(o, False, boolean=True):
+            return True
+
+    return False

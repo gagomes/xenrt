@@ -3310,7 +3310,7 @@ class GlobalExecutionContext:
 
         if not aux:
             # XRT-3021 Disable outbound iSCSI on every host
-            if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+            if xenrt.util.keepSetup():
                 xenrt.TEC().logverbose("Not blocking iSCSI traffic")
             else:
                 try:

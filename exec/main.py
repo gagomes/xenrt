@@ -174,6 +174,8 @@ def usage(fd):
 
     --install-packages                    Install packages required for a job
 
+    --get-resource "<type> <args>"        Get a controller resource (NFS, IP address range)
+
 """ % (sys.argv[0]))
 
 # Parse command line
@@ -258,6 +260,7 @@ noloadmachines = False
 mconfig = None
 installguest = None
 installpackages = False
+getresource = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -364,7 +367,8 @@ try:
                                       'show-network',
                                       'show-network6',
                                       'pdu',
-                                      'install-packages'])
+                                      'install-packages',
+                                      'get-resource='])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -774,6 +778,11 @@ try:
         elif flag == "--install-packages":
             installpackages = True
             noloadmachines = True
+            aux = True
+        elif flag == "--get-resource":
+            getresource = value
+            noloadmachines = True
+            setvars.append((["OPTION_KEEP_SETUP"], "yes"))
             aux = True
             
 except getopt.GetoptError:
@@ -1961,6 +1970,15 @@ if runsuite:
     for suite in suites:
         testrun = suite.submit(debug=suitedebug,delayfor=delayfor,devrun=suitedevrun)
         print "SUITE %s" % (testrun)
+
+if getresource:
+   args = getresource.split()
+   machine = args.pop(0)
+   job = xenrt.GEC().dbconnect.jobctrl("machine", [machine])["JOBID"]
+   config.setVariable("JOBID", job)
+   xenrt.GEC().dbconnect._jobid = int(job)
+   restype = args.pop(0)
+   print xenrt.getResourceInteractive(restype, args)
 
 if runtool:
     eval("xenrt.tools." + runtool)

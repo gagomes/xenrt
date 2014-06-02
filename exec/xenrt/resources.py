@@ -44,7 +44,21 @@ __all__ = ["WebDirectory",
            "SharedHost",
            "PrivateVLAN",
            "ProductLicense",
-           "GlobalResource"]
+           "GlobalResource",
+           "getResourceInteractive"]
+
+def getResourceInteractive(resType, argv):
+    if resType == "NFS":
+        res = ExternalNFSShare()
+        return res.getMount()
+    elif resType == "IP4":
+        size = int(argv[0])
+        addrs = StaticIP4Addr.getIPRange(size)
+        return "%s-%s" % (addrs[0].getAddr(), addrs[-1].getAddr())
+    elif resType == "VLAN":
+        size = int(argv[0])
+        vlans = PrivateVLAN.getVLANRange(size)
+        return "%d-%d" % (vlans[0].getID(), vlans[-1].getID())
 
 class DirectoryResource:
 
@@ -686,7 +700,7 @@ class ExternalNFSShare(CentralResource):
 
     def release(self, atExit=False):
         if self.subdir:
-            if xenrt.TEC().lookup("OPTION_KEEP_NFS", False, boolean=True):
+            if xenrt.util.keepSetup():
                 xenrt.TEC().logverbose("Not deleting NFS export %s" %
                                        (self.getMount()))
             else:
@@ -760,7 +774,7 @@ class ISCSIIndividualLun:
         return self.lungroup.getInitiatorName(allocate=allocate)
     
     def _release(self):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s %s (%u)"
                                    % (self.getServer(),
                                       self.getTargetName(),
@@ -998,7 +1012,7 @@ class ISCSILunGroup(_ISCSILunBase):
         return lun
 
     def release(self, atExit=False):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             return
         for l in self.luns:
             l.release()
@@ -1165,7 +1179,7 @@ class ISCSILun(_ISCSILunBase):
         self.secAddrs = {}
 
     def release(self, atExit=False):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s" %
                                    (self.getServer(),
                                     self.getTargetName()))
@@ -1647,7 +1661,7 @@ class FCHBATarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -1777,7 +1791,7 @@ class SMISiSCSITarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -1888,7 +1902,7 @@ class SMISFCTarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2006,7 +2020,7 @@ class NetAppTarget(ManagedStorageResource):
                                                 None)
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2157,7 +2171,7 @@ class EQLTarget(ManagedStorageResource):
                                                 None)
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2749,7 +2763,6 @@ def getBuildServer(arch):
 
 class _NetworkResourceFromRange(CentralResource):
     LOCKID = None
-    KEEPOPTION = None
 
     @classmethod
     def _getRange(cls, size, available, **kwargs):
@@ -2821,7 +2834,7 @@ class _NetworkResourceFromRange(CentralResource):
         return name
         
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup(self.KEEPOPTION, False, boolean=True):
+        if not xenrt.util.keepSetup():
             if atExit:
                 for host in xenrt.TEC().registry.hostList():
                     if host == "SHARED":
@@ -2836,7 +2849,6 @@ class _NetworkResourceFromRange(CentralResource):
 
 class PrivateVLAN(_NetworkResourceFromRange):
     LOCKID = "VLAN"
-    KEEPOPTION="OPTION_KEEP_VLANS"
 
     @classmethod
     def _rangeFactory(cls, vlan):
@@ -2877,7 +2889,6 @@ class _StaticIPAddr(_NetworkResourceFromRange):
 
     POOLSTART = None
     POOLEND = None
-    KEEPOPTION="OPTION_KEEP_STATIC_IPS"
 
     @classmethod
     def _rangeFactory(cls, ip, network):
@@ -2969,7 +2980,7 @@ class SharedHost:
         g.paramSet("is-a-template", "true")
 
     def callback(self):
-        if xenrt.TEC().lookup("OPTION_KEEP_UTILITY_VMS", False, boolean=True):
+        if xenrt.util.keepSetup():
             return
         jobid = xenrt.GEC().dbconnect.jobid()
         if jobid:
@@ -2983,51 +2994,6 @@ class SharedHost:
                         pass
                     self.getHost().execdom0("xe vm-uninstall uuid=%s --force" % (vm))
             
-class PrivateVLANold(CentralResource):
-    """A VLAN that we have temporary exclusive access to."""
-
-    def __init__(self):
-        CentralResource.__init__(self)
-        xenrt.TEC().logverbose("About to attempt to lock private VLAN - current central resource status:")
-        self.logList()
-        allVLANs = [x for x in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys() if xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", x, "PRIVATE"], False, boolean=True)]
-        startlooking = xenrt.util.timenow()
-        vlan = None
-        while True:
-            for v in allVLANs:
-                try:
-                    self.acquire("VLAN-%s" % xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ID"]), shared=False)
-                    vlan = v
-                    self.resourceHeld = True
-                    break
-                except xenrt.XRTError:
-                    continue
-            if vlan:
-                break
-            if xenrt.util.timenow() > (startlooking + 3600):
-                xenrt.TEC().logverbose("Could not lock VLAN, current central resource status:")
-                self.logList()
-                raise xenrt.XRTError("Timed out waiting for a VLAN to be available")
-            xenrt.sleep(60)
-
-        self.name = vlan
-
-    def getName(self):
-        return self.name
-
-    def getID(self):
-        return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", self.name, "ID"])
-
-    def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_VLANS", False, boolean=True):
-            if atExit:
-                for host in xenrt.TEC().registry.hostList():
-                    if host == "SHARED":
-                        continue
-                    h = xenrt.TEC().registry.hostGet(host)
-                    h.machine.exitPowerOff()
-            CentralResource.release(self, atExit)
-
 class ProductLicense(CentralResource):
     def __init__(self, product):
         CentralResource.__init__(self)
@@ -3082,7 +3048,7 @@ class GlobalResource(CentralResource):
         self.resourceHeld = True
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_GLOBAL_LOCKS", False, boolean=True):
+        if not xenrt.util.keepSetup():
             xenrt.GEC().dbconnect.jobctrl("resrelease", [self.getName()])
             CentralResource.release(self, atExit)
         

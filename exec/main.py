@@ -1777,11 +1777,22 @@ if setupsharedhost:
         macs = [sh['MAC']]
         macs.extend(sh['BOND_NICS'].split(","))
         pifs = [host.minimalList("pif-list", args="MAC=%s" % x)[0] for x in macs]
-        host.createBond(pifs, dhcp=True, management=True) 
+        
+        nets = [host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % x)[0] for x in pifs]
+        for n in nets:
+            host.genParamSet("network", n, "name-label", "slave%s" % n)
+        
+        host.createBond(pifs, dhcp=True, management=True)
+
+        # Rename the bond network to get VMs to import onto the bond rather than the slave
+        bondPif = host.minimalList("bond-list", params="master")[0]
+        net = host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % bondPif)[0]
+        host.genParamSet("network", net, "name-label", "Pool-wide network associated with eth0")
 
         templates = sh["TEMPLATES"]
         for t in templates.keys():
             sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))
+
 
 if setupstatichost:
     xenrt.infrastructuresetup.setupStaticHost()

@@ -34,6 +34,12 @@ if __name__ == "__main__":
     inputiso = sys.argv[1]
     outputiso = sys.argv[2]
 
+    noCopy = False
+
+    if len(sys.argv) > 3:
+        if "nocopy" in sys.argv[3]:
+            noCopy = True
+
     doTailor = False
 
     isoname = inputiso.split("/")[-1]
@@ -69,4 +75,5 @@ if __name__ == "__main__":
         repackiso(inputiso, outputiso, fileToUse)
     else:
         print "Not tailoring ISO"
-        shutil.copyfile(inputiso, outputiso)
+        if not noCopy:
+            shutil.copyfile(inputiso, outputiso)

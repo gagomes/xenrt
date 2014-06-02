@@ -6,7 +6,7 @@ include build/tools.mk
 
 ISOS	= $(ls $(LINUX_ISOS_INPUTS))
 
-isos:$(LINUX_ISOS_OUTPUTS)
+linuxisos:$(LINUX_ISOS_OUTPUTS)
 	$(info Building Linux ISOs...)
 	$(foreach iso,$(ISOS), $(MAKE) $(iso);)
 

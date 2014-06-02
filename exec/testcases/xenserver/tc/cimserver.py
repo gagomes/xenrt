@@ -3462,9 +3462,11 @@ class ExportImportSnapshotTree(_CimBase):
             raise xenrt.XRTFailure("Exception occurred while reverting to snapshot")
         if importedVM.getState() == "UP":
             importedVM.shutdown()
+            self.changeVif(importedVM)
             importedVM.start()
 
         if importedVM.getState() == "DOWN":
+            self.changeVif(importedVM)
             importedVM.start()
 
     def verifySnapshotTree(self,snapshotPattern,host,vmuuid,guest):
@@ -3532,6 +3534,7 @@ class ExportImportSnapshotTree(_CimBase):
         guest.revert(snapshot)
         if guest.getState() == "DOWN":
             try:
+                self.changeVif(guest)
                 guest.start()
             except:
                 raise xenrt.XRTFailure("After reverting VM to snapshot %s, VM is not coming up" % snapshot)
@@ -3601,7 +3604,14 @@ class ExportImportSnapshotTree(_CimBase):
         else:
             guest.execguest("mkdir /tmp/%s" % (str(name)))
         time.sleep(15)
- 
+    
+    def changeVif(self, guest):
+        # Change the vif of newly created guest to XenRT random mac before guest start
+        mac = xenrt.randomMAC()
+        bridge = guest.host.getPrimaryBridge()
+        device = 'eth0'
+        guest.changeVIF(device, bridge, mac)
+    
     def fullTree(self,guest,isWindows):
 
         snapshotList = []

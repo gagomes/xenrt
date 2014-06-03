@@ -2004,6 +2004,12 @@ if listresources:
             if not resname in ret[resclass]:
                 ret[resclass].append(resname)
 
+    for k in ret.keys():
+        if k in ("IP4ADDR", "IP6ADDR"):
+            ret[k].sort(key=lambda x: IPy.IP(x).int())
+        else:
+            ret[k].sort()
+
     print ret
 
 if runtool:

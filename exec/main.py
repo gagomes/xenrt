@@ -2008,6 +2008,10 @@ if listresources:
         if k in ("IP4ADDR", "IP6ADDR"):
             ret[k].sort(key=lambda x: IPy.IP(x).int())
         else:
+            try:
+                ret[k] = [int(x) for x in ret[k]]
+            except:
+                pass
             ret[k].sort()
 
     print ret

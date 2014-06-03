@@ -80,7 +80,7 @@ class XenRTGetResource(XenRTAPIPage):
         restype = form['type']
         
 
-        if form.has_key['args']:
+        if form.has_key('args'):
             args = " %s" % form['args']
         
         

@@ -1991,7 +1991,11 @@ if getresource:
    config.setVariable("JOBID", job)
    xenrt.GEC().dbconnect._jobid = int(job)
    restype = args.pop(0)
-   print json.dumps(xenrt.getResourceInteractive(restype, args))
+   try:
+       ret = xenrt.getResourceInteractive(restype, args)
+       print json.dumps({"result": "OK", "data": ret})
+   except Exception, e:
+       print json.dumps({"result": "ERROR", "data": str(e)})
 
 if listresources:
     cr = xenrt.resources.CentralResource()

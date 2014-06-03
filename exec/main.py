@@ -154,6 +154,7 @@ def usage(fd):
                                           killed/crashed jobs
     --cleanup-temp-dirs <job>             Remove any left over temporary directories from a specified job
     --cleanup-nfs-dirs                    Remove any left over NFS directories from stale jobs
+    --cleanup-nfs-dir                     Remove a specific NFS directory
     --release-lock <id>                   Force release a resource lock
     --setup-net-peer <peer>               Set up the specified network test peer
     --setup-router                        Set up the software router for this site (IPv6)
@@ -221,6 +222,7 @@ cleanuplocks = False
 cleanuptempdirs = False
 cleanuptempdirsjob = None
 cleanupnfsdirs = False
+cleanupnfsdir = None
 releaselock = None
 setupnetpeer = False
 setuprouter = False
@@ -334,6 +336,7 @@ try:
                                       'cleanup-locks',
                                       'cleanup-temp-dirs=',
                                       'cleanup-nfs-dirs',
+                                      'cleanup-nfs-dir=',
                                       'release-lock=',
                                       'setup-net-peer=',
                                       'setup-router',
@@ -645,6 +648,9 @@ try:
             aux = True
         elif flag == "--cleanup-nfs-dirs":
             cleanupnfsdirs = True
+            aux = True
+        elif flag == "--cleanup-nfs-dir":
+            cleanupnfsdir = value
             aux = True
         elif flag == "--release-lock":
             releaselock = value
@@ -1637,7 +1643,28 @@ if cleanupnfsdirs:
             pass
 
 
-        
+if cleanupnfsdir:
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
+    (cleanupBaseDir, cleanupDir) = cleanupPath.rsplit("/", 1)
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if address != cleanupAddress or cleanupBaseDir != basedir:
+                continue
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
+            xenrt.rootops.sudo("rm -rf %s/%s" % (mp, cleanupDir))
+            if m:
+                m.unmount()
+        except:
+            pass
 
 if cleanuptempdirs:
     # to list the job ids of all running/paused/new jobs in xenrt.

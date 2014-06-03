@@ -250,6 +250,8 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	sed -i 's#@user@#$(USERNAME)#g' $@
+	sed -i 's#@group@#$(GROUPNAME)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

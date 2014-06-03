@@ -103,8 +103,21 @@ class XenRTListResources(XenRTAPIPage):
         self.request.response.content_type="application/json"
         return self.request.response
 
+class XenRTReleaseResources(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        for v in form.getall("resource"):
+            if v.startswith("NFS-"):
+                xrtcmd = "--cleanup-nfs-dir \"%s\"" % (v.split("-", 1)[1])
+            else:
+                xrtcmd = "--release-lock \"%s\"" % (v)
+            cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+            os.system(string.join(cmd))
+        return "OK"
+
 PageFactory(XenRTGetResource, "getresource", "/api/controller/getresource")
 PageFactory(XenRTListResources, "listresources", "/api/controller/listresources")
+PageFactory(XenRTReleaseResources, "releaseresources", "/api/controller/releaseresources", contentType="text/plain")
 PageFactory(XenRTPower, "power", "/api/controller/power", compatAction="power")
 PageFactory(XenRTSNetwork, "snetwork", "/api/controller/network", compatAction="network")
 PageFactory(XenRTMConfig, "mconfig", "/api/controller/machinecfg", compatAction="mconfig")

@@ -174,7 +174,8 @@ def usage(fd):
 
     --install-packages                    Install packages required for a job
 
-    --get-resource "<type> <args>"        Get a controller resource (NFS, IP address range)
+    --get-resource "<machine> <type> <args>"        Get a controller resource (NFS, IP address range)
+    --list-resources <machine>            List resources associated with a machine
 
 """ % (sys.argv[0]))
 
@@ -261,6 +262,7 @@ mconfig = None
 installguest = None
 installpackages = False
 getresource = None
+listresources = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -368,7 +370,8 @@ try:
                                       'show-network6',
                                       'pdu',
                                       'install-packages',
-                                      'get-resource='])
+                                      'get-resource=',
+                                      'list-resources='])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -783,6 +786,10 @@ try:
             getresource = value
             noloadmachines = True
             setvars.append((["OPTION_KEEP_SETUP"], "yes"))
+            aux = True
+        elif flag == "--list-resources":
+            listresources = value
+            noloadmachines = True
             aux = True
             
 except getopt.GetoptError:
@@ -1979,6 +1986,25 @@ if getresource:
    xenrt.GEC().dbconnect._jobid = int(job)
    restype = args.pop(0)
    print xenrt.getResourceInteractive(restype, args)
+
+if listresources:
+    cr = xenrt.resources.CentralResource()
+    locks = cr.list()
+    jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
+    
+    machineJobs = [x for x in jobs if xenrt.jobOnMachine(listresources, x)]
+
+    ret = {}
+
+    for l in locks:
+        if l[1] and l[2]['jobid'] in machineJobs:
+            (resclass, resname) = l[0].split("-",1)
+            if not resclass in ret.keys():
+                ret[resclass] = []
+            if not resname in ret[resclass]:
+                ret[resclass].append(resname)
+
+    print ret
 
 if runtool:
     eval("xenrt.tools." + runtool)

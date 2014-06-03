@@ -69,10 +69,12 @@ __all__ = ["timenow",
            "recursiveFileSearch",
            "getRandomULAPrefix",
            "sleep",
+           "jobOnMachine",
            "canCleanJobResources",
            "staleMachines",
            "xrtAssert",
-           "xrtCheck"
+           "xrtCheck",
+           "keepSetup"
            ]
 
 def sleep(secs, log=True):
@@ -1228,6 +1230,15 @@ def getRandomULAPrefix():
     third_part = xenrt.command("echo %s%s | sha1sum | cut -c31-40" % (first_part, second_part), strip=True)
     global_id = xenrt.command("echo fd%s " % third_part + r"| sed -e 's|\(....\)\(....\)\(....\)|\1:\2:\3|'", strip=True)
     return global_id
+
+def jobOnMachine(machine, jobid):
+    xrs = xenrt.ctrl.XenRTStatus(None)
+    jobdict = xrs.run([jobid])
+    machines = []
+    for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
+        if jobdict.has_key(k):
+            machines.extend(jobdict[k].split(","))
+    return machine in machines
 
 def canCleanJobResources(jobid):
     jobid = str(jobid)

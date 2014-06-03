@@ -1761,7 +1761,7 @@ if cleanuplocks:
             machine.powerctl.off()
     
     for j in set(jobsForGlobalRelease):
-        xenrt.GEC().dbconnect.jobctrl("resrelease", [j])
+        xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
 
 if releaselock:
     cr = xenrt.resources.CentralResource()

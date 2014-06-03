@@ -3190,9 +3190,9 @@ class XenRTConsole(_XenRTControllerOperation):
                 self.printout("%s\n" % line)
         return 0
 
-class XenRTResLock(XenRTCommand):
+class XenRTGlobalResLock(XenRTCommand):
    
-    name = "reslock"
+    name = "globalreslock"
     summary = "Lock a global resource (controller command)"
     mandatory = "<type> <jobid> <site>"
     group = "resources"
@@ -3217,8 +3217,8 @@ class XenRTResLock(XenRTCommand):
         self.printout(json.dumps(results)+"\n")
         return 0
 
-class XenRTResRelease(XenRTCommand):
-    name = "resrelease"
+class XenRTGlobalResRelease(XenRTCommand):
+    name = "globalresrelease"
     summary = "Release a global resource"
     mandatory = "<job id or resource name>"
     group = "resources"

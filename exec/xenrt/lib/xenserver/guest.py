@@ -523,8 +523,6 @@ class Guest(xenrt.GenericGuest):
         if not dontstartinstall:
             if start:
                 self.start()
-            if self.noguestagent and not notools:
-                self.installTools()
 
             xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
                                 "%uMB memory."
@@ -533,6 +531,9 @@ class Guest(xenrt.GenericGuest):
             ip = self.getIP()
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
+
+            if self.noguestagent and not notools and self.getState() == "UP":
+                self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

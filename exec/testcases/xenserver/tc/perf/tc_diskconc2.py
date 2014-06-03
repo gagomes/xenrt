@@ -1,6 +1,11 @@
 import xenrt, libperf, string, os, os.path
 import libsynexec
 
+def toBool(val):
+    if val.lower() in ("false", "no"):
+        return False
+    return True
+
 class TCDiskConcurrent2(libperf.PerfTestCase):
 
     def __init__(self):
@@ -38,6 +43,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.write_iterations = libperf.getArgument(arglist, "write_iterations", int, 1)
         self.read_iterations = libperf.getArgument(arglist, "read_iterations", int, 1)
         self.zeros = libperf.getArgument(arglist, "zeros", bool, False)
+        self.prepopulate = libperf.getArgument(arglist, "prepopulate", toBool, True)
 
         # Disk schedulers are specified in the form deviceA=X,deviceB=Y,...
         # To specify the scheduler for the default SR, use default=Z
@@ -93,6 +99,26 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
 
             cloned_vm.start()
             libsynexec.start_slave(cloned_vm, self.jobid)
+
+    def runPrepopulate(self):
+        # Run synexec master
+        last_disk = chr(ord('a') + self.vbds_per_vm)
+        libsynexec.start_master_in_dom0(self.host,
+                    """/bin/bash :CONF:
+#!/bin/bash
+
+for i in {b..%s}; do
+    dd if=/dev/zero of=/dev/xvd\\$i bs=1M oflag=direct || true
+done
+
+for i in {b..%s}; do
+  wait
+done
+""" % (last_disk, last_disk),
+            self.jobid, len(self.vm))
+
+        for vm in self.vm:
+            libsynexec.start_slave(vm, self.jobid)
 
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:
@@ -211,6 +237,9 @@ done
                 self.changeDiskScheduler(self.host, sr, self.disk_schedulers[device])
 
             self.createVMsForSR(sr)
+
+        if self.prepopulate:
+            self.runPrepopulate()
 
         for i in range(self.write_iterations):
             self.runPhase(i, 'w')

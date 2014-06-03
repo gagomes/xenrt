@@ -3308,8 +3308,8 @@ class Commands:
         self.add(XenRTPower)
         self.add(XenRTSNetwork)
         self.add(XenRTConsole)
-        self.add(XenRTResLock)
-        self.add(XenRTResRelease)
+        self.add(XenRTGlobalResLock)
+        self.add(XenRTGlobalResRelease)
 
     def add(self, cl):
         c = cl(self)

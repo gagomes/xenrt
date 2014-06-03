@@ -35,6 +35,13 @@ class CloudApi(object):
     def __command(self, command, **kwargs):
         """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
         # First we create the command
+
+        if command.endswith("Async"):
+            command = command[:-5]
+            async = True
+        else:
+            async = False
+
         cls = eval("%s.%sCmd" % (command, command))
         cmd = cls()
         # Then iterate through the parameters
@@ -46,7 +53,31 @@ class CloudApi(object):
             cmd.__dict__[k] = kwargs[k]
         
         # Then run the command
-        return getattr(self.__apiClient, command)(cmd)
+        if async:
+            if not cmd.isAsync=="true":
+                raise xenrt.XRTError("Command is not an asynchronous command")
+            cmd.isAsync="false"
+            return getattr(self.__apiClient, command)(cmd).jobid
+        else:
+            return getattr(self.__apiClient, command)(cmd)
+
+    def checkAsyncJob(self, jobid):
+        status = self.queryAsyncJobResult(jobid=jobid)
+        if status.jobstatus == 0:
+            return None
+        elif status.jobstatus == 2:
+            raise xenrt.XRTFailure("Cloudstack job failed with %s" % str(status.jobresult))
+        else:
+            return status.jobresult
+
+    def pollAsyncJob(self, jobid, timeout=1800):
+        deadline = xenrt.timenow() + timeout
+        while xenrt.timenow() <= deadline:
+            result = self.checkAsyncJob(jobid)
+            if result:
+                return result
+            xenrt.sleep(15)
+        raise xenrt.XRTError("Timed out waiting for response")
 
     def __getattr__(self, attr):
         def wrapper(**kwargs):

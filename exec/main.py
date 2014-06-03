@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import sys, string, os.path, atexit, getopt, time, os, traceback, re
 import trace, socket, threading, xmlrpclib, glob, xml.dom.minidom, tarfile
-import pydoc, copy, urllib, IPy 
+import pydoc, copy, urllib, IPy, json
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 socket.setdefaulttimeout(3600)
@@ -1617,8 +1617,13 @@ if cleanupnfsdirs:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
-            m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
-            mp = m.getMount()
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
             jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
             for j in jobs:
                 try:
@@ -1626,7 +1631,8 @@ if cleanupnfsdirs:
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
                 except:
                     continue
-            m.unmount()
+            if m:
+                m.unmount()
         except:
             pass
 
@@ -1985,13 +1991,44 @@ if getresource:
    config.setVariable("JOBID", job)
    xenrt.GEC().dbconnect._jobid = int(job)
    restype = args.pop(0)
-   print xenrt.getResourceInteractive(restype, args)
+   print json.dumps(xenrt.getResourceInteractive(restype, args))
 
 if listresources:
     cr = xenrt.resources.CentralResource()
     locks = cr.list()
-    jobs = set([x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']])
+    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']]
     
+    jobdirs = {}
+
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (address, basedir))
+                mp = m.getMount()
+            dirs = xenrt.command("ls %s" % mp)
+
+            for d in dirs.splitlines():
+                m = re.match("(\d+)-.*", d)
+                if m:
+                    job = m.group(1)
+                    if not job in jobdirs.keys():
+                        jobdirs[job] = []
+                    jobdirs[job].append("%s:%s/%s" % (address, basedir.rstrip("/"), d))
+                    jobs.append(job)
+            if m:
+                m.unmount()
+        except:
+            pass
+    
+    jobs = set(jobs)
+
     machineJobs = [x for x in jobs if xenrt.jobOnMachine(listresources, x)]
 
     ret = {}
@@ -2004,6 +2041,12 @@ if listresources:
             if not resname in ret[resclass]:
                 ret[resclass].append(resname)
 
+    for m in machineJobs:
+        if jobdirs.has_key(m):
+            if not "NFS" in ret.keys():
+                ret["NFS"] = []
+            ret['NFS'].extend(jobdirs[m])
+
     for k in ret.keys():
         if k in ("IP4ADDR", "IP6ADDR"):
             ret[k].sort(key=lambda x: IPy.IP(x).int())
@@ -2014,7 +2057,7 @@ if listresources:
                 pass
             ret[k].sort()
 
-    print ret
+    print json.dumps(ret)
 
 if runtool:
     eval("xenrt.tools." + runtool)

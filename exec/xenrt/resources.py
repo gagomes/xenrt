@@ -51,14 +51,14 @@ def getResourceInteractive(resType, argv):
     if resType == "NFS":
         res = ExternalNFSShare()
         return res.getMount()
-    elif resType == "IP4":
+    elif resType == "IP4ADDR":
         size = int(argv[0])
-        addrs = StaticIP4Addr.getIPRange(size)
-        return "%s-%s" % (addrs[0].getAddr(), addrs[-1].getAddr())
+        addrs = StaticIP4Addr.getIPRange(size, wait=False)
+        return {"start": addrs[0].getAddr(), "end": addrs[-1].getAddr()}
     elif resType == "VLAN":
         size = int(argv[0])
-        vlans = PrivateVLAN.getVLANRange(size)
-        return "%d-%d" % (vlans[0].getID(), vlans[-1].getID())
+        vlans = PrivateVLAN.getVLANRange(size, wait=False)
+        return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
 
 class DirectoryResource:
 
@@ -2765,7 +2765,7 @@ class _NetworkResourceFromRange(CentralResource):
     LOCKID = None
 
     @classmethod
-    def _getRange(cls, size, available, **kwargs):
+    def _getRange(cls, size, available, wait=True, **kwargs):
         cr = xenrt.resources.CentralResource()
         attempts = 0
         while True:
@@ -2798,7 +2798,7 @@ class _NetworkResourceFromRange(CentralResource):
                 if len(ret) == 0:
                     raise xenrt.XRTError("Could not find a suitable range to lock")
             except Exception, e:
-                if attempts > 30:
+                if attempts > 30 or not wait:
                     raise
                 attempts += 1
                 xenrt.TEC().logverbose("Could not lock - %s, sleeping before retry" % str(e))
@@ -2855,9 +2855,9 @@ class PrivateVLAN(_NetworkResourceFromRange):
         return cls(vlan=vlan)
 
     @classmethod
-    def getVLANRange(cls, size):
+    def getVLANRange(cls, size, wait=True):
         vlans = cls._getAllVLANsInRange()
-        return cls._getRange(size, vlans)
+        return cls._getRange(size, vlans, wait=wait)
 
     @classmethod
     def _getAllVLANsInRange(cls):
@@ -2895,9 +2895,9 @@ class _StaticIPAddr(_NetworkResourceFromRange):
         return cls(network=network, ip=ip)
 
     @classmethod
-    def getIPRange(cls, size, network="NPRI"):
+    def getIPRange(cls, size, network="NPRI", wait=True):
         addrs = [x.strCompressed() for x in cls._getAllAddressesInRange(network)]
-        return cls._getRange(size, addrs, network=network)
+        return cls._getRange(size, addrs, wait=wait, network=network)
 
     @classmethod
     def _getAllAddressesInRange(cls, network):

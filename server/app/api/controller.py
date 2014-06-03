@@ -73,6 +73,38 @@ class XenRTMConfig(XenRTAPIPage):
             except Exception, e:
                 return "No config defined, machine config will be taken from racktables"
 
+class XenRTGetResource(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        machine = form['machine']
+        restype = form['type']
+        
+
+        if form.has_key['args']:
+            args = " %s" % form['args']
+        
+        
+        xrtcmd = "--get-resource \"%s %s%s\"" % (machine, restype, args)
+        
+        cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+        self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
+        self.request.response.content_type="application/json"
+        return self.request.response
+
+class XenRTListResources(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        machine = form['machine']
+
+        xrtcmd = "--list-resources \"%s\"" % (machine)
+        
+        cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+        self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
+        self.request.response.content_type="application/json"
+        return self.request.response
+
+PageFactory(XenRTGetResource, "getresource", "/api/controller/getresource")
+PageFactory(XenRTListResources, "listresources", "/api/controller/listresources")
 PageFactory(XenRTPower, "power", "/api/controller/power", compatAction="power")
 PageFactory(XenRTSNetwork, "snetwork", "/api/controller/network", compatAction="network")
 PageFactory(XenRTMConfig, "mconfig", "/api/controller/machinecfg", compatAction="mconfig")

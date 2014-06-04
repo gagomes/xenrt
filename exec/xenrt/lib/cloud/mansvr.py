@@ -174,6 +174,8 @@ class ManagementServer(object):
 
         if self.place.distro in ['rhel63', 'rhel64', ]:
             manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
+            if manSvrFile is None:
+                raise xenrt.XRTError("Couldn't find CCP build")
             webdir = xenrt.WebDirectory()
             webdir.copyIn(manSvrFile)
             manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))

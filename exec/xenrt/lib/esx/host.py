@@ -43,6 +43,8 @@ def createHost(id=0,
 
     if productVersion:
         esxVersion = productVersion
+    elif xenrt.TEC().lookup("ESXI_VERSION", None):
+        esxVersion = xenrt.TEC().lookup("ESXI_VERSION")
     else:
         esxVersion = "5.0.0.update01"
 

@@ -1,0 +1,239 @@
+<?xml version="1.0"?>
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <NETWORK>
+          <!--<PHYSICAL network="NPRI" jumbo="yes" speed="10G" name="NET_A"> -->
+          <PHYSICAL network="NPRI" jumbo="yes" name="NET_A"> <!-- intrahost doesn't use the 10gb nic, so run with any nic -->
+            <NIC/>
+            <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+            <MANAGEMENT/>
+          </PHYSICAL>
+        </NETWORK>
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+        <vm name="debian60-1-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>1</vcpus>
+          <memory>512</memory>
+        </vm>
+
+      </host>
+
+  </prepare>
+
+  <testsequence>
+
+    <!-- vmpairs=20, 1 thread per vm -->
+
+    <serial group="deb60/vmp20/t01/d0v02">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=2</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v02">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=2</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v04">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=4</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v04">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=4</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v06">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=6</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v06">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=6</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v08">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=8</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v08">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=8</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v10">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=10</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v10">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=10</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v12">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=12</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v12">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=12</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v16">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=16</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v16">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=16</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v20">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=20</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v20">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=20</arg>
+      </testcase>
+    </serial>
+
+
+    <serial group="deb60/vmp20/t01/d0v24">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=24</arg>
+      </testcase>
+    </serial>
+    <serial group="deb60/vmp20/t128/d0v24">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput3.TCNetworkThroughputMultipleVifs">
+        <arg>threads=128</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>vmpairs=20</arg>
+        <arg>duration=120</arg>
+        <arg>dom0vcpus=24</arg>
+      </testcase>
+    </serial>
+
+
+  </testsequence>
+</xenrt>

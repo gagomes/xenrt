@@ -1407,7 +1407,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
             try:
                 vncsnapshot = None
                 if place.execcmd("test -e /usr/lib64/xen/bin/vncsnapshot",
-                                 retval="coed") == 0:
+                                 retval="code") == 0:
                     vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
                 if place.execcmd("test -e /usr/lib/xen/bin/vncsnapshot",
                                  retval="code") == 0:

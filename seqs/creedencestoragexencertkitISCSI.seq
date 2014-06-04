@@ -15,7 +15,9 @@
   </prepare>
 
   <testsequence>
+    <serial group="XenCert">
       <testcase id="xenserver.tc.xencert.XSStorageCertKitISCSI" tc="TC-19922"/>
+    </serial>
   </testsequence>
 
 </xenrt>

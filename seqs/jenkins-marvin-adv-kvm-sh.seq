@@ -1,5 +1,5 @@
 <xenrt>
-  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing -->
+  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing on KVM -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <NETWORK_BACKEND>bridge</NETWORK_BACKEND>

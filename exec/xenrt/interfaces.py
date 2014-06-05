@@ -99,10 +99,6 @@ class OSParent(Interface):
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
-    def assertHealthy():
-        """Quickly assert the health of the instance"""
-
-
 class OS(Interface):
 
     installMethod = Attribute("Selected installation method")

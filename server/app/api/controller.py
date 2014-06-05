@@ -82,7 +82,8 @@ class XenRTGetResource(XenRTAPIPage):
 
         if form.has_key('args'):
             args = " %s" % form['args']
-        
+        else:
+            args = ""
         
         xrtcmd = "--get-resource \"%s %s%s\"" % (machine, restype, args)
         

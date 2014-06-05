@@ -8722,7 +8722,7 @@ class GenericGuest(GenericPlace):
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)
-send ("{DOWN}")
+send ("{LEFT}")
 sleep (1000)
 send ("{ENTER}")
 EndIf

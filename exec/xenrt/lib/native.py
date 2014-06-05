@@ -43,7 +43,8 @@ def createHost(id=0,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
-               noipv4=False):
+               noipv4=False,
+               extraConfig=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py

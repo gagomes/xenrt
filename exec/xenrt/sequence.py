@@ -1033,7 +1033,7 @@ class PrepareNode:
                         if not zone.has_key('XRT_VMWareDC'):
                             zone['XRT_VMWareDC'] = 'dc-%s-%s' % (uuid.uuid4().hex, job)
                         if not cluster.has_key('XRT_VMWareCluster'):
-                            cluster['XRT_VMWareCluster'] = 'cluster-%d' % (uuid.uuid4().hex)
+                            cluster['XRT_VMWareCluster'] = 'cluster-%s' % (uuid.uuid4().hex)
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                             for hostId in hostIds:
                                 simpleHostNode = xml.dom.minidom.Element('host')

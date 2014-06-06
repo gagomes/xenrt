@@ -3672,12 +3672,15 @@ class TCinstallNVIDIAGuestDrivers(_VGPUTest):
         for arg in arglist:
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('vgputype'):
+                vgpuType = arg.split('=')[1]
 
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
+        self.assertvGPURunningInVM(g,self._CONFIGURATION[int(vgpuType)])
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 
@@ -3713,5 +3716,3 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         g.setState("UP")
       
         g.snapshot('aftervGPU')
-  
-        self.assertvGPURunningInVM(g,self._CONFIGURATION[int(vgpuType)])

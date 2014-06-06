@@ -26,6 +26,7 @@
     </testcase>
     <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x86K140Drivers">
       <arg>vmName=masterwin7sp1-x86</arg>
+      <arg>vgputype=1</arg>
     </testcase>
   </testsequence>
   

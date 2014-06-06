@@ -64,6 +64,9 @@ def createHost(id=0,
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
 
+    if extraConfig.has_key("dc") and extraConfig.has_key("cluster"):
+        host.addToVCenter(extraConfig["dc"], extraConfig["cluster"])
+
     return host
 
 class ESXHost(xenrt.lib.libvirt.Host):
@@ -392,4 +395,34 @@ reboot
         """Verify the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
         pass
+
+    def addToVCenter(self, dc, cluster):
+        lock = xenrt.resources.CentralResource()
+        attempts = 0
+        while True:
+            try:
+                lock.acquire("VCENTER")
+                break
+            except:
+                xenrt.sleep(60)
+                attempts += 1
+                if attempts > 20:
+                    raise xenrt.XRTError("Couldn't get vCenter lock.")
+        try:
+            vc = xenrt.TEC().lookup("VCENTER")
+            s = xenrt.lib.generic.StaticOS(vc['DISTRO'], vc['ADDRESS'])
+            s.os.enablePowerShellUnrestricted()
+            s.os.ensurePackageInstalled("PowerShell 3.0")
+            s.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
+            xenrt.TEC().logverbose(s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s" % (
+                                vc['ADDRESS'],
+                                vc['USERNAME'],
+                                vc['PASSWORD'],
+                                dc,
+                                cluster,
+                                self.getIP(),
+                                "root",
+                                self.password), returndata=True))
+        finally:
+            lock.release()
 

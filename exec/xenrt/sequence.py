@@ -1044,6 +1044,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s"}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
                                 self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
 
 
     def handlePoolNode(self, node, params):

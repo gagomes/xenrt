@@ -3016,6 +3016,8 @@ class Config:
         # Albert -Xapi, kernel, openvswitch. Rolls up Nothing
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1005/83968/hotfix-XS62ESP1005/XS62ESP1005.xsupdate"
 
+        # Tarentum - Xapi. Rolls up XS62ESP1002, XS62ESP1004, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1006/85395/hotfix-XS62ESP1006/XS62ESP1006.xsupdate"
 
 
         return
@@ -3133,10 +3135,9 @@ class Config:
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
-        
-        
+
         branch = self.lookup("HFX_BRANCH_CLEARWATER", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Clearwater"]))
-        if branch == "RTM":        
+        if branch == "RTM":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
@@ -3147,9 +3148,9 @@ class Config:
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-        
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF06"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"]
+
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)

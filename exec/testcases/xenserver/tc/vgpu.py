@@ -3682,6 +3682,8 @@ class TCinstallNVIDIAGuestDrivers(_VGPUTest):
 class TCcreatevGPU(VGPUAllocationModeBase):
 
     POOL = [["K1"]]
+    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    VGPU_CONFIG = [VGPUConfig.K120]
 
     def run(self,arglist):
 

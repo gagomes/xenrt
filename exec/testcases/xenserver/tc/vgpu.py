@@ -3709,3 +3709,5 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         g.setState("UP")
       
         g.snapshot('aftervGPU')
+  
+        self.assertvGPURunningInVM(g,self._CONFIGURATION[int(vgpuType)])

@@ -915,7 +915,7 @@ class TCArpBroadcastVifLock(_TCArpBroadcast):
         self.lockVif(self.attackerVM)
         
     def checkResults(self):
-        self.tcpDump.verifyArpRequestReceived(self.victim2VM.getIP(), self.victim1VM.getIP(), "ARP broadcast should be received by locked VIF")
+        self.tcpDump.verifyArpRequestReceived(self.victim2VM.getIP(), self.victim1VM.getIP(), "ARP broadcast should not be received by locked VIF")
         
 class _TCBadArpResponse(_XapiPortLock):
     """ARP spoofing prevention base class"""

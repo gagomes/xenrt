@@ -1353,7 +1353,7 @@ exit /B 1
                         xenrt.sleep(extrawait)
 
                         if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
-                            for i in range(12):
+                            for i in range(24):
                                 if self.pvDriversUpToDate():
                                     break
                                 xenrt.sleep(10)

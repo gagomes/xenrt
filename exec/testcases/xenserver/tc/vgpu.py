@@ -3681,6 +3681,8 @@ class TCinstallNVIDIAGuestDrivers(_VGPUTest):
 
 class TCcreatevGPU(VGPUAllocationModeBase):
 
+    POOL = [["K1"]]
+
     def run(self,arglist):
 
         vgpuType = None

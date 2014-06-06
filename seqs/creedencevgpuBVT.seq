@@ -8,6 +8,7 @@
       <vm name="masterwin7sp1-x86">
         <distro>win7sp1-x86</distro>
         <network device="0" />
+        <postinstall action="installDrivers"/>
       </vm>
     </host>
   </prepare>

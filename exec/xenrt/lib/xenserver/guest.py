@@ -361,12 +361,14 @@ class Guest(xenrt.GenericGuest):
                                      "vendor installer")
 
         # Choose a storage respository
+        xenrt.TEC().logverbose("SR: %s" % sr)
         if not sr:
             sruuid = self.chooseSR()
         else:
             if xenrt.isUUID(sr):
                 sruuid = sr
             else:
+                xenrt.TEC().logverbose("given sr is not UUID")
                 sruuid = self.getHost().parseListForUUID("sr-list", "name-label", sr)
 
         # Contruct the VM

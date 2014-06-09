@@ -104,15 +104,31 @@ class WindowsOS(OS):
     def canonicalDistroName(self):
         return "%s" % (self.distro)
     
-    def ensurePackageInstalled(self, package):
+    def ensurePackageInstalled(self, *args):
         global packageList
-        installer = None
-        for p in packageList:
-            if p.NAME == package:
-                installer = p(self)
-        if not installer:
-            raise xenrt.XRTError("No installer found for package %s" % package)
-        installer.ensureInstalled()
+        needReboot = False
+        for package in args:
+            installer = None
+            for p in packageList:
+                if p.NAME == package:
+                    installer = p(self)
+            if not installer:
+                raise xenrt.XRTError("No installer found for package %s" % package)
+            r = installer.ensureInstalled()
+            if r:
+                if installer.REQUIRE_IMMEDIATE_REBOOT:
+                    self.reboot()
+                    xenrt.sleep(120)
+                    self.waitForBoot(600)
+                    needReboot = False
+                elif installer.REQUIRE_REBOOT:
+                    needReboot = True
+
+        if needReboot:
+            self.reboot()
+            xenrt.sleep(120)
+            self.waitForBoot(600)
+                
 
     def isPackageInstalled(self, package, installOptions={}):
         global packageList
@@ -1094,6 +1110,15 @@ class WindowsOS(OS):
        self.removeFile(location)
        if word not in reread:
            raise xenrt.XRTError("assertHealthy has failed")
+
+    def getPowershellVersion(self):
+        version = 0.0
+        try:
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+        except:
+            pass
+        return version
 
     @property
     def randomStringGenerator(self):

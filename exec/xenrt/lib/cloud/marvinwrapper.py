@@ -4,20 +4,16 @@ import os, urllib
 from datetime import datetime
 import shutil
 import tarfile
+import inspect
 
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
     from marvin import configGenerator
+    from marvin.cloudstackAPI import *
+    from xenrt.lib.cloud.marvindeploy import MarvinDeployer
 except ImportError:
     pass
-
-try:
-    from marvin.integration.lib.base import *
-except ImportError:
-#    from marvin.lib.base import *
-    pass
-
 
 __all__ = ["MarvinApi"]
 
@@ -91,6 +87,7 @@ class MarvinApi(object):
     MS_PASSWORD = 'password'
 
     def __init__(self, mgtSvr):
+        self.__testClientObj = None
         self.mgtSvr = mgtSvr
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -107,31 +104,56 @@ class MarvinApi(object):
         self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
         self.mgtSvrDetails.user = self.MS_USERNAME
         self.mgtSvrDetails.passwd = self.MS_PASSWORD
-        try:
-            self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
-        except AttributeError:
-            dbDetails = configGenerator.dbServer()
-            dbDetails.dbSvr = mgtSvr.place.getIP()
-            dbDetails.passd = dbDetails.passwd
-            self.testClient = cloudstackTestClient.CSTestClient(mgmt_details=self.mgtSvrDetails, dbsvr_details=dbDetails, logger=self.logger)
-            self.testClient.createTestClient()
+        self.dbDetails = configGenerator.dbServer()
+        self.dbDetails.dbSvr = mgtSvr.place.getIP()
 
-        self.__apiClient = self.testClient.getApiClient()
+        self.__apiClient = self.__testClient.getApiClient()
         self.__userApiClientObj = None
         self.cloudApi = CloudApi(self.__apiClient)
+
+    @property
+    def __testClient(self):
+        if not self.__testClientObj:
+            if hasattr(cloudstackTestClient, 'cloudstackTestClient'):
+                testCliCls = cloudstackTestClient.cloudstackTestClient
+            elif hasattr(cloudstackTestClient, 'CSTestClient'):
+                testCliCls = cloudstackTestClient.CSTestClient
+            else:
+                raise xenrt.XRTError('Unknown Marvin test client class')
+            xenrt.TEC().logverbose('Using Marvin Test Client class: %s' % (testCliCls))
+
+            testCliArgs = inspect.getargspec(testCliCls.__init__).args
+            xenrt.TEC().logverbose('Marvin Test Client class has constructor args: %s' % (testCliArgs))
+
+            if 'mgtSvr' in testCliArgs:
+                # This is 3.x Marvin
+                self.__testClientObj = testCliCls(mgtSvr=self.mgtSvr.place.getIP(), logging=self.logger)
+            elif 'mgmtDetails' in testCliArgs:
+                # This is 4.2 / 4.3 Marvin
+                self.__testClientObj = testCliCls(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
+            elif 'mgmt_details' in testCliArgs:
+                # This is 4.4+ Marvin
+                self.__testClientObj = testCliCls(mgmt_details=self.mgtSvrDetails, dbsvr_details=self.dbDetails, logger=self.logger)
+                self.__testClientObj.createTestClient()
+            else:
+                raise xenrt.XRTError('Unable to determine Marvin Test Client constructor signature')
+        return self.__testClientObj
 
     @property
     def __userApiClient(self):
         if not self.__userApiClientObj:
             if not hasattr(self.__apiClient, "hypervisor"):
                 self.__apiClient.hypervisor = None
-            self.__userApiClientObj = self.testClient.createUserApiClient("admin", None)
+            self.__userApiClientObj = self.__testClient.createUserApiClient("admin", None)
         return self.__userApiClientObj
 
     def signCommand(self, params):
         params["apikey"] = self.__userApiClient.connection.apiKey
         params['signature'] = self.__userApiClient.connection.sign(params)
         return params
+
+    def marvinDeployerFactory(self):
+        return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
 
     def createSecondaryStorage(self, secStorageType):
         xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")

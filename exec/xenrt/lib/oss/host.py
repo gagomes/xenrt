@@ -39,7 +39,8 @@ def createHost(id=0,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
-               noipv4=False):
+               noipv4=False,
+               extraConfig=None):
 
     machine = str("RESOURCE_HOST_%s" % (id))
     mname = xenrt.TEC().lookup(machine)

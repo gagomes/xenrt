@@ -155,7 +155,8 @@ def createHost(id=0,
                enableAllPorts=True,
                noipv4=False,
                iScsiBootLun=None,
-               iScsiBootNets=[]):
+               iScsiBootNets=[],
+               extraConfig=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -385,7 +386,8 @@ def createHostViaVersionPath(id=0,
                              suppackcds=None,
                              addToLogCollectionList=False,
                              ipv6=None,
-                             noipv4=False):
+                             noipv4=False,
+                             extraConfig=None):
     """Install a host and update/upgrade via the specified path."""
     # "Orlando +HF1 +HF2 George"
     # "Miami Orlando George"
@@ -415,7 +417,8 @@ def createHostViaVersionPath(id=0,
                       suppackcds=suppackcds,
                       addToLogCollectionList=addToLogCollectionList,
                       ipv6=ipv6,
-                      noipv4=noipv4)
+                      noipv4=noipv4,
+                      extraConfig=extraConfig)
     # Leave the inputdir set for this version to properly handle any
     # updates needed later.
     xenrt.TEC().setInputDir(inputdir)

@@ -7,12 +7,6 @@ from zope.interface import implements
 from collections import namedtuple
 
 import xenrt.lib.cloud
-try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
-except ImportError:
-    pass
 
 __all__ = ["CloudStack"]
 

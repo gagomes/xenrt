@@ -12,7 +12,7 @@
 Parses an XML test sequence specification.
 """
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json, uuid
 import xenrt
 import pprint
 
@@ -968,6 +968,8 @@ class PrepareNode:
         xenrt.TEC().logverbose('Allocate Hosts from ID: %d' % (hostIdIndex))
         xenrt.TEC().logverbose('Allocate Pools from ID: %d' % (poolIdIndex))
 
+        job = xenrt.GEC().jobid() or "nojob"
+
         for zone in self.cloudSpec['zones']:
 #TODO - Remove
             if not zone.has_key('physical_networks'):
@@ -1027,6 +1029,23 @@ class PrepareNode:
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                             hostIdIndex += cluster['XRT_Hosts']
+                    elif cluster['hypervisor'] == "vmware":
+                        if not zone.has_key('XRT_VMWareDC'):
+                            zone['XRT_VMWareDC'] = 'dc-%s-%s' % (uuid.uuid4().hex, job)
+                        if not cluster.has_key('XRT_VMWareCluster'):
+                            cluster['XRT_VMWareCluster'] = 'cluster-%s' % (uuid.uuid4().hex)
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'esx')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_ESXI_VERSION', '5.5.0-update01'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s"}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
+
 
     def handlePoolNode(self, node, params):
         pool = {}
@@ -1196,6 +1215,9 @@ class PrepareNode:
                 host["disablefw"] = False
         if not host["suppackcds"]:
             host["suppackcds"] = None
+        host['extraConfig'] = expand(node.getAttribute("extraConfig"), params)
+        if not host['extraConfig']:
+            host['extraConfig'] = None
         for x in node.childNodes:
             if x.nodeType == x.ELEMENT_NODE:
                 if x.localName == "storage":

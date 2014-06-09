@@ -3148,8 +3148,9 @@ class Config:
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF06"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"]
+            #self.config["CARBON_PATCHES_CLEARWATER"]["HF06"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

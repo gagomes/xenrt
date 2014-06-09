@@ -3,12 +3,6 @@ import logging
 import os, urllib, string
 from datetime import datetime
 import xenrt.lib.cloud
-try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
-except ImportError:
-    pass
 
 installerList = []
 

@@ -5,9 +5,6 @@ from datetime import datetime
 
 import xenrt.lib.cloud
 try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:

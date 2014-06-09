@@ -47,9 +47,9 @@ class _XSAutoCertKit(xenrt.TestCase):
             if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
                 branch = "trunk"
             elif "x86_64" in host.execdom0("uname -a"):
-                branch = "clearwater-sp1-64bit-expr"
+                branch = "creedence-autocertkit"
             else:
-                branch = "clearwater-lcm"
+                branch = "clearwater-sp1-lcm-autocertkit"
             build = xenrt.util.getHTTP("https://xenbuilder.uk.xensource.com/search?query=latest&format=number&product=carbon&branch=%s&site=cam&job=sdk&action=xe-phase-2-build&status=succeeded" % (branch,)).strip()
             acklocation = "/usr/groups/xen/carbon/%s/%s/xe-phase-2/xs-auto-cert-kit.iso" % (branch, build)
 

@@ -23,7 +23,7 @@
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>
@@ -45,7 +45,7 @@
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>

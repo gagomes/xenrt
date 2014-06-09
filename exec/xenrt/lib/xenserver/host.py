@@ -2034,7 +2034,11 @@ done
 
         if xenrt.TEC().lookup("HOST_ENFORCE_CC_RESTRICTIONS", False):
             self.enableCC()
-
+            
+        if xenrt.TEC().lookup("USE_BLKTAP2", False):
+            self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
+            self.restartToolstack()
+        
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 

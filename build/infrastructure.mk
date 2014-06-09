@@ -399,6 +399,7 @@ httpd:
 .PHONY: samba
 samba:
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/samba/smb.conf /etc/samba/smb.conf
+	$(SUDO) sed -i s/xenrtd/$(USERNAME)/ /etc/samba/smb.conf
 	$(SUDO) /etc/init.d/samba restart
 
 .PHONY: iscsi

@@ -6,16 +6,8 @@ import shutil
 import pprint
 
 import xenrt.lib.cloud
-from xenrt.lib.cloud.marvindeploy import MarvinDeployer
 
 __all__ = ["deploy"]
-
-try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
-except ImportError:
-    pass
 
 class DeployerPlugin(object):
     DEFAULT_POD_IP_RANGE = 10
@@ -210,13 +202,13 @@ def deploy(cloudSpec, manSvr=None):
             raise xenrt.XRTError('No management server specified') 
 
     xenrt.TEC().comment('Using Management Server: %s' % (manSvr.place.getIP()))
-    marvinApi = xenrt.lib.cloud.MarvinApi(manSvr)
+    marvin = xenrt.lib.cloud.MarvinApi(manSvr)
 
-    deployerPlugin = DeployerPlugin(marvinApi)
+    deployerPlugin = DeployerPlugin(marvin)
     if manSvr.place.special.has_key('initialSecStorageUrl') and manSvr.place.special['initialSecStorageUrl']:
         deployerPlugin.initialSecStorageUrl = manSvr.place.special['initialSecStorageUrl']
         manSvr.place.special['initialSecStorageUrl'] = None
-    marvinCfg = MarvinDeployer(marvinApi.mgtSvrDetails.mgtSvrIp, marvinApi.logger,"root", manSvr.place.password)
+    marvinCfg = marvin.marvinDeployerFactory()
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 
     # Store the JSON Marvin config file
@@ -236,9 +228,7 @@ def deploy(cloudSpec, manSvr=None):
             manSvr.restart()
 
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
-            marvinApi.waitForBuiltInTemplatesReady()
+            marvin.waitForBuiltInTemplatesReady()
     finally:
         # Get deployment logs from the MS
         manSvr.getLogs(deployLogDir)
-
-

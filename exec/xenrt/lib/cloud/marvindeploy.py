@@ -2,6 +2,11 @@
 import pprint
 import json
 import copy
+import random
+import string
+import os
+import inspect
+
 try:
     from marvin import deployDataCenter
     from marvin import jsonHelper
@@ -69,7 +74,7 @@ class MarvinDeployer(object):
           'notify'  : { 'url': 'notifyNewElement' } },
       }
 
-    def __init__(self, mgmtServerIp, logger,username,passwd):
+    def __init__(self, mgmtServerIp, logger, username, passwd, marvinTestClient):
         self.marvinCfg = {}
         self.marvinCfg['dbSvr'] = {}
         self.marvinCfg['dbSvr']['dbSvr'] = mgmtServerIp
@@ -86,6 +91,7 @@ class MarvinDeployer(object):
 
         self.marvinCfg['zones'] = []
         self.logger = logger
+        self.__marvinTestClient = marvinTestClient
 
     def outputAsJSONFile(self, filename):
         fh = open(filename, 'w')
@@ -136,5 +142,38 @@ class MarvinDeployer(object):
 
     def deployMarvinConfig(self):
         cfg = jsonHelper.jsonLoader(self.marvinCfg)
-        marvinDeployer = deployDataCenter.deployDataCenters(cfg, self.logger)
+
+        if hasattr(deployDataCenter, 'deployDataCenters'):
+            ddcCls = deployDataCenter.deployDataCenters
+        elif hasattr(deployDataCenter, 'DeployDataCenters'):
+            ddcCls = deployDataCenter.DeployDataCenters
+        else:
+            raise MarvinDeployException('Unknown Marvin Deploy Data Center class')
+        self.logger.debug('Using Marvin Deploy Data Center class: %s' % (ddcCls))
+
+        ddcArgs = inspect.getargspec(ddcCls.__init__).args
+        self.logger.debug('Marvin Deploy Data Center class has constructor args: %s' % (ddcArgs))
+
+        if len(ddcArgs) == 2:
+            # This early version of Marvin only take a config file argument (self is the second argument)
+            # Create temp directory
+            tempDir = os.path.join('/tmp', 'marvin' + ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(12)]))
+            if not os.path.exists(tempDir):
+                os.makedirs(tempDir)
+            else:
+                raise MarvinDeployException('tempDir: %s - already exists' % (tempDir))
+
+            self.marvinCfg['logger'] = [ {'name': 'TestClient', 'file': os.path.join(tempDir, 'testclient.log') },
+                                         {'name': 'TestCase',   'file': os.path.join(tempDir, 'testcase.log')   } ]
+            fn = os.path.join(tempDir, 'marvin.cfg')
+            self.logger.debug('Writing config to file: %s' % (fn))
+            self.outputAsJSONFile(fn)
+            marvinDeployer = ddcCls(fn)
+            # TODO - consider writing log file output to self.logger
+        elif not 'test_client' in ddcArgs:
+            # This version (circa 4.2 / 4.3) takes config and logger arguments
+            marvinDeployer = ddcCls(cfg, logger=self.logger)
+        else:
+            marvinDeployer = ddcCls(test_client=self.__marvinTestClient, cfg=cfg, logger=self.logger)
+
         marvinDeployer.deploy()

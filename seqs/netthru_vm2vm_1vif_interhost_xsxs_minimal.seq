@@ -15,7 +15,7 @@
     <!--no pool here, the hosts can have different cpus-->
     <host id="0">
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <MANAGEMENT/>
           <NIC/>
           <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
@@ -33,7 +33,7 @@
     </host>
     <host id="1">
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <MANAGEMENT/>
           <NIC/>
           <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->

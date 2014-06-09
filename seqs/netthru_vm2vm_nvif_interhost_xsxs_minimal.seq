@@ -9,7 +9,7 @@
   <prepare>
       <host id="0">
         <NETWORK>
-          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+          <PHYSICAL network="ANY" speed="10G" name="NET_A">
             <MANAGEMENT/>
             <NIC/>
             <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
@@ -26,7 +26,7 @@
 
       <host id="1">
         <NETWORK>
-          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_B">
+          <PHYSICAL network="ANY" speed="10G" name="NET_B">
             <MANAGEMENT/>
             <NIC/>
             <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->

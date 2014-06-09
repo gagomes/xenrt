@@ -16,7 +16,7 @@
     <!-- a XenServer pool -->
     <pool>
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <MANAGEMENT/>
           <NIC/>
           <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
@@ -38,7 +38,7 @@
     <!-- a baremetal machine -->
     <host id="1" productVersion="centos65-x64" productType="nativelinux">
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G">
+        <PHYSICAL network="ANY" speed="10G">
           <NIC/>
           <MANAGEMENT mode="dhcp"/> <!-- use nic for default ip of host -->
         </PHYSICAL>

@@ -44,7 +44,7 @@ goto end
 :end
 """ % extra
 
-if writeStamp
-    f = open("%s/ipxe.cfg/%s,stamp" % (os.getcwd(), os.environ["REMOTE_ADDR"]), "w")
+if writeStamp:
+    f = open("%s/ipxe.cfg/%s.stamp" % (os.getcwd(), os.environ["REMOTE_ADDR"]), "w")
     f.write("Accessed")
     f.close()

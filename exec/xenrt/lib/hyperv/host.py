@@ -53,15 +53,6 @@ def createHost(id=0,
 
 class HyperVHost(xenrt.GenericHost):
 
-    def __init__(self,
-                 machine,
-                 productType="hyperv",
-                 productVersion="ws12r2-x64"):
-
-        self.machine = machine
-        self.productType = productType
-        self.productVersion = productVersion
-
     def install(self):
         self.installWindows()
 

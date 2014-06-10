@@ -124,6 +124,8 @@ def productLib(productType=None, host=None, hostname=None):
         return xenrt.lib.kvm
     if productType in ["esx"]:
         return xenrt.lib.esx
+    if productType == "hyperv":
+        return xenrt.lib.hyperv
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 

@@ -60,6 +60,7 @@ class HyperVHost(xenrt.GenericHost):
 
     def install(self):
         self.installWindows()
+        self.installHyperV()
 
     def installWindows(self):
         # Construct a PXE target
@@ -85,6 +86,36 @@ class HyperVHost(xenrt.GenericHost):
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
 
+        self.xmlrpcUpdate()
+
         if self.xmlrpcFileExists("c:\\xenrtinstalled.stamp"):
             raise xenrt.XRTFailure("Installation stamp file already exists, this must be a previous installation")
         self.xmlrpcWriteFile("c:\\xenrtinstalled.stamp", "Installed")
+
+        self.xmlrpcWriteFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+                       "Run",
+                       "Booted",
+                       "SZ",
+                       "c:\\onboot.cmd")
+
+    def installHyperV(self):
+        self.xmlrpcExec("Install-WindowsFeature Name Hyper-V", powershell=True)
+        self.softReboot()
+
+    def softReboot(self):
+        self.xmlrpcExec("del c:\\booted.stamp")
+        deadline = xenrt.util.timenow() + 1800
+
+        self.xmlrpcReboot()
+
+        while True:
+            try:
+                if self.xmlrpcFileExists("c:\\booted.stamp"):
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for windows reboot")
+            xenrt.sleep(15)

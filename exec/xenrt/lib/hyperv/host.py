@@ -51,6 +51,11 @@ def createHost(id=0,
 
     host.install()
 
+    xenrt.TEC().registry.hostPut(machine, host)
+    xenrt.TEC().registry.hostPut(name, host)
+
+    return host
+
 class HyperVHost(xenrt.GenericHost):
 
     def install(self):
@@ -73,7 +78,13 @@ class HyperVHost(xenrt.GenericHost):
         pxe.writeOut(self.machine)
 
         self.machine.powerctl.cycle()
-
+        # Wait for the iPXE file to be accessed - once it has, we can clean it up ready for local boot
         pxe.waitForIPXEStamp(self.machine)
         pxe.clearIPXEConfig(self.machine)
+
+        # Wait for Windows to be ready
         self.waitForDaemon(7200)
+
+        if self.xmlrpcFileExists("c:\\xenrtinstalled.stamp"):
+            raise xenrt.XRTFailure("Installation stamp file already exists, this must be a previous installation")
+        self.xmlrpcWriteFile("c:\\xenrtinstalled.stamp", "Installed")

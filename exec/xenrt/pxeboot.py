@@ -285,6 +285,7 @@ DEFAULT %s
             filename = "%s/%s" % (self._getIPXEDir(), forceip)
         else:
             filename = "%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)
+        return filename
 
     def waitForIPXEStamp(self, machine, forceip=None):
         if forceip:

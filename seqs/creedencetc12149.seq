@@ -10,7 +10,7 @@
   <prepare>
     <pool>
       <host id="0"/>
-      <!--<host id="1"/>-->
+      <host id="1"/>
     </pool>
   </prepare>
 

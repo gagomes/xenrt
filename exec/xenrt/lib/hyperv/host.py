@@ -69,6 +69,7 @@ class HyperVHost(xenrt.GenericHost):
             pxe.addEntry("local", boot="local")
         
         pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        pxe.setDefault("local")
         pxe.writeOut(self.machine)
 
         self.machine.powerctl.cycle()

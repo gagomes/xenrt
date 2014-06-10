@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys, xenrt.lib.hyperv
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm

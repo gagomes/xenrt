@@ -1,0 +1,43 @@
+# Description: wimboot, to boot WinPE using iPXE
+# Status: distributable
+# Version: 1.0.5
+# Type: nobuild
+ffa10f40b98be2c2bc9608f56827ed23  ./LICENSE.txt
+c44462125519ea28cb7bf07574b6e057  ./README.txt
+e109b2259bfa28419cc37c14c4facd58  ./src/.gitignore
+146b9065e7c28f146ef859d568d3b830  ./src/Makefile
+2889303f5ee7a598193b2de0150d41e2  ./src/bootapp.h
+ba4248c81bf08726511d0376d946187d  ./src/callback.S
+e0eb117e8036d836223648c8fa11fcbd  ./src/cpio.c
+d72f4c00e04af0f957031d817f0747ef  ./src/cpio.h
+42d3ba215d9e1c778ec324aea2bfc636  ./src/ctype.h
+232f408ed73a6ae42bffa69614af882a  ./src/errno.h
+481b1fabc195ba54dcc359851df0d722  ./src/int13.c
+351972b8b2e7b2fcb478c6268962c972  ./src/int13.h
+66a09436099c6f059c28649b83dd13a1  ./src/ipxe/vsprintf.c
+5a8b334c4c46a06018957c011bc03974  ./src/ipxe/vsprintf.h
+3f82f9e4dcd48edf616ea4ca1b1f832f  ./src/lznt1.c
+81b191d85c6384f2414c8e9f0bcf1958  ./src/lznt1.h
+3c83b729e105bd7f65f65e85b338713a  ./src/main.c
+c0965136b757b33f62c0145c66523b43  ./src/peloader.c
+f90b6a3d87e053b82ea1567e94b5890c  ./src/peloader.h
+79f997f5097afe42d15464b725d20977  ./src/prefix.S
+88f2df5bcb660e673a30fe63612c6262  ./src/script.lds
+7225cde5e40289a44b7fd26a4b65f235  ./src/startup.S
+36e9f7344ea472baf52ddaf58a4503f2  ./src/stdarg.h
+a11cdfd6cc56ced037fd9cb4dd2431e0  ./src/stddef.h
+4408da6924f79735542aa96b21d19215  ./src/stdint.h
+635c6621c35c1142af0f2b156de6a867  ./src/stdio.c
+5e097b2abc5e17aaf164a514312caba4  ./src/stdio.h
+5dfc8cd7acc4738bb71d06e6728f1332  ./src/stdlib.h
+9e69d213668a0050eaf0ed187b553de1  ./src/string.c
+8dba3781124a06de918166fd14f72f60  ./src/string.h
+9950772900e8e855570ee0ea9306e396  ./src/strings.h
+cfad32e1ef3e00a0dc146bfcc62ba0bd  ./src/vdisk.c
+416ab7468eaf2679b3be0905986f049d  ./src/vdisk.h
+e11bad1ff3ae19df0a2645ffdf6e52f2  ./src/vsprintf.c
+aede6448251415955127e2c2b5f4c139  ./src/wchar.h
+730daf896083a1a1ee6bbbfde166b269  ./src/wimboot.h
+6734e0a96a57217a53c0f9eca71bc35e  ./src/xca.c
+a911448ce4104ff12a93ab5fcdced15c  ./src/xca.h
+103cd2bde7693f4d2c8ea87c9d4cab08  ./wimboot

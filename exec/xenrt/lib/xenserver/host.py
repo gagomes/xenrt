@@ -1,5 +1,4 @@
 #
-#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -2034,11 +2033,11 @@ done
 
         if xenrt.TEC().lookup("HOST_ENFORCE_CC_RESTRICTIONS", False):
             self.enableCC()
-            
+
         if xenrt.TEC().lookup("USE_BLKTAP2", False):
             self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
             self.restartToolstack()
-        
+
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
@@ -3935,7 +3934,7 @@ done
         args = []
         args.append("uuid=%s" % (self.getMyHostUUID()))
         cli.execute("host-disable-local-storage-caching", string.join(args))
-        
+
     def getMyHostName(self):
         """Return a host name-label suitable for e.g. vm-start on="""
         return self.getHostParam("name-label")
@@ -11018,6 +11017,35 @@ class CreedenceHost(ClearwaterHost):
     
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
+
+    def enableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' in self.genParamGet("sr", sr, "other-config"):
+                    self.genParamRemove("sr", sr, "other-config", "o_direct")
+
+    def disableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                oc = self.genParamGet("sr", sr, "other-config")
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' not in oc or 'true' not in self.genParamGet("sr", sr, "other-config", "o_direct"):
+                    self.genParamSet("sr", sr, "other-config", "true", "o_direct")
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):

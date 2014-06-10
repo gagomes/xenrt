@@ -101,7 +101,9 @@ class HyperVHost(xenrt.GenericHost):
                        "c:\\onboot.cmd")
 
     def installHyperV(self):
-        self.xmlrpcExec("Install-WindowsFeature Name Hyper-V", powershell=True)
+        xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
+        xenrt.TEC().logverbose(self.xmlrpcExec("Install-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
+        xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
         self.softReboot()
 
     def softReboot(self):
@@ -119,3 +121,6 @@ class HyperVHost(xenrt.GenericHost):
             if xenrt.util.timenow() > deadline:
                 raise xenrt.XRTError("Timed out waiting for windows reboot")
             xenrt.sleep(15)
+
+    def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
+        pass

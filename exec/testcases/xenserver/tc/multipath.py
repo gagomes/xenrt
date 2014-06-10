@@ -4074,7 +4074,7 @@ class TC12154(_HardwareMultipath):
         self.createSR()
         self.checkThenDestroySR()
 
-class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest):
+class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest, _HardwareMultipath):
     """HA smoke test with FC path down"""
     STATEFILE_SR = "lvmoiscsi"
     NUMHOSTS = 2

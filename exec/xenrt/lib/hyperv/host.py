@@ -139,3 +139,4 @@ class HyperVHost(xenrt.GenericHost):
         domainUser = ad['DOMAIN_JOIN_USER']
         domainPassword = ad['DOMAIN_JOIN_PASSWORD']
         self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, domain, domainName, domainUser, domainPassword))
+        self.softReboot()

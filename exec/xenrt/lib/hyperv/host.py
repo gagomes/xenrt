@@ -85,8 +85,10 @@ class HyperVHost(xenrt.GenericHost):
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
-
-        self.xmlrpcUpdate()
+        try:
+            self.xmlrpcUpdate()
+        except:
+            xenrt.TEC().logverbose("Warning - could not update XML/RPC daemon")
 
         if self.xmlrpcFileExists("c:\\xenrtinstalled.stamp"):
             raise xenrt.XRTFailure("Installation stamp file already exists, this must be a previous installation")
@@ -124,3 +126,14 @@ class HyperVHost(xenrt.GenericHost):
 
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         pass
+
+    def tailorForCloudStack(self):
+        self.joinDefaultDomain()
+
+    def joinDefaultDomain(self):
+        hname = self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
+        ad = xenrt.TEC().lookup("AD_CONFIG")
+        domain=ad['DOMAIN']
+        domainUser = ad['DOMAIN_JOIN_USER']
+        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
+        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s /passwordd:%s" % (hname, domain, domainUser, domainPassword))

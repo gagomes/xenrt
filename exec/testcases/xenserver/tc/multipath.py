@@ -4081,7 +4081,7 @@ class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest):
     FAILURE_PATH = 0
     
     def prepare(self, arglist=None):
-        for h in self.pool.getHosts():
+        for h in self.getDefaultPool().getHosts():
             if h.lookup(["FC", "CMD_HBA0_ENABLE"], None) != None and h.lookup(["FC", "CMD_HBA1_ENABLE"], None) != None:
                 self.hostWithMultiplePaths = h
                 self.scsiid = string.split(h.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]

@@ -293,7 +293,7 @@ DEFAULT %s
         else:
             filename = "%s/%s.stamp" % (self._getIPXEDir(), machine.pxeipaddr)
         self._rmtree(filename)
-        xenrt.waitForFile(filename, 1800, desc="Waiting for iPXE config to be accessed on !%s" % (self.getName()))
+        xenrt.waitForFile(filename, 1800, desc="Waiting for iPXE config to be accessed on !%s" % (machine.name))
 
     def clearIPXEConfig(self, machine, forceip=None):
         xenrt.TEC().logverbose("Clearing iPXE config")

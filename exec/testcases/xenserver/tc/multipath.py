@@ -4091,7 +4091,7 @@ class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest, _Hardware
             
         _HardwareMultipath.disableFCPort(self, self.FAILURE_PATH)
 
-        testcases.xenserver.tc.ha._HASmoketest.prepare()
+        testcases.xenserver.tc.ha._HASmoketest.prepare(self)
 
     def postRun(self):
         testcases.xenserver.tc.ha._HASmoketest.postRun(self)

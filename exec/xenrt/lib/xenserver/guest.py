@@ -625,12 +625,13 @@ class Guest(xenrt.GenericGuest):
             pats = string.split(xenrt.TEC().lookup("TOOLS_CD_NAMES_LINUX"))
         for cdpattern in pats:
             cdnames = fnmatch.filter(isos, cdpattern)
-            if len(cdnames) > 0:
-                if re.search("debian\d+", self.distro) or \
+            if cdnames and len(cdnames) > 0:
+                if self.distro and \
+                    (re.search("debian\d+", self.distro) or \
                     re.search("rhel6", self.distro) or \
                     re.search("oel6", self.distro) or \
                     re.search("centos6", self.distro) or \
-                    re.search("ubuntu", self.distro):
+                    re.search("ubuntu", self.distro)):
                     self.changeCD(cdnames[0], device="3")
                 else:
                     self.changeCD(cdnames[0])

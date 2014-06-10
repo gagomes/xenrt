@@ -4079,6 +4079,8 @@ class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest):
     STATEFILE_SR = "lvmoiscsi"
     NUMHOSTS = 2
     FAILURE_PATH = 0
+    ROOTDISK_MPATH_COUNT = 4
+    DEFAULT_PATH_COUNT = 1
     
     def prepare(self, arglist=None):
         for h in self.getDefaultPool().getHosts():
@@ -4087,28 +4089,15 @@ class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest):
                 self.scsiid = string.split(h.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
                 break
             
-        self.hostWithMultiplePaths.disableFCPort(self.FAILURE_PATH)
-        time.sleep(60)    
+        _HardwareMultipath.disableFCPort(self, self.FAILURE_PATH)
 
-        mp = self.hostWithMultiplePaths.getMultipathInfo(onlyActive=True, useLL=True)
-        
-        if len(mp[self.scsiid]) != 1:
-            raise xenrt.XRTFailure("Expecting 1/2 paths active, found %u" % (len(mp[self.scsiid])))
-            
         testcases.xenserver.tc.ha._HASmoketest.prepare()
 
     def postRun(self):
         testcases.xenserver.tc.ha._HASmoketest.postRun(self)
         
         xenrt.TEC().logverbose("Enabling FC Port %u" % self.FAILURE_PATH)
-        self.hostWithMultiplePaths.enableFCPort(self.FAILURE_PATH)
-        time.sleep(60)    
-
-        mp = self.hostWithMultiplePaths.getMultipathInfo(onlyActive=True, useLL=True)
-        
-        if len(mp[self.scsiid]) != 2:
-            raise xenrt.XRTFailure("Expecting 2/2 paths active, found %u" % (len(mp[self.scsiid])))
- 
+        _HardwareMultipath.enableFCPort(self.FAILURE_PATH)
         xenrt.TEC().logverbose("Successfully enabled FC Port %u" % self.FAILURE_PATH)
 
 

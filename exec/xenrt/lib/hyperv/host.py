@@ -131,9 +131,11 @@ class HyperVHost(xenrt.GenericHost):
         self.joinDefaultDomain()
 
     def joinDefaultDomain(self):
+        self.xmlrpcExec("netsh advfirewall set domainprofile state off")
         hname = self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
         ad = xenrt.TEC().lookup("AD_CONFIG")
         domain=ad['DOMAIN']
+        domainName = ad['DOMAIN_NAME']
         domainUser = ad['DOMAIN_JOIN_USER']
         domainPassword = ad['DOMAIN_JOIN_PASSWORD']
-        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s /passwordd:%s" % (hname, domain, domainUser, domainPassword))
+        self.xmlrpcExec("netdom join %s /domain:%s\\%s /userd:%s /passwordd:%s" % (hname, domain, domainName, domainUser, domainPassword))

@@ -132,6 +132,7 @@ class HyperVHost(xenrt.GenericHost):
             return
         self.joinDefaultDomain()
         self.setupDomainUserPermissions()
+        self.reconfigureToStatic()
         self.installCloudAgent(msi)
         self.xmlrpcWriteFile("c:\\cloudTailored.stamp", "Tailored")
 
@@ -159,6 +160,28 @@ class HyperVHost(xenrt.GenericHost):
         self.enablePowerShellUnrestricted()
         self.xmlrpcExec("powershell.exe c:\\logonasservice.ps1 \"%s\\%s\"" % (domainName, domainUser))
 
+    def reconfigureToStatic(self):
+        data = self.getWindowsIPConfigData()
+        ifname = [x for x in data.keys() if data[x].has_key('IPv4 Address') and (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)][0]
+        netcfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT"])
+        cmd = "netsh interface ip set address \"%s\" static %s %s %s 1" % (ifname,
+                                                                           self.machine.ipaddr,
+                                                                           netcfg['SUBNETMASK'],
+                                                                           netcfg['GATEWAY'])
+
+        ref = self.xmlrpcStart(cmd)
+        deadline = xenrt.timenow() + 120
+
+        while True:
+            try:
+                if self.xmlrpcPoll(ref):
+                    break
+            except:
+                pass
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Timed out setting IP to static")
+            xenrt.sleep(5)
+
     def installCloudAgent(self, msi):
         ad = xenrt.TEC().lookup("AD_CONFIG")
         domain=ad['DOMAIN']
@@ -167,5 +190,5 @@ class HyperVHost(xenrt.GenericHost):
         domainPassword = ad['DOMAIN_JOIN_PASSWORD']
         
         self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
-        self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
+        self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
         self.softReboot()

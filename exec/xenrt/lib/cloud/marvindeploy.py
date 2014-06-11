@@ -72,6 +72,9 @@ class MarvinDeployer(object):
           'abstractName': 'Host',
           'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
           'notify'  : { 'url': 'notifyNewElement' } },
+        'details': {
+          'abstractName': 'StorageDetails',
+          'required': { 'user': None, 'password': None, 'domain': None } },
       }
 
     def __init__(self, mgmtServerIp, logger, username, passwd, marvinTestClient):

@@ -75,7 +75,7 @@ class DeployerPlugin(object):
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             return {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
         else:
-            return None
+            return None 
 
     def getPrimaryStorageDetails(self, key, ref):
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):

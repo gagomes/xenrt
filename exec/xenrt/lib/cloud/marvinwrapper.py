@@ -156,7 +156,7 @@ class MarvinApi(object):
         return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
 
     def createSecondaryStorage(self, secStorageType):
-        if self.secStorageType == "CIFS":
+        if secStorageType == "CIFS":
             cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
             ip = h.getIP()

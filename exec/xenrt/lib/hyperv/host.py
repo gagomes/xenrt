@@ -194,7 +194,6 @@ class HyperVHost(xenrt.GenericHost):
         
         self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
         self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
-        self.softReboot()
 
     def createCloudStackShares(self):
         self.xmlrpcCreateDir("c:\\pristorage")

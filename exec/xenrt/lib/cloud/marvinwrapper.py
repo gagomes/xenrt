@@ -167,7 +167,7 @@ class MarvinApi(object):
             secondaryStorage = xenrt.ExternalNFSShare()
             storagePath = secondaryStorage.getMount()
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-        self.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+        self.copySystemTemplatesToSecondaryStorage(storagePath, secStorageType)
         return url
 
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):

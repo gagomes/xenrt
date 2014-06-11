@@ -201,10 +201,10 @@ class ManagementServer(object):
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
-        self.installCifs()
         self.installApacheProxy()
 
     def installCifs(self):

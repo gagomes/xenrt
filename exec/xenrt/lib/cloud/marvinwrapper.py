@@ -232,10 +232,10 @@ class MarvinApi(object):
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
-            installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
         elif provider == 'SMB':
             # TODO username/password/domain
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=Administrator,password=xenroot01T,domain=XSQA' % storagePath)
+        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
             webdir.copyIn(templateFile)

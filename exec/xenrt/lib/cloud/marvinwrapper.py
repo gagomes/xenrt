@@ -156,7 +156,7 @@ class MarvinApi(object):
         return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
 
     def createSecondaryStorage(self, secStorageType):
-        if secStorageType == "CIFS":
+        if secStorageType == "SMB":
             cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
             ip = h.getIP()
@@ -233,7 +233,7 @@ class MarvinApi(object):
         if provider == 'NFS':
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
             installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
-        elif provider == 'CIFS':
+        elif provider == 'SMB':
             # TODO username/password/domain
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=Administrator,password=xenroot01T,domain=XSQA' % storagePath)
         for hv in templates:
@@ -241,10 +241,10 @@ class MarvinApi(object):
             webdir.copyIn(templateFile)
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 
-            if provider in ('NFS', 'CIFS'):
+            if provider in ('NFS', 'SMB'):
                 self.mgtSvr.place.execcmd('%s -m /media -u %s -h %s -F' % (installSysTmpltLoc, templateUrl, hv), timeout=60*60)
 
-        if provider in ('NFS', 'CIFS'):
+        if provider in ('NFS', 'SMB'):
             self.mgtSvr.place.execcmd('umount /media')
         webdir.remove()
 

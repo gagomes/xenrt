@@ -57,7 +57,7 @@ class DeployerPlugin(object):
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            url = self.marvin.createSecondaryStorage("CIFS")
+            url = self.marvin.createSecondaryStorage("SMB")
         elif self.initialSecStorageUrl:
             url = self.initialSecStorageUrl
             self.initialSecStorageUrl = None

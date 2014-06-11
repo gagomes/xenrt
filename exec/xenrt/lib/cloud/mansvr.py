@@ -137,7 +137,7 @@ class ManagementServer(object):
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
-        if xenrt.TEC().lookup("NO_PRELOAD_SEC_STORAGE", False, boolean=True):
+        if not xenrt.TEC().lookup("NO_PRELOAD_SEC_STORAGE", False, boolean=True):
             self.place.special['initialSecStorageUrl'] = marvinApi.createSecondaryStorage("NFS")
 
     def installApacheProxy(self):

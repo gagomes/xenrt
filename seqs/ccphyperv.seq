@@ -3,6 +3,7 @@
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
     <CIFS_HOST_INDEX>0</CIFS_HOST_INDEX>
+    <NO_PRELOAD_SEC_STORAGE>yes</NO_PRELOAD_SEC_STORAGE>
   </variables>
   <prepare>
     <cloud>

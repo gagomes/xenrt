@@ -26,6 +26,7 @@ class DeployerPlugin(object):
         self.currentIPRange = None
 
         self.initialSecStorageUrl = None
+        self.hyperVMsi = None
 
     def getName(self, key, ref):
         nameValue = None
@@ -168,9 +169,38 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'HyperV' and ref.has_key('XRT_HyperVHostIds'):
+            hostIds = ref['XRT_HyperVHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
+                self.getHyperVMsi()
+                try:
+                    h.tailorForCloudStack(self.hyperVMsi)
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
         elif ref.has_key('XRT_NumberOfHosts'):
             map(lambda x:hosts.append({}), range(ref['XRT_NumberOfHosts']))
         return hosts
+
+    def getHyperVMsi(self):
+        # Install CloudPlatform packages
+        cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+        if not cloudInputDir:
+            raise xenrt.XRTError("No CLOUDINPUTDIR specified")
+        xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
+        ccpTar = xenrt.TEC().getFile(cloudInputDir)
+        xenrt.TEC().logverbose("Got %s" % ccpTar)
+        t = xenrt.TempDirectory()
+        xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
+        self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
 
     def notifyNewElement(self, key, name):
         xenrt.TEC().logverbose('New Element, key: %s, value: %s' % (key, name))

@@ -127,8 +127,13 @@ class HyperVHost(xenrt.GenericHost):
     def checkHealth(self, unreachable=False, noreachcheck=False, desc=""):
         pass
 
-    def tailorForCloudStack(self):
+    def tailorForCloudStack(self, msi):
+        if self.xmlrpcFileExists("c:\\cloudTailored.stamp"):
+            return
         self.joinDefaultDomain()
+        self.setupDomainUserPermissions()
+        self.installCloudAgent(msi)
+        self.xmlrpcWriteFile("c:\\cloudTailored.stamp", "Tailored")
 
     def joinDefaultDomain(self):
         self.xmlrpcExec("netsh advfirewall set domainprofile state off")
@@ -139,4 +144,28 @@ class HyperVHost(xenrt.GenericHost):
         domainUser = ad['DOMAIN_JOIN_USER']
         domainPassword = ad['DOMAIN_JOIN_PASSWORD']
         self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, domain, domainName, domainUser, domainPassword))
+        self.softReboot()
+
+    def setupDomainUserPermissions(self):
+        ad = xenrt.TEC().lookup("AD_CONFIG")
+        domain=ad['DOMAIN']
+        domainName = ad['DOMAIN_NAME']
+        domainUser = ad['DOMAIN_JOIN_USER']
+        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
+        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (domainName, domainUser))
+        self.xmlrpcExec("net localgroup \"Hyper-V Administrators\" %s\\%s /add" % (domainName, domainUser))
+
+        self.xmlrpcSendFile("%s/data/tests/hyperv/logonasservice.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\logonasservice.ps1")
+        self.enablePowerShellUnrestricted()
+        self.xmlrpcExec("powershell.exe c:\\logonasservice.ps1 \"%s\\%s\"" % (domainName, domainUser))
+
+    def installCloudAgent(self, msi):
+        ad = xenrt.TEC().lookup("AD_CONFIG")
+        domain=ad['DOMAIN']
+        domainName = ad['DOMAIN_NAME']
+        domainUser = ad['DOMAIN_JOIN_USER']
+        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
+        
+        self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
+        self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
         self.softReboot()

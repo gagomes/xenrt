@@ -15,7 +15,7 @@
                     "XRT_PodIPRangeSize": 5,
                     "clusters": [
                         {
-                            "hypervisor": "KVM",
+                            "hypervisor": "hyperv",
                             "XRT_Hosts": 1
                         }
                     ],

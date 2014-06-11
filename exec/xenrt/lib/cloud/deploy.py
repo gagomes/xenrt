@@ -108,9 +108,6 @@ class DeployerPlugin(object):
             phyNetVLAN = '%d-%d' % (int(phyNetVLANResources[0].getID()), int(phyNetVLANResources[-1].getID()))
         return phyNetVLAN
 
-    def getHostUrl(self, key, ref):
-        return 'http://%s' % (hostAddr)
-
     def getHostUsername(self, key, ref):
         return 'root'
 

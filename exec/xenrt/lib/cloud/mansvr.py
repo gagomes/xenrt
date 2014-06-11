@@ -185,6 +185,7 @@ class ManagementServer(object):
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
             self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()

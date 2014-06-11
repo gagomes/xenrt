@@ -56,7 +56,9 @@ class DeployerPlugin(object):
 
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        if self.initialSecStorageUrl:
+        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
+            url = self.marvin.createSecondaryStorage("CIFS")
+        elif self.initialSecStorageUrl:
             url = self.initialSecStorageUrl
             self.initialSecStorageUrl = None
         else:
@@ -64,7 +66,22 @@ class DeployerPlugin(object):
         return url
 
     def getSecondaryStorageProvider(self, key, ref):
-        return 'NFS'
+        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
+            return "SMB"
+        else:
+            return 'NFS'
+
+    def getSecondaryStorageDetails(self, key, ref):
+        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
+            return {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
+        else:
+            return None
+
+    def getPrimaryStorageDetails(self, key, ref):
+        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
+            return {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
+        else:
+            return None
 
     def getIPRangeStartAddr(self, key, ref):
         xenrt.TEC().logverbose('IP Range, %s, %s' % (key, ref))
@@ -127,8 +144,14 @@ class DeployerPlugin(object):
 
     def getPrimaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        primaryStorage = xenrt.ExternalNFSShare()
-        return 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
+        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
+            cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
+            h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
+            ip = h.getIP()
+            return "cifs://%s/pristorage" % (ip)
+        else:
+            primaryStorage = xenrt.ExternalNFSShare()
+            return 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
 
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))

@@ -1029,6 +1029,19 @@ class PrepareNode:
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                             hostIdIndex += cluster['XRT_Hosts']
+                    elif cluster['hypervisor'] == "hyperv":
+                        if not cluster.has_key('XRT_HyperVHostIds'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'hyperv')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_HYPERV_DISTRO', 'ws12r2-x64'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
+                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'] == "vmware":
                         if not zone.has_key('XRT_VMWareDC'):
                             zone['XRT_VMWareDC'] = 'dc-%s-%s' % (uuid.uuid4().hex, job)

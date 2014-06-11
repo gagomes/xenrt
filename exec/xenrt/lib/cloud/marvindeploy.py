@@ -35,7 +35,7 @@ class MarvinDeployer(object):
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
           'abstractName': 'SecondaryStorage',
-          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
+          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider', 'details': 'getSecondaryStorageDetails' } },
         'physical_networks': {
           'abstractName': 'PhysicalNetwork',
           'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
@@ -67,7 +67,7 @@ class MarvinDeployer(object):
           'notify'  : { 'clustername': 'notifyNewElement' } },
         'primaryStorages': {
           'abstractName': 'PrimaryStorage',
-          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
+          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', 'details': 'getPrimaryStorageDetails'} },
         'hosts': {
           'abstractName': 'Host',
           'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },

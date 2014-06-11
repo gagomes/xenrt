@@ -61,6 +61,10 @@ class HyperVHost(xenrt.GenericHost):
     def install(self):
         self.installWindows()
         self.installHyperV()
+        self.joinDefaultDomain()
+        self.setupDomainUserPermissions()
+        self.reconfigureToStatic()
+        self.createCloudStackShares()
 
     def installWindows(self):
         # Construct a PXE target
@@ -130,9 +134,6 @@ class HyperVHost(xenrt.GenericHost):
     def tailorForCloudStack(self, msi):
         if self.xmlrpcFileExists("c:\\cloudTailored.stamp"):
             return
-        self.joinDefaultDomain()
-        self.setupDomainUserPermissions()
-        self.reconfigureToStatic()
         self.installCloudAgent(msi)
         self.xmlrpcWriteFile("c:\\cloudTailored.stamp", "Tailored")
 
@@ -192,3 +193,9 @@ class HyperVHost(xenrt.GenericHost):
         self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
         self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
         self.softReboot()
+
+    def createCloudStackShares(self):
+        self.xmlrpcCreateDir("c:\\pristorage")
+        self.xmlrpcCreateDir("c:\\secstorage")
+        self.xmlrpcExec("net share pristorage=c:\\pristorage /unlimited /GRANT:EVERYONE,FULL")
+        self.xmlrpcExec("net share secstorage=c:\\secstorage /unlimited /GRANT:EVERYONE,FULL")

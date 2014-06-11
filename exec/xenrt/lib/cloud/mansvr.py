@@ -203,7 +203,11 @@ class ManagementServer(object):
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
+        self.installCifs()
         self.installApacheProxy()
+
+    def installCifs(self):
+        self.place.execcmd("yum install -y samba-client samba-common cifs-utils")
 
     @property
     def version(self):

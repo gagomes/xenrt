@@ -2613,7 +2613,24 @@ class GlobalExecutionContext:
         self.knownIssues = {}
         thread.start_new_thread(markThread, ())
         self.preJobTestsDone = False
+        self.locks = {}
+        self.locklock = threading.Lock()
         return
+
+    def getLock(self, lockname):
+        self.locklock.acquire()
+        if not self.locks.has_key(lockname):
+            self.locks[lockname] = [None, threading.Lock()]
+        self.locklock.release()
+        self.locks[lockname][1].acquire()
+        self.locks[lockname][0] = threading.currentThread().ident
+
+    def releaseLock(self, lockname):
+        if self.locks[lockname][0] != threading.currentThread().ident:
+            xenrt.TEC().warning("Not releasing lock - lock ident does not match current thread ident")
+            return
+        self.locks[lockname][0] = None
+        self.locks[lockname][1].release()
 
     def getRunningTests(self):
         """List tests currently running.

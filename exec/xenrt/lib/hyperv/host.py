@@ -59,6 +59,7 @@ def createHost(id=0,
 class HyperVHost(xenrt.GenericHost):
 
     def install(self):
+        return
         self.installWindows()
         self.installHyperV()
         self.joinDefaultDomain()
@@ -132,6 +133,7 @@ class HyperVHost(xenrt.GenericHost):
         pass
 
     def tailorForCloudStack(self, msi):
+        return
         if self.xmlrpcFileExists("c:\\cloudTailored.stamp"):
             return
         self.installCloudAgent(msi)

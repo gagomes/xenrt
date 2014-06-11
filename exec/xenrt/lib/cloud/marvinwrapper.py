@@ -161,7 +161,7 @@ class MarvinApi(object):
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
             ip = h.getIP()
             url = "cifs://%s/secstorage" % (ip)
-            storagePath = "%s/secstorage" % (ip)
+            storagePath = "%s:/secstorage" % (ip)
         else:
             xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")
             secondaryStorage = xenrt.ExternalNFSShare()

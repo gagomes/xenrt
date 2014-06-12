@@ -10924,7 +10924,7 @@ done
         else:
             return True
 
-    def installNVIDIAHostDrivers(self):
+    def installNVIDIAHostDrivers(self, reboot=True):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
         rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
         xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
@@ -10952,7 +10952,8 @@ done
             sh.close()
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
-        self.reboot()
+        if reboot:
+            self.reboot()
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):
         return int(self.execdom0("xe gpu-group-get-remaining-capacity uuid=%s vgpu-type-uuid=%s" %(groupUUID,vGPUTypeUUID)))

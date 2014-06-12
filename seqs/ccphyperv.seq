@@ -44,7 +44,7 @@
                             "hypervisor": "hyperv",
                             "XRT_Hosts": 1
                         }
-                    ],
+                    ]
                 }
             ]
         }

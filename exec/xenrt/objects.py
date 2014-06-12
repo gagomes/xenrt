@@ -20,6 +20,11 @@ import XenAPI
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 
+#Dummy import of _strptime module
+#This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
+time.strptime('2014-06-12','%Y-%m-%d')
+#End dummy import 
+
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]

@@ -3716,3 +3716,19 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         g.setState("UP")
       
         g.snapshot('aftervGPU')
+
+class TCcheckNvidiaDriver(xenrt.TestCase):
+    """Sanity check to verify the NVIDIA driver is built correctly for the host kernel version"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        host.installNVIDIAHostDrivers(reboot=False)
+        try:
+            host.execdom0("modprobe nvidia")
+        except:
+            # We expect this to fail if we run on a machine without NVIDIA hardware
+            pass
+
+        if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
+            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
+

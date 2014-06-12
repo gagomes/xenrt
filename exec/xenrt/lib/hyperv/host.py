@@ -59,13 +59,15 @@ def createHost(id=0,
 class HyperVHost(xenrt.GenericHost):
 
     def install(self):
-        return
+        if xenrt.TEC().lookup("EXISTING_HYPERV", False, boolean=True):
+            return
         self.installWindows()
         self.installHyperV()
         self.joinDefaultDomain()
         self.setupDomainUserPermissions()
         self.reconfigureToStatic()
         self.createCloudStackShares()
+        self.createVirtualSwitch()
 
     def installWindows(self):
         # Construct a PXE target
@@ -108,10 +110,29 @@ class HyperVHost(xenrt.GenericHost):
                        "c:\\onboot.cmd")
 
     def installHyperV(self):
-        xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
-        xenrt.TEC().logverbose(self.xmlrpcExec("Install-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
-        xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name Hyper-V", powershell=True, returndata=True))
+        for i in ["Hyper-V", "RSAT-Hyper-V-Tools"]:
+            xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
+            xenrt.TEC().logverbose(self.xmlrpcExec("Install-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
+            xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
         self.softReboot()
+
+    def createVirtualSwitch(self):
+        self.xmlrpcSendFile("%s/data/tests/hyperv/createvirtualswitch.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\createvirtualswitch.ps1")
+        self.enablePowerShellUnrestricted()
+        cmd = "powershell.exe c:\\createvirtualswitch.ps1"
+        ref = self.xmlrpcStart(cmd)
+        deadline = xenrt.timenow() + 120
+
+        while True:
+            try:
+                if self.xmlrpcPoll(ref):
+                    break
+            except:
+                pass
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Timed out setting IP to static")
+            xenrt.sleep(5)
+        
 
     def softReboot(self):
         self.xmlrpcExec("del c:\\booted.stamp")
@@ -133,7 +154,6 @@ class HyperVHost(xenrt.GenericHost):
         pass
 
     def tailorForCloudStack(self, msi):
-        return
         if self.xmlrpcFileExists("c:\\cloudTailored.stamp"):
             return
         self.installCloudAgent(msi)
@@ -196,10 +216,10 @@ class HyperVHost(xenrt.GenericHost):
         self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
 
     def createCloudStackShares(self):
-        self.xmlrpcCreateDir("c:\\pristorage")
-        self.xmlrpcCreateDir("c:\\secstorage")
-        self.xmlrpcExec("net share pristorage=c:\\pristorage /unlimited /GRANT:EVERYONE,FULL")
-        self.xmlrpcExec("net share secstorage=c:\\secstorage /unlimited /GRANT:EVERYONE,FULL")
+        self.xmlrpcCreateDir("c:\\storage")
+        self.xmlrpcCreateDir("c:\\storage\\primary")
+        self.xmlrpcCreateDir("c:\\storage\\secondary")
+        self.xmlrpcExec("net share storage=c:\\storage /unlimited /GRANT:EVERYONE,FULL")
 
     def isEnabled(self):
         return True

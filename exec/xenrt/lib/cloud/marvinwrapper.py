@@ -162,8 +162,8 @@ class MarvinApi(object):
             ip = h.getIP()
             #url = "cifs://%s/secstorage" % (ip)
             #storagePath = "%s:/secstorage" % (ip)
-            url = "cifs://10.220.254.115/storage/secondary" % (ip)
-            storagePath = "10.220.254.115:/storage/secondary" % (ip)
+            url = "cifs://10.220.254.115/storage/secondary"
+            storagePath = "10.220.254.115:/storage/secondary"
             
         else:
             xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")

@@ -146,7 +146,7 @@ class DeployerPlugin(object):
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
             ip = h.getIP()
             #return "cifs://%s/pristorage" % (ip)
-            return "cifs://10.220.254.115/storage/primary" % (ip)
+            return "cifs://10.220.254.115/storage/primary"
         else:
             primaryStorage = xenrt.ExternalNFSShare()
             return 'nfs://%s' % (primaryStorage.getMount().replace(':',''))

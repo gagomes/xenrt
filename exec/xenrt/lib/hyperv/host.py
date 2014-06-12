@@ -220,6 +220,7 @@ class HyperVHost(xenrt.GenericHost):
         self.xmlrpcCreateDir("c:\\storage\\primary")
         self.xmlrpcCreateDir("c:\\storage\\secondary")
         self.xmlrpcExec("net share storage=c:\\storage /unlimited /GRANT:EVERYONE,FULL")
+        self.xmlrpcExec("icacls c:\\storage /grant Users:(OI)(CI)F")
 
     def isEnabled(self):
         return True

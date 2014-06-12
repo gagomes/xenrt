@@ -122,6 +122,12 @@ class ManagementServer(object):
 
             templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
                                 "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
+                                "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                                "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
+                                "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                               "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
                                 "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 

@@ -9,21 +9,42 @@
     <cloud>
 {
     "zones": [
-        {
-            "networktype": "Basic",
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
+          "physical_networks": [
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 10,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 10 }
+          ],
             "pods": [
                 {
-                    "XRT_PodIPRangeSize": 5,
+                    "XRT_PodIPRangeSize": 10,
                     "clusters": [
                         {
                             "hypervisor": "hyperv",
                             "XRT_Hosts": 1
                         }
                     ],
-                    "guestIpRanges": [
-                        {
-                            "XRT_GuestIPRangeSize": 10
-                        }
                     ]
                 }
             ]

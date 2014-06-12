@@ -1,0 +1,22 @@
+<xenrt>
+  <!-- Auto-installer tests from Clearwater SP1 using HTTP -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater" />
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446" />
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <INSTALLER_PATCH>
+      <INSTALLER>XS62ESP1006.xsupdate,XS62E006.xsupdate</INSTALLER>
+      <PROTOCOL>HTTP</PROTOCOL>
+    </INSTALLER_PATCH>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-21487" />
+  </testsequence>
+</xenrt>

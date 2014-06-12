@@ -1,7 +1,7 @@
 <xenrt>
   <!-- multipath boot-from-san tests -->
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <SR_ISCSI_MINSIZE>8</SR_ISCSI_MINSIZE>
   </variables>
 

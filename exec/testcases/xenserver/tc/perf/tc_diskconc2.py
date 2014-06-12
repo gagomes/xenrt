@@ -101,24 +101,9 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
             libsynexec.start_slave(cloned_vm, self.jobid)
 
     def runPrepopulate(self):
-        # Run synexec master
-        last_disk = chr(ord('a') + self.vbds_per_vm)
-        libsynexec.start_master_in_dom0(self.host,
-                    """/bin/bash :CONF:
-#!/bin/bash
-
-for i in {b..%s}; do
-    dd if=/dev/zero of=/dev/xvd\\$i bs=1M oflag=direct || true
-done
-
-for i in {b..%s}; do
-  wait
-done
-""" % (last_disk, last_disk),
-            self.jobid, len(self.vm))
-
         for vm in self.vm:
-            libsynexec.start_slave(vm, self.jobid)
+            for i in range(self.vbds_per_vm):
+                vm.execguest("dd if=/dev/zero of=/dev/xvd%s bs=1M oflag=direct || true" % chr(ord('b') + i))
 
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:

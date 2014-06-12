@@ -160,8 +160,11 @@ class MarvinApi(object):
             cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
             ip = h.getIP()
-            url = "cifs://%s/secstorage" % (ip)
-            storagePath = "%s:/secstorage" % (ip)
+            #url = "cifs://%s/secstorage" % (ip)
+            #storagePath = "%s:/secstorage" % (ip)
+            url = "cifs://10.220.254.115/storage/secondary" % (ip)
+            storagePath = "10.220.254.115:/storage/secondary" % (ip)
+            
         else:
             xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")
             secondaryStorage = xenrt.ExternalNFSShare()
@@ -219,7 +222,12 @@ class MarvinApi(object):
         # Check if any non-default system templates have been specified
         # These should be added in the form -D CLOUD_SYS_TEMPLATES/hypervisor=url
         sysTemplates = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATES", {})
+        hvlist = xenrt.TEC().lookup("CLOUD_HYPERVISORS", None)
+        if hvlist:
+            hvlist = hvlist.split(",")
         for s in sysTemplates:
+            if hvlist and s not in hvlist:
+                continue
             templates[s] = sysTemplates[s]
 
         # Legacy XenServer template support

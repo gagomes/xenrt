@@ -70,9 +70,6 @@ class HyperVHost(xenrt.GenericHost):
         self.createVirtualSwitch()
 
     def installWindows(self):
-        # Boot into ramdisk to wipe the partition table
-        self.bootRamdiskLinux()
-        self.execdom0("dd if=/dev/zero of=/dev/%s bs=1k count=1024")
         # Construct a PXE target
         pxe = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
@@ -87,8 +84,8 @@ class HyperVHost(xenrt.GenericHost):
         pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
         pxe.setDefault("local")
         pxe.writeOut(self.machine)
-        # Reboot the ramdisk target
-        self.execdom0("reboot")
+
+        self.machine.powerctl.cycle()
         # Wait for the iPXE file to be accessed - once it has, we can clean it up ready for local boot
         pxe.waitForIPXEStamp(self.machine)
         pxe.clearIPXEConfig(self.machine)

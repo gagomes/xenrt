@@ -4,7 +4,7 @@ from xenrt.lazylog import step, comment, log, warning
 import socket,random,sys,time
 
 class _VSwitch(xenrt.TestCase):
-
+    """Base class for vswitch tests."""
     DURATION         = 60
     NETPERF_TESTS    = ["TCP_STREAM",
                         "TCP_MAERTS",
@@ -211,75 +211,6 @@ class _VSwitch(xenrt.TestCase):
         for host in self.hosts:
             self.guests = self.guests + host.guests.values()
 
-class _Controller(_VSwitch):
-    """Base class for vSwitch tests with controller."""
-
-    CONTROLLER = "controller"
-
-    def prepare(self, arglist):
-        _VSwitch.prepare(self, arglist)
-        self.controller = xenrt.TEC().registry.guestGet(self.CONTROLLER).getDVSCWebServices()
-
-    def postRun(self):
-        try:
-            log("disassociating controller")
-            self.pool.disassociateDVS()
-        except Exception, e:
-            xenrt.TEC().logverbose("_Controller.postRun Exception: %s" % e)
-        try:
-            if self.controller.place.getState() == "DOWN":
-                self.controller.place.start()
-        except Exception, e:
-            xenrt.TEC().logverbose("_Controller.postRun Exception: %s" % e)
-
-class TC11395(_Controller):
-
-    """Run emergency reset command on a controller-managed host"""
-    # R4.4 The vSwitch must support an "emergency reset" function that can be run
-    # on a host. (ie via console access) and that removes all configuration
-    # supplied by the controller.
-
-    def prepare(self, arglist=[]):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        # find first vm that is not controller
-        self.targetVM = self.getGuestFromName('linux_1')
-        self.sourceVM = self.getGuestFromName('linux_0')
-
-    def run(self, arglist):
-        # Prove ssh is working
-        self._internalICMP(self.sourceVM, self.targetVM.getIP())
-
-        # Set up an ACL rule on host via the controller
-        self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
-
-        # make sure that the rule was effective
-
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
-
-        self.host.execdom0("ovs-vsctl emer-reset")
-
-        time.sleep(120)
-
-        # The vSwitch should now be acting as a standalone vSwitch with
-        # the ACL rules removed, test that we can reach it guest again
-
-
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        xenrt.TEC().logverbose("result = %s %d" % (result[0], result[1]))
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Emergency Reset left ACL rules behind")
-        else:
-            xenrt.TEC().logverbose("Emergency Reset is working")
-
-
-    def postRun(self):
-        self.controller.removeAllACLRules(self.targetVM.getName())
-        _Controller.postRun(self)
 
 class TC11398(_VSwitch):
     """
@@ -331,66 +262,6 @@ class TC11399(TC11398):
         self.checkBugtool("before")
         TC11398.run(self, [])
         self.checkBugtool("after")
-
-class TC11400(_Controller):
-    """
-    Manage Pool with DVS
-
-    1. Enable the vSwitch across a pool.
-    2. Install the controller VM.
-    3. Manage the pool with the controller.
-    4. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-    5. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-
-    """
-
-    def run(self, arglist):
-        self.checkNetwork(self.guests, "without-controller")
-        self.pool.associateDVS(self.controller)
-        self.checkNetwork(self.guests, "with-controller")
-
-class TC11401(_Controller):
-    """
-    vSwitch is operational after controller shutdown
-
-    1. Enable the vSwitch across a pool.
-    2. Install the controller VM.
-    3. Manage the pool with the controller.
-    4. Shutdown the controller VM.
-    5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-    6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-
-    """
-
-    def run(self, arglist):
-        self.checkNetwork(self.guests, "without-controller")
-        self.pool.associateDVS(self.controller)
-        self.checkNetwork(self.guests, "with-controller")
-        self.controller.place.shutdown()
-        self.controller.h1 = 0 # resets the http connection
-        self.checkNetwork(self.guests, "shutdown-controller")
-
-class TC11402(_Controller):
-    """
-    Restart controller VM
-
-    1. Enable the vSwitch across a pool.
-    2. Install the controller VM.
-    3. Manage the pool with the controller.
-    4. Restart the controller VM.
-    5. Check the pool is still associated with the controller.
-    6. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-    7. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-
-    """
-
-    def run(self, arglist):
-        self.checkNetwork(self.guests, "without-controller")
-        self.pool.associateDVS(self.controller)
-        self.checkNetwork(self.guests, "with-controller")
-        self.controller.place.reboot()
-        self.controller.h1 = 0 # resets the http connection
-        self.checkNetwork(self.guests, "restarted-controller")
 
 class TC11403(_VSwitch):
     """
@@ -561,86 +432,6 @@ class TC11409(_VSwitch):
         self.checkNetwork(self.guests, "before-reboot")
         self.reboot(self.host)
         self.checkNetwork(self.guests, "after-reboot")
-
-class TC11410(_Controller):
-    """
-    Add 2nd pool to controller
-
-    1. Enable the vSwitch across a pool.
-    2. Install the controller VM.
-    3. Manage the pool with the controller.
-    4. Manage the second pool with the controller.
-    5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-    6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-
-    """
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.poolB = self.getPool("RESOURCE_POOL_1")
-
-    def run(self, arglist):
-        self.checkNetwork(self.guests, "without-controller")
-        self.pool.associateDVS(self.controller)
-        self.poolB.associateDVS(self.controller)
-        self.checkNetwork(self.guests, "with-controller")
-
-    def postRun(self):
-        _Controller.postRun(self)
-        try:
-            self.poolB.disassociateDVS()
-        except Exception, e:
-            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
-
-class TC11411(_Controller):
-    """
-    HA protect controller
-
-     1. Enable the vSwitch across a pool.
-     2. Install the controller VM on another pool of at least two hosts.
-     3. Enable HA on the controller VM pool and protect the controller VM.
-     4. Manage the pool with the controller.
-     5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-     6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-     7. Shutdown the host the controller VM is resident on.
-     8. Check that the controller VM comes back on the other host in its pool.
-     9. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
-    10. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
-
-
-    """
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.controllerpool = self.getPool("RESOURCE_POOL_1")
-        self.controllerpool.enableHA()
-        self.controller.place.setHAPriority("2")
-        self.pool.associateDVS(self.controller)
-
-    def run(self, arglist):
-        self.checkNetwork(self.guests, "before-loss")
-        xenrt.TEC().logverbose("Shutting down host with controller VM.")
-        self.controllerpool.master.machine.powerctl.off()
-        xenrt.TEC().logverbose("Checking controller VM is back.")
-        try:
-            self.controller.place.waitForSSH(600)
-        except:
-            self.controllerpool.findMaster(notCurrent=True)
-            raise xenrt.XRTFailure("HA Failure")
-
-        self.checkNetwork(self.guests, "after-loss")
-
-    def postRun(self):
-        _Controller.postRun(self)
-        try:
-            self.controllerpool.master.machine.powerctl.on()
-            self.controllerpool.master.waitForSSH(600)
-        except Exception, e:
-            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
-        try:
-            self.controllerpool.disableHA()
-        except Exception, e:
-            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
 
 class TC11585(_VSwitch):
 
@@ -1183,298 +974,6 @@ class TC11561(_VSwitch):
         vlanguest[1].shutdown()
         vlanguest[1].uninstall()
 
-
-class TC11685(_Controller):
-    """
-    vSwitch Stress
-
-    Ensure that the addition and deletion of flow tables entries do not
-    greatly impact the throughput of the vSwitch
-
-    With a maximum throughput transfer between two VMs on the same host,
-    create VIFs and have them ping one and other such that Flow Table
-    Entries are created, then remove the VIFs, causing the entries to be
-    removed from the flow table. Ensure that this does not greatly affect
-    the throughput.
-    """
-
-    count = 0
-    subnet = ""
-    ipbase = 0
-    new_net_uuid = ""
-    new_net_name = ""
-    throughput = 0
-    pingcount = 0
-    stop = False
-    myguests = []
-    subnetuint = 0
-
-    def getGuestObjects(self):
-        gueststrings = self.host.listGuests()
-        xenrt.TEC().logverbose("%s" % gueststrings)
-        for i in range(2):
-            xenrt.TEC().logverbose("%s" % self.host.guests[gueststrings[i]])
-            self.myguests.append(self.host.guests[gueststrings[i]])
-
-
-    def cleanUp(self):
-
-        for i in range(2):
-            self.myguests[i].execguest("cp /root/interfaces /etc/network/interfaces")
-            self.myguests[i].execguest("rm /root/interfaces")
-            try:
-                self.myguests[i].execguest("ifdown eth1")
-                self.myguests[i].unplugVIF("eth1")
-                self.myguests[i].removeVIF("eth1")
-            except:
-                dumbvar = 0
-        try:
-            self.host.removeNetwork(None, self.new_net_uuid)
-        except:
-            dumbvar=0
-
-
-    def backupGuestNetworkInterfaceFiles(self):
-        for i in range(2):
-            self.myguests[i].execguest("cp /etc/network/interfaces /root/interfaces")
-
-    def restoreGuestNetworkInterfaceFiles(self):
-        for i in range(2):
-            self.myguests[i].execguest("cp /root/interfaces /etc/network/interfaces")
-
-    def createVIFs(self, guest, subnet, base, subnetuint):
-        # create VIF entries on each test vm
-
-        self.myguests[guest].execguest("echo 'auto eth1 \niface eth1 inet static \n"
-                                       "address %s.%u \nnetmask 255.255.255.0' "
-                                       " >>/etc/network/interfaces" %
-                                       (subnet, base))
-
-
-        self.myguests[guest].execguest("ifup eth1")
-
-        # This is here because it takes the kernel time to remove vifs
-        while re.search("inet addr:192.168", self.myguests[guest].execguest("ifconfig eth1")) == None:
-            time.sleep(1)
-            self.myguests[guest].execguest("ifdown eth1")
-            self.myguests[guest].execguest("ifup eth1")
-
-
-
-    def destroyIFs(self):
-        for i in range(2):
-            self.myguests[i].execguest("ifdown eth1")
-        self.restoreGuestNetworkInterfaceFiles()
-
-    def ifFarm(self):
-
-        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
-        self.stop = False
-        # Pre-create VIFs on bridge 1
-        for i in range(2):
-            self.myguests[i].createVIF(eth="eth1", bridge=self.new_net_name, mac=None, plug=True)
-
-        # Exercise Flow table by creating setting eth1 on two VMs to have a
-        # new MAC and IP address on each iteration and ping between them
-        while self.stop == False:
-            # Each IF pair must be have new MAC/IP to exercise flow table
-            self.subnetuint = (self.count / 125) + 241
-            self.ipbase = (self.count % 125) * 2 + 1
-            self.subnet = "192.168.%u" % (self.subnetuint)
-            xenrt.pfarm ([xenrt.PTask(self.createVIFs, 0, self.subnet, self.ipbase, self.subnetuint),
-                          xenrt.PTask(self.createVIFs, 1, self.subnet, self.ipbase + 1, self.subnetuint)])
-            result = self.myguests[0].execguest("ping -c 1 %s.%u" % (self.subnet, self.ipbase + 1), timeout=5)
-            self.destroyIFs()
-            self.count += 1
-            self.pingcount += 1
-
-        # Tidy up the VIFs
-        for i in range(2):
-            self.myguests[i].unplugVIF("eth1")
-            self.myguests[i].removeVIF("eth1")
-
-
-
-    # Messure Throughput on VIF 0
-    def messureThroughput(self):
-        result=self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP())
-        self.throughput = result[1]
-        xenrt.TEC().logverbose("!!!STOPPING THREAD!!!")
-        self.stop = True
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        self.prepareGuests(self.guests)
-        self.getGuestObjects()
-
-    def run(self, arglist):
-        self.DURATION = 600
-        self.backupGuestNetworkInterfaceFiles()
-        self.new_net_uuid = self.host.createNetwork("nw1")
-        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
-
-        # Gather a baseline for test
-        self.messureThroughput()
-
-        throughputbaseline = self.throughput
-        if self.throughput == 0:
-            raise xenrt.XRTFailure("Measure baseline throughput of 0 between %s and %s, cannot complete test" %
-                                  (self.myguests[0].getName(), self.myguests[1].getName()))
-
-        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
-
-        # Start a process to create and destroy kernel flow table enrtrie
-        result = xenrt.pfarm ([xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
-                               exception=False)
-
-        # Measure throughput whilst the above is going on
-        testthroughput = self.throughput
-        if self.throughput == 0:
-            raise xenrt.XRTFailure("Measure test throughput of 0 between %s and %s, cannot complete test" %
-                                  (self.myguests[0].getName(), self.myguests[1].getName()))
-
-
-        # "Entries are cleared from the flow table every five seconds", Nicira.
-        time.sleep(5)
-
-        # Test the through put differences
-        percentage = testthroughput / throughputbaseline * 100
-
-        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
-        xenrt.TEC().logverbose("Throughput whilst creating/destroying VIFs is %d%% of standing throughput" % percentage)
-        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
-
-        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
-        if percentage < 90:
-            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
-
-        # Now check that the flow table does not contain eroneous VIFs
-        # Note the following dumps the flow table grepping for the 192.168 subnet
-        # If any 192.168.* subnets are found we raise an exception
-        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
-        if re.search("192.168.241", flowTable):
-            raise xenrt.XRTFailure("Found 192.168.241 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
-
-    def postRun(self):
-        # destroy the bridges
-        self.host.removeNetwork(None, self.new_net_uuid)
-        self.cleanUp()
-        _Controller.postRun(self)
-
-
-class TC11692(TC11685):
-    """
-    Controller/vSwitch Stress
-
-    Ensure that the addition and deletion of flow table entries by the controller do not
-    greatly impact the throughput of the vSwitch
-
-    """
-    def __init__(self, tcid=None, anon=False):
-        TC11685.__init__(self, tcid=tcid, anon=anon)
-        self.vif_node = {}
-        self.proto_uid = None
-        self.vm_node = {}
-
-    def prepare(self, arglist):
-        TC11685.prepare(self, arglist)
-        self.targetVM = self.guests[0]
-        self.sourceVM = self.guests[1]
-        self.count = 0
-        self.controller.keepDVSAlive()
-
-
-    def controllerCreateFlowTableEntries(self):
-        while self.stop == False:
-            # Set up an ACL rule on host via the controller
-            self.controller.addACLProtoToNode(self.vif_node, self.proto_uid)
-
-            # make sure that the rule was effective
-            try:
-                self.sourceVM.execguest("ping -c 1 -w 0.5 %s" % (self.targetVM.getIP()), timeout=2)
-            except Exception, e:
-                xenrt.TEC().logverbose("ACL Rule is working")
-            else:
-                raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
-
-            self.controller.removeAllACLRulesFromNode(self.vm_node)
-
-            self.sourceVM.execguest("ping -c 1 -w 0.5 %s" % (self.targetVM.getIP()), timeout=2)
-
-            self.count += 1
-
-    def prepareController(self):
-        # Create a default rule at the VIF level
-        # to deny ICMP
-        icmp_uid = self.controller.findProtocol("ICMP")['uid']
-        icmp_deny_rule = self.controller.createACL("out", icmp_uid, "", "deny")
-
-        sourceVM_vif_mac = self.sourceVM.getVIFs()['eth0'][0]
-
-        vif_rules = self.controller.getVIFRules(sourceVM_vif_mac)
-
-        vif_rules["acl_rules"].append(icmp_deny_rule)
-        # Note the VIF level does not provide default and mandatory rules
-
-        self.controller.setVIFRules(sourceVM_vif_mac, vif_rules)
-
-
-    def run(self, arglist):
-        # This greatly reduces the ammount of traffic to the controller during the throughput test
-        self.prepareController()
-
-        self.DURATION = 600
-
-        # Baseline Throughput
-        self.messureThroughput()
-        throughputbaseline = self.throughput
-
-        if self.throughput == 0:
-            raise xenrt.XRTFailure("Measure baseline throughput of 0 between %s and %s, cannot complete test" %
-                                  (self.myguests[0].getName(), self.myguests[1].getName()))
-
-        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
-
-        self.stop = False
-        xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.messureThroughput)],
-                               exception=False)
-
-        if self.throughput == 0:
-            raise xenrt.XRTFailure("Measure test throughput of 0 between %s and %s, cannot complete test" %
-                                  (self.myguests[0].getName(), self.myguests[1].getName()))
-
-        # Measured throughput whilst the above is going on
-        testthroughput = self.throughput
-
-        # "Entries are cleared from the flow table every five seconds", Nicira.
-        time.sleep(5)
-
-        # Test the through put differences
-        percentage = testthroughput / throughputbaseline * 100
-
-        xenrt.TEC().logverbose("Throughput whilst creating/destroying flows is %d%% of standing throughput" % percentage)
-        xenrt.TEC().logverbose("Created %u ACL rules, including checks of pings between them" % self.count)
-
-        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
-        if percentage < 90:
-            raise xenrt.XRTFailure("Flow table creation of %d flows over %d"
-                                    " seconds drives average throughput below 90%%."
-                                    % (self.count * 2, self.DURATION))
-
-        # Now check that the flow table does not contain eroneous entries from the
-        # Note the following dumps the flow table grepping for the 192.168.241 subnet
-        # If any 192.168.241* subnets are found we raise an exception
-        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
-        if re.search("192.168.241", flowTable):
-            raise xenrt.XRTFailure("Found 192.168.241 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
-
-
-    def postRun(self):
-        self.controller.stopKeepAlive()
-        TC11685.postRun(self)
-
-
 class _TC11537:
     """
     Base class providing Create VIFs/VMs for TC11537 sequences
@@ -1501,7 +1000,6 @@ class _TC11537:
             self.mac_counter += 1
             self.lock.release()
 
-
             mac = "1a:37:36:11:%02x:%02x" % (mac_counter / 255, mac_counter % 255)
 
             # each machine will have n subnets with its machine number
@@ -1527,7 +1025,6 @@ class _TC11537:
             self.vifs_to_remove.append(num_vifs)
             self.lock.release()
 
-
             vm_to_clone.execcmd("rm -f "
                                  "/etc/udev/rules.d/z25_persistent-net.rules "
                                  "/etc/udev/persistent-net-generator.rules")
@@ -1536,7 +1033,6 @@ class _TC11537:
             # self.machnum is shared across threads
             # slight danger that two vms get the same name here
             # but this is preventend once we enter the loop
-
 
             for i in range(num_guests):
                 self.lock.acquire()
@@ -1666,7 +1162,6 @@ class _TC11537:
             if(self.vifs_to_remove[guest_num] >0):
                 self.seed_guests[guest_num].execguest("cp /root/interfaces /etc/network/interfaces")
 
-
 class TC11541(_VSwitch, _TC11537):
 
     """
@@ -1694,451 +1189,6 @@ class TC11541(_VSwitch, _TC11537):
         _TC11537.postRun(self)
         _VSwitch.postRun(self)
 
-class _CHIN(_Controller):
-    """Base class for CHIN tests."""
-
-    CHINMAP = ""  
-    PAIRS = True 
-
-    class CHIN:
-
-        def pairs(self, list):
-            return [ (list[x], list[y]) \
-                        for x in xrange(len(list)) \
-                            for y in xrange(len(list)) \
-                                if not x == y ]
-
-        def attachVIF(self, guest):
-            """
-            Give a VM an interface on a CHIN.
-    
-            Given:
-
-            The CHIN index, N.
-            The number of VIFs this VM currently has attached to the CHIN, C.
-            The total number of VIFs currently attached to the CHIN, M.        
-
-            Then:
-
-            The static IP address of the new interface will be 192.168.N.(M+1).
-            """
-            xenrt.TEC().logverbose("Attaching VM %s to CHIN %s." % (guest.getName(), self.index))
-            if not guest.getHost() in self.hosts:
-                self.createTunnel(guest.getHost())
-            mac = xenrt.randomMAC()
-            vif = guest.createVIF(bridge=self.network, mac=mac, plug=True)
-            # CA-75592 suggests that we may be connecting too quickly, so 
-            # letting the vif creation settle down.
-            time.sleep(5)
-            data = guest.getLinuxIFConfigData()
-            for device in data:
-                if data[device]["MAC"]:
-                    if xenrt.normaliseMAC(data[device]["MAC"]) == mac:
-                        break
-            interfaces = []
-            interfaces.append("iface %s inet static" % (device))
-            interfaces.append("address 192.168.%s.%s" % (self.index, sum(map(len, self.guests.values())) + 1))
-            interfaces.append("netmask 255.255.255.0")
-            interfaces.append("hwaddress ether %s" % (mac))
-            interfaces.append("allow-hotplug %s" % (device))
-            guest.execguest("echo -e '%s' >> /etc/network/interfaces" % (string.join(interfaces, r"\n")))
-            guest.execguest("ifup %s" % (device))
-            if not guest in self.guests:
-                self.guests[guest] = []
-            self.guests[guest].append((device, mac, guest.getVIFUUID(vif)))
-            return device
-
-        def detachVIF(self, guest, device):
-            """
-            Remove a guest from a CHIN.
-            """
-            xenrt.TEC().logverbose("Removing VIF %s on VM %s from CHIN %s." % (device, guest.getName(), self.index))
-            if guest in self.guests:
-                for guestdevice,mac,vifuuid in self.guests[guest]:
-                    if guestdevice == device:
-                        cli = self.pool.getCLIInstance()
-                        args = []
-                        args.append("uuid=%s" % (vifuuid))
-                        cli.execute("vif-unplug", string.join(args))
-                        cli.execute("vif-destroy", string.join(args))
-                        data = guest.execguest("cat /etc/network/interfaces")
-                        data = re.sub(re.search("iface %s.*allow-hotplug %s" % (device, device), data, re.DOTALL).group(), "", data)
-                        guest.execcmd("echo -e '%s' > /etc/network/interfaces" % (string.join(data.splitlines(), r"\n")))
-                        self.guests[guest].remove((device, mac, vifuuid))
-                        if not len(self.guests[guest]):
-                            del self.guests[guest]
-
-        def createTunnel(self, host):
-            """
-            Create a CHIN tunnel on a host.
-            """
-            if not host in self.hosts:
-                cli = self.pool.getCLIInstance()
-                nics = host.listSecondaryNICs(network=self.subnet)
-                if not nics:
-                    raise xenrt.XRTError("Host %s has no NICs on %s." % (host.getName(), self.subnet))
-                # Use the first available NIC on the subnet.
-                device = host.getSecondaryNIC(nics[0])
-                xenrt.TEC().logverbose("Using %s (%s) on host %s as a transport PIF." % (device, self.subnet, host.getName()))
-                # The transport PIFs must have an IP address configured. We use DHCP.
-                pifuuid = host.getPIFUUID(device)
-                if not host.genParamGet("pif", pifuuid, "IP"):
-                    args = []
-                    args.append("uuid=%s" % (pifuuid))
-                    args.append("mode=dhcp")
-                    cli.execute("pif-reconfigure-ip", string.join(args))
-                    # We do NOT plug the PIF at this point. The susequent tunnel-create should take care of this.
-                args = []
-                args.append("network-uuid=%s" % (self.network))
-                args.append("pif-uuid=%s" % (pifuuid))
-                tunnel = cli.execute("tunnel-create", string.join(args)).strip()
-                self.hosts.append((host, pifuuid, tunnel))
-
-        def destroyTunnel(self, host, pifuuid, tunnel):
-            """
-            Destroy a CHIN tunnel on a host.
-            """
-            cli = self.pool.getCLIInstance()
-            tunneluuid = host.parseListForUUID("tunnel-list", "access-PIF", tunnel)
-            args = []
-            args.append("uuid=%s" % (tunneluuid))
-            cli.execute("tunnel-destroy", string.join(args))
-            self.hosts.remove((host, pifuuid, tunnel))
-            if len(self.hosts) == 0:
-                self.pool.master.removeNetwork(self.network)
-
-        def destroy(self):
-            xenrt.TEC().logverbose("Trying to Remove CHIN %s." % (self.index))
-            for guest in copy.copy(self.guests):
-                for device,mac,vifuuid in self.guests[guest]:
-                    try: 
-                        self.detachVIF(guest, device)
-                    except Exception, e:
-                        xenrt.TEC().logverbose("Exception detaching VIF: %s" % (str(e)))
-            while self.hosts:
-                try: self.destroyTunnel(*self.hosts[0])
-                except Exception, e:
-                    xenrt.TEC().logverbose("Exception destroying tunnel: %s" % (str(e)))
-
-        def __init__(self, pool, index, subnet=None):
-            self.pool = pool
-            self.index = int(index)
-            self.subnet = subnet
-            self.network = None
-            self.guests = {}
-            self.hosts = [] 
-            if not self.subnet:
-                self.subnet = "NPRI"
-            self.network = self.pool.master.createNetwork(name="CHIN-%s" % (self.index))
-
-        def check(self):
-            """Check if the CHIN is up."""
-            for guest in self.guests:
-                for device,mac,vifuuid in self.guests[guest]:
-                    data = guest.getLinuxIFConfigData()
-                    if device in data and data[device]["IP"]:
-                        xenrt.TEC().logverbose("Interface %s on VM %s on CHIN %s has IP address %s." % \
-                                               (device, guest.getName(), self.index, data[device]["IP"]))
-                    else:
-                        xenrt.TEC().logverbose("Interface %s on VM %s on CHIN %s has no IP address." % \
-                                               (device, guest.getName(), self.index))
-                        return False 
-            return True
-
-        def test(self, pairs=True):
-            xenrt.TEC().logverbose("Testing CHIN %s." % (self.index))
-            failures = []
-            testmatrix = []
-            if pairs:
-                for x in self.guests:
-                    for y,_,_ in self.guests[x]:
-                        testmatrix.append((x,y))
-                testmatrix = self.pairs(testmatrix)
-            else:
-                rootguest = self.guests.keys()[0]
-                rootdevice, _, _ = self.guests[rootguest]
-                for x in self.guests:
-                    for y,_,_ in self.guests[x]:
-                        testmatrix.append(((x,y), (rootguest, rootdevice)))
-            for x,y in testmatrix:
-                a, _ = x
-                b, device = y
-                xenrt.TEC().logverbose("Testing connection between %s and %s." % (a.getName(), b.getName()))
-                ip = b.getLinuxIFConfigData()[device]["IP"]
-                try: 
-                    a.execguest("ping -w 8 %s" % (ip))
-                except: 
-                    failures.append((a, b))
-            for a,b in failures:
-                xenrt.TEC().logverbose("Connection from %s to %s failed." % (a.getName(), b.getName()))
-            if failures:
-                raise xenrt.XRTFailure("CHIN not fully functional.")
-
-        def wait(self):
-            if not self.check():
-                if not self.check():
-                    for guest in self.guests:
-                        for device,mac,vifuuid in self.guests[guest]:
-                            guest.execcmd("ifdown %s" % (device))
-                            guest.execcmd("ifup %s" % (device))
-                    if not self.check():
-                        raise xenrt.XRTError("CHIN %s is not up even after we really tried." % (self.index))
-
-        def generate(pool, xmltext):
-            chins = []
-            value = {} 
-            def handleVM(node, id, guests):
-                name = node.getAttribute("name")
-                if not name:
-                    raise xenrt.XRTError("Found VM tag with no name attribute.")
-                guest = xenrt.TEC().registry.guestGet(name)
-                if not guest:
-                    raise xenrt.XRTError("Found VM that is not present in the registry.")
-                guests.append(guest)
-            def handleNetwork(node):
-                id = node.getAttribute("id")
-                subnet = node.getAttribute("network")
-                guests = []
-                for child in node.childNodes:
-                    if child.localName == "vm":
-                        handleVM(child, id, guests)
-                chins.append((id, subnet, guests))
-            def handleCHINNode(node):
-                for child in node.childNodes:
-                    if child.localName == "network":
-                        handleNetwork(child)
-
-            xmltree = xml.dom.minidom.parseString(xmltext)
-            for child in xmltree.childNodes:
-                if child.localName == "CHIN":
-                    handleCHINNode(child)
-            for chin in chins:
-                id, subnet, guests = chin
-                c = _CHIN.CHIN(pool, id, subnet)
-                for g in guests:
-                    c.attachVIF(g)
-                value[int(id)] = c
-            return value
-        generate = staticmethod(generate)    
-
-    def prepare(self, arglist=[]):
-        self.chins = []
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        xenrt.TEC().logverbose("CHINMAP: %s" % (self.CHINMAP))
-        self.chins = self.CHIN.generate(self.pool, self.CHINMAP)
-        self.guests = map(self.getGuest, 
-                          filter(lambda x:not x == self.CONTROLLER, xenrt.TEC().registry.guestList()))
-        for guest in self.guests:
-            self.setupGuestTcpDump(guest)
-        for chin in self.chins.values():
-            chin.wait()
-            try: chin.test(self.PAIRS) 
-            except Exception, e:
-                xenrt.TEC().logverbose("First test of CHIN %s failed. Retrying in 30s..." % (chin.index))
-                time.sleep(30)
-                chin.test(self.PAIRS)
-
-    def run(self, arglist=()):
-        pass
-
-    def postRun(self):
-        for chin in self.chins.values():
-            chin.destroy()
-        for guest in self.guests:
-            try: guest.execcmd("killall ping")
-            except: pass
-
-class TC11939(_CHIN):
-    """ 
-    Enable CHIN
-
-    On a pool of two or more hosts, each with one or more VMs, create a CHIN network
-    Give each VM an interface on the CHIN network. 
-    Each CHIN network should share a distinct statically allocated subnet.
-    Ensure that the VMs can communicate over the CHIN subnet.
-    """
-
-    CHINMAP = """
-    <CHIN>
-      <network id="1" network="NSEC">
-        <vm name="p0h0-0"/>
-        <vm name="p0h1-0"/>
-      </network>
-    </CHIN>
-    """
-
-class TC14456(_CHIN):
-    """
-    Reconfigure the IP address of the underlying transport PIFs.
-    """
-
-    CHINMAP = """
-    <CHIN>
-      <network id="1" network="NSEC">
-        <vm name="p0h0-0"/>
-        <vm name="p0h1-0"/>
-      </network>
-    </CHIN>
-    """
-
-    def run(self, arglist=[]):
-        for host,pifuuid,tunnel in self.chins[1].hosts:
-            cli = host.getCLIInstance()
-            args = []
-            args.append("uuid=%s" % (pifuuid))
-            args.append("mode=dhcp")
-            cli.execute("pif-reconfigure-ip", string.join(args))
-            self.chins[1].test()
-
-class TC11941(_CHIN):
-    """
-    CHIN No Leak
-
-    Ensure that chin traffic does not leak.
-    """
-
-    CHINMAP = """
-    <CHIN>
-      <network id="1" network="NSEC">
-        <vm name="p0h0-0"/>
-        <vm name="p0h1-0"/>
-      </network>
-      <network id="2" network="NSEC">
-        <vm name="p0h0-0"/>
-        <vm name="p0h1-0"/>
-      </network>
-    </CHIN>
-    """
-
-    def run(self, arglist=[]):
-        src = self.getGuest("p0h0-0")
-        dst = self.getGuest("p0h1-0")
-        testchin = self.chins[1]
-        controlchin = self.chins[2]
-        source = src.getLinuxIFConfigData()[testchin.guests[src][0][0]]["IP"]
-        destination = dst.getLinuxIFConfigData()[testchin.guests[dst][0][0]]["IP"]
-        # Start a continous ping on the test CHIN.
-        src.execcmd("nohup ping %s &>/dev/null &" % (destination))
-        # Check traffic is seen on the test CHIN VIFs.
-        try:
-            src.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                        (testchin.guests[src][0][0], source, destination), timeout=30)
-        except xenrt.XRTFailure:
-            raise xenrt.XRTFailure("ICMP packet not seen on source VMs test CHIN VIF.")
-        try:
-            dst.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                        (testchin.guests[dst][0][0], source, destination), timeout=30)
-        except xenrt.XRTFailure:
-            raise xenrt.XRTFailure("ICMP packet not seen on destination VMs test CHIN VIF.")
-        # Check traffic is NOT seen on the control CHIN VIFs.
-        try:
-            src.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                        (controlchin.guests[src][0][0], source, destination), timeout=30)
-        except: pass
-        else:
-            raise xenrt.XRTFailure("ICMP packet seen on source VMs control CHIN VIF.")
-        try:
-            dst.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                        (controlchin.guests[dst][0][0], source, destination), timeout=30)
-        except: pass
-        else:
-            raise xenrt.XRTFailure("ICMP packet seen on destination VMs control CHIN VIF.")
-        for host,pifuuid,tunnel in testchin.hosts:
-            bridge = host.genParamGet("network", host.genParamGet("pif", pifuuid, "network-uuid"), "bridge")
-            # Check traffic is not seen in hosts' domain 0.
-            try:
-                host.execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                             (bridge, source, destination), timeout=30)
-            except: pass
-            else:
-                raise xenrt.XRTFailure("ICMP packet seen on %s's transport bridge." % (host.getName()))
-            # Check GRE traffic between the guests IS seen in hosts' domain 0.
-            try:
-                host.execdom0("tcpdump -i %s -c 1 proto gre" % (bridge), timeout=30)
-            except xenrt.XRTFailure:
-                raise xenrt.XRTFailure("GRE packet not seen on %s's transport bridge." % (host.getName()))
-    
-class TC12418(_CHIN):
-    """
-    16 CHINs per pool 
-
-    Ensure that 16 CHINs can be created and that each pair of endpoints on the CHIN can communicate.
-    """
-
-    CHINS = 16
-
-    def prepare(self, arglist=[]):
-        chins = []
-        for i in range(self.CHINS):
-            chins.append('<network id="%s" network="NSEC">' % (i+1))
-            chins.append('<vm name="p0h0-%s"/>' % (i/6))
-            chins.append('<vm name="p0h1-%s"/>' % (i/6))
-            chins.append('</network>')
-        self.CHINMAP = "<CHIN>%s</CHIN>" % (string.join(chins))
-        _CHIN.prepare(self, arglist)
-
-class TC12543(_CHIN):
-    """ 
-    16 Hosts per CHIN 
-
-    Across a pool of 16 hosts create 1 chin with a VM on each host connected to that CHIN.
-
-    Check traffic passes across the CHIN. 
-    """
-    
-  
-    CHINMAP = """
-    <CHIN>
-      <network id="1" network="NSEC">
-        <vm name="p0h0-0"/>
-        <vm name="p0h1-0"/>
-        <vm name="p0h2-0"/>
-        <vm name="p0h3-0"/>
-        <vm name="p0h4-0"/>
-        <vm name="p0h5-0"/>
-        <vm name="p0h6-0"/>
-        <vm name="p0h7-0"/>
-        <vm name="p0h8-0"/>
-        <vm name="p0h9-0"/>
-        <vm name="p0h10-0"/>
-        <vm name="p0h11-0"/>
-        <vm name="p0h12-0"/>
-        <vm name="p0h13-0"/>
-        <vm name="p0h14-0"/>
-        <vm name="p0h15-0"/>
-      </network>
-    </CHIN>
-    """
-
-class TC12551(_CHIN): 
-    """
-    256 VIFs per CHIN 
-    """
-       
-    CHINS = 16
-
-    CHINMAP = """
-    <CHIN>
-      <network id="1" network="NSEC">
-        %s
-      </network>
-    </CHIN>
-    """
-
-    def prepare(self, arglist=[]):
-        chins = []
-        vmstring = '<vm name="p%sh%s-%s"/>'
-        #16 CHINs with 16 vifs each.
-        for i in range(self.CHINS):
-            s = string.join(sorted(map(lambda x:vmstring % (x), 
-                                   [ (j/17,j,i/6) for j in range(16) ])))
-            chins.append('<network id="%s" network="NSEC">' % (i+1))
-            chins.append(s)
-            chins.append('</network>')
-        self.CHINMAP = "<CHIN>%s</CHIN>" % (string.join(chins))
-        _CHIN.prepare(self, arglist)
-
 class TC11540(_VSwitch, _TC11537):
     """
         512 Interfaces on a Host
@@ -2162,404 +1212,6 @@ class TC11540(_VSwitch, _TC11537):
     def postRun(self):
         _TC11537.postRun(self)
 
-class TC11546(_Controller):
-    """
-    Verify the Browser GUI requires a login
-
-    1. Perform some action without a cookie
-    2. Perform some action with the login supplied cookie
-
-    """
-    def prepare(self, arglist):
-        # This will log us in
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        self.targetVM = self.guests[0]
-
-    def run(self, arglist):
-        self.controller.logout()
-
-        # prevent auto login for each request
-        self.controller.auto = False
-
-        try:
-            self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
-        except Exception, e:
-            xenrt.TEC().logverbose("Log out has worked and we are unable to use the controller: " )
-        else:
-            raise xenrt.XRTFailure("Able to use the controller after logout")
-
-        self.controller.login("admin", self.controller.admin_pw)
-        self.controller.auto = True
-
-        # chck that we are able to contact the controller again
-        self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
-
-    def postRun(self):
-        self.controller.removeAllACLRules(self.targetVM.getName())
-        _Controller.postRun(self)
-
-
-class TC11548(_Controller):
-    """
-    ACL Hierachy
-
-    Create Mandatory and Default ACL rules at Global, Pool, Network and VM Levels.
-    Make sure that higher priority levels override lower priority levels
-
-    """
-    backup_rules = {}
-    backup_rules['global', 'pool', 'network', 'vm', 'vif'] = [{}, {}, {}, {}, {}]
-    network_name = ''
-    vm_names = []
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.prepareGuests(self.guests)
-        # todo remove this
-        self.pool.associateDVS(self.controller)
-        self.targetVM = self.guests[0]
-        self.sourceVM = self.guests[1]
-
-    def run(self, arglist):
-
-        # get the global rules
-        global_rules = self.controller.getGlobalRules()
-        self.backup_rules['global'] = self.controller.getGlobalRules()
-
-        # we know that we have ARP, DHCP and DNS at the global mandatory level
-        # and allow any to and from any ad the global default level
-        # now if we insert deny ICMP at global default level
-        # first create an ACL rule to do this
-        icmp_uid = self.controller.findProtocol("ICMP")['uid']
-        icmp_deny_rule = self.controller.createACL("both", icmp_uid, "", "deny")
-
-        global_rules["acl_rules"].insert(3, icmp_deny_rule)
-        self.controller.setGlobalRules(global_rules)
-
-        # The http request returns before the ACL rule is set on the vswitch
-        # Nicira have advised a 5 second turnaround
-        time.sleep(10)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("Default Global ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("Default Global ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Default Global ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-        # Next create a default rule at the Pool level to allow ICMP
-        # This should override the global default rule.
-        pool_rules = self.controller.getPoolRules(self.host.getIP())
-        self.backup_rules['pool'] = self.controller.getPoolRules(self.host.getIP())
-
-        icmp_allow_rule = self.controller.createACL("both", icmp_uid, "", "allow")
-        # pool_rules["acl_rules"] is an empty list at this point
-        pool_rules['acl_rules'].append(icmp_allow_rule)
-        pool_rules['acl_split_before'] = 0
-
-        self.controller.setPoolRules(self.host.getIP(), pool_rules)
-        time.sleep(5)
-
-        # Check that this overrides as expected
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] != 0:
-            xenrt.TEC().logverbose("Default Pool Rule is working")
-        else:
-            raise xenrt.XRTFailure("Default Pool ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # Next create a default rule at the network level
-        # to deny ICMP
-        # Nicira rename the network for some reason
-        self.network_name = self.controller.getNetworksInPool(self.host.getIP())[0]
-        network_rules = self.controller.getNetworkRules(self.network_name)
-        self.backup_rules['network'] = self.controller.getNetworkRules(self.network_name)
-
-        network_rules["acl_rules"].append(icmp_deny_rule)
-        network_rules['acl_split_before'] = 0
-
-        self.controller.setNetworkRules(self.network_name, network_rules)
-        time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("Default Network ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("Default Network ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Default Network ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-        # Next create a default rule at the VM level
-        # to allow ICMP to each VM
-        self.backup_rules['vm'] = self.controller.getVMRules(self.targetVM.getName())
-        self.vm_names.append(self.sourceVM.getName())
-        self.vm_names.append(self.targetVM.getName())
-        for name in self.vm_names:
-            vm_rules = self.controller.getVMRules(name)
-
-            vm_rules["acl_rules"].append(icmp_allow_rule)
-            vm_rules['acl_split_before'] = 0
-
-            self.controller.setVMRules(name, vm_rules)
-            time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] != 0:
-            xenrt.TEC().logverbose("Default VM ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("Default VM ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # Next create a default rule at the VIF level
-        # to deny ICMP
-        sourceVM_vif_mac = self.sourceVM.getVIFs()['eth0'][0]
-        self.backup_rules['vif'] = self.controller.getVIFRules(sourceVM_vif_mac)
-        vif_rules = self.controller.getVIFRules(sourceVM_vif_mac)
-
-        vif_rules["acl_rules"].append(icmp_deny_rule)
-        # Note the VIF level does not provide default and mandatory rules
-
-        self.controller.setVIFRules(sourceVM_vif_mac, vif_rules)
-
-        time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("VIF deny ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("VIF deny ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Default VIF ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-
-        # NOW CHECK MANADATORY OVERIDES
-
-        # First we must remove the VIF rule as it overides the VM rule
-        # and would leave us testing that the mandatory allow
-        # overieds the default allow
-        self.controller.setVIFRules(sourceVM_vif_mac, self.backup_rules['vif'])
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] != 0:
-            xenrt.TEC().logverbose("Removal of VIF deny ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("Removal of VIF deny ACL Rule for ICMP is not working result = %d" % result[1])
-
-        # Create a mandatory rule at the VM level
-        # to deny ICMP to each VM - this overides the defaut VM allow rule
-        for name in self.vm_names:
-            vm_rules = self.controller.getVMRules(name)
-
-            vm_rules["acl_rules"].insert(0, icmp_deny_rule)
-            vm_rules['acl_split_before'] = 1
-
-            self.controller.setVMRules(name, vm_rules)
-            time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("Mandatory VM ACL Rule overrides the Default Rule as expected")
-        else:
-            raise xenrt.XRTFailure("Mandatory VM ACL Rule is not overriding the Default Rule result = %d" % result[1])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Mandatory VM ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-
-        # Create a madatory rule at the network level
-        # to allow ICMP
-        network_rules["acl_rules"].insert(0, icmp_allow_rule)
-        network_rules['acl_split_before'] = 1
-
-        self.controller.setNetworkRules(self.network_name, network_rules)
-        time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] != 0:
-            xenrt.TEC().logverbose("Mandatory Network ACL Rule overrides the Default Rule as expected")
-        else:
-            raise xenrt.XRTFailure("Mandatory Network ACL Rule is not overriding the Default Rule result = %d" % result[1])
-
-        # Create a mandatory rule at the Pool level to deny ICMP
-        # This should override the default rule.
-        pool_rules['acl_rules'].insert(0, icmp_deny_rule)
-        pool_rules['acl_split_before'] = 1
-
-        self.controller.setPoolRules(self.host.getIP(), pool_rules)
-        time.sleep(5)
-
-        # Check that this overrides as expected
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("Mandatory Pool ACL Rule overrides the Default Rule as expected")
-        else:
-            raise xenrt.XRTFailure("Mandatory Pool ACL Rule is not overriding the Default Rule result = %d" % result[1])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Mandatory Pool ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-        # Create a mandatory rule at the Global level to deny ICMP
-        # This should override the default rule.
-        global_rules["acl_rules"].insert(3, icmp_allow_rule)
-        global_rules['acl_split_before'] = 4
-        self.controller.setGlobalRules(global_rules)
-
-        # The http request returns before the ACL rule is set on the vswitch
-        # Nicira have advised a 5 second turnaround
-        time.sleep(5)
-
-        # make sure that the rule was effective
-        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
-        if result[1] != 0:
-            xenrt.TEC().logverbose("Mandatory Global ACL Rule overrides the Default Rule as expected")
-        else:
-            raise xenrt.XRTFailure("Mandatory Global ACL Rule is not overriding the Default Rule result = %d" % result[1])
-
-        # Remove all rules
-        self.controller.setGlobalRules(self.backup_rules['global'])
-        self.controller.setPoolRules(self.host.getIP(), self.backup_rules['pool'])
-        self.controller.setPoolRules(self.network_name, self.backup_rules['network'])
-        for name in self.vm_names:
-            self.controller.setVMRules(self.network_name, self.backup_rules['vm'])
-
-        # make sure that other sockets are not affected
-        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("Mandatory Pool ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
-
-
-    def postRun(self):
-        _Controller.postRun(self)
-
-
-class TC11549(_Controller):
-    """
-    Common Protocols
-
-    Ensure that a default set of the most commonly used protocols is provided
-
-    """
-
-    common_protos = ["ARP", "IP", "IPv6", "ICMP", "TCP", "UDP", "FTP", "SSH",
-                     "Telnet", "SMTP", "HTTP", "Kerberos", "POP", "IMAP",
-                     "HTTPS", "SOCKS", "SIP", "DNS", "DHCP", "BOOTP", "NTP",
-                     "Syslog", "NFS"]
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        # todo remove this
-        self.pool.associateDVS(self.controller)
-        self.targetVM = self.guests[0]
-        self.sourceVM = self.guests[1]
-
-    def getname(self, x): return x['name']
-
-    def run(self, arglist):
-        missing_protos = []
-        protocols = self.controller.getProtocols()
-        protocol_list  = map(self.getname, protocols)
-        for item in self.common_protos:
-            if item in protocol_list == False:
-                missing_protos.append(item)
-
-        if len(missing_protos) != 0:
-            raise xenrt.XRTFailure(("The following protocols are missing from the default set: " + " ".join(missing_protos)))
-
-    def postRun(self):
-        _Controller.postRun(self)
-
-
-class TC11535(_Controller):
-    """
-    Controller Daemons restart automatically
-
-    Kill the controller software daemons, ensure they retart automatically
-    """
-    dead_controller = False
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-
-    def run(self, arglist):
-        try :
-            result = self.controller.place.execguest("killall nox_core nwflowpack")
-        except :
-            xenrt.XRTFailure("Not all processes killed")
-
-        time.sleep(60)
-
-        try :
-            self.controller.login("admin", self.controller.admin_pw)
-        except:
-            self.dead_controller = True
-            raise xenrt.XRTFailure("Controller processes failed to restart after 60 seconds")
-
-    def postRun(self):
-        # if the controller is dead reboot it (saves a few error reports
-        if self.dead_controller == True:
-            self.controller.place.execguest("reboot")
-            time.sleep(180)
-
-        _Controller.postRun(self)
-
-
-class TCManyGuestsInPool(_Controller, _TC11537):
-    """
-    Many Guests per controller
-
-    """
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        self.controller.place.shutdown()
-        self.controller.place.cpuset(4)
-        self.controller.place.memset(4096) # MB
-        self.controller.place.start()
-        self.extra_vifs = 0
-
-    def run(self, arglist=None):
-        
-        step("Fetching arguments")
-        try:
-            l = string.split(arglist[0], "=", 1)
-            if l[0].strip() == "guests":
-                nbrOfGuests = int(l[1].strip())
-                log("Argument: '%s' = '%s'" % (l[0].strip(),l[1].strip()))
-            else:
-                raise Exception("Number of guests not specified.")
-        except:
-            raise xenrt.XRTError("Number of guests must be specified within the <testcase> block in the the sequence file, e.g. '<arg>guests=1024</arg>'")
-
-        step("Creating a large number of guests in the pool")
-        self.createManyGuestsInPool(nbrOfGuests, self.extra_vifs)
-
-        step("Checking created guests in controller.")
-        all_vms = self.controller.getVMsInPool(self.host.getName())
-        if len(all_vms) != nbrOfGuests:
-            raise xenrt.XRTFailure("Failed to see %d VMs at controller. VMs shown by controller = %d, VMs created successfully = %d."
-                                   % ( (nbrOfGuests) , len(all_vms), len(self.myguests)))
-        
-    def postRun(self):
-        _TC11537.postRun(self)
-        _Controller.postRun(self)
 
 class TC11544bridge (_VSwitch, _TC11537):
     """
@@ -2688,677 +1340,6 @@ class TC11903(_VSwitch):
             self.controller.place.shutdown()
         except:
             xenrt.TEC().warning("Failed to shutdown controller.")
-
-class TC11579(_Controller):
-    """
-    Fail Open
-
-    Check that the vSwitch reverts to "failing open" if it declares the controller failed
-
-    This test also covers TC11581 'fail open' means 'ignore acl rules' as per meeting with nicira
-    13/9/10
-    """
-
-    myguests = []
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        # find first vm that is not controller
-        for guest in self.guests:
-            if guest.getName() != self.controller.place.getName():
-                self.myguests.append(guest)
-
-    def run(self, arglist):
-        # Set the controller in fail open mode
-        self.controller.setPoolFailMode(self.host.getIP(), 0)
-
-        # First we need to setup some ACL rules
-        xenrt.TEC().logverbose("Number of myguests = %d" % len(self.myguests) )
-
-        # Set up an ACL rule on host via the controller
-        self.controller.addACLRuleToVM(self.myguests[1].getName(), "ICMP")
-
-        time.sleep(30)
-
-        # test ACL rules now have effect
-        success = 0
-        iterations = 60
-        while iterations:
-            iterations -= 1
-            try:
-                self.myguests[1].getHost().execdom0("ovs-ofctl dump-flows xenbr0 | grep drop")
-            except:
-                pass
-            try:
-                self.myguests[0].execguest("ping -c1 -w 2 %s" % self.myguests[1].getIP())
-                success += 1
-            except:
-                pass        
-        if success == 0:
-            xenrt.TEC().logverbose("ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
-
-        # unlug the controllers vif - this'll freak a failed controller situation
-        self.controller.place.unplugVIF("eth0")
-
-        # allow time from the vswitch to realise that the controller has failed
-        time.sleep(180)
-
-        # test ACL rules now have no effect
-        success = 0
-        iterations = 60
-        while iterations:
-            iterations -= 1
-            try:
-                self.myguests[1].getHost().execdom0("ovs-ofctl dump-flows xenbr0 | grep drop")
-            except:
-                pass
-            try:
-                
-                self.myguests[0].execguest("ping -c1 -w 2 %s" % self.myguests[1].getIP())
-                success += 1
-            except:
-                pass
-        if success == 0:
-            raise xenrt.XRTFailure("ACL rules are still active after controller failed")
-        else:
-            xenrt.TEC().logverbose("ACL Pass, the rules are inactive after the controller has failed")
-
-        # re-plug the controller's VIF
-        self.controller.place.plugVIF("eth0")
-        # give time for it to reconnect to the servers and apply the flow tables
-        time.sleep(180)
-
-        # make sure that the rules are effective again
-        result = self._internalICMP(self.myguests[0], self.myguests[1].getIP())
-        if result[1] == 0:
-            xenrt.TEC().logverbose("ACL Rule is working")
-        else:
-            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
-
-        self.controller.removeAllACLRules(self.myguests[1].getName())
-
-        # test ACL rules now have been removed
-        result = self._internalICMP(self.myguests[0], self.myguests[1].getIP())
-        if result[1] == 0:
-            raise xenrt.XRTFailure("ACL rules are still active after removal")
-        else:
-            xenrt.TEC().logverbose("ACL Pass, the rules are have been removed and the test completed")
-
-
-    def postRun(self):
-        try:
-            # re-plug the controller's VIF
-            self.controller.place.plugVIF("eth0")
-            # give time for it to reconnect to the servers and apply the flow tables
-            time.sleep(180)
-        except:
-            pass
-        try:
-            self.controller.removeAllACLRules(self.myguests[1].getName())
-        except:
-            pass
-        
-        _Controller.postRun(self)
-		
-
-class TC12657(_Controller):
-    """
-    Fail Closed
-
-    Test the controller/vswitch fail closed functionality.
-
-    1. Select Fail closed in the controller via the web services API and disconnect the controller
-    2. Ensure that all existing ACLs are honored
-    3. Add a new VM, ensure that it is not contactable
-    4. Migrate an existing VM, ensure that it is no longer contactable
-    5. Add a host with existing VMs to the pool, ensure its VMs are no longer contactable
-
-    """
-    pool1 = None
-    myguests = []
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        self.pool1 = self.getPool("RESOURCE_POOL_1")
-        ifdata = self.controller.place.getLinuxIFConfigData()
-        # Required for fail-close.
-        self.controller.setStaticIP(ifdata["eth0"]["IP"], ifdata["eth0"]["netmask"], 
-                                    self.controller.place.execguest("route | grep default | awk '{print $2}'").strip())
-
-    def run(self, arglist):
-
-        # need to set and check some ACL rules here - the obvioud choice is to use the fail open test
-        for guest in self.guests:
-            if guest.getName() != self.controller.place.getName():
-                self.myguests.append(guest)
-                self.controller.addACLRuleToVM(guest.getName(), "ICMP")
-
-
-        # Set the pool fail mode to closed
-        self.controller.setPoolFailMode(self.host.getIP(), 1)
-
-
-        for i in range(10):
-            # Get the result of the set pool fail mode 
-            self.pool.getPoolParam("other-config")
-
-            
-        self.controller.place.unplugVIF("eth0")
-        self.pool.getPoolParam("other-config")
-
-        # Get useful info from about the fail mode
-        bridges = self.host.execdom0("ovs-vsctl list-br").strip().split("\n")
-        for bridge in bridges:
-            if re.search("xenbr", bridge):
-                self.host.execdom0("ovs-vsctl get-fail-mode %s" % bridge)
-
-        # Ensure that the existing ACL rules are still working
-        for guest in self.myguests:
-            try:
-                self._externalICMP(guest)
-            except:
-                xenrt.TEC().logverbose("ACL rule for %s still working fail closed is working" % guest.getName()) 
-            else:
-                raise xenrt.XRTFailure("ACL rule is not working hence we have failed open")
-
-        # New guests should not be contactable
-        try:
-            myguest = self.host.createBasicGuest("debian50")
-        except:
-            xenrt.TEC().logverbose("Newly created guest is not contactable we have failed closed") 
-        else:
-            raise xenrt.XRTFailure("Guest install completed which means that the guest is contactable and we have failed open")
-
-        # Migrated guests should not be contactable
-        linux_0 = self.getGuestFromName("linux_0")
-        linux_0_host = linux_0.getHost()
-
-        host2 = None
-        for host in self.hosts:
-            if host != linux_0_host:
-                host2 = host
-                break
-
-        
-        try:
-            linux_0.migrateVM(host2, live="true")
-            linux_0.execguest("ls")
-        except:
-            xenrt.TEC().logverbose("Migrated guest is not contactable we have failed closed") 
-        else:
-            raise xenrt.XRTFailure("Guest contactable after migrate, we have failed open")
-
-                
-        # Add host with guests to pool
-        linux_3 = xenrt.TEC().registry.guestGet('linux_3')
-        linux_3.shutdown()
-        self.pool.addHost(self.pool1.master)
-
-        # linux 3 should not now be contactable
-        try:
-            linux_3.start()
-        except:
-            xenrt.TEC().logverbose("Guests added to pool are not contactable, we have failed closed") 
-        else:
-            raise xenrt.XRTFailure("Guest contactable after migrate, we have failed open")
-
-    def postRun(self):
-        # Set the pool fail mode to closed
-        self.controller.setPoolFailMode(self.host.getIP(), 0)
-        self.controller.setDynamicIP()
-        _Controller.postRun()
-        
-
-class TC11583(_Controller):
-    """ 
-    Obey backoff
-    
-    Ensure that the vswitch attempts to connect to the controller do not exceed the maximum back off period
-    """
-    
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        
-    def debugNic(self):
-        log( "(debug-NIC-457) \n%s" % 
-                self.host.execdom0("ovs-vsctl get bridge xenbr0 controller").strip() )
-        log( "(debug-NIC-457) \n%s" % self.host.listDomains() )
-
-    def getControllerUUID(self):
-        try:
-            step("Getting uuid of the controller")
-            dvscuuid = self.host.execdom0("ovs-vsctl get bridge xenbr0 controller").strip().strip("[]")
-        except:
-            raise xenrt.XRTError("Failed to retrieve Controller UUID.")
-
-        if not dvscuuid:
-            raise xenrt.XRTError("Controller UUID does not appear to be set")
-
-        return dvscuuid
-
-    def run(self, arglist):
-        step("Setting rconn:FILE:DBG in vswitch")
-        self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
-        self.debugNic()
-        # Attempt backoff of 10, 5, 2 and 1 second(s).  
-        for backoffms in [10000, 5000, 2000, 1000]:
-            step("Changing backoff to %s" % backoffms)
-            dvscuuid = self.getControllerUUID()
-            self.debugNic()
-            self.host.execdom0("ovs-vsctl set controller %s max_backoff=%d" % (dvscuuid, backoffms))
-            # Disconnect the controller.
-            try:
-                step("Unplugging eth0 VIF")
-                self.debugNic()
-                self.controller.place.unplugVIF("eth0")
-                self.debugNic()
-                step("Getting tcpdump data")
-                data = self.host.execdom0("tcpdump -tt -c 10 -i %s host %s and port 6633" % \
-                                          (self.host.getPrimaryBridge(), self.host.getIP()))
-                step("Processing tcpdump data")
-                for line in data.splitlines():
-                    xenrt.TEC().logverbose("Captured data: %s" % (line))
-                times = map(float, re.findall("(\d+\.\d+) IP", data))
-                xenrt.TEC().logverbose("Parsed times: %s" % (times))
-                self.debugNic()
-                for i in range(len(times)-1):
-                    delta = (times[i+1] - times[i])*1000
-                    xenrt.TEC().logverbose("Delta between packet %s and %s is %sms." % (i+1, i, delta))
-                    # Allow 1000ms margin for error. (For e.g. SSH propagation.)
-                    if delta > 2*backoffms + 1700:          
-                        raise xenrt.XRTFailure("Max back off of %sms exceeded. (%sms)" % (backoffms, delta))
-            finally:
-                step("Replugging eth0 VIF")
-                self.debugNic()
-                self.controller.place.plugVIF("eth0")
-                self.debugNic()
-                time.sleep(120)
-
-class TC11509(_Controller):
-    """
-    Test the default QoS policy hierarchy.
-    Verify global policy specifies "No QoS Policy" by default
-    and all other levels of the hierarchy specify ?Inherit QoS policy from parent" by default.
-    Check (with netperf) if indeed there's no policy, i.e. the throughput is maximal
-    """
-    # by Kasia Boronska
-
-    myguests = []
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        # This seems necessary - controller needs about 2 min. after associating again.
-        time.sleep(120)
-
-    def run(self, arglist):
-        # remove Controller from the guest list
-        self.myguests = self.hosts[1].guests.values()
-        count = 0
-        for guest in self.myguests:
-            xenrt.TEC().logverbose("myguest[%d] %s" % (count, guest.getName))
-            count += 1
-            if guest.getName() == self.CONTROLLER:
-                self.myguests.remove(guest)
-        # define remote guest
-        self.myremoteguest = self.hosts[0].guests.values()[0]
-        xenrt.TEC().logverbose("myremoteguest %s" % (self.myremoteguest.getName))
-        # prepare netperf/guests
-        xenrt.TEC().logverbose("Preparing Host[0] guests")
-        self.prepareGuests(self.myguests, netperf_config="--enable-intervals --enable-burst")
-        xenrt.TEC().logverbose("Preparing Host[1] guests")
-        self.prepareGuests([self.myremoteguest], netperf_config="--enable-intervals --enable-burst")
-        # check global QoS policy:
-        policy = (
-            'global', self.controller.getGlobalRules(),
-            'pool', self.controller.getPoolRules(self.host.getIP()),
-            'network', self.controller.getNetworkRules("Network 0"),
-            'guest', self.controller.getVMRules(self.myguests[0].getName()),
-            'remote guest', self.controller.getVMRules(self.myremoteguest.getName()),
-            'guest VIF', self.controller.getVIFRules(self.myguests[0].getVIFs()['eth0'][0]),
-            'guest 2 VIF', self.controller.getVIFRules(self.myguests[1].getVIFs()['eth0'][0]),
-            'remote guest VIF', self.controller.getVIFRules(self.myremoteguest.getVIFs()['eth0'][0]),
-            )
-        # Log all policy settings:
-        for level, pol in zip(policy[0::2], policy[1::2]):
-            xenrt.TEC().logverbose("Settings for %s policy: %s" % (level, pol ) )
-        for level, pol in zip(policy[0::2], policy[1::2]):
-            quos = pol['qos']
-            if quos != 'inherit' :
-                raise xenrt.XRTFailure("Default %s policy should be 'inherit' and is '%s'." % (level, quos))
-        # Define expected throughput for external and internal transfer.
-        # We expect internal between 2.8 and 4Gb and external between 0.9 and 1.2 Gb.
-        # If the set-up is significantly changed, this test case should fail
-        # and the values below should be changed to the new expected parameters.
-        # WE GET REGUCED THROUGHPUT AFTER ASSOCIATING THE CONTROLLER -- SEE BUG CA-48175,
-        # LOWER INTERNAL THROUGHPUT BELOW HAD TO BE REDUCED TO FROM 2.8  TO 2.5GB
-        internal = ('internal', 1000000, 4000000,
-            self._internalNetperf("TCP_STREAM", self.myguests[0],   self.myguests[1].getIP())[1] )
-        external = ('external', 750000, 1200000,
-            self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP())[1] )
-        for name, lower, upper, measured in (internal, external):
-            xenrt.TEC().logverbose("Measured %s throughput: %s." % (name,measured) )
-        # compare expected and measured throughputs :
-        for name, lower, upper, measured in (internal, external):
-            xenrt.TEC().logverbose("Measured %s throughput: %s." % (name,measured) )
-            if measured < lower or ( name=='external' and measured > upper ):
-                raise xenrt.XRTFailure("Expected %s throughput was between %s and %skb and measured throughput was %s."
-                    % (name, lower, upper, measured) )
-
-    def postRun(self):
-        self.controller.setGlobalQoSPolicy(0, 0)
-        self.controller.setPoolQoSPolicy(self.host.getIP(),0, 0)
-        self.controller.setNetworkQoSPolicy("Network 0", 0, 0)
-        for guest in self.myguests:
-            # set Guest policy to 5MBps with 5Mb Burst
-            self.controller.setVMQoSPolicy(guest.getName(), 0, 0)
-        _Controller.postRun(self)
-
-class TC11514(_Controller):
-    """
-    Policy priority
-
-    Test lower level policies override higher-level policies
-
-    Note Nicra's implementation implements the token bucket protocol with
-    burst = bucket size
-    rate = leak rate
-
-    The bucket starts full with enough tokens to represent burst size packets
-
-    As each packet arrives at the bucket, enough tokens are removed from the
-    bucket to represent the bytes to be transmitted
-
-    If there are not enough tokens in the bucket the packet is dropped.
-
-    A token is added to the bucket every 1/rate seconds
-
-
-
-    """
-    SIZE = 1472 # Note size must be MTU less IP and ethernet headers
-                # otherwise this will result in fragmentation skewing results
-                # considerably
-
-    myguests = []
-
-    def checkResult(self, level, rate, burst, measured_internal, measured_external):
-        expected_throughput = ((rate * self.DURATION) + burst) / self.DURATION
-
-        internal_difference = (measured_internal / expected_throughput) * 100
-        if internal_difference < 90 or internal_difference > 110:
-            raise xenrt.XRTFailure("%s internal QoS produces %d%% of expected throughput this should be between 90 and 110%%" % (level, internal_difference))
-
-
-        external_difference = (measured_external / expected_throughput) * 100
-        if external_difference < 90 or external_difference > 110:
-            raise xenrt.XRTFailure("%s external QoS produces %d%% of expected throughput this should be between 90 and 110%%"% (level, external_difference))
-
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        
-        step("Checking if Management NIC is on eth0")
-        for host in self.hosts:
-            br = host.getPrimaryBridge()
-            pifs = host.parseListForOtherParam("network-list", "bridge", br, "PIF-uuids")
-            device = host.genParamGet("pif", pifs.split(';')[0] ,"device")
-            if device != 'eth0':
-                raise xenrt.XRTError("Management NIC of host %s is not eth0" % (host.getIP()))
-
-    def run(self, arglist):
-        self.myguests = self.hosts[1].guests.values()
-        count = 0
-        for guest in self.myguests:
-            xenrt.TEC().logverbose("myguest[%d] %s" % (count, guest.getName))
-            count += 1
-            if guest.getName() == self.CONTROLLER:
-                self.myguests.remove(guest)
-
-        self.myremoteguest = self.hosts[0].guests.values()[0]
-        xenrt.TEC().logverbose("myremoteguest %s" % (self.myremoteguest.getName))
-
-
-        xenrt.TEC().logverbose("Prepareing Host[0] guests")
-        self.prepareGuests(self.myguests, netperf_config="--enable-intervals --enable-burst")
-        xenrt.TEC().logverbose("Prepareing Host[1] guests")
-        self.prepareGuests([self.myremoteguest], netperf_config="--enable-intervals --enable-burst")
-
-
-        # We start with a external Phy of 1Gb/s and and an internal Phy of circa 3Gb/s
-        xenrt.TEC().logverbose("Testing Phy Throughput guests")
-        baseline_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP())
-        baseline_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP())
-        xenrt.TEC().logverbose("baseline_internal = %d, baseline_external = %d" % (baseline_internal[1], baseline_external[1]))
-
-        ###########
-        # Global
-        ###########
-
-        # set global policy to 100MBps with 50Mb Burst
-        global_rate = 100000
-        global_burst = 50000
-        self.controller.setGlobalQoSPolicy(global_rate, global_burst)
-        self.host.execdom0("tc -d qdisc")
-
-        # gain performance metrics with 50 Mb burst
-        global_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
-        global_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
-
-        xenrt.TEC().logverbose("Global 100MBps with 50Mb Burst: global_internal[1] = %d, global_external[1] = %d" % (global_internal[1], global_external[1]))
-
-        self.checkResult("Global", global_rate, global_burst, global_internal[1], global_external[1])
-
-        ###########
-        # Pool
-        ###########
-
-        # set pool policy to 50MBps with 100Mb Burst
-        pool_rate = 50000
-        pool_burst = 25000
-
-        self.controller.setPoolQoSPolicy(self.host.getIP(), pool_rate, pool_burst)
-        self.host.execdom0("tc -d qdisc")
-
-        # gain performance metrics
-        pool_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
-        pool_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
-
-        xenrt.TEC().logverbose("Pool 50MBps with 25Mb Burst: pool_internal = %d, pool_external = %d" % (pool_internal[1], pool_external[1]))
-
-        self.checkResult("Pool", pool_rate, pool_burst, pool_internal[1], pool_external[1])
-
-
-        ###########
-        # Network
-        ###########
-
-        # set network policy to 20MBps with 10Mb Burst
-        network_rate = 20000
-        network_burst = 10000
-        self.controller.setNetworkQoSPolicy("Network 0", network_rate, network_burst)
-        self.host.execdom0("tc -d qdisc")
-
-        # gain performance metrics
-        network_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
-        network_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
-
-        xenrt.TEC().logverbose("Network 20MBps with 10Mb Burst: network_internal = %d, network_external = %d" % (network_internal[1], network_external[1]))
-
-        self.checkResult("Network", network_rate, network_burst, network_internal[1], network_external[1])
-
-
-        ###########
-        # Guest
-        ###########
-        guest_rate = 10000
-        guest_burst = 5000
-
-        self.controller.setVMQoSPolicy(self.myguests[0].getName(), guest_rate, guest_burst)
-        self.controller.setVMQoSPolicy(self.myremoteguest.getName(), guest_rate, guest_burst)
-        self.host.execdom0("tc -d qdisc")
-
-        # gain performance metrics
-        guest_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
-        guest_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
-
-        #  print the result
-        xenrt.TEC().logverbose("Guest 10MBps with 5Mb Burst: guest_internal = %d, guest_external = %d" % (guest_internal[1], guest_external[1]))
-
-        self.checkResult("Guest", guest_rate, guest_burst, guest_internal[1], guest_external[1])
-
-    def postRun(self):
-        self.controller.setGlobalQoSPolicy(0, 0)
-        self.controller.setPoolQoSPolicy(self.host.getIP(),0, 0)
-        self.controller.setNetworkQoSPolicy("Network 0", 0, 0)
-        for guest in self.myguests:
-            # set Guest policy to 5MBps with 5Mb Burst
-            self.controller.setVMQoSPolicy(guest.getName(), 0, 0)
-        self.controller.setVMQoSPolicy(self.myremoteguest.getName(), 0, 0)
-        _Controller.postRun(self)
-
-
-class TC12011(TC11692):
-
-
-    # Messure Throughput on VIF 0
-    def messureExternalThroughput(self):
-        result=self._externalNetperf("TCP_STREAM", self.myguests[0])
-        self.throughput = result[1]
-        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
-        self.stop = True
-
-
-    def run(self, arglist):
-        # This greatly reduces the ammount of traffic to the controller during the throughput test
-        self.prepareController()
-
-        self.backupGuestNetworkInterfaceFiles()
-        self.new_net_uuid = self.host.createNetwork("nw1")
-        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
-
-        # Gather a baseline for test
-        self.messureThroughput()
-
-        throughputbaseline = self.throughput
-        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
-
-        ###
-        # Internal Performance
-        ###
-        result = xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
-                               exception=False)
-
-
-        # Measure throughput whilst the above is going on
-        testthroughput = self.throughput
-
-        # "Entries are cleared from the flow table every five seconds", Nicira.
-        time.sleep(5)
-
-        # Test the through put differences
-        percentage = testthroughput / throughputbaseline * 100
-
-        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
-        xenrt.TEC().logverbose("Internalhroughput whilst creating/destroying VIFs and flows is %d%% of standing throughput" % percentage)
-        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
-
-        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
-        if percentage < 90:
-            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
-
-
-        # Now check that the flow table does not contain eroneous VIFs
-        # Note the following dumps the flow table grepping for the 192.168 subnet
-        # If any 192.168.* subnets are found we raise an exception
-        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
-        if re.search("192.168.1", flowTable):
-            raise xenrt.XRTFailure("Found 192.168 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
-
-
-
-    # No postRun required as this will call TC11692 and hence TC11685s post runs - the run being the culminatiion of the two
-
-
-class TC11543(_Controller):
-    """
-    65536 Wildcard Flows
-
-    A wildcard flow is one where the one of the flow parameters is "dont care"
-    Thus we can create 65536 wildcard flows by blocking 65536 ports.
-    This is simplest if we take the upper 32768 ports and block the on two hosts with direction any
-    Hence top port (65535) - 32768  = 32767
-
-    TODO
-    This test needs a rethink - the requirements state that each VIF only supports 128 rules.
-
-    Therefore we will need to generate 512 VIFs (broken at time of writing see NIC-248) and apply
-    128 rules to each
-
-    """
-
-
-    created_protos = []
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.controller.place.shutdown()
-        self.controller.place.cpuset(4)
-        self.controller.place.memset(4096) # MB
-        self.controller.place.start()
-        time.sleep(60)
-        # todo remove this
-        self.pool.associateDVS(self.controller)
-
-        self.controller.auto = False # will stop login for each request
-                                     # as add proto is serial, this will
-                                     # greatly reeduce overall test time
-        self.VM1 = self.guests[0]
-        self.VM2 = self.guests[1]
-
-
-    def run(self, arglist):
-        rules = []
-        for i in range (32767, 65536):
-            port_name = "port_%d" % i
-
-            proto_uid = self.controller.addProtoForACL(port_name, i, 0, 'TCP', check=False)
-            self.created_protos.append(proto_uid)
-            rules.append(self.controller.createACL("out", proto_uid, ""))
-
-        xenrt.TEC().logverbose("rules set = %s" % (rules))
-
-        self.controller.auto = True # if the controller is not contacted for 30 seconds
-                                    # our cookie will no longer work, this will cause login
-                                    # for each new request
-
-        vm_rules = self.controller.getVMRules(self.VM1.getName())
-        vm_rules['acl_rules'].extend(rules)
-
-        xenrt.TEC().logverbose("rules we are trying to apply = %s" % (vm_rules))
-
-
-        self.controller.setVMRules(self.VM1.getName(), vm_rules)
-        self.controller.setVMRules(self.VM2.getName(), vm_rules)
-
-
-
-    def postRun(self):
-        self.controller.removeAllACLRules(self.VM1.getName())
-        self.controller.removeAllACLRules(self.VM2.getName())
-        # delete all newly created protocols
-        # disable auto login for each new request again
-        # to save the 32K logins
-        self.controller.auto = False
-        for proto in self.created_protos:
-            path = 'protocol/%d' % proto
-            self.controller.delete(path, None)
-        _Controller.postRun(self)
-
-
 
 class _TC11551(_VSwitch):
 
@@ -3550,349 +1531,6 @@ class TC11553(_TC11551):
                # The tcpdump will check that for packets over 8000 MTU
 
     REQ_PERCENT = 1 # Any number of large packets will prove jumbo working
-
-
-class TC11522(_Controller): 
-    """
-    Verify global policy specifies "No traffic mirroring policy" by default
-    and all other levels of the hierarchy specify "Inherit traffic mirroring
-    policy from parent" by default.
-    """
-
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-
-    def run(self, arglist):
-        global_rules = self.controller.getGlobalRules()
-        if global_rules["rspan"] != "inherit":
-            raise xenrt.XRTFailure("'rspan' rule must be 'inherit' for global 'No traffic mirroring policy' default.")
-        if global_rules["rspan_vlan"] != 0:
-            raise xenrt.XRTFailure("'rspan_vlan' rule must be '0' for global 'No traffic mirroring policy' default.")
-
-class _RSPAN(_Controller):
-
-    def __init__(self, tcid=None, anon=False):
-        _Controller.__init__(self, tcid=tcid, anon=anon)
-        self.vlanid = None
-        self.sourcevif = None
-
-    def getGuestFromUUID(self, uuid):
-        guest = None
-        for guest in map(self.getGuest, xenrt.TEC().registry.guestList()):
-            if guest.getUUID() == uuid:
-                break
-        if not guest or not guest.getUUID() == uuid:
-            raise xenrt.XRTError("Cannot find guest object for uuid %s." % (uuid))
-        return guest
-
-    def getGuestInterface(self, mac):
-        for p in map(lambda x:xenrt.TEC().registry.data[x], 
-                     filter(lambda x:re.search("POOL", x), 
-                            xenrt.TEC().registry.data.keys())):
-            vifuuid = p.master.parseListForUUID("vif-list", "MAC", mac)
-            if vifuuid:
-                vmuuid = p.master.parseListForOtherParam("vif-list", "MAC", mac, "vm-uuid")
-                break
-        guest = self.getGuestFromUUID(vmuuid)
-        data = guest.getLinuxIFConfigData()
-        device = None
-        for device in data:
-            if data[device]["MAC"]:
-                if xenrt.normaliseMAC(data[device]["MAC"]) == mac:
-                    break
-        if not device or not xenrt.normaliseMAC(data[device]["MAC"]) == mac:
-            raise xenrt.XRTError("Cannot find guest interface for MAC %s." % (mac))
-        return device
-
-    def createVIF(self, guest, network, ip=None):
-        mac = xenrt.randomMAC()
-        guest.createVIF(bridge=network, mac=mac, plug=True)
-        device = self.getGuestInterface(mac)
-        interfaces = []
-        if ip:
-            interfaces.append("iface %s inet static" % (device))
-            interfaces.append("address %s" % (ip)) 
-            interfaces.append("netmask 255.255.255.0")
-        else:
-            interfaces.append("iface %s inet dhcp" % (device))
-        interfaces.append("hwaddress ether %s" % (mac))
-        interfaces.append("allow-hotplug %s" % (device))
-        guest.execguest("echo -e '%s' >> /etc/network/interfaces" % (string.join(interfaces, r"\n")))
-        guest.execguest("ifup %s" % (device))
-        return mac
-
-    def removeVIF(self, mac):
-        for p in map(lambda x:xenrt.TEC().registry.data[x], 
-                     filter(lambda x:re.search("POOL", x), 
-                            xenrt.TEC().registry.data.keys())):
-            vifuuid = p.master.parseListForUUID("vif-list", "MAC", mac)
-            if vifuuid:
-                vmuuid = p.master.parseListForOtherParam("vif-list", "MAC", mac, "vm-uuid")
-                break
-        guest = self.getGuestFromUUID(vmuuid)
-        device = self.getGuestInterface(mac)
-        cli = guest.getHost().getCLIInstance()
-        args = []
-        args.append("uuid=%s" % (vifuuid))
-        cli.execute("vif-unplug", string.join(args))
-        cli.execute("vif-destroy", string.join(args))
-        data = guest.execguest("cat /etc/network/interfaces")
-        data = re.sub(re.search("iface %s.*allow-hotplug %s" % (device, device), data, re.DOTALL).group(), "", data)
-        guest.execcmd("echo -e '%s' > /etc/network/interfaces" % (string.join(data.splitlines(), r"\n")))
-
-    def getRSPANVLAN(self):
-        rspan = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", "RSPAN", "ID"], None)
-        if not rspan:
-            raise xenrt.XRTError("This test must be run on a site with a configured RSPAN VLAN.")
-        return int(rspan)
-
-    def getRSPANPIF(self, host):
-        rspannics = host.listSecondaryNICs(rspan=True)
-        if not rspannics:
-            raise xenrt.XRTError("to RSPAN NICs found on host %s." % (host.getName()))
-        return host.getNICPIF(rspannics[0])
-
-    def mirrorVIF(self, mac):
-        rules = self.controller.getVIFRules(mac)
-        rules["rspan"] = "set"
-        rules["rspan_vlan"] = self.rspanVLAN
-        self.controller.setVIFRules(mac, rules)
- 
-    def unmirrorVIF(self, mac):
-        rules = self.controller.getVIFRules(mac)
-        rules["rspan"] = "inherit"
-        rules["rspan_vlan"] = 0
-        self.controller.setVIFRules(mac, rules)
- 
-    def prepare(self, arglist=[]):
-        _Controller.prepare(self, arglist)
-        self.sourceNetwork = None
-        self.pool.associateDVS(self.controller)
-        self.source = self.getGuest("p0h0-0")
-        self.target = self.getGuest("p0h1-0")
-        self.source.execcmd("rm -f "
-                            "/etc/udev/rules.d/z25_persistent-net.rules "
-                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
-        self.target.execcmd("rm -f "
-                            "/etc/udev/rules.d/z25_persistent-net.rules "
-                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
-        self.rspanVLAN = self.getRSPANVLAN()
-        self.targetPIF = self.getRSPANPIF(self.target.getHost())
-        self.sourcePIF = self.getRSPANPIF(self.source.getHost())
-        self.network = self.source.getHost().genParamGet("pif", self.sourcePIF, "network-uuid")
-        self.rspanNetwork = self.pool.master.createNetwork(name="RSPAN")
-        self.target.getHost().createVLAN(self.rspanVLAN, self.rspanNetwork, pifuuid=self.targetPIF)
-        self.targetvif = self.createVIF(self.target, self.rspanNetwork, ip="192.168.0.1")
-        self.controller.addRSPANTargetVLAN(self.rspanVLAN)
-        self.setupGuestTcpDump(self.target)
- 
-    def run(self, arglist=[]):
-        sourcedevice = self.getGuestInterface(self.sourcevif)
-        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
-        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
-        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
-        vifdevice = "vif%s.%s" % (self.source.getDomid(), 
-                                  self.source.getHost().parseListForOtherParam("vif-list", 
-                                                                               "MAC", 
-                                                                                self.sourcevif, 
-                                                                               "device"))
-        # Check for ICMP request and reply on VM VIF.
-        try: self.source.getHost().execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                           (vifdevice, sourceip, xrtcontroller), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP request packet not seen on VIF. (%s)" % (vifdevice))
-        try: self.source.getHost().execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                           (vifdevice, xrtcontroller, sourceip), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP reply packet not seen on VIF. (%s)" % (vifdevice))
-
-        # Check ICMP request and reply aren't seen on the monitoring interface.
-        targetdevice = self.getGuestInterface(self.targetvif)
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
-        except: pass
-        else: raise xenrt.XRTFailure("ICMP request packet seen on target interface.")
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
-        except: pass
-        else: raise xenrt.XRTFailure("ICMP reply packet seen on target interface.")
-
-        # Mirror the source interface to the target interface.
-        self.mirrorVIF(self.sourcevif)
-
-        # Check ICMP request and reply can be seen on the monitoring interface.
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
-       
-        # Stop mirroring traffic.
-        self.unmirrorVIF(self.sourcevif)
- 
-        # Check ICMP request and reply aren't seen on the monitoring interface.
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
-        except: pass
-        else: raise xenrt.XRTFailure("ICMP request packet seen on target interface.")
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
-        except: pass
-        else: raise xenrt.XRTFailure("ICMP reply packet seen on target interface.")
-
-        # Check both guests we used are still reachable.
-        self.source.checkHealth()
-        self.target.checkHealth()
-
-    def postRun(self):
-        try: self.source.execguest("killall ping")
-        except: pass
-        try: self.unmirrorVIF(self.sourcevif)
-        except: pass
-        self.removeVIF(self.targetvif)
-        self.target.getHost().removeVLAN(self.rspanVLAN)
-        self.pool.master.removeNetwork(nwuuid=self.rspanNetwork)
-        self.source.shutdown()
-        for vif in self.source.getVIFs():
-            self.source.removeVIF(vif)
-        self.sourcevif = xenrt.randomMAC()
-        bridge = self.source.getHost().getPrimaryBridge()
-        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
-        if self.source.getState() == "DOWN":
-            self.source.start() 
-        try: self.source.getHost().removeVLAN(self.vlanid)
-        except: pass
-        try: self.source.getHost().removeNetwork(self.sourceNetwork)
-        except: pass
-        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
-        _Controller.postRun(self)
-
-class TC11526(_RSPAN):
-    """
-    Mirroring
-     
-    At a policy level other than global, specify a VLAN on which the traffic should be mirrored.
-    Sniff the VLAN to ensure traffic is being mirrored.
-
-    """
-
-    def prepare(self, arglist=[]):
-        _RSPAN.prepare(self, arglist)
-        # Make sure p0h0-0 has its only VIF on an RSPAN enabled bridge. 
-        self.source.shutdown()
-        for vif in self.source.getVIFs():
-            self.source.removeVIF(vif)
-        self.sourcevif = xenrt.randomMAC()
-        bridge = self.source.getHost().getBridgeWithMapping(\
-                    self.source.getHost().listSecondaryNICs(rspan=True)[0])
-        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
-        if self.source.getState() == "DOWN":
-           self.source.start() 
-
-class TC11531(_RSPAN):
-    """
-    VLAN mangling
-     
-    Check that VLAN traffic mirrored to a VLAN has the original VLAN ID in the tag overwritten.
-
-    This test requires 2 VLANs one for VRnn and one for RSPAN.
-
-    The VRnn traffic should be mirrored to the RSPAN VLAN and the VRnn VLAN Tag should be overwritten
-    by the RSPAN VLAN tag.
-    """
-
-    VLAN = "VR01" 
-
-    def prepare(self, arglist=[]):
-        _RSPAN.prepare(self, arglist)
-        # Make sure p0h0-0 has its only VIF on VR01.
-        self.vlanid = int(xenrt.TEC().config.lookup(["NETWORK_CONFIG", "VLANS", self.VLAN, "ID"]))
-        self.sourceNetwork = self.pool.master.createNetwork(name="VLAN %s" % (self.vlanid))
-        self.source.getHost().createVLAN(self.vlanid, self.sourceNetwork, pifuuid=self.sourcePIF)
-        self.source.shutdown()
-        for vif in self.source.getVIFs():
-            self.source.removeVIF(vif)
-        self.sourcevif = xenrt.randomMAC()
-        self.source.createVIF(bridge=self.sourceNetwork, mac=self.sourcevif)
-        if self.source.getState() == "DOWN":
-            self.source.start() 
-
-class TC11532(TC11531):
-    """
-    Ensure that traffic mirrored to the RSPAN VLAN can be seen:
-
-        * On a VIF on the same host as the mirrored VIF.
-        * On a VIF on a different host in the same pool as the VIF.
-        * On a VIF on a different host outside the pool.
-    """
-   
-    def prepare(self, arglist=[]):
-        TC11531.prepare(self, arglist)
-        self.targets = []
-        self.targets.append((self.target, self.targetvif))
-        xenrt.TEC().registry.poolGet("RESOURCE_POOL_1").associateDVS(self.controller)
-        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
-        self.controller.addRSPANTargetVLAN(self.rspanVLAN)
-        for extra in ["p0h0-1", "p1h0-0"]:
-            extra = self.getGuest(extra)
-            extra.execguest("rm -f "
-                            "/etc/udev/rules.d/z25_persistent-net.rules "
-                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
-            network = extra.getHost().parseListForUUID("network-list", "name-label", "RSPAN")
-            if not network:
-                network = extra.getHost().createNetwork(name="RSPAN")
-            try:
-                extra.getHost().createVLAN(self.rspanVLAN, network, pifuuid=self.getRSPANPIF(extra.getHost()))
-            except: pass
-            targetvif = self.createVIF(extra, network, ip="192.168.0.1")
-            self.setupGuestTcpDump(extra)
-            self.targets.append((extra, targetvif)) 
-
-    def run(self, arglist=[]):
-        self.mirrorVIF(self.sourcevif)
-        sourcedevice = self.getGuestInterface(self.sourcevif)
-        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
-        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
-        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
-        for guest,mac in self.targets:
-            interface = self.getGuestInterface(mac)
-            xenrt.TEC().logverbose("Looking for RSPAN traffic on %s %s (%s)." % \
-                                   (guest.getName(), interface, mac))
-            # Check ICMP request and reply can be seen on the monitoring interface.
-            try: guest.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                 (interface, sourceip, xrtcontroller), timeout=30)
-            except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
-            try: guest.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                 (interface, xrtcontroller, sourceip), timeout=30)
-            except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
-
-    def postRun(self):
-        try: self.source.execguest("killall ping")
-        except: pass
-        try: self.unmirrorVIF(self.sourcevif)
-        except: pass
-        for guest,mac in self.targets:
-            nwuuid = guest.getHost().parseListForOtherParam("vif-list", "MAC", mac, "network-uuid")
-            self.removeVIF(mac)
-            try: guest.getHost().removeVLAN(self.rspanVLAN)
-            except: pass
-            try: guest.getHost().removeNetwork(nwuuid=nwuuid)
-            except: pass
-        self.source.shutdown()
-        for vif in self.source.getVIFs():
-            self.source.removeVIF(vif)
-        self.sourcevif = xenrt.randomMAC()
-        bridge = self.source.getHost().getPrimaryBridge()
-        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
-        if self.source.getState() == "DOWN":
-            self.source.start() 
-        try: self.source.getHost().removeVLAN(self.vlanid)
-        except: pass
-        try: self.source.getHost().removeNetwork(self.sourceNetwork)
-        except: pass
-        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
-        xenrt.TEC().registry.poolGet("RESOURCE_POOL_1").disassociateDVS()
-        _Controller.postRun(self)
 
 class TC11527(_VSwitch):
     """
@@ -4436,63 +2074,6 @@ class TC11565(_VSwitch):
         sec_count = self.collectTcpdumpResults(self.guest, 'eth2', sec_nic_pid, self.guest.getIP())
         bond_count = self.collectTcpdumpResults(self.guest, 'eth3', bond_pid, self.guest.getIP())
 
-
-class TC11582(TC11531): 
-    """
-    Obey RSPAN and Netflow
-
-    A collector must continue to receive all netflow data whenever the controller dies.
-    In fail safe mode some VMS may be lost but all exisiting VMs and their VIFs will 
-    continue to generate traffic and hence their netflow data should be visible.
-
-    Similarly any RSPAN mirror that has been configured should continue to operate, but if 
-    the VM becomes uncontactable due to the fail safe mechanism, it will not generate traffic 
-    and hence RSPAN cannot work.
-
-    Therefore it is only worth testing obeying netflow and RSPAN with a failed controller
-    in fail open mode.
-
-    """
-
-    def prepare(self, arglist=[]):
-        TC11531.prepare(self, arglist)
-        # Enable fail-open mode.
-        self.controller.setPoolFailMode(self.host.getIP(), 0)
-        self.receiver = self.getGuest("p1h0-0")
-        self.setupGuestTcpDump(self.receiver)
-
-    def run(self, arglist=[]):
-        self.controller.setNetflowCollector(self.pool.master.getIP(), self.receiver.getIP(), 9996, False)
-        self.receiver.execguest("tcpdump -c 1 port 9996") 
-        # Mirror the source interface to the target interface.
-        self.mirrorVIF(self.sourcevif)
-        sourcedevice = self.getGuestInterface(self.sourcevif)
-        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
-        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
-        targetdevice = self.getGuestInterface(self.targetvif)
-        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
-        # Check ICMP request and reply can be seen on the monitoring interface.
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
-
-        # Disconnect the controller from the network.
-        self.controller.place.unplugVIF('eth0')
-
-        self.receiver.execguest("tcpdump -c 1 port 9996") 
-
-        # Check ICMP request and reply can be seen on the monitoring interface.
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
-        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
-                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
-        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
-
-        self.controller.place.plugVIF("eth0")
 
 class TC11567(_VSwitch):
     """
@@ -5128,8 +2709,6 @@ class TC20997(_VSwitch):
             interface = "eth1.%d" % vlan_id
             self.myguest.execguest("ifdown %s" % interface)
             self.removeVLANLink(self.myguest, "eth1", vlan_id)    
-        
-
 
     def postRun(self):
         bonds = self.host.getBonds()
@@ -5860,3 +3439,2408 @@ sleep %i
     def postRun(self):
         self._collectLogs()
 
+#### Distributed Virtual Switch Controller (DVSC) Tests ####
+
+class _Controller(_VSwitch):
+    """Base class for vSwitch tests with controller."""
+
+    CONTROLLER = "controller"
+
+    def prepare(self, arglist):
+        _VSwitch.prepare(self, arglist)
+        self.controller = xenrt.TEC().registry.guestGet(self.CONTROLLER).getDVSCWebServices()
+
+    def postRun(self):
+        try:
+            log("disassociating controller")
+            self.pool.disassociateDVS()
+        except Exception, e:
+            xenrt.TEC().logverbose("_Controller.postRun Exception: %s" % e)
+        try:
+            if self.controller.place.getState() == "DOWN":
+                self.controller.place.start()
+        except Exception, e:
+            xenrt.TEC().logverbose("_Controller.postRun Exception: %s" % e)
+
+class TC11395(_Controller):
+
+    """Run emergency reset command on a controller-managed host"""
+    # R4.4 The vSwitch must support an "emergency reset" function that can be run
+    # on a host. (ie via console access) and that removes all configuration
+    # supplied by the controller.
+
+    def prepare(self, arglist=[]):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        # find first vm that is not controller
+        self.targetVM = self.getGuestFromName('linux_1')
+        self.sourceVM = self.getGuestFromName('linux_0')
+
+    def run(self, arglist):
+        # Prove ssh is working
+        self._internalICMP(self.sourceVM, self.targetVM.getIP())
+
+        # Set up an ACL rule on host via the controller
+        self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
+
+        # make sure that the rule was effective
+
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
+
+        self.host.execdom0("ovs-vsctl emer-reset")
+
+        time.sleep(120)
+
+        # The vSwitch should now be acting as a standalone vSwitch with
+        # the ACL rules removed, test that we can reach it guest again
+
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        xenrt.TEC().logverbose("result = %s %d" % (result[0], result[1]))
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Emergency Reset left ACL rules behind")
+        else:
+            xenrt.TEC().logverbose("Emergency Reset is working")
+
+    def postRun(self):
+        self.controller.removeAllACLRules(self.targetVM.getName())
+        _Controller.postRun(self)
+
+class TC11400(_Controller):
+    """
+    Manage Pool with DVS
+
+    1. Enable the vSwitch across a pool.
+    2. Install the controller VM.
+    3. Manage the pool with the controller.
+    4. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+    5. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
+
+    """
+
+    def run(self, arglist):
+        self.checkNetwork(self.guests, "without-controller")
+        self.pool.associateDVS(self.controller)
+        self.checkNetwork(self.guests, "with-controller")
+
+class TC11401(_Controller):
+    """
+    vSwitch is operational after controller shutdown
+
+    1. Enable the vSwitch across a pool.
+    2. Install the controller VM.
+    3. Manage the pool with the controller.
+    4. Shutdown the controller VM.
+    5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+    6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
+
+    """
+
+    def run(self, arglist):
+        self.checkNetwork(self.guests, "without-controller")
+        self.pool.associateDVS(self.controller)
+        self.checkNetwork(self.guests, "with-controller")
+        self.controller.place.shutdown()
+        self.controller.h1 = 0 # resets the http connection
+        self.checkNetwork(self.guests, "shutdown-controller")
+
+class TC11402(_Controller):
+    """
+    Restart controller VM
+
+    1. Enable the vSwitch across a pool.
+    2. Install the controller VM.
+    3. Manage the pool with the controller.
+    4. Restart the controller VM.
+    5. Check the pool is still associated with the controller.
+    6. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+    7. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
+
+    """
+
+    def run(self, arglist):
+        self.checkNetwork(self.guests, "without-controller")
+        self.pool.associateDVS(self.controller)
+        self.checkNetwork(self.guests, "with-controller")
+        self.controller.place.reboot()
+        self.controller.h1 = 0 # resets the http connection
+        self.checkNetwork(self.guests, "restarted-controller")
+
+class TC11410(_Controller):
+    """
+    Add 2nd pool to controller
+
+    1. Enable the vSwitch across a pool.
+    2. Install the controller VM.
+    3. Manage the pool with the controller.
+    4. Manage the second pool with the controller.
+    5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+    6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
+
+    """
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.poolB = self.getPool("RESOURCE_POOL_1")
+
+    def run(self, arglist):
+        self.checkNetwork(self.guests, "without-controller")
+        self.pool.associateDVS(self.controller)
+        self.poolB.associateDVS(self.controller)
+        self.checkNetwork(self.guests, "with-controller")
+
+    def postRun(self):
+        _Controller.postRun(self)
+        try:
+            self.poolB.disassociateDVS()
+        except Exception, e:
+            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
+
+class TC11411(_Controller):
+    """HA protect controller
+     1. Enable the vSwitch across a pool.
+     2. Install the controller VM on another pool of at least two hosts.
+     3. Enable HA on the controller VM pool and protect the controller VM.
+     4. Manage the pool with the controller.
+     5. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+     6. Check external ICMP, TCP and UDP traffic is unaffected for all VMs.
+     7. Shutdown the host the controller VM is resident on.
+     8. Check that the controller VM comes back on the other host in its pool.
+     9. Check ICMP, TCP and UDP traffic between all VMs is unaffected.
+    10. Check external ICMP, TCP and UDP traffic is unaffected for all VMs."""
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.controllerpool = self.getPool("RESOURCE_POOL_1")
+        self.controllerpool.enableHA()
+        self.controller.place.setHAPriority("2")
+        self.pool.associateDVS(self.controller)
+
+    def run(self, arglist):
+        self.checkNetwork(self.guests, "before-loss")
+        xenrt.TEC().logverbose("Shutting down host with controller VM.")
+        self.controllerpool.master.machine.powerctl.off()
+        xenrt.TEC().logverbose("Checking controller VM is back.")
+        try:
+            self.controller.place.waitForSSH(600)
+        except:
+            self.controllerpool.findMaster(notCurrent=True)
+            raise xenrt.XRTFailure("HA Failure")
+
+        self.checkNetwork(self.guests, "after-loss")
+
+    def postRun(self):
+        _Controller.postRun(self)
+        try:
+            self.controllerpool.master.machine.powerctl.on()
+            self.controllerpool.master.waitForSSH(600)
+        except Exception, e:
+            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
+        try:
+            self.controllerpool.disableHA()
+        except Exception, e:
+            xenrt.TEC().logverbose("postRun Exception: %s" % (str(e)))
+
+class TC11685(_Controller):
+    """
+    vSwitch Stress
+
+    Ensure that the addition and deletion of flow tables entries do not
+    greatly impact the throughput of the vSwitch
+
+    With a maximum throughput transfer between two VMs on the same host,
+    create VIFs and have them ping one and other such that Flow Table
+    Entries are created, then remove the VIFs, causing the entries to be
+    removed from the flow table. Ensure that this does not greatly affect
+    the throughput.
+    """
+
+    count = 0
+    subnet = ""
+    ipbase = 0
+    new_net_uuid = ""
+    new_net_name = ""
+    throughput = 0
+    pingcount = 0
+    stop = False
+    myguests = []
+    subnetuint = 0
+
+    def getGuestObjects(self):
+        gueststrings = self.host.listGuests()
+        xenrt.TEC().logverbose("%s" % gueststrings)
+        for i in range(2):
+            xenrt.TEC().logverbose("%s" % self.host.guests[gueststrings[i]])
+            self.myguests.append(self.host.guests[gueststrings[i]])
+
+
+    def cleanUp(self):
+
+        for i in range(2):
+            self.myguests[i].execguest("cp /root/interfaces /etc/network/interfaces")
+            self.myguests[i].execguest("rm /root/interfaces")
+            try:
+                self.myguests[i].execguest("ifdown eth1")
+                self.myguests[i].unplugVIF("eth1")
+                self.myguests[i].removeVIF("eth1")
+            except:
+                dumbvar = 0
+        try:
+            self.host.removeNetwork(None, self.new_net_uuid)
+        except:
+            dumbvar=0
+
+
+    def backupGuestNetworkInterfaceFiles(self):
+        for i in range(2):
+            self.myguests[i].execguest("cp /etc/network/interfaces /root/interfaces")
+
+    def restoreGuestNetworkInterfaceFiles(self):
+        for i in range(2):
+            self.myguests[i].execguest("cp /root/interfaces /etc/network/interfaces")
+
+    def createVIFs(self, guest, subnet, base, subnetuint):
+        # create VIF entries on each test vm
+
+        self.myguests[guest].execguest("echo 'auto eth1 \niface eth1 inet static \n"
+                                       "address %s.%u \nnetmask 255.255.255.0' "
+                                       " >>/etc/network/interfaces" %
+                                       (subnet, base))
+
+
+        self.myguests[guest].execguest("ifup eth1")
+
+        # This is here because it takes the kernel time to remove vifs
+        while re.search("inet addr:192.168", self.myguests[guest].execguest("ifconfig eth1")) == None:
+            time.sleep(1)
+            self.myguests[guest].execguest("ifdown eth1")
+            self.myguests[guest].execguest("ifup eth1")
+
+    def destroyIFs(self):
+        for i in range(2):
+            self.myguests[i].execguest("ifdown eth1")
+        self.restoreGuestNetworkInterfaceFiles()
+
+    def ifFarm(self):
+
+        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
+        self.stop = False
+        # Pre-create VIFs on bridge 1
+        for i in range(2):
+            self.myguests[i].createVIF(eth="eth1", bridge=self.new_net_name, mac=None, plug=True)
+
+        # Exercise Flow table by creating setting eth1 on two VMs to have a
+        # new MAC and IP address on each iteration and ping between them
+        while self.stop == False:
+            # Each IF pair must be have new MAC/IP to exercise flow table
+            self.subnetuint = (self.count / 125) + 241
+            self.ipbase = (self.count % 125) * 2 + 1
+            self.subnet = "192.168.%u" % (self.subnetuint)
+            xenrt.pfarm ([xenrt.PTask(self.createVIFs, 0, self.subnet, self.ipbase, self.subnetuint),
+                          xenrt.PTask(self.createVIFs, 1, self.subnet, self.ipbase + 1, self.subnetuint)])
+            result = self.myguests[0].execguest("ping -c 1 %s.%u" % (self.subnet, self.ipbase + 1), timeout=5)
+            self.destroyIFs()
+            self.count += 1
+            self.pingcount += 1
+
+        # Tidy up the VIFs
+        for i in range(2):
+            self.myguests[i].unplugVIF("eth1")
+            self.myguests[i].removeVIF("eth1")
+
+
+
+    # Messure Throughput on VIF 0
+    def messureThroughput(self):
+        result=self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP())
+        self.throughput = result[1]
+        xenrt.TEC().logverbose("!!!STOPPING THREAD!!!")
+        self.stop = True
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        self.prepareGuests(self.guests)
+        self.getGuestObjects()
+
+    def run(self, arglist):
+        self.DURATION = 600
+        self.backupGuestNetworkInterfaceFiles()
+        self.new_net_uuid = self.host.createNetwork("nw1")
+        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
+
+        # Gather a baseline for test
+        self.messureThroughput()
+
+        throughputbaseline = self.throughput
+        if self.throughput == 0:
+            raise xenrt.XRTFailure("Measure baseline throughput of 0 between %s and %s, cannot complete test" %
+                                  (self.myguests[0].getName(), self.myguests[1].getName()))
+
+        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
+
+        # Start a process to create and destroy kernel flow table enrtrie
+        result = xenrt.pfarm ([xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
+                               exception=False)
+
+        # Measure throughput whilst the above is going on
+        testthroughput = self.throughput
+        if self.throughput == 0:
+            raise xenrt.XRTFailure("Measure test throughput of 0 between %s and %s, cannot complete test" %
+                                  (self.myguests[0].getName(), self.myguests[1].getName()))
+
+
+        # "Entries are cleared from the flow table every five seconds", Nicira.
+        time.sleep(5)
+
+        # Test the through put differences
+        percentage = testthroughput / throughputbaseline * 100
+
+        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
+        xenrt.TEC().logverbose("Throughput whilst creating/destroying VIFs is %d%% of standing throughput" % percentage)
+        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
+
+        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
+        if percentage < 90:
+            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
+
+        # Now check that the flow table does not contain eroneous VIFs
+        # Note the following dumps the flow table grepping for the 192.168 subnet
+        # If any 192.168.* subnets are found we raise an exception
+        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
+        if re.search("192.168.241", flowTable):
+            raise xenrt.XRTFailure("Found 192.168.241 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
+
+    def postRun(self):
+        # destroy the bridges
+        self.host.removeNetwork(None, self.new_net_uuid)
+        self.cleanUp()
+        _Controller.postRun(self)
+
+
+class TC11692(TC11685):
+    """
+    Controller/vSwitch Stress
+
+    Ensure that the addition and deletion of flow table entries by the controller do not
+    greatly impact the throughput of the vSwitch
+
+    """
+    def __init__(self, tcid=None, anon=False):
+        TC11685.__init__(self, tcid=tcid, anon=anon)
+        self.vif_node = {}
+        self.proto_uid = None
+        self.vm_node = {}
+
+    def prepare(self, arglist):
+        TC11685.prepare(self, arglist)
+        self.targetVM = self.guests[0]
+        self.sourceVM = self.guests[1]
+        self.count = 0
+        self.controller.keepDVSAlive()
+
+
+    def controllerCreateFlowTableEntries(self):
+        while self.stop == False:
+            # Set up an ACL rule on host via the controller
+            self.controller.addACLProtoToNode(self.vif_node, self.proto_uid)
+
+            # make sure that the rule was effective
+            try:
+                self.sourceVM.execguest("ping -c 1 -w 0.5 %s" % (self.targetVM.getIP()), timeout=2)
+            except Exception, e:
+                xenrt.TEC().logverbose("ACL Rule is working")
+            else:
+                raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
+
+            self.controller.removeAllACLRulesFromNode(self.vm_node)
+
+            self.sourceVM.execguest("ping -c 1 -w 0.5 %s" % (self.targetVM.getIP()), timeout=2)
+
+            self.count += 1
+
+    def prepareController(self):
+        # Create a default rule at the VIF level
+        # to deny ICMP
+        icmp_uid = self.controller.findProtocol("ICMP")['uid']
+        icmp_deny_rule = self.controller.createACL("out", icmp_uid, "", "deny")
+
+        sourceVM_vif_mac = self.sourceVM.getVIFs()['eth0'][0]
+
+        vif_rules = self.controller.getVIFRules(sourceVM_vif_mac)
+
+        vif_rules["acl_rules"].append(icmp_deny_rule)
+        # Note the VIF level does not provide default and mandatory rules
+
+        self.controller.setVIFRules(sourceVM_vif_mac, vif_rules)
+
+
+    def run(self, arglist):
+        # This greatly reduces the ammount of traffic to the controller during the throughput test
+        self.prepareController()
+
+        self.DURATION = 600
+
+        # Baseline Throughput
+        self.messureThroughput()
+        throughputbaseline = self.throughput
+
+        if self.throughput == 0:
+            raise xenrt.XRTFailure("Measure baseline throughput of 0 between %s and %s, cannot complete test" %
+                                  (self.myguests[0].getName(), self.myguests[1].getName()))
+
+        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
+
+        self.stop = False
+        xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.messureThroughput)],
+                               exception=False)
+
+        if self.throughput == 0:
+            raise xenrt.XRTFailure("Measure test throughput of 0 between %s and %s, cannot complete test" %
+                                  (self.myguests[0].getName(), self.myguests[1].getName()))
+
+        # Measured throughput whilst the above is going on
+        testthroughput = self.throughput
+
+        # "Entries are cleared from the flow table every five seconds", Nicira.
+        time.sleep(5)
+
+        # Test the through put differences
+        percentage = testthroughput / throughputbaseline * 100
+
+        xenrt.TEC().logverbose("Throughput whilst creating/destroying flows is %d%% of standing throughput" % percentage)
+        xenrt.TEC().logverbose("Created %u ACL rules, including checks of pings between them" % self.count)
+
+        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
+        if percentage < 90:
+            raise xenrt.XRTFailure("Flow table creation of %d flows over %d"
+                                    " seconds drives average throughput below 90%%."
+                                    % (self.count * 2, self.DURATION))
+
+        # Now check that the flow table does not contain eroneous entries from the
+        # Note the following dumps the flow table grepping for the 192.168.241 subnet
+        # If any 192.168.241* subnets are found we raise an exception
+        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
+        if re.search("192.168.241", flowTable):
+            raise xenrt.XRTFailure("Found 192.168.241 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
+
+
+    def postRun(self):
+        self.controller.stopKeepAlive()
+        TC11685.postRun(self)
+
+		class TC11546(_Controller):
+    """
+    Verify the Browser GUI requires a login
+
+    1. Perform some action without a cookie
+    2. Perform some action with the login supplied cookie
+
+    """
+    def prepare(self, arglist):
+        # This will log us in
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        self.targetVM = self.guests[0]
+
+    def run(self, arglist):
+        self.controller.logout()
+
+        # prevent auto login for each request
+        self.controller.auto = False
+
+        try:
+            self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
+        except Exception, e:
+            xenrt.TEC().logverbose("Log out has worked and we are unable to use the controller: " )
+        else:
+            raise xenrt.XRTFailure("Able to use the controller after logout")
+
+        self.controller.login("admin", self.controller.admin_pw)
+        self.controller.auto = True
+
+        # chck that we are able to contact the controller again
+        self.controller.addACLRuleToVM(self.targetVM.getName(), "ICMP")
+
+    def postRun(self):
+        self.controller.removeAllACLRules(self.targetVM.getName())
+        _Controller.postRun(self)
+
+
+class TC11548(_Controller):
+    """
+    ACL Hierachy
+
+    Create Mandatory and Default ACL rules at Global, Pool, Network and VM Levels.
+    Make sure that higher priority levels override lower priority levels
+
+    """
+    backup_rules = {}
+    backup_rules['global', 'pool', 'network', 'vm', 'vif'] = [{}, {}, {}, {}, {}]
+    network_name = ''
+    vm_names = []
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.prepareGuests(self.guests)
+        # todo remove this
+        self.pool.associateDVS(self.controller)
+        self.targetVM = self.guests[0]
+        self.sourceVM = self.guests[1]
+
+    def run(self, arglist):
+
+        # get the global rules
+        global_rules = self.controller.getGlobalRules()
+        self.backup_rules['global'] = self.controller.getGlobalRules()
+
+        # we know that we have ARP, DHCP and DNS at the global mandatory level
+        # and allow any to and from any ad the global default level
+        # now if we insert deny ICMP at global default level
+        # first create an ACL rule to do this
+        icmp_uid = self.controller.findProtocol("ICMP")['uid']
+        icmp_deny_rule = self.controller.createACL("both", icmp_uid, "", "deny")
+
+        global_rules["acl_rules"].insert(3, icmp_deny_rule)
+        self.controller.setGlobalRules(global_rules)
+
+        # The http request returns before the ACL rule is set on the vswitch
+        # Nicira have advised a 5 second turnaround
+        time.sleep(10)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("Default Global ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("Default Global ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Default Global ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+        # Next create a default rule at the Pool level to allow ICMP
+        # This should override the global default rule.
+        pool_rules = self.controller.getPoolRules(self.host.getIP())
+        self.backup_rules['pool'] = self.controller.getPoolRules(self.host.getIP())
+
+        icmp_allow_rule = self.controller.createACL("both", icmp_uid, "", "allow")
+        # pool_rules["acl_rules"] is an empty list at this point
+        pool_rules['acl_rules'].append(icmp_allow_rule)
+        pool_rules['acl_split_before'] = 0
+
+        self.controller.setPoolRules(self.host.getIP(), pool_rules)
+        time.sleep(5)
+
+        # Check that this overrides as expected
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] != 0:
+            xenrt.TEC().logverbose("Default Pool Rule is working")
+        else:
+            raise xenrt.XRTFailure("Default Pool ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # Next create a default rule at the network level
+        # to deny ICMP
+        # Nicira rename the network for some reason
+        self.network_name = self.controller.getNetworksInPool(self.host.getIP())[0]
+        network_rules = self.controller.getNetworkRules(self.network_name)
+        self.backup_rules['network'] = self.controller.getNetworkRules(self.network_name)
+
+        network_rules["acl_rules"].append(icmp_deny_rule)
+        network_rules['acl_split_before'] = 0
+
+        self.controller.setNetworkRules(self.network_name, network_rules)
+        time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("Default Network ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("Default Network ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Default Network ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+        # Next create a default rule at the VM level
+        # to allow ICMP to each VM
+        self.backup_rules['vm'] = self.controller.getVMRules(self.targetVM.getName())
+        self.vm_names.append(self.sourceVM.getName())
+        self.vm_names.append(self.targetVM.getName())
+        for name in self.vm_names:
+            vm_rules = self.controller.getVMRules(name)
+
+            vm_rules["acl_rules"].append(icmp_allow_rule)
+            vm_rules['acl_split_before'] = 0
+
+            self.controller.setVMRules(name, vm_rules)
+            time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] != 0:
+            xenrt.TEC().logverbose("Default VM ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("Default VM ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # Next create a default rule at the VIF level
+        # to deny ICMP
+        sourceVM_vif_mac = self.sourceVM.getVIFs()['eth0'][0]
+        self.backup_rules['vif'] = self.controller.getVIFRules(sourceVM_vif_mac)
+        vif_rules = self.controller.getVIFRules(sourceVM_vif_mac)
+
+        vif_rules["acl_rules"].append(icmp_deny_rule)
+        # Note the VIF level does not provide default and mandatory rules
+
+        self.controller.setVIFRules(sourceVM_vif_mac, vif_rules)
+
+        time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("VIF deny ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("VIF deny ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Default VIF ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+
+        # NOW CHECK MANADATORY OVERIDES
+
+        # First we must remove the VIF rule as it overides the VM rule
+        # and would leave us testing that the mandatory allow
+        # overieds the default allow
+        self.controller.setVIFRules(sourceVM_vif_mac, self.backup_rules['vif'])
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] != 0:
+            xenrt.TEC().logverbose("Removal of VIF deny ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("Removal of VIF deny ACL Rule for ICMP is not working result = %d" % result[1])
+
+        # Create a mandatory rule at the VM level
+        # to deny ICMP to each VM - this overides the defaut VM allow rule
+        for name in self.vm_names:
+            vm_rules = self.controller.getVMRules(name)
+
+            vm_rules["acl_rules"].insert(0, icmp_deny_rule)
+            vm_rules['acl_split_before'] = 1
+
+            self.controller.setVMRules(name, vm_rules)
+            time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("Mandatory VM ACL Rule overrides the Default Rule as expected")
+        else:
+            raise xenrt.XRTFailure("Mandatory VM ACL Rule is not overriding the Default Rule result = %d" % result[1])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Mandatory VM ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+
+        # Create a madatory rule at the network level
+        # to allow ICMP
+        network_rules["acl_rules"].insert(0, icmp_allow_rule)
+        network_rules['acl_split_before'] = 1
+
+        self.controller.setNetworkRules(self.network_name, network_rules)
+        time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] != 0:
+            xenrt.TEC().logverbose("Mandatory Network ACL Rule overrides the Default Rule as expected")
+        else:
+            raise xenrt.XRTFailure("Mandatory Network ACL Rule is not overriding the Default Rule result = %d" % result[1])
+
+        # Create a mandatory rule at the Pool level to deny ICMP
+        # This should override the default rule.
+        pool_rules['acl_rules'].insert(0, icmp_deny_rule)
+        pool_rules['acl_split_before'] = 1
+
+        self.controller.setPoolRules(self.host.getIP(), pool_rules)
+        time.sleep(5)
+
+        # Check that this overrides as expected
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("Mandatory Pool ACL Rule overrides the Default Rule as expected")
+        else:
+            raise xenrt.XRTFailure("Mandatory Pool ACL Rule is not overriding the Default Rule result = %d" % result[1])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Mandatory Pool ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+        # Create a mandatory rule at the Global level to deny ICMP
+        # This should override the default rule.
+        global_rules["acl_rules"].insert(3, icmp_allow_rule)
+        global_rules['acl_split_before'] = 4
+        self.controller.setGlobalRules(global_rules)
+
+        # The http request returns before the ACL rule is set on the vswitch
+        # Nicira have advised a 5 second turnaround
+        time.sleep(5)
+
+        # make sure that the rule was effective
+        result = self._internalICMP(self.sourceVM, self.targetVM.getIP())
+        if result[1] != 0:
+            xenrt.TEC().logverbose("Mandatory Global ACL Rule overrides the Default Rule as expected")
+        else:
+            raise xenrt.XRTFailure("Mandatory Global ACL Rule is not overriding the Default Rule result = %d" % result[1])
+
+        # Remove all rules
+        self.controller.setGlobalRules(self.backup_rules['global'])
+        self.controller.setPoolRules(self.host.getIP(), self.backup_rules['pool'])
+        self.controller.setPoolRules(self.network_name, self.backup_rules['network'])
+        for name in self.vm_names:
+            self.controller.setVMRules(self.network_name, self.backup_rules['vm'])
+
+        # make sure that other sockets are not affected
+        result = self._internalNetperf("TCP_STREAM", self.sourceVM, self.targetVM.getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("Mandatory Pool ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
+
+
+    def postRun(self):
+        _Controller.postRun(self)
+
+
+class TC11549(_Controller):
+    """
+    Common Protocols
+
+    Ensure that a default set of the most commonly used protocols is provided
+
+    """
+
+    common_protos = ["ARP", "IP", "IPv6", "ICMP", "TCP", "UDP", "FTP", "SSH",
+                     "Telnet", "SMTP", "HTTP", "Kerberos", "POP", "IMAP",
+                     "HTTPS", "SOCKS", "SIP", "DNS", "DHCP", "BOOTP", "NTP",
+                     "Syslog", "NFS"]
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        # todo remove this
+        self.pool.associateDVS(self.controller)
+        self.targetVM = self.guests[0]
+        self.sourceVM = self.guests[1]
+
+    def getname(self, x): return x['name']
+
+    def run(self, arglist):
+        missing_protos = []
+        protocols = self.controller.getProtocols()
+        protocol_list  = map(self.getname, protocols)
+        for item in self.common_protos:
+            if item in protocol_list == False:
+                missing_protos.append(item)
+
+        if len(missing_protos) != 0:
+            raise xenrt.XRTFailure(("The following protocols are missing from the default set: " + " ".join(missing_protos)))
+
+    def postRun(self):
+        _Controller.postRun(self)
+
+
+class TC11535(_Controller):
+    """
+    Controller Daemons restart automatically
+
+    Kill the controller software daemons, ensure they retart automatically
+    """
+    dead_controller = False
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+
+    def run(self, arglist):
+        try :
+            result = self.controller.place.execguest("killall nox_core nwflowpack")
+        except :
+            xenrt.XRTFailure("Not all processes killed")
+
+        time.sleep(60)
+
+        try :
+            self.controller.login("admin", self.controller.admin_pw)
+        except:
+            self.dead_controller = True
+            raise xenrt.XRTFailure("Controller processes failed to restart after 60 seconds")
+
+    def postRun(self):
+        # if the controller is dead reboot it (saves a few error reports
+        if self.dead_controller == True:
+            self.controller.place.execguest("reboot")
+            time.sleep(180)
+
+        _Controller.postRun(self)
+
+
+class TCManyGuestsInPool(_Controller, _TC11537):
+    """
+    Many Guests per controller
+
+    """
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        self.controller.place.shutdown()
+        self.controller.place.cpuset(4)
+        self.controller.place.memset(4096) # MB
+        self.controller.place.start()
+        self.extra_vifs = 0
+
+    def run(self, arglist=None):
+        
+        step("Fetching arguments")
+        try:
+            l = string.split(arglist[0], "=", 1)
+            if l[0].strip() == "guests":
+                nbrOfGuests = int(l[1].strip())
+                log("Argument: '%s' = '%s'" % (l[0].strip(),l[1].strip()))
+            else:
+                raise Exception("Number of guests not specified.")
+        except:
+            raise xenrt.XRTError("Number of guests must be specified within the <testcase> block in the the sequence file, e.g. '<arg>guests=1024</arg>'")
+
+        step("Creating a large number of guests in the pool")
+        self.createManyGuestsInPool(nbrOfGuests, self.extra_vifs)
+
+        step("Checking created guests in controller.")
+        all_vms = self.controller.getVMsInPool(self.host.getName())
+        if len(all_vms) != nbrOfGuests:
+            raise xenrt.XRTFailure("Failed to see %d VMs at controller. VMs shown by controller = %d, VMs created successfully = %d."
+                                   % ( (nbrOfGuests) , len(all_vms), len(self.myguests)))
+        
+    def postRun(self):
+        _TC11537.postRun(self)
+        _Controller.postRun(self)
+
+class TC11579(_Controller):
+    """
+    Fail Open
+
+    Check that the vSwitch reverts to "failing open" if it declares the controller failed
+
+    This test also covers TC11581 'fail open' means 'ignore acl rules' as per meeting with nicira
+    13/9/10
+    """
+
+    myguests = []
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        # find first vm that is not controller
+        for guest in self.guests:
+            if guest.getName() != self.controller.place.getName():
+                self.myguests.append(guest)
+
+    def run(self, arglist):
+        # Set the controller in fail open mode
+        self.controller.setPoolFailMode(self.host.getIP(), 0)
+
+        # First we need to setup some ACL rules
+        xenrt.TEC().logverbose("Number of myguests = %d" % len(self.myguests) )
+
+        # Set up an ACL rule on host via the controller
+        self.controller.addACLRuleToVM(self.myguests[1].getName(), "ICMP")
+
+        time.sleep(30)
+
+        # test ACL rules now have effect
+        success = 0
+        iterations = 60
+        while iterations:
+            iterations -= 1
+            try:
+                self.myguests[1].getHost().execdom0("ovs-ofctl dump-flows xenbr0 | grep drop")
+            except:
+                pass
+            try:
+                self.myguests[0].execguest("ping -c1 -w 2 %s" % self.myguests[1].getIP())
+                success += 1
+            except:
+                pass        
+        if success == 0:
+            xenrt.TEC().logverbose("ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
+
+        # unlug the controllers vif - this'll freak a failed controller situation
+        self.controller.place.unplugVIF("eth0")
+
+        # allow time from the vswitch to realise that the controller has failed
+        time.sleep(180)
+
+        # test ACL rules now have no effect
+        success = 0
+        iterations = 60
+        while iterations:
+            iterations -= 1
+            try:
+                self.myguests[1].getHost().execdom0("ovs-ofctl dump-flows xenbr0 | grep drop")
+            except:
+                pass
+            try:
+                
+                self.myguests[0].execguest("ping -c1 -w 2 %s" % self.myguests[1].getIP())
+                success += 1
+            except:
+                pass
+        if success == 0:
+            raise xenrt.XRTFailure("ACL rules are still active after controller failed")
+        else:
+            xenrt.TEC().logverbose("ACL Pass, the rules are inactive after the controller has failed")
+
+        # re-plug the controller's VIF
+        self.controller.place.plugVIF("eth0")
+        # give time for it to reconnect to the servers and apply the flow tables
+        time.sleep(180)
+
+        # make sure that the rules are effective again
+        result = self._internalICMP(self.myguests[0], self.myguests[1].getIP())
+        if result[1] == 0:
+            xenrt.TEC().logverbose("ACL Rule is working")
+        else:
+            raise xenrt.XRTFailure("ACL Rule for ICMP is not working")
+
+        self.controller.removeAllACLRules(self.myguests[1].getName())
+
+        # test ACL rules now have been removed
+        result = self._internalICMP(self.myguests[0], self.myguests[1].getIP())
+        if result[1] == 0:
+            raise xenrt.XRTFailure("ACL rules are still active after removal")
+        else:
+            xenrt.TEC().logverbose("ACL Pass, the rules are have been removed and the test completed")
+
+
+    def postRun(self):
+        try:
+            # re-plug the controller's VIF
+            self.controller.place.plugVIF("eth0")
+            # give time for it to reconnect to the servers and apply the flow tables
+            time.sleep(180)
+        except:
+            pass
+        try:
+            self.controller.removeAllACLRules(self.myguests[1].getName())
+        except:
+            pass
+        
+        _Controller.postRun(self)
+
+class TC12657(_Controller):
+    """
+    Fail Closed
+
+    Test the controller/vswitch fail closed functionality.
+
+    1. Select Fail closed in the controller via the web services API and disconnect the controller
+    2. Ensure that all existing ACLs are honored
+    3. Add a new VM, ensure that it is not contactable
+    4. Migrate an existing VM, ensure that it is no longer contactable
+    5. Add a host with existing VMs to the pool, ensure its VMs are no longer contactable
+
+    """
+    pool1 = None
+    myguests = []
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        self.pool1 = self.getPool("RESOURCE_POOL_1")
+        ifdata = self.controller.place.getLinuxIFConfigData()
+        # Required for fail-close.
+        self.controller.setStaticIP(ifdata["eth0"]["IP"], ifdata["eth0"]["netmask"], 
+                                    self.controller.place.execguest("route | grep default | awk '{print $2}'").strip())
+
+    def run(self, arglist):
+
+        # need to set and check some ACL rules here - the obvioud choice is to use the fail open test
+        for guest in self.guests:
+            if guest.getName() != self.controller.place.getName():
+                self.myguests.append(guest)
+                self.controller.addACLRuleToVM(guest.getName(), "ICMP")
+
+
+        # Set the pool fail mode to closed
+        self.controller.setPoolFailMode(self.host.getIP(), 1)
+
+
+        for i in range(10):
+            # Get the result of the set pool fail mode 
+            self.pool.getPoolParam("other-config")
+
+            
+        self.controller.place.unplugVIF("eth0")
+        self.pool.getPoolParam("other-config")
+
+        # Get useful info from about the fail mode
+        bridges = self.host.execdom0("ovs-vsctl list-br").strip().split("\n")
+        for bridge in bridges:
+            if re.search("xenbr", bridge):
+                self.host.execdom0("ovs-vsctl get-fail-mode %s" % bridge)
+
+        # Ensure that the existing ACL rules are still working
+        for guest in self.myguests:
+            try:
+                self._externalICMP(guest)
+            except:
+                xenrt.TEC().logverbose("ACL rule for %s still working fail closed is working" % guest.getName()) 
+            else:
+                raise xenrt.XRTFailure("ACL rule is not working hence we have failed open")
+
+        # New guests should not be contactable
+        try:
+            myguest = self.host.createBasicGuest("debian50")
+        except:
+            xenrt.TEC().logverbose("Newly created guest is not contactable we have failed closed") 
+        else:
+            raise xenrt.XRTFailure("Guest install completed which means that the guest is contactable and we have failed open")
+
+        # Migrated guests should not be contactable
+        linux_0 = self.getGuestFromName("linux_0")
+        linux_0_host = linux_0.getHost()
+
+        host2 = None
+        for host in self.hosts:
+            if host != linux_0_host:
+                host2 = host
+                break
+
+        
+        try:
+            linux_0.migrateVM(host2, live="true")
+            linux_0.execguest("ls")
+        except:
+            xenrt.TEC().logverbose("Migrated guest is not contactable we have failed closed") 
+        else:
+            raise xenrt.XRTFailure("Guest contactable after migrate, we have failed open")
+
+                
+        # Add host with guests to pool
+        linux_3 = xenrt.TEC().registry.guestGet('linux_3')
+        linux_3.shutdown()
+        self.pool.addHost(self.pool1.master)
+
+        # linux 3 should not now be contactable
+        try:
+            linux_3.start()
+        except:
+            xenrt.TEC().logverbose("Guests added to pool are not contactable, we have failed closed") 
+        else:
+            raise xenrt.XRTFailure("Guest contactable after migrate, we have failed open")
+
+    def postRun(self):
+        # Set the pool fail mode to closed
+        self.controller.setPoolFailMode(self.host.getIP(), 0)
+        self.controller.setDynamicIP()
+        _Controller.postRun()
+        
+
+class TC11583(_Controller):
+    """ 
+    Obey backoff
+    
+    Ensure that the vswitch attempts to connect to the controller do not exceed the maximum back off period
+    """
+    
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        
+    def debugNic(self):
+        log( "(debug-NIC-457) \n%s" % 
+                self.host.execdom0("ovs-vsctl get bridge xenbr0 controller").strip() )
+        log( "(debug-NIC-457) \n%s" % self.host.listDomains() )
+
+    def getControllerUUID(self):
+        try:
+            step("Getting uuid of the controller")
+            dvscuuid = self.host.execdom0("ovs-vsctl get bridge xenbr0 controller").strip().strip("[]")
+        except:
+            raise xenrt.XRTError("Failed to retrieve Controller UUID.")
+
+        if not dvscuuid:
+            raise xenrt.XRTError("Controller UUID does not appear to be set")
+
+        return dvscuuid
+
+    def run(self, arglist):
+        step("Setting rconn:FILE:DBG in vswitch")
+        self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
+        self.debugNic()
+        # Attempt backoff of 10, 5, 2 and 1 second(s).  
+        for backoffms in [10000, 5000, 2000, 1000]:
+            step("Changing backoff to %s" % backoffms)
+            dvscuuid = self.getControllerUUID()
+            self.debugNic()
+            self.host.execdom0("ovs-vsctl set controller %s max_backoff=%d" % (dvscuuid, backoffms))
+            # Disconnect the controller.
+            try:
+                step("Unplugging eth0 VIF")
+                self.debugNic()
+                self.controller.place.unplugVIF("eth0")
+                self.debugNic()
+                step("Getting tcpdump data")
+                data = self.host.execdom0("tcpdump -tt -c 10 -i %s host %s and port 6633" % \
+                                          (self.host.getPrimaryBridge(), self.host.getIP()))
+                step("Processing tcpdump data")
+                for line in data.splitlines():
+                    xenrt.TEC().logverbose("Captured data: %s" % (line))
+                times = map(float, re.findall("(\d+\.\d+) IP", data))
+                xenrt.TEC().logverbose("Parsed times: %s" % (times))
+                self.debugNic()
+                for i in range(len(times)-1):
+                    delta = (times[i+1] - times[i])*1000
+                    xenrt.TEC().logverbose("Delta between packet %s and %s is %sms." % (i+1, i, delta))
+                    # Allow 1000ms margin for error. (For e.g. SSH propagation.)
+                    if delta > 2*backoffms + 1700:          
+                        raise xenrt.XRTFailure("Max back off of %sms exceeded. (%sms)" % (backoffms, delta))
+            finally:
+                step("Replugging eth0 VIF")
+                self.debugNic()
+                self.controller.place.plugVIF("eth0")
+                self.debugNic()
+                time.sleep(120)
+
+class TC11509(_Controller):
+    """
+    Test the default QoS policy hierarchy.
+    Verify global policy specifies "No QoS Policy" by default
+    and all other levels of the hierarchy specify ?Inherit QoS policy from parent" by default.
+    Check (with netperf) if indeed there's no policy, i.e. the throughput is maximal
+    """
+    # by Kasia Boronska
+
+    myguests = []
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        # This seems necessary - controller needs about 2 min. after associating again.
+        time.sleep(120)
+
+    def run(self, arglist):
+        # remove Controller from the guest list
+        self.myguests = self.hosts[1].guests.values()
+        count = 0
+        for guest in self.myguests:
+            xenrt.TEC().logverbose("myguest[%d] %s" % (count, guest.getName))
+            count += 1
+            if guest.getName() == self.CONTROLLER:
+                self.myguests.remove(guest)
+        # define remote guest
+        self.myremoteguest = self.hosts[0].guests.values()[0]
+        xenrt.TEC().logverbose("myremoteguest %s" % (self.myremoteguest.getName))
+        # prepare netperf/guests
+        xenrt.TEC().logverbose("Preparing Host[0] guests")
+        self.prepareGuests(self.myguests, netperf_config="--enable-intervals --enable-burst")
+        xenrt.TEC().logverbose("Preparing Host[1] guests")
+        self.prepareGuests([self.myremoteguest], netperf_config="--enable-intervals --enable-burst")
+        # check global QoS policy:
+        policy = (
+            'global', self.controller.getGlobalRules(),
+            'pool', self.controller.getPoolRules(self.host.getIP()),
+            'network', self.controller.getNetworkRules("Network 0"),
+            'guest', self.controller.getVMRules(self.myguests[0].getName()),
+            'remote guest', self.controller.getVMRules(self.myremoteguest.getName()),
+            'guest VIF', self.controller.getVIFRules(self.myguests[0].getVIFs()['eth0'][0]),
+            'guest 2 VIF', self.controller.getVIFRules(self.myguests[1].getVIFs()['eth0'][0]),
+            'remote guest VIF', self.controller.getVIFRules(self.myremoteguest.getVIFs()['eth0'][0]),
+            )
+        # Log all policy settings:
+        for level, pol in zip(policy[0::2], policy[1::2]):
+            xenrt.TEC().logverbose("Settings for %s policy: %s" % (level, pol ) )
+        for level, pol in zip(policy[0::2], policy[1::2]):
+            quos = pol['qos']
+            if quos != 'inherit' :
+                raise xenrt.XRTFailure("Default %s policy should be 'inherit' and is '%s'." % (level, quos))
+        # Define expected throughput for external and internal transfer.
+        # We expect internal between 2.8 and 4Gb and external between 0.9 and 1.2 Gb.
+        # If the set-up is significantly changed, this test case should fail
+        # and the values below should be changed to the new expected parameters.
+        # WE GET REGUCED THROUGHPUT AFTER ASSOCIATING THE CONTROLLER -- SEE BUG CA-48175,
+        # LOWER INTERNAL THROUGHPUT BELOW HAD TO BE REDUCED TO FROM 2.8  TO 2.5GB
+        internal = ('internal', 1000000, 4000000,
+            self._internalNetperf("TCP_STREAM", self.myguests[0],   self.myguests[1].getIP())[1] )
+        external = ('external', 750000, 1200000,
+            self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP())[1] )
+        for name, lower, upper, measured in (internal, external):
+            xenrt.TEC().logverbose("Measured %s throughput: %s." % (name,measured) )
+        # compare expected and measured throughputs :
+        for name, lower, upper, measured in (internal, external):
+            xenrt.TEC().logverbose("Measured %s throughput: %s." % (name,measured) )
+            if measured < lower or ( name=='external' and measured > upper ):
+                raise xenrt.XRTFailure("Expected %s throughput was between %s and %skb and measured throughput was %s."
+                    % (name, lower, upper, measured) )
+
+    def postRun(self):
+        self.controller.setGlobalQoSPolicy(0, 0)
+        self.controller.setPoolQoSPolicy(self.host.getIP(),0, 0)
+        self.controller.setNetworkQoSPolicy("Network 0", 0, 0)
+        for guest in self.myguests:
+            # set Guest policy to 5MBps with 5Mb Burst
+            self.controller.setVMQoSPolicy(guest.getName(), 0, 0)
+        _Controller.postRun(self)
+
+class TC11514(_Controller):
+    """
+    Policy priority
+
+    Test lower level policies override higher-level policies
+
+    Note Nicra's implementation implements the token bucket protocol with
+    burst = bucket size
+    rate = leak rate
+
+    The bucket starts full with enough tokens to represent burst size packets
+
+    As each packet arrives at the bucket, enough tokens are removed from the
+    bucket to represent the bytes to be transmitted
+
+    If there are not enough tokens in the bucket the packet is dropped.
+
+    A token is added to the bucket every 1/rate seconds
+
+
+
+    """
+    SIZE = 1472 # Note size must be MTU less IP and ethernet headers
+                # otherwise this will result in fragmentation skewing results
+                # considerably
+
+    myguests = []
+
+    def checkResult(self, level, rate, burst, measured_internal, measured_external):
+        expected_throughput = ((rate * self.DURATION) + burst) / self.DURATION
+
+        internal_difference = (measured_internal / expected_throughput) * 100
+        if internal_difference < 90 or internal_difference > 110:
+            raise xenrt.XRTFailure("%s internal QoS produces %d%% of expected throughput this should be between 90 and 110%%" % (level, internal_difference))
+
+
+        external_difference = (measured_external / expected_throughput) * 100
+        if external_difference < 90 or external_difference > 110:
+            raise xenrt.XRTFailure("%s external QoS produces %d%% of expected throughput this should be between 90 and 110%%"% (level, external_difference))
+
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        
+        step("Checking if Management NIC is on eth0")
+        for host in self.hosts:
+            br = host.getPrimaryBridge()
+            pifs = host.parseListForOtherParam("network-list", "bridge", br, "PIF-uuids")
+            device = host.genParamGet("pif", pifs.split(';')[0] ,"device")
+            if device != 'eth0':
+                raise xenrt.XRTError("Management NIC of host %s is not eth0" % (host.getIP()))
+
+    def run(self, arglist):
+        self.myguests = self.hosts[1].guests.values()
+        count = 0
+        for guest in self.myguests:
+            xenrt.TEC().logverbose("myguest[%d] %s" % (count, guest.getName))
+            count += 1
+            if guest.getName() == self.CONTROLLER:
+                self.myguests.remove(guest)
+
+        self.myremoteguest = self.hosts[0].guests.values()[0]
+        xenrt.TEC().logverbose("myremoteguest %s" % (self.myremoteguest.getName))
+
+
+        xenrt.TEC().logverbose("Prepareing Host[0] guests")
+        self.prepareGuests(self.myguests, netperf_config="--enable-intervals --enable-burst")
+        xenrt.TEC().logverbose("Prepareing Host[1] guests")
+        self.prepareGuests([self.myremoteguest], netperf_config="--enable-intervals --enable-burst")
+
+
+        # We start with a external Phy of 1Gb/s and and an internal Phy of circa 3Gb/s
+        xenrt.TEC().logverbose("Testing Phy Throughput guests")
+        baseline_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP())
+        baseline_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP())
+        xenrt.TEC().logverbose("baseline_internal = %d, baseline_external = %d" % (baseline_internal[1], baseline_external[1]))
+
+        ###########
+        # Global
+        ###########
+
+        # set global policy to 100MBps with 50Mb Burst
+        global_rate = 100000
+        global_burst = 50000
+        self.controller.setGlobalQoSPolicy(global_rate, global_burst)
+        self.host.execdom0("tc -d qdisc")
+
+        # gain performance metrics with 50 Mb burst
+        global_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
+        global_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
+
+        xenrt.TEC().logverbose("Global 100MBps with 50Mb Burst: global_internal[1] = %d, global_external[1] = %d" % (global_internal[1], global_external[1]))
+
+        self.checkResult("Global", global_rate, global_burst, global_internal[1], global_external[1])
+
+        ###########
+        # Pool
+        ###########
+
+        # set pool policy to 50MBps with 100Mb Burst
+        pool_rate = 50000
+        pool_burst = 25000
+
+        self.controller.setPoolQoSPolicy(self.host.getIP(), pool_rate, pool_burst)
+        self.host.execdom0("tc -d qdisc")
+
+        # gain performance metrics
+        pool_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
+        pool_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
+
+        xenrt.TEC().logverbose("Pool 50MBps with 25Mb Burst: pool_internal = %d, pool_external = %d" % (pool_internal[1], pool_external[1]))
+
+        self.checkResult("Pool", pool_rate, pool_burst, pool_internal[1], pool_external[1])
+
+
+        ###########
+        # Network
+        ###########
+
+        # set network policy to 20MBps with 10Mb Burst
+        network_rate = 20000
+        network_burst = 10000
+        self.controller.setNetworkQoSPolicy("Network 0", network_rate, network_burst)
+        self.host.execdom0("tc -d qdisc")
+
+        # gain performance metrics
+        network_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
+        network_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
+
+        xenrt.TEC().logverbose("Network 20MBps with 10Mb Burst: network_internal = %d, network_external = %d" % (network_internal[1], network_external[1]))
+
+        self.checkResult("Network", network_rate, network_burst, network_internal[1], network_external[1])
+
+
+        ###########
+        # Guest
+        ###########
+        guest_rate = 10000
+        guest_burst = 5000
+
+        self.controller.setVMQoSPolicy(self.myguests[0].getName(), guest_rate, guest_burst)
+        self.controller.setVMQoSPolicy(self.myremoteguest.getName(), guest_rate, guest_burst)
+        self.host.execdom0("tc -d qdisc")
+
+        # gain performance metrics
+        guest_internal = self._internalNetperf("TCP_STREAM", self.myguests[0], self.myguests[1].getIP(), size=self.SIZE)
+        guest_external = self._internalNetperf("TCP_STREAM", self.myremoteguest, self.myguests[1].getIP(), size=self.SIZE)
+
+        #  print the result
+        xenrt.TEC().logverbose("Guest 10MBps with 5Mb Burst: guest_internal = %d, guest_external = %d" % (guest_internal[1], guest_external[1]))
+
+        self.checkResult("Guest", guest_rate, guest_burst, guest_internal[1], guest_external[1])
+
+    def postRun(self):
+        self.controller.setGlobalQoSPolicy(0, 0)
+        self.controller.setPoolQoSPolicy(self.host.getIP(),0, 0)
+        self.controller.setNetworkQoSPolicy("Network 0", 0, 0)
+        for guest in self.myguests:
+            # set Guest policy to 5MBps with 5Mb Burst
+            self.controller.setVMQoSPolicy(guest.getName(), 0, 0)
+        self.controller.setVMQoSPolicy(self.myremoteguest.getName(), 0, 0)
+        _Controller.postRun(self)
+
+class TC12011(TC11692):
+
+    # Messure Throughput on VIF 0
+    def messureExternalThroughput(self):
+        result=self._externalNetperf("TCP_STREAM", self.myguests[0])
+        self.throughput = result[1]
+        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
+        self.stop = True
+
+
+    def run(self, arglist):
+        # This greatly reduces the ammount of traffic to the controller during the throughput test
+        self.prepareController()
+
+        self.backupGuestNetworkInterfaceFiles()
+        self.new_net_uuid = self.host.createNetwork("nw1")
+        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
+
+        # Gather a baseline for test
+        self.messureThroughput()
+
+        throughputbaseline = self.throughput
+        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
+
+        ###
+        # Internal Performance
+        ###
+        result = xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
+                               exception=False)
+
+
+        # Measure throughput whilst the above is going on
+        testthroughput = self.throughput
+
+        # "Entries are cleared from the flow table every five seconds", Nicira.
+        time.sleep(5)
+
+        # Test the through put differences
+        percentage = testthroughput / throughputbaseline * 100
+
+        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
+        xenrt.TEC().logverbose("Internalhroughput whilst creating/destroying VIFs and flows is %d%% of standing throughput" % percentage)
+        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
+
+        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
+        if percentage < 90:
+            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
+
+
+        # Now check that the flow table does not contain eroneous VIFs
+        # Note the following dumps the flow table grepping for the 192.168 subnet
+        # If any 192.168.* subnets are found we raise an exception
+        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
+        if re.search("192.168.1", flowTable):
+            raise xenrt.XRTFailure("Found 192.168 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
+
+
+
+    # No postRun required as this will call TC11692 and hence TC11685s post runs - the run being the culminatiion of the two
+
+
+class TC11543(_Controller):
+    """
+    65536 Wildcard Flows
+
+    A wildcard flow is one where the one of the flow parameters is "dont care"
+    Thus we can create 65536 wildcard flows by blocking 65536 ports.
+    This is simplest if we take the upper 32768 ports and block the on two hosts with direction any
+    Hence top port (65535) - 32768  = 32767
+
+    TODO
+    This test needs a rethink - the requirements state that each VIF only supports 128 rules.
+
+    Therefore we will need to generate 512 VIFs (broken at time of writing see NIC-248) and apply
+    128 rules to each
+
+    """
+
+
+    created_protos = []
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.controller.place.shutdown()
+        self.controller.place.cpuset(4)
+        self.controller.place.memset(4096) # MB
+        self.controller.place.start()
+        time.sleep(60)
+        # todo remove this
+        self.pool.associateDVS(self.controller)
+
+        self.controller.auto = False # will stop login for each request
+                                     # as add proto is serial, this will
+                                     # greatly reeduce overall test time
+        self.VM1 = self.guests[0]
+        self.VM2 = self.guests[1]
+
+
+    def run(self, arglist):
+        rules = []
+        for i in range (32767, 65536):
+            port_name = "port_%d" % i
+
+            proto_uid = self.controller.addProtoForACL(port_name, i, 0, 'TCP', check=False)
+            self.created_protos.append(proto_uid)
+            rules.append(self.controller.createACL("out", proto_uid, ""))
+
+        xenrt.TEC().logverbose("rules set = %s" % (rules))
+
+        self.controller.auto = True # if the controller is not contacted for 30 seconds
+                                    # our cookie will no longer work, this will cause login
+                                    # for each new request
+
+        vm_rules = self.controller.getVMRules(self.VM1.getName())
+        vm_rules['acl_rules'].extend(rules)
+
+        xenrt.TEC().logverbose("rules we are trying to apply = %s" % (vm_rules))
+
+
+        self.controller.setVMRules(self.VM1.getName(), vm_rules)
+        self.controller.setVMRules(self.VM2.getName(), vm_rules)
+
+
+
+    def postRun(self):
+        self.controller.removeAllACLRules(self.VM1.getName())
+        self.controller.removeAllACLRules(self.VM2.getName())
+        # delete all newly created protocols
+        # disable auto login for each new request again
+        # to save the 32K logins
+        self.controller.auto = False
+        for proto in self.created_protos:
+            path = 'protocol/%d' % proto
+            self.controller.delete(path, None)
+        _Controller.postRun(self)
+
+class TC11522(_Controller): 
+    """
+    Verify global policy specifies "No traffic mirroring policy" by default
+    and all other levels of the hierarchy specify "Inherit traffic mirroring
+    policy from parent" by default.
+    """
+
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+
+    def run(self, arglist):
+        global_rules = self.controller.getGlobalRules()
+        if global_rules["rspan"] != "inherit":
+            raise xenrt.XRTFailure("'rspan' rule must be 'inherit' for global 'No traffic mirroring policy' default.")
+        if global_rules["rspan_vlan"] != 0:
+            raise xenrt.XRTFailure("'rspan_vlan' rule must be '0' for global 'No traffic mirroring policy' default.")
+
+#### CHIN tests ####
+
+class _CHIN(_Controller):
+    """Base class for CHIN tests."""
+
+    CHINMAP = ""  
+    PAIRS = True 
+
+    class CHIN:
+
+        def pairs(self, list):
+            return [ (list[x], list[y]) \
+                        for x in xrange(len(list)) \
+                            for y in xrange(len(list)) \
+                                if not x == y ]
+
+        def attachVIF(self, guest):
+            """
+            Give a VM an interface on a CHIN.
+    
+            Given:
+
+            The CHIN index, N.
+            The number of VIFs this VM currently has attached to the CHIN, C.
+            The total number of VIFs currently attached to the CHIN, M.        
+
+            Then:
+
+            The static IP address of the new interface will be 192.168.N.(M+1).
+            """
+            xenrt.TEC().logverbose("Attaching VM %s to CHIN %s." % (guest.getName(), self.index))
+            if not guest.getHost() in self.hosts:
+                self.createTunnel(guest.getHost())
+            mac = xenrt.randomMAC()
+            vif = guest.createVIF(bridge=self.network, mac=mac, plug=True)
+            # CA-75592 suggests that we may be connecting too quickly, so 
+            # letting the vif creation settle down.
+            time.sleep(5)
+            data = guest.getLinuxIFConfigData()
+            for device in data:
+                if data[device]["MAC"]:
+                    if xenrt.normaliseMAC(data[device]["MAC"]) == mac:
+                        break
+            interfaces = []
+            interfaces.append("iface %s inet static" % (device))
+            interfaces.append("address 192.168.%s.%s" % (self.index, sum(map(len, self.guests.values())) + 1))
+            interfaces.append("netmask 255.255.255.0")
+            interfaces.append("hwaddress ether %s" % (mac))
+            interfaces.append("allow-hotplug %s" % (device))
+            guest.execguest("echo -e '%s' >> /etc/network/interfaces" % (string.join(interfaces, r"\n")))
+            guest.execguest("ifup %s" % (device))
+            if not guest in self.guests:
+                self.guests[guest] = []
+            self.guests[guest].append((device, mac, guest.getVIFUUID(vif)))
+            return device
+
+        def detachVIF(self, guest, device):
+            """
+            Remove a guest from a CHIN.
+            """
+            xenrt.TEC().logverbose("Removing VIF %s on VM %s from CHIN %s." % (device, guest.getName(), self.index))
+            if guest in self.guests:
+                for guestdevice,mac,vifuuid in self.guests[guest]:
+                    if guestdevice == device:
+                        cli = self.pool.getCLIInstance()
+                        args = []
+                        args.append("uuid=%s" % (vifuuid))
+                        cli.execute("vif-unplug", string.join(args))
+                        cli.execute("vif-destroy", string.join(args))
+                        data = guest.execguest("cat /etc/network/interfaces")
+                        data = re.sub(re.search("iface %s.*allow-hotplug %s" % (device, device), data, re.DOTALL).group(), "", data)
+                        guest.execcmd("echo -e '%s' > /etc/network/interfaces" % (string.join(data.splitlines(), r"\n")))
+                        self.guests[guest].remove((device, mac, vifuuid))
+                        if not len(self.guests[guest]):
+                            del self.guests[guest]
+
+        def createTunnel(self, host):
+            """
+            Create a CHIN tunnel on a host.
+            """
+            if not host in self.hosts:
+                cli = self.pool.getCLIInstance()
+                nics = host.listSecondaryNICs(network=self.subnet)
+                if not nics:
+                    raise xenrt.XRTError("Host %s has no NICs on %s." % (host.getName(), self.subnet))
+                # Use the first available NIC on the subnet.
+                device = host.getSecondaryNIC(nics[0])
+                xenrt.TEC().logverbose("Using %s (%s) on host %s as a transport PIF." % (device, self.subnet, host.getName()))
+                # The transport PIFs must have an IP address configured. We use DHCP.
+                pifuuid = host.getPIFUUID(device)
+                if not host.genParamGet("pif", pifuuid, "IP"):
+                    args = []
+                    args.append("uuid=%s" % (pifuuid))
+                    args.append("mode=dhcp")
+                    cli.execute("pif-reconfigure-ip", string.join(args))
+                    # We do NOT plug the PIF at this point. The susequent tunnel-create should take care of this.
+                args = []
+                args.append("network-uuid=%s" % (self.network))
+                args.append("pif-uuid=%s" % (pifuuid))
+                tunnel = cli.execute("tunnel-create", string.join(args)).strip()
+                self.hosts.append((host, pifuuid, tunnel))
+
+        def destroyTunnel(self, host, pifuuid, tunnel):
+            """
+            Destroy a CHIN tunnel on a host.
+            """
+            cli = self.pool.getCLIInstance()
+            tunneluuid = host.parseListForUUID("tunnel-list", "access-PIF", tunnel)
+            args = []
+            args.append("uuid=%s" % (tunneluuid))
+            cli.execute("tunnel-destroy", string.join(args))
+            self.hosts.remove((host, pifuuid, tunnel))
+            if len(self.hosts) == 0:
+                self.pool.master.removeNetwork(self.network)
+
+        def destroy(self):
+            xenrt.TEC().logverbose("Trying to Remove CHIN %s." % (self.index))
+            for guest in copy.copy(self.guests):
+                for device,mac,vifuuid in self.guests[guest]:
+                    try: 
+                        self.detachVIF(guest, device)
+                    except Exception, e:
+                        xenrt.TEC().logverbose("Exception detaching VIF: %s" % (str(e)))
+            while self.hosts:
+                try: self.destroyTunnel(*self.hosts[0])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Exception destroying tunnel: %s" % (str(e)))
+
+        def __init__(self, pool, index, subnet=None):
+            self.pool = pool
+            self.index = int(index)
+            self.subnet = subnet
+            self.network = None
+            self.guests = {}
+            self.hosts = [] 
+            if not self.subnet:
+                self.subnet = "NPRI"
+            self.network = self.pool.master.createNetwork(name="CHIN-%s" % (self.index))
+
+        def check(self):
+            """Check if the CHIN is up."""
+            for guest in self.guests:
+                for device,mac,vifuuid in self.guests[guest]:
+                    data = guest.getLinuxIFConfigData()
+                    if device in data and data[device]["IP"]:
+                        xenrt.TEC().logverbose("Interface %s on VM %s on CHIN %s has IP address %s." % \
+                                               (device, guest.getName(), self.index, data[device]["IP"]))
+                    else:
+                        xenrt.TEC().logverbose("Interface %s on VM %s on CHIN %s has no IP address." % \
+                                               (device, guest.getName(), self.index))
+                        return False 
+            return True
+
+        def test(self, pairs=True):
+            xenrt.TEC().logverbose("Testing CHIN %s." % (self.index))
+            failures = []
+            testmatrix = []
+            if pairs:
+                for x in self.guests:
+                    for y,_,_ in self.guests[x]:
+                        testmatrix.append((x,y))
+                testmatrix = self.pairs(testmatrix)
+            else:
+                rootguest = self.guests.keys()[0]
+                rootdevice, _, _ = self.guests[rootguest]
+                for x in self.guests:
+                    for y,_,_ in self.guests[x]:
+                        testmatrix.append(((x,y), (rootguest, rootdevice)))
+            for x,y in testmatrix:
+                a, _ = x
+                b, device = y
+                xenrt.TEC().logverbose("Testing connection between %s and %s." % (a.getName(), b.getName()))
+                ip = b.getLinuxIFConfigData()[device]["IP"]
+                try: 
+                    a.execguest("ping -w 8 %s" % (ip))
+                except: 
+                    failures.append((a, b))
+            for a,b in failures:
+                xenrt.TEC().logverbose("Connection from %s to %s failed." % (a.getName(), b.getName()))
+            if failures:
+                raise xenrt.XRTFailure("CHIN not fully functional.")
+
+        def wait(self):
+            if not self.check():
+                if not self.check():
+                    for guest in self.guests:
+                        for device,mac,vifuuid in self.guests[guest]:
+                            guest.execcmd("ifdown %s" % (device))
+                            guest.execcmd("ifup %s" % (device))
+                    if not self.check():
+                        raise xenrt.XRTError("CHIN %s is not up even after we really tried." % (self.index))
+
+        def generate(pool, xmltext):
+            chins = []
+            value = {} 
+            def handleVM(node, id, guests):
+                name = node.getAttribute("name")
+                if not name:
+                    raise xenrt.XRTError("Found VM tag with no name attribute.")
+                guest = xenrt.TEC().registry.guestGet(name)
+                if not guest:
+                    raise xenrt.XRTError("Found VM that is not present in the registry.")
+                guests.append(guest)
+            def handleNetwork(node):
+                id = node.getAttribute("id")
+                subnet = node.getAttribute("network")
+                guests = []
+                for child in node.childNodes:
+                    if child.localName == "vm":
+                        handleVM(child, id, guests)
+                chins.append((id, subnet, guests))
+            def handleCHINNode(node):
+                for child in node.childNodes:
+                    if child.localName == "network":
+                        handleNetwork(child)
+
+            xmltree = xml.dom.minidom.parseString(xmltext)
+            for child in xmltree.childNodes:
+                if child.localName == "CHIN":
+                    handleCHINNode(child)
+            for chin in chins:
+                id, subnet, guests = chin
+                c = _CHIN.CHIN(pool, id, subnet)
+                for g in guests:
+                    c.attachVIF(g)
+                value[int(id)] = c
+            return value
+        generate = staticmethod(generate)    
+
+    def prepare(self, arglist=[]):
+        self.chins = []
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        xenrt.TEC().logverbose("CHINMAP: %s" % (self.CHINMAP))
+        self.chins = self.CHIN.generate(self.pool, self.CHINMAP)
+        self.guests = map(self.getGuest, 
+                          filter(lambda x:not x == self.CONTROLLER, xenrt.TEC().registry.guestList()))
+        for guest in self.guests:
+            self.setupGuestTcpDump(guest)
+        for chin in self.chins.values():
+            chin.wait()
+            try: chin.test(self.PAIRS) 
+            except Exception, e:
+                xenrt.TEC().logverbose("First test of CHIN %s failed. Retrying in 30s..." % (chin.index))
+                time.sleep(30)
+                chin.test(self.PAIRS)
+
+    def run(self, arglist=()):
+        pass
+
+    def postRun(self):
+        for chin in self.chins.values():
+            chin.destroy()
+        for guest in self.guests:
+            try: guest.execcmd("killall ping")
+            except: pass
+
+class TC11939(_CHIN):
+    """ 
+    Enable CHIN
+
+    On a pool of two or more hosts, each with one or more VMs, create a CHIN network
+    Give each VM an interface on the CHIN network. 
+    Each CHIN network should share a distinct statically allocated subnet.
+    Ensure that the VMs can communicate over the CHIN subnet.
+    """
+
+    CHINMAP = """
+    <CHIN>
+      <network id="1" network="NSEC">
+        <vm name="p0h0-0"/>
+        <vm name="p0h1-0"/>
+      </network>
+    </CHIN>
+    """
+
+class TC14456(_CHIN):
+    """
+    Reconfigure the IP address of the underlying transport PIFs.
+    """
+
+    CHINMAP = """
+    <CHIN>
+      <network id="1" network="NSEC">
+        <vm name="p0h0-0"/>
+        <vm name="p0h1-0"/>
+      </network>
+    </CHIN>
+    """
+
+    def run(self, arglist=[]):
+        for host,pifuuid,tunnel in self.chins[1].hosts:
+            cli = host.getCLIInstance()
+            args = []
+            args.append("uuid=%s" % (pifuuid))
+            args.append("mode=dhcp")
+            cli.execute("pif-reconfigure-ip", string.join(args))
+            self.chins[1].test()
+
+class TC11941(_CHIN):
+    """
+    CHIN No Leak
+
+    Ensure that chin traffic does not leak.
+    """
+
+    CHINMAP = """
+    <CHIN>
+      <network id="1" network="NSEC">
+        <vm name="p0h0-0"/>
+        <vm name="p0h1-0"/>
+      </network>
+      <network id="2" network="NSEC">
+        <vm name="p0h0-0"/>
+        <vm name="p0h1-0"/>
+      </network>
+    </CHIN>
+    """
+
+    def run(self, arglist=[]):
+        src = self.getGuest("p0h0-0")
+        dst = self.getGuest("p0h1-0")
+        testchin = self.chins[1]
+        controlchin = self.chins[2]
+        source = src.getLinuxIFConfigData()[testchin.guests[src][0][0]]["IP"]
+        destination = dst.getLinuxIFConfigData()[testchin.guests[dst][0][0]]["IP"]
+        # Start a continous ping on the test CHIN.
+        src.execcmd("nohup ping %s &>/dev/null &" % (destination))
+        # Check traffic is seen on the test CHIN VIFs.
+        try:
+            src.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                        (testchin.guests[src][0][0], source, destination), timeout=30)
+        except xenrt.XRTFailure:
+            raise xenrt.XRTFailure("ICMP packet not seen on source VMs test CHIN VIF.")
+        try:
+            dst.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                        (testchin.guests[dst][0][0], source, destination), timeout=30)
+        except xenrt.XRTFailure:
+            raise xenrt.XRTFailure("ICMP packet not seen on destination VMs test CHIN VIF.")
+        # Check traffic is NOT seen on the control CHIN VIFs.
+        try:
+            src.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                        (controlchin.guests[src][0][0], source, destination), timeout=30)
+        except: pass
+        else:
+            raise xenrt.XRTFailure("ICMP packet seen on source VMs control CHIN VIF.")
+        try:
+            dst.execcmd("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                        (controlchin.guests[dst][0][0], source, destination), timeout=30)
+        except: pass
+        else:
+            raise xenrt.XRTFailure("ICMP packet seen on destination VMs control CHIN VIF.")
+        for host,pifuuid,tunnel in testchin.hosts:
+            bridge = host.genParamGet("network", host.genParamGet("pif", pifuuid, "network-uuid"), "bridge")
+            # Check traffic is not seen in hosts' domain 0.
+            try:
+                host.execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                             (bridge, source, destination), timeout=30)
+            except: pass
+            else:
+                raise xenrt.XRTFailure("ICMP packet seen on %s's transport bridge." % (host.getName()))
+            # Check GRE traffic between the guests IS seen in hosts' domain 0.
+            try:
+                host.execdom0("tcpdump -i %s -c 1 proto gre" % (bridge), timeout=30)
+            except xenrt.XRTFailure:
+                raise xenrt.XRTFailure("GRE packet not seen on %s's transport bridge." % (host.getName()))
+    
+class TC12418(_CHIN):
+    """
+    16 CHINs per pool 
+
+    Ensure that 16 CHINs can be created and that each pair of endpoints on the CHIN can communicate.
+    """
+
+    CHINS = 16
+
+    def prepare(self, arglist=[]):
+        chins = []
+        for i in range(self.CHINS):
+            chins.append('<network id="%s" network="NSEC">' % (i+1))
+            chins.append('<vm name="p0h0-%s"/>' % (i/6))
+            chins.append('<vm name="p0h1-%s"/>' % (i/6))
+            chins.append('</network>')
+        self.CHINMAP = "<CHIN>%s</CHIN>" % (string.join(chins))
+        _CHIN.prepare(self, arglist)
+
+class TC12543(_CHIN):
+    """ 
+    16 Hosts per CHIN 
+
+    Across a pool of 16 hosts create 1 chin with a VM on each host connected to that CHIN.
+
+    Check traffic passes across the CHIN. 
+    """
+    
+  
+    CHINMAP = """
+    <CHIN>
+      <network id="1" network="NSEC">
+        <vm name="p0h0-0"/>
+        <vm name="p0h1-0"/>
+        <vm name="p0h2-0"/>
+        <vm name="p0h3-0"/>
+        <vm name="p0h4-0"/>
+        <vm name="p0h5-0"/>
+        <vm name="p0h6-0"/>
+        <vm name="p0h7-0"/>
+        <vm name="p0h8-0"/>
+        <vm name="p0h9-0"/>
+        <vm name="p0h10-0"/>
+        <vm name="p0h11-0"/>
+        <vm name="p0h12-0"/>
+        <vm name="p0h13-0"/>
+        <vm name="p0h14-0"/>
+        <vm name="p0h15-0"/>
+      </network>
+    </CHIN>
+    """
+
+class TC12551(_CHIN): 
+    """
+    256 VIFs per CHIN 
+    """
+       
+    CHINS = 16
+
+    CHINMAP = """
+    <CHIN>
+      <network id="1" network="NSEC">
+        %s
+      </network>
+    </CHIN>
+    """
+
+    def prepare(self, arglist=[]):
+        chins = []
+        vmstring = '<vm name="p%sh%s-%s"/>'
+        #16 CHINs with 16 vifs each.
+        for i in range(self.CHINS):
+            s = string.join(sorted(map(lambda x:vmstring % (x), 
+                                   [ (j/17,j,i/6) for j in range(16) ])))
+            chins.append('<network id="%s" network="NSEC">' % (i+1))
+            chins.append(s)
+            chins.append('</network>')
+        self.CHINMAP = "<CHIN>%s</CHIN>" % (string.join(chins))
+        _CHIN.prepare(self, arglist)
+
+#### RSPAN Tests ####
+
+class _RSPAN(_Controller):
+
+    def __init__(self, tcid=None, anon=False):
+        _Controller.__init__(self, tcid=tcid, anon=anon)
+        self.vlanid = None
+        self.sourcevif = None
+
+    def getGuestFromUUID(self, uuid):
+        guest = None
+        for guest in map(self.getGuest, xenrt.TEC().registry.guestList()):
+            if guest.getUUID() == uuid:
+                break
+        if not guest or not guest.getUUID() == uuid:
+            raise xenrt.XRTError("Cannot find guest object for uuid %s." % (uuid))
+        return guest
+
+    def getGuestInterface(self, mac):
+        for p in map(lambda x:xenrt.TEC().registry.data[x], 
+                     filter(lambda x:re.search("POOL", x), 
+                            xenrt.TEC().registry.data.keys())):
+            vifuuid = p.master.parseListForUUID("vif-list", "MAC", mac)
+            if vifuuid:
+                vmuuid = p.master.parseListForOtherParam("vif-list", "MAC", mac, "vm-uuid")
+                break
+        guest = self.getGuestFromUUID(vmuuid)
+        data = guest.getLinuxIFConfigData()
+        device = None
+        for device in data:
+            if data[device]["MAC"]:
+                if xenrt.normaliseMAC(data[device]["MAC"]) == mac:
+                    break
+        if not device or not xenrt.normaliseMAC(data[device]["MAC"]) == mac:
+            raise xenrt.XRTError("Cannot find guest interface for MAC %s." % (mac))
+        return device
+
+    def createVIF(self, guest, network, ip=None):
+        mac = xenrt.randomMAC()
+        guest.createVIF(bridge=network, mac=mac, plug=True)
+        device = self.getGuestInterface(mac)
+        interfaces = []
+        if ip:
+            interfaces.append("iface %s inet static" % (device))
+            interfaces.append("address %s" % (ip)) 
+            interfaces.append("netmask 255.255.255.0")
+        else:
+            interfaces.append("iface %s inet dhcp" % (device))
+        interfaces.append("hwaddress ether %s" % (mac))
+        interfaces.append("allow-hotplug %s" % (device))
+        guest.execguest("echo -e '%s' >> /etc/network/interfaces" % (string.join(interfaces, r"\n")))
+        guest.execguest("ifup %s" % (device))
+        return mac
+
+    def removeVIF(self, mac):
+        for p in map(lambda x:xenrt.TEC().registry.data[x], 
+                     filter(lambda x:re.search("POOL", x), 
+                            xenrt.TEC().registry.data.keys())):
+            vifuuid = p.master.parseListForUUID("vif-list", "MAC", mac)
+            if vifuuid:
+                vmuuid = p.master.parseListForOtherParam("vif-list", "MAC", mac, "vm-uuid")
+                break
+        guest = self.getGuestFromUUID(vmuuid)
+        device = self.getGuestInterface(mac)
+        cli = guest.getHost().getCLIInstance()
+        args = []
+        args.append("uuid=%s" % (vifuuid))
+        cli.execute("vif-unplug", string.join(args))
+        cli.execute("vif-destroy", string.join(args))
+        data = guest.execguest("cat /etc/network/interfaces")
+        data = re.sub(re.search("iface %s.*allow-hotplug %s" % (device, device), data, re.DOTALL).group(), "", data)
+        guest.execcmd("echo -e '%s' > /etc/network/interfaces" % (string.join(data.splitlines(), r"\n")))
+
+    def getRSPANVLAN(self):
+        rspan = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", "RSPAN", "ID"], None)
+        if not rspan:
+            raise xenrt.XRTError("This test must be run on a site with a configured RSPAN VLAN.")
+        return int(rspan)
+
+    def getRSPANPIF(self, host):
+        rspannics = host.listSecondaryNICs(rspan=True)
+        if not rspannics:
+            raise xenrt.XRTError("to RSPAN NICs found on host %s." % (host.getName()))
+        return host.getNICPIF(rspannics[0])
+
+    def mirrorVIF(self, mac):
+        rules = self.controller.getVIFRules(mac)
+        rules["rspan"] = "set"
+        rules["rspan_vlan"] = self.rspanVLAN
+        self.controller.setVIFRules(mac, rules)
+ 
+    def unmirrorVIF(self, mac):
+        rules = self.controller.getVIFRules(mac)
+        rules["rspan"] = "inherit"
+        rules["rspan_vlan"] = 0
+        self.controller.setVIFRules(mac, rules)
+ 
+    def prepare(self, arglist=[]):
+        _Controller.prepare(self, arglist)
+        self.sourceNetwork = None
+        self.pool.associateDVS(self.controller)
+        self.source = self.getGuest("p0h0-0")
+        self.target = self.getGuest("p0h1-0")
+        self.source.execcmd("rm -f "
+                            "/etc/udev/rules.d/z25_persistent-net.rules "
+                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
+        self.target.execcmd("rm -f "
+                            "/etc/udev/rules.d/z25_persistent-net.rules "
+                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
+        self.rspanVLAN = self.getRSPANVLAN()
+        self.targetPIF = self.getRSPANPIF(self.target.getHost())
+        self.sourcePIF = self.getRSPANPIF(self.source.getHost())
+        self.network = self.source.getHost().genParamGet("pif", self.sourcePIF, "network-uuid")
+        self.rspanNetwork = self.pool.master.createNetwork(name="RSPAN")
+        self.target.getHost().createVLAN(self.rspanVLAN, self.rspanNetwork, pifuuid=self.targetPIF)
+        self.targetvif = self.createVIF(self.target, self.rspanNetwork, ip="192.168.0.1")
+        self.controller.addRSPANTargetVLAN(self.rspanVLAN)
+        self.setupGuestTcpDump(self.target)
+ 
+    def run(self, arglist=[]):
+        sourcedevice = self.getGuestInterface(self.sourcevif)
+        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
+        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
+        vifdevice = "vif%s.%s" % (self.source.getDomid(), 
+                                  self.source.getHost().parseListForOtherParam("vif-list", 
+                                                                               "MAC", 
+                                                                                self.sourcevif, 
+                                                                               "device"))
+        # Check for ICMP request and reply on VM VIF.
+        try: self.source.getHost().execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                           (vifdevice, sourceip, xrtcontroller), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP request packet not seen on VIF. (%s)" % (vifdevice))
+        try: self.source.getHost().execdom0("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                           (vifdevice, xrtcontroller, sourceip), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP reply packet not seen on VIF. (%s)" % (vifdevice))
+
+        # Check ICMP request and reply aren't seen on the monitoring interface.
+        targetdevice = self.getGuestInterface(self.targetvif)
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
+        except: pass
+        else: raise xenrt.XRTFailure("ICMP request packet seen on target interface.")
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
+        except: pass
+        else: raise xenrt.XRTFailure("ICMP reply packet seen on target interface.")
+
+        # Mirror the source interface to the target interface.
+        self.mirrorVIF(self.sourcevif)
+
+        # Check ICMP request and reply can be seen on the monitoring interface.
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
+       
+        # Stop mirroring traffic.
+        self.unmirrorVIF(self.sourcevif)
+ 
+        # Check ICMP request and reply aren't seen on the monitoring interface.
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
+        except: pass
+        else: raise xenrt.XRTFailure("ICMP request packet seen on target interface.")
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
+        except: pass
+        else: raise xenrt.XRTFailure("ICMP reply packet seen on target interface.")
+
+        # Check both guests we used are still reachable.
+        self.source.checkHealth()
+        self.target.checkHealth()
+
+    def postRun(self):
+        try: self.source.execguest("killall ping")
+        except: pass
+        try: self.unmirrorVIF(self.sourcevif)
+        except: pass
+        self.removeVIF(self.targetvif)
+        self.target.getHost().removeVLAN(self.rspanVLAN)
+        self.pool.master.removeNetwork(nwuuid=self.rspanNetwork)
+        self.source.shutdown()
+        for vif in self.source.getVIFs():
+            self.source.removeVIF(vif)
+        self.sourcevif = xenrt.randomMAC()
+        bridge = self.source.getHost().getPrimaryBridge()
+        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
+        if self.source.getState() == "DOWN":
+            self.source.start() 
+        try: self.source.getHost().removeVLAN(self.vlanid)
+        except: pass
+        try: self.source.getHost().removeNetwork(self.sourceNetwork)
+        except: pass
+        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
+        _Controller.postRun(self)
+
+class TC11526(_RSPAN):
+    """
+    Mirroring
+     
+    At a policy level other than global, specify a VLAN on which the traffic should be mirrored.
+    Sniff the VLAN to ensure traffic is being mirrored.
+
+    """
+
+    def prepare(self, arglist=[]):
+        _RSPAN.prepare(self, arglist)
+        # Make sure p0h0-0 has its only VIF on an RSPAN enabled bridge. 
+        self.source.shutdown()
+        for vif in self.source.getVIFs():
+            self.source.removeVIF(vif)
+        self.sourcevif = xenrt.randomMAC()
+        bridge = self.source.getHost().getBridgeWithMapping(\
+                    self.source.getHost().listSecondaryNICs(rspan=True)[0])
+        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
+        if self.source.getState() == "DOWN":
+           self.source.start() 
+
+class TC11531(_RSPAN):
+    """
+    VLAN mangling
+     
+    Check that VLAN traffic mirrored to a VLAN has the original VLAN ID in the tag overwritten.
+
+    This test requires 2 VLANs one for VRnn and one for RSPAN.
+
+    The VRnn traffic should be mirrored to the RSPAN VLAN and the VRnn VLAN Tag should be overwritten
+    by the RSPAN VLAN tag.
+    """
+
+    VLAN = "VR01" 
+
+    def prepare(self, arglist=[]):
+        _RSPAN.prepare(self, arglist)
+        # Make sure p0h0-0 has its only VIF on VR01.
+        self.vlanid = int(xenrt.TEC().config.lookup(["NETWORK_CONFIG", "VLANS", self.VLAN, "ID"]))
+        self.sourceNetwork = self.pool.master.createNetwork(name="VLAN %s" % (self.vlanid))
+        self.source.getHost().createVLAN(self.vlanid, self.sourceNetwork, pifuuid=self.sourcePIF)
+        self.source.shutdown()
+        for vif in self.source.getVIFs():
+            self.source.removeVIF(vif)
+        self.sourcevif = xenrt.randomMAC()
+        self.source.createVIF(bridge=self.sourceNetwork, mac=self.sourcevif)
+        if self.source.getState() == "DOWN":
+            self.source.start() 
+
+class TC11532(TC11531):
+    """
+    Ensure that traffic mirrored to the RSPAN VLAN can be seen:
+
+        * On a VIF on the same host as the mirrored VIF.
+        * On a VIF on a different host in the same pool as the VIF.
+        * On a VIF on a different host outside the pool.
+    """
+   
+    def prepare(self, arglist=[]):
+        TC11531.prepare(self, arglist)
+        self.targets = []
+        self.targets.append((self.target, self.targetvif))
+        xenrt.TEC().registry.poolGet("RESOURCE_POOL_1").associateDVS(self.controller)
+        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
+        self.controller.addRSPANTargetVLAN(self.rspanVLAN)
+        for extra in ["p0h0-1", "p1h0-0"]:
+            extra = self.getGuest(extra)
+            extra.execguest("rm -f "
+                            "/etc/udev/rules.d/z25_persistent-net.rules "
+                            "/etc/udev/rules.d/z45_persistent-net-generator.rules")
+            network = extra.getHost().parseListForUUID("network-list", "name-label", "RSPAN")
+            if not network:
+                network = extra.getHost().createNetwork(name="RSPAN")
+            try:
+                extra.getHost().createVLAN(self.rspanVLAN, network, pifuuid=self.getRSPANPIF(extra.getHost()))
+            except: pass
+            targetvif = self.createVIF(extra, network, ip="192.168.0.1")
+            self.setupGuestTcpDump(extra)
+            self.targets.append((extra, targetvif)) 
+
+    def run(self, arglist=[]):
+        self.mirrorVIF(self.sourcevif)
+        sourcedevice = self.getGuestInterface(self.sourcevif)
+        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
+        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
+        for guest,mac in self.targets:
+            interface = self.getGuestInterface(mac)
+            xenrt.TEC().logverbose("Looking for RSPAN traffic on %s %s (%s)." % \
+                                   (guest.getName(), interface, mac))
+            # Check ICMP request and reply can be seen on the monitoring interface.
+            try: guest.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                 (interface, sourceip, xrtcontroller), timeout=30)
+            except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
+            try: guest.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                 (interface, xrtcontroller, sourceip), timeout=30)
+            except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
+
+    def postRun(self):
+        try: self.source.execguest("killall ping")
+        except: pass
+        try: self.unmirrorVIF(self.sourcevif)
+        except: pass
+        for guest,mac in self.targets:
+            nwuuid = guest.getHost().parseListForOtherParam("vif-list", "MAC", mac, "network-uuid")
+            self.removeVIF(mac)
+            try: guest.getHost().removeVLAN(self.rspanVLAN)
+            except: pass
+            try: guest.getHost().removeNetwork(nwuuid=nwuuid)
+            except: pass
+        self.source.shutdown()
+        for vif in self.source.getVIFs():
+            self.source.removeVIF(vif)
+        self.sourcevif = xenrt.randomMAC()
+        bridge = self.source.getHost().getPrimaryBridge()
+        self.source.createVIF(bridge=bridge, mac=self.sourcevif)
+        if self.source.getState() == "DOWN":
+            self.source.start() 
+        try: self.source.getHost().removeVLAN(self.vlanid)
+        except: pass
+        try: self.source.getHost().removeNetwork(self.sourceNetwork)
+        except: pass
+        self.controller.removeRSPANTargetVLAN(self.rspanVLAN)
+        xenrt.TEC().registry.poolGet("RESOURCE_POOL_1").disassociateDVS()
+        _Controller.postRun(self)
+
+class TC11582(TC11531): 
+    """
+    Obey RSPAN and Netflow
+
+    A collector must continue to receive all netflow data whenever the controller dies.
+    In fail safe mode some VMS may be lost but all exisiting VMs and their VIFs will 
+    continue to generate traffic and hence their netflow data should be visible.
+
+    Similarly any RSPAN mirror that has been configured should continue to operate, but if 
+    the VM becomes uncontactable due to the fail safe mechanism, it will not generate traffic 
+    and hence RSPAN cannot work.
+
+    Therefore it is only worth testing obeying netflow and RSPAN with a failed controller
+    in fail open mode.
+
+    """
+
+    def prepare(self, arglist=[]):
+        TC11531.prepare(self, arglist)
+        # Enable fail-open mode.
+        self.controller.setPoolFailMode(self.host.getIP(), 0)
+        self.receiver = self.getGuest("p1h0-0")
+        self.setupGuestTcpDump(self.receiver)
+
+    def run(self, arglist=[]):
+        self.controller.setNetflowCollector(self.pool.master.getIP(), self.receiver.getIP(), 9996, False)
+        self.receiver.execguest("tcpdump -c 1 port 9996") 
+        # Mirror the source interface to the target interface.
+        self.mirrorVIF(self.sourcevif)
+        sourcedevice = self.getGuestInterface(self.sourcevif)
+        sourceip = self.source.getLinuxIFConfigData()[sourcedevice]["IP"]
+        xrtcontroller = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+        targetdevice = self.getGuestInterface(self.targetvif)
+        self.source.execguest("nohup ping -i 5 -I %s %s &> /dev/null &" % (sourcedevice, xrtcontroller))
+        # Check ICMP request and reply can be seen on the monitoring interface.
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
+
+        # Disconnect the controller from the network.
+        self.controller.place.unplugVIF('eth0')
+
+        self.receiver.execguest("tcpdump -c 1 port 9996") 
+
+        # Check ICMP request and reply can be seen on the monitoring interface.
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, sourceip, xrtcontroller), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP request packet not seen on target interface.")
+        try: self.target.execguest("tcpdump -i %s -c 1 icmp and src %s and dst %s" % \
+                                  (targetdevice, xrtcontroller, sourceip), timeout=30)
+        except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
+
+        self.controller.place.plugVIF("eth0")

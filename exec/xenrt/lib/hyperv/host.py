@@ -81,12 +81,17 @@ class HyperVHost(xenrt.GenericHost):
         else:
             pxe.addEntry("local", boot="local")
         
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
         pxe.setDefault("local")
         pxe.writeOut(self.machine)
 
         self.machine.powerctl.cycle()
-        # Wait for the iPXE file to be accessed - once it has, we can clean it up ready for local boot
+        # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
+        pxe.waitForIPXEStamp(self.machine)
+        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        
+        # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
+        
         pxe.waitForIPXEStamp(self.machine)
         pxe.clearIPXEConfig(self.machine)
 

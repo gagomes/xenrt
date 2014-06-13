@@ -1100,8 +1100,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                                     "george-update-1", "bodie", "laurie",
                                     "cowley-newkernel", "boston-newxen"]:
                 tickettitle = "[%s] %s" % (r.group(1), tickettitle)
-            issue = j.create_issue(project={"key":project},summary = tickettitle[0:255],issuetype={"name":"Bug"},priority={"name":"Major"},
-                                environment=environment,description=description,
+            issue = j.create_issue(project={"key":project},summary = unicode(tickettitle[0:255], errors='ignore'),issuetype={"name":"Bug"},priority={"name":"Major"},
+                                environment=environment,description=unicode(description, errors='ignore'),
                                 components=[{'id':component}],assignee={'name':assignee})
             xenrt.GEC().logverbose("Created JIRA issue %s" % (issue.key))
             try:

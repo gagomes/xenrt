@@ -62,13 +62,13 @@
         <memory>1024</memory>
         <storage>nfs2</storage>
       </vm>
-      <vm name="XenCenter">
+      <!--<vm name="XenCenter">
         <distro>win7sp1-x86</distro>
         <postinstall action="installDrivers" />
         <postinstall action="installCarbonWindowsGUI" />
         <postinstall action="attachXenCenterToHost" />
         <network device="0" />
-      </vm>
+      </vm>-->
     </pool>
   </prepare>
 

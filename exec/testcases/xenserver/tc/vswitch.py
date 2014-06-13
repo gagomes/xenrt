@@ -191,152 +191,17 @@ class _VSwitch(xenrt.TestCase):
                 return guest
         raise xenrt.XRTError("Failed to find guest with name %s" % (name))
 
-    def createSDKHost(self, machine = "RESOURCE_HOST_0"):
-
-        kit = "sdk"
-
-        host = xenrt.TEC().registry.hostGet(machine)
-        if not host:
-            raise xenrt.XRTError("Unable to find host %s in registry" %
-                                 (machine))
-        self.getLogsFrom(host)
-
-        # Optional arguments
-        vcpus = None
-        memory = 752
-        uninstall = True
-        guestname = xenrt.randomGuestName()
-
-
-        g = host.guestFactory()(\
-            guestname, "NO_TEMPLATE",
-            password=xenrt.TEC().lookup("ROOT_PASSWORD_SDK"))
-        g.host = host
-        self.sdkhosts.append(g)
-        if vcpus != None:
-            g.setVCPUs(vcpus)
-        if memory != None:
-            g.setMemory(memory)
-
-        # Perform the import
-        sdkzip = None
-        sdkiso = xenrt.TEC().lookup("SDK_CD_IMAGE", None)
-        if not sdkiso:
-            sdkzip = xenrt.TEC().getFile("xe-phase-2/%s.zip" % (kit), "%s.zip" % (kit))
-        if not sdkiso and not sdkzip:
-            sdkiso = xenrt.TEC().getFile("xe-phase-2/%s.iso" % (kit), "%s.iso" % (kit))
-        if not sdkiso and not sdkzip:
-            raise xenrt.XRTError("No SDK ISO/ZIP file given")
-        try:
-            if sdkiso:
-                mount = xenrt.MountISO(sdkiso)
-                mountpoint = mount.getMount()
-            if sdkzip:
-                # XXX Make this a tempDir once we've moved them out of /tmp
-                tmp = xenrt.NFSDirectory()
-                mountpoint = tmp.path()
-                xenrt.command("unzip %s -d %s" % (sdkzip, mountpoint))
-            g.importVM(host, "%s/%s" % (mountpoint, kit))
-            br = host.getPrimaryBridge()
-            if not br:
-                raise xenrt.XRTError("Host has no bridge")
-            g.vifs = [("eth0", br, xenrt.randomMAC(), None)]
-            for v in g.vifs:
-                eth, bridge, mac, ip = v
-                g.createVIF(eth, bridge, mac)
-        finally:
-            try:
-                if sdkiso:
-                    mount.unmount()
-                if sdkzip:
-                    tmp.remove()
-            except:
-                pass
-        g.memset(g.memory)
-        g.cpuset(g.vcpus)
-
-        xenrt.TEC().registry.guestPut(guestname, g)
-
-        # Make sure we can boot it
-        g.makeNonInteractive()
-        g.tailored = True
-        g.start()
-        time.sleep(120)
-
-    def moveInterfaceOnto(self, vm, new_bridge):
-        # force a ping during this exercise to make the switch learn the new net loaction of the VM
-        pid = vm.execguest("nohup ping google.com &>/dev/null 2>/dev/null & echo $!").strip('\n')
-        
-        vm.execcmd("rm -f "
-                     "/etc/udev/rules.d/z25_persistent-net.rules "
-                     "/etc/udev/persistent-net-generator.rules")
-
-        vif = vm.getVIFs()['eth0']
-        
-        mac_addr, ip_addr, old_bridge = vif
-
-        vm.unplugVIF("eth0")
-        vm.removeVIF("eth0")
-
-        vm.createVIF(eth="eth0", bridge=new_bridge, mac=mac_addr, plug=True)
-
-        vif = "vif%s.0" % vm.getDomid()
-
-        new_ip = None
-        while new_ip == None or new_ip == ip_addr :
-            new_ip = vm.getVIFs()['eth0'][1]
-                        
-
-        vm.mainip = new_ip
-        # now the guest 'should' be contactable through the new interface - we hope
-        vm.execguest("kill -9 %s" % pid)
-    def removesdkhosts(self):
-        for guest in self.sdkhosts:
-            guest.shutdown()
-            guest.uninstall()
-
-        r = self.getResult(code=True)
-        if r == xenrt.RESULT_FAIL or r == xenrt.RESULT_ERROR:
-            # Make sure the guest isn't running anymore
-            for guest in self.sdkhosts:
-                self.tec.logverbose("Making sure %s is shut down" %
-                                    (guest.name))
-                try:
-                    guest.shutdown(force=True)
-                except:
-                    pass
-
     def setupGuestTcpDump(self, guest):
         if self.wdir == None:
             self.wdir = xenrt.resources.WebDirectory()
             self.wdir.copyIn("/local/apt-cache/packages/libssl0.9.7_0.9.7e-3sarge5_i386.deb")
             self.wdir.copyIn("/local/apt-cache/packages/libpcap0.8_0.8.3-5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/tcpdump_3.8.3-5sarge2_i386.deb")            
+            self.wdir.copyIn("/local/apt-cache/packages/tcpdump_3.8.3-5sarge2_i386.deb")
 
         guest.execguest("wget %s" % self.wdir.getURL("libssl0.9.7_0.9.7e-3sarge5_i386.deb"))
         guest.execguest("wget %s" % self.wdir.getURL("libpcap0.8_0.8.3-5_i386.deb"))
         guest.execguest("wget %s" % self.wdir.getURL("tcpdump_3.8.3-5sarge2_i386.deb"))
         guest.execguest("dpkg -i libssl0.9.7_0.9.7e-3sarge5_i386.deb libpcap0.8_0.8.3-5_i386.deb tcpdump_3.8.3-5sarge2_i386.deb")
-
-    # XAPI bridges are not real briidges as such, when the bridge proivdes connection to the
-    # pif they form part of an xenbr bridge. This function returns the xenbr bridge that
-    # the xapi bridge is associated with
-    def getXenbrFromFakeXapibr(self, host, vlan_bridge):
-        peids = host.execdom0("ovs-vsctl -- get port %s external_ids" % vlan_bridge).strip().replace("fake-bridge-", "" )
-        bridges = host.execdom0("ovs-vsctl list-br").strip().split("\n")
-        xen_bridge = None
-        beids = None
-        for bridge in bridges:
-            if "xapi" not in bridge:
-                beids = host.execdom0("ovs-vsctl -- get Bridge %s external_ids" % bridge).strip()
-            if beids == peids:
-                xen_bridge = bridge
-                break
-            else:
-                xen_bridge = None
-        return xen_bridge
-
-
 
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
@@ -345,7 +210,6 @@ class _VSwitch(xenrt.TestCase):
         self.guests = []
         for host in self.hosts:
             self.guests = self.guests + host.guests.values()
-
 
 class _Controller(_VSwitch):
     """Base class for vSwitch tests with controller."""
@@ -4069,12 +3933,6 @@ class TC11527(_VSwitch):
 
         return int(guest.execguest("grep '%s' mycap|awk 'END {print NR}'" % search_ipaddr).strip())
 
-    def getGuestFromName(self, name):
-        for guest in self.guests:
-            if guest.getName() == name:
-                return guest
-        raise xenrt.XRTError("Failed to find guest with name %s" % (name))
-
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)
         self.linux_0 = self.getGuestFromName('p0h0-0')
@@ -4095,6 +3953,21 @@ class TC11527(_VSwitch):
                                              "select-src-port=%s select-dst-port=%s output-port=%s" %
                                             (srcPortUUID, dstPortUUID, outPortUUID)).strip()
 
+    def getXenbrFromFakeXapibr(self, host, vlan_bridge):
+        """ XAPI bridges are not real bridges as such, when the bridge provides connection to the pif they form part of an xenbr bridge. This function returns the xenbr bridge that the xapi bridge is associated with."""
+        peids = host.execdom0("ovs-vsctl -- get port %s external_ids" % vlan_bridge).strip().replace("fake-bridge-", "" )
+        bridges = host.execdom0("ovs-vsctl list-br").strip().split("\n")
+        xen_bridge = None
+        beids = None
+        for bridge in bridges:
+            if "xapi" not in bridge:
+                beids = host.execdom0("ovs-vsctl -- get Bridge %s external_ids" % bridge).strip()
+            if beids == peids:
+                xen_bridge = bridge
+                break
+            else:
+                xen_bridge = None
+        return xen_bridge
 
     def removeSPAN(self, host): 
         host.execdom0("ovs-vsctl destroy Mirror mymirror -- clear Bridge xenbr0 mirrors")
@@ -4623,13 +4496,32 @@ class TC11582(TC11531):
 
 class TC11567(_VSwitch):
     """
-    Bond carrier loss and carrier detection rates
-    
-    Set the carrier loss and carrier detection delays and ensure that these are obeyed
+    Bond carrier loss and carrier detection rates. Set the carrier loss and carrier detection delays and ensure that these are obeyed.
     """
 
     bond_pif_uuid = None
     orig_down_delay = None
+
+    def moveInterfaceOnto(self, vm, new_bridge):
+
+        # force a ping during this exercise to make the switch learn the new net loaction of the VM
+        pid = vm.execguest("nohup ping google.com &>/dev/null 2>/dev/null & echo $!").strip('\n')
+
+        vm.execcmd("rm -f "
+                     "/etc/udev/rules.d/z25_persistent-net.rules "
+                     "/etc/udev/persistent-net-generator.rules")
+        mac_addr, ip_addr, old_bridge = vm.getVIFs()['eth0']
+        vm.unplugVIF("eth0")
+        vm.removeVIF("eth0")
+        vm.createVIF(eth="eth0", bridge=new_bridge, mac=mac_addr, plug=True)
+        vif = "vif%s.0" % vm.getDomid()
+        new_ip = None
+        while new_ip == None or new_ip == ip_addr :
+            new_ip = vm.getVIFs()['eth0'][1]
+        vm.mainip = new_ip
+
+        # now the guest 'should' be contactable through the new interface - we hope
+        vm.execguest("kill -9 %s" % pid)
 
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)
@@ -4662,24 +4554,18 @@ class TC11567(_VSwitch):
         bondUUID = self.host.genParamGet("pif", bondPif, "bond-master-of")
         slavePifs = self.host.minimalList("pif-list", args="bond-slave-of=%s" % (bondUUID))
         self.bondDevices = map(lambda p: self.host.genParamGet("pif", p, "device"), slavePifs)
-
         self.host.execdom0("/etc/init.d/ntpd restart") # Make sure time is in sync
 
         dev1 = self.bondDevices[0]
         dev2 = self.bondDevices[1]
         script="""#!/bin/bash
-
 # Force phyiscal switch to send all man traffic through
 # NSEC
 ifconfig %s down
 ifconfig %s down
-
 ping -c 1 -b %s
-
 ifconfig %s up
 ifconfig %s up
-
-
 """ % (dev1, dev2, bcast, dev1, dev2)
 
         self.host.execdom0("echo '%s' > script" % script)
@@ -4687,7 +4573,6 @@ ifconfig %s up
         self.host.execdom0("nohup ./script &")
         time.sleep(5) # give time for interfaces to ressurect
         self.orig_down_delay = self.host.execdom0("ovs-vsctl get port bond0 bond_downdelay")
-
 
     def run(self, arglist):
         # The contextt for this test is as follows:
@@ -4703,8 +4588,6 @@ ifconfig %s up
         # R4.12a When an interface resumes service traffic from existing interfaces must be rebalanced across 
         #       all the operational interfaces.
 
-        
-        
         # get the bond information
         bond_uuid = self.host.minimalList("bond-list")[0]
         self.bond_pif_uuid = self.host.genParamGet("bond", bond_uuid, "master")
@@ -4732,8 +4615,6 @@ ifconfig %s up
             first_if = dev2
             sec_if = dev1
 
-        
-
         # tolerence for python/ssh command execution
         tolerence = 2
         for delay in [2, 3, 4, 5]:
@@ -4750,7 +4631,7 @@ ifconfig %s up
             # store time now
             before = time.time()
 
-            # wait until traiffic is seen on the second interface
+            # wait until traffic is seen on the second interface
             self.host.execdom0("tcpdump -c1 -i %s host %s and icmp" % (sec_if, linux_0.getIP()), timeout=(delay *2))
             # check time delta is not greater than that we are testing
             # Note we need to subtract one second to delay to account for the turnaround of python commands
@@ -4773,8 +4654,7 @@ ifconfig %s up
             linux_0.execguest("killall ping")
         except:
             pass
-       
-        
+
     def postRun(self):
         try:
             self.moveInterfaceOnto(self.getGuestFromName('linux_0'), self.vm_old_bridge)
@@ -4796,11 +4676,6 @@ ifconfig %s up
             self.host.execdom0("ovs-vsctl set port bond0 bond_downdelay=%s" % self.orig_down_delay)
         except:
             pass
-        
-
-
-
-
 
 class TC12550(_VSwitch):
     """

@@ -217,12 +217,6 @@ class MarvinApi(object):
         if not templates:
             raise xenrt.XRTError('Failed to find system templates')
 
-        hvlist = xenrt.TEC().lookup("CLOUD_HYPERVISORS", None)
-        if hvlist:
-            hvlist = hvlist.split(",")
-            for t in templates.keys():
-                if t not in hvlist:
-                    del templates[t]
         # Check if any non-default system templates have been specified
         # These should be added in the form -D CLOUD_SYS_TEMPLATES/hypervisor=url
         sysTemplates = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATES", {})
@@ -235,6 +229,11 @@ class MarvinApi(object):
             xenrt.TEC().warning("Use of CLOUD_SYS_TEMPLATE is deprecated, use CLOUD_SYS_TEMPLATES/xenserver instead")
             templates['xenserver'] = sysTemplateSrcLocation
 
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        for t in templates.keys():
+            if t not in hvlist:
+                del templates[t]
+        
         xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':

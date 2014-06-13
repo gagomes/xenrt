@@ -994,6 +994,17 @@ class PrepareNode:
                     if not cluster.has_key('hypervisor'):
                         cluster['hypervisor'] = "XenServer"
 
+                    currentSysTemplates = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
+                    if not currentSysTemplates:
+                        sysTemplates = cluster['hypervisor'].lower()
+                    else:
+                        curList = currentSysTemplates.split(",")
+                        if cluster['hypervisor'].lower() not in curList:
+                            curList.append(cluster['hypervisor'].lower())
+                        sysTemplates = ",".join(curList)
+                    
+                    xenrt.TEC().config.setVariable("CLOUD_REQ_SYS_TMPLS", sysTemplates)
+
                     if cluster['hypervisor'] == "XenServer":
                         if not cluster.has_key('XRT_MasterHostId'):
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
@@ -1058,7 +1069,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s"}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
-
+                    
 
     def handlePoolNode(self, node, params):
         pool = {}

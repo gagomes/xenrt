@@ -1243,3 +1243,6 @@ class TC18378(LunPerVDI):
         migratedVMs = self.hosts[1].minimalList("vm-list", "name-label")
         if(re.search(str(guest), migratedVMs)):
             raise xenrt.XRTFailure("It was possible to use Storage XenMotion to migrate the VM from a rawHBA to a local SR on a different machine.")
+
+    
+       

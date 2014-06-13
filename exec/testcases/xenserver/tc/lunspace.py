@@ -137,3 +137,71 @@ class TC21549(VerifyTrimTrigger):
 class TC21550(VerifyTrimTrigger):
     """Verify whether TRIM can be triggered on HBA SR  """
     SR_TYPE = "lvmohba"
+    
+    
+        
+class TC21547(xenrt.TestCase):
+
+    OLDSIZE = 50 #in GB
+    NEWSIZE = 80 #
+    RESIZEFACTOR =10
+    def prepare(self, arglist=[]):
+
+        # Lock storage resource and access storage manager library functions.
+        self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        xenrt.StorageArrayType.FibreChannel)
+                                                                        
+        self.host = self.getDefaultHost()
+        self.host.scanFibreChannelBus()        
+        self.host.enableMultipathing()
+        self.getLogsFrom(self.host)        
+        
+        # Setup initial storage configuration, 1 LUNs of given size
+        self.netAppFiler.provisionLuns(1, self.OLDSIZE,{self.host : self.host.getFCWWPNInfo()})
+       
+        self.lun = self.netAppFiler.getLuns()[0]
+        step("The lun is %s" %self.lun)
+        self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR")
+        self.fcSR.create(self.lun.getId())
+        
+        
+    def run(self, arglist=[]):        
+
+        self.guests =[]
+        self.guests.append(self.host.createBasicGuest(name="ws08r2-x64",distro="ws08r2-x64",sr=self.fcSR.uuid))
+        self.guests.append(self.host.createBasicGuest(name="centos64", distro="centos64", sr=self.fcSR.uuid))
+        
+        newSize = self.OLDSIZE        
+        while newSize <= self.NEWSIZE :
+            newSize = newSize + self.RESIZEFACTOR
+            newSizeBytes = newSize * xenrt.GIGA 
+            step("Resizing the LUN with serial number: %s to %d GB" %
+                        (self.lun.getNetAppSerialNumber(),newSize))
+            
+            step("Currently the lun size is %s "%self.lun.size())           
+            self.lun.resize(newSizeBytes/xenrt.MEGA,False)
+            self.fcSR.scan()
+            step("After resizing the lun size is %s "%self.lun.size())
+            currentsize=self.fcSR.physicalSizeMB()
+            expectednewsize = newSizeBytes/xenrt.MEGA - 12
+            
+            if currentsize == expectednewsize:
+                step("SR physical size is equal to new size.Check that VM are functioning well after resizing the lun..")
+                # Verify that VM can go through the life cycle operations                
+                for guest in self.guests:
+                    self.getLogsFrom(guest)
+                    guest.shutdown()
+                    guest.start()
+                    guest.reboot()
+                    guest.suspend()
+                    guest.resume()
+            else :
+                raise xenrt.XRTFailure("SR didnt resize to the expected new size %s MB.Its Current size is %s MB" %(expectednewsize,currentsize))
+                
+    def postRun(self, arglist=None):
+        for guest in self.guests:
+           guest.shutdown(force=True)
+           guest.uninstall()
+        self.host.destroySR(self.fcSR.uuid)
+        self.netAppFiler.release()
+        

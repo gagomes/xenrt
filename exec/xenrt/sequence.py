@@ -1931,7 +1931,7 @@ class PrepareNode:
                     host.associateDVS(controller.getDVSCWebServices())
 
                 if self.cloudSpec:
-                    xenrt.lib.cloud.deploy(self.cloudSpec)
+                    xenrt.lib.cloud.doDeploy(self.cloudSpec)
 
         except Exception, e:
             sys.stderr.write(str(e))

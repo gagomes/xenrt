@@ -7,7 +7,7 @@ import pprint
 
 import xenrt.lib.cloud
 
-__all__ = ["deploy"]
+__all__ = ["doDeploy"]
 
 class DeployerPlugin(object):
     DEFAULT_POD_IP_RANGE = 10
@@ -242,7 +242,7 @@ class DeployerPlugin(object):
     def notifyGlobalConfigChanged(self, key, value):
         xenrt.TEC().logverbose("notifyGlobalConfigChanged:\n" + pprint.pformat(value))
         
-def deploy(cloudSpec, manSvr=None):
+def doDeploy(cloudSpec, manSvr=None):
     xenrt.TEC().logverbose('Cloud Spec: %s' % (cloudSpec))
 
     # TODO - Get the ManSvr object from the registry

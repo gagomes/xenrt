@@ -1,7 +1,7 @@
 <xenrt>
 
   <default name="VMSPERHOST" value="50"/>
-  <default name="THREADS" value="20"/>
+  <default name="THREADS" value="50"/>
   <default name="DISTRO" value="win7sp1-x86"/>
 
   <variables>
@@ -14,12 +14,13 @@
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
-    <NTHREADS>20</NTHREADS>
+    <NTHREADS>50</NTHREADS>
   </variables>
   
   <prepare>
     <pool>
-      <storage type="nfs" name="nfs1" default="true" network="STORAGE02"/>
+      <storage type="nfs" name="nfs1" default="true" network="STORAGE01"/>
+      <storage type="nfs" name="nfs2" network="STORAGE02"/>
       <allhosts/>
       
       <NETWORK>
@@ -49,13 +50,25 @@
         <memory>1024</memory>
         <storage>nfs1</storage>
       </vm>
-      <vm name="XenCenter">
+      <vm name="gold1">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs2</storage>
+      </vm>
+      <!--<vm name="XenCenter">
         <distro>win7sp1-x86</distro>
         <postinstall action="installDrivers" />
         <postinstall action="installCarbonWindowsGUI" />
         <postinstall action="attachXenCenterToHost" />
         <network device="0" />
-      </vm>
+      </vm>-->
     </pool>
   </prepare>
 

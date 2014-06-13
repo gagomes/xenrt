@@ -11048,6 +11048,9 @@ class CreedenceHost(ClearwaterHost):
                 if 'o_direct' not in oc or 'true' not in self.genParamGet("sr", sr, "other-config", "o_direct"):
                     self.genParamSet("sr", sr, "other-config", "true", "o_direct")
 
+    def vSwitchCoverageLog(self):
+        self.vswitchAppCtl("coverage/show")
+
 #############################################################################
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False

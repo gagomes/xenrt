@@ -4889,7 +4889,12 @@ class GenericHost(GenericPlace):
                 rebootTime = xenrt.util.timenow()
                 self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
             # Check what we can SSH to is the rebooted host
-            uptime = self.execdom0("uptime")
+            
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4901,7 +4906,11 @@ class GenericHost(GenericPlace):
             # This is to try to avoid a race on slow shutdowns (XRT-3155)
             xenrt.sleep(60)
             self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
-            uptime = self.execdom0("uptime")
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4909,7 +4918,10 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            self.execdom0("/sbin/reboot", timeout=600)
+            try:
+                self.execdom0("/sbin/reboot", timeout=600)
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())

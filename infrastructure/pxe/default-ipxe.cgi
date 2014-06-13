@@ -29,6 +29,10 @@ set 210:string tftp://${next-server}/
 chain tftp://${next-server}/pxelinux.0
 goto end
 
+:winpe
+echo Loading WinPE
+chain http://${next-server}/wininstall/netinstall/default/boot.ipxe
+
 :razor
 echo Loading Razor Microkernel
 chain tftp://${next-server}/razor.ipxe

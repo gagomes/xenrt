@@ -56,7 +56,7 @@ class DeployerPlugin(object):
 
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        xenrt.TEC().logverbose("getSecondaryStorageUrl: key %, ref %s" % (key, ref))
+        xenrt.TEC().logverbose("getSecondaryStorageUrl: key %s ref %s" % (key, ref))
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             url = self.marvin.createSecondaryStorage("SMB")
         elif self.initialSecStorageUrl:
@@ -67,21 +67,21 @@ class DeployerPlugin(object):
         return url
 
     def getSecondaryStorageProvider(self, key, ref):
-        xenrt.TEC().logverbose("getSecondaryStorageProvider: key %, ref %s" % (key, ref))
+        xenrt.TEC().logverbose("getSecondaryStorageProvider: key %s ref %s" % (key, ref))
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             return "SMB"
         else:
             return 'NFS'
 
     def getSecondaryStorageDetails(self, key, ref):
-        xenrt.TEC().logverbose("getSecondaryStorageDetails: key %, ref %s" % (key, ref))
+        xenrt.TEC().logverbose("getSecondaryStorageDetails: key %s ref %s" % (key, ref))
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             return {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
         else:
             return None 
 
     def getPrimaryStorageDetails(self, key, ref):
-        xenrt.TEC().logverbose("getPrimaryStorageDetails: key %, ref %s" % (key, ref))
+        xenrt.TEC().logverbose("getPrimaryStorageDetails: key %s ref %s" % (key, ref))
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             return [{"user":"Administrator"}, {"password": "xenroot01T"}, {"domain": "XSQA"}]
         else:
@@ -145,7 +145,7 @@ class DeployerPlugin(object):
 
     def getPrimaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        xenrt.TEC().logverbose("getPrimaryStorageUrl: key %, ref %s" % (key, ref))
+        xenrt.TEC().logverbose("getPrimaryStorageUrl: key %s ref %s" % (key, ref))
         if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
             cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)

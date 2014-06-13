@@ -854,7 +854,6 @@ class TC11561(_VSwitch):
         else:
             xenrt.TEC().comment("Skipping guest IP check")
 
-
         # Check VLAN VM 3
         vlanguest[2].check()
         vlanguest[2].checkHealth()
@@ -974,314 +973,6 @@ class TC11561(_VSwitch):
         vlanguest[1].shutdown()
         vlanguest[1].uninstall()
 
-class _TC11537:
-    """
-    Base class providing Create VIFs/VMs for TC11537 sequences
-    """
-
-    machnum = -1 # simplifies thread synchronisation
-    myguests = []
-    lock = threading.Lock()
-    ip_counter = 0
-    mac_counter = 0
-    seed_guests = []
-    vifs_to_remove = []
-    test_dead = False
-    hosts = []
-
-    def createNVifsOnGuest (self, n, guest):
-        guest.execguest("cp /etc/network/interfaces /root/interfaces")
-        for i in range(1, n + 1):
-            eth = "eth%d" % i
-            self.lock.acquire()
-            ip_counter = self.ip_counter
-            mac_counter = self.mac_counter
-            self.ip_counter += 1
-            self.mac_counter += 1
-            self.lock.release()
-
-            mac = "1a:37:36:11:%02x:%02x" % (mac_counter / 255, mac_counter % 255)
-
-            # each machine will have n subnets with its machine number
-            # identifing itself on each
-            ip = "192.168.%d.%d" % (ip_counter / 253, (ip_counter % 253) + 1)
-
-            # note subnet will require max 512 interfaces
-            guest.execguest("echo 'iface %s inet static \n"
-                            "address %s\nnetmask 255.255.240.0\n"
-                            "hwaddress ether %s' >> "
-                            "/etc/network/interfaces" %  (eth, ip, mac))
-            bridge="xenbr0"
-            guest.createVIF(eth, bridge, mac, plug=True)
-            guest.execguest("ifup %s" % eth)
-
-    def copyThisVMOnItsHost(self, vm_to_clone, num_guests, num_vifs):
-        try:
-            # store some values from the clean-up operation
-            # do this in thread safe manner as this is likely to be called across
-            # many hosts
-            self.lock.acquire()
-            self.seed_guests.append(vm_to_clone)
-            self.vifs_to_remove.append(num_vifs)
-            self.lock.release()
-
-            vm_to_clone.execcmd("rm -f "
-                                 "/etc/udev/rules.d/z25_persistent-net.rules "
-                                 "/etc/udev/persistent-net-generator.rules")
-            vm_to_clone.shutdown()
-            first = True
-            # self.machnum is shared across threads
-            # slight danger that two vms get the same name here
-            # but this is preventend once we enter the loop
-
-            for i in range(num_guests):
-                self.lock.acquire()
-                self.machnum += 1
-                machid = self.machnum
-                vmname="clone%d" % (machid)
-                self.lock.release()
-
-                # - there is a cloning limitation
-                if i > 0 and i % 20 == 0:
-                    g = vm_to_clone.copyVM(name=vmname)
-                    vm_to_clone.start() # start the previous vm_to_clone
-                    if num_vifs > 0:
-                        self.createNVifsOnGuest(num_vifs, vm_to_clone)
-                    vm_to_clone = g
-                    g.tailored=True
-                else:
-                    g = vm_to_clone.cloneVM(name=vmname)
-                    g.tailored=True
-                    g.start()
-                    self.createNVifsOnGuest(num_vifs, g)
-
-                # dont forget we need to copy every 30th clone
-
-                # piece of code to protect shared variables in threaded execution
-                self.lock.acquire()
-                self.myguests.append(g)
-                self.lock.release()
-                # Kill this thread if another has died
-                if self.test_dead == True:
-                    break
-
-            # all vms have been created start the last vm to clone
-            vm_to_clone.start()
-            if num_vifs > 0:
-                self.createNVifsOnGuest(num_vifs, vm_to_clone)
-        except:
-            self.test_dead=True
-             
-
-    def createVMsOnHost(self, host, num_guests, num_vifs):
-        vm_to_clone = host.guests.values()[0]
-        self.copyThisVMOnItsHost(vm_to_clone, num_guests, num_vifs)
-
-    def createManyGuestsInPool(self,nbrOfGuests, extra_vifs=0):
-        nbrOfHosts = len(self.hosts)
-        (guestsPerHost, nbrOfGuestsOnLastHost) = self.proposeGuestDistribution(nbrOfGuests)
-        
-        comment("Number of guests on each host = %d." % guestsPerHost)
-        comment("Number of guests on last host = %d." % nbrOfGuestsOnLastHost)
-        
-        # use parallel threads to create guest clones on each slave host in the pool 
-        for host in self.hosts[:-1]: 
-            xenrt.pfarm ([xenrt.PTask(self.createVMsOnHost, host, (guestsPerHost-1), extra_vifs)], wait = False)
-
-        # use main thread to create clones on master host in the pool
-        self.createVMsOnHost(self.hosts[(nbrOfHosts - 1)], (nbrOfGuestsOnLastHost-1), extra_vifs)
-
-        singleGuestCreationTimeout = 20 * 60
-        counterStep  = 5*60
-        timeSinceLastGuestCreated  = 0
-        previousNbrOfGuests = 0
-        
-        # we already have one guest on each host.
-        nbrOfVmsToCreate = ((nbrOfHosts - 1) * (guestsPerHost-1)) + (nbrOfGuestsOnLastHost-1)
-        
-        while self.test_dead == False and len(self.myguests) < nbrOfVmsToCreate :
-            currentNbrOfGuests = len(self.myguests)
-            
-            # additional guest VM is created in 1 counterStep
-            if currentNbrOfGuests != previousNbrOfGuests: 
-                timeSinceLastGuestCreated  = 0
-            
-            if timeSinceLastGuestCreated >= singleGuestCreationTimeout:
-                raise xenrt.XRTFailure("No new guests created in last %d minutes. Test created only (%d/%d) guests." % ((timeSinceLastGuestCreated/60),currentNbrOfGuests, nbrOfVmsToCreate))
-            
-            xenrt.sleep(counterStep)
-            timeSinceLastGuestCreated += counterStep
-            previousNbrOfGuests = currentNbrOfGuests
-
-    def proposeGuestDistribution(self, nbrOfGuests):
-        """Propose a distribution of guests among hosts such that we have roughly x guests on each host and 0.5x guests on last host (master)"""
-
-        nbrOfHosts = len(self.hosts)
-        # nbrOfGuests < nbrOfHosts or one host in the pool
-        if nbrOfGuests < nbrOfHosts or nbrOfHosts == 1:
-            return (0, nbrOfGuests)
-
-        # guestsPerHost is the solution to equation: N_guests = (N_hosts-1) * x + 0.5x
-        guestsPerHost = round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) )
-        nbrOfGuestsOnLastHost = nbrOfGuests - guestsPerHost*(nbrOfHosts - 1)
-
-        return (guestsPerHost, nbrOfGuestsOnLastHost)
-
-    def deleteGuestsFromPool(self):
-        """ keep deleting guests until number of guests become zero """
-
-        while len(self.myguests)>0: 
-            try:
-                self.lock.acquire()
-                guest = self.myguests.pop()
-                self.lock.release()
-                guest.uninstall()
-            except:
-                pass
-
-    def postRun(self):
-        self.maxNbrOfThreads = 200
-        
-        try:
-            log("Uninstall guest clones")
-            xenrt.pfarm ([xenrt.PTask(self.deleteGuestsFromPool) for thread in range(self.maxNbrOfThreads)])
-        except Exception, e:
-            warning("_TC11537.postRun Exception: %s" % e)
-
-        log("Clean extra vifs")
-        for guest_num in range(len(self.seed_guests)):
-            
-            # remember that eth0 already exists we want to remove eth1 ... for this guest
-            for i in range(self.vifs_to_remove[guest_num]):
-                vif_to_remove = "eth%d" % (i + 1) 
-                self.seed_guests[guest_num].execguest("ifdown %s" % (vif_to_remove))
-                self.seed_guests[guest_num].unplugVIF(vif_to_remove)
-                self.seed_guests[guest_num].removeVIF(vif_to_remove)
-            
-            #restore guest network interface file, if exists.
-            if(self.vifs_to_remove[guest_num] >0):
-                self.seed_guests[guest_num].execguest("cp /root/interfaces /etc/network/interfaces")
-
-class TC11541(_VSwitch, _TC11537):
-
-    """
-        Add 7 VIFs to a VM
-
-        Create 6 more VIFs to a host and check the network between them
-        and an external host
-
-    """
-
-    def prepare(self, arglist):
-        _VSwitch.prepare(self, arglist)
-
-    def run(self, arglist):
-        # this will enable _TC11537 to clean up
-        self.seed_guests.append(self.guests[0])
-        self.vifs_to_remove.append(6)
-
-        # now create the VIFs
-        self.createNVifsOnGuest(6, self.guests[0])
-        self.checkNetwork(self.guests, "7 VIFs")
-
-
-    def postRun(self):
-        _TC11537.postRun(self)
-        _VSwitch.postRun(self)
-
-class TC11540(_VSwitch, _TC11537):
-    """
-        512 Interfaces on a Host
-
-        The Sequence file provides 2 VMs and the host is assumed to have one physical interface
-        We need 72 new VMs and 7 VIFs on all but one guest which has 1 VIF
-
-    """
-
-
-    def prepare(self, arglist):
-        _VSwitch.prepare(self, arglist)
-
-    def run(self, arglist):
-        self.createVMsOnHost(self.hosts[0], 72, 6)
-        # As linux_1 has 1 VIF and the above creates 6 additional
-        # vifs on every VM, including the seed (linux_0) we now
-        # have (72 * 7) = 511, + 1 = 512 VIFs on a single host
-
-
-    def postRun(self):
-        _TC11537.postRun(self)
-
-
-class TC11544bridge (_VSwitch, _TC11537):
-    """
-    1024 Guests per controller
-
-    """
-    def prepare(self, arglist):
-        _VSwitch.prepare(self, arglist)
-
-    def run(self, arglist):
-        self.createManyGuestsInPool(nbrOfGuests=1024, extra_vifs=0)
-
-    def postRun(self):
-        _TC11537.postRun(self)
-        _VSwitch.postRun(self)
-
-
-class TC11542(_VSwitch, _TC11537):
-    """
-    2048 learned MACs per bridge
-
-    """
-    guest0vifs = []
-    def prepare(self, arglist):
-        _VSwitch.prepare(self, arglist)
-        # back up interfaces file on vm0
-        xenrt.TEC().logverbose("self.guests[0].name = %s" % (self.guests[0].getName()))
-        self.guests[0].execguest("cp /etc/network/interfaces /root/interfaces")
-
-
-    def run(self, arglist):
-        self.createManyGuestsInPool(nbrOfGuests=1024, extra_vifs=1)
-
-        self.guest0vifs = self.guests[0].getVIFs()
-        ## all newly created guests ping the existing guest
-        for guest in self.myguests:
-            # as the 2 vifs are created on seperate networks this generates pairs
-            guest.execguest("echo '#!/bin/bash\nping -i 2 %s &\nping -i 2 %s&\n' > /root/script && chmod a+x /root/script && nohup /root/script > /root/script.out 2> /dev/null&" % (self.guest0vifs['eth0'][1], self.guest0vifs['eth1'][1]))
-
-
-        # 2046 VIFs will now ping the guest0's 2 vifs giving 2048
-        # note that 2046 * 56 bytes is only 114576 bytes and each VIF only pings every 2 seconds
-        # hence network load will be 57288 bytes per second
-        time.sleep(60)
-
-        # to do this will remain incomplete until we are told how to query the 2048 learn MAC addresses
-        vswitchd_pid = self.host.execdom0("cat /var/run/openvswitch/ovs-vswitchd.pid")
-        learned_macs = self.host.execdom0("ovs-appctl -t /var/run/openvswitch/ovs-vswitchd\.%s\.ctl -e fdb/show xenbr0" % (vswitchd_pid.strip()))
-
-        learned_macs_list = learned_macs.split("\n")
-        # print the learned max list
-        for item in learned_macs_list:
-            xenrt.TEC().logverbose("%s" % (item))
-
-        learned_mac_count = len(learned_macs.split("\n")) - 1
-        # print the count of items in the list
-        xenrt.TEC().logverbose("Learned MAC count = %d" % (learned_mac_count))
-        if (learned_mac_count < 2048):
-            raise xenrt.XRTFailure("Less that 2048 learned MAC addresses %d" % (learned_mac_count))
-
-
-
-    def postRun(self):
-
-        _TC11537.postRun(self)
-        # all guests now removed
-
-        self.guests[0].unplugVIF("eth1")
-        self.guests[0].removeVIF("eth1")
-        self.guests[0].execguest("cp /root/interfaces /etc/network/interfaces")
 
 
 class TC11903(_VSwitch):
@@ -1531,6 +1222,279 @@ class TC11553(_TC11551):
                # The tcpdump will check that for packets over 8000 MTU
 
     REQ_PERCENT = 1 # Any number of large packets will prove jumbo working
+
+class JumboFrames(_TC11551):
+
+    def nativehostMTUSet(self, host, jumboFrames=True, eth='eth0'):
+        if jumboFrames:
+            host.execcmd('ifconfig %s mtu 9000' % eth)
+        else:
+            host.execcmd('ifconfig %s mtu 1500' % eth)
+
+    def xenserverMTUSet(self, host, jumboFrames=True, bridge='xenbr0'):
+        cli=host.getCLIInstance()
+        uuid=host.getNetworkUUID(bridge)
+        if jumboFrames:
+            mtu=9000
+        else:
+            mtu=1500
+        host.execdom0("ifconfig %s mtu %s" % 
+                        (host.getBridgeInterfaces(bridge)[0], mtu))
+        host.execdom0("ifconfig %s mtu %i" % 
+                    (bridge, mtu))
+        cli.execute("network-param-set", 
+                    "uuid=%s MTU=%i" %
+                    (uuid, mtu) )
+
+    def prepare(self, arglist=None):
+        self.linHost=self.getHost("RESOURCE_HOST_0")
+        self.xsHost = self.getHost("RESOURCE_HOST_1")
+        
+        # Install iperf on both hosts
+        self.linHost.installIperf()
+        self.linHost.execcmd("iperf -s > /root/iperf.log 2>&1 &")
+        self.xsHost.installIperf()
+
+    def _parseIperfData(self, data, jf=False):
+        """ Extract throughputs and mss from raw iperf data """
+
+        iperfData = {}
+        dataFound = False
+        mssFound = False
+        for line in data.splitlines():
+            if len(data.splitlines()) < 7:
+                    raise xenrt.XRTError('Iperf still running so could not parse output')
+
+            if re.search("0.0-", line, re.I):
+                lineFields = line.split()
+                if len(lineFields) != 8:
+                    raise xenrt.XRTError('Failed to parse output from Iperf')
+
+                iperfData['transfer'] = lineFields[4]
+                iperfData['bandwidth'] = lineFields[6]
+                dataFound = True
+            
+            # Parse MSS info to ensure desired packet sizes are transfered
+            if re.search('MSS', line):
+                lineFields = line.split()
+                iperfData['mss'] = int(lineFields[4])
+                mssFound = True
+
+        if not dataFound and mssFound:
+            raise xenrt.XRTError('Failed to parse general output from Iperf')
+        if jf and not iperfData['mss'] > 1500 :
+
+            raise xenrt.XRTFailure("MSS when jumboframes is enabled is expected to be greater than 1500" \
+                                    "Current value %i" % iperfData['mss'])
+        return iperfData
+
+    def run(self, arglist):
+        nonJFRes={}
+        jfRes={}
+        allowedVariance=30
+
+        # Run the client to measure throughput
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+
+        nonJFRes=self._parseIperfData(rawData)
+        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in nonJFRes.iteritems()])
+        
+        # Turn on jumbo frames and measure
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
+        # Turn on jumbo frames on XS
+        self.xenserverMTUSet(host=self.xsHost)
+        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
+                                    self.linHost.getIP())
+        jfRes=self._parseIperfData(rawData,
+                                    jf=True)
+        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % 
+                    [(k,r) for k,r in jfRes.iteritems()])
+
+        if not float(jfRes['bandwidth']) > (float(nonJFRes['bandwidth']) - allowedVariance):
+            raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
+                                    (jfRes['bandwidth'], nonJFRes['bandwidth']))
+
+class TC21019(JumboFrames):
+
+    def startIperfServers(self, host, ipsToTest, baseport=5000):
+        """ Start multiple iperf servers on different ports """
+        list=" ".join(self.ipsToTest)
+
+        try:
+            host.execdom0("pkill iperf")
+        except Exception, e:
+            # Dont really need to do anything if the above fails
+            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
+        try:
+            host.execdom0("service iptables stop")
+        except Exception, e:
+            # Dont really need to do anything if the above fails
+            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
+
+        scriptfile = xenrt.TEC().tempFile()
+
+        script="""#!/bin/bash
+base_port=%i
+ips='%s'
+mkdir -p "/tmp/iperfLogs"
+for i in $ips; do
+# Set server port
+server_port=$((base_port++))
+# Report file includes server port
+report_file="/tmp/iperfLogs/iperfServer-${server_port}-$i.txt"
+# Run iperf
+iperf -s -p $server_port -B $i > $report_file 2>&1 &
+done """ % (baseport, list)
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = host.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/startiperf.sh")
+        finally:
+            sftp.close()
+        host.execdom0("chmod +x /tmp/startiperf.sh")
+        host.execdom0("/tmp/startiperf.sh &")
+
+
+    def startIPerfClient(self, iperfClient, iperfServerIPs, srvBasePort=5000, timeSecs=10):
+        # Convert the python list into a shell script list
+        iplist=" ".join(iperfServerIPs)
+        scriptfile = xenrt.TEC().tempFile()
+        # Kill any iperf server that might be running
+        try: 
+            iperfClient.execcmd("pkill iperf")
+        except Exception, e:
+            xenrt.log("Caught exception - %s, continuing..." % e)
+
+        script = """#!/bin/bash
+test_duration=%i
+ip='%s'
+base_port=%i
+mkdir -p "/tmp/iperfLogs"
+for i in $ip; do
+# Set server port
+server_port=$((base_port++));
+# Report file includes server ip, server port and test duration
+report_file="/tmp/iperfLogs/iperfClient-${server_port}-${i}.txt"
+# Run iperf
+iperf -m -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
+done
+# Add sleep to stall the script from exiting
+sleep %i
+""" % (timeSecs, iplist, srvBasePort, timeSecs)
+
+        f = file(scriptfile, "w")
+        f.write(script)
+        f.close()
+        sftp = iperfClient.sftpClient()
+        try:
+            sftp.copyTo(scriptfile, "/tmp/iperfclient.sh")
+        finally:
+            sftp.close()
+        iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
+        iperfClient.execcmd("/tmp/iperfclient.sh",
+                            timeout=timeSecs+10)
+
+    def _collectLogs(self):
+        logDir="iperf"
+        logsubdir = os.path.join(xenrt.TEC().getLogdir(), logDir)
+        if not os.path.exists(logsubdir):
+                os.makedirs(logsubdir)
+
+        for h in self.linHost, self.xsHost:
+            try:
+                sftp = h.sftpClient()
+                sftp.copyTreeFrom("/tmp/iperfLogs", logsubdir)
+            finally:
+                sftp.close()
+
+    def prepare(self, arglist=None):
+        self.ipsToTest=[]
+        self.basePort=5000
+        JumboFrames.prepare(self)
+        assumedids = self.xsHost.listSecondaryNICs()
+        cli=self.xsHost.getCLIInstance()
+
+        # Turn on jumbo frames on native linux
+        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
+        self.nativehostMTUSet(host=self.linHost,
+                                eth=eth)
+        # Turn on Jumbo Frames on management interface
+        self.xenserverMTUSet(host=self.xsHost)
+
+        for id in assumedids:
+            pif = self.xsHost.getNICPIF(id)
+            cli.execute("pif-reconfigure-ip", "mode=dhcp uuid=%s" % pif)
+            self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
+            self.xenserverMTUSet(host=self.xsHost,
+                                bridge=self.xsHost.getBridgeWithMapping(id))
+
+        # Dont forget to test the management interface
+        self.ipsToTest.append(self.xsHost.getIP())
+        xenrt.log("IPs to test - %s" % self.ipsToTest)
+
+        if len(self.ipsToTest) <= 1:
+            raise xenrt.XRTError("This test requires machines with more than one NIC")
+        # Start iperf servers on XS - one for each pif
+        self.startIperfServers(host=self.xsHost,
+                                ipsToTest=self.ipsToTest,
+                                baseport=self.basePort)
+
+    def generateNetworkTraffictoXS(self, timeSecs, ips):
+        result={}
+        rxDict = {}
+        self.startIPerfClient(iperfClient=self.linHost,
+                        iperfServerIPs=ips,
+                        timeSecs=int(timeSecs))
+
+        counter=len(self.ipsToTest)+20 # Add another few iterations as buffer
+        out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+        while out and counter:
+            # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
+            xenrt.sleep(timeSecs)
+            counter-=1
+            try:
+                out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
+            except Exception, e:
+                out=False
+
+        # Process results
+        for ip in ips:
+            str=self.linHost.execcmd("cd /tmp/iperfLogs && ls | grep %s | xargs cat" % ip).strip()
+            xenrt.log("Raw iperf data for ip - %s: %s" %
+                        (ip, str) )
+            # Check if any iperf client communication has bombed
+            result=self._parseIperfData(data=str, 
+                                        jf=True)
+            result['ip']=ip
+            xenrt.log("Iperf results - %s" % 
+                        [(k,r) for k,r in result.iteritems()])
+
+        for id in self.xsHost.listSecondaryNICs():
+            # Look for overruns
+            overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
+                                            self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
+            rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
+
+            # Verify there are no overruns
+            if int(overruns.split(":")[1]) <> 0:
+                raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
+                                        (self.xsHost.getSecondaryNIC(id), overruns))
+        xenrt.log("OVERRUN DATA: %s" %
+                        [(k,r) for k,r in rxDict.iteritems()])
+
+    def run(self, arglist):
+        self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
+        self.runSubcase("generateNetworkTraffictoXS", (120, self.ipsToTest), "RX Overruns", "RX Overruns")
+
+    def postRun(self):
+        self._collectLogs()
 
 class TC11527(_VSwitch):
     """
@@ -3163,282 +3127,6 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
 class TC20672(SRTrafficwithGRO):
     TYPE="nfs"
 
-class JumboFrames(_TC11551):
-
-    def nativehostMTUSet(self, host, jumboFrames=True, eth='eth0'):
-        if jumboFrames:
-            host.execcmd('ifconfig %s mtu 9000' % eth)
-        else:
-            host.execcmd('ifconfig %s mtu 1500' % eth)
-
-    def xenserverMTUSet(self, host, jumboFrames=True, bridge='xenbr0'):
-        cli=host.getCLIInstance()
-        uuid=host.getNetworkUUID(bridge)
-        if jumboFrames:
-            mtu=9000
-        else:
-            mtu=1500
-        host.execdom0("ifconfig %s mtu %s" % 
-                        (host.getBridgeInterfaces(bridge)[0], mtu))
-        host.execdom0("ifconfig %s mtu %i" % 
-                    (bridge, mtu))
-        cli.execute("network-param-set", 
-                    "uuid=%s MTU=%i" %
-                    (uuid, mtu) )
-
-    def prepare(self, arglist=None):
-        self.linHost=self.getHost("RESOURCE_HOST_0")
-        self.xsHost = self.getHost("RESOURCE_HOST_1")
-        
-        # Install iperf on both hosts
-        self.linHost.installIperf()
-        self.linHost.execcmd("iperf -s > /root/iperf.log 2>&1 &")
-        self.xsHost.installIperf()
-
-    def _parseIperfData(self, data, jf=False):
-        """ Extract throughputs and mss from raw iperf data """
-
-        iperfData = {}
-        dataFound = False
-        mssFound = False
-        for line in data.splitlines():
-            if len(data.splitlines()) < 7:
-                    raise xenrt.XRTError('Iperf still running so could not parse output')
-
-            if re.search("0.0-", line, re.I):
-                lineFields = line.split()
-                if len(lineFields) != 8:
-                    raise xenrt.XRTError('Failed to parse output from Iperf')
-
-                iperfData['transfer'] = lineFields[4]
-                iperfData['bandwidth'] = lineFields[6]
-                dataFound = True
-            
-            # Parse MSS info to ensure desired packet sizes are transfered
-            if re.search('MSS', line):
-                lineFields = line.split()
-                iperfData['mss'] = int(lineFields[4])
-                mssFound = True
-
-        if not dataFound and mssFound:
-            raise xenrt.XRTError('Failed to parse general output from Iperf')
-        if jf and not iperfData['mss'] > 1500 :
-
-            raise xenrt.XRTFailure("MSS when jumboframes is enabled is expected to be greater than 1500" \
-                                    "Current value %i" % iperfData['mss'])
-        return iperfData
-
-
-    def run(self, arglist):
-        nonJFRes={}
-        jfRes={}
-        allowedVariance=30
-
-        # Run the client to measure throughput
-        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
-                                    self.linHost.getIP())
-
-        nonJFRes=self._parseIperfData(rawData)
-        xenrt.log("BEFORE JUMBOFRAMES SETTING: %s" % 
-                    [(k,r) for k,r in nonJFRes.iteritems()])
-        
-        # Turn on jumbo frames and measure
-        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
-        self.nativehostMTUSet(host=self.linHost,
-                                eth=eth)
-        # Turn on jumbo frames on XS
-        self.xenserverMTUSet(host=self.xsHost)
-        rawData=self.xsHost.execdom0('iperf -m -c %s' % 
-                                    self.linHost.getIP())
-        jfRes=self._parseIperfData(rawData,
-                                    jf=True)
-        xenrt.log("AFTER JUMBOFRAMES SETTING: %s" % 
-                    [(k,r) for k,r in jfRes.iteritems()])
-
-        if not float(jfRes['bandwidth']) > (float(nonJFRes['bandwidth']) - allowedVariance):
-            raise xenrt.XRTFailure("Value after jumboFrames - %s is expected to be greater/equal to before - %s" %
-                                    (jfRes['bandwidth'], nonJFRes['bandwidth']))
-
-class TC21019(JumboFrames):
-
-    def startIperfServers(self, host, ipsToTest, baseport=5000):
-        """ Start multiple iperf servers on different ports """
-        list=" ".join(self.ipsToTest)
-
-        try:
-            host.execdom0("pkill iperf")
-        except Exception, e:
-            # Dont really need to do anything if the above fails
-            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
-        try:
-            host.execdom0("service iptables stop")
-        except Exception, e:
-            # Dont really need to do anything if the above fails
-            xenrt.TEC().warning("Caught exception - %s, continuing.." % e)
-
-        scriptfile = xenrt.TEC().tempFile()
-
-        script="""#!/bin/bash
-base_port=%i
-ips='%s'
-mkdir -p "/tmp/iperfLogs"
-for i in $ips; do
-# Set server port
-server_port=$((base_port++))
-# Report file includes server port
-report_file="/tmp/iperfLogs/iperfServer-${server_port}-$i.txt"
-# Run iperf
-iperf -s -p $server_port -B $i > $report_file 2>&1 &
-done """ % (baseport, list)
-
-        f = file(scriptfile, "w")
-        f.write(script)
-        f.close()
-        sftp = host.sftpClient()
-        try:
-            sftp.copyTo(scriptfile, "/tmp/startiperf.sh")
-        finally:
-            sftp.close()
-        host.execdom0("chmod +x /tmp/startiperf.sh")
-        host.execdom0("/tmp/startiperf.sh &")
-
-
-    def startIPerfClient(self, iperfClient, iperfServerIPs, srvBasePort=5000, timeSecs=10):
-        # Convert the python list into a shell script list
-        iplist=" ".join(iperfServerIPs)
-        scriptfile = xenrt.TEC().tempFile()
-        # Kill any iperf server that might be running
-        try: 
-            iperfClient.execcmd("pkill iperf")
-        except Exception, e:
-            xenrt.log("Caught exception - %s, continuing..." % e)
-
-        script = """#!/bin/bash
-test_duration=%i
-ip='%s'
-base_port=%i
-mkdir -p "/tmp/iperfLogs"
-for i in $ip; do
-# Set server port
-server_port=$((base_port++));
-# Report file includes server ip, server port and test duration
-report_file="/tmp/iperfLogs/iperfClient-${server_port}-${i}.txt"
-# Run iperf
-iperf -m -c $i -p $server_port -t $test_duration > $report_file 2>&1 &
-done
-# Add sleep to stall the script from exiting
-sleep %i
-""" % (timeSecs, iplist, srvBasePort, timeSecs)
-
-        f = file(scriptfile, "w")
-        f.write(script)
-        f.close()
-        sftp = iperfClient.sftpClient()
-        try:
-            sftp.copyTo(scriptfile, "/tmp/iperfclient.sh")
-        finally:
-            sftp.close()
-        iperfClient.execcmd("chmod +x /tmp/iperfclient.sh")
-        iperfClient.execcmd("/tmp/iperfclient.sh",
-                            timeout=timeSecs+10)
-
-
-    def _collectLogs(self):
-        logDir="iperf"
-        logsubdir = os.path.join(xenrt.TEC().getLogdir(), logDir)
-        if not os.path.exists(logsubdir):
-                os.makedirs(logsubdir)
-
-        for h in self.linHost, self.xsHost:
-            try:
-                sftp = h.sftpClient()
-                sftp.copyTreeFrom("/tmp/iperfLogs", logsubdir)
-            finally:
-                sftp.close()
-
-    def prepare(self, arglist=None):
-        self.ipsToTest=[]
-        self.basePort=5000
-        JumboFrames.prepare(self)
-        assumedids = self.xsHost.listSecondaryNICs()
-        cli=self.xsHost.getCLIInstance()
-
-        # Turn on jumbo frames on native linux
-        eth=self.linHost.execcmd("ifconfig | sed 's/[ \t].*//;/^$/d' | grep -v 'lo'").strip()
-        self.nativehostMTUSet(host=self.linHost,
-                                eth=eth)
-        # Turn on Jumbo Frames on management interface
-        self.xenserverMTUSet(host=self.xsHost)
-
-        for id in assumedids:
-            pif = self.xsHost.getNICPIF(id)
-            cli.execute("pif-reconfigure-ip", "mode=dhcp uuid=%s" % pif)
-            self.ipsToTest.append(self.xsHost.getIPAddressOfSecondaryInterface(id))
-            self.xenserverMTUSet(host=self.xsHost,
-                                bridge=self.xsHost.getBridgeWithMapping(id))
-
-        # Dont forget to test the management interface
-        self.ipsToTest.append(self.xsHost.getIP())
-        xenrt.log("IPs to test - %s" % self.ipsToTest)
-
-        if len(self.ipsToTest) <= 1:
-            raise xenrt.XRTError("This test requires machines with more than one NIC")
-        # Start iperf servers on XS - one for each pif
-        self.startIperfServers(host=self.xsHost,
-                                ipsToTest=self.ipsToTest,
-                                baseport=self.basePort)
-
-
-    def generateNetworkTraffictoXS(self, timeSecs, ips):
-        result={}
-        rxDict = {}
-        self.startIPerfClient(iperfClient=self.linHost,
-                        iperfServerIPs=ips,
-                        timeSecs=int(timeSecs))
-
-        counter=len(self.ipsToTest)+20 # Add another few iterations as buffer
-        out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
-        while out and counter:
-            # This is to let iperf logs get generated (waiting for the exact timeSecs is not enough)
-            xenrt.sleep(timeSecs)
-            counter-=1
-            try:
-                out=self.linHost.execcmd("ps -ef | pgrep iperf").strip()
-            except Exception, e:
-                out=False
-
-        # Process results
-        for ip in ips:
-            str=self.linHost.execcmd("cd /tmp/iperfLogs && ls | grep %s | xargs cat" % ip).strip()
-            xenrt.log("Raw iperf data for ip - %s: %s" %
-                        (ip, str) )
-            # Check if any iperf client communication has bombed
-            result=self._parseIperfData(data=str, 
-                                        jf=True)
-            result['ip']=ip
-            xenrt.log("Iperf results - %s" % 
-                        [(k,r) for k,r in result.iteritems()])
-
-        for id in self.xsHost.listSecondaryNICs():
-            # Look for overruns
-            overruns=self.xsHost.execdom0("ifconfig %s | grep RX | grep overruns" %
-                                            self.xsHost.getSecondaryNIC(id)).strip().split()[-2]
-            rxDict[self.xsHost.getSecondaryNIC(id)] = overruns
-
-            # Verify there are no overruns
-            if int(overruns.split(":")[1]) <> 0:
-                raise xenrt.XRTFailure("Found overruns for NIC %s - %s" %
-                                        (self.xsHost.getSecondaryNIC(id), overruns))
-        xenrt.log("OVERRUN DATA: %s" %
-                        [(k,r) for k,r in rxDict.iteritems()])
-
-    def run(self, arglist):
-        self.runSubcase("generateNetworkTraffictoXS", (60, self.ipsToTest), "RX Overruns", "RX Overruns")
-        self.runSubcase("generateNetworkTraffictoXS", (120, self.ipsToTest), "RX Overruns", "RX Overruns")
-
-    def postRun(self):
-        self._collectLogs()
-
 #### Distributed Virtual Switch Controller (DVSC) Tests ####
 
 class _Controller(_VSwitch):
@@ -3932,7 +3620,64 @@ class TC11692(TC11685):
         self.controller.stopKeepAlive()
         TC11685.postRun(self)
 
-		class TC11546(_Controller):
+class TC12011(TC11692):
+
+    # Messure Throughput on VIF 0
+    def messureExternalThroughput(self):
+        result=self._externalNetperf("TCP_STREAM", self.myguests[0])
+        self.throughput = result[1]
+        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
+        self.stop = True
+
+
+    def run(self, arglist):
+        # This greatly reduces the ammount of traffic to the controller during the throughput test
+        self.prepareController()
+
+        self.backupGuestNetworkInterfaceFiles()
+        self.new_net_uuid = self.host.createNetwork("nw1")
+        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
+
+        # Gather a baseline for test
+        self.messureThroughput()
+
+        throughputbaseline = self.throughput
+        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
+
+        ###
+        # Internal Performance
+        ###
+        result = xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
+                               exception=False)
+
+
+        # Measure throughput whilst the above is going on
+        testthroughput = self.throughput
+
+        # "Entries are cleared from the flow table every five seconds", Nicira.
+        time.sleep(5)
+
+        # Test the through put differences
+        percentage = testthroughput / throughputbaseline * 100
+
+        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
+        xenrt.TEC().logverbose("Internalhroughput whilst creating/destroying VIFs and flows is %d%% of standing throughput" % percentage)
+        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
+
+        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
+        if percentage < 90:
+            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
+
+
+        # Now check that the flow table does not contain eroneous VIFs
+        # Note the following dumps the flow table grepping for the 192.168 subnet
+        # If any 192.168.* subnets are found we raise an exception
+        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
+        if re.search("192.168.1", flowTable):
+            raise xenrt.XRTFailure("Found 192.168 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
+    # No postRun required as this will call TC11692 and hence TC11685s post runs - the run being the culminatiion of the two
+
+class TC11546(_Controller):
     """
     Verify the Browser GUI requires a login
 
@@ -4216,10 +3961,8 @@ class TC11548(_Controller):
         if result[1] == 0:
             raise xenrt.XRTFailure("Mandatory Pool ACL Rule for ICMP interferes with port %d = %d" % (self.PORT, result[1]))
 
-
     def postRun(self):
         _Controller.postRun(self)
-
 
 class TC11549(_Controller):
     """
@@ -4256,7 +3999,6 @@ class TC11549(_Controller):
     def postRun(self):
         _Controller.postRun(self)
 
-
 class TC11535(_Controller):
     """
     Controller Daemons restart automatically
@@ -4288,47 +4030,6 @@ class TC11535(_Controller):
             self.controller.place.execguest("reboot")
             time.sleep(180)
 
-        _Controller.postRun(self)
-
-
-class TCManyGuestsInPool(_Controller, _TC11537):
-    """
-    Many Guests per controller
-
-    """
-    def prepare(self, arglist):
-        _Controller.prepare(self, arglist)
-        self.pool.associateDVS(self.controller)
-        self.controller.place.shutdown()
-        self.controller.place.cpuset(4)
-        self.controller.place.memset(4096) # MB
-        self.controller.place.start()
-        self.extra_vifs = 0
-
-    def run(self, arglist=None):
-        
-        step("Fetching arguments")
-        try:
-            l = string.split(arglist[0], "=", 1)
-            if l[0].strip() == "guests":
-                nbrOfGuests = int(l[1].strip())
-                log("Argument: '%s' = '%s'" % (l[0].strip(),l[1].strip()))
-            else:
-                raise Exception("Number of guests not specified.")
-        except:
-            raise xenrt.XRTError("Number of guests must be specified within the <testcase> block in the the sequence file, e.g. '<arg>guests=1024</arg>'")
-
-        step("Creating a large number of guests in the pool")
-        self.createManyGuestsInPool(nbrOfGuests, self.extra_vifs)
-
-        step("Checking created guests in controller.")
-        all_vms = self.controller.getVMsInPool(self.host.getName())
-        if len(all_vms) != nbrOfGuests:
-            raise xenrt.XRTFailure("Failed to see %d VMs at controller. VMs shown by controller = %d, VMs created successfully = %d."
-                                   % ( (nbrOfGuests) , len(all_vms), len(self.myguests)))
-        
-    def postRun(self):
-        _TC11537.postRun(self)
         _Controller.postRun(self)
 
 class TC11579(_Controller):
@@ -4861,67 +4562,6 @@ class TC11514(_Controller):
             self.controller.setVMQoSPolicy(guest.getName(), 0, 0)
         self.controller.setVMQoSPolicy(self.myremoteguest.getName(), 0, 0)
         _Controller.postRun(self)
-
-class TC12011(TC11692):
-
-    # Messure Throughput on VIF 0
-    def messureExternalThroughput(self):
-        result=self._externalNetperf("TCP_STREAM", self.myguests[0])
-        self.throughput = result[1]
-        xenrt.TEC().logverbose("!!!SETTING FLAG TO ALLOW THREADS TO RUN!!!")
-        self.stop = True
-
-
-    def run(self, arglist):
-        # This greatly reduces the ammount of traffic to the controller during the throughput test
-        self.prepareController()
-
-        self.backupGuestNetworkInterfaceFiles()
-        self.new_net_uuid = self.host.createNetwork("nw1")
-        self.new_net_name = self.host.genParamGet("network", self.new_net_uuid, "bridge")
-
-        # Gather a baseline for test
-        self.messureThroughput()
-
-        throughputbaseline = self.throughput
-        xenrt.TEC().logverbose("Baseline Throughput = %d" % throughputbaseline)
-
-        ###
-        # Internal Performance
-        ###
-        result = xenrt.pfarm ([xenrt.PTask(self.controllerCreateFlowTableEntries), xenrt.PTask(self.ifFarm), xenrt.PTask(self.messureThroughput)],
-                               exception=False)
-
-
-        # Measure throughput whilst the above is going on
-        testthroughput = self.throughput
-
-        # "Entries are cleared from the flow table every five seconds", Nicira.
-        time.sleep(5)
-
-        # Test the through put differences
-        percentage = testthroughput / throughputbaseline * 100
-
-        xenrt.TEC().logverbose("VIF Farm Throughput = %d" % testthroughput)
-        xenrt.TEC().logverbose("Internalhroughput whilst creating/destroying VIFs and flows is %d%% of standing throughput" % percentage)
-        xenrt.TEC().logverbose("Created %u VIF pairs and pinged between them" % self.pingcount)
-
-        # Bridge implementation and vSwitch both show a maximum 10% reduction in throughput
-        if percentage < 90:
-            raise xenrt.XRTFailure("Flow table creation of %d flows drives average throughput below 90%%." % (self.count * 2))
-
-
-        # Now check that the flow table does not contain eroneous VIFs
-        # Note the following dumps the flow table grepping for the 192.168 subnet
-        # If any 192.168.* subnets are found we raise an exception
-        flowTable = self.host.execdom0("ovs-dpctl dump-flows system@dp0")
-        if re.search("192.168.1", flowTable):
-            raise xenrt.XRTFailure("Found 192.168 entries in the flow table which should have been automatically removed:\n%s" % (flowTable))
-
-
-
-    # No postRun required as this will call TC11692 and hence TC11685s post runs - the run being the culminatiion of the two
-
 
 class TC11543(_Controller):
     """
@@ -5844,3 +5484,338 @@ class TC11582(TC11531):
         except: raise xenrt.XRTFailure("ICMP reply packet not seen on target interface.")
 
         self.controller.place.plugVIF("eth0")
+
+#### vSwitch Scalability Tests ####
+
+class _TC11537:
+    """
+    Base class providing Create VIFs/VMs for TC11537 sequences
+    """
+
+    machnum = -1 # simplifies thread synchronisation
+    myguests = []
+    lock = threading.Lock()
+    ip_counter = 0
+    mac_counter = 0
+    seed_guests = []
+    vifs_to_remove = []
+    test_dead = False
+    hosts = []
+
+    def createNVifsOnGuest (self, n, guest):
+        guest.execguest("cp /etc/network/interfaces /root/interfaces")
+        for i in range(1, n + 1):
+            eth = "eth%d" % i
+            self.lock.acquire()
+            ip_counter = self.ip_counter
+            mac_counter = self.mac_counter
+            self.ip_counter += 1
+            self.mac_counter += 1
+            self.lock.release()
+
+            mac = "1a:37:36:11:%02x:%02x" % (mac_counter / 255, mac_counter % 255)
+
+            # each machine will have n subnets with its machine number
+            # identifing itself on each
+            ip = "192.168.%d.%d" % (ip_counter / 253, (ip_counter % 253) + 1)
+
+            # note subnet will require max 512 interfaces
+            guest.execguest("echo 'iface %s inet static \n"
+                            "address %s\nnetmask 255.255.240.0\n"
+                            "hwaddress ether %s' >> "
+                            "/etc/network/interfaces" %  (eth, ip, mac))
+            bridge="xenbr0"
+            guest.createVIF(eth, bridge, mac, plug=True)
+            guest.execguest("ifup %s" % eth)
+
+    def copyThisVMOnItsHost(self, vm_to_clone, num_guests, num_vifs):
+        try:
+            # store some values from the clean-up operation
+            # do this in thread safe manner as this is likely to be called across
+            # many hosts
+            self.lock.acquire()
+            self.seed_guests.append(vm_to_clone)
+            self.vifs_to_remove.append(num_vifs)
+            self.lock.release()
+
+            vm_to_clone.execcmd("rm -f "
+                                 "/etc/udev/rules.d/z25_persistent-net.rules "
+                                 "/etc/udev/persistent-net-generator.rules")
+            vm_to_clone.shutdown()
+            first = True
+            # self.machnum is shared across threads
+            # slight danger that two vms get the same name here
+            # but this is preventend once we enter the loop
+
+            for i in range(num_guests):
+                self.lock.acquire()
+                self.machnum += 1
+                machid = self.machnum
+                vmname="clone%d" % (machid)
+                self.lock.release()
+
+                # - there is a cloning limitation
+                if i > 0 and i % 20 == 0:
+                    g = vm_to_clone.copyVM(name=vmname)
+                    vm_to_clone.start() # start the previous vm_to_clone
+                    if num_vifs > 0:
+                        self.createNVifsOnGuest(num_vifs, vm_to_clone)
+                    vm_to_clone = g
+                    g.tailored=True
+                else:
+                    g = vm_to_clone.cloneVM(name=vmname)
+                    g.tailored=True
+                    g.start()
+                    self.createNVifsOnGuest(num_vifs, g)
+
+                # dont forget we need to copy every 30th clone
+
+                # piece of code to protect shared variables in threaded execution
+                self.lock.acquire()
+                self.myguests.append(g)
+                self.lock.release()
+                # Kill this thread if another has died
+                if self.test_dead == True:
+                    break
+
+            # all vms have been created start the last vm to clone
+            vm_to_clone.start()
+            if num_vifs > 0:
+                self.createNVifsOnGuest(num_vifs, vm_to_clone)
+        except:
+            self.test_dead=True
+             
+
+    def createVMsOnHost(self, host, num_guests, num_vifs):
+        vm_to_clone = host.guests.values()[0]
+        self.copyThisVMOnItsHost(vm_to_clone, num_guests, num_vifs)
+
+    def createManyGuestsInPool(self,nbrOfGuests, extra_vifs=0):
+        nbrOfHosts = len(self.hosts)
+        (guestsPerHost, nbrOfGuestsOnLastHost) = self.proposeGuestDistribution(nbrOfGuests)
+        
+        comment("Number of guests on each host = %d." % guestsPerHost)
+        comment("Number of guests on last host = %d." % nbrOfGuestsOnLastHost)
+        
+        # use parallel threads to create guest clones on each slave host in the pool 
+        for host in self.hosts[:-1]: 
+            xenrt.pfarm ([xenrt.PTask(self.createVMsOnHost, host, (guestsPerHost-1), extra_vifs)], wait = False)
+
+        # use main thread to create clones on master host in the pool
+        self.createVMsOnHost(self.hosts[(nbrOfHosts - 1)], (nbrOfGuestsOnLastHost-1), extra_vifs)
+
+        singleGuestCreationTimeout = 20 * 60
+        counterStep  = 5*60
+        timeSinceLastGuestCreated  = 0
+        previousNbrOfGuests = 0
+        
+        # we already have one guest on each host.
+        nbrOfVmsToCreate = ((nbrOfHosts - 1) * (guestsPerHost-1)) + (nbrOfGuestsOnLastHost-1)
+        
+        while self.test_dead == False and len(self.myguests) < nbrOfVmsToCreate :
+            currentNbrOfGuests = len(self.myguests)
+            
+            # additional guest VM is created in 1 counterStep
+            if currentNbrOfGuests != previousNbrOfGuests: 
+                timeSinceLastGuestCreated  = 0
+            
+            if timeSinceLastGuestCreated >= singleGuestCreationTimeout:
+                raise xenrt.XRTFailure("No new guests created in last %d minutes. Test created only (%d/%d) guests." % ((timeSinceLastGuestCreated/60),currentNbrOfGuests, nbrOfVmsToCreate))
+            
+            xenrt.sleep(counterStep)
+            timeSinceLastGuestCreated += counterStep
+            previousNbrOfGuests = currentNbrOfGuests
+
+    def proposeGuestDistribution(self, nbrOfGuests):
+        """Propose a distribution of guests among hosts such that we have roughly x guests on each host and 0.5x guests on last host (master)"""
+
+        nbrOfHosts = len(self.hosts)
+        # nbrOfGuests < nbrOfHosts or one host in the pool
+        if nbrOfGuests < nbrOfHosts or nbrOfHosts == 1:
+            return (0, nbrOfGuests)
+
+        # guestsPerHost is the solution to equation: N_guests = (N_hosts-1) * x + 0.5x
+        guestsPerHost = round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) )
+        nbrOfGuestsOnLastHost = nbrOfGuests - guestsPerHost*(nbrOfHosts - 1)
+
+        return (guestsPerHost, nbrOfGuestsOnLastHost)
+
+    def deleteGuestsFromPool(self):
+        """ keep deleting guests until number of guests become zero """
+
+        while len(self.myguests)>0: 
+            try:
+                self.lock.acquire()
+                guest = self.myguests.pop()
+                self.lock.release()
+                guest.uninstall()
+            except:
+                pass
+
+    def postRun(self):
+        self.maxNbrOfThreads = 200
+        
+        try:
+            log("Uninstall guest clones")
+            xenrt.pfarm ([xenrt.PTask(self.deleteGuestsFromPool) for thread in range(self.maxNbrOfThreads)])
+        except Exception, e:
+            warning("_TC11537.postRun Exception: %s" % e)
+
+        log("Clean extra vifs")
+        for guest_num in range(len(self.seed_guests)):
+            
+            # remember that eth0 already exists we want to remove eth1 ... for this guest
+            for i in range(self.vifs_to_remove[guest_num]):
+                vif_to_remove = "eth%d" % (i + 1) 
+                self.seed_guests[guest_num].execguest("ifdown %s" % (vif_to_remove))
+                self.seed_guests[guest_num].unplugVIF(vif_to_remove)
+                self.seed_guests[guest_num].removeVIF(vif_to_remove)
+            
+            #restore guest network interface file, if exists.
+            if(self.vifs_to_remove[guest_num] >0):
+                self.seed_guests[guest_num].execguest("cp /root/interfaces /etc/network/interfaces")
+
+class TC11541(_VSwitch, _TC11537):
+
+    """
+        Add 7 VIFs to a VM
+        Create 6 more VIFs to a host and check the network between them
+        and an external host
+    """
+    def prepare(self, arglist):
+        _VSwitch.prepare(self, arglist)
+
+    def run(self, arglist):
+        # this will enable _TC11537 to clean up
+        self.seed_guests.append(self.guests[0])
+        self.vifs_to_remove.append(6)
+
+        # now create the VIFs
+        self.createNVifsOnGuest(6, self.guests[0])
+        self.checkNetwork(self.guests, "7 VIFs")
+
+    def postRun(self):
+        _TC11537.postRun(self)
+        _VSwitch.postRun(self)
+
+class TC11540(_VSwitch, _TC11537):
+    """
+        512 Interfaces on a Host
+        The Sequence file provides 2 VMs and the host is assumed to have one physical interface
+        We need 72 new VMs and 7 VIFs on all but one guest which has 1 VIF
+    """
+
+    def prepare(self, arglist):
+        _VSwitch.prepare(self, arglist)
+
+    def run(self, arglist):
+        self.createVMsOnHost(self.hosts[0], 72, 6)
+        # As linux_1 has 1 VIF and the above creates 6 additional
+        # vifs on every VM, including the seed (linux_0) we now
+        # have (72 * 7) = 511, + 1 = 512 VIFs on a single host
+
+    def postRun(self):
+        _TC11537.postRun(self)
+
+class TC11544bridge (_VSwitch, _TC11537):
+    """
+    1024 Guests per controller
+    """
+    def prepare(self, arglist):
+        _VSwitch.prepare(self, arglist)
+
+    def run(self, arglist):
+        self.createManyGuestsInPool(nbrOfGuests=1024, extra_vifs=0)
+
+    def postRun(self):
+        _TC11537.postRun(self)
+        _VSwitch.postRun(self)
+
+class TC11542(_VSwitch, _TC11537):
+    """
+    2048 learned MACs per bridge
+    """
+    guest0vifs = []
+    def prepare(self, arglist):
+        _VSwitch.prepare(self, arglist)
+        # back up interfaces file on vm0
+        xenrt.TEC().logverbose("self.guests[0].name = %s" % (self.guests[0].getName()))
+        self.guests[0].execguest("cp /etc/network/interfaces /root/interfaces")
+
+    def run(self, arglist):
+        self.createManyGuestsInPool(nbrOfGuests=1024, extra_vifs=1)
+
+        self.guest0vifs = self.guests[0].getVIFs()
+        ## all newly created guests ping the existing guest
+        for guest in self.myguests:
+            # as the 2 vifs are created on seperate networks this generates pairs
+            guest.execguest("echo '#!/bin/bash\nping -i 2 %s &\nping -i 2 %s&\n' > /root/script && chmod a+x /root/script && nohup /root/script > /root/script.out 2> /dev/null&" % (self.guest0vifs['eth0'][1], self.guest0vifs['eth1'][1]))
+
+        # 2046 VIFs will now ping the guest0's 2 vifs giving 2048
+        # note that 2046 * 56 bytes is only 114576 bytes and each VIF only pings every 2 seconds
+        # hence network load will be 57288 bytes per second
+        time.sleep(60)
+
+        # to do this will remain incomplete until we are told how to query the 2048 learn MAC addresses
+        vswitchd_pid = self.host.execdom0("cat /var/run/openvswitch/ovs-vswitchd.pid")
+        learned_macs = self.host.execdom0("ovs-appctl -t /var/run/openvswitch/ovs-vswitchd\.%s\.ctl -e fdb/show xenbr0" % (vswitchd_pid.strip()))
+
+        learned_macs_list = learned_macs.split("\n")
+        # print the learned max list
+        for item in learned_macs_list:
+            xenrt.TEC().logverbose("%s" % (item))
+
+        learned_mac_count = len(learned_macs.split("\n")) - 1
+        # print the count of items in the list
+        xenrt.TEC().logverbose("Learned MAC count = %d" % (learned_mac_count))
+        if (learned_mac_count < 2048):
+            raise xenrt.XRTFailure("Less that 2048 learned MAC addresses %d" % (learned_mac_count))
+
+    def postRun(self):
+        _TC11537.postRun(self)
+        # all guests now removed
+        self.guests[0].unplugVIF("eth1")
+        self.guests[0].removeVIF("eth1")
+        self.guests[0].execguest("cp /root/interfaces /etc/network/interfaces")
+
+#### Controller Scalability Tests ####
+
+class TCManyGuestsInPool(_Controller, _TC11537):
+    """
+    Many Guests per controller
+
+    """
+    def prepare(self, arglist):
+        _Controller.prepare(self, arglist)
+        self.pool.associateDVS(self.controller)
+        self.controller.place.shutdown()
+        self.controller.place.cpuset(4)
+        self.controller.place.memset(4096) # MB
+        self.controller.place.start()
+        self.extra_vifs = 0
+
+    def run(self, arglist=None):
+        
+        step("Fetching arguments")
+        try:
+            l = string.split(arglist[0], "=", 1)
+            if l[0].strip() == "guests":
+                nbrOfGuests = int(l[1].strip())
+                log("Argument: '%s' = '%s'" % (l[0].strip(),l[1].strip()))
+            else:
+                raise Exception("Number of guests not specified.")
+        except:
+            raise xenrt.XRTError("Number of guests must be specified within the <testcase> block in the the sequence file, e.g. '<arg>guests=1024</arg>'")
+
+        step("Creating a large number of guests in the pool")
+        self.createManyGuestsInPool(nbrOfGuests, self.extra_vifs)
+
+        step("Checking created guests in controller.")
+        all_vms = self.controller.getVMsInPool(self.host.getName())
+        if len(all_vms) != nbrOfGuests:
+            raise xenrt.XRTFailure("Failed to see %d VMs at controller. VMs shown by controller = %d, VMs created successfully = %d."
+                                   % ( (nbrOfGuests) , len(all_vms), len(self.myguests)))
+        
+    def postRun(self):
+        _TC11537.postRun(self)
+        _Controller.postRun(self)

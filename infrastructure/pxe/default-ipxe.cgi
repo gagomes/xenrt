@@ -17,6 +17,7 @@ print """Content-type: text/plain
 
 menu
 item default  Default XenRT boot
+item winpe  Boot into WinPE
 item razor  Boot into Razor MicroKernel
 item tc     Boot into Tinycore Linux
 item end    Local boot

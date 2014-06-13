@@ -517,14 +517,11 @@ class TC11586(_VSwitch):
     def postRun(self):
         self.enablevswitch(self.host)
 
-
 class TC11539(_VSwitch):
     """
     128 Bridges on Host
-
     Create 128 Bridges on a vSwitch enabled host
     Generate Traffic
-
     """
     myguests = []
     new_nets = []
@@ -551,7 +548,6 @@ class TC11539(_VSwitch):
             self.new_nets.append(uuid)
             bridge = self.host.genParamGet("network", uuid, "bridge")
             self.new_name.append(bridge)
-
 
         # create VIF entries on each test vm
         for j in range(2):
@@ -616,7 +612,6 @@ class TC11539(_VSwitch):
         # destroy the bridges
         for uuid in self.new_nets:
             self.host.removeNetwork(None, uuid)
-
 
 class TC11515(_VSwitch):
     """

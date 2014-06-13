@@ -4,6 +4,8 @@ import os, urllib
 from datetime import datetime
 import shutil
 import pprint
+import string
+import random
 
 import xenrt.lib.cloud
 
@@ -56,7 +58,14 @@ class DeployerPlugin(object):
 
     def getSecondaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        if self.initialSecStorageUrl:
+        if ref.has_key('XRT_Guest_NFS'):
+            ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
+            xenrt.TEC().logverbose('Using guest %s for secondary NFS storage' % (ssGuest.name))
+            shareName = 'SS-%s-%s' % (self.currentZoneName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+            storagePath = ssGuest.createLinuxNfsShare(shareName)
+            self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+            url = 'nfs://%s' % (storagePath.replace(':',''))
+        elif self.initialSecStorageUrl:
             url = self.initialSecStorageUrl
             self.initialSecStorageUrl = None
         else:
@@ -124,8 +133,16 @@ class DeployerPlugin(object):
 
     def getPrimaryStorageUrl(self, key, ref):
         # TODO - Add support for other storage types
-        primaryStorage = xenrt.ExternalNFSShare()
-        return 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
+        if ref.has_key('XRT_Guest_NFS'):
+            ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
+            xenrt.TEC().logverbose('Using guest %s for primary NFS storage' % (ssGuest.name))
+            shareName = 'PS-%s-%s' % (self.currentClusterName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+            storagePath = ssGuest.createLinuxNfsShare(shareName)
+            url = 'nfs://%s' % (storagePath.replace(':',''))
+        else:
+            primaryStorage = xenrt.ExternalNFSShare()
+            url = 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
+        return url
 
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))

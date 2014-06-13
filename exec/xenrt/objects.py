@@ -3237,6 +3237,43 @@ DHCPServer = 1
 
         return scsiid
 
+    def createLinuxNfsShare(self, name, verifyShare=True):
+        """Share a directory over NFS on this Linux VM.
+           The NFS Server service will be installed / started if required"""
+        if self.windows == True:
+            raise xenrt.XRTError('createLinuxNfsShare called for Windows guest')
+
+        exportPath = '/xenrtexport/%s' % (name)
+        if self.execcmd('test -e %s' % (exportPath), retval='code') == 0:
+            raise xenrt.XRTError('Export path: %s already exists on %s' % (exportPath, self.name))
+        xenrt.TEC().logverbose('Creating export on %s at path: %s' % (self.name, exportPath))
+        self.execcmd('mkdir -p %s' % (exportPath))
+        self.execcmd('echo "%s *(rw,async,no_root_squash)" >> /etc/exports' % (exportPath))
+
+        if self.distro.startswith('centos') or self.distro.startswith('rhel'):
+            self.execcmd('service nfs start')
+            self.execcmd('chkconfig nfs on')
+            self.execcmd('exportfs -a')
+        else:
+            if self.execcmd('test -e /etc/init.d/nfs-kernel-server', retval='code') != 0:
+                self.execcmd('apt-get install -y --force-yes nfs-kernel-server nfs-common portmap')
+                self.execcmd('update-rc.d nfs-kernel-server defaults')
+            self.execcmd('/etc/init.d/nfs-kernel-server reload')
+        nfsPath = '%s:%s' % (self.getIP(), exportPath)
+        xenrt.TEC().logverbose('Created NFS share: %s' % (nfsPath))
+
+        if verifyShare:
+            tempMnt = xenrt.TempDirectory().dir
+            tempFile = 'verifyShare.txt'
+            self.execcmd('touch %s' % (os.path.join(exportPath, tempFile)))
+            try:
+                xenrt.util.command('sudo mount %s %s && test -e %s' % (nfsPath, tempMnt, os.path.join(tempMnt, tempFile)))
+            finally:
+                xenrt.util.command('sudo umount %s' % (tempMnt))
+                self.execcmd('rm %s' % (os.path.join(exportPath, tempFile)))
+
+        return nfsPath
+
     def updateWindows(self):
         """Apply all relevant critical updates to a Windows guest"""
         if not self.windows:

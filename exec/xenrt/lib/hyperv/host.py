@@ -81,7 +81,7 @@ class HyperVHost(xenrt.GenericHost):
         else:
             pxe.addEntry("local", boot="local")
         
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL")))
         pxe.setDefault("local")
         pxe.writeOut(self.machine)
 

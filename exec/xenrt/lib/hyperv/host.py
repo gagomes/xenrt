@@ -71,7 +71,7 @@ class HyperVHost(xenrt.GenericHost):
 
     def installWindows(self):
         # Boot into ramdisk to wipe the partition table
-        self.bootRamDiskLinux()
+        self.bootRamdiskLinux()
         self.execdom0("dd if=/dev/zero of=/dev/%s bs=1k count=1024")
         # Construct a PXE target
         pxe = xenrt.PXEBoot()

@@ -36,5 +36,6 @@ $(WEBROOT)/wininstall/netinstall/%:
 	$(SUDO) $(ROOT)/$(XENRT)/scripts/buildwinnetinstall.sh $@
 	$(SUDO) mkdir $@/winpe
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/boot.ipxe $@/winpe/
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/diskpart.txt $@/
 	$(SUDO) cp $(TEST_INPUTS)/wimboot-1.0.5/wimboot $@/winpe
 	$(SUDO) chown -R $(USERID):$(GROUPID) $@

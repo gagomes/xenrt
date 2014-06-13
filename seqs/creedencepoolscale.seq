@@ -1,7 +1,7 @@
 <xenrt>
 
   <default name="VMSPERHOST" value="50"/>
-  <default name="THREADS" value="50"/>
+  <default name="THREADS" value="20"/>
   <default name="DISTRO" value="win7sp1-x86"/>
 
   <variables>
@@ -14,7 +14,7 @@
     <QUICKLOGS>yes</QUICKLOGS>
     <NO_GUEST_LOGS>yes</NO_GUEST_LOGS>
     <NO_TC_HOST_SERIAL_LOGS>yes</NO_TC_HOST_SERIAL_LOGS>
-    <NTHREADS>50</NTHREADS>
+    <NTHREADS>20</NTHREADS>
   </variables>
   
   <prepare>

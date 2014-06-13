@@ -8725,7 +8725,23 @@ class GenericGuest(GenericPlace):
 
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
-            au3scr = """If WinWait ("Windows Security", "") Then
+
+            if "win81" in self.distro:
+                au3scr = """If WinWait ("Windows Security", "") Then
+sleep (10000)
+SendKeepActive("Windows Security")
+sleep (1000)
+send ("{LEFT}")
+sleep(1000)
+send ("{ENTER}")
+sleep(10000)
+send ("{DOWN}")
+sleep (1000)
+send ("{ENTER}")
+EndIf
+"""
+            else:
+                au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)

@@ -3696,6 +3696,8 @@ class TCcreatevGPU(VGPUAllocationModeBase):
                 vgpuType = arg.split('=')[1]
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('distro'):
+                self.REQUIRED_DISTROS[0] = int(arg.split('=')[1]) 
         
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")

@@ -1144,21 +1144,9 @@ class TCRpuNetApp(_RPUBasic):
 class TCAutoInstaller(xenrt.TestCase):
 
     def prepare(self, arglist):
-
-        patchfile = xenrt.TEC().getFile("xe-phase-1/"+\
-                          xenrt.TEC().lookup(["INSTALLER_PATCH", "INSTALLER"]))
-        xenrt.checkFileExists(patchfile)
-        xenrt.TEC().logverbose("Installer patchfile: %s" % (patchfile))
-
-        # Apply the patch
-        result = None
         self.host = self.getDefaultHost()
-
-        try:
-            result = self.host.applyPatch(patchfile, returndata=True)
-        except xenrt.XRTFailure, e:
-            raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
-
+        for f in string.split(xenrt.TEC().lookup(["INSTALLER_PATCH", "INSTALLER"]), ","):
+            self.host.applyPatch(xenrt.TEC().getFile("xe-phase-1/" + f), returndata=True)
 
     def run(self, arglist):
         # Check that the image ISO exists

@@ -447,10 +447,9 @@ class Patch(_Entity):
     NAME = "pool_patch"
 
     def create(self):
-        workdir = xenrt.TEC().getWorkdir()
-        xenrt.getTestTarball("patchapply",extract=True,directory=workdir)
-        filename = "%s/patchapply/hotfix-mnr-test1.xsupdate" % (workdir)
         cli = self.get("Host").ref.getCLIInstance()
+        filename = self.get("Host").ref.getTestHotfix(1)
+        self.get("Host").ref.addHotfixFistFile(filename)
         self.uuid = cli.execute("patch-upload", "file-name=%s" % (filename)).strip()
 
     def destroy(self):

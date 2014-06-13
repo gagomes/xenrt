@@ -6,7 +6,7 @@
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
     <INSTALLER_PATCH>
-      <INSTALLER>XS60E009.xsupdate</INSTALLER>
+      <INSTALLER>XS60E001.xsupdate,XS62E006.xsupdate</INSTALLER>
       <PROTOCOL>HTTP</PROTOCOL>
     </INSTALLER_PATCH>
   </variables>

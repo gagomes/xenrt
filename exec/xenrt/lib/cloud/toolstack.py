@@ -356,22 +356,21 @@ class CloudStack(object):
     def createInstanceFromTemplate(self, templateName, name=None, start=True):
         if not name:
             name = xenrt.util.randomGuestName()
-        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0].id
+        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0]
         
-        tags = self.marvin.cloudApi.listTags(resourceid = template)
+        tags = self.marvin.cloudApi.listTags(resourceid = template.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
         
-        zone = self.marvin.cloudApi.listZones()[0].id
         # TODO support different service offerings
         svcOffering = self.marvin.cloudApi.listServiceOfferings(name = "Medium Instance")[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
         rsp = self.marvin.cloudApi.deployVirtualMachine(
                                         serviceofferingid=svcOffering,
-                                        zoneid=zone,
+                                        zoneid=template.zoneid,
                                         displayname=name,
-                                        name= name,
-                                        templateid=template,
+                                        name=name,
+                                        templateid=template.id,
                                         startvm=False)
         
         # TODO: Sort out the other arguments here

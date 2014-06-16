@@ -2859,7 +2859,14 @@ class XenRTRunSuite(XenRTCommand):
                 print "Building status: %s" % j['building']
             if not j['building']:
                 if j['result'] != "SUCCESS":
-                    raise Exception("Could not start suite: " + str(j['result']))
+                    # Find the failure reason if available
+                    lines = urlopen_with_retry("%s/consoleText" % self.build)
+                    reason = "Unknown"
+                    for l in lines:
+                        if l.startswith("REASON: "):
+                            reason = l[8:]
+                            break
+                    raise Exception("Could not start suite: %s (%s)" % (str(j['result']), reason))
                 return
             time.sleep(10)
 

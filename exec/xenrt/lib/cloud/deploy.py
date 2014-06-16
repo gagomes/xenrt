@@ -316,6 +316,9 @@ def doDeploy(cloudSpec, manSvr=None):
     if manSvr.place.special.has_key('initialNFSSecStorageUrl') and manSvr.place.special['initialNFSSecStorageUrl']:
         deployerPlugin.initialNFSSecStorageUrl = manSvr.place.special['initialNFSSecStorageUrl']
         manSvr.place.special['initialNFSSecStorageUrl'] = None
+    if manSvr.place.special.has_key('initialSMBSecStorageUrl') and manSvr.place.special['initialSMBSecStorageUrl']:
+        deployerPlugin.initialSMBSecStorageUrl = manSvr.place.special['initialSMBSecStorageUrl']
+        manSvr.place.special['initialSMBSecStorageUrl'] = None
     marvinCfg = marvin.marvinDeployerFactory()
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

@@ -115,11 +115,20 @@ class HyperVHost(xenrt.GenericHost):
                        "c:\\onboot.cmd")
 
     def installHyperV(self):
-        for i in ["Hyper-V", "RSAT-Hyper-V-Tools"]:
+        if self.productVersion.startswith("hvs"):
+            needReboot = False
+            features = ["RSAT-Hyper-V-Tools"]
+        else:
+            needReboot = True
+            features = ["Hyper-V", "RSAT-Hyper-V-Tools"]
+        
+        for i in features:
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
             xenrt.TEC().logverbose(self.xmlrpcExec("Install-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
-        self.softReboot()
+
+        if needReboot:
+            self.softReboot()
 
     def createVirtualSwitch(self):
         self.xmlrpcSendFile("%s/data/tests/hyperv/createvirtualswitch.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\createvirtualswitch.ps1")

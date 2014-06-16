@@ -148,7 +148,7 @@ class ManagementServer(object):
             secondaryStorage = xenrt.ExternalNFSShare()
             storagePath = secondaryStorage.getMount()
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-            self.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
+            marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
             self.place.special['initialNFSSecStorageUrl'] = url
         elif "hyperv" in hvlist:
             try:
@@ -158,7 +158,7 @@ class ManagementServer(object):
             else:
                 storagePath = secondaryStorage.getMount()
                 url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
-                self.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
+                marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
                 self.place.special['initialSMBSecStorageUrl'] = url
 
     def installApacheProxy(self):

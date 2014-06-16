@@ -8784,9 +8784,9 @@ class GenericGuest(GenericPlace):
                 au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
-sleep (1000)
+sleep (10000)
 send ("{LEFT}")
-sleep(1000)
+sleep(10000)
 send ("{ENTER}")
 sleep(10000)
 send ("{DOWN}")

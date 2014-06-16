@@ -131,7 +131,12 @@ class HyperVHost(xenrt.GenericHost):
             self.softReboot()
 
     def createVirtualSwitch(self):
-        self.xmlrpcSendFile("%s/data/tests/hyperv/createvirtualswitch.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\createvirtualswitch.ps1")
+        ps = """Import-Module Hyper-V
+$ethernet = Get-NetAdapter | where {$_.MacAddress -eq "%s"}
+New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagementOS $true -Notes 'Parent OS, VMs, LAN'
+""" % self.getNICMACAddress(0).replace(":","-")
+
+        self.xmlrpcWriteFile("c:\\createvirtualswitch.ps1", ps)
         self.enablePowerShellUnrestricted()
         cmd = "powershell.exe c:\\createvirtualswitch.ps1 %s" % self.getNICMACAddress(0).replace(":","-")
         ref = self.xmlrpcStart(cmd)

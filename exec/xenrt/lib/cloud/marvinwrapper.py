@@ -155,22 +155,6 @@ class MarvinApi(object):
     def marvinDeployerFactory(self):
         return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
 
-    def createSecondaryStorage(self, secStorageType):
-        if secStorageType == "SMB":
-            cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
-            h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
-            ip = h.getIP()
-            url = "cifs://%s/storage/secondary" % (ip)
-            storagePath = "%s:/storage/secondary" % (ip)
-            
-        else:
-            xenrt.xrtAssert(secStorageType == "NFS", "Only NFS is supported for secondary storage")
-            secondaryStorage = xenrt.ExternalNFSShare()
-            storagePath = secondaryStorage.getMount()
-            url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-        self.copySystemTemplatesToSecondaryStorage(storagePath, secStorageType)
-        return url
-
     def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
         configSetting = self.cloudApi.listConfigurations(name=name)
         if configSetting == None or len(configSetting) == 0:

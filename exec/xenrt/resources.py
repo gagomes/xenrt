@@ -20,6 +20,7 @@ __all__ = ["WebDirectory",
            "LogDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
+           "ExternalSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -605,37 +606,37 @@ class ManagedStorageResource(CentralResource):
     def getNamespace(self):
         return None
 
-class ExternalNFSShare(CentralResource):
-    """An NFS volume, or subdirectory thereof, on an external NFS server"""
+class _ExternalFileShare(CentralResource):
+    """An file share volume, or subdirectory thereof, on an external share server"""
     def __init__(self, jumbo=False, network="NPRI"):
         self.subdir = None
         # Find a suitable server
-        serverdict = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS", None)
+        serverdict = xenrt.TEC().lookup(self.SHARE_TYPE, None)
         if not serverdict:
-            raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
+            raise xenrt.XRTError("No %s defined" % self.SHARE_TYPE)
         servers = serverdict.keys()
         if len(servers) == 0:
-            raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
+            raise xenrt.XRTError("No %s defined" % self.SHARE_TYPE)
         # Generate a list of suitable servers based on jumbo frame preference
         okservers = []
         preferredservers = []
         for s in servers:
             ok = True
             preferred = False
-            xjumbo = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            xjumbo = xenrt.TEC().lookup([self.SHARE_TYPE,
                                          s, "JUMBO"], False, boolean=True)
             if jumbo and not xjumbo:
                 ok = False
             if not jumbo and xjumbo:
                 ok = False
             if network == "NPRI":
-                address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+                address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                                          s, "ADDRESS"], None)
             else:
-                address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", s, "SECONDARY_ADDRESSES", network], None)
+                address = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SECONDARY_ADDRESSES", network], None)
             if not address:
                 ok = False
-            reserved = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", s, "RESERVED"], None)
+            reserved = xenrt.TEC().lookup([self.SHARE_TYPE, s, "RESERVED"], None)
             if reserved:
                 allowedmachines = reserved.split(",")
                 machines = []
@@ -661,37 +662,34 @@ class ExternalNFSShare(CentralResource):
 
 
         if len(okservers) == 0:
-            raise xenrt.XRTError("No suitable EXTERNAL_NFS_SERVERS defined "
-                                 "(after jumbo frame validation, network validation and reserved server validation)")
+            raise xenrt.XRTError("No suitable %s defined "
+                                 "(after jumbo frame validation, network validation and reserved server validation)" % self.SHARE_TYPE)
         if len(preferredservers) > 0:
             name = random.choice(preferredservers)
         else:
             name = random.choice(okservers)
         name = xenrt.TEC().lookup("USE_NFS_SERVER", name)
+        name = xenrt.TEC().lookup("USE_FILE_SERVER", name)
         CentralResource.__init__(self)
         self.name = name
         # Get details of this resource from the config
         if network == "NPRI":
-            self.address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            self.address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                            name,
                                            "ADDRESS"],
                                           None)
         else:
-            self.address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            self.address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                            name,
                                            "SECONDARY_ADDRESSES",
                                            network],
                                            None)
-        self.sshaddress = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
-                                              name,
-                                              "SSHADDRESS"],
-                                             self.address)
-        self.base = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+        self.base = xenrt.TEC().lookup([self.SHARE_TYPE,
                                         name,
                                         "BASE"],
                                        None)
         
-        m = xenrt.rootops.MountNFS("%s:%s" % (self.address, self.base))
+        m = self.mount("%s:%s" % (self.address, self.base))
         mp = m.getMount()
         td = string.strip(xenrt.rootops.sudo("mktemp -d %s/%s-XXXXXX" % (mp, xenrt.TEC().lookup("JOBID", "nojob"))))
         xenrt.rootops.sudo("chmod 777 %s" % (td))
@@ -701,12 +699,11 @@ class ExternalNFSShare(CentralResource):
     def release(self, atExit=False):
         if self.subdir:
             if xenrt.util.keepSetup():
-                xenrt.TEC().logverbose("Not deleting NFS export %s" %
+                xenrt.TEC().logverbose("Not deleting file export %s" %
                                        (self.getMount()))
             else:
                 # Mount it here to remove the tree
-                m = xenrt.rootops.MountNFS("%s:%s" %
-                                           (self.address, self.base))
+                m = self.mount("%s:%s" % (self.address, self.base))
                 mp = m.getMount()
                 xenrt.rootops.sudo("rm -rf %s/%s" %
                                    (mp, os.path.basename(self.subdir)))
@@ -718,6 +715,18 @@ class ExternalNFSShare(CentralResource):
         if not self.subdir:
             raise xenrt.XRTError("No mount directory available")
         return "%s:%s" % (self.address, self.subdir)
+
+class ExternalNFSShare(_ExternalFileShare):
+    SHARE_TYPE="EXTERNAL_NFS_SERVERS"
+
+    def mount(self, address, path):
+        return xenrt.rootops.MountNFS("%s:%s" % (address, path))
+
+class ExternalSMBShare(_ExternalFileShare):
+    SHARE_TYPE="EXTERNAL_SMB_SERVERS"
+
+    def mount(self, address, path):
+        return xenrt.rootops.MountSMB("%s:%s" % (address, path))
 
 class ISCSIIndividualLun:
     """An individual iSCSI LUN from a group of LUNs"""

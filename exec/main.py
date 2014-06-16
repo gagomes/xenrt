@@ -1641,7 +1641,28 @@ if cleanupnfsdirs:
                 m.unmount()
         except:
             pass
-
+    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS")
+    for n in smbConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                ad = xenrt.getADConfig()
+                m = xenrt.rootops.MountSMB("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "BASE"])), ad.domainName, ad.adminUser, ad.adminPassword)
+                mp = m.getMount()
+            jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
+            for j in jobs:
+                try:
+                    if xenrt.canCleanJobResources(j):
+                        xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                except:
+                    continue
+            if m:
+                m.unmount()
+        except:
+            pass
 
 if cleanupnfsdir:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")

@@ -52,6 +52,9 @@ def getResourceInteractive(resType, argv):
     if resType == "NFS":
         res = ExternalNFSShare()
         return res.getMount()
+    if resType == "SMB":
+        res = ExternalSMBShare()
+        return res.getMount()
     elif resType == "IP4ADDR":
         size = int(argv[0])
         addrs = StaticIP4Addr.getIPRange(size, wait=False)
@@ -692,7 +695,7 @@ class _ExternalFileShare(CentralResource):
         m = self.mount("%s:%s" % (self.address, self.base))
         mp = m.getMount()
         td = string.strip(xenrt.rootops.sudo("mktemp -d %s/%s-XXXXXX" % (mp, xenrt.TEC().lookup("JOBID", "nojob"))))
-        xenrt.rootops.sudo("chmod 777 %s" % (td))
+        self.setPermissions(td)
         self.subdir = "%s/%s" % (self.base, os.path.basename(td))
         m.unmount()
 
@@ -719,14 +722,21 @@ class _ExternalFileShare(CentralResource):
 class ExternalNFSShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_NFS_SERVERS"
 
-    def mount(self, address, path):
-        return xenrt.rootops.MountNFS("%s:%s" % (address, path))
+    def mount(self, path):
+        return xenrt.rootops.MountNFS(path)
+
+    def setPermissions(self, td):
+        xenrt.rootops.sudo("chmod 777 %s" % (td))
 
 class ExternalSMBShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_SMB_SERVERS"
 
-    def mount(self, address, path):
-        return xenrt.rootops.MountSMB("%s:%s" % (address, path))
+    def mount(self, path):
+        ad = xenrt.getADConfig()
+        return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
+
+    def setPermissions(self, td):
+        pass
 
 class ISCSIIndividualLun:
     """An individual iSCSI LUN from a group of LUNs"""

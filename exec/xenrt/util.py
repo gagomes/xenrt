@@ -13,6 +13,7 @@ import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
 import calendar, types, fcntl, resource
 import xenrt, xenrt.ssh
 import IPy
+from collections import namedtuple
 
 # Symbols we want to export from the package.
 __all__ = ["timenow",
@@ -74,7 +75,8 @@ __all__ = ["timenow",
            "staleMachines",
            "xrtAssert",
            "xrtCheck",
-           "keepSetup"
+           "keepSetup",
+           "getADConfig"
            ]
 
 def sleep(secs, log=True):
@@ -1329,3 +1331,15 @@ def keepSetup():
             return True
 
     return False
+
+def getADConfig():
+    ad = xenrt.TEC().lookup("AD_CONFIG")
+    domain=ad['DOMAIN']
+    domainName = ad['DOMAIN_NAME']
+    adminUser = ad['ADMIN_USER']
+    adminPassword = ad['ADMIN_PASSWORD']
+
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword'])
+
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
+

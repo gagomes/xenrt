@@ -167,26 +167,18 @@ class HyperVHost(xenrt.GenericHost):
     def joinDefaultDomain(self):
         self.xmlrpcExec("netsh advfirewall set domainprofile state off")
         hname = self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
-        ad = xenrt.TEC().lookup("AD_CONFIG")
-        domain=ad['DOMAIN']
-        domainName = ad['DOMAIN_NAME']
-        domainUser = ad['DOMAIN_JOIN_USER']
-        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
-        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, domain, domainName, domainUser, domainPassword))
+        ad = xenrt.getADConfig()
+        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, ad.domain, ad.domainName, ad.adminUser, ad.adminPassword))
         self.softReboot()
 
     def setupDomainUserPermissions(self):
-        ad = xenrt.TEC().lookup("AD_CONFIG")
-        domain=ad['DOMAIN']
-        domainName = ad['DOMAIN_NAME']
-        domainUser = ad['DOMAIN_JOIN_USER']
-        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
-        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (domainName, domainUser))
-        self.xmlrpcExec("net localgroup \"Hyper-V Administrators\" %s\\%s /add" % (domainName, domainUser))
+        ad = xenrt.getADConfig()
+        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (ad.domainName, ad.adminUser))
+        self.xmlrpcExec("net localgroup \"Hyper-V Administrators\" %s\\%s /add" % (ad.domainName, ad.adminUser))
 
         self.xmlrpcSendFile("%s/data/tests/hyperv/logonasservice.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\logonasservice.ps1")
         self.enablePowerShellUnrestricted()
-        self.xmlrpcExec("powershell.exe c:\\logonasservice.ps1 \"%s\\%s\"" % (domainName, domainUser))
+        self.xmlrpcExec("powershell.exe c:\\logonasservice.ps1 \"%s\\%s\"" % (ad.domainName, ad.adminUser))
 
     def reconfigureToStatic(self):
         data = self.getWindowsIPConfigData()
@@ -211,14 +203,10 @@ class HyperVHost(xenrt.GenericHost):
             xenrt.sleep(5)
 
     def installCloudAgent(self, msi):
-        ad = xenrt.TEC().lookup("AD_CONFIG")
-        domain=ad['DOMAIN']
-        domainName = ad['DOMAIN_NAME']
-        domainUser = ad['DOMAIN_JOIN_USER']
-        domainPassword = ad['DOMAIN_JOIN_PASSWORD']
+        ad = xenrt.getADConfig()
         
         self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
-        self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (domainName, domainUser, domainPassword))
+        self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (ad.domainName, ad.adminUser, ad.adminPassword))
 
     def createCloudStackShares(self):
         self.xmlrpcCreateDir("c:\\storage")

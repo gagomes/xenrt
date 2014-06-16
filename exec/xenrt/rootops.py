@@ -113,7 +113,7 @@ class MountNFSv3(Mount):
 
 class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
-       Mount.__init__(self, smb, options="", mtype="cifs", retry=retry)
+       Mount.__init__(self, smb, options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
 
 def nmap(target, xmlfile, output):
     """Run nmap against the specified target."""

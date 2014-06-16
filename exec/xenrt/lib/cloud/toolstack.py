@@ -295,7 +295,13 @@ class CloudStack(object):
         return instance.mainip
 
     def startInstance(self, instance, on=None):
-        self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId)
+        if on:
+            hosts = self.marvin.cloudApi.listHosts(name=on)
+            if len(hosts) != 1:
+                raise xenrt.XRTError("Cannot find host %s on cloud" % on)
+            self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId, hostid=hosts[0].id)
+        else:
+            self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId)
 
     def stopInstance(self, instance, force=False):
         self.marvin.cloudApi.stopVirtualMachine(id=instance.toolstackId, forced=force)

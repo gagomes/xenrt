@@ -2876,7 +2876,7 @@ Add-WindowsFeature as-net-framework"""
         
         if xenrt.TEC().lookup("XENCENTER_EXE", None):
             xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
-            exe = xenrt.TEC().getFile("xe-phase-1/%s" % xcexe)
+            exe = xenrt.TEC().getFile(xcexe)
             self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
 
         # If this build has it, unpack XenCenterTestResources.tar to

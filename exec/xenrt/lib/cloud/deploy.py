@@ -28,6 +28,7 @@ class DeployerPlugin(object):
         self.currentIPRange = None
 
         self.initialNFSSecStorageUrl = None
+        self.initialSMBSecStorageUrl = None
         self.hyperVMsi = None
 
     def getName(self, key, ref):
@@ -94,12 +95,26 @@ class DeployerPlugin(object):
                     r['url'] = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
                     self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
             elif r['provider'] == "SMB":
-                h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % r['XRT_SMBHostId'])
-                ip = h.getIP()
-                r['url'] = "cifs://%s/storage/secondary" % ip
-                storagePath = "%s:/storage/secondary" % ip
-                self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'SMB')
-                r['details'] = {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
+                if self.initialSMBSecStorageUrl:
+                    r['url'] = self.initialSMBSecStorageUrl
+                    self.initialSMBSecStorageUrl = None
+                else:
+                    try:
+                        secondaryStorage = xenrt.ExternalSMBShare()
+                    except:
+                        xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
+                        h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % r['XRT_SMBHostId'])
+                        ip = h.getIP()
+                        r['url'] = "cifs://%s/storage/secondary" % ip
+                        storagePath = "%s:/storage/secondary" % ip
+                    else:
+                        r['url'] = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
+                        storagePath = secondaryStorage.getMount()
+                        
+                    self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'SMB')
+
+                ad = xenrt.getADConfig()
+                r['details'] = {"user":ad.adminUser, "password": ad.adminPassword, "domain": ad.domainName}
 
         return ss
 
@@ -189,7 +204,8 @@ class DeployerPlugin(object):
                 h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % p['XRT_SMBHostId'])
                 ip = h.getIP()
                 p['url'] =  "cifs://%s/storage/primary" % (ip)
-                p['details'] = [{"user":"Administrator"}, {"password": "xenroot01T"}, {"domain": "XSQA"}]
+                ad = xenrt.getADConfig()
+                p['details'] = [{"user":ad.adminUser}, {"password": ad.adminPassword}, {"domain": ad.domainName}]
         return ps
 
     def getHostsForCluster(self, key, ref):

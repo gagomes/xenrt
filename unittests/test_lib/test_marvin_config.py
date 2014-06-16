@@ -17,6 +17,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     "NETWORK_CONFIG/DEFAULT/GATEWAY": "10.0.0.1",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
+                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net"}
                     }
 
     def addTC(self, cls):
@@ -28,6 +29,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         self.addTC(TC2)
         self.run_for_many(self.tcs, self.__test_marvin_config_generator)
 
+    @patch("xenrt.ExternalSMBShare")
     @patch("xenrt.ExternalNFSShare")
     @patch("xenrt.command")
     @patch("xenrt.TempDirectory")
@@ -35,13 +37,16 @@ class TestMarvinConfig(XenRTUnitTestCase):
     @patch("xenrt.PrivateVLAN.getVLANRange")
     @patch("xenrt.GEC")
     @patch("xenrt.TEC")
-    def __test_marvin_config_generator(self, data, tec, gec, pvlan, ip, td, cmd, nfs):
+    def __test_marvin_config_generator(self, data, tec, gec, pvlan, ip, td, cmd, nfs, smb):
         ip.side_effect = self.__getIPRange
         pvlan.side_effect = self.__getVLANRange
         self.dummytec = DummyTEC(self)
         dummyNfs = Mock()
-        dummyNfs.getMount.return_value = "server:/path"
+        dummyNfs.getMount.return_value = "nfsserver:/path"
         nfs.return_value = dummyNfs
+        dummySmb = Mock()
+        dummySmb.getMount.return_value = "smbserver:/path"
+        smb.return_value = dummySmb
         tec.return_value = self.dummytec
         gec.return_value = self.dummytec
         (indata, outdata, extravars) = data
@@ -218,7 +223,7 @@ class TC1(BaseTC):
                                             'password': 'xenroot01T',
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
-                                'url': 'cifs://10.0.0.3/storage/secondary'}]}]} 
+                                'url': 'cifs://smbserver/path'}]}]} 
 
 class TC2(BaseTC):
     """Test that KVM zones use NFS storage"""
@@ -277,12 +282,12 @@ class TC2(BaseTC):
                                               'username': 'root'}],
                                    'hypervisor': 'KVM',
                                    'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Primary-Store-0',
-                                                        'url': 'nfs://server/path'}]}],
+                                                        'url': 'nfs://nfsserver/path'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
                     'name': 'XenRT-Zone-0-Pod-0',
                     'netmask': '255.255.255.0',
                     'startip': '10.1.0.1'}],
          'secondaryStorages': [{'provider': 'NFS',
-                                'url': 'nfs://server/path'}]}]} 
+                                'url': 'nfs://nfsserver/path'}]}]} 
 

@@ -150,7 +150,16 @@ class ManagementServer(object):
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
             self.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
             self.place.special['initialNFSSecStorageUrl'] = url
-        # TODO: Add Hyper-V with SMB support
+        elif "hyperv" in hvlist:
+            try:
+                secondaryStorage = xenrt.ExternalSMBShare()
+            except:
+                xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
+            else:
+                storagePath = secondaryStorage.getMount()
+                url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
+                self.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
+                self.place.special['initialSMBSecStorageUrl'] = url
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:

@@ -27,7 +27,7 @@ class DeployerPlugin(object):
         self.currentClusterName = None
         self.currentIPRange = None
 
-        self.initialSecStorageUrl = None
+        self.initialNFSSecStorageUrl = None
         self.hyperVMsi = None
 
     def getName(self, key, ref):
@@ -56,44 +56,52 @@ class DeployerPlugin(object):
     def getGateway(self, key, ref):
         return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
 
-    def getSecondaryStorageUrl(self, key, ref):
-        # TODO - Add support for other storage types
-        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            url = self.marvin.createSecondaryStorage("SMB")
-        elif ref.has_key('XRT_Guest_NFS'):
-            ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
-            xenrt.TEC().logverbose('Using guest %s for secondary NFS storage' % (ssGuest.name))
-            shareName = 'SS-%s-%s' % (self.currentZoneName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
-            storagePath = ssGuest.createLinuxNfsShare(shareName)
-            self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
-            url = 'nfs://%s' % (storagePath.replace(':',''))
-        elif self.initialSecStorageUrl:
-            url = self.initialSecStorageUrl
-            self.initialSecStorageUrl = None
+    def getSecondaryStorages(self, key, ref):
+        if not ref.has_key("secondaryStorages"):
+            storageTypes = []
+            ss = []
+            for p in ref['pods']:
+                for c in p['clusters']:
+                    if c['hypervisor'] == 'hyperv':
+                        if not "SMB" in [x['provider'] for x in ss]:
+                            d = {"provider": "SMB"}
+                            d['XRT_SMBHostId'] = c['XRT_HyperVHostIds'].split(",")[0]
+                            ss.append(d)
+                    else:
+                        if not "NFS" in [x['provider'] for x in ss]:
+                            d = {"provider": "NFS"}
+                            ss.append(d)
         else:
-            url = self.marvin.createSecondaryStorage("NFS")
-        return url
+            ss = copy.deepcopy(ref['secondaryStorages'])
 
-    def getSecondaryStorageProvider(self, key, ref):
-        xenrt.TEC().logverbose("getSecondaryStorageProvider: key %s ref %s" % (key, ref))
-        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            return "SMB"
-        else:
-            return 'NFS'
+        for r in ss:
+            if not r.has_key("provider"):
+                r['provider'] = "NFS"
+            if r['provider'] == "NFS":
+                if r.has_key("XRT_Guest_NFS"):
+                    ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
+                    xenrt.TEC().logverbose('Using guest %s for secondary NFS storage' % (ssGuest.name))
+                    shareName = 'SS-%s-%s' % (self.currentZoneName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+                    storagePath = ssGuest.createLinuxNfsShare(shareName)
+                    self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+                    r['url'] = 'nfs://%s' % (storagePath.replace(':',''))
+                elif self.initialNFSSecStorageUrl:
+                    r['url'] = self.initialNFSSecStorageUrl
+                    self.initialNFSSecStorageUrl = None
+                else:
+                    secondaryStorage = xenrt.ExternalNFSShare()
+                    storagePath = secondaryStorage.getMount()
+                    r['url'] = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+                    self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'NFS')
+            elif r['provider'] == "SMB":
+                h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % r['XRT_SMBHostId'])
+                ip = h.getIP()
+                r['url'] = "cifs://%s/storage/secondary" % ip
+                storagePath = "%s:/storage/secondary" % ip
+                self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'SMB')
+                r['details'] = {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
 
-    def getSecondaryStorageDetails(self, key, ref):
-        xenrt.TEC().logverbose("getSecondaryStorageDetails: key %s ref %s" % (key, ref))
-        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            return {"user":"Administrator", "password": "xenroot01T", "domain": "XSQA"}
-        else:
-            return None 
-
-    def getPrimaryStorageDetails(self, key, ref):
-        xenrt.TEC().logverbose("getPrimaryStorageDetails: key %s ref %s" % (key, ref))
-        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            return [{"user":"Administrator"}, {"password": "xenroot01T"}, {"domain": "XSQA"}]
-        else:
-            return None
+        return ss
 
     def getIPRangeStartAddr(self, key, ref):
         xenrt.TEC().logverbose('IP Range, %s, %s' % (key, ref))
@@ -148,26 +156,41 @@ class DeployerPlugin(object):
             return ref['hypervisor']
         return 'XenServer' # Default to XenServer if not specified
 
-    def getPrimaryStorageName(self, key, ref):
-        return '%s-Primary-Store' % (self.currentPodName)
-
-    def getPrimaryStorageUrl(self, key, ref):
-        # TODO - Add support for other storage types
-        if xenrt.TEC().lookup("CIFS_HOST_INDEX", None):
-            cifshost = int(xenrt.TEC().lookup("CIFS_HOST_INDEX"))
-            h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % cifshost)
-            ip = h.getIP()
-            url =  "cifs://%s/storage/primary" % (ip)
-        elif ref.has_key('XRT_Guest_NFS'):
-            ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
-            xenrt.TEC().logverbose('Using guest %s for primary NFS storage' % (ssGuest.name))
-            shareName = 'PS-%s-%s' % (self.currentClusterName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
-            storagePath = ssGuest.createLinuxNfsShare(shareName)
-            url = 'nfs://%s' % (storagePath.replace(':',''))
+    def getPrimaryStorages(self, key, ref):
+        if ref.has_key("primaryStorages"): 
+            ps = copy.deepcopy(ref['primaryStorages'])
         else:
-            primaryStorage = xenrt.ExternalNFSShare()
-            url = 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
-        return url
+            ps = []
+            if ref['hypervisor'] == "hyperv":
+                hostid = ref['XRT_HyperVHostIds'].split(",")[0]
+                ps.append({"XRT_PriStorageType": "SMB", "XRT_SMBHostId": hostid})
+            else:
+                ps.append({"XRT_PriStorageType": "NFS"})
+        
+        i = 0
+        for p in ps:
+            if not p.has_key("name"):
+                p['name'] = '%s-Primary-Store-%d' % (self.currentPodName, i)
+            i += 1
+            if not p.has_key("XRT_PriStorageType"):
+                p['XRT_PriStorageType'] = "NFS"
+
+            if p['XRT_PriStorageType'] == "NFS":
+                if p.has_key('XRT_Guest_NFS'):
+                    ssGuest = xenrt.TEC().registry.guestGet(ref['XRT_Guest_NFS'])
+                    xenrt.TEC().logverbose('Using guest %s for primary NFS storage' % (ssGuest.name))
+                    shareName = 'PS-%s-%s' % (self.currentClusterName, ''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+                    storagePath = ssGuest.createLinuxNfsShare(shareName)
+                    p['url'] = 'nfs://%s' % (storagePath.replace(':',''))
+                else:
+                    primaryStorage = xenrt.ExternalNFSShare()
+                    p['url'] = 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
+            elif p['XRT_PriStorageType'] == "SMB":
+                h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % p['XRT_SMBHostId'])
+                ip = h.getIP()
+                p['url'] =  "cifs://%s/storage/primary" % (ip)
+                p['details'] = [{"user":"Administrator"}, {"password": "xenroot01T"}, {"domain": "XSQA"}]
+        return ps
 
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
@@ -274,9 +297,9 @@ def doDeploy(cloudSpec, manSvr=None):
     marvin = xenrt.lib.cloud.MarvinApi(manSvr)
 
     deployerPlugin = DeployerPlugin(marvin)
-    if manSvr.place.special.has_key('initialSecStorageUrl') and manSvr.place.special['initialSecStorageUrl']:
-        deployerPlugin.initialSecStorageUrl = manSvr.place.special['initialSecStorageUrl']
-        manSvr.place.special['initialSecStorageUrl'] = None
+    if manSvr.place.special.has_key('initialNFSSecStorageUrl') and manSvr.place.special['initialNFSSecStorageUrl']:
+        deployerPlugin.initialNFSSecStorageUrl = manSvr.place.special['initialNFSSecStorageUrl']
+        manSvr.place.special['initialNFSSecStorageUrl'] = None
     marvinCfg = marvin.marvinDeployerFactory()
     marvinCfg.generateMarvinConfig(cloudSpec, deployerPlugin)
 

@@ -30,12 +30,12 @@ class MarvinDeployer(object):
           'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
-          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
-          'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None },
+          'defaults': { 'physical_networks': [ { } ]},
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
           'abstractName': 'SecondaryStorage',
-          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider', 'details': 'getSecondaryStorageDetails' } },
+          'required': { 'url': None, 'provider': None } },
         'physical_networks': {
           'abstractName': 'PhysicalNetwork',
           'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
@@ -62,12 +62,12 @@ class MarvinDeployer(object):
           'notify'  : { 'name': 'notifyNewElement' } },
         'clusters': {
           'abstractName': 'Cluster',
-          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
+          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': 'getPrimaryStorages', 'hosts': 'getHostsForCluster' },
           'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
           'notify'  : { 'clustername': 'notifyNewElement' } },
         'primaryStorages': {
           'abstractName': 'PrimaryStorage',
-          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', 'details': 'getPrimaryStorageDetails'} },
+          'required': { 'name': None, 'url': None} },
         'hosts': {
           'abstractName': 'Host',
           'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },

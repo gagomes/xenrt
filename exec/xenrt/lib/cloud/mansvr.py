@@ -143,8 +143,14 @@ class ManagementServer(object):
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
-        if not xenrt.TEC().lookup("NO_PRELOAD_SEC_STORAGE", False, boolean=True):
-            self.place.special['initialSecStorageUrl'] = marvinApi.createSecondaryStorage("NFS")
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
+            secondaryStorage = xenrt.ExternalNFSShare()
+            storagePath = secondaryStorage.getMount()
+            url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+            self.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
+            self.place.special['initialNFSSecStorageUrl'] = url
+        # TODO: Add Hyper-V with SMB support
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:

@@ -30,9 +30,11 @@ class TC6858(xenrt.TestCase):
         actual = host.execdom0("uname -r").strip()
         inv = host.getInventoryItem("KERNEL_VERSION")
         if inv != actual:
-            raise xenrt.XRTFailure("Running dom0 kernel %s does not match %s "
-                                   "in /etc/xensource-inventory" %
-                                   (actual, inv))
+            inv = host.getInventoryItem("LINUX_KABI_VERSION")
+            if inv != actual:
+                raise xenrt.XRTFailure("Running dom0 kernel %s does not match %s "
+                                       "in /etc/xensource-inventory" %
+                                       (actual, inv))
         xenrt.TEC().comment("Domain-0 kernel %s" % (actual))
 
 class TC5792(xenrt.TestCase):

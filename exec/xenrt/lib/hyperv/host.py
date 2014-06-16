@@ -133,7 +133,7 @@ class HyperVHost(xenrt.GenericHost):
     def createVirtualSwitch(self):
         self.xmlrpcSendFile("%s/data/tests/hyperv/createvirtualswitch.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\createvirtualswitch.ps1")
         self.enablePowerShellUnrestricted()
-        cmd = "powershell.exe c:\\createvirtualswitch.ps1"
+        cmd = "powershell.exe c:\\createvirtualswitch.ps1 %s" % self.getNICMACAddress(0).replace(":","-")
         ref = self.xmlrpcStart(cmd)
         deadline = xenrt.timenow() + 120
 

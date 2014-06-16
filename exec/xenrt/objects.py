@@ -2873,7 +2873,12 @@ Add-WindowsFeature as-net-framework"""
                 pass
         for lf in string.split(xenrt.TEC().lookup("XENCENTER_LOG_FILE"), ";"):
             self.addExtraLogFile(lf)
-            
+        
+        if xenrt.TEC().lookup("XENCENTER_EXE", None):
+            xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
+            exe = xenrt.TEC().getFile("xe-phase-1/%s" % xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
+
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
         self.xmlrpcDelTree("c:\\XenCenterTestResources")

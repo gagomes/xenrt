@@ -14,9 +14,6 @@
   </prepare>
 
   <testsequence group="HostDrivers">
-    <testcase id="xenserver.tc.vgpu.TCcheckNvidiaDriver" name="NvidiaHostDriverCheck">
-    </testcase>
-
     <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers">
     </testcase>
   </testsequence>

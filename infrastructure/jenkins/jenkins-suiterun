@@ -36,6 +36,7 @@ for i in range(2):
     u = urllib.urlopen("%sconsoleText" % os.environ["BUILD_URL"])
     suite = None
     tryAgain = False
+    reason = None
     for l in u.readlines():
         m = re.match("^SUITE (\d+)$",l)
         if m:
@@ -45,13 +46,17 @@ for i in range(2):
             if os.environ.has_key("Attempt Rerun") and os.environ["Attempt Rerun"] == "true":
                 cmd += " --rerun-all"
                 tryAgain = True
-    
+            else:
+                reason = "A run of this suite and version already exists"
+
     if not tryAgain:
         break
         
 
 if not suite:
     os.system("java -jar /usr/share/jenkins/WEB-INF/jenkins-cli.jar -s %s set-build-result unstable" % (os.environ["JENKINS_URL"]))
+    if reason:
+        print "REASON: %s" % reason
     sys.exit(1)
 
 u = urllib.urlopen("http://testrun.uk.xensource.com/tools.cgi?action=suiterunname&suiterun=%s" % suite)

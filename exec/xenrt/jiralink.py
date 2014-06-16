@@ -123,6 +123,10 @@ class JiraLink:
             {'file':"*/kern.log", 'desc':"cut here",
                 'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'},
 
+            # [HOST_NAME]/daemon.log
+            {'file':"*/daemon.log", 'desc':"BUGCHECK",
+                'pattern':r'\n.*BUGCHECK: ====>(?:.*\n)*?.*BUGCHECK: <====.*'},
+
             # [GUEST_NAME]/messages
             {'file':"*/messages", 'desc':"cut here",
                 'pattern':r'\n.*: ------------\[ cut here \]------------(?:.*\n)*?.*: ---\[ end trace .*---.*'},

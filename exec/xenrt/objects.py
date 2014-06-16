@@ -2873,7 +2873,12 @@ Add-WindowsFeature as-net-framework"""
                 pass
         for lf in string.split(xenrt.TEC().lookup("XENCENTER_LOG_FILE"), ";"):
             self.addExtraLogFile(lf)
-            
+        
+        if xenrt.TEC().lookup("XENCENTER_EXE", None):
+            xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
+
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
         self.xmlrpcDelTree("c:\\XenCenterTestResources")
@@ -8775,7 +8780,7 @@ class GenericGuest(GenericPlace):
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
 
-            if "win81-x86" in self.distro:
+            if "win81" in self.distro:
                 au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")

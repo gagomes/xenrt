@@ -45,7 +45,7 @@ def createHost(id=0,
     xenrt.GEC().startLogger(m)
 
     if not productVersion:
-        productVersion = "ws12r2-x64"
+        productVersion = xenrt.TEC().lookup("HYPERV_DISTRO", "ws12r2-x64")
 
     host = HyperVHost(m, productVersion=productVersion, productType=productType)
 

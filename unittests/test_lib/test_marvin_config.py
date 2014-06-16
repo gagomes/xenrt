@@ -16,7 +16,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     "NETWORK_CONFIG/DEFAULT/SUBNETMASK": "255.255.255.0",
                     "NETWORK_CONFIG/DEFAULT/GATEWAY": "10.0.0.1",
                     "CLOUDINPUTDIR": "http://repo/location",
-                    "ROOT_PASSWORD": "xenroot"
+                    "ROOT_PASSWORD": "xenroot",
                     }
 
     def addTC(self, cls):
@@ -25,6 +25,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
     def test_marvin_config_generator(self):
         self.tcs = []
         self.addTC(TC1)
+        self.addTC(TC2)
         self.run_for_many(self.tcs, self.__test_marvin_config_generator)
 
     @patch("xenrt.ExternalNFSShare")
@@ -133,6 +134,8 @@ class BaseTC(object):
 class TC1(BaseTC):
     """Test that Hyper-V zones use SMB storage"""
 
+    EXTRAVARS={"CIFS_HOST_INDEX": "0"}
+
     IN = {u'zones': [{u'guestcidraddress': u'192.168.200.0/24',
              u'ipranges': [{u'XRT_GuestIPRangeSize': 10}],
              u'networktype': u'Advanced',
@@ -201,3 +204,70 @@ class TC1(BaseTC):
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
                                 'url': 'cifs://10.0.0.3/storage/secondary'}]}]} 
+
+class TC2(BaseTC):
+    """Test that KVM zones use NFS storage"""
+
+    IN = {u'zones': [{u'guestcidraddress': u'192.168.200.0/24',
+             u'ipranges': [{u'XRT_GuestIPRangeSize': 10}],
+             u'networktype': u'Advanced',
+             u'physical_networks': [{u'XRT_VLANRangeSize': 10,
+                                     u'isolationmethods': [u'VLAN'],
+                                     u'name': u'AdvPhyNetwork',
+                                     u'providers': [{u'broadcastdomainrange': u'ZONE',
+                                                     u'name': u'VirtualRouter'},
+                                                    {u'broadcastdomainrange': u'ZONE',
+                                                     u'name': u'VpcVirtualRouter'},
+                                                    {u'broadcastdomainrange': u'ZONE',
+                                                     u'name': u'InternalLbVm'}],
+                                     u'traffictypes': [{u'typ': u'Guest'},
+                                                       {u'typ': u'Management'},
+                                                       {u'typ': u'Public'}]}],
+             u'pods': [{u'XRT_PodIPRangeSize': 10,
+                        u'clusters': [{u'XRT_Hosts': 1,
+                                       'XRT_KVMHostIds': '0',
+                                       u'hypervisor': u'kvm'}]}]}]}
+
+    OUT = {u'zones': [{'dns1': '10.0.0.2',
+         u'guestcidraddress': u'192.168.200.0/24',
+         'internaldns1': '10.0.0.2',
+         u'ipranges': [{u'XRT_GuestIPRangeSize': 10,
+                        'endip': '10.1.0.10',
+                        'gateway': '10.0.0.1',
+                        'netmask': '255.255.255.0',
+                        'startip': '10.1.0.1'}],
+         'name': 'XenRT-Zone-0',
+         u'networktype': u'Advanced',
+         u'physical_networks': [{u'XRT_VLANRangeSize': 10,
+                                 'broadcastdomainrange': 'Zone',
+                                 u'isolationmethods': [u'VLAN'],
+                                 u'name': u'AdvPhyNetwork',
+                                 u'providers': [{u'broadcastdomainrange': u'ZONE',
+                                                 u'name': u'VirtualRouter'},
+                                                {u'broadcastdomainrange': u'ZONE',
+                                                 u'name': u'VpcVirtualRouter'},
+                                                {u'broadcastdomainrange': u'ZONE',
+                                                 u'name': u'InternalLbVm'}],
+                                 u'traffictypes': [{u'typ': u'Guest'},
+                                                   {u'typ': u'Management'},
+                                                   {u'typ': u'Public'}],
+                                 'vlan': '3000-3009'}],
+         u'pods': [{u'XRT_PodIPRangeSize': 10,
+                    u'clusters': [{u'XRT_Hosts': 1,
+                                   'XRT_KVMHostIds': '0',
+                                   'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
+                                   'clustertype': 'CloudManaged',
+                                   'hosts': [{'password': 'xenroot',
+                                              'url': 'http://10.0.0.3',
+                                              'username': 'root'}],
+                                   u'hypervisor': u'kvm',
+                                   'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Primary-Store',
+                                                        'url': 'nfs://server/path'}]}],
+                    'endip': '10.1.0.10',
+                    'gateway': '10.0.0.1',
+                    'name': 'XenRT-Zone-0-Pod-0',
+                    'netmask': '255.255.255.0',
+                    'startip': '10.1.0.1'}],
+         'secondaryStorages': [{'provider': 'NFS',
+                                'url': 'nfs://server/path'}]}]} 
+

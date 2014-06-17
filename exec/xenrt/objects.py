@@ -3652,6 +3652,9 @@ bootlocal.close()
         xenrt.TEC().logverbose("Updating RPC daemon")
         self.xmlrpcUpdate()
 
+        if xenrt.TEC().lookup("WORKAROUND_CA137990", False, boolean=True):
+            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", 125)
+        
         # Disable the screensaver (XRT-214)
         self.winRegAdd("HKCU",
                        "Control Panel\\Desktop",

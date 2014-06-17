@@ -113,6 +113,11 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             dest.execcmd("killall iperf || true")
             dest.execcmd("killall -9 iperf || true")
 
+        # Check for error on client
+        if output.find("connect failed") >= 0:
+            xenrt.TEC().logverbose("output was '%s'" % (output,))
+            raise xenrt.XRTError("iperf client couldn't connect to server")
+
         return output
 
     def hostOfEndpoint(self, endpoint):

@@ -1,5 +1,5 @@
 import xenrt
-import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2
+import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2, time
 from xenrt.lib.opsys import OS, registerOS
 from zope.interface import implements
 
@@ -1131,5 +1131,50 @@ class WindowsOS(OS):
     def randomStringGenerator(self, value):
         self.__randomStringGenerator = value
 
+    def _xenstore(self, operation, path, data=None):
+        """Perform a xenstore operation"""
+        assert(operation in ["read", "write", "dir", "remove"], "Unknown xenstore operation %s" % operation)
+
+        # First find the xenstore_client.exe binary
+        if self.getArch() == "amd64":
+            cmdpath = "C:\\Program Files (x86)\\Citrix\\XenTools\\xenstore_client.exe"
+        else:
+            cmdpath = "C:\\Program Files\\Citrix\\XenTools\\xenstore_client.exe"
+    
+        cmd = "%s %s %s" % (cmdpath, operation, path)
+        if data is not None:
+            cmd = "%s %s" % (cmd, data)
+
+        return self.execCmd(cmd, returndata=True)
+
+    def xenstoreRead(self, path):
+        return self._xenstore("read", path)
+
+    def xenstoreWrite(self, path, data):
+        return self._xenstore("write", path, data)
+
+    def xenstoreLs(self, path):
+        return self._xenstore("dir", path)
+
+    def xenstoreRemove(self, path):
+        return self._xenstore("remove", path)
+
+    def uptime(self):
+        """Returns the uptime of the Windows VM"""
+
+        # TODO: Find a better way of doing this - for 32-bit we can use the win32api.GetTickCount(), but need an equivalent for
+        # 64-bit systems.
+        stats = self.execCmd("net statistics server", returndata=True)
+        m = re.search("Statistics since (.+)$", stats)
+        if not m:
+            raise xenrt.XRTError("Unable to determine uptime")
+        startDate = m.group(1)
+        # startDate is in the format MM/DD/YYYY HH:MM AM/PM
+        startTime = time.strptime(startDate, "%m/%d/%Y %H:%M %p")
+        # Unfortunately time.strptime doesn't handle AM/PM correctly (it ignores it), so work out if we need to add 12
+        if startDate.endswith("PM"):
+            return time.mktime(startTime) + 12*3600
+        else:
+            return time.mktime(startTime)
 
 registerOS(WindowsOS)

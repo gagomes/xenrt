@@ -27,6 +27,8 @@ class TestMarvinConfig(XenRTUnitTestCase):
         self.tcs = []
         self.addTC(TC1)
         self.addTC(TC2)
+        self.addTC(TC3)
+        self.addTC(TC4)
         self.run_for_many(self.tcs, self.__test_marvin_config_generator)
 
     @patch("xenrt.ExternalSMBShare")
@@ -147,6 +149,11 @@ class DummyRegistry(object):
         m.getIP.return_value = str(IPy.IP(IPy.IP("10.0.0.3").int() + index))
         return m
 
+    def guestGet(self, g):
+        g = Mock()
+        g.createLinuxNfsShare.return_value = "guest:/path"
+        return g
+
 class BaseTC(object):
     EXTRAVARS = {}
 
@@ -211,7 +218,7 @@ class TC1(BaseTC):
                                    'primaryStorages': [{'details': [{'user': 'Administrator'},
                                                                     {'password': 'xenroot01T'},
                                                                     {'domain': 'XSQA'}],
-                                                        'name': 'XenRT-Zone-0-Pod-0-Primary-Store-0',
+                                                        'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
                                                         'url': 'cifs://10.0.0.3/storage/primary'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
@@ -281,7 +288,7 @@ class TC2(BaseTC):
                                               'url': 'http://10.0.0.3',
                                               'username': 'root'}],
                                    'hypervisor': 'KVM',
-                                   'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Primary-Store-0',
+                                   'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
                                                         'url': 'nfs://nfsserver/path'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
@@ -291,3 +298,93 @@ class TC2(BaseTC):
          'secondaryStorages': [{'provider': 'NFS',
                                 'url': 'nfs://nfsserver/path'}]}]} 
 
+
+class TC3(BaseTC):
+    """Test that KVM zones can use guest-based NFS primary storage"""
+
+    IN = {'zones': [{'networktype': 'Basic',
+             'physical_networks': [{'name': 'BasicPhyNetwork'}],
+             'pods': [{'XRT_PodIPRangeSize': 10,
+                        'clusters': [{'XRT_Hosts': 1,
+                                       'XRT_KVMHostIds': '0',
+                                       'hypervisor': 'KVM',
+                                       'primaryStorages': [{'XRT_Guest_NFS': 'PriStoreNFS'}]}],
+                        'guestIpRanges': [{'XRT_GuestIPRangeSize': 15}]}]}]}
+
+    OUT = {'zones': [{'dns1': '10.0.0.2',
+            'internaldns1': '10.0.0.2',
+            'name': 'XenRT-Zone-0',
+            'networktype': 'Basic',
+            'physical_networks': [{'broadcastdomainrange': 'Zone',
+                                   'name': 'BasicPhyNetwork',
+                                   'providers': [{'broadcastdomainrange': 'ZONE',
+                                                  'name': 'VirtualRouter'},
+                                                 {'broadcastdomainrange': 'Pod',
+                                                  'name': 'SecurityGroupProvider'}],
+                                   'traffictypes': [{'typ': 'Guest'},
+                                                    {'typ': 'Management'}],
+                                   'vlan': None}],
+            'pods': [{'clusters': [{'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
+                                    'clustertype': 'CloudManaged',
+                                    'hosts': [{'password': 'xenroot',
+                                               'url': 'http://10.0.0.3',
+                                               'username': 'root'}],
+                                    'hypervisor': 'KVM',
+                                    'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
+                                                         'url': 'nfs://guest/path'}]}],
+                      'endip': '10.1.0.10',
+                      'gateway': '10.0.0.1',
+                      'guestIpRanges': [{'endip': '10.1.0.15',
+                                         'gateway': '10.0.0.1',
+                                         'netmask': '255.255.255.0',
+                                         'startip': '10.1.0.1'}],
+                      'name': 'XenRT-Zone-0-Pod-0',
+                      'netmask': '255.255.255.0',
+                      'startip': '10.1.0.1'}],
+            'secondaryStorages': [{'provider': 'NFS',
+                                   'url': 'nfs://nfsserver/path'}]}]}
+
+class TC4(BaseTC):
+    """Test that KVM zones can use guest-based NFS secondary storage"""
+
+    IN = {'zones': [{'networktype': 'Basic',
+             'physical_networks': [{'name': 'BasicPhyNetwork'}],
+             'pods': [{'XRT_PodIPRangeSize': 10,
+                        'clusters': [{'XRT_Hosts': 1,
+                                       'XRT_KVMHostIds': '0',
+                                       'hypervisor': 'KVM'}],
+                        'guestIpRanges': [{'XRT_GuestIPRangeSize': 15}]}],
+             'secondaryStorages': [{'XRT_Guest_NFS': 'PriStoreNFS'}]}]}
+
+    OUT = {'zones': [{'dns1': '10.0.0.2',
+            'internaldns1': '10.0.0.2',
+            'name': 'XenRT-Zone-0',
+            'networktype': 'Basic',
+            'physical_networks': [{'broadcastdomainrange': 'Zone',
+                                   'name': 'BasicPhyNetwork',
+                                   'providers': [{'broadcastdomainrange': 'ZONE',
+                                                  'name': 'VirtualRouter'},
+                                                 {'broadcastdomainrange': 'Pod',
+                                                  'name': 'SecurityGroupProvider'}],
+                                   'traffictypes': [{'typ': 'Guest'},
+                                                    {'typ': 'Management'}],
+                                   'vlan': None}],
+            'pods': [{'clusters': [{'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
+                                    'clustertype': 'CloudManaged',
+                                    'hosts': [{'password': 'xenroot',
+                                               'url': 'http://10.0.0.3',
+                                               'username': 'root'}],
+                                    'hypervisor': 'KVM',
+                                    'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
+                                                         'url': 'nfs://nfsserver/path'}]}],
+                      'endip': '10.1.0.10',
+                      'gateway': '10.0.0.1',
+                      'guestIpRanges': [{'endip': '10.1.0.15',
+                                         'gateway': '10.0.0.1',
+                                         'netmask': '255.255.255.0',
+                                         'startip': '10.1.0.1'}],
+                      'name': 'XenRT-Zone-0-Pod-0',
+                      'netmask': '255.255.255.0',
+                      'startip': '10.1.0.1'}],
+            'secondaryStorages': [{'provider': 'NFS',
+                                   'url': 'nfs://guest/path'}]}]}

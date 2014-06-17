@@ -5,7 +5,7 @@ import socket,random,sys,time
 
 class _VSwitch(xenrt.TestCase):
     """Base class for vswitch tests."""
-    DURATION         = 60
+    DURATION         = 5
     NETPERF_TESTS    = ["TCP_STREAM",
                         "TCP_MAERTS",
                         "UDP_STREAM"]

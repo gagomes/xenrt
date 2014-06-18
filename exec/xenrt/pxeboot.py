@@ -392,7 +392,9 @@ dhcp
             if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
 
-        if self.default == "local" and xenrt.TEC().lookupHost(machine.name,"IPXE_EXIT", False, boolean=True):
+        if xenrt.TEC().lookup("USE_IPXE", False, boolean=True) and \
+          self.default == "local" and \
+          xenrt.TEC().lookupHost(machine.name,"IPXE_EXIT", False, boolean=True):
             self.writeIPXEExit(machine, forceip) 
         
         if not forcemac:

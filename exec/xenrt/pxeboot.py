@@ -304,6 +304,20 @@ DEFAULT %s
             self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
             
 
+    def writeIPXEExit(self, machine, forceip=None):
+        filename = self.getIPXEFile(machine, forceip)
+        
+        out = "goto end\n"
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
     def writeIPXEConfig(self, machine, url, forceip=None):
         self.iPXE = True
         filename = self.getIPXEFile(machine, forceip)
@@ -371,12 +385,16 @@ dhcp
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 
+
         if not self.iPXE:
             if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
             if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
 
+        if self.default == "local" and xenrt.TEC().lookupHost(machine.name,"IPXE_EXIT", False, boolean=True):
+            self.writeIPXEExit(machine, forceip) 
+        
         if not forcemac:
             forcemac = xenrt.TEC().lookupHost(machine.name,"PXE_MAC_ADDRESS", None)
         if forcemac:

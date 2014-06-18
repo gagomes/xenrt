@@ -25,8 +25,8 @@ SRCDIRS		:= control scripts seqs lib data provision server
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
-LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt
-BINLINKS    := xenrt xrt
+LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
+BINLINKS    := xenrt xrt xrt1
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -173,9 +173,17 @@ control/xrt:
 	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
 
+control/xrt1:
+	$(info Creating link to $@...)
+	ln -sf $(SHAREDIR)/exec/main.py $(SHAREDIR)/$@
+
 xrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
+
+xrt1:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt1 $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)

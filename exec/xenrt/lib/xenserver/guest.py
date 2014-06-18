@@ -361,12 +361,14 @@ class Guest(xenrt.GenericGuest):
                                      "vendor installer")
 
         # Choose a storage respository
+        xenrt.TEC().logverbose("SR: %s" % sr)
         if not sr:
             sruuid = self.chooseSR()
         else:
             if xenrt.isUUID(sr):
                 sruuid = sr
             else:
+                xenrt.TEC().logverbose("given sr is not UUID")
                 sruuid = self.getHost().parseListForUUID("sr-list", "name-label", sr)
 
         # Contruct the VM
@@ -521,11 +523,8 @@ class Guest(xenrt.GenericGuest):
             self.paramSet("other-config:xenrt-distro", self.distro)
 
         if not dontstartinstall:
-            if self.noguestagent and not notools and not installXenToolsInPostInstall:
+            if start:
                 self.start()
-                self.installTools()
-                if not start:
-                    self.shutdown()
 
             xenrt.TEC().comment("Created %s guest named %s with %u vCPUS and "
                                 "%uMB memory."
@@ -534,6 +533,9 @@ class Guest(xenrt.GenericGuest):
             ip = self.getIP()
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
+
+            if self.noguestagent and not notools and self.getState() == "UP":
+                self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
@@ -623,12 +625,13 @@ class Guest(xenrt.GenericGuest):
             pats = string.split(xenrt.TEC().lookup("TOOLS_CD_NAMES_LINUX"))
         for cdpattern in pats:
             cdnames = fnmatch.filter(isos, cdpattern)
-            if len(cdnames) > 0:
-                if re.search("debian\d+", self.distro) or \
+            if cdnames and len(cdnames) > 0:
+                if self.distro and \
+                    (re.search("debian\d+", self.distro) or \
                     re.search("rhel6", self.distro) or \
                     re.search("oel6", self.distro) or \
                     re.search("centos6", self.distro) or \
-                    re.search("ubuntu", self.distro):
+                    re.search("ubuntu", self.distro)):
                     self.changeCD(cdnames[0], device="3")
                 else:
                     self.changeCD(cdnames[0])
@@ -1351,6 +1354,12 @@ exit /B 1
                     if extrawait:
                         xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
                         xenrt.sleep(extrawait)
+
+                        if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
+                            for i in range(24):
+                                if self.pvDriversUpToDate():
+                                    break
+                                xenrt.sleep(10)
                     return xenrt.RC_OK
                 else:
                     xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)

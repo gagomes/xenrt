@@ -1,0 +1,38 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="masterwin81-x86">
+        <distro>win81-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="HostDrivers">
+    <testcase id="xenserver.tc.vgpu.TCcheckNvidiaDriver" name="NvidiaHostDriverCheck">
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers">
+    </testcase>
+  </testsequence>
+
+<!--for vgputype: K100=0, K120=1, K140=2, K1PassThrough=3, K200=4, K220=5, K240=6, K260=7, K2PassThrough=8 !-->
+<!--Win7x86, Win7x64, WS2008R2, Win8x86, Win8x64, Win81x86, Win81x64, WS12x64, WS12R2x64,DEBIAN = range(10) !-->
+
+  <testsequence group="Win7sp1x86K140">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
+      <arg>vmName=masterwin81-x86</arg>
+      <arg>vgputype=1</arg>
+      <arg>distro=5</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x86K140Drivers">
+      <arg>vmName=masterwin81-x86</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+  </testsequence>
+  
+</xenrt>

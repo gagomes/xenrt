@@ -1,0 +1,12 @@
+#!ipxe
+
+kernel wimboot
+initrd media/bootmgr                      bootmgr
+initrd media/Boot/BCD                     BCD
+initrd media/Boot/Fonts/segmono_boot.ttf  segmono_boot.ttf
+initrd media/Boot/Fonts/segoe_slboot.ttf  segoe_slboot.ttf
+initrd media/Boot/Fonts/segoen_slboot.ttf segoen_slboot.ttf
+initrd media/Boot/Fonts/wgl4_boot.ttf     wgl4_boot.ttf
+initrd media/Boot/boot.sdi                boot.sdi
+initrd media/sources/boot.wim             boot.wim
+boot

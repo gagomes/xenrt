@@ -3,6 +3,9 @@ from zope.interface import Interface, Attribute
 __all__=["Toolstack", "OSParent", "OS", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
 
 class Toolstack(Interface):
+
+    name = Attribute("Name of the Toolstack")
+
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
@@ -69,6 +72,9 @@ class Toolstack(Interface):
     def instanceScreenshot(instance, path):
         """Screenshot an instance"""
 
+    def getLogs(path):
+        """Retrieve logs into path"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")
@@ -92,10 +98,6 @@ class OSParent(Interface):
 
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
-
-    def assertHealthy():
-        """Quickly assert the health of the instance"""
-
 
 class OS(Interface):
 

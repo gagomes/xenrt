@@ -36,7 +36,7 @@ class _PowerCtlBase:
     def on(self):
         raise xenrt.XRTError("Unimplemented")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         # Default implementation
         self.off()
         xenrt.sleep(5)
@@ -63,7 +63,7 @@ class Dummy(_PowerCtlBase):
         xenrt.TEC().logverbose("Simulating power on of %s" % 
                                (self.machine.name))
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Simulating power cycle of %s" %
                                (self.machine.name))
 
@@ -95,7 +95,7 @@ class Xenuse(_PowerCtlBase):
         xenrt.TEC().logverbose("Turning on machine %s" % (self.machine.name))
         self.xenuse("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         self.xenuse("reboot")
         # Just in case it was turned off
@@ -127,7 +127,7 @@ class AskUser(_PowerCtlBase):
             dummy = sys.stdin.readline()
             print "Enter pressed."
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         if not self.pause("Please power cycle machine %s" % self.machine.name):
             print "\nPlease power cycle machine %s and press enter\n" % \
                   (self.machine.name)
@@ -149,7 +149,7 @@ class Soft(_PowerCtlBase):
         dummy = sys.stdin.readline()
         print "Enter pressed."
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Trying a soft reboot of %s" %
                                (self.machine.name))
         host = self.machine.getHost()
@@ -230,7 +230,7 @@ class PDU(_PowerCtlBase):
             xenrt.sleep(random.randint(0, 20))
         self.snmp("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         cyclehack = int(xenrt.TEC().lookupHost(self.machine.name,
                                                "PDU_REBOOT_DELAY",
                                                "0"))
@@ -264,7 +264,7 @@ class ILO(_PowerCtlBase):
             xenrt.sleep(random.randint(0, 20))
         self.ilo("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
@@ -334,8 +334,10 @@ class IPMIWithPDUFallback(_PowerCtlBase):
                 xenrt.sleep(60)
                 self.machine.consoleLogger.reload()
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         try:
+            if fallback:
+                raise xenrt.XRTError("Hard reset requested")
             self.ipmi.cycle()
         except:
             xenrt.TEC().logverbose("IPMI failed, falling back to PDU control")
@@ -377,7 +379,7 @@ class IPMI(_PowerCtlBase):
                 xenrt.sleep(random.randint(0, 20))
             self.ipmi("power on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         # Some ILO controllers have broken serial on boot
         if xenrt.TEC().lookupHost(self.machine.name, "SERIAL_DISABLE_ON_BOOT",False, boolean=True) and self.machine.consoleLogger:
@@ -433,7 +435,7 @@ class Custom(_PowerCtlBase):
         xenrt.TEC().logverbose("Running custom command to turn on machine %s" % (self.machine.name))
         self.runCustom("ON")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Running custom command to power cycle machine %s" % (self.machine.name))
         self.runCustom("CYCLE")
         xenrt.sleep(5)
@@ -454,7 +456,7 @@ class CiscoUCS(_PowerCtlBase):
     def on(self):
         self._ucs("admin-up")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         self._ucs("cycle-immediate")
 
     def _ucs(self, op):
@@ -490,7 +492,7 @@ class Xapi(_PowerCtlBase):
         except Exception, e:
             self.log("Warning: %s" % str(e))
     
-    def cycle(self):
+    def cycle(self, fallback=False):
         try:
             self.xapi("vm-shutdown", force=True)
         except Exception, e:

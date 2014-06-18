@@ -74,21 +74,16 @@ class JiraLink:
         i = self.jira.issue(issueKey)
         return i.fields.resolution is None
 
-    def getSnippet(self,logfilename,logfiledata,pattern,patterndesc,maxmatches=3,maxchars=4096):
+    def getSnippet(self, logfilename, pattern, patterndesc, maxchars=4096):
         """Returns a snippet string containing log matched in logfile"""
-        
-        strings = pattern.findall(logfiledata)
-        if len(strings) ==0:
-            return ""
-        if len(strings) > maxmatches:
-            noformattext = "\n...\n".join(strings[0:maxmatches])
-            noformattext +="\n....."
-        else:
-            noformattext = "\n...\n".join(strings)
-        if(len(noformattext)) > maxchars:
-            noformattext = noformattext[0:maxchars] +"\n....."
-        snippet = ("Found %s occurrences matching '%s' in '%s':- \n{noformat}\n%s\n{noformat}\n" % (len(strings),patterndesc,logfilename.split("/")[-1],noformattext))
-        return snippet
+        noformattext = str(xenrt.command("pcregrep -M '%s' %s" % (pattern, logfilename) , level=xenrt.RC_OK))
+        noformattext = noformattext.strip()
+        if noformattext!="1":
+            if(len(noformattext)) > maxchars:
+                noformattext = noformattext[0:maxchars] + "\n\n..."
+            snippet = ("Found '%s' in '%s':- \n{noformat}\n%s\n{noformat}" % (patterndesc,logfilename.replace(xenrt.TEC().getLogdir()+"/", ""),noformattext.strip()))
+            return snippet
+        return ""
 
     def getFailedLogSnippetsFromPattern(self):
         """Returns a string containing possible reason of failure from logs"""
@@ -123,39 +118,37 @@ class JiraLink:
             {'file':"*/kern.log", 'desc':"cut here",
                 'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'},
 
+            # [HOST_NAME]/daemon.log
+            {'file':"*/daemon.log", 'desc':"BUGCHECK",
+                'pattern':r'\n.*BUGCHECK: ====>(?:.*\n)*?.*BUGCHECK: <====.*'},
+
             # [GUEST_NAME]/messages
             {'file':"*/messages", 'desc':"cut here",
                 'pattern':r'\n.*: ------------\[ cut here \]------------(?:.*\n)*?.*: ---\[ end trace .*---.*'},
 
             # [GUEST_NAME]/guest-console-logs/console*
             {'file':"*/guest-console-logs/console*", 'desc':"cut here",
-                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'}
-#            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
-#                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
+                'pattern':r'\n.*\] ------------\[ cut here \]------------(?:.*\n)*?.*\] ---\[ end trace .*---.*'},
+            {'file':"*/guest-console-logs/console*", 'desc':"Network autoconfig using DHCP failed",
+                'pattern':r'(?:.*\n){0,1}(?:.*Network autoconfiguration failed.*)(?:.*\n){0,4}'},
 #            {'file':"*/guest-console-logs/console*", 'desc':"Guest Stacked Call Trace", 'ignoreAfter': "SysRq :",
 #                'pattern':r'(?:.*\n){0,2}(?:.*Call Trace\:.*)(?:.*\n){0,10}'},
-#            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
-#                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
-#            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
-#                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
-#            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
-#                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
+            {'file':"*/guest-console-logs/console*", 'desc':"Guest GRUB Installation failure",
+                'pattern':r'(?:.*\n){0,20}(?:.*GRUB installation failed.*)(?:.*\n){0,4}'},
+            {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
+                'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
+            {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
+                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
         ]
         desc = "\n"
         for fp in failurepatterns:
-            pattern = re.compile(fp['pattern'])
             try:
                 clogfiles = glob.glob("%s/%s" % (xenrt.TEC().getLogdir(),fp['file']))
             except Exception, e:
                 xenrt.TEC().warning("Failed to get logfile list matching '%s': %s" %(fp['file'],str(e)))
             for file in clogfiles:
                 try:
-                    f = open(file, 'r')
-                    filedata = f.read()
-                    f.close()
-                    if 'ignoreAfter' in fp.keys():
-                        filedata = filedata.split(fp['ignoreAfter'])[0]
-                    desc += self.getSnippet(file, filedata, pattern, fp['desc'])
+                    desc += self.getSnippet(file, fp['pattern'], fp['desc'])
                     desc += "\n"
                 except Exception, e:
                     xenrt.TEC().warning("Failed to get snippet from file %s: %s" %(file,str(e)))
@@ -1100,8 +1093,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                                     "george-update-1", "bodie", "laurie",
                                     "cowley-newkernel", "boston-newxen"]:
                 tickettitle = "[%s] %s" % (r.group(1), tickettitle)
-            issue = j.create_issue(project={"key":project},summary = tickettitle[0:255],issuetype={"name":"Bug"},priority={"name":"Major"},
-                                environment=environment,description=description,
+            issue = j.create_issue(project={"key":project},summary = unicode(tickettitle[0:255], errors='ignore'),issuetype={"name":"Bug"},priority={"name":"Major"},
+                                environment=environment,description=unicode(description, errors='ignore'),
                                 components=[{'id':component}],assignee={'name':assignee})
             xenrt.GEC().logverbose("Created JIRA issue %s" % (issue.key))
             try:

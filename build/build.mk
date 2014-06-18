@@ -9,6 +9,7 @@ include build/scripts.mk
 include build/infrastructure.mk
 include build/tests.mk
 include build/iso.mk
+include build/linuxiso.mk
 include build/disklessdebian.mk
 include build/debugger.mk
 include build/utils.mk

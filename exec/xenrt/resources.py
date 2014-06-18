@@ -20,6 +20,7 @@ __all__ = ["WebDirectory",
            "LogDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
+           "ExternalSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -44,7 +45,24 @@ __all__ = ["WebDirectory",
            "SharedHost",
            "PrivateVLAN",
            "ProductLicense",
-           "GlobalResource"]
+           "GlobalResource",
+           "getResourceInteractive"]
+
+def getResourceInteractive(resType, argv):
+    if resType == "NFS":
+        res = ExternalNFSShare()
+        return res.getMount()
+    if resType == "SMB":
+        res = ExternalSMBShare()
+        return res.getMount()
+    elif resType == "IP4ADDR":
+        size = int(argv[0])
+        addrs = StaticIP4Addr.getIPRange(size, wait=False)
+        return {"start": addrs[0].getAddr(), "end": addrs[-1].getAddr()}
+    elif resType == "VLAN":
+        size = int(argv[0])
+        vlans = PrivateVLAN.getVLANRange(size, wait=False)
+        return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
 
 class DirectoryResource:
 
@@ -591,37 +609,37 @@ class ManagedStorageResource(CentralResource):
     def getNamespace(self):
         return None
 
-class ExternalNFSShare(CentralResource):
-    """An NFS volume, or subdirectory thereof, on an external NFS server"""
+class _ExternalFileShare(CentralResource):
+    """An file share volume, or subdirectory thereof, on an external share server"""
     def __init__(self, jumbo=False, network="NPRI"):
         self.subdir = None
         # Find a suitable server
-        serverdict = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS", None)
+        serverdict = xenrt.TEC().lookup(self.SHARE_TYPE, None)
         if not serverdict:
-            raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
+            raise xenrt.XRTError("No %s defined" % self.SHARE_TYPE)
         servers = serverdict.keys()
         if len(servers) == 0:
-            raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
+            raise xenrt.XRTError("No %s defined" % self.SHARE_TYPE)
         # Generate a list of suitable servers based on jumbo frame preference
         okservers = []
         preferredservers = []
         for s in servers:
             ok = True
             preferred = False
-            xjumbo = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            xjumbo = xenrt.TEC().lookup([self.SHARE_TYPE,
                                          s, "JUMBO"], False, boolean=True)
             if jumbo and not xjumbo:
                 ok = False
             if not jumbo and xjumbo:
                 ok = False
             if network == "NPRI":
-                address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+                address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                                          s, "ADDRESS"], None)
             else:
-                address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", s, "SECONDARY_ADDRESSES", network], None)
+                address = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SECONDARY_ADDRESSES", network], None)
             if not address:
                 ok = False
-            reserved = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", s, "RESERVED"], None)
+            reserved = xenrt.TEC().lookup([self.SHARE_TYPE, s, "RESERVED"], None)
             if reserved:
                 allowedmachines = reserved.split(",")
                 machines = []
@@ -647,52 +665,48 @@ class ExternalNFSShare(CentralResource):
 
 
         if len(okservers) == 0:
-            raise xenrt.XRTError("No suitable EXTERNAL_NFS_SERVERS defined "
-                                 "(after jumbo frame validation, network validation and reserved server validation)")
+            raise xenrt.XRTError("No suitable %s defined "
+                                 "(after jumbo frame validation, network validation and reserved server validation)" % self.SHARE_TYPE)
         if len(preferredservers) > 0:
             name = random.choice(preferredservers)
         else:
             name = random.choice(okservers)
         name = xenrt.TEC().lookup("USE_NFS_SERVER", name)
+        name = xenrt.TEC().lookup("USE_FILE_SERVER", name)
         CentralResource.__init__(self)
         self.name = name
         # Get details of this resource from the config
         if network == "NPRI":
-            self.address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            self.address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                            name,
                                            "ADDRESS"],
                                           None)
         else:
-            self.address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+            self.address = xenrt.TEC().lookup([self.SHARE_TYPE,
                                            name,
                                            "SECONDARY_ADDRESSES",
                                            network],
                                            None)
-        self.sshaddress = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
-                                              name,
-                                              "SSHADDRESS"],
-                                             self.address)
-        self.base = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS",
+        self.base = xenrt.TEC().lookup([self.SHARE_TYPE,
                                         name,
                                         "BASE"],
                                        None)
         
-        m = xenrt.rootops.MountNFS("%s:%s" % (self.address, self.base))
+        m = self.mount("%s:%s" % (self.address, self.base))
         mp = m.getMount()
         td = string.strip(xenrt.rootops.sudo("mktemp -d %s/%s-XXXXXX" % (mp, xenrt.TEC().lookup("JOBID", "nojob"))))
-        xenrt.rootops.sudo("chmod 777 %s" % (td))
+        self.setPermissions(td)
         self.subdir = "%s/%s" % (self.base, os.path.basename(td))
         m.unmount()
 
     def release(self, atExit=False):
         if self.subdir:
-            if xenrt.TEC().lookup("OPTION_KEEP_NFS", False, boolean=True):
-                xenrt.TEC().logverbose("Not deleting NFS export %s" %
+            if xenrt.util.keepSetup():
+                xenrt.TEC().logverbose("Not deleting file export %s" %
                                        (self.getMount()))
             else:
                 # Mount it here to remove the tree
-                m = xenrt.rootops.MountNFS("%s:%s" %
-                                           (self.address, self.base))
+                m = self.mount("%s:%s" % (self.address, self.base))
                 mp = m.getMount()
                 xenrt.rootops.sudo("rm -rf %s/%s" %
                                    (mp, os.path.basename(self.subdir)))
@@ -704,6 +718,25 @@ class ExternalNFSShare(CentralResource):
         if not self.subdir:
             raise xenrt.XRTError("No mount directory available")
         return "%s:%s" % (self.address, self.subdir)
+
+class ExternalNFSShare(_ExternalFileShare):
+    SHARE_TYPE="EXTERNAL_NFS_SERVERS"
+
+    def mount(self, path):
+        return xenrt.rootops.MountNFS(path)
+
+    def setPermissions(self, td):
+        xenrt.rootops.sudo("chmod 777 %s" % (td))
+
+class ExternalSMBShare(_ExternalFileShare):
+    SHARE_TYPE="EXTERNAL_SMB_SERVERS"
+
+    def mount(self, path):
+        ad = xenrt.getADConfig()
+        return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
+
+    def setPermissions(self, td):
+        pass
 
 class ISCSIIndividualLun:
     """An individual iSCSI LUN from a group of LUNs"""
@@ -760,7 +793,7 @@ class ISCSIIndividualLun:
         return self.lungroup.getInitiatorName(allocate=allocate)
     
     def _release(self):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s %s (%u)"
                                    % (self.getServer(),
                                       self.getTargetName(),
@@ -998,7 +1031,7 @@ class ISCSILunGroup(_ISCSILunBase):
         return lun
 
     def release(self, atExit=False):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             return
         for l in self.luns:
             l.release()
@@ -1165,7 +1198,7 @@ class ISCSILun(_ISCSILunBase):
         self.secAddrs = {}
 
     def release(self, atExit=False):
-        if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+        if xenrt.util.keepSetup():
             xenrt.TEC().logverbose("Not disconnecting from iSCSI %s:%s" %
                                    (self.getServer(),
                                     self.getTargetName()))
@@ -1647,7 +1680,7 @@ class FCHBATarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -1777,7 +1810,7 @@ class SMISiSCSITarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -1888,7 +1921,7 @@ class SMISFCTarget(ManagedStorageResource):
 
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2006,7 +2039,7 @@ class NetAppTarget(ManagedStorageResource):
                                                 None)
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2157,7 +2190,7 @@ class EQLTarget(ManagedStorageResource):
                                                 None)
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_CVSM", False, boolean=True):
+        if not xenrt.util.keepSetup():
             for host in xenrt.TEC().registry.hostList():
                 for sr in xenrt.TEC().registry.hostGet(host).srs.values():
                     if sr.resources.has_key("target") and \
@@ -2749,10 +2782,9 @@ def getBuildServer(arch):
 
 class _NetworkResourceFromRange(CentralResource):
     LOCKID = None
-    KEEPOPTION = None
 
     @classmethod
-    def _getRange(cls, size, available, **kwargs):
+    def _getRange(cls, size, available, wait=True, **kwargs):
         cr = xenrt.resources.CentralResource()
         attempts = 0
         while True:
@@ -2785,7 +2817,7 @@ class _NetworkResourceFromRange(CentralResource):
                 if len(ret) == 0:
                     raise xenrt.XRTError("Could not find a suitable range to lock")
             except Exception, e:
-                if attempts > 30:
+                if attempts > 30 or not wait:
                     raise
                 attempts += 1
                 xenrt.TEC().logverbose("Could not lock - %s, sleeping before retry" % str(e))
@@ -2821,7 +2853,7 @@ class _NetworkResourceFromRange(CentralResource):
         return name
         
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup(self.KEEPOPTION, False, boolean=True):
+        if not xenrt.util.keepSetup():
             if atExit:
                 for host in xenrt.TEC().registry.hostList():
                     if host == "SHARED":
@@ -2836,16 +2868,15 @@ class _NetworkResourceFromRange(CentralResource):
 
 class PrivateVLAN(_NetworkResourceFromRange):
     LOCKID = "VLAN"
-    KEEPOPTION="OPTION_KEEP_VLANS"
 
     @classmethod
     def _rangeFactory(cls, vlan):
         return cls(vlan=vlan)
 
     @classmethod
-    def getVLANRange(cls, size):
+    def getVLANRange(cls, size, wait=True):
         vlans = cls._getAllVLANsInRange()
-        return cls._getRange(size, vlans)
+        return cls._getRange(size, vlans, wait=wait)
 
     @classmethod
     def _getAllVLANsInRange(cls):
@@ -2877,16 +2908,15 @@ class _StaticIPAddr(_NetworkResourceFromRange):
 
     POOLSTART = None
     POOLEND = None
-    KEEPOPTION="OPTION_KEEP_STATIC_IPS"
 
     @classmethod
     def _rangeFactory(cls, ip, network):
         return cls(network=network, ip=ip)
 
     @classmethod
-    def getIPRange(cls, size, network="NPRI"):
+    def getIPRange(cls, size, network="NPRI", wait=True):
         addrs = [x.strCompressed() for x in cls._getAllAddressesInRange(network)]
-        return cls._getRange(size, addrs, network=network)
+        return cls._getRange(size, addrs, wait=wait, network=network)
 
     @classmethod
     def _getAllAddressesInRange(cls, network):
@@ -2945,7 +2975,7 @@ class SharedHost:
         if not hostname:
             if len(hosts.keys()) == 0:
                 raise xenrt.XRTError("Could not find shared host")
-            hostname = hosts.keys()[0]
+            hostname = random.choice(hosts.keys())
         h = hosts[hostname]
         machine = xenrt.PhysicalHost(hostname, ipaddr = h["ADDRESS"])
         place = xenrt.GenericHost(machine)
@@ -2969,7 +2999,7 @@ class SharedHost:
         g.paramSet("is-a-template", "true")
 
     def callback(self):
-        if xenrt.TEC().lookup("OPTION_KEEP_UTILITY_VMS", False, boolean=True):
+        if xenrt.util.keepSetup():
             return
         jobid = xenrt.GEC().dbconnect.jobid()
         if jobid:
@@ -2983,51 +3013,6 @@ class SharedHost:
                         pass
                     self.getHost().execdom0("xe vm-uninstall uuid=%s --force" % (vm))
             
-class PrivateVLANold(CentralResource):
-    """A VLAN that we have temporary exclusive access to."""
-
-    def __init__(self):
-        CentralResource.__init__(self)
-        xenrt.TEC().logverbose("About to attempt to lock private VLAN - current central resource status:")
-        self.logList()
-        allVLANs = [x for x in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys() if xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", x, "PRIVATE"], False, boolean=True)]
-        startlooking = xenrt.util.timenow()
-        vlan = None
-        while True:
-            for v in allVLANs:
-                try:
-                    self.acquire("VLAN-%s" % xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ID"]), shared=False)
-                    vlan = v
-                    self.resourceHeld = True
-                    break
-                except xenrt.XRTError:
-                    continue
-            if vlan:
-                break
-            if xenrt.util.timenow() > (startlooking + 3600):
-                xenrt.TEC().logverbose("Could not lock VLAN, current central resource status:")
-                self.logList()
-                raise xenrt.XRTError("Timed out waiting for a VLAN to be available")
-            xenrt.sleep(60)
-
-        self.name = vlan
-
-    def getName(self):
-        return self.name
-
-    def getID(self):
-        return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", self.name, "ID"])
-
-    def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_VLANS", False, boolean=True):
-            if atExit:
-                for host in xenrt.TEC().registry.hostList():
-                    if host == "SHARED":
-                        continue
-                    h = xenrt.TEC().registry.hostGet(host)
-                    h.machine.exitPowerOff()
-            CentralResource.release(self, atExit)
-
 class ProductLicense(CentralResource):
     def __init__(self, product):
         CentralResource.__init__(self)
@@ -3069,7 +3054,7 @@ class GlobalResource(CentralResource):
         startlooking = xenrt.timenow()
 
         while True:
-            res = xenrt.GEC().dbconnect.jobctrl("reslock", [restype, xenrt.TEC().lookup("JOBID", "0"), xenrt.TEC().lookup("XENRT_SITE")]) 
+            res = xenrt.GEC().dbconnect.jobctrl("globalreslock", [restype, xenrt.TEC().lookup("JOBID", "0"), xenrt.TEC().lookup("XENRT_SITE")]) 
             if 'name' in res:
                 self.name = res['name']
                 self.data = res['data']
@@ -3082,8 +3067,8 @@ class GlobalResource(CentralResource):
         self.resourceHeld = True
 
     def release(self, atExit=False):
-        if not xenrt.TEC().lookup("OPTION_KEEP_GLOBAL_LOCKS", False, boolean=True):
-            xenrt.GEC().dbconnect.jobctrl("resrelease", [self.getName()])
+        if not xenrt.util.keepSetup():
+            xenrt.GEC().dbconnect.jobctrl("globalresrelease", [self.getName()])
             CentralResource.release(self, atExit)
         
     def getName(self):

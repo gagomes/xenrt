@@ -2,6 +2,11 @@
 import pprint
 import json
 import copy
+import random
+import string
+import os
+import inspect
+
 try:
     from marvin import deployDataCenter
     from marvin import jsonHelper
@@ -25,12 +30,13 @@ class MarvinDeployer(object):
           'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
-          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': None, 'physical_networks': None },
-          'defaults': { 'physical_networks': [ { } ], 'secondaryStorages': [ { } ] },
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None },
+          'defaults': { 'physical_networks': [ { } ]},
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
           'abstractName': 'SecondaryStorage',
-          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' } },
+          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' }, 
+          'optional': { 'details': 'getSecondaryStorageDetails' } },
         'physical_networks': {
           'abstractName': 'PhysicalNetwork',
           'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
@@ -57,19 +63,22 @@ class MarvinDeployer(object):
           'notify'  : { 'name': 'notifyNewElement' } },
         'clusters': {
           'abstractName': 'Cluster',
-          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': None, 'hosts': 'getHostsForCluster' },
+          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': 'getPrimaryStorages', 'hosts': 'getHostsForCluster' },
           'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
           'notify'  : { 'clustername': 'notifyNewElement' } },
         'primaryStorages': {
           'abstractName': 'PrimaryStorage',
-          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl', } },
+          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl'},
+          'optional': { 'details': 'getPrimaryStorageDetails' } },
         'hosts': {
           'abstractName': 'Host',
           'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
           'notify'  : { 'url': 'notifyNewElement' } },
+        'details': {
+          'abstractName': 'StorageDetails' },
       }
 
-    def __init__(self, mgmtServerIp, logger,username,passwd):
+    def __init__(self, mgmtServerIp, logger, username, passwd, marvinTestClient):
         self.marvinCfg = {}
         self.marvinCfg['dbSvr'] = {}
         self.marvinCfg['dbSvr']['dbSvr'] = mgmtServerIp
@@ -86,6 +95,7 @@ class MarvinDeployer(object):
 
         self.marvinCfg['zones'] = []
         self.logger = logger
+        self.__marvinTestClient = marvinTestClient
 
     def outputAsJSONFile(self, filename):
         fh = open(filename, 'w')
@@ -111,6 +121,23 @@ class MarvinDeployer(object):
 
                 elementRef[requiredField] = value
 
+    def _checkOptionalFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
+        self.logger.debug('Processing config for key: %s' % (elementKey))
+        for optionalField in self.CONFIG_SCHEMA[elementKey]['optional'].keys():
+            if not elementRef.has_key(optionalField):
+                value = None
+                # Check if there is a getter function available
+                if self.CONFIG_SCHEMA[elementKey]['optional'][optionalField] != None:
+                    if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['optional'][optionalField]):
+                        value = getattr(deployer, self.CONFIG_SCHEMA[elementKey]['optional'][optionalField])(self.CONFIG_SCHEMA[elementKey]['abstractName'], elementRef)
+
+                if value == None:
+                    if self.CONFIG_SCHEMA[elementKey].has_key('defaults') and self.CONFIG_SCHEMA[elementKey]['defaults'].has_key(optionalField):
+                        value = copy.deepcopy(self.CONFIG_SCHEMA[elementKey]['defaults'][optionalField])
+               
+                if value != None:
+                    elementRef[optionalField] = value
+    
     def _notifyFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
         for notifyField in self.CONFIG_SCHEMA[elementKey]['notify']:
             if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]) and elementRef.has_key(notifyField):
@@ -122,6 +149,8 @@ class MarvinDeployer(object):
         elif isinstance(element, dict):
             if self.CONFIG_SCHEMA[parentName].has_key('required'):
                 self._checkRequiredFieldsForConfigDictElement(element, parentName, deployer)
+            if self.CONFIG_SCHEMA[parentName].has_key('optional'):
+                self._checkOptionalFieldsForConfigDictElement(element, parentName, deployer)
             if self.CONFIG_SCHEMA[parentName].has_key('notify'):
                 self._notifyFieldsForConfigDictElement(element, parentName, deployer)
             for key, value in element.items():
@@ -136,5 +165,38 @@ class MarvinDeployer(object):
 
     def deployMarvinConfig(self):
         cfg = jsonHelper.jsonLoader(self.marvinCfg)
-        marvinDeployer = deployDataCenter.deployDataCenters(cfg, self.logger)
+
+        if hasattr(deployDataCenter, 'deployDataCenters'):
+            ddcCls = deployDataCenter.deployDataCenters
+        elif hasattr(deployDataCenter, 'DeployDataCenters'):
+            ddcCls = deployDataCenter.DeployDataCenters
+        else:
+            raise MarvinDeployException('Unknown Marvin Deploy Data Center class')
+        self.logger.debug('Using Marvin Deploy Data Center class: %s' % (ddcCls))
+
+        ddcArgs = inspect.getargspec(ddcCls.__init__).args
+        self.logger.debug('Marvin Deploy Data Center class has constructor args: %s' % (ddcArgs))
+
+        if len(ddcArgs) == 2:
+            # This early version of Marvin only take a config file argument (self is the second argument)
+            # Create temp directory
+            tempDir = os.path.join('/tmp', 'marvin' + ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(12)]))
+            if not os.path.exists(tempDir):
+                os.makedirs(tempDir)
+            else:
+                raise MarvinDeployException('tempDir: %s - already exists' % (tempDir))
+
+            self.marvinCfg['logger'] = [ {'name': 'TestClient', 'file': os.path.join(tempDir, 'testclient.log') },
+                                         {'name': 'TestCase',   'file': os.path.join(tempDir, 'testcase.log')   } ]
+            fn = os.path.join(tempDir, 'marvin.cfg')
+            self.logger.debug('Writing config to file: %s' % (fn))
+            self.outputAsJSONFile(fn)
+            marvinDeployer = ddcCls(fn)
+            # TODO - consider writing log file output to self.logger
+        elif not 'test_client' in ddcArgs:
+            # This version (circa 4.2 / 4.3) takes config and logger arguments
+            marvinDeployer = ddcCls(cfg, logger=self.logger)
+        else:
+            marvinDeployer = ddcCls(test_client=self.__marvinTestClient, cfg=cfg, logger=self.logger)
+
         marvinDeployer.deploy()

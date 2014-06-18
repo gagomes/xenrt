@@ -195,6 +195,9 @@ class PXEBoot(xenrt.resources.DirectoryResource):
         self.filename = None
         self.iSCSINICs = []
         self.removeOnExit = removeOnExit
+        self.iPXE = False
+        if self.iSCSILUN:
+            self.iPXE = True
         xenrt.TEC().gec.registerCallback(self)
 
     def setSerial(self, serport, serbaud):
@@ -277,14 +280,51 @@ DEFAULT %s
     def addISCSINIC(self, index, pci):
         self.iSCSINICs.append((index, pci))
 
-    def writeISCSIConfig(self, machine, forceip=None, boot=False):
-        if not self.iSCSILUN:
-            return
+    def getIPXEFile(self, machine, forceip=None):
         if forceip:
             filename = "%s/%s" % (self._getIPXEDir(), forceip)
         else:
             filename = "%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)
+        return filename
 
+    def waitForIPXEStamp(self, machine, forceip=None):
+        if forceip:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), forceip)
+        else:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), machine.pxeipaddr)
+        self._rmtree(filename)
+        xenrt.waitForFile(filename, 1800, desc="Waiting for iPXE config to be accessed on !%s" % (machine.name))
+
+    def clearIPXEConfig(self, machine, forceip=None):
+        xenrt.TEC().logverbose("Clearing iPXE config")
+        self.iPXE = False
+        if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
+        if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
+            
+
+    def writeIPXEConfig(self, machine, url, forceip=None):
+        self.iPXE = True
+        filename = self.getIPXEFile(machine, forceip)
+        
+        out = "chain %s\n" % url
+        out += "goto end\n"
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
+    def writeISCSIConfig(self, machine, forceip=None, boot=False):
+        if not self.iSCSILUN:
+            return
+
+        filename = self.getIPXEFile(machine, forceip)
 
 
         out = "set initiator-iqn %s\n" % (self.iSCSILUN.getInitiatorName())
@@ -331,7 +371,7 @@ dhcp
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 
-        if not self.iSCSILUN:
+        if not self.iPXE:
             if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
             if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):

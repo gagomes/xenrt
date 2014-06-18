@@ -1,5 +1,4 @@
 #
-#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -155,7 +154,8 @@ def createHost(id=0,
                enableAllPorts=True,
                noipv4=False,
                iScsiBootLun=None,
-               iScsiBootNets=[]):
+               iScsiBootNets=[],
+               extraConfig=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -385,7 +385,8 @@ def createHostViaVersionPath(id=0,
                              suppackcds=None,
                              addToLogCollectionList=False,
                              ipv6=None,
-                             noipv4=False):
+                             noipv4=False,
+                             extraConfig=None):
     """Install a host and update/upgrade via the specified path."""
     # "Orlando +HF1 +HF2 George"
     # "Miami Orlando George"
@@ -415,7 +416,8 @@ def createHostViaVersionPath(id=0,
                       suppackcds=suppackcds,
                       addToLogCollectionList=addToLogCollectionList,
                       ipv6=ipv6,
-                      noipv4=noipv4)
+                      noipv4=noipv4,
+                      extraConfig=extraConfig)
     # Leave the inputdir set for this version to properly handle any
     # updates needed later.
     xenrt.TEC().setInputDir(inputdir)
@@ -2032,6 +2034,10 @@ done
         if xenrt.TEC().lookup("HOST_ENFORCE_CC_RESTRICTIONS", False):
             self.enableCC()
 
+        if xenrt.TEC().lookup("USE_BLKTAP2", False):
+            self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
+            self.restartToolstack()
+
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
@@ -2938,32 +2944,36 @@ done
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
 
-        if guest.windows:
-            # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-            cpuCoresonHost = self.getCPUCores()
-            socketsonHost  = self.getNoOfSockets()
-            maxCoresPerSocket = cpuCoresonHost / socketsonHost
-            xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
-                                                            (cpuCoresonHost, socketsonHost, maxCoresPerSocket))
-            if vcpus != None:
-                xenrt.TEC().logverbose("Setting guest vCPUs to %s" % vcpus)
-                guest.setVCPUs(vcpus)
+        if isinstance(self, xenrt.lib.xenserver.ClearwaterHost):
+            if guest.windows:
+                # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+                cpuCoresonHost = self.getCPUCores()
+                socketsonHost  = self.getNoOfSockets()
+                maxCoresPerSocket = cpuCoresonHost / socketsonHost
+                xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
+                                                                (cpuCoresonHost, socketsonHost, maxCoresPerSocket))
+                if vcpus != None:
+                    xenrt.TEC().logverbose("Setting guest vCPUs to %s" % vcpus)
+                    guest.setVCPUs(vcpus)
 
-                # This gives us all the factors of the vcpus specified
-                possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-                xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+                    # This gives us all the factors of the vcpus specified
+                    possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+                    xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
 
-                # This eliminates the factors that would exceed the host's cores per socket
-                validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-                xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+                    # This eliminates the factors that would exceed the host's cores per socket
+                    validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+                    xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
 
-                # Then choose a value from here
-                coresPerSocket = random.choice(validCoresPerSocket)
+                    # Then choose a value from here
+                    coresPerSocket = random.choice(validCoresPerSocket)
 
-                xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-                guest.setCoresPerSocket(coresPerSocket)
-            else: # Use template default vCPUs to workout core-per-socket
-                    pass
+                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                    guest.setCoresPerSocket(coresPerSocket)
+                else: # Use template default vCPUs to workout core-per-socket
+                        pass
+            else:
+                if vcpus != None:
+                    guest.setVCPUs(vcpus)
         else:
             if vcpus != None:
                 guest.setVCPUs(vcpus)
@@ -3924,7 +3934,7 @@ done
         args = []
         args.append("uuid=%s" % (self.getMyHostUUID()))
         cli.execute("host-disable-local-storage-caching", string.join(args))
-        
+
     def getMyHostName(self):
         """Return a host name-label suitable for e.g. vm-start on="""
         return self.getHostParam("name-label")
@@ -10914,7 +10924,7 @@ done
         else:
             return True
 
-    def installNVIDIAHostDrivers(self):
+    def installNVIDIAHostDrivers(self, reboot=True):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
         rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
         xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
@@ -10942,7 +10952,8 @@ done
             sh.close()
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
-        self.reboot()
+        if reboot:
+            self.reboot()
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):
         return int(self.execdom0("xe gpu-group-get-remaining-capacity uuid=%s vgpu-type-uuid=%s" %(groupUUID,vGPUTypeUUID)))
@@ -11007,6 +11018,38 @@ class CreedenceHost(ClearwaterHost):
     
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
+
+    def enableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' in self.genParamGet("sr", sr, "other-config"):
+                    self.genParamRemove("sr", sr, "other-config", "o_direct")
+
+    def disableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                oc = self.genParamGet("sr", sr, "other-config")
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' not in oc or 'true' not in self.genParamGet("sr", sr, "other-config", "o_direct"):
+                    self.genParamSet("sr", sr, "other-config", "true", "o_direct")
+
+    def vSwitchCoverageLog(self):
+        self.vswitchAppCtl("coverage/show")
 
 #############################################################################
 class SarasotaHost(ClearwaterHost):

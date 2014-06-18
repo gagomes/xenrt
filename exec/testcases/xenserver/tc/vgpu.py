@@ -3672,14 +3672,21 @@ class TCinstallNVIDIAGuestDrivers(_VGPUTest):
         for arg in arglist:
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('vgputype'):
+                vgpuType = arg.split('=')[1]
 
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
+        self.assertvGPURunningInVM(g,self._CONFIGURATION[int(vgpuType)])
 
 class TCcreatevGPU(VGPUAllocationModeBase):
+
+    POOL = [["K1"]]
+    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    VGPU_CONFIG = [VGPUConfig.K120]
 
     def run(self,arglist):
 
@@ -3689,6 +3696,8 @@ class TCcreatevGPU(VGPUAllocationModeBase):
                 vgpuType = arg.split('=')[1]
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('distro'):
+                self.REQUIRED_DISTROS[0] = int(arg.split('=')[1]) 
         
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
@@ -3709,3 +3718,19 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         g.setState("UP")
       
         g.snapshot('aftervGPU')
+
+class TCcheckNvidiaDriver(xenrt.TestCase):
+    """Sanity check to verify the NVIDIA driver is built correctly for the host kernel version"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        host.installNVIDIAHostDrivers(reboot=False)
+        try:
+            host.execdom0("modprobe nvidia")
+        except:
+            # We expect this to fail if we run on a machine without NVIDIA hardware
+            pass
+
+        if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
+            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
+

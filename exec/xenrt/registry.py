@@ -64,6 +64,17 @@ class Registry:
         finally:
             self.mylock.release()        
 
+    def objGetAll(self, objType):
+        self.mylock.acquire()
+        objs = []
+        try:
+            for k in self.data.keys():
+                if k.startswith("/xenrt/specific/%s/" % objType):
+                    objs.append(self.data[k])
+        finally:
+            self.mylock.release()
+        return objs
+
     def objPut(self, objType, tag, obj):
         path = "/xenrt/specific/%s/%s" % (objType, tag)
         self.write(path, obj)
@@ -343,3 +354,18 @@ class Registry:
 
     def toolstackGetDefault(self):
         return self.objGetDefault("toolstack")
+
+    def toolstackGetAll(self):
+        return self.objGetAll("toolstack")
+
+    def instancePut(self, tag, resource):
+        self.objPut("instance", tag, resource)
+
+    def instanceGet(self, tag):
+        return self.objGet("instance", tag)
+
+    def instanceDelete(self, tag):
+        self.objDelete("instance", tag)
+
+    def instanceGetAll(self):
+        return self.objGetAll("instance")

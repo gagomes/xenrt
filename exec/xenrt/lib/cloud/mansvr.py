@@ -5,9 +5,6 @@ from datetime import datetime
 
 import xenrt.lib.cloud
 try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
@@ -125,6 +122,12 @@ class ManagementServer(object):
 
             templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
                                 "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
+                                "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                                "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
+                                "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                               "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
                                 "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
@@ -140,7 +143,23 @@ class ManagementServer(object):
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
-        self.place.special['initialSecStorageUrl'] = marvinApi.createSecondaryStorage("NFS")
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
+            secondaryStorage = xenrt.ExternalNFSShare()
+            storagePath = secondaryStorage.getMount()
+            url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+            marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
+            self.place.special['initialNFSSecStorageUrl'] = url
+        elif "hyperv" in hvlist:
+            try:
+                secondaryStorage = xenrt.ExternalSMBShare()
+            except:
+                xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
+            else:
+                storagePath = secondaryStorage.getMount()
+                url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
+                marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
+                self.place.special['initialSMBSecStorageUrl'] = url
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -174,6 +193,8 @@ class ManagementServer(object):
 
         if self.place.distro in ['rhel63', 'rhel64', ]:
             manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
+            if manSvrFile is None:
+                raise xenrt.XRTError("Couldn't find CCP build")
             webdir = xenrt.WebDirectory()
             webdir.copyIn(manSvrFile)
             manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
@@ -185,6 +206,7 @@ class ManagementServer(object):
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
             self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
@@ -201,10 +223,14 @@ class ManagementServer(object):
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+
+    def installCifs(self):
+        self.place.execcmd("yum install -y samba-client samba-common cifs-utils")
 
     @property
     def version(self):

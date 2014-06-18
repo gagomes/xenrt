@@ -20,6 +20,11 @@ import XenAPI
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 
+#Dummy import of _strptime module
+#This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
+time.strptime('2014-06-12','%Y-%m-%d')
+#End dummy import 
+
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]
@@ -124,6 +129,8 @@ def productLib(productType=None, host=None, hostname=None):
         return xenrt.lib.kvm
     if productType in ["esx"]:
         return xenrt.lib.esx
+    if productType == "hyperv":
+        return xenrt.lib.hyperv
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 
@@ -2866,7 +2873,16 @@ Add-WindowsFeature as-net-framework"""
                 pass
         for lf in string.split(xenrt.TEC().lookup("XENCENTER_LOG_FILE"), ";"):
             self.addExtraLogFile(lf)
-            
+        
+        if xenrt.TEC().lookup("XENCENTER_EXE", None):
+            xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
+        if xenrt.TEC().lookup("XENMODEL_DLL", None):
+            xcexe = xenrt.TEC().lookup("XENMODEL_DLL")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenModel.dll")
+
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
         self.xmlrpcDelTree("c:\\XenCenterTestResources")
@@ -3229,6 +3245,43 @@ DHCPServer = 1
         xenrt.sleep(5)
 
         return scsiid
+
+    def createLinuxNfsShare(self, name, verifyShare=True):
+        """Share a directory over NFS on this Linux VM.
+           The NFS Server service will be installed / started if required"""
+        if self.windows == True:
+            raise xenrt.XRTError('createLinuxNfsShare called for Windows guest')
+
+        exportPath = '/xenrtexport/%s' % (name)
+        if self.execcmd('test -e %s' % (exportPath), retval='code') == 0:
+            raise xenrt.XRTError('Export path: %s already exists on %s' % (exportPath, self.name))
+        xenrt.TEC().logverbose('Creating export on %s at path: %s' % (self.name, exportPath))
+        self.execcmd('mkdir -p %s' % (exportPath))
+        self.execcmd('echo "%s *(rw,async,no_root_squash)" >> /etc/exports' % (exportPath))
+
+        if self.distro.startswith('centos') or self.distro.startswith('rhel'):
+            self.execcmd('service nfs start')
+            self.execcmd('chkconfig nfs on')
+            self.execcmd('exportfs -a')
+        else:
+            if self.execcmd('test -e /etc/init.d/nfs-kernel-server', retval='code') != 0:
+                self.execcmd('apt-get install -y --force-yes nfs-kernel-server nfs-common portmap')
+                self.execcmd('update-rc.d nfs-kernel-server defaults')
+            self.execcmd('/etc/init.d/nfs-kernel-server reload')
+        nfsPath = '%s:%s' % (self.getIP(), exportPath)
+        xenrt.TEC().logverbose('Created NFS share: %s' % (nfsPath))
+
+        if verifyShare:
+            tempMnt = xenrt.TempDirectory().dir
+            tempFile = 'verifyShare.txt'
+            self.execcmd('touch %s' % (os.path.join(exportPath, tempFile)))
+            try:
+                xenrt.util.command('sudo mount %s %s && test -e %s' % (nfsPath, tempMnt, os.path.join(tempMnt, tempFile)))
+            finally:
+                xenrt.util.command('sudo umount %s' % (tempMnt))
+                self.execcmd('rm %s' % (os.path.join(exportPath, tempFile)))
+
+        return nfsPath
 
     def updateWindows(self):
         """Apply all relevant critical updates to a Windows guest"""
@@ -3599,6 +3652,9 @@ bootlocal.close()
         xenrt.TEC().logverbose("Updating RPC daemon")
         self.xmlrpcUpdate()
 
+        if xenrt.TEC().lookup("WORKAROUND_CA137990", False, boolean=True):
+            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", 125)
+        
         # Disable the screensaver (XRT-214)
         self.winRegAdd("HKCU",
                        "Control Panel\\Desktop",
@@ -4882,7 +4938,12 @@ class GenericHost(GenericPlace):
                 rebootTime = xenrt.util.timenow()
                 self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
             # Check what we can SSH to is the rebooted host
-            uptime = self.execdom0("uptime")
+            
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4894,7 +4955,11 @@ class GenericHost(GenericPlace):
             # This is to try to avoid a race on slow shutdowns (XRT-3155)
             xenrt.sleep(60)
             self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
-            uptime = self.execdom0("uptime")
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4902,7 +4967,10 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            self.execdom0("/sbin/reboot", timeout=600)
+            try:
+                self.execdom0("/sbin/reboot", timeout=600)
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -6017,7 +6085,7 @@ exit 0
                         xenrt.TEC().warning(\
                             "Found known boot problem '%s' for machine %s. "
                             "Power cycling." % (desc, self.getName()))
-                        self.machine.powerctl.cycle()
+                        self.machine.powerctl.cycle(fallback = True)
                         return True
                     break
             if found:
@@ -6030,11 +6098,11 @@ exit 0
             xenrt.TEC().warning("Machine %s is known to have unreliable "
                                 "PXE/BIOS boot, power cycling." %
                                 (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         if self.lookup("CONSOLE_TYPE", None) != "basic" and self.lookup("CONSOLE_TYPE", None) != "slave":
             xenrt.TEC().warning("Machine %s may have unreliable serial output, power cycling." % (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         return False
 
@@ -8718,7 +8786,23 @@ class GenericGuest(GenericPlace):
 
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
-            au3scr = """If WinWait ("Windows Security", "") Then
+
+            if "win81-x64" in self.distro:
+                au3scr = """If WinWait ("Windows Security", "") Then
+sleep (10000)
+SendKeepActive("Windows Security")
+sleep (10000)
+send ("{LEFT}")
+sleep(10000)
+send ("{ENTER}")
+sleep(10000)
+send ("{DOWN}")
+sleep (1000)
+send ("{ENTER}")
+EndIf
+"""
+            else:
+                au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)

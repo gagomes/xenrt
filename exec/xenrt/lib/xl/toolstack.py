@@ -10,6 +10,10 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    @property
+    def name(self):
+        return "XL"
+
     def getAllExistingInstances(self):
         raise xenrt.XRTError("Not implemented")
 
@@ -283,5 +287,8 @@ disk = [ %s ]
 
     def instanceScreenshot(self, instance, path):
         raise xenrt.XRTError("Not implemented")
+
+    def getLogs(self, path):
+        return
 
 __all__ = ["XLToolstack"]

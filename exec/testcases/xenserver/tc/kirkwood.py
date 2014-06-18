@@ -1112,12 +1112,13 @@ class _PoolRecommendationBase(_KirkwoodBase):
         # Set up VMs
         sruuid1 = self.pool.master.lookupDefaultSR()
         sruuid2 = sruuid1
+        slave = self.pool.getSlaves()[0]
         if self.USE_LOCAL_SR:
             sruuid1 = self.pool.master.getLocalSR()
-            sruuid2 = self.pool.getSlaves()[0].getLocalSR()
+            sruuid2 = slave.getLocalSR()
         g1 = self.pool.master.createGenericLinuxGuest(sr=sruuid1)
         self.uninstallOnCleanup(g1)
-        g2 = self.pool.getSlaves()[0].createGenericLinuxGuest(sr=sruuid1)
+        g2 = slave.createGenericLinuxGuest(sr=sruuid2)
         self.uninstallOnCleanup(g2)
 
         # Build the recommendations

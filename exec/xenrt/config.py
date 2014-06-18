@@ -614,7 +614,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Boston"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Boston"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Boston"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Boston"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel6,rhel61,oel53,oel54,oel55,oel56,oel57,oel510,oel65,oel6,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos6,centos63,centos64,centos65,sles94,sles10,sles101,sles102,sles103,sles104,sles11,sles111,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,ubuntu1004"
         self.config["VERSION_CONFIG"]["Boston"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Boston"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Boston"]["MIN_VM_MEMORY"] = "128"
@@ -796,7 +795,6 @@ class Config:
         self.config["VERSION_CONFIG"]["Tampa"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Tampa"]["DOM0_DISTRO"] = "centos51"
         self.config["VERSION_CONFIG"]["Tampa"]["EXPFAIL_HIBERNATE"] = "none"
-        self.config["VERSION_CONFIG"]["Tampa"]["NO_GUEST_AGENT"] = "rhel45,rhel46,rhel47,rhel48,rhel5,rhel51,rhel52,rhel53,rhel54,rhel55,rhel56,rhel57,rhel58,rhel59,rhel6,rhel61,rhel62,rhel63,rhel64,oel53,oel54,oel55,oel56,oel57,oel58,oel59,oel510,oel6,oel61,oel62,oel63,oel64,oel65,centos45,centos46,centos47,centos48,centos5,centos51,centos52,centos53,centos54,centos55,centos56,centos57,centos58,centos59,centos6,centos61,centos62,centos63,centos64,sles10,sles101,sles102,sles103,sles104,sles11,sles111,sles112,fc8,fc9,debian50,solaris10u9,solaris10u9-32,debian60,debian70,ubuntu1004,ubuntu1204"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_HOST_MEMORY"] = "1048576"
         self.config["VERSION_CONFIG"]["Tampa"]["MAX_HOST_LOG_CPUS"] = "64"
         self.config["VERSION_CONFIG"]["Tampa"]["MIN_VM_MEMORY"] = "128"
@@ -1645,8 +1643,9 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
 
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
-        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-01-14-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2013-12-23-hyperv.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
@@ -3018,6 +3017,8 @@ class Config:
         # Albert -Xapi, kernel, openvswitch. Rolls up Nothing
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1005/83968/hotfix-XS62ESP1005/XS62ESP1005.xsupdate"
 
+        # Tarentum - Xapi. Rolls up XS62ESP1002, XS62ESP1004, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1006/85395/hotfix-XS62ESP1006/XS62ESP1006.xsupdate"
 
 
         return
@@ -3135,10 +3136,9 @@ class Config:
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
-        
-        
+
         branch = self.lookup("HFX_BRANCH_CLEARWATER", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Clearwater"]))
-        if branch == "RTM":        
+        if branch == "RTM":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
@@ -3151,7 +3151,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-        
+            #self.config["CARBON_PATCHES_CLEARWATER"]["HF06"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"]
+
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""
         self.parseConfig(filename, path=path)

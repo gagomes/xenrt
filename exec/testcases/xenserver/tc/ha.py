@@ -79,7 +79,7 @@ class _HASmoketest(xenrt.TestCase):
         self.check()
 
         xenrt.TEC().logverbose("Repairing slave so it rejoins pool")
-        slave.waitForSSH(600, desc="host reboot after host fence")
+        slave.waitForSSH(900, desc="host reboot after host fence")
         slave.blockHeartbeat(block=False,ignoreErrors=True)
         slave.execdom0("rm -f /etc/xensource/xapi_block_startup")
         slave.execdom0("rm -f /etc/xensource/boot_time_info_updated")
@@ -397,7 +397,7 @@ class _HATest(xenrt.TestCase):
                 xenrt.TEC().logverbose("Attempting power cycle 1/2")
                 h.machine.powerctl.cycle()
                 try:                
-                    h.waitForSSH(600, desc="First reboot attempt on dead host")
+                    h.waitForSSH(900, desc="First reboot attempt on dead host")
                     xenrt.TEC().logverbose("Host booted after one power cycle")
                 except:
                     # Try again
@@ -405,7 +405,7 @@ class _HATest(xenrt.TestCase):
                     xenrt.TEC().logverbose("Attempting power cycle 2/2")
                     h.machine.powerctl.cycle()
                     # If this fails we want to bail out, so don't wrap in try/except
-                    h.waitForSSH(600, desc="Second reboot attempt on dead host")
+                    h.waitForSSH(900, desc="Second reboot attempt on dead host")
 
         rfInstalls = []
         rfInstalls.append(_RFInstall(hosts[0],setupISOs=True))
@@ -570,12 +570,12 @@ class _HATest(xenrt.TestCase):
         if self.pool:
             for h in self.pool.getHosts():
                 try:
-                    h.waitForSSH(600, desc="Host boot for log collection")
+                    h.waitForSSH(900, desc="Host boot for log collection")
                 except:
                     # Try power cycling
                     h.machine.powerctl.cycle()
                     try:
-                        h.waitForSSH(600, desc="Host boot for log collection")
+                        h.waitForSSH(900, desc="Host boot for log collection")
                     except:
                         xenrt.TEC().warning("Host %s failed to boot for logs" %
                                             (h.getName()))
@@ -1043,7 +1043,7 @@ class TC7507(_HATest):
         # Power back on the first host
         host0.machine.powerctl.on()
         # Wait for it to boot up
-        host0.waitForSSH(600)
+        host0.waitForSSH(900)
         # Wait for xapi
         host0.waitForXapi(300, local=True)
         host0.waitForEnabled(300)
@@ -1063,7 +1063,7 @@ class TC7507(_HATest):
         # Power back on host1 for safety
         host1.machine.powerctl.on()
         # Wait for it to boot up
-        host1.waitForSSH(600)
+        host1.waitForSSH(900)
         host1.waitForXapi(300, local=True)
 
 # 7.2.4.6 + 7.2.4.7
@@ -1101,7 +1101,7 @@ class TC7508(_HATest):
 
         # Power on host0
         host0.machine.powerctl.on()
-        host0.waitForSSH(600)
+        host0.waitForSSH(900)
 
 class TC8125(_HATest):
     """Internally-intiated shutdown of a protected guest should cause the guest
@@ -1219,7 +1219,7 @@ class TC7514(_HATest):
 
         # Now power cycle it so it turns back on
         host1.machine.powerctl.cycle()
-        host1.waitForSSH(600, desc="Host bootup after clean shutdown")
+        host1.waitForSSH(900, desc="Host bootup after clean shutdown")
 
         # Give it some time to finish booting
         time.sleep(180)
@@ -1851,7 +1851,7 @@ class _HAXapiFailure(_HATest):
         finally:
             if disabledHost:
                 try:
-                    disabledHost.waitForSSH(600, desc="Host boot to fix xapi")
+                    disabledHost.waitForSSH(900, desc="Host boot to fix xapi")
                     disabledHost.execdom0("mv /etc/init.d/xapi.disabled "
                                           "/etc/init.d/xapi")
                 except:
@@ -2050,7 +2050,7 @@ class _Overcommit(_HATest):
             for h in self.hosts.keys():
                 if not self.hosts[h]:
                     h.machine.powerctl.on()
-                    h.waitForSSH(600)
+                    h.waitForSSH(900)
                     h.waitForXapi(300, local=True)
                     h.waitForEnabled(600)
                     self.hosts[h] = True
@@ -2201,7 +2201,7 @@ class _Overcommit(_HATest):
             if not self.hosts[h]:
                 xenrt.TEC().logverbose("failHost - restoring %s" % (h.getName()))
                 h.machine.powerctl.on()
-                h.waitForSSH(600)
+                h.waitForSSH(900)
                 h.waitForXapi(300, local=True)
                 h.waitForEnabled(600)
                 self.hosts[h] = True
@@ -2250,6 +2250,12 @@ class _Overcommit(_HATest):
 
             if wTol < cTol:
                 # We'd support fewer failures, op should be blocked
+                if currentUsage == 0 and cTol == liveHosts and wTol == 1:
+                    # Xapi requires at least one host live, even if no VMs are running,
+                    # as such in this situation the operation will be allowed because although
+                    # we think it would reduce our failure capacity to 1, actually Xapi will
+                    # already think it's cTol is 1.
+                    return True
                 return False
             else:
                 # Won't change failure count, so will be allowed
@@ -2566,7 +2572,7 @@ class _XHA(_HATest):
                     h.machine.powerctl.on()
                 # Wait for SSH in case the previous op caused it to fence or
                 # it's just rebooting now...
-                h.waitForSSH(600)
+                h.waitForSSH(900)
                 time.sleep(300)
                 h.resetHeartbeatBlocks()
                 h.haStatefileBlocked = False
@@ -3025,7 +3031,7 @@ class TC8078(_HATest):
             self.alerts.append(a['uuid'])
         for h in self.pool.getHosts():
             h.machine.powerctl.on()
-            h.waitForSSH(600)
+            h.waitForSSH(900)
             h.waitForXapi(300)
             h.waitForEnabled(300)
 
@@ -3232,7 +3238,7 @@ class TC8127(_StuckState):
             self.master.destroyVDI(vdi)
         # 4. turn on the slave
         self.slave.machine.powerctl.on()
-        self.slave.waitForSSH(600)
+        self.slave.waitForSSH(900)
         time.sleep(300)
 
         # The expected result is that the slave should come online, fail to
@@ -3258,7 +3264,7 @@ class TC8128(_StuckState):
         self.pool.disableHA(check=False)
         # 3. power on the slave
         self.slave.machine.powerctl.on()
-        self.slave.waitForSSH(600)
+        self.slave.waitForSSH(900)
         time.sleep(300)
 
         # The slave should come back, reattach the old statefile and discover
@@ -3291,7 +3297,7 @@ class TC8129(_StuckState):
 
         # 3. power on slave
         self.slave.machine.powerctl.on()
-        self.slave.waitForSSH(600)
+        self.slave.waitForSSH(900)
         time.sleep(300)
         # The slave should boot up and remain in emergency mode until the block
         # is removed
@@ -3348,7 +3354,7 @@ class TC8130(_StuckState):
         # 3. power on all nodes
         self.master.machine.powerctl.on()
         self.slave.machine.powerctl.on()
-        self.master.waitForSSH(600)
+        self.master.waitForSSH(900)
         self.slave.waitForSSH(600)
         time.sleep(300)
         # At this point all nodes should be running in emergency mode:
@@ -3400,7 +3406,7 @@ class TC8131(_StuckState):
             self.target.shutdown()
         # 3. power on slave
         self.slave.machine.powerctl.on()
-        self.slave.waitForSSH(600)
+        self.slave.waitForSSH(900)
         time.sleep(300)
         # Observe that the slave comes up in emergency mode
         data = self.slave.execdom0("xe vm-list || true")
@@ -3673,7 +3679,7 @@ class TC8427(_HATest):
 
         # Reset the configuration
         host1.machine.powerctl.on()
-        host1.waitForSSH(600)
+        host1.waitForSSH(900)
         # Give it 3 mins to become enabled etc
         time.sleep(300)
         guest1.migrateVM(host1)
@@ -3710,7 +3716,7 @@ class TC8427(_HATest):
 
         # Reset the configuration
         host1.machine.powerctl.on()
-        host1.waitForSSH(600)
+        host1.waitForSSH(900)
         time.sleep(300)
         guest1.migrateVM(host1)
         cli.execute("pool-ha-prevent-restarts-for", "seconds=0")
@@ -4154,8 +4160,8 @@ exit 0
         # Power on hosts 3 and 3
         self.host2.machine.powerctl.on()
         self.host3.machine.powerctl.on()
-        self.host2.waitForSSH(600, desc="Host boot after power on")
-        self.host3.waitForSSH(600, desc="Host boot after power on")
+        self.host2.waitForSSH(900, desc="Host boot after power on")
+        self.host3.waitForSSH(900, desc="Host boot after power on")
         self.host2.waitForEnabled(300)
         self.host3.waitForEnabled(300)
         self.pool.haLiveset.append(self.host2.getMyHostUUID())
@@ -4445,7 +4451,7 @@ class TC11845(xenrt.TestCase):
         time.sleep(180)
 
         for h in hosts:
-            h.waitForSSH(600, desc="host reboot after host fence")
+            h.waitForSSH(900, desc="host reboot after host fence")
             h.execdom0("rm -f /etc/xensource/xapi_block_startup")
             h.execdom0("mv /etc/init.d/xapi.disabled /etc/init.d/xapi")
             h.startXapi()

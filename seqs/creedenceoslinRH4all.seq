@@ -8,7 +8,7 @@
 
   <default name="PARALLEL" value="4" />
   <default name="MIGRATEPAR" value="1" />
-  <default name="DISTROS" value="rhel45,rhel46,rhel47,rhel48,rhel49" />
+  <default name="DISTROS" value="rhel45,rhel46,rhel47,rhel48" />
 
   <semaphores>
     <TCMigrate count="${MIGRATEPAR}" />
@@ -56,49 +56,6 @@
             <finally>
               <testcase id="guestops.basic.TCShutdown">
                 <arg>guest=${D}</arg>
-                <arg>finally</arg>
-              </testcase>
-            </finally>
-          </serial>
-        </serial>
-      </for>
-      <for iter="D" values="${DISTROS}">
-        <serial group="${D}x86-64">
-          <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall">
-            <arg>RESOURCE_HOST_0</arg>
-            <arg>guest=${D}x86-64</arg>
-            <arg>distro=${D}</arg>
-            <arg>arch=x86-64</arg>
-            <arg>memory=1024</arg>
-          </testcase>
-          <serial guest="${D}x86-64">
-            <testcase id="guestops.basic.TCStartStop">
-              <arg>guest=${D}x86-64</arg>
-              <arg>loops=1</arg>
-            </testcase>
-            <testcase id="guestops.basic.TCReboot">
-              <arg>guest=${D}x86-64</arg>
-              <arg>loops=1</arg>
-            </testcase>
-            <testcase id="guestops.srm.TCSuspendResume">
-              <arg>guest=${D}x86-64</arg>
-              <arg>workloads</arg>
-              <arg>loops=1</arg>
-            </testcase>
-            <testcase id="guestops.srm.TCMigrate">
-              <arg>guest=${D}x86-64</arg>
-              <arg>workloads</arg>
-              <arg>loops=1</arg>
-            </testcase>
-            <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate">
-              <arg>guest=${D}x86-64</arg>
-              <arg>live</arg>
-              <arg>workloads</arg>
-              <arg>loops=1</arg>
-            </testcase>
-            <finally>
-              <testcase id="guestops.basic.TCShutdown">
-                <arg>guest=${D}x86-64</arg>
                 <arg>finally</arg>
               </testcase>
             </finally>

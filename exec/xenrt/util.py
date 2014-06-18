@@ -13,6 +13,7 @@ import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
 import calendar, types, fcntl, resource
 import xenrt, xenrt.ssh
 import IPy
+from collections import namedtuple
 
 # Symbols we want to export from the package.
 __all__ = ["timenow",
@@ -69,10 +70,13 @@ __all__ = ["timenow",
            "recursiveFileSearch",
            "getRandomULAPrefix",
            "sleep",
+           "jobOnMachine",
            "canCleanJobResources",
            "staleMachines",
            "xrtAssert",
-           "xrtCheck"
+           "xrtCheck",
+           "keepSetup",
+           "getADConfig"
            ]
 
 def sleep(secs, log=True):
@@ -1229,6 +1233,15 @@ def getRandomULAPrefix():
     global_id = xenrt.command("echo fd%s " % third_part + r"| sed -e 's|\(....\)\(....\)\(....\)|\1:\2:\3|'", strip=True)
     return global_id
 
+def jobOnMachine(machine, jobid):
+    xrs = xenrt.ctrl.XenRTStatus(None)
+    jobdict = xrs.run([jobid])
+    machines = []
+    for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
+        if jobdict.has_key(k):
+            machines.extend(jobdict[k].split(","))
+    return machine in machines
+
 def canCleanJobResources(jobid):
     jobid = str(jobid)
     xrs = xenrt.ctrl.XenRTStatus(None)
@@ -1302,3 +1315,31 @@ def mostCommonInList(items):
     for i in set(items):
         counts[i] = len([x for x in items if x==i])
     return sorted(counts, key=lambda x: counts[x], reverse=True)[0]
+
+def keepSetup():
+    keepOptions = ["OPTION_KEEP_SETUP",
+                   "OPTION_KEEP_ISCSI",
+                   "OPTION_KEEP_NFS",
+                   "OPTION_KEEP_CVSM",
+                   "OPTION_KEEP_VLANS",
+                   "OPTION_KEEP_STATIC_IPS",
+                   "OPTION_KEEP_UTILITY_VMS",
+                   "OPTION_KEEP_GLOBAL_LOCKS"]
+
+    for o in keepOptions:
+        if xenrt.TEC().lookup(o, False, boolean=True):
+            return True
+
+    return False
+
+def getADConfig():
+    ad = xenrt.TEC().lookup("AD_CONFIG")
+    domain=ad['DOMAIN']
+    domainName = ad['DOMAIN_NAME']
+    adminUser = ad['ADMIN_USER']
+    adminPassword = ad['ADMIN_PASSWORD']
+
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword'])
+
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
+

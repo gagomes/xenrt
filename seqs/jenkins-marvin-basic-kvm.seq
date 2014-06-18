@@ -22,6 +22,21 @@
                 { "XRT_GuestIPRangeSize": 15 }
               ],
               "clusters": [
+                { "hypervisor": "KVM", "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        },
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 10,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 15 }
+              ],
+              "clusters": [
                 { "hypervisor": "KVM", "XRT_Hosts": 1 }
               ]
             }

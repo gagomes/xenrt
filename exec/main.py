@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import sys, string, os.path, atexit, getopt, time, os, traceback, re
 import trace, socket, threading, xmlrpclib, glob, xml.dom.minidom, tarfile
-import pydoc, copy, urllib, IPy 
+import pydoc, copy, urllib, IPy, json
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 socket.setdefaulttimeout(3600)
@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys, xenrt.lib.hyperv
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
@@ -154,6 +154,7 @@ def usage(fd):
                                           killed/crashed jobs
     --cleanup-temp-dirs <job>             Remove any left over temporary directories from a specified job
     --cleanup-nfs-dirs                    Remove any left over NFS directories from stale jobs
+    --cleanup-nfs-dir                     Remove a specific NFS directory
     --release-lock <id>                   Force release a resource lock
     --setup-net-peer <peer>               Set up the specified network test peer
     --setup-router                        Set up the software router for this site (IPv6)
@@ -173,6 +174,9 @@ def usage(fd):
     --max-age <seconds>                   Only refresh a guest if it is older than <seconds>
 
     --install-packages                    Install packages required for a job
+
+    --get-resource "<machine> <type> <args>"        Get a controller resource (NFS, IP address range)
+    --list-resources <machine>            List resources associated with a machine
 
 """ % (sys.argv[0]))
 
@@ -218,6 +222,7 @@ cleanuplocks = False
 cleanuptempdirs = False
 cleanuptempdirsjob = None
 cleanupnfsdirs = False
+cleanupnfsdir = None
 releaselock = None
 setupnetpeer = False
 setuprouter = False
@@ -258,6 +263,8 @@ noloadmachines = False
 mconfig = None
 installguest = None
 installpackages = False
+getresource = None
+listresources = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -329,6 +336,7 @@ try:
                                       'cleanup-locks',
                                       'cleanup-temp-dirs=',
                                       'cleanup-nfs-dirs',
+                                      'cleanup-nfs-dir=',
                                       'release-lock=',
                                       'setup-net-peer=',
                                       'setup-router',
@@ -364,7 +372,9 @@ try:
                                       'show-network',
                                       'show-network6',
                                       'pdu',
-                                      'install-packages'])
+                                      'install-packages',
+                                      'get-resource=',
+                                      'list-resources='])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -639,6 +649,9 @@ try:
         elif flag == "--cleanup-nfs-dirs":
             cleanupnfsdirs = True
             aux = True
+        elif flag == "--cleanup-nfs-dir":
+            cleanupnfsdir = value
+            aux = True
         elif flag == "--release-lock":
             releaselock = value
             aux = True
@@ -773,6 +786,15 @@ try:
             aux = True
         elif flag == "--install-packages":
             installpackages = True
+            noloadmachines = True
+            aux = True
+        elif flag == "--get-resource":
+            getresource = value
+            noloadmachines = True
+            setvars.append((["OPTION_KEEP_SETUP"], "yes"))
+            aux = True
+        elif flag == "--list-resources":
+            listresources = value
             noloadmachines = True
             aux = True
             
@@ -1601,8 +1623,13 @@ if cleanupnfsdirs:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
-            m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
-            mp = m.getMount()
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
             jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
             for j in jobs:
                 try:
@@ -1610,12 +1637,55 @@ if cleanupnfsdirs:
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
                 except:
                     continue
-            m.unmount()
+            if m:
+                m.unmount()
+        except:
+            pass
+    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS")
+    for n in smbConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                ad = xenrt.getADConfig()
+                m = xenrt.rootops.MountSMB("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "BASE"])), ad.domainName, ad.adminUser, ad.adminPassword)
+                mp = m.getMount()
+            jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
+            for j in jobs:
+                try:
+                    if xenrt.canCleanJobResources(j):
+                        xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                except:
+                    continue
+            if m:
+                m.unmount()
         except:
             pass
 
-
-        
+if cleanupnfsdir:
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
+    (cleanupBaseDir, cleanupDir) = cleanupPath.rsplit("/", 1)
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if address != cleanupAddress or cleanupBaseDir != basedir:
+                continue
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
+            xenrt.rootops.sudo("rm -rf %s/%s" % (mp, cleanupDir))
+            if m:
+                m.unmount()
+        except:
+            pass
 
 if cleanuptempdirs:
     # to list the job ids of all running/paused/new jobs in xenrt.
@@ -1712,7 +1782,7 @@ if cleanuplocks:
             machine.powerctl.off()
     
     for j in set(jobsForGlobalRelease):
-        xenrt.GEC().dbconnect.jobctrl("resrelease", [j])
+        xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
 
 if releaselock:
     cr = xenrt.resources.CentralResource()
@@ -1772,6 +1842,27 @@ if setupsharedhost:
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        sho = xenrt.SharedHost(sharedhost)
+
+        macs = [sh['MAC']]
+        macs.extend(sh['BOND_NICS'].split(","))
+        pifs = [host.minimalList("pif-list", args="MAC=%s" % x)[0] for x in macs]
+        
+        nets = [host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % x)[0] for x in pifs]
+        for n in nets:
+            host.genParamSet("network", n, "name-label", "slave%s" % n)
+        
+        host.createBond(pifs, dhcp=True, management=True)
+
+        # Rename the bond network to get VMs to import onto the bond rather than the slave
+        bondPif = host.minimalList("bond-list", params="master")[0]
+        net = host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % bondPif)[0]
+        host.genParamSet("network", net, "name-label", "Pool-wide network associated with eth0")
+
+        templates = sh["TEMPLATES"]
+        for t in templates.keys():
+            sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))
+
 
 if setupstatichost:
     xenrt.infrastructuresetup.setupStaticHost()
@@ -1940,6 +2031,85 @@ if runsuite:
     for suite in suites:
         testrun = suite.submit(debug=suitedebug,delayfor=delayfor,devrun=suitedevrun)
         print "SUITE %s" % (testrun)
+
+if getresource:
+   args = getresource.split()
+   machine = args.pop(0)
+   job = xenrt.GEC().dbconnect.jobctrl("machine", [machine])["JOBID"]
+   config.setVariable("JOBID", job)
+   xenrt.GEC().dbconnect._jobid = int(job)
+   restype = args.pop(0)
+   try:
+       ret = xenrt.getResourceInteractive(restype, args)
+       print json.dumps({"result": "OK", "data": ret})
+   except Exception, e:
+       print json.dumps({"result": "ERROR", "data": str(e)})
+
+if listresources:
+    cr = xenrt.resources.CentralResource()
+    locks = cr.list()
+    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']]
+    
+    jobdirs = {}
+
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (address, basedir))
+                mp = m.getMount()
+            dirs = xenrt.command("ls %s" % mp)
+
+            for d in dirs.splitlines():
+                m = re.match("(\d+)-.*", d)
+                if m:
+                    job = m.group(1)
+                    if not job in jobdirs.keys():
+                        jobdirs[job] = []
+                    jobdirs[job].append("%s:%s/%s" % (address, basedir.rstrip("/"), d))
+                    jobs.append(job)
+            if m:
+                m.unmount()
+        except:
+            pass
+    
+    jobs = set(jobs)
+
+    machineJobs = [x for x in jobs if xenrt.jobOnMachine(listresources, x)]
+
+    ret = {}
+
+    for l in locks:
+        if l[1] and l[2]['jobid'] in machineJobs:
+            (resclass, resname) = l[0].split("-",1)
+            if not resclass in ret.keys():
+                ret[resclass] = []
+            if not resname in ret[resclass]:
+                ret[resclass].append(resname)
+
+    for m in machineJobs:
+        if jobdirs.has_key(m):
+            if not "NFS" in ret.keys():
+                ret["NFS"] = []
+            ret['NFS'].extend(jobdirs[m])
+
+    for k in ret.keys():
+        if k in ("IP4ADDR", "IP6ADDR"):
+            ret[k].sort(key=lambda x: IPy.IP(x).int())
+        else:
+            try:
+                ret[k] = [int(x) for x in ret[k]]
+            except:
+                pass
+            ret[k].sort()
+
+    print json.dumps(ret)
 
 if runtool:
     eval("xenrt.tools." + runtool)

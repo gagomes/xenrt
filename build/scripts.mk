@@ -9,6 +9,7 @@ PYTHONLIB ?= /usr/local/lib/python2.6/dist-packages/
 PYTHONLIB2 ?= /usr/local/lib/python2.7/dist-packages/
 JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
+WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 
 include build/config.mk
@@ -250,6 +251,9 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
+	sed -i 's#@user@#$(USERNAME)#g' $@
+	sed -i 's#@group@#$(GROUPNAME)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

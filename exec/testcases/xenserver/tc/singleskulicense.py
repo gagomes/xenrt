@@ -18,15 +18,17 @@ class SingleSkuBase(xenrt.TestCase):
     LICENSEFILE = ''
     LICENSENAME = ''
     v6 = None
+    NEED_LINUX_VM = True
 
     def prepare(self,arglist=None):
     
         self.parseArgs(arglist)
         self.setParam()
         self.addLicense()
-        sampleGuest = self.getGuest("linux")      
-        if sampleGuest.getState() == "DOWN":
-            sampleGuest.start() 
+        if self.NEED_LINUX_VM:
+            sampleGuest = self.getGuest("linux")      
+            if sampleGuest.getState() == "DOWN":
+                sampleGuest.start() 
  
     def parseArgs(self,arglist):
 
@@ -316,6 +318,9 @@ class SingleSkuBase(xenrt.TestCase):
         self.verifyLicenseServer(reset = True)
 
 class TC21468(SingleSkuBase):
+
+    NEED_LINUX_VM = False
+
     def postRun(self):
         #This is for WLB functional tests which need a licensed XS.
         pass

@@ -2187,7 +2187,11 @@ class TC10016(_V6PlatinumEDN):
     FEATURE = "MarathonPCI"
     ALLOWED = True
 class TC10017(_V6PlatinumEDN):
-    """Verify WLB can NOT be initialised"""
+    """Verify WLB can be initialised"""
+    FEATURE = "Kirkwood"
+    ALLOWED = True
+class TC21479(_V6PlatinumEDN):
+    """Verify WLB cannot be initialised for unlicensed host on Creedence"""
     FEATURE = "Kirkwood"
     ALLOWED = False
 class TC11002(_V6PlatinumEDN):

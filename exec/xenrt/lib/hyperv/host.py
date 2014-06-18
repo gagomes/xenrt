@@ -97,7 +97,7 @@ class HyperVHost(xenrt.GenericHost):
         self.machine.powerctl.cycle()
         # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
         pxe.waitForIPXEStamp(self.machine)
-        
+        xenrt.sleep(30) # 30s to allow PXELINUX to load
         pxe.setDefault("wininstall")
         pxe.writeOut(self.machine)
         pxe.writeIPXEConfig(self.machine, None)
@@ -105,6 +105,7 @@ class HyperVHost(xenrt.GenericHost):
         # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
         
         pxe.waitForIPXEStamp(self.machine)
+        xenrt.sleep(30) # 30s to allow PXELINUX to load
         pxe.clearIPXEConfig(self.machine)
         pxe.setDefault("local")
         pxe.writeOut(self.machine)

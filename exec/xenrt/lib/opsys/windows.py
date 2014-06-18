@@ -1159,13 +1159,14 @@ class WindowsOS(OS):
     def xenstoreRemove(self, path):
         return self._xenstore("remove", path)
 
+    @property
     def uptime(self):
         """Returns the uptime of the Windows VM"""
 
         # TODO: Find a better way of doing this - for 32-bit we can use the win32api.GetTickCount(), but need an equivalent for
         # 64-bit systems.
         stats = self.execCmd("net statistics server", returndata=True)
-        m = re.search("Statistics since (.+)$", stats)
+        m = re.search("Statistics since (.+)", stats)
         if not m:
             raise xenrt.XRTError("Unable to determine uptime")
         startDate = m.group(1)
@@ -1173,8 +1174,9 @@ class WindowsOS(OS):
         startTime = time.strptime(startDate, "%m/%d/%Y %H:%M %p")
         # Unfortunately time.strptime doesn't handle AM/PM correctly (it ignores it), so work out if we need to add 12
         if startDate.endswith("PM"):
-            return time.mktime(startTime) + 12*3600
+            start = time.mktime(startTime) + 12*3600
         else:
-            return time.mktime(startTime)
+            start = time.mktime(startTime)
+        return time.time() - start
 
 registerOS(WindowsOS)

@@ -207,7 +207,7 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
 
     def _installMsi(self):
         # Note down the VM's uptime
-        self.vmuptime = self.instance.os.uptime()
+        self.vmuptime = self.instance.os.uptime
 
         # Kill the autorun version
         self.instance.os.killAll("xensetup.exe")
@@ -219,7 +219,7 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         while True:
             self.instance.os.waitForDaemon(deadline - xenrt.util.timenow(), "Reboot after driver installation")
             try:
-                newUptime = self.instance.os.uptime()
+                newUptime = self.instance.os.uptime
                 if newUptime < self.vmuptime:
                     break
             except:

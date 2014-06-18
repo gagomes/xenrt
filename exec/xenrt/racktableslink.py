@@ -221,6 +221,11 @@ def readMachineFromRackTables(machine,kvm=False):
         if pxechain:
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"PXE_CHAIN_LOCAL_BOOT"], pxechain)
 
+    if not xenrt.TEC().lookupHost(machine, "IPXE_EXIT", None):
+        ipxeForce = o.getAttribute("Force iPXE Exit")
+        if ipxeForce == "Yes":
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"IPXE_EXIT"], "yes")
+
     if not xenrt.TEC().lookupHost(machine, "OPTION_ROOT_MPATH", None):
         if o.getAttribute("Multipath Root Disk") == "Yes":
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"OPTION_ROOT_MPATH"], "enabled")

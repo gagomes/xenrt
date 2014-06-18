@@ -1,0 +1,5 @@
+<xenrt>
+  <prepare>
+    <host productType="hyperv" productVersion="ws12r2-x64" id="0" />
+  </prepare>
+</xenrt>

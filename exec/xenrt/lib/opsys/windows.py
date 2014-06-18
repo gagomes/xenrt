@@ -1170,8 +1170,11 @@ class WindowsOS(OS):
         if not m:
             raise xenrt.XRTError("Unable to determine uptime")
         startDate = m.group(1)
-        # startDate is in the format MM/DD/YYYY HH:MM AM/PM
-        startTime = time.strptime(startDate, "%m/%d/%Y %H:%M %p")
+        # startDate is in the format MM/DD/YYYY HH:MM AM/PM or MM/DD/YYYY HH:MM:SS AM/PM
+        try:
+            startTime = time.strptime(startDate, "%m/%d/%Y %H:%M %p")
+        except ValueError:
+            startTime = time.strptime(startDate, "%m/%d/%Y %H:%M:%S %p")
         # Unfortunately time.strptime doesn't handle AM/PM correctly (it ignores it), so work out if we need to add 12
         if startDate.endswith("PM"):
             start = time.mktime(startTime) + 12*3600

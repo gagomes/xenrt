@@ -217,7 +217,7 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         # Wait until we see a reduction in uptime
         deadline = xenrt.util.timenow() + 3600
         while True:
-            self.instance.os.waitForDaemon(deadline - xenrt.util.timenow(), "Reboot after driver installation")
+            self.instance.os.waitForDaemon(deadline - xenrt.util.timenow())
             try:
                 newUptime = self.instance.os.uptime
                 if newUptime < self.vmuptime:

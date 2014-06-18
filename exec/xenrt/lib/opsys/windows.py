@@ -1141,11 +1141,14 @@ class WindowsOS(OS):
         else:
             cmdpath = "C:\\Program Files\\Citrix\\XenTools\\xenstore_client.exe"
     
-        cmd = "%s %s %s" % (cmdpath, operation, path)
+        cmd = "\"%s\" %s %s" % (cmdpath, operation, path)
         if data is not None:
             cmd = "%s %s" % (cmd, data)
 
-        return self.execCmd(cmd, returndata=True)
+        response = self.execCmd(cmd, returndata=True)
+        # This will have some rows we need to strip off
+        lines = response.splitlines()
+        return "\n".join(lines[2:])
 
     def xenstoreRead(self, path):
         return self._xenstore("read", path)

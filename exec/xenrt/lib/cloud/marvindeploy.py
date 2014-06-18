@@ -35,7 +35,8 @@ class MarvinDeployer(object):
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
           'abstractName': 'SecondaryStorage',
-          'required': { 'url': None, 'provider': None } },
+          'required': { 'url': 'getSecondaryStorageUrl', 'provider': 'getSecondaryStorageProvider' }, 
+          'optional': { 'details': 'getSecondaryStorageDetails' } },
         'physical_networks': {
           'abstractName': 'PhysicalNetwork',
           'required': { 'name': None, 'traffictypes': None, 'providers': None, 'broadcastdomainrange': None, 'vlan': 'getPhysicalNetworkVLAN' },
@@ -67,7 +68,8 @@ class MarvinDeployer(object):
           'notify'  : { 'clustername': 'notifyNewElement' } },
         'primaryStorages': {
           'abstractName': 'PrimaryStorage',
-          'required': { 'name': None, 'url': None} },
+          'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl'},
+          'optional': { 'details': 'getPrimaryStorageDetails' } },
         'hosts': {
           'abstractName': 'Host',
           'required': { 'url': 'getHostUrl', 'username': 'getHostUsername', 'password': 'getHostPassword' },
@@ -119,6 +121,23 @@ class MarvinDeployer(object):
 
                 elementRef[requiredField] = value
 
+    def _checkOptionalFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
+        self.logger.debug('Processing config for key: %s' % (elementKey))
+        for optionalField in self.CONFIG_SCHEMA[elementKey]['optional'].keys():
+            if not elementRef.has_key(optionalField):
+                value = None
+                # Check if there is a getter function available
+                if self.CONFIG_SCHEMA[elementKey]['optional'][optionalField] != None:
+                    if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['optional'][optionalField]):
+                        value = getattr(deployer, self.CONFIG_SCHEMA[elementKey]['optional'][optionalField])(self.CONFIG_SCHEMA[elementKey]['abstractName'], elementRef)
+
+                if value == None:
+                    if self.CONFIG_SCHEMA[elementKey].has_key('defaults') and self.CONFIG_SCHEMA[elementKey]['defaults'].has_key(optionalField):
+                        value = copy.deepcopy(self.CONFIG_SCHEMA[elementKey]['defaults'][optionalField])
+               
+                if value != None:
+                    elementRef[optionalField] = value
+    
     def _notifyFieldsForConfigDictElement(self, elementRef, elementKey, deployer):
         for notifyField in self.CONFIG_SCHEMA[elementKey]['notify']:
             if hasattr(deployer, self.CONFIG_SCHEMA[elementKey]['notify'][notifyField]) and elementRef.has_key(notifyField):
@@ -130,6 +149,8 @@ class MarvinDeployer(object):
         elif isinstance(element, dict):
             if self.CONFIG_SCHEMA[parentName].has_key('required'):
                 self._checkRequiredFieldsForConfigDictElement(element, parentName, deployer)
+            if self.CONFIG_SCHEMA[parentName].has_key('optional'):
+                self._checkOptionalFieldsForConfigDictElement(element, parentName, deployer)
             if self.CONFIG_SCHEMA[parentName].has_key('notify'):
                 self._notifyFieldsForConfigDictElement(element, parentName, deployer)
             for key, value in element.items():

@@ -2878,6 +2878,10 @@ Add-WindowsFeature as-net-framework"""
             xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
             exe = xenrt.TEC().getFile(xcexe)
             self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
+        if xenrt.TEC().lookup("XENMODEL_DLL", None):
+            xcexe = xenrt.TEC().lookup("XENMODEL_DLL")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenModel.dll")
 
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
@@ -3648,6 +3652,9 @@ bootlocal.close()
         xenrt.TEC().logverbose("Updating RPC daemon")
         self.xmlrpcUpdate()
 
+        if xenrt.TEC().lookup("WORKAROUND_CA137990", False, boolean=True):
+            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", 125)
+        
         # Disable the screensaver (XRT-214)
         self.winRegAdd("HKCU",
                        "Control Panel\\Desktop",
@@ -8780,13 +8787,13 @@ class GenericGuest(GenericPlace):
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
 
-            if "win81" in self.distro:
+            if "win81-x64" in self.distro:
                 au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
-sleep (1000)
+sleep (10000)
 send ("{LEFT}")
-sleep(1000)
+sleep(10000)
 send ("{ENTER}")
 sleep(10000)
 send ("{DOWN}")

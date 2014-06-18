@@ -857,6 +857,51 @@ class TCGROEnable(VmOnVlanOnBond):
         else:
             raise xenrt.XRTFailure("Unexpected Exception Occured. Expected status='off', Found '%s'" % status)
 
+class TCGSOBondedInterface(xenrt.TestCase):
+    """GRO and GSO enablement for bonded interface (SCTX-1532)"""
+    #Jira TC-21157
+ 
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        cli = self.host.getCLIInstance()
+        self.bondSlavePif = cli.execute("bond-list", "params=slaves --minimal").split(';')[0]
+        self.pifDevice = cli.execute("pif-param-get", "param-name=device uuid=%s --minimal" % self.bondSlavePif).strip()
+        
+    def run(self, arglist=None):
+        step("Set gso off and gro on for bonded interface")
+        cli = self.host.getCLIInstance()
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gso='off' --minimal" % self.bondSlavePif)
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gro='on' --minimal" % self.bondSlavePif)
+        
+        step("Reboot Host")
+        self.host.reboot()
+        xenrt.sleep(30)
+        
+        step("Verify GRO and GSO status")
+        self.verifyEthtoolParam("generic-segmentation-offload", "off")
+        self.verifyEthtoolParam("generic-receive-offload", "on")
+            
+        step("Set gso on and gro off for bonded interface")
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gso='on' --minimal" % self.bondSlavePif)
+        cli.execute("pif-param-set", "uuid=%s other-config:ethtool-gro='off' --minimal" % self.bondSlavePif)
+        
+        step("Reboot Host")
+        self.host.reboot()
+        xenrt.sleep(30)
+        
+        step("Verify GRO and GSO")
+        self.verifyEthtoolParam("generic-segmentation-offload", "on")
+        self.verifyEthtoolParam("generic-receive-offload", "off")
+        
+    def verifyEthtoolParam(self, param, expected):
+        command = 'ethtool -k %s | grep "%s: " | cut -d ":" -f 2' % (self.pifDevice, param)
+        status = self.host.execdom0(command).strip()
+        if status == expected:
+            log("%s is %s on bonded interface" % (param, status))
+        else:
+            raise xenrt.XRTFailure("Unexpected Exception Occured. Expected %s status='%s', Found '%s'" % (param, expected, status))
+        
+
 class TC7338(VmOnVlanOnBond):
     """VLAN based networks on top of a bonded interface (VM on VLAN, management on bond)"""
             

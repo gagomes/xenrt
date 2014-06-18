@@ -27,21 +27,6 @@
               ]
             }
           ]
-        },
-        { "networktype": "Basic",
-          "physical_networks": [
-            { "name": "BasicPhyNetwork" }
-          ],
-          "pods": [
-            { "XRT_PodIPRangeSize": 10,
-              "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 15 }
-              ],
-              "clusters": [
-                { "XRT_Hosts": 1 }
-              ]
-            }
-          ]
         }
         ],
         "globalConfig": [

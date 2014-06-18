@@ -70,6 +70,7 @@ class HyperVHost(xenrt.GenericHost):
         self.createVirtualSwitch()
 
     def installWindows(self):
+        xenrt.xrtAssert(xenrt.TEC().lookup("USE_IPXE", False, boolean=True), "iPXE must be in use for Windows installation")
         # Construct a PXE target
         pxe = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
@@ -80,20 +81,34 @@ class HyperVHost(xenrt.GenericHost):
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
             pxe.addEntry("local", boot="local")
+       
+        wipe = pxe.addEntry("wipe", boot="memdisk")
+        wipe.setInitrd("%s/wininstall/netinstall/wipe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
+        wipe.setArgs("iso raw")
         
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL")))
-        pxe.setDefault("local")
+        wininstall = pxe.addEntry("wininstall", boot="memdisk")
+        wininstall.setInitrd("%s/wininstall/netinstall/%s/winpe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        wininstall.setArgs("iso raw")
+        
+        pxe.setDefault("wipe")
         pxe.writeOut(self.machine)
+        pxe.writeIPXEConfig(self.machine, None)
 
         self.machine.powerctl.cycle()
         # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
         pxe.waitForIPXEStamp(self.machine)
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        xenrt.sleep(30) # 30s to allow PXELINUX to load
+        pxe.setDefault("wininstall")
+        pxe.writeOut(self.machine)
+        pxe.writeIPXEConfig(self.machine, None)
         
         # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
         
         pxe.waitForIPXEStamp(self.machine)
+        xenrt.sleep(30) # 30s to allow PXELINUX to load
         pxe.clearIPXEConfig(self.machine)
+        pxe.setDefault("local")
+        pxe.writeOut(self.machine)
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
@@ -115,16 +130,30 @@ class HyperVHost(xenrt.GenericHost):
                        "c:\\onboot.cmd")
 
     def installHyperV(self):
-        for i in ["Hyper-V", "RSAT-Hyper-V-Tools"]:
+        if self.productVersion.startswith("hvs"):
+            needReboot = False
+            features = ["RSAT-Hyper-V-Tools"]
+        else:
+            needReboot = True
+            features = ["Hyper-V", "RSAT-Hyper-V-Tools"]
+        
+        for i in features:
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
             xenrt.TEC().logverbose(self.xmlrpcExec("Install-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
-        self.softReboot()
+
+        if needReboot:
+            self.softReboot()
 
     def createVirtualSwitch(self):
-        self.xmlrpcSendFile("%s/data/tests/hyperv/createvirtualswitch.ps1" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\createvirtualswitch.ps1")
+        ps = """Import-Module Hyper-V
+$ethernet = Get-NetAdapter | where {$_.MacAddress -eq "%s"}
+New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagementOS $true -Notes 'Parent OS, VMs, LAN'
+""" % self.getNICMACAddress(0).replace(":","-")
+
+        self.xmlrpcWriteFile("c:\\createvirtualswitch.ps1", ps)
         self.enablePowerShellUnrestricted()
-        cmd = "powershell.exe c:\\createvirtualswitch.ps1"
+        cmd = "powershell.exe c:\\createvirtualswitch.ps1 %s" % self.getNICMACAddress(0).replace(":","-")
         ref = self.xmlrpcStart(cmd)
         deadline = xenrt.timenow() + 120
 

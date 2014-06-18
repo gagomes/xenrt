@@ -2836,3 +2836,162 @@ class TCScaleVMXenDesktop49Reboot(TCStbltyWorkLoadBase):
     def doOperation(self, vm, gold):
         self.xenDesktopShutdown(vm)
         self.xenDesktopStart(vm, gold)
+
+class _VBDScalability(_Scalability):
+    
+    vdis = []
+    VALIDATE = False
+     
+    def runTC(self,host):
+        self.cli = host.getCLIInstance()
+        if self.MAX == True:
+            maxVbds = int(host.lookup("MAX_VBDS_PER_HOST"))
+        else:
+            maxVbds = self.MAX
+         
+        # Find the SR
+        srs = host.getSRs(type=self.SR)
+        if len(srs) == 0:
+            raise xenrt.XRTError("Couldn't find a %s SR" % (self.SR))
+         
+        maxVdis = int(host.lookup("MAX_VDIS_PER_SR_%s" % (self.SR)))
+         
+        srCount = 0 
+        vdiCount = 0 
+        vdiPerSrCount = 0 
+        while vdiCount < maxVbds and srCount<len(srs):
+            try:
+                args = []
+                args.append("name-label=\"VDI Scalability %u\"" % (vdiCount))
+                args.append("sr-uuid=%s" % (srs[srCount]))
+                args.append("virtual-size=10485760") # 10MB
+                args.append("type=user")
+                uuid = self.cli.execute("vdi-create", string.join(args), strip=True)
+                self.vdis.append(uuid)
+                vdiPerSrCount += 1
+                vdiCount += 1
+                if vdiPerSrCount >= 600:
+                    srCount += 1
+                    vdiPerSrCount = 0
+            except xenrt.XRTFailure, e:
+                psize = int(host.getSRParam(srs[srCount],"physical-size"))
+                if psize > 0:              
+                    spaceleft = psize - \
+                                int(host.getSRParam(srs[srCount],"physical-utilisation"))
+                    if spaceleft < 10485760:                
+                        xenrt.TEC().warning("Ran out of space on SR, required "
+                                             "10485760, had %u" % (spaceleft))
+                        srCount = srCount+1
+         
+        if vdiCount < maxVbds :
+            raise xenrt.XRTFailure("Asked to create %u VDIs, only managed "
+                                        "to create %u" % (max,vdiCount))
+        else:
+            xenrt.TEC().value("numberVDIs",vdiCount)
+         
+        for sr in srs:
+            # See how long an sr-scan takes       
+            try:
+                t = xenrt.util.Timer()
+                t.startMeasurement()            
+                self.cli.execute("sr-scan","uuid=%s" % (sr))
+                t.stopMeasurement()
+                xenrt.TEC().value("sr-scan",t.max())
+            except xenrt.XRTFailure, e:
+                xenrt.TEC().warning("Exception while performing sr-scan: %s" % (e))
+         
+        srCount = 0
+        guest = host.createGenericLinuxGuest(sr = srs[srCount])
+        self.uninstallOnCleanup(guest)
+ 
+        guest.preCloneTailor()
+        guest.shutdown()
+ 
+        # Determine how many VBDs we can add to the guest
+        vbddevices = host.genParamGet("vm",
+                                       guest.getUUID(),
+                                       "allowed-VBD-devices").split("; ")
+        vbdsAvailable = len(vbddevices)
+         
+        # Start adding VBDs and plugging VDIs into them, once we reach allowed
+        # VBDs, make a new clone and continue
+ 
+        vmCount = 0
+        pluggedCount = 0
+        leftOnGuest = 0
+        i = 0 
+        while pluggedCount < maxVbds and i < vdiCount and srCount < len(srs):
+            if leftOnGuest == 0:
+                try:
+                    g = guest.cloneVM()
+                    self.uninstallOnCleanup(g)
+                    pluggedCount += 1
+                    g.start()
+                    vmCount += 1
+                    currentGuest = g
+                    self.guests.append(currentGuest)
+                    leftOnGuest = vbdsAvailable
+                     
+                except xenrt.XRTFailure, e:
+                    psize = int(host.getSRParam(srs[srCount],"physical-size"))
+                    if psize > 0:
+                        spaceleft = psize - \
+                                    int(host.getSRParam(srs[srCount],"physical-utilisation"))
+                        if spaceleft < 8 * xenrt.GIGA:
+                            xenrt.TEC().warning("Ran out of space on SR, required "
+                                                "8589934592, had %u" % (spaceleft))
+                            srCount = srCount+1
+                            continue
+ 
+            try:
+                 
+                device = currentGuest.createDisk(vdiuuid=self.vdis[i],returnDevice=True)
+                xenrt.TEC().logverbose("Formatting VDI within VM.")
+                time.sleep(30)
+                 
+                currentGuest.execguest("mkfs.ext3 /dev/%s" % (device))
+                currentGuest.execguest("mount /dev/%s /mnt" % (device))
+                xenrt.TEC().logverbose("Creating some random data on VDI.")
+                currentGuest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8")
+                currentGuest.execguest("umount /mnt")
+                 
+                pluggedCount += 1
+                leftOnGuest -= 1
+                i = i+1
+                xenrt.TEC().logverbose("Plugged VBD %s" %(pluggedCount))
+ 
+            except xenrt.XRTFailure, e:
+                xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
+                                     (pluggedCount+1,e))
+                break
+ 
+        if pluggedCount < maxVbds:
+            raise xenrt.XRTFailure("Created %u VDIs, only able to create/plug "
+                                    "VBDs for %u on %u guests" % 
+                                    (vdiCount,pluggedCount,vmCount))
+ 
+        if self.VALIDATE:
+                if self.runSubcase("lifecycleOperations", (), "LifecycleOperations", "LifecycleOperations") != xenrt.RESULT_PASS:
+                    return
+   
+    def parseArgument(self,param,value):
+        if param == "max":
+            self.MAX = value
+        else:
+            _Scalability.parseArgument(self,param,value)
+         
+    def postRun2(self):
+        # Delete the VDIs
+        for vdi in self.vdis:
+            try:
+                self.cli.execute("vdi-destroy uuid=%s" % (vdi))
+            except:
+                xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
+     
+class TC21482(_VBDScalability):
+
+    """Verify the supported maximum number of VBD's per Host can be created and attached (NFS)"""
+ 
+    SR = "nfs"
+    MAX = True
+    VALIDATE = True

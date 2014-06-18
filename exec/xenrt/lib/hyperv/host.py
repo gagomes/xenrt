@@ -80,20 +80,40 @@ class HyperVHost(xenrt.GenericHost):
             pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
             pxe.addEntry("local", boot="local")
+       
+        wipe = pxe.addEntry("wipe", boot="memdisk")
+        wipe.setInitrd("%s/wininstall/netinstall/wipe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
+        wipe.setArgs("iso raw")
+        wininstall = pxe.addEntry("wininstall", boot="memdisk")
+        wininstall.setInitrd("%s/wininstall/netinstall/%s/winpe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        wininstall.setArgs("iso raw")
         
-        pxe.setDefault("local")
-        pxe.writeOut(self.machine)
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL")))
+
+
+        if xenrt.TEC().lookup("WINPE_MEMDISK", False, boolean=True):
+            pxe.setDefault("wipe")
+            pxe.writeOut(self.machine)
+            pxe.writeIPXEConfig(self.machine, None)
+        else:
+            pxe.setDefault("local")
+            pxe.writeOut(self.machine)
+            pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/wipe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL")))
 
         self.machine.powerctl.cycle()
         # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
         pxe.waitForIPXEStamp(self.machine)
-        pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
+        if xenrt.TEC().lookup("WINPE_MEMDISK", False, boolean=True):
+            pxe.setDefault("wininstall")
+            pxe.writeOut(self.machine)
+            pxe.writeIPXEConfig(self.machine, None)
+        else:
+            pxe.writeIPXEConfig(self.machine, "%s/wininstall/netinstall/%s/winpe/boot.ipxe" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
         
         # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
         
         pxe.waitForIPXEStamp(self.machine)
         pxe.clearIPXEConfig(self.machine)
+        pxe.setDefault("local")
         pxe.writeOut(self.machine)
 
         # Wait for Windows to be ready

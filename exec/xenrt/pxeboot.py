@@ -85,6 +85,29 @@ LABEL %s
 %s
 """ % (self.label, self.kernel, extra)
 
+class PXEBootEntryMemdisk(PXEBootEntry):
+    def __init__(self, cfg, label):
+        PXEBootEntry.__init__(self, cfg, label)
+        self.initrd = ""
+        self.args = None
+
+    def setInitrd(self, initrd):
+        self.initrd = initrd
+
+    def setArgs(self, args):
+        self.args = args
+
+    def generate(self):
+        if self.args:
+            extra = "    APPEND %s" % (self.args)
+        else:
+            extra = ""
+        return """
+LABEL %s
+    LINUX memdisk
+    INITRD %s
+%s
+""" % (self.label, self.initrd, extra)
 
 class PXEBootEntryPxeGrub(PXEBootEntryLinux):
     """An individual boot entry in a PXE config for pxegrub chainloading."""
@@ -224,6 +247,8 @@ class PXEBoot(xenrt.resources.DirectoryResource):
             e = PXEBootEntryPxeGrub(self, label)
         elif boot == "grub":
             e = PXEGrubBootEntry(self, label)
+        elif boot == "memdisk":
+            e = PXEBootEntryMemdisk(self, label)
         else:
             raise xenrt.XRTError("Unknown PXE boot type %s" % (boot))
         if default:
@@ -322,8 +347,11 @@ DEFAULT %s
         self.iPXE = True
         filename = self.getIPXEFile(machine, forceip)
         
-        out = "chain %s\n" % url
-        out += "goto end\n"
+        if url:
+            out = "chain %s\n" % url
+            out += "goto end\n"
+        else:
+            out = ""
 
         t = xenrt.TEC().tempFile()
         f = file(t, "w")

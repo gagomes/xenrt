@@ -1268,11 +1268,6 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                 if not line in place.thingsWeHaveReported:
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("segfault in %s: %s" % (log,line))
-                            
-                            if "hung_task" in line:
-                                if not line in place.thingsWeHaveReported:
-                                    place.thingsWeHaveReported.append(line)
-                                    self._warnWithPrefix("hung_task in %s: %s" % (log,line))
                 except:
                     pass
             if place.guestconsolelogs:

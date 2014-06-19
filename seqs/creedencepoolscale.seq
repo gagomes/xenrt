@@ -3,6 +3,7 @@
   <default name="VMSPERHOST" value="50"/>
   <default name="THREADS" value="50"/>
   <default name="DISTRO" value="win7sp1-x86"/>
+  <default name="NUMBEROFSLAVESTOREBOOT" value="4"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -19,8 +20,7 @@
   
   <prepare>
     <pool>
-      <storage type="nfs" name="nfs1" default="true" network="STORAGE01"/>
-      <storage type="nfs" name="nfs2" network="STORAGE02"/>
+      <storage type="nfs" name="nfs2" network="STORAGE02" default="true"/>
       <allhosts/>
       
       <NETWORK>
@@ -39,18 +39,6 @@
 
       
       <vm name="gold0">
-        <distro>${DISTRO}</distro>
-        <postinstall action="installDrivers"/>
-        <postinstall action="preCloneTailor"/>
-        <postinstall action="xenDesktopTailor"/>
-        <postinstall action="shutdown"/>
-        <postinstall action="removeCD"/>
-        <network device="0" />
-        <vcpus>2</vcpus>
-        <memory>1024</memory>
-        <storage>nfs1</storage>
-      </vm>
-      <vm name="gold1">
         <distro>${DISTRO}</distro>
         <postinstall action="installDrivers"/>
         <postinstall action="preCloneTailor"/>
@@ -89,6 +77,13 @@
     </testcase>
     <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18709">
       <arg>threads=${THREADS}</arg>
+    </testcase>
+    <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" />
+    <testcase id="xenserver.tc.scalability.TCStbltySlaveReboot" tc="TC-18817" />
+    <testcase id="xenserver.tc.scalability.TCStbltySRReboot" tc="TC-18789" />
+    <testcase id="xenserver.tc.scalability.TCStbltyAllReboot" tc="TC-18818" />
+    <testcase id="xenserver.tc.scalability.TCStbltyMSlaveReboot" tc="TC-21462">
+        <arg>numberOfSlavesToReboot=${NUMBEROFSLAVESTOREBOOT}</arg>
     </testcase>
   </testsequence>
 </xenrt>

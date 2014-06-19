@@ -918,7 +918,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WS12_64"] = "Windows Server 2012 (64-bit),Windows Server 2012 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
-        self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
+        self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "512"
         
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}

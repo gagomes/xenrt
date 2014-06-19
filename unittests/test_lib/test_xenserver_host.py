@@ -1,6 +1,56 @@
 from testing import XenRTUnitTestCase
-from mock import Mock
+from mock import Mock, patch, PropertyMock
 import xenrt
+
+
+class TestCoresPerSocket(XenRTUnitTestCase):
+    def setUp(self):
+        self.__guest = Mock(spec=xenrt.GenericGuest)
+        self.__setVCPUs = Mock()
+        self.__sockets = Mock()
+        self.__guest.setVCPUs = self.__setVCPUs
+        self.__guest.setCoresPerSocket = self.__sockets
+        self.__win = PropertyMock(return_value=True)
+        type(self.__guest).windows = self.__win
+
+    def __setMocksOnHost(self, host):
+        host.getCPUCores = Mock(return_value=8)
+        host.getNoOfSockets = Mock(return_value=2)
+        return host
+
+    @patch("random.choice")
+    def testTampaDoesNotGetRandomCores(self, rand):
+        """Tampa hosts don't get random called when setting sockets"""
+        host = xenrt.lib.xenserver.host.TampaHost(None, None)
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertFalse(rand.called)
+
+    @patch("random.choice")
+    def testClearWaterGetsRandomCores(self, rand):
+        """Clearwater hosts do get random called when setting sockets"""
+        host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertTrue(rand.called)
+
+    def testClearwaterGetsSocketsSet(self):
+        """For a CLR host the number of sockets should be set"""
+        host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertTrue(self.__sockets.called)
+
+    def testTampaDoesntGetSocketsSet(self):
+        """For TAM hosts expect the number of sockets not to be set"""
+        host = self.__setMocksOnHost(xenrt.lib.xenserver.host.TampaHost(None, None))
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertFalse(self.__sockets.called)
+
+    def testClearwaterPVGuestDoesNotGetSocketsSet(self):
+        """For a CLR host given a PV guest expect the number of sockets not to be set"""
+        host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        self.__win.return_value = False
+        self.assertFalse(self.__guest.windows)
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertFalse(self.__sockets.called)
 
 
 class TestCheckRpmInstalled(XenRTUnitTestCase):

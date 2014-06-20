@@ -2512,7 +2512,7 @@ class DebianPreseedFile():
     def generate(self):
         if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
             ps=self.generateDebian()
-        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204"):
+        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
             ps=self.generateUbuntu()
         else :
             ps=self.generateDebian5()

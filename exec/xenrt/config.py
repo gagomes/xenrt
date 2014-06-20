@@ -2820,6 +2820,9 @@ class Config:
         # Snowball: xapi, xen, kernel, sm. Rolls up XS602E001, XS602E003, XS602E004, XS602E005, XS602E007, XS602E008, XS602E011, XS602E013, XS602E014, XS602E016.XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E030, XS602E032
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E033/84969/hotfix-XS602E033/XS602E033.xsupdate"
         
+        #Burglarbill placeholder
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/build/sanibel-lcm/86306/hotfix-XS602E034/XS602E034.xsupdate"
+        
       
       
       
@@ -3126,6 +3129,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF33"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF34"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}

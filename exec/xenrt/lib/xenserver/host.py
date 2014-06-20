@@ -2944,39 +2944,11 @@ done
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
 
-        if isinstance(self, xenrt.lib.xenserver.ClearwaterHost):
-            if guest.windows:
-                # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-                cpuCoresonHost = self.getCPUCores()
-                socketsonHost  = self.getNoOfSockets()
-                maxCoresPerSocket = cpuCoresonHost / socketsonHost
-                xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
-                                                                (cpuCoresonHost, socketsonHost, maxCoresPerSocket))
-                if vcpus != None:
-                    xenrt.TEC().logverbose("Setting guest vCPUs to %s" % vcpus)
-                    guest.setVCPUs(vcpus)
+        if vcpus != None:
+            guest.setVCPUs(vcpus)
 
-                    # This gives us all the factors of the vcpus specified
-                    possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-                    xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
-
-                    # This eliminates the factors that would exceed the host's cores per socket
-                    validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-                    xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
-
-                    # Then choose a value from here
-                    coresPerSocket = random.choice(validCoresPerSocket)
-
-                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-                    guest.setCoresPerSocket(coresPerSocket)
-                else: # Use template default vCPUs to workout core-per-socket
-                        pass
-            else:
-                if vcpus != None:
-                    guest.setVCPUs(vcpus)
-        else:
-            if vcpus != None:
-                guest.setVCPUs(vcpus)
+        if self.lookup("RANDOM_CORES_PER_SOCKET", default=True, boolean=True):
+            self.setRandomCoresPerSocket(guest, vcpus)
 
         if memory != None:
             guest.setMemory(memory)
@@ -3017,6 +2989,35 @@ done
         if not nodrivers:
             guest.check()
         return guest
+
+    def setRandomCoresPerSocket(self, guest, vcpus):
+        log("Setting random cores per socket....")
+
+        if not isinstance(self, xenrt.lib.xenserver.ClearwaterHost) or not guest.windows:
+            log("Refusing to set cores-per-socket on anything prior \
+                to Clearwater or non-windows guests")
+            return
+
+        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+        cpuCoresOnHost = self.getCPUCores()
+        socketsOnHost  = self.getNoOfSockets()
+        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
+                                                      (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+        if vcpus != None:
+            # This gives us all the factors of the vcpus specified
+            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+
+            # This eliminates the factors that would exceed the host's cores per socket
+            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+
+            # Then choose a value from here
+            coresPerSocket = random.choice(validCoresPerSocket)
+
+            xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+            guest.setCoresPerSocket(coresPerSocket)
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.
@@ -6451,6 +6452,14 @@ done
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204_64")
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
+            elif re.search("ubuntu1404", distro):
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
+                else:
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404_64")
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:

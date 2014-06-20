@@ -4154,6 +4154,8 @@ def createVM(host,
             g.setVCPUs(vcpus)
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
+        elif xenrt.TEC().lookup("RANDOM_CORES_PER_SOCKET", default=True, boolean=True):
+            host.setRandomCoresPerSocket(g, vcpus)
         if memory:
             g.setMemory(memory)
 

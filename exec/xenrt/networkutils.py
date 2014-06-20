@@ -194,6 +194,7 @@ class TcpDump:
         self.res = ""
         self.pid = 0
         self.filename = "/tmp/tcpdump_tmp"
+        self.guest.execguest("apt-get -y install tcpdump")
 
     def start(self, ifname):
         """Starts TcpDump on the guest"""

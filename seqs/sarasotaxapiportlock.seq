@@ -10,21 +10,21 @@
     <pool>
       <host id="0">
         <vm name="victim1">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />
           <network device="0"/>
         </vm>
         <vm name="victim2ipv6">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />
           <network device="0"/>
         </vm>
         <vm name="attacker">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />
@@ -33,21 +33,21 @@
       </host>
       <host id="1">
         <vm name="victim1ipv6">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />
           <network device="0"/>
         </vm>
         <vm name="victim2">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />
           <network device="0"/>
         </vm>
         <vm name="attackeripv6">
-          <distro>ubuntu1004</distro>
+          <distro>debian70</distro>
           <memory>1024</memory>
           <vcpus>1</vcpus>
           <disk device="0" size="10" />

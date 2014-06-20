@@ -1004,6 +1004,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1204"] = "Ubuntu Precise Pangolin 12.04 (32-bit),Ubuntu Precise Pangolin 12.04"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1204_64"] = "Ubuntu Precise Pangolin 12.04 (64-bit),Ubuntu Precise Pangolin 12.04 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1404"] = "Ubuntu Trusty Tahr 14.04 (32-bit),Ubuntu Trusty Tahr 14.04"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1404_64"] = "Ubuntu Trusty Tahr 14.04 (64-bit),Ubuntu Trusty Tahr 14.04 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_OTHER_MEDIA"] = "Other install media"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_101"] = "SUSE Linux Enterprise Server 10 SP1 (32-bit),SUSE Linux Enterprise Server 10 SP1"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_101_64"] = "SUSE Linux Enterprise Server 10 SP1 (64-bit),SUSE Linux Enterprise Server 10 SP1 x64"
@@ -2177,6 +2179,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"] = {}
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MINMEMORY"] = "256"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["debian50"] = {}
         self.config["GUEST_LIMITATIONS"]["debian50"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian50"]["MAXMEMORY"] = "32768"

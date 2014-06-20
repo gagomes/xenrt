@@ -3728,7 +3728,7 @@ bootlocal.close()
             pass
 
         # Enable EMS on Windows (XRT-514)
-        if xenrt.TEC().lookup("OPTION_USE_EMS", True, boolean=True):
+        if xenrt.TEC().lookup("OPTION_USE_EMS", False, boolean=True):
             try:
                 if float(self.xmlrpcWindowsVersion()) > 5.99:
                     self.xmlrpcExec("bcdedit /bootems {default} ON", ignoreHealthCheck=True)  

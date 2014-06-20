@@ -6452,6 +6452,14 @@ done
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204_64")
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
+            elif re.search("ubuntu1404", distro):
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
+                else:
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404_64")
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:

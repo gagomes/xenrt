@@ -7675,7 +7675,7 @@ rm -f /etc/xensource/xhad.conf || true
                 
                 # poke Xen to give us a crash-dump
                 try:
-                    xenrt.command("/bin/echo -e \"\x01\x01\x01C\x05c.\" | console %s -f" % self.machine.name, timeout=120)
+                    xenrt.command("/bin/echo -e \"\\x01\\x01\\x01C\\x05c.\" | console %s -f" % self.machine.name, timeout=120)
                 except Exception, e:
                     xenrt.TEC().logverbose(str(e))
                 xenrt.sleep(120)

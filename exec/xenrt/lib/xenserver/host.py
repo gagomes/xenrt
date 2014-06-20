@@ -2947,7 +2947,7 @@ done
         if vcpus != None:
             guest.setVCPUs(vcpus)
 
-        if self.lookup("RANDOM_CORES_PER_SOCKET", default=True, boolean=True):
+        if self.lookup("RANDOM_CORES_PER_SOCKET", default=False, boolean=True):
             self.setRandomCoresPerSocket(guest, vcpus)
 
         if memory != None:

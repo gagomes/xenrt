@@ -100,6 +100,7 @@ class ManagementServer(object):
 
             self.place.execcmd('yum -y install mysql-server mysql')
             self.place.execcmd('service mysqld restart')
+            self.place.execcmd('chkconfig mysqld on')
 
             self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
             self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')

@@ -1,0 +1,340 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+"""
+staticDHCPd module: main
+
+Purpose
+=======
+ Runs a staticDHCPd server.
+ 
+Legal
+=====
+ This file is part of staticDHCPd.
+ staticDHCPd is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or
+ (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>.
+ 
+ (C) Neil Tallim, 2013 <flan@uguu.ca>
+"""
+import logging
+import logging.handlers
+import os
+import signal
+import sys
+import time
+import traceback
+
+import dhcpdlib
+import libpydhcpserver
+
+parser_options = None
+#Options-processing needs to be done before config is loaded
+if __name__ == '__main__' and len(sys.argv) > 1:
+    import optparse
+    parser = optparse.OptionParser()
+    parser.add_option("--config", help="specify the location of conf.py", dest="config")
+    parser.add_option("--debug", help="output logging information at the DEBUG level", dest="debug", action="store_true", default=False)
+    parser.add_option("--verbose", help="disable daemon mode, if set, and enable console output", dest="verbose", action="store_true", default=False)
+    parser.add_option("--version", help="display version information", dest="version", action="store_true", default=False)
+    (parser_options, args) = parser.parse_args()
+    if parser_options.version:
+        print(
+         "staticDHCPd v" + dhcpdlib.VERSION + " - " + dhcpdlib.URL +
+         " | libpydhcpserver v" + libpydhcpserver.VERSION + " - " + libpydhcpserver.URL
+        )
+        sys.exit(0)
+    if parser_options.config:
+        os.environ['STATICDHCPD_CONF_PATH'] = parser_options.config
+    del parser
+    del args
+    del optparse
+#Options-processing complete
+
+import dhcpdlib.config
+
+_logger = logging.getLogger('main')
+
+def _gracefulShutdown():
+    if dhcpdlib.system.ALIVE:
+        _logger.warn("System shutdown beginning...")
+        dhcpdlib.system.ALIVE = False
+    else:
+        _logger.warn("System shutting down immediately")
+        sys.exit(1)
+        
+def _termHandler(signum, frame):
+    """
+    Cleanly shuts down this daemon upon receipt of a SIGTERM.
+    
+    @type signum: int
+    @param signum: The kill-signal constant received. This will always be
+        SIGTERM.
+    @type frame: int
+    @param frame: The stack-frame in which the kill-signal was received.
+        This is not used.
+    """
+    _logger.warn("Received SIGTERM")
+    _gracefulShutdown()
+    
+def _hupHandler(signum, frame):
+    """
+    Reinitialises the system upon receipt of a SIGHUP.
+    
+    @type signum: int
+    @param signum: The kill-signal constant received. This will always be
+        SIGHUP.
+    @type frame: int
+    @param frame: The stack-frame in which the kill-signal was received.
+        This is not used.
+    """
+    _logger.warn("Received SIGHUP")
+    dhcpdlib.system.reinitialise()
+    
+def _daemonise():
+    if os.fork(): #The first fork, to decouple stuff
+        sys.exit(0)
+    os.setsid() #Ensure session semantics are configured
+    os.chdir('/') #Avoid holding references to unstable resources
+    
+    #And, lastly, clean up the base descriptors
+    si = open('/dev/null', 'r')
+    so = open('/dev/null', 'a+')
+    se = open('/dev/null', 'a+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+    
+    if os.fork(): #The second fork, to ensure TTY cannot be reacquired
+        sys.exit(0)
+        
+def _setupLogging():
+    """
+    Attaches handlers to the root logger, allowing for universal access to resources.
+    """
+    logging.root.setLevel(logging.DEBUG)
+    
+    if dhcpdlib.config.DEBUG:
+        formatter = logging.Formatter(
+         "%(asctime)s : %(levelname)s : %(name)s:%(lineno)d[%(threadName)s] : %(message)s"
+        )
+        slformatter = logging.Formatter(
+         "xenrtdhcpd : %(levelname)s : %(name)s:%(lineno)d[%(threadName)s] : %(message)s"
+        )
+    else:
+        formatter = logging.Formatter(
+         "%(asctime)s : %(levelname)s : %(message)s"
+        )
+        slformatter = logging.Formatter(
+         "xenrtdhcpd : %(levelname)s : %(message)s"
+        )
+        
+    if not dhcpdlib.config.DAEMON: #Daemon-style execution disables console-based logging
+        if logging.root.handlers:
+            _logger.info("Configuring console-based logging...")
+        console_logger = logging.StreamHandler()
+        console_logger.setLevel(getattr(logging, dhcpdlib.config.LOG_CONSOLE_SEVERITY))
+        console_logger.setFormatter(formatter)
+        logging.root.addHandler(console_logger)
+        _logger.info("Console-based logging online")
+    else:
+        if logging.root.handlers:
+            _logger.info("Configuring syslog-based logging...")
+        console_logger = logging.handlers.SysLogHandler(facility=logging.handlers.SysLogHandler.LOG_DAEMON, address='/dev/log')
+        console_logger.setLevel(getattr(logging, dhcpdlib.config.LOG_CONSOLE_SEVERITY))
+        console_logger.setFormatter(slformatter)
+        logging.root.addHandler(console_logger)
+        _logger.info("Syslog-based logging online")
+        
+    if dhcpdlib.config.LOG_FILE: #Determine whether disk-based logging is desired
+        if logging.root.handlers:
+            _logger.info("Configuring file-based logging for " + dhcpdlib.config.LOG_FILE + "...")
+        if dhcpdlib.config.LOG_FILE_HISTORY:
+            #Rollover once per day, keeping the configured number of days' logs as history
+            file_logger = logging.handlers.TimedRotatingFileHandler(
+             dhcpdlib.config.LOG_FILE, 'D', 1, dhcpdlib.config.LOG_FILE_HISTORY
+            )
+            if logging.root.handlers:
+                _logger.info("Configured rotation-based logging for file, with history=" + str(dhcpdlib.config.LOG_FILE_HISTORY) + " days")
+        else:
+            #Keep writing to the specified file forever
+            file_logger = logging.FileHandler(dhcpdlib.config.LOG_FILE)
+            if logging.root.handlers:
+                _logger.info("Configured indefinite-growth logging for file")
+        file_logger.setLevel(getattr(logging, dhcpdlib.config.LOG_FILE_SEVERITY))
+        file_logger.setFormatter(formatter)
+        logging.root.addHandler(file_logger)
+        _logger.info("File-based logging online")
+        
+def _initialise():
+    import dhcpdlib.system
+    
+    if dhcpdlib.config.WEB_ENABLED:
+        _logger.info("Webservice module enabled; configuring...")
+        import dhcpdlib.web
+        import dhcpdlib.web.server
+        webservice = dhcpdlib.web.server.WebService()
+        webservice.start()
+        
+        import dhcpdlib.web.methods
+        import dhcpdlib.web.headers
+        dhcpdlib.web.registerHeaderCallback(dhcpdlib.web.headers.contentType)
+        dhcpdlib.web.registerMethodCallback('/javascript', dhcpdlib.web.methods.javascript, cacheable=(not dhcpdlib.config.DEBUG))
+        dhcpdlib.web.registerHeaderCallback(dhcpdlib.web.headers.javascript)
+        
+        if dhcpdlib.config.WEB_LOG_HISTORY > 0:
+            _logger.info("Webservice logging module enabled; configuring...")
+            web_logger = dhcpdlib.web.methods.Logger()
+            dhcpdlib.web.registerDashboardCallback('core', 'events', web_logger.render, dhcpdlib.config.WEB_DASHBOARD_ORDER_LOG)
+        
+        if dhcpdlib.config.WEB_REINITIALISE_ENABLED:
+            dhcpdlib.web.registerMethodCallback(
+             '/ca/uguu/puukusoft/staticDHCPd/reinitialise', dhcpdlib.web.methods.reinitialise,
+             hidden=dhcpdlib.config.WEB_REINITIALISE_HIDDEN, module='core', name='reinitialise',
+             secure=dhcpdlib.config.WEB_REINITIALISE_SECURE, confirm=dhcpdlib.config.WEB_REINITIALISE_CONFIRM,
+             display_mode=dhcpdlib.web.WEB_METHOD_DASHBOARD
+            )
+            
+        if dhcpdlib.config.WEB_HEADER_TITLE:
+            dhcpdlib.web.registerHeaderCallback(dhcpdlib.web.headers.title)
+            
+        if dhcpdlib.config.WEB_HEADER_CSS:
+            dhcpdlib.web.registerMethodCallback('/css', dhcpdlib.web.methods.css, cacheable=(not dhcpdlib.config.DEBUG))
+            dhcpdlib.web.registerHeaderCallback(dhcpdlib.web.headers.css)
+            
+        if dhcpdlib.config.WEB_HEADER_FAVICON:
+            dhcpdlib.web.registerMethodCallback('/favicon.ico', dhcpdlib.web.methods.favicon, cacheable=(not dhcpdlib.config.DEBUG))
+            dhcpdlib.web.registerHeaderCallback(dhcpdlib.web.headers.favicon)
+            
+def _initialiseDHCP():
+    import dhcpdlib.system
+    
+    #Start the DHCP server.
+    import dhcpdlib.dhcp
+    for i in dhcpdlib.config.DHCP_INTERFACES:
+        dhcp = dhcpdlib.dhcp.DHCPService(i)
+        dhcp.start()
+        dhcpdlib.system.registerTickCallback(dhcp.tick)
+    
+if __name__ == '__main__':
+    if parser_options and parser_options.debug:
+        dhcpdlib.config.DEBUG = True
+        dhcpdlib.config.LOG_FILE_SEVERITY = 'DEBUG'
+        dhcpdlib.config.LOG_CONSOLE_SEVERITY = 'DEBUG'
+        print("staticDHCPd: Debugging overrides enabled: debugging operation requested")
+        
+    if dhcpdlib.config.DAEMON:
+        if parser_options and parser_options.verbose:
+            dhcpdlib.config.DAEMON = False
+            print("staticDHCPd: Daemonised execution disabled: verbose operation requested")
+        else:
+            _daemonise()
+    del _daemonise
+    
+del parser_options #No longer needed; allow reclamation
+
+if __name__ == '__main__':
+    _setupLogging()
+    del _setupLogging
+    for i in (
+     "----------------------------------------",
+     "----------------------------------------",
+     "----------------------------------------",
+     "----------------------------------------",
+     "----------------------------------------",
+     "System startup in progress; PID=" + str(os.getpid()),
+     "staticDHCPd version " + dhcpdlib.VERSION + " : " + dhcpdlib.URL,
+     "libpydhcpserver version " + libpydhcpserver.VERSION + " : " + libpydhcpserver.URL,
+     "Continuing with subsystem initialisation",
+     "----------------------------------------",
+    ):
+        _logger.warn(i)
+    del i
+    
+    pidfile_recorded = False
+    if dhcpdlib.config.PID_FILE:
+        time.sleep(3) # Allow time for the old pid to terminate
+        _logger.debug("Writing pidfile...")
+        try:
+            if os.path.isfile(dhcpdlib.config.PID_FILE):
+                pidfile = open(dhcpdlib.config.PID_FILE, 'r')
+                data = pidfile.read().strip()
+                pidfile.close()
+                _logger.warn("Pidfile already exists, with PID " + data)
+                try:
+                    pid = int(data)
+                except:
+                    _logger.warn("Invalid PID, continuing")
+                else:
+                    if os.path.exists("/proc/%d" % (pid)):
+                        _logger.warn("Valid PID found, aborting.\n")
+                        sys.exit(1)
+                    else:
+                        _logger.warn("Old PID, continuing.\n")
+                        
+                
+            pidfile = open(dhcpdlib.config.PID_FILE, 'w')
+            pidfile.write(str(os.getpid()) + '\n')
+            pidfile.close()
+            os.chown(dhcpdlib.config.PID_FILE, dhcpdlib.config.UID, dhcpdlib.config.GID)
+        except Exception, e:
+            _logger.error("Unable to write pidfile: %(file)s" % {'file': dhcpdlib.config.PID_FILE,} + str(e))
+        else:
+            pidfile_recorded = True
+            
+    try:
+        #Set signal-handlers.
+        signal.signal(signal.SIGHUP, _hupHandler)
+        _logger.debug("Installed SIGHUP handler")
+        signal.signal(signal.SIGTERM, _termHandler)
+        _logger.debug("Installed SIGTERM handler")
+        
+        #Initialise all system resources
+        _initialise()
+        del _initialise
+        
+        _logger.info("Initialising custom code...")
+        dhcpdlib.config.init()
+        
+        #Initialise the DHCP server
+        _initialiseDHCP()
+        del _initialiseDHCP
+        
+        _logger.info("Changing runtime permissions to UID=%(uid)i, GID=%(gid)i..." % {
+         'uid': dhcpdlib.config.UID,
+         'gid': dhcpdlib.config.GID,
+        })
+        os.setregid(dhcpdlib.config.GID, dhcpdlib.config.GID)
+        os.setreuid(dhcpdlib.config.UID, dhcpdlib.config.UID)
+        
+        _logger.warn("----------------------------------------")
+        _logger.warn("All subsystems initialised; now serving")
+        _logger.warn("----------------------------------------")
+        sleep_offset = 0
+        while dhcpdlib.system.ALIVE:
+            time.sleep(max(0.0, 1.0 - sleep_offset))
+            
+            start_time = time.time()
+            dhcpdlib.system.tick()
+            sleep_offset = time.time() - start_time
+    except KeyboardInterrupt:
+        _logger.warn("System shutdown requested via keyboard interrupt")
+    except Exception:
+        _logger.critical("System shutdown triggered by unhandled exception:\n" + traceback.format_exc())
+    finally:
+        _gracefulShutdown()
+        if pidfile_recorded:
+            _logger.debug("Unlinking pidfile...")
+            try:
+                os.unlink(dhcpdlib.config.PID_FILE)
+            except:
+                _logger.error("Unable to unlink pidfile: %(file)s" % {'file': dhcpdlib.config.PID_FILE,})
+                

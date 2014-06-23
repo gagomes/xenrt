@@ -62,13 +62,13 @@ endif
 
 .PHONY: extrapackages
 extrapackages: extrapackages-install dython-sync
-    
+	
 
 .PHONY: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2
 	# Squeeze only
 	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
@@ -90,6 +90,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade jenkinsapi
 	$(SUDO) easy_install --upgrade virtualenv
 	$(SUDO) easy_install --upgrade fs
+	$(SUDO) easy_install --upgrade netifaces
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -245,8 +246,25 @@ nfs-uninstall:
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
 .PHONY: dhcpd
-dhcpd: files
+dhcpd: install files
 ifeq ($(DODHCPD),yes)
+ifeq ($(XENRT_DHCPD), yes)
+	$(info Removing ISC DHCPD)
+	$(SUDO) apt-get remove -y isc-dhcp-server
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init /etc/init.d/xenrtdhcpd
+	$(SUDO) insserv xenrtdhcpd
+	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
+	$(SUDO) /etc/init.d/xenrtdhcpd restart
+	$(SUDO) sed -i '/leases/d' $(INETD)
+	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /usr/bin/python python $(SHAREDIR)/xenrtdhcpd/leases.py" >> $(INETD)'
+	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+else
+	-$(SUDO) insserv -r xenrtdhcpd
+	$(SUDO) rm /etc/init.d/xenrtdhcpd
+ifeq ($(DHCP_UID_WORKAROUND),yes)
+	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
+endif
 	$(info Installing DHCPD...)
 	$(SUDO) apt-get install -y --force-yes dhcp3-server
 	$(call BACKUP,$(DHCPD))
@@ -258,6 +276,7 @@ endif
 	$(SUDO) sed -i '/leases/d' $(INETD)
 	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /bin/cat cat /var/lib/dhcp/dhcpd.leases" >> $(INETD)'
 	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+endif
 else
 	$(info Skipping DHCP config)
 endif

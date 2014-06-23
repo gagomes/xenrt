@@ -4312,6 +4312,9 @@ class GenericHost(GenericPlace):
         if rem:
             leasefile = xenrt.TEC().tempFile()
             xenrt.util.command("%s > %s" % (rem, leasefile))
+        elif self.lookup("XENRT_DHCPD", False, boolean=True):
+            leasefile = xenrt.TEC().tempFile()
+            xenrt.util.command("%s/xenrtdhcpd/leases.py > %s" % (xenrt.TEC().lookup("XENRT_BASE"), leasefile))
         elif os.path.exists("/var/lib/dhcp/dhcpd.leases"):
             leasefile = "/var/lib/dhcp/dhcpd.leases"
         elif os.path.exists("/var/lib/dhcpd/dhcpd.leases"):

@@ -2861,7 +2861,7 @@ class _VBDScalability(_Scalability):
         vdiPerSrCount = 0 
         while vdiCount < maxVbds and srCount<len(srs):
             try:
-                uuid = host.createVDI(sizebytes=10485760, sruuid="%s", name="\"VDI Scalability %u\"" %(srs[srCount],vdiCount ))
+                uuid = host.createVDI(sizebytes=10485760, sruuid=srs[srCount], name="\"VDI Scalability %u\"" %(vdiCount))
                 self.vdis.append(uuid)
                 vdiPerSrCount += 1
                 vdiCount += 1

@@ -12,6 +12,7 @@ import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subpro
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import step, comment, log, warning
 
+
 class TxtChangedInitrdBase(xenrt.TestCase):
     def _modifyInitrd(self, host):
         xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(host))
@@ -27,14 +28,14 @@ class TxtChangedInitrdBase(xenrt.TestCase):
         host.execdom0("""new-kernel-pkg.py --install --package=kernel-xen --mkinitrd "$@" %s""" % kernel)
         xenrt.TEC().logverbose("md5sum=" + host.execdom0("md5sum /boot/%s" % imgFile))
         xenrt.TEC().logverbose("initrd has been rebuilt")
-    
+
     def _readInitrdPcr(self, session, hostRef):
         xenrt.TEC().logverbose("Reading PCR for host: %s; session %s" % (hostRef, pprint.pformat(session)))
         xenrt.txt.AttestationIdParser(xenrt.txt.TXTCommand().getAttestationId(hostRef, session))
         nonce = xenrt.txt.TpmQuoteParser.generateRandomNonce()
         quoteValue = xenrt.txt.TXTCommand().getQuote(hostRef, session, nonce)
         return xenrt.txt.TpmQuoteParser(quoteValue).getInitrdPcr()
-    
+
 
 class TCTxtChangedInitrd(TxtChangedInitrdBase):
     def run(self, arglist):
@@ -43,18 +44,18 @@ class TCTxtChangedInitrd(TxtChangedInitrdBase):
         hostRef = session.xenapi.host.get_all()[0]
         preModInitrdValue = self._readInitrdPcr(session, hostRef)
         xenrt.TEC().logverbose("Pre-modification PCR19 value: %s" % preModInitrdValue)
-        
+
         self.host.reboot()
         preModInitrdValueReboot = self._readInitrdPcr(session, hostRef)
         xenrt.TEC().logverbose("Pre-modification PCR19 value after reboot: %s" % preModInitrdValueReboot)
-        
+
         #Check PCR 19 does not change on reboot
         if preModInitrdValue != preModInitrdValueReboot:
             raise xenrt.XRTFailure("Initrd PCR values were not the same, despite no changes, only a reboot")  
-        
+
         self._modifyInitrd(self.host)
         self.host.reboot()
-         
+
         #Check PCR 19 has changed now the boot image has been rewritten
         postModInitrdValue = self._readInitrdPcr(session, hostRef)
         xenrt.TEC().logverbose("Post-modification PCR19 value: %s" % postModInitrdValue)
@@ -66,7 +67,7 @@ class TCTxtSuppPackQuoteVerify(xenrt.TestCase):
         self.host = self.getDefaultHost()
         session = self.host.getAPISession()
         hostRef = session.xenapi.host.get_all()[0]
-        
+
         # Get the attestation identity values
         attId = xenrt.txt.AttestationIdParser(xenrt.txt.TXTCommand().getAttestationId(hostRef, session))
         

@@ -2973,6 +2973,10 @@ class Config:
         
         # MrToad - xen-tools . Rolls up nothing. 
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
+        
+        # Burglarbill - sm, blktap . Rolls up nothing. 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/build/sweeney-lcm/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
+      
       
       
         # vGPU Tech Preview hotfix, Rolls up XS62E001 and XS62E002
@@ -3014,8 +3018,12 @@ class Config:
         # Carabosse: xen-hypervisor, xen-tools . Rolls up XS62E002, XS62E009 .
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E014/77605/hotfix-XS62E014/XS62E014.xsupdate"
         
-        # MrToad (PLACEHOLDER): xen-tools . Rools up XS62E008
+        # MrToad: xen-tools . Rools up XS62E008
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E015/83715/hotfix-XS62E015/XS62E015.xsupdate"
+        
+        # Burglarbill: sm, blktap . Rools up XS62E011
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/build/clearwater-lcm/85780/hotfix-XS62E016/XS62E016.xsupdate"
+
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"
@@ -3034,6 +3042,10 @@ class Config:
 
         # Tarentum - Xapi. Rolls up XS62ESP1002, XS62ESP1004, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1006/85395/hotfix-XS62ESP1006/XS62ESP1006.xsupdate"
+        
+        # Burglarbill - sm, blktap. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/build/clearwater-sp1-lcm/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
+
 
 
         return
@@ -3138,6 +3150,7 @@ class Config:
         self.config["CARBON_PATCHES_SANIBELCC"]["HF04"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC004"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF08"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF09"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
@@ -3157,16 +3170,16 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF11"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E011"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E012"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-            #self.config["CARBON_PATCHES_CLEARWATER"]["HF06"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

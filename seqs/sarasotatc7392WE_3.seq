@@ -14,6 +14,7 @@
       <testcase id="xenserver.tc.smoketest.TC20599" prio="4" tc="TC-20599"/>
       <testcase id="xenserver.tc.smoketest.TC20600" prio="4" tc="TC-20600"/>
       <testcase id="xenserver.tc.smoketest.TC20601" prio="4" tc="TC-20601"/>
+      <testcase id="xenserver.tc.smoketest.TC20602" prio="4" tc="TC-20602"/>
       <testcase id="xenserver.tc.smoketest.TC20603" prio="4" tc="TC-20603"/>
       <testcase id="xenserver.tc.smoketest.TC20604" prio="4" tc="TC-20604"/>
       <testcase id="xenserver.tc.smoketest.TC20605" prio="4" tc="TC-20605"/>

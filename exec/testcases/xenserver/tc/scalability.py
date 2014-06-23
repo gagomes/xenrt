@@ -2861,12 +2861,7 @@ class _VBDScalability(_Scalability):
         vdiPerSrCount = 0 
         while vdiCount < maxVbds and srCount<len(srs):
             try:
-                args = []
-                args.append("name-label=\"VDI Scalability %u\"" % (vdiCount))
-                args.append("sr-uuid=%s" % (srs[srCount]))
-                args.append("virtual-size=10485760") # 10MB
-                args.append("type=user")
-                uuid = self.cli.execute("vdi-create", string.join(args), strip=True)
+                uuid = host.createVDI(sizebytes=10485760, sruuid="%s", name="\"VDI Scalability %u\"" %(srs[srCount],vdiCount ))
                 self.vdis.append(uuid)
                 vdiPerSrCount += 1
                 vdiCount += 1
@@ -2882,6 +2877,7 @@ class _VBDScalability(_Scalability):
                         xenrt.TEC().warning("Ran out of space on SR, required "
                                              "10485760, had %u" % (spaceleft))
                         srCount = srCount+1
+                        vdiPerSrCount = 0
          
         if vdiCount < maxVbds :
             raise xenrt.XRTFailure("Asked to create %u VDIs, only managed "

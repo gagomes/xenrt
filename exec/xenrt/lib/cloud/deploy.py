@@ -222,7 +222,7 @@ class DeployerPlugin(object):
     def getPrimaryStorageDetails(self, key, ref):
         if ref.has_key('XRT_PriStorageType') and ref['XRT_PriStorageType'] == "SMB":
             ad = xenrt.getADConfig()
-            return [{"user":ad.adminUser}, {"password": ad.adminPassword}, {"domain": ad.domainName}]
+            return {"user":ad.adminUser, "password": ad.adminPassword, "domain": ad.domainName}
         else:
             return None
 

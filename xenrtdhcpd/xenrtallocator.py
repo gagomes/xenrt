@@ -90,7 +90,7 @@ class XenRTDHCPAllocator(object):
             return (None, None)
 
     def _findActiveLease(self, intf, mac):
-        self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s'" % (mac.lower(), intf))
+        self._sql("SELECT addr FROM leases WHERE mac='%s' AND interface='%s' ORDER BY expiry DESC" % (mac.lower(), intf))
         r = self.cur.fetchone()
         if r:
             return r[0]

@@ -1749,22 +1749,25 @@ if cleanuplocks:
                     if allowLockRelease:
                         print "Job is complete, and machines not locked"
                         # Release the lock
-                        path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                        path += "/%s" % (lock[2]['md5'])
-                        try:
-                            os.unlink("%s/jobid" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/id" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/timestamp" % (path))
-                        except:
-                            pass
+                        if lock[0].startswith("IP4ADDR") and xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+                            xenrt.resources.DhcpXmlRpc().releaseAddress(lock[0].split("-")[1])
+                        else:
+                            path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                            path += "/%s" % (lock[2]['md5'])
+                            try:
+                                os.unlink("%s/jobid" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/id" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/timestamp" % (path))
+                            except:
+                                pass
 
-                        os.rmdir(path)
+                            os.rmdir(path)
                         if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):

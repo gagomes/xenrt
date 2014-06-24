@@ -191,7 +191,9 @@ class CloudStack(object):
                     secGroupId = secGroup.id
                 else:
                     secGroupId = secGroups[0].id
-
+                secGroupIds = [secGroupId]
+            else:
+                secGroupIds = []
 
             xenrt.TEC().logverbose("Deploying VM")
 
@@ -204,7 +206,7 @@ class CloudStack(object):
                                                             hostid = startOnId,
                                                             hypervisor=hypervisor,
                                                             startvm=False,
-                                                            securitygroupids=[secGroupId])
+                                                            securitygroupids=secGroupIds)
 
             instance.toolstackId = rsp.id
 

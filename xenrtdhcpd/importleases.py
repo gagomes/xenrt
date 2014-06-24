@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import time, re, sys, psycopg2
 
+import xenrtallocator
+
 ip = None
 mac = None
 lease = None
@@ -9,12 +11,18 @@ conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dh
 cur = conn.cursor()
 conn.autocommit=True
 
+xenrtallocator.XenRTDHCPAllocator()
+
+query = "UPDATE leases SET mac=NULL"
+print query
+cur.execute(query)
+
 with open(sys.argv[1]) as f:
     for line in f:
         m = re.match("lease (.+?) {", line)
         if m:
             ip = m.group(1)
-        m = re.search("ends 1 (.+?);", line)
+        m = re.search("ends \d+ (.+?);", line)
         if m:
             lease = time.mktime(time.strptime(m.group(1), "%Y/%m/%d %H:%M:%S"))
             if lease < time.time():

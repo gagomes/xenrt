@@ -31,8 +31,8 @@
           <distro>debian60</distro>
           <network device="0" bridge="NET_MGMT"/>
           <network device="1" bridge="NET_A"/>
-          <vcpus>1</vcpus>
-          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 
@@ -52,8 +52,8 @@
           <distro>debian60</distro>
           <network device="0" bridge="NET_MGMT"/>
           <network device="1" bridge="NET_A"/>
-          <vcpus>1</vcpus>
-          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 

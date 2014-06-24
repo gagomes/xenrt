@@ -22,7 +22,7 @@ with open(sys.argv[1]) as f:
         m = re.match("lease (.+?) {", line)
         if m:
             ip = m.group(1)
-        m = re.search("ends 1 (.+?);", line)
+        m = re.search("ends \d+ (.+?);", line)
         if m:
             lease = time.mktime(time.strptime(m.group(1), "%Y/%m/%d %H:%M:%S"))
             if lease < time.time():

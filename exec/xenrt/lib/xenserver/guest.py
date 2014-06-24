@@ -4967,6 +4967,10 @@ class TampaGuest(BostonGuest):
                 break
             xenrt.sleep(10)
             
+        if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
+            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
+            self.reboot()
+            
     def uninstallDrivers(self, waitForDaemon=True):
         
         # Insert the tools ISO

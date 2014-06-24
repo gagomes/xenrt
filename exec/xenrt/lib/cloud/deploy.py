@@ -103,6 +103,8 @@ class DeployerPlugin(object):
                 self.initialSMBSecStorageUrl = None
             else:
                 try:
+                    if xenrt.TEC().lookup("FORCE_HOST_SECSTORAGE", False, boolean=True):
+                        raise xenrt.XRTError("Forced using host for SMB secondary storage")
                     secondaryStorage = xenrt.ExternalSMBShare()
                 except:
                     xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
@@ -222,7 +224,7 @@ class DeployerPlugin(object):
     def getPrimaryStorageDetails(self, key, ref):
         if ref.has_key('XRT_PriStorageType') and ref['XRT_PriStorageType'] == "SMB":
             ad = xenrt.getADConfig()
-            return [{"user":ad.adminUser}, {"password": ad.adminPassword}, {"domain": ad.domainName}]
+            return {"user":ad.adminUser, "password": ad.adminPassword, "domain": ad.domainName}
         else:
             return None
 

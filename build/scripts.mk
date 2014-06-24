@@ -21,7 +21,7 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))

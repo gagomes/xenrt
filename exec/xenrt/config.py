@@ -918,7 +918,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WS12_64"] = "Windows Server 2012 (64-bit),Windows Server 2012 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
-
+        self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
+        
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_DEBIAN"] = "Demo Linux VM,Debian Etch 4.0"
@@ -1113,7 +1114,8 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Sarasota"]["VIF_PER_VM"] = "7"
         self.config["VERSION_CONFIG"]["Sarasota"]["LOCAL_DISK_TiB"] = "6"
-
+        self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VBDS_PER_HOST"] = "2048"
+        
         # Creedence
         self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Sarasota"])
 

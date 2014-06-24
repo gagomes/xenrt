@@ -266,7 +266,7 @@ ifeq ($(XENRT_DHCPD), yes)
 	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
 else
 	-$(SUDO) insserv -r xenrtdhcpd
-	$(SUDO) rm /etc/init.d/xenrtdhcpd
+	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
 endif

@@ -26,6 +26,7 @@ class XenRTDHCPAllocator(object):
             self._setupDB(i)
 
         self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500))
+        self.xmlrpc.register_introspection_functions()
         self.xmlrpc.register_instance(XMLRPCAllocator(self))
         thread = threading.Thread(target=self.startXMLRPC, name="XMLRPC")
         thread.daemon=True

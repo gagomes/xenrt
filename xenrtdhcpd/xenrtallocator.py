@@ -199,9 +199,9 @@ class XenRTDHCPAllocator(object):
             if not r:
                 raise Exception("No address available")
             if mac:
-                self._sql("UPDATE leases SET data='%s',mac='%s' WHERE addr='%s'" % (data, mac.lower(), r[0]))
+                self._sql("UPDATE leases SET reserved='%s',mac='%s' WHERE addr='%s'" % (data, mac.lower(), r[0]))
             else:
-                self._sql("UPDATE leases SET data='%s',mac=NULL WHERE addr='%s'" % (data, r[0]))
+                self._sql("UPDATE leases SET reserved='%s',mac=NULL WHERE addr='%s'" % (data, r[0]))
 
             return r[0]
         
@@ -209,10 +209,9 @@ class XenRTDHCPAllocator(object):
     def reserveAddressRange(self, intf, size, data):
         with self.lock:
             res = []
-            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
+            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr" % (intf, int(time.time()))) 
             rs = self.cur.fetchall()
             ips = [IPy.IP(x[0]).int() for x in rs]
-
             start = None
             for i in xrange(len(ips)):
                 if (i + size) > len(ips):
@@ -241,7 +240,7 @@ class XenRTDHCPAllocator(object):
             self._sql("UPDATE leases SET reserved=NULL WHERE addr='%s'" % (addr))
 
     def listReservedAddresses(self):
-        self._sql("SELECT addr,reserved FROM LEASES WHERE interface='%s' AND reserved IS NOT NULL")
+        self._sql("SELECT addr,reserved FROM LEASES WHERE reserved IS NOT NULL")
         res = {}
         rs = self.cur.fetchall()
         for r in rs:
@@ -262,6 +261,7 @@ class XMLRPCAllocator(object):
 
     def releaseAddress(self, addr):
         self.parent.releaseAddress(addr)
+        return True
 
     def listReservedAddresses(self):
         return self.parent.listReservedAddresses()

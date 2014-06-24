@@ -245,6 +245,10 @@ nfs-uninstall:
 	$(call RESTORE,$(EXPORTS))
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
+.PHONY: dhcpdb
+dhcpdb:
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+
 .PHONY: dhcpd
 dhcpd: install files
 ifeq ($(DODHCPD),yes)

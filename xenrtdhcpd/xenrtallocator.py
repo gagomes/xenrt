@@ -33,6 +33,7 @@ class XenRTDHCPAllocator(object):
         thread.start()
 
     def startXMLRPC(self):
+        _logger.info("Starting XML/RPC server")
         self.xmlrpc.serve_forever()
 
     def _parseCfg(self, intf):
@@ -253,6 +254,7 @@ class XMLRPCAllocator(object):
         self.parent = parent
 
     def reserveSingleAddress(self, intf, data, mac=None):
+        _logger.info("Request for single address on %s with data %s" % (intf, data))
         return self.parent.reserveSingleAddress(intf, data, mac)
 
     def reserveAddressRange(self, intf, size, data):

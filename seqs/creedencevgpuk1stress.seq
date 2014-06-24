@@ -5,7 +5,8 @@
   </variables>
 
   <prepare>
-    <host id="0" installsr="ext">
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true" />
       <vm name="win7">
         <distro>win7sp1-x86</distro>
         <network device="0"/>

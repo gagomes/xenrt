@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 """
-libpydhcpserver.dhcp
-====================
+libpydhcpserver.dhcp_network
+============================
 Handles send/receive and internal routing for DHCP packets.
 
 Legal
@@ -20,7 +20,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-(C) Neil Tallim, 2014 <flan@uguu.ca>
+(C) Neil Tallim, 2013 <flan@uguu.ca>
 (C) Matthew Boedicker, 2011 <matthewm@boedicker.org>
 (C) Mathieu Ignacio, 2008 <mignacio@april.org>
 """
@@ -32,7 +32,7 @@ import threading
 
 from dhcp_types.ipv4 import IPv4
 from dhcp_types.mac import MAC
-from dhcp_types.packet import (DHCPPacket, FLAGBIT_BROADCAST)
+from dhcp_types.packet import (DHCPPacket, FLAG_BROADCAST)
 
 #IP constants
 _IP_GLOB = IPv4('0.0.0.0') #: The internal "everything" address.
@@ -48,15 +48,10 @@ Nothing should be addressable to the special response socket, but better to avoi
 
 Address = collections.namedtuple("Address", ('ip', 'port'))
 """
-An inet layer-3 address.
+Defines an inet layer-3 address.
 
-.. py:attribute:: ip
-
-    An :class:`IPv4 <dhcp_types.IPv4>` address
-
-.. py:attribute:: port
-
-    A numeric port value.
+* ``ip``: :class:`IPv4 <dhcp_types.IPv4>`
+* ``port``: ``int``
 """
 
 class DHCPServer(object):
@@ -367,7 +362,7 @@ class _NetworkLink(object):
         responder = self._responder_dhcp
         if address.ip in IP_UNSPECIFIED_FILTER: #Broadcast source; this is never valid for PXE
             if (not self._unicast_discover_supported #All responses have to be via broadcast
-                or packet.getFlag(FLAGBIT_BROADCAST)): #Broadcast bit set; respond in kind 
+                or packet.getOption('flags')[0] & 0b10000000): #Broadcast bit set; respond in kind 
                 ip = _IP_BROADCAST
             else: #The client wants unicast and this host can handle it
                 ip = packet.extractIPOrNone('yiaddr')
@@ -406,18 +401,18 @@ class _Responder(object):
             1. The :class:`Address <dhcp.Address>` ultimately used.
         :except Exception: An error occurred during serialisation or transmission.
         """
-        (broadcast_changed, original_was_broadcast) = packet.setFlag(FLAGBIT_BROADCAST, _IP_BROADCAST == ip)
+        (broadcast_changed, broadcast_bit) = packet.setFlag(FLAG_BROADCAST, _IP_BROADCAST == ip)
         
         #Perform any necessary packet-specific address-changes
-        if not original_was_broadcast: #Unicast behaviour permitted; use the packet's IP override, if set
+        if not broadcast_bit: #Unicast behaviour permitted; use the packet's IP override, if set
             ip = packet.response_ip or ip
         port = packet.response_port or port
         if packet.response_source_port is not None:
             kwargs['source_port'] = packet.response_source_port
             
         bytes_sent = self._send(packet, str(ip), port, **kwargs)
-        if broadcast_changed: #Restore the broadcast bit, in case the packet needs to be used for something else
-            packet.setFlag(FLAGBIT_BROADCAST, original_was_broadcast)
+        #if broadcast_changed: #Restore the broadcast bit, in case the packet needs to be used for something else
+        #    self._setBroadcastBit(packet, broadcast_bit)
         return (bytes_sent, Address(IPv4(ip), port))
         
     def _send(self, packet, ip, port, **kwargs):

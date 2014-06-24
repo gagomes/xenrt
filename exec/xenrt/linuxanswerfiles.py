@@ -2512,7 +2512,7 @@ class DebianPreseedFile():
     def generate(self):
         if self.distro.startswith("debian60") or self.distro.startswith("debian70"):
             ps=self.generateDebian()
-        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204"):
+        elif self.distro.startswith("ubuntu1004") or self.distro.startswith("ubuntu1204") or self.distro.startswith("ubuntu1404"):
             ps=self.generateUbuntu()
         else :
             ps=self.generateDebian5()
@@ -2693,10 +2693,14 @@ d-i apt-setup/services-select multiselect none
         ubuntu1264=["",""]
         ubuntu1204=["",
                    "d-i     base-installer/kernel/image string linux-generic-pae"]
+        ubuntu1404 = ["",
+                      "d-i preseed/late_command string sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; /target/etc/init.d/ssh restart;"]
         if self.distro.startswith("ubuntu1004"):
             st=ubuntu1004
         elif self.distro.startswith("ubuntu1204") and "64" in self.arch:
             st=ubuntu1264
+        elif self.distro.startswith("ubuntu1404"):
+            st = ubuntu1404
         else:
             st=ubuntu1204                
         
@@ -2740,7 +2744,7 @@ d-i    debian-installer/exit/poweroff    boolean true
        self._mirror(),
        self._timezone(),
        self._password(),
-       st[1]
+      st[1]
        )
         return pstring
 

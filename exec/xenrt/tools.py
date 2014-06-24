@@ -538,6 +538,10 @@ def generateOSTestSequences():
     defineOSTests("centos63", "CentOS 6.3 x64", arch="x86-64")
     defineOSTests("centos64", "CentOS 6.4")
     defineOSTests("centos64", "CentOS 6.4 x64", arch="x86-64")
+    defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04")
+    defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64", arch="x86-64")
+    defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 (IPv6)")
+    defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64 (IPv6 only)", arch="x86-64")
 
 def getChildren(key):
     global childrencache
@@ -820,6 +824,7 @@ def processMatrixTests(release=None):
                   ('sles113','SLES11 SP3'),
                   ('ubuntu1004','Ubuntu 10.04'),
                   ('ubuntu1204','Ubuntu 12.04'),
+                  ('ubuntu1404','Ubuntu 14.04'),
                   ('debian60','Debian 6.0'),
                   ('debian70','Debian 7.0'),
                   ('solaris10u9','Solaris 10u9')]
@@ -1080,7 +1085,7 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65',
+                                          'oel510','centos510','oel65','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles112','sles103',
@@ -1111,7 +1116,7 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65',
+                                          'oel510','centos510','oel65','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Sarasota']['secondary'] = ['rhel47','rhel59','sles112','sles103',

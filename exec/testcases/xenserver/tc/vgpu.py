@@ -1,5 +1,5 @@
 import xenrt
-import os, copy, time, random, re, json, string
+import os, copy, time, random, re, json, string, threading
 import testcases.xenserver.guest
 from xenrt.lazylog import step, comment, log, warning
 from testcases.benchmarks import workloads
@@ -815,14 +815,43 @@ class _VGPUOwnedVMsTest(_VGPUTest):
         else:
             pStart = [xenrt.PTask(self.startVM, vm) for vm in vmlist]
             xenrt.pfarm(pStart)
-            
+    
+    def bootstormStartVM(self, vm):
+        lock = threading.Lock()
+        try:
+            vm.start()
+        except Exception, e:
+            xenrt.TEC().reason("Failed to start vm %s - %s" % (vm.getName(), str(e)))
+            lock.acquire()
+            self.failedVMs.append(vm)
+            lock.release()
+    
     def rebootAllVMs(self, vmlist = None):
+        # For bootstorm reboot do shutdown all the VMs
+        # Then start all the VMs instantly
+        self.failedVMs = []
         if not vmlist:
             vmlist = [guest for guest, ostype in self._guestsAndTypes]
         
-        pt = map(lambda vm: xenrt.PTask(vm.reboot), vmlist)
+        for vm in vmlist:
+            vm.shutdown()
+        
+        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist]
         xenrt.pfarm(pt)
-
+        
+        # Give more tries to start the failed vms
+        for i in range(5):
+            failedGuests = self.failedVMs
+            self.failedVMs = []
+            if len(failedGuests) > 0:
+                pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in failedGuests]
+                xenrt.pfarm(pt)
+            else:
+                break
+        
+        if len(self.failedVMs) > 0:
+            raise xenrt.XRTFailure('Total Guests failed to reboot %d out of %d', (len(self.failedVMs), len(vmlist)))
+    
     def prepare(self, arglist):
         self.nfs = xenrt.ExternalNFSShare()
         self.host = self.getDefaultHost()

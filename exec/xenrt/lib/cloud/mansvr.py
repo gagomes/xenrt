@@ -100,6 +100,7 @@ class ManagementServer(object):
 
             self.place.execcmd('yum -y install mysql-server mysql')
             self.place.execcmd('service mysqld restart')
+            self.place.execcmd('chkconfig mysqld on')
 
             self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
             self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
@@ -131,6 +132,11 @@ class ManagementServer(object):
                               "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
                                 "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
+            if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
+                templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \
+                        "%s/cloudTemplates/centos56-httpd-64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+                  
+
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
@@ -152,6 +158,8 @@ class ManagementServer(object):
             self.place.special['initialNFSSecStorageUrl'] = url
         elif "hyperv" in hvlist:
             try:
+                if xenrt.TEC().lookup("FORCE_HOST_SECSTORAGE", False, boolean=True):
+                    raise xenrt.XRTError("Forced using host for SMB secondary storage")
                 secondaryStorage = xenrt.ExternalSMBShare()
             except:
                 xenrt.TEC().logverbose("Couldn't create SMB share on external storage")

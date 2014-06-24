@@ -1,0 +1,13 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0" />
+  </prepare>
+  <testsequence>
+    <serial group="hfx1004">
+      <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
+    </serial>
+  </testsequence>
+</xenrt>

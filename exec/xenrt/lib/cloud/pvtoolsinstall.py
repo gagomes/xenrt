@@ -206,22 +206,40 @@ class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
         return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
 
     def _installMsi(self):
+        # Note down the VM's uptime
+        self.vmuptime = self.instance.os.uptime
+
         # Kill the autorun version
         self.instance.os.killAll("xensetup.exe")
         self.instance.os.startCmd("d:\\xensetup.exe /S")
 
     def _pollForCompletion(self):
+        # Wait until we see a reduction in uptime
         deadline = xenrt.util.timenow() + 3600
         while True:
+            self.instance.os.waitForDaemon(deadline - xenrt.util.timenow())
             try:
-                if self.instance.os.fileExists("c:\\xenrtatlog.txt"):
+                newUptime = self.instance.os.uptime
+                if newUptime < self.vmuptime:
                     break
             except:
                 pass
             if xenrt.util.timenow() > deadline:
-                raise xenrt.XRTError("Installer did not appear")
+                raise xenrt.XRTError("VM did not reboot")
             
             xenrt.sleep(30)
+
+        # Now wait for the necessary XenStore key to appear
+        while True:
+            try:
+                if self.instance.os.xenstoreRead("attr/PVAddons/Installed").strip() == "1":
+                    xenrt.TEC().logverbose("Found PVAddons evidence, sleeping 5 seconds to allow Xapi to settle")
+                    xenrt.sleep(5)
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Couldn't find PV driver evidence")
 
 registerInstaller(WindowsTampaXenServer)
 registerInstaller(LegacyWindowsTampaXenServer)

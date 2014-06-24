@@ -120,7 +120,8 @@ class XenRTSchedule(XenRTAPIPage):
                         leasedmachineslist = self.scm_machine_list(status="idle", leasecheck=details['USERID'])
                         leasedmachines = {}
                         for m in leasedmachineslist:
-                            leasedmachines[m[0]] = m
+                            if not m[1] in offline_sites:
+                                leasedmachines[m[0]] = m
                         if verbose:
                             outfh.write("Job specified specific mahines, so machines (%s) available\n" % ",".join(leasedmachines.keys()))
                     else:

@@ -703,7 +703,7 @@ class GPUBasic(_GPU):
             vm.start()
             self.assertGPUPresentInVM(vm, vendor)
             self.assertGPUNotRunningInVM(vm, vendor)
-            vm.installGPUDriver()
+            vm.installNvidiaVGPUDriver(1)
             self.assertGPURunningInVM(vm, vendor)
             vm.shutdown()
 
@@ -776,7 +776,7 @@ class TCGPUSetup(_GPU):
         gpuGroup = self.getGPUGroup(self.host, self.args['gpu'])
         self.attachGPU(self.guest, gpuGroup)
         self.guest.setState("UP")
-        self.guest.installGPUDriver()
+        self.guest.installNvidiaVGPUDriver(1)
         if not self.args.has_key("vendor"):
             self.args['vendor'] = "NVIDIA"
 

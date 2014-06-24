@@ -21,14 +21,14 @@ class TXTSuppPackInstaller:
         @param hosts: list of hosts onto which the spupp pack should be installed
         """
         suppPackIso = xenrt.TEC().getFile(xenrt.TEC().lookup("TXT_SUPP_PACK"))
-        
+
         try:
             for h in hosts:
                 self.__installSuppPack(h, suppPackIso)
         except Exception, e:
             xenrt.TEC().logverbose(str(e))
             raise xenrt.XRTFailure("Failure installing TXT supp pack")
-    
+
     def __installSuppPack(self, host, suppPackIso):
         packName = os.path.basename(suppPackIso)
         sftp = host.sftpClient()
@@ -49,11 +49,11 @@ class TXTCommand:
     __ASSET_TAG_SET_ARG_KEY="tag"
     __ASSET_TAG_CLEAR_KEY="tpm_clear_asset_tag"
     __DEBUG = False
-    
+
     def getAttestationId(self, hostRef, session):
         """
         Get the attestation id of a host from the TPM
-        
+
         @type hostRef: string 
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -62,11 +62,11 @@ class TXTCommand:
         @return: xml containing the 4 parts of the attetsation id
         """
         return self.__runCommand(hostRef, session, self.__ATT_ID_KEY, {})
-        
+
     def getQuote(self, hostRef, session, nonceValue):
         """
         Get the quotes of a host from the TPM
-        
+
         @type hostRef : string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -77,11 +77,11 @@ class TXTCommand:
         @return: base64 encoded value containing a (uint16)mask size, (byte*)a bit mask, (uint32)a quote size, (byte*) a collection of 20 byte PCR values and 256 byte signature 
         """
         return self.__runCommand(hostRef, session, self.__QUOTE_KEY, {self.__NONCE_KEY : nonceValue})
-        
+
     def getChallenge(self, hostRef, session, challengeValue):
         """
         Provide the TPM with an encrypted challenge
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -98,7 +98,7 @@ class TXTCommand:
     def setAssetTag(self, hostRef, session, assetTag):
         """
         Set the Asset Tag
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -114,7 +114,7 @@ class TXTCommand:
     def clearAssetTag(self, hostRef, session):
         """
         Clear the Asset Tag
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session

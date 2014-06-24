@@ -4154,6 +4154,8 @@ def createVM(host,
             g.setVCPUs(vcpus)
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
+        elif xenrt.TEC().lookup("RANDOM_CORES_PER_SOCKET", default=False, boolean=True):
+            host.setRandomCoresPerSocket(g, vcpus)
         if memory:
             g.setMemory(memory)
 
@@ -4964,6 +4966,10 @@ class TampaGuest(BostonGuest):
             if self.pvDriversUpToDate():
                 break
             xenrt.sleep(10)
+            
+        if xenrt.TEC().lookup("SET_DISK_TIMEOUT", False):
+            self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Disk", "TimeOutValue", "DWORD", int(xenrt.TEC().lookup("SET_DISK_TIMEOUT")))
+            self.reboot()
             
     def uninstallDrivers(self, waitForDaemon=True):
         

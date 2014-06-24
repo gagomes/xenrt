@@ -8,7 +8,6 @@
   </prepare>
   <testsequence>
     <parallel group="HVM5G2C_3" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC20595" prio="4" tc="TC-20595"/>
       <testcase id="xenserver.tc.smoketest.TC20596" prio="4" tc="TC-20596"/>
       <testcase id="xenserver.tc.smoketest.TC20597" prio="4" tc="TC-20597"/>
       <testcase id="xenserver.tc.smoketest.TC20598" prio="4" tc="TC-20598"/>
@@ -18,6 +17,8 @@
       <testcase id="xenserver.tc.smoketest.TC20602" prio="4" tc="TC-20602"/>
       <testcase id="xenserver.tc.smoketest.TC20603" prio="4" tc="TC-20603"/>
       <testcase id="xenserver.tc.smoketest.TC20604" prio="4" tc="TC-20604"/>
+      <testcase id="xenserver.tc.smoketest.TC20605" prio="4" tc="TC-20605"/>
+      <testcase id="xenserver.tc.smoketest.TC20606" prio="4" tc="TC-20606"/>
     </parallel>
   </testsequence>
 </xenrt>

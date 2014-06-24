@@ -245,6 +245,11 @@ nfs-uninstall:
 	$(call RESTORE,$(EXPORTS))
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
+.PHONY: dhcpdb
+dhcpdb: files
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(ROOT)/$(XENRT)/xenrtdhcpd/importleases.py /var/lib/dhcp/dhcpd.leases 
+
 .PHONY: dhcpd
 dhcpd: install files
 ifeq ($(DODHCPD),yes)
@@ -261,7 +266,7 @@ ifeq ($(XENRT_DHCPD), yes)
 	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
 else
 	-$(SUDO) insserv -r xenrtdhcpd
-	$(SUDO) rm /etc/init.d/xenrtdhcpd
+	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
 endif

@@ -26,7 +26,8 @@ class CloudStack(object):
 
     # Mapping of hypervisors to template formats
     _templateFormats = {"XenServer": "VHD",
-                        "KVM": "QCOW2"}
+                        "KVM": "QCOW2",
+                        "Hyperv": "VHD"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -190,7 +191,9 @@ class CloudStack(object):
                     secGroupId = secGroup.id
                 else:
                     secGroupId = secGroups[0].id
-
+                secGroupIds = [secGroupId]
+            else:
+                secGroupIds = []
 
             xenrt.TEC().logverbose("Deploying VM")
 
@@ -203,7 +206,7 @@ class CloudStack(object):
                                                             hostid = startOnId,
                                                             hypervisor=hypervisor,
                                                             startvm=False,
-                                                            securitygroupids=[secGroupId])
+                                                            securitygroupids=secGroupIds)
 
             instance.toolstackId = rsp.id
 

@@ -103,6 +103,8 @@ class DeployerPlugin(object):
                 self.initialSMBSecStorageUrl = None
             else:
                 try:
+                    if xenrt.TEC().lookup("FORCE_HOST_SECSTORAGE", False, boolean=True):
+                        raise xenrt.XRTError("Forced using host for SMB secondary storage")
                     secondaryStorage = xenrt.ExternalSMBShare()
                 except:
                     xenrt.TEC().logverbose("Couldn't create SMB share on external storage")

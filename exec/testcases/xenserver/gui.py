@@ -609,7 +609,8 @@ class _PowerShellSnapTest(xenrt.TestCase):
                                               self.host.getIP(), "root",
                                               self.host.password, nfshost,
                                               nfspath)
-            self.guest.xmlrpcExec("%s -command \"Import-Module XenServerPSModule; %s\"" %(self.__POWERSHELL_EXE, test))
+            self.guest.xmlrpcExec("%s -command \"Import-Module XenServerPSModule; %s\"" %(self.__POWERSHELL_EXE, test), 
+                                  timeout=900)
             return resultFileName
         else:
             # xenserverpssnapin.bat uses the -Noexit so it hangs around

@@ -72,7 +72,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         pprint.pprint(self.removeXRTValues(cfg))
         self.assertEqual(expected, actual)
 
-    def _lookup(self, var, default="BADVALUE"):
+    def _lookup(self, var, default="BADVALUE", boolean=False):
         values = {}
 
         if isinstance(var, list):
@@ -85,7 +85,13 @@ class TestMarvinConfig(XenRTUnitTestCase):
                 raise Exception("No default value specified for test")
             return default
         else:
-            return values[var]
+            if boolean:
+                if values[var][0].lower() in ("y", "t", "1"):
+                    return True
+                else:
+                    return False
+            else:
+                return values[var]
 
     def removeXRTValues(self, value):
         if isinstance(value, dict):
@@ -132,8 +138,8 @@ class DummyTEC(object):
     def logverbose(self, msg):
         print msg
 
-    def lookup(self, var, default="BADVALUE"):
-        return self.parent._lookup(var, default)
+    def lookup(self, var, default="BADVALUE", boolean=False):
+        return self.parent._lookup(var, default, boolean=False)
 
     def getFile(self, *files):
         return "/path/to/file"

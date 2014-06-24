@@ -108,7 +108,7 @@ class XenRTDHCPAllocator(object):
         if mac.startswith("02:") or mac.startswith("06:"):
             return None
         intfcfg = self.config['interfaces'][intf]
-        self._sql("SELECT addr FROM leases WHERE interface='%s' AND (mac='' OR mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
+        self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL OR expiry<%d) ORDER BY addr LIMIT 1" % (intf, int(time.time())))
         r = self.cur.fetchone()
         if not r:
             return None

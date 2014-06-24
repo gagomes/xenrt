@@ -2981,7 +2981,7 @@ class StaticIP4Addr(object):
 
     @classmethod
     def getIPRange(cls, size, network="NPRI", wait=True):
-        if xenrt.TEC().lookup("XENRT_DHCP", False, boolean=True):
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
             return StaticIP4AddrDHCP.getIPRange(size, network, wait)
         else:
             return StaticIP4AddrFileBased.getIPRange(size, network, wait)

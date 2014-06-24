@@ -246,8 +246,9 @@ nfs-uninstall:
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
 .PHONY: dhcpdb
-dhcpdb:
+dhcpdb: files
 	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(ROOT)/$(XENRT)/xenrtdhcpd/importleases.py /var/lib/dhcp/dhcpd.leases 
 
 .PHONY: dhcpd
 dhcpd: install files

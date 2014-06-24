@@ -19,7 +19,7 @@ class XenRTDHCPAllocator(object):
         self.cur = None
         self.lock = threading.Lock()
         self.interfaceInfo = {}
-        with open("xenrtdhcpd.cfg") as f:
+        with open("@sharedir@/xenrtdhcpd/xenrtdhcpd.cfg") as f:
             self.config = json.load(f)
         for i in self.config['interfaces'].keys():
             self._parseCfg(i)

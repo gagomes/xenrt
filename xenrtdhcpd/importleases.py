@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import time, re, sys, psycopg2
 
+import xenrtallocator
+
 ip = None
 mac = None
 lease = None
@@ -8,6 +10,12 @@ lease = None
 conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dhcp'")
 cur = conn.cursor()
 conn.autocommit=True
+
+xenrtallocator.XenRTDHCPAllocator()
+
+query = "UPDATE leases SET mac=NULL"
+print query
+cur.execute(query)
 
 with open(sys.argv[1]) as f:
     for line in f:

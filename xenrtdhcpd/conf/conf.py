@@ -30,7 +30,11 @@ DHCP_INTERFACES = XENRT_CONFIG['interfaces'].keys()
 #For details, see doc/configuration
 PID_FILE='/var/run/xenrtdhcpd.pid'
 
-Allocator = xenrtallocator.XenRTDHCPAllocator()
+global Allocator
+
+def init():
+    global Allocator
+    Allocator = xenrtallocator.XenRTDHCPAllocator()
 
 
 def handleUnknownMAC(packet, method, mac, client_ip, relay_ip, pxe, interface):

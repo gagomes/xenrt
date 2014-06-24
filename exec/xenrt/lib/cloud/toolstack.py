@@ -26,7 +26,8 @@ class CloudStack(object):
 
     # Mapping of hypervisors to template formats
     _templateFormats = {"XenServer": "VHD",
-                        "KVM": "QCOW2"}
+                        "KVM": "QCOW2",
+                        "Hyperv": "VHD"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip

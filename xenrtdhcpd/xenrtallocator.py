@@ -5,6 +5,7 @@ import netifaces
 import threading
 import time
 import json
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 from libpydhcpserver.dhcp_types.conversion import *
 from dhcpdlib.databases.generic import Definition
@@ -23,6 +24,15 @@ class XenRTDHCPAllocator(object):
         for i in self.config['interfaces'].keys():
             self._parseCfg(i)
             self._setupDB(i)
+
+        self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500))
+        self.xmlrpc.register_instance(XMLRPCAllocator(self))
+        thread = threading.Thread(target=self.startXMLRPC, name="XMLRPC")
+        thread.daemon=True
+        thread.start()
+
+    def startXMLRPC(self):
+        self.xmlrpc.serve_forever()
 
     def _parseCfg(self, intf):
         globalcfg = self.config['global']
@@ -179,3 +189,76 @@ class XenRTDHCPAllocator(object):
         if not self.interfaceInfo.has_key(intf):
             self.interfaceInfo[intf] = netifaces.ifaddresses(intf)[netifaces.AF_INET][0]
         return self.interfaceInfo[intf]
+
+    def reserveSingleAddress(self, intf, data, mac=None):
+        with self.lock:
+            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
+            r = self.cur.fetchone()
+            if not r:
+                raise Exception("No address available")
+            if mac:
+                self._sql("UPDATE leases SET data='%s',mac='%s' WHERE addr='%s'" % (data, mac.lower(), r[0]))
+            else:
+                self._sql("UPDATE leases SET data='%s',mac=NULL WHERE addr='%s'" % (data, r[0]))
+
+            return r[0]
+        
+
+    def reserveAddressRange(self, intf, size, data):
+        with self.lock:
+            res = []
+            self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
+            rs = self.cur.fetchall()
+            ips = [IPy.IP(x[0]).int() for x in rs]
+
+            start = None
+            for i in xrange(len(ips)):
+                if (i + size) > len(ips):
+                    break
+                ok = True
+                for j in xrange(size):
+                    if ips[i+j] != ips[i] + j:
+                        ok = False
+                        break
+                if ok:
+                    start = ips[i]
+                    break
+
+            if not start:
+                raise Exception("No address range available")
+
+            for i in xrange(size):
+                ip = IPy.IP(start + i).strNormal()
+                self._sql("UPDATE leases SET reserved='%s' WHERE addr='%s'" % (data, ip))
+                res.append(ip)
+
+            return res
+
+    def releaseAddress(self, addr):
+        with self.lock:
+            self._sql("UPDATE leases SET reserved=NULL WHERE addr='%s'" % (addr))
+
+    def listReservedAddresses(self):
+        self._sql("SELECT addr,reserved FROM LEASES WHERE interface='%s' AND reserved IS NOT NULL")
+        res = {}
+        rs = self.cur.fetchall()
+        for r in rs:
+            res[r[0]] = r[1]
+
+        return res
+
+class XMLRPCAllocator(object):
+    def __init__(self, parent):
+        self.parent = parent
+
+    def reserveSingleAddress(self, intf, data, mac=None):
+        return self.parent.reserveSingleAddress(intf, data, mac)
+
+    def reserveAddressRange(self, intf, size, data):
+        return self.parent.reserveAddressRange(intf, size, data)
+
+    def releaseAddress(self, addr):
+        self.parent.releaseAddress(addr)
+
+    def listReservedAddresses(self):
+        return self.parent.listReservedAddresses()

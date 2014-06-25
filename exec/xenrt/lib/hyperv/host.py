@@ -59,6 +59,7 @@ def createHost(id=0,
 class HyperVHost(xenrt.GenericHost):
 
     def install(self):
+        self.windows = True
         if xenrt.TEC().lookup("EXISTING_HYPERV", False, boolean=True):
             return
         self.installWindows()

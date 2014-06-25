@@ -158,8 +158,8 @@ class XenRTDHCPAllocator(object):
         intfaddr = IPy.IP(intfdetails['addr'])
         subnet = intfaddr.make_net(intfdetails['netmask'])[0].strNormal()
 
-        if not hostname:
-            hostname = "xenrt-%s" % ip.replace(".","-")
+        #if not hostname:
+        #    hostname = "xenrt-%s" % ip.replace(".","-")
 
         ret = Definition(ip=ip,
                          lease_time=lease,

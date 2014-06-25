@@ -2091,7 +2091,9 @@ if listresources:
 
     for l in locks:
         if l[1] and l[2]['jobid'] in machineJobs:
-            (resclass, resname) = l[0].split("-",1)
+            (resclass, resname) = l[0].rsplit("-",1)
+            if resclass.startswith("EXT-"):
+                resclass = resclass[4:]
             if not resclass in ret.keys():
                 ret[resclass] = []
             if not resname in ret[resclass]:
@@ -2104,7 +2106,7 @@ if listresources:
             ret['NFS'].extend(jobdirs[m])
 
     for k in ret.keys():
-        if k in ("IP4ADDR", "IP6ADDR", "EXT-IP4ADDR"):
+        if k in ("IP4ADDR", "IP6ADDR"):
             ret[k].sort(key=lambda x: IPy.IP(x).int())
         else:
             try:

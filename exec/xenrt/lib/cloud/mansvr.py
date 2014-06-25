@@ -157,13 +157,8 @@ class ManagementServer(object):
             marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
             self.place.special['initialNFSSecStorageUrl'] = url
         elif "hyperv" in hvlist:
-            try:
-                if xenrt.TEC().lookup("FORCE_HOST_SECSTORAGE", False, boolean=True):
-                    raise xenrt.XRTError("Forced using host for SMB secondary storage")
+            if xenrt.TEC().lookup("EXTERNAL_SMB", False, boolean=True):
                 secondaryStorage = xenrt.ExternalSMBShare()
-            except:
-                xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
-            else:
                 storagePath = secondaryStorage.getMount()
                 url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
                 marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")

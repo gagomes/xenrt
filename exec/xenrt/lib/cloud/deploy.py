@@ -102,19 +102,15 @@ class DeployerPlugin(object):
                 url = self.initialSMBSecStorageUrl
                 self.initialSMBSecStorageUrl = None
             else:
-                try:
-                    if xenrt.TEC().lookup("FORCE_HOST_SECSTORAGE", False, boolean=True):
-                        raise xenrt.XRTError("Forced using host for SMB secondary storage")
+                if xenrt.TEC().lookup("EXTERNAL_SMB", False, boolean=True):
                     secondaryStorage = xenrt.ExternalSMBShare()
-                except:
-                    xenrt.TEC().logverbose("Couldn't create SMB share on external storage")
+                    url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
+                    storagePath = secondaryStorage.getMount()
+                else:
                     h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % ref['XRT_SMBHostId'])
                     ip = h.getIP()
                     url = "cifs://%s/storage/secondary" % ip
                     storagePath = "%s:/storage/secondary" % ip
-                else:
-                    url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
-                    storagePath = secondaryStorage.getMount()
                     
                 self.marvin.copySystemTemplatesToSecondaryStorage(storagePath, 'SMB')
 

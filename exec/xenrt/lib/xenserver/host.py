@@ -2947,7 +2947,7 @@ done
         if vcpus != None:
             guest.setVCPUs(vcpus)
 
-        if self.lookup("RANDOM_CORES_PER_SOCKET", default=False, boolean=True):
+        if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             self.setRandomCoresPerSocket(guest, vcpus)
 
         if memory != None:
@@ -2998,26 +2998,34 @@ done
                 to Clearwater or non-windows guests")
             return
 
-        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-        cpuCoresOnHost = self.getCPUCores()
-        socketsOnHost  = self.getNoOfSockets()
-        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
-                                                      (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
-        if vcpus != None:
-            # This gives us all the factors of the vcpus specified
-            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+        with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
+            dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
+            
+            if dbVal > 0:
+                xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                guest.setCoresPerSocket(dbVal)
+            else:
+                # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+                cpuCoresOnHost = self.getCPUCores()
+                socketsOnHost  = self.getNoOfSockets()
+                maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+                xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
+                                                              (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+                if vcpus != None:
+                    # This gives us all the factors of the vcpus specified
+                    possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+                    xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
 
-            # This eliminates the factors that would exceed the host's cores per socket
-            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+                    # This eliminates the factors that would exceed the host's cores per socket
+                    validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+                    xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
 
-            # Then choose a value from here
-            coresPerSocket = random.choice(validCoresPerSocket)
+                    # Then choose a value from here
+                    coresPerSocket = random.choice(validCoresPerSocket)
 
-            xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-            guest.setCoresPerSocket(coresPerSocket)
+                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                    guest.setCoresPerSocket(coresPerSocket)
+                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.

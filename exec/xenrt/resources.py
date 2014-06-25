@@ -3026,6 +3026,8 @@ class StaticIP4AddrDHCP(object):
                 if not wait or xenrt.timenow() > deadline:
                     raise
                 xenrt.sleep(60)
+            else:
+                break
 
         return [StaticIP4AddrDHCP(network, ip=x) for x in addrs]
      

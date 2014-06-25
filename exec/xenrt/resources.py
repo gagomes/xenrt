@@ -513,7 +513,7 @@ class CentralResource(object):
             for a in addrs:
                 if a[1] == "nojob":
                     a[1] = None
-                locks.append(("IP4ADDR-%s" % a[0], True, {'jobid': a[1], 'timestamp': a[2]}))
+                locks.append(("EXT-IP4ADDR-%s" % a[0], True, {'jobid': a[1], 'timestamp': a[2]}))
 
         # Handle any left
         dealtwith = []

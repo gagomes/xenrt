@@ -21,7 +21,7 @@ start_daemon () {
 }
 stop_daemon () {
   echo -n "Stopping $NAME: "
-  start-stop-daemon --stop $SSD_ARGS
+  start-stop-daemon --stop $SSD_ARGS --retry=TERM/30/KILL/5
   echo "$NAME."
 }
 

@@ -189,10 +189,10 @@ endif
 
 
 .PHONY: files
-files: $(SHAREDIR)/control/xrt
+files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
-	$(SHAREDIR)/control/xrt --make-configs --debian
+	$(SHAREDIR)/exec/xenrt/main.py --make-configs --debian
 endif
 
 .PHONY: prompt 

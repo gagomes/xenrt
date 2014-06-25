@@ -1782,6 +1782,7 @@ if cleanuplocks:
         machinesToPowerOff = xenrt.staleMachines(j)
         for m in machinesToPowerOff:
             machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
             machine.powerctl.off()
     
     for j in set(jobsForGlobalRelease):

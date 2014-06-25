@@ -2639,6 +2639,13 @@ Add-WindowsFeature as-net-framework"""
             self.execcmd("cp %s/latency/latency.x86_32 /root/latency" % workdir)
         self.execcmd("rm -rf %s" % workdir)
 
+    def installKernBench(self):
+        """Install KernBench into the guest"""
+
+        self.execcmd("rm -rf /root/kernbench3.10")
+        self.execcmd("wget -O - '%s/kernbench3.10.tgz' | tar -xz -C /root" %
+                     xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+
     def installVSSTools(self):
         """Install Microsoft VSS tools into a Windows XML-RPC guest"""
         g = self.xmlrpcGlobPattern("c:\\vshadow.exe")

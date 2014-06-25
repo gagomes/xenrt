@@ -25,7 +25,7 @@ class XenRTDHCPAllocator(object):
             self._parseCfg(i)
             self._setupDB(i)
 
-        self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500))
+        self.xmlrpc = SimpleXMLRPCServer(("localhost", 1500), allow_none=True)
         self.xmlrpc.register_introspection_functions()
         self.xmlrpc.register_instance(XMLRPCAllocator(self))
         thread = threading.Thread(target=self.startXMLRPC, name="XMLRPC")
@@ -158,8 +158,8 @@ class XenRTDHCPAllocator(object):
         intfaddr = IPy.IP(intfdetails['addr'])
         subnet = intfaddr.make_net(intfdetails['netmask'])[0].strNormal()
 
-        if not hostname:
-            hostname = "xenrt-%s" % ip.replace(".","-")
+        #if not hostname:
+        #    hostname = "xenrt-%s" % ip.replace(".","-")
 
         ret = Definition(ip=ip,
                          lease_time=lease,
@@ -199,9 +199,9 @@ class XenRTDHCPAllocator(object):
             if not r:
                 raise Exception("No address available")
             if mac:
-                self._sql("UPDATE leases SET reserved='%s',mac='%s' WHERE addr='%s'" % (data, mac.lower(), r[0]))
+                self._sql("UPDATE leases SET reserved='%s',mac='%s',reservedtime=%d WHERE addr='%s'" % (data, mac.lower(), int(time.time()), r[0]))
             else:
-                self._sql("UPDATE leases SET reserved='%s',mac=NULL WHERE addr='%s'" % (data, r[0]))
+                self._sql("UPDATE leases SET reserved='%s',mac=NULL,reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), r[0]))
 
             return r[0]
         
@@ -230,21 +230,25 @@ class XenRTDHCPAllocator(object):
 
             for i in xrange(size):
                 ip = IPy.IP(start + i).strNormal()
-                self._sql("UPDATE leases SET reserved='%s' WHERE addr='%s'" % (data, ip))
+                self._sql("UPDATE leases SET reserved='%s',reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), ip))
                 res.append(ip)
 
             return res
+    
+    def updateReservation(self, addr):
+        with self.lock:
+            self._sql("UPDATE leases SET reservedtime=%d WHERE addr='%s'" % (int(time.time()), addr))
 
     def releaseAddress(self, addr):
         with self.lock:
             self._sql("UPDATE leases SET reserved=NULL WHERE addr='%s'" % (addr))
 
     def listReservedAddresses(self):
-        self._sql("SELECT addr,reserved FROM LEASES WHERE reserved IS NOT NULL")
-        res = {}
+        self._sql("SELECT addr,reserved,reservedtime FROM LEASES WHERE reserved IS NOT NULL")
+        res = [] 
         rs = self.cur.fetchall()
         for r in rs:
-            res[r[0]] = r[1]
+            res.append((r[0], r[1], r[2]))
 
         return res
 
@@ -261,6 +265,10 @@ class XMLRPCAllocator(object):
 
     def releaseAddress(self, addr):
         self.parent.releaseAddress(addr)
+        return True
+
+    def updateReservation(self, addr):
+        self.parent.updateReservation(addr)
         return True
 
     def listReservedAddresses(self):

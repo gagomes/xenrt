@@ -850,7 +850,7 @@ class _VGPUOwnedVMsTest(_VGPUTest):
                 break
         
         if len(self.failedVMs) > 0:
-            raise xenrt.XRTFailure('Total Guests failed to reboot %d out of %d', (len(self.failedVMs), len(vmlist)))
+            raise xenrt.XRTFailure("Total Guests failed to reboot %d out of %d" % (len(self.failedVMs), len(vmlist)))
     
     def prepare(self, arglist):
         self.nfs = xenrt.ExternalNFSShare()

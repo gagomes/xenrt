@@ -842,7 +842,7 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         #Check the VM state using CLI command
         deadline = xenrt.timenow() + timeout
         pollPeriod = 5
-        time.sleep(3)
+        time.sleep(20)
         while 1:
             data = host.execdom0("xe vm-param-get uuid=%s param-name=power-state" % (vmuuid))
             state = data.splitlines()[0]

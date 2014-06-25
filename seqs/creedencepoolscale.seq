@@ -20,7 +20,8 @@
   
   <prepare>
     <pool>
-      <storage type="nfs" name="nfs2" network="STORAGE02" default="true"/>
+      <storage type="nfs" name="nfs1" default="true" network="STORAGE01"/>
+      <storage type="nfs" name="nfs2" network="STORAGE02"/>
       <allhosts/>
       
       <NETWORK>
@@ -39,6 +40,18 @@
 
       
       <vm name="gold0">
+        <distro>${DISTRO}</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <storage>nfs1</storage>
+      </vm>
+      <vm name="gold1">
         <distro>${DISTRO}</distro>
         <postinstall action="installDrivers"/>
         <postinstall action="preCloneTailor"/>

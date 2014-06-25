@@ -1236,7 +1236,7 @@ def getRandomULAPrefix():
 def jobOnMachine(machine, jobid):
     xrs = xenrt.ctrl.XenRTStatus(None)
     jobdict = xrs.run([jobid])
-    it not jobdict:
+    if not jobdict:
         return False
     machines = []
     for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:

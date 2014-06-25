@@ -1749,23 +1749,26 @@ if cleanuplocks:
                     if allowLockRelease:
                         print "Job is complete, and machines not locked"
                         # Release the lock
-                        path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                        path += "/%s" % (lock[2]['md5'])
-                        try:
-                            os.unlink("%s/jobid" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/id" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/timestamp" % (path))
-                        except:
-                            pass
+                        if lock[0].startswith("EXT-IP4ADDR"):
+                            xenrt.resources.DhcpXmlRpc().releaseAddress(lock[0].split("-")[-1])
+                        else:
+                            path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                            path += "/%s" % (lock[2]['md5'])
+                            try:
+                                os.unlink("%s/jobid" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/id" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/timestamp" % (path))
+                            except:
+                                pass
 
-                        os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
+                            os.rmdir(path)
+                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):
                             jobsForGlobalRelease.append(lock[2]['jobid'])
@@ -2100,7 +2103,7 @@ if listresources:
             ret['NFS'].extend(jobdirs[m])
 
     for k in ret.keys():
-        if k in ("IP4ADDR", "IP6ADDR"):
+        if k in ("IP4ADDR", "IP6ADDR", "EXT-IP4ADDR"):
             ret[k].sort(key=lambda x: IPy.IP(x).int())
         else:
             try:

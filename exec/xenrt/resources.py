@@ -9,7 +9,7 @@
 #
 
 import sys, string, tempfile, os, stat, traceback, os.path, glob, shutil,IPy
-import threading, time, re, random, md5, urllib
+import threading, time, re, random, md5, urllib, xmlrpclib
 import xenrt, xenrt.ssh
 
 # Symbols we want to export from the package.
@@ -63,6 +63,9 @@ def getResourceInteractive(resType, argv):
         size = int(argv[0])
         vlans = PrivateVLAN.getVLANRange(size, wait=False)
         return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
+
+def DhcpXmlRpc():
+    return xmlrpclib.ServerProxy("http://localhost:1500", allow_none=True)
 
 class DirectoryResource:
 
@@ -503,6 +506,14 @@ class CentralResource(object):
             for p in liclist.keys():
                 for l in liclist[p].keys():
                     locks.append(self._listProcess("LICENSE-%s-%s" % (p[8:], l)))
+
+        
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            addrs = DhcpXmlRpc().listReservedAddresses()
+            for a in addrs:
+                if a[1] == "nojob":
+                    a[1] = None
+                locks.append(("EXT-IP4ADDR-%s" % a[0], True, {'jobid': a[1], 'timestamp': a[2]}))
 
         # Handle any left
         dealtwith = []
@@ -2959,10 +2970,86 @@ class _StaticIPAddr(_NetworkResourceFromRange):
     def getAddr(self):
         return self.addr
 
-class StaticIP4Addr(_StaticIPAddr):
+class StaticIP4Addr(object):
+    def __init__(self, network="NPRI", mac=None):
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            self._delegate = StaticIP4AddrDHCP(network, mac)
+        else:
+            if mac:
+                raise xenrt.XRTError("MAC-based reservations not supported")
+            self._delegate = StaticIP4AddrFileBased(network)
+
+    @classmethod
+    def getIPRange(cls, size, network="NPRI", wait=True):
+        if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+            return StaticIP4AddrDHCP.getIPRange(size, network, wait)
+        else:
+            return StaticIP4AddrFileBased.getIPRange(size, network, wait)
+
+    def __getattr__(self, name):
+        return getattr(self._delegate, name)
+
+class StaticIP4AddrFileBased(_StaticIPAddr):
     LOCKID = "IP4ADDR"
     POOLSTART = "STATICPOOLSTART"
     POOLEND = "STATICPOOLEND"
+
+class StaticIP4AddrDHCP(object):
+    def __init__(self, network, mac=None, ip=None):
+        if ip:
+            self.addr = ip
+        else:
+            self.addr = DhcpXmlRpc().reserveSingleAddress(self.networkToInterface(network), self.lockData(), mac)
+        xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
+
+    def getAddr(self):
+        return self.addr
+
+    def release(self, atExit=False):
+        if not xenrt.util.keepSetup():
+            if atExit:
+                for host in xenrt.TEC().registry.hostList():
+                    if host == "SHARED":
+                        continue
+                    h = xenrt.TEC().registry.hostGet(host)
+                    h.machine.exitPowerOff()
+            DhcpXmlRpc().releaseAddress(self.addr)
+            xenrt.TEC().gec.unregisterCallback(self)
+
+    @classmethod
+    def getIPRange(cls, size, network, wait):
+        deadline = xenrt.timenow() + 3600
+        while True:
+            try:
+                addrs = DhcpXmlRpc().reserveAddressRange(cls.networkToInterface(network), size, cls.lockData())
+            except:
+                if not wait or xenrt.timenow() > deadline:
+                    raise
+                xenrt.sleep(60)
+            else:
+                break
+
+        return [StaticIP4AddrDHCP(network, ip=x) for x in addrs]
+     
+
+    @classmethod
+    def lockData(cls):
+        return xenrt.GEC().dbconnect.jobid() or "nojob"
+
+    @classmethod
+    def networkToInterface(cls, network):
+        if network == "NPRI":
+            return "eth0"
+        elif network == "NSEC":
+            return "eth0.%s" % (xenrt.TEC().lookup(["NETWORK_CONFIG","SECONDARY","VLAN"]))
+        else:
+            return "eth0.%s" % (xenrt.TEC().lookup(["NETWORK_CONFIG","VLANS",network,"ID"]))
+
+    def mark(self):
+        DhcpXmlRpc().updateReservation(self.addr)
+
+    def callback(self):
+        self.release(atExit=True)
 
 class StaticIP6Addr(_StaticIPAddr):
     LOCKID = "IP6ADDR"

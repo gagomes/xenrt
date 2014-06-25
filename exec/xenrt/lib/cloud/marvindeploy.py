@@ -162,7 +162,7 @@ class MarvinDeployer(object):
         self._processConfigElement(config, 'config', deployer)
         self.logger.debug("New Config:\n" + pprint.pformat(config))
         self.marvinCfg.update(config)
-        self.fixupConfig(self.marvinCfg)
+        self.fixUpConfig(self.marvinCfg)
         self.logger.debug("Full Marvin Config:\n" + pprint.pformat(self.marvinCfg))
 
     def fixUpConfig(self, cfg):

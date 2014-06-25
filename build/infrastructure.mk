@@ -192,7 +192,7 @@ endif
 files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
-	$(SHAREDIR)/exec/xenrt/main.py --make-configs --debian
+	$(SHAREDIR)/exec/main.py --make-configs --debian
 endif
 
 .PHONY: prompt 

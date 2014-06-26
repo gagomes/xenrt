@@ -100,7 +100,7 @@ class XenRTListResources(XenRTAPIPage):
         xrtcmd = "--list-resources \"%s\"" % (machine)
         
         cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
-        self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
+        self.request.response.body_file = os.popen("%s 2>/dev/null" % string.join(cmd))
         self.request.response.content_type="application/json"
         return self.request.response
 

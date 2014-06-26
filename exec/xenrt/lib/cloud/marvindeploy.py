@@ -6,6 +6,7 @@ import random
 import string
 import os
 import inspect
+import re
 
 try:
     from marvin import deployDataCenter
@@ -99,7 +100,7 @@ class MarvinDeployer(object):
 
     def outputAsJSONFile(self, filename):
         fh = open(filename, 'w')
-        json.dump(self.marvinCfg, fh)
+        json.dump(self.marvinCfg, fh, indent=2)
         fh.close()
         self.logger.debug('Created JSON Marvin config file: %s' % (filename))
 
@@ -161,7 +162,18 @@ class MarvinDeployer(object):
         self._processConfigElement(config, 'config', deployer)
         self.logger.debug("New Config:\n" + pprint.pformat(config))
         self.marvinCfg.update(config)
+        self.fixUpConfig(self.marvinCfg)
         self.logger.debug("Full Marvin Config:\n" + pprint.pformat(self.marvinCfg))
+
+    def fixUpConfig(self, cfg):
+        # TODO: Remove this when XenRTCenter fixed
+        if "zones" in cfg:
+            for z in cfg['zones']:
+                if z.has_key("physical_networks"):
+                    for n in z["physical_networks"]:
+                        if n.has_key("providers"):
+                            for p in n['providers']:
+                                p['name'] = re.sub("\d+$", "", p['name'])
 
     def deployMarvinConfig(self):
         cfg = jsonHelper.jsonLoader(self.marvinCfg)

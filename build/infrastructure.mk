@@ -91,6 +91,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade virtualenv
 	$(SUDO) easy_install --upgrade fs
 	$(SUDO) easy_install --upgrade netifaces
+	$(SUDO) easy_install --upgrade mysql-connector-python
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -188,10 +189,10 @@ endif
 
 
 .PHONY: files
-files: $(SHAREDIR)/control/xrt
+files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
-	$(SHAREDIR)/control/xrt --make-configs --debian
+	$(SHAREDIR)/exec/main.py --make-configs --debian
 endif
 
 .PHONY: prompt 

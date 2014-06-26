@@ -1749,23 +1749,26 @@ if cleanuplocks:
                     if allowLockRelease:
                         print "Job is complete, and machines not locked"
                         # Release the lock
-                        path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                        path += "/%s" % (lock[2]['md5'])
-                        try:
-                            os.unlink("%s/jobid" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/id" % (path))
-                        except:
-                            pass
-                        try:
-                            os.unlink("%s/timestamp" % (path))
-                        except:
-                            pass
+                        if lock[0].startswith("EXT-IP4ADDR"):
+                            xenrt.resources.DhcpXmlRpc().releaseAddress(lock[0].split("-")[-1])
+                        else:
+                            path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                            path += "/%s" % (lock[2]['md5'])
+                            try:
+                                os.unlink("%s/jobid" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/id" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/timestamp" % (path))
+                            except:
+                                pass
 
-                        os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
+                            os.rmdir(path)
+                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
                             jobsForMachinePowerOff.append(lock[2]['jobid']) 
                         if lock[0].startswith("GLOBAL"):
                             jobsForGlobalRelease.append(lock[2]['jobid'])
@@ -1779,6 +1782,7 @@ if cleanuplocks:
         machinesToPowerOff = xenrt.staleMachines(j)
         for m in machinesToPowerOff:
             machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
             machine.powerctl.off()
     
     for j in set(jobsForGlobalRelease):
@@ -2087,7 +2091,9 @@ if listresources:
 
     for l in locks:
         if l[1] and l[2]['jobid'] in machineJobs:
-            (resclass, resname) = l[0].split("-",1)
+            (resclass, resname) = l[0].rsplit("-",1)
+            if resclass.startswith("EXT-"):
+                resclass = resclass[4:]
             if not resclass in ret.keys():
                 ret[resclass] = []
             if not resname in ret[resclass]:

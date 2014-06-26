@@ -609,8 +609,8 @@ class _Cache(xenrt.TestCase):
         if not self.host.genParamGet("sr", self.host.lookupDefaultSR(), "type") == "nfs":
             raise xenrt.XRTError("The default SR must be an nfs one.")
         self.packetCatcher = NFSPacketCatcher(self.host, delay=0)
-        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
-            self.host.disableReadCaching()
+        # if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+        #     self.host.disableReadCaching()
         self.enableCaching()
 
     def upgrade(self):

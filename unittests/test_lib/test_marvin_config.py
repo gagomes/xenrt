@@ -29,6 +29,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         self.addTC(TC2)
         self.addTC(TC3)
         self.addTC(TC4)
+        self.addTC(TC5)
         self.run_for_many(self.tcs, self.__test_marvin_config_generator)
 
     @patch("xenrt.ExternalSMBShare")
@@ -57,8 +58,6 @@ class TestMarvinConfig(XenRTUnitTestCase):
         cfg = copy.deepcopy(indata)
 
         marvin = Mock()
-
-        marvin.createSecondaryStorage.side_effect = self.__createSecStorage
 
         deployer = xenrt.lib.cloud.deploy.DeployerPlugin(marvin)
         unit._processConfigElement(cfg, 'config', deployer)
@@ -104,12 +103,6 @@ class TestMarvinConfig(XenRTUnitTestCase):
         else:
             ret = value
         return ret
-
-    def __createSecStorage(self, secStorageType):
-        if secStorageType == "SMB":
-            return "cifs://10.0.0.3/storage/secondary"
-        else:
-            return "nfs://secsever/secpath"
 
     @classmethod
     def __getVLANRange(cls, size):
@@ -165,8 +158,6 @@ class BaseTC(object):
 
 class TC1(BaseTC):
     """Test that Hyper-V zones use SMB storage"""
-
-    EXTRAVARS={"CIFS_HOST_INDEX": "0"}
 
     IN = {'zones': [{'guestcidraddress': '192.168.200.0/24',
              'ipranges': [{'XRT_GuestIPRangeSize': 10}],
@@ -236,7 +227,7 @@ class TC1(BaseTC):
                                             'password': 'xenroot01T',
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
-                                'url': 'cifs://smbserver/path'}]}]} 
+                                'url': 'cifs://10.0.0.3/storage/secondary'}]}]} 
 
 class TC2(BaseTC):
     """Test that KVM zones use NFS storage"""
@@ -394,3 +385,79 @@ class TC4(BaseTC):
                       'startip': '10.1.0.1'}],
             'secondaryStorages': [{'provider': 'NFS',
                                    'url': 'nfs://guest/path'}]}]}
+
+class TC5(BaseTC):
+    """Test that Hyper-V zones use SMB storage from the host when EXTERNAL_SMB is set"""
+
+    EXTRAVARS = {"EXTERNAL_SMB": "yes"}
+
+    IN = {'zones': [{'guestcidraddress': '192.168.200.0/24',
+             'ipranges': [{'XRT_GuestIPRangeSize': 10}],
+             'networktype': 'Advanced',
+             'physical_networks': [{'XRT_VLANRangeSize': 10,
+                                     'isolationmethods': ['VLAN'],
+                                     'name': 'AdvPhyNetwork',
+                                     'providers': [{'broadcastdomainrange': 'ZONE',
+                                                     'name': 'VirtualRouter'},
+                                                    {'broadcastdomainrange': 'ZONE',
+                                                     'name': 'VpcVirtualRouter'},
+                                                    {'broadcastdomainrange': 'ZONE',
+                                                     'name': 'InternalLbVm'}],
+                                     'traffictypes': [{'typ': 'Guest'},
+                                                       {'typ': 'Management'},
+                                                       {'typ': 'Public'}]}],
+             'pods': [{'XRT_PodIPRangeSize': 10,
+                        'clusters': [{'XRT_Hosts': 1,
+                                       'XRT_HyperVHostIds': '0',
+                                       'hypervisor': 'hyperv'}]}]}]}
+
+    OUT = {'zones': [{'dns1': '10.0.0.2',
+         'guestcidraddress': '192.168.200.0/24',
+         'internaldns1': '10.0.0.2',
+         'ipranges': [{'XRT_GuestIPRangeSize': 10,
+                        'endip': '10.1.0.10',
+                        'gateway': '10.0.0.1',
+                        'netmask': '255.255.255.0',
+                        'startip': '10.1.0.1'}],
+         'name': 'XenRT-Zone-0',
+         'networktype': 'Advanced',
+         'physical_networks': [{'XRT_VLANRangeSize': 10,
+                                 'broadcastdomainrange': 'Zone',
+                                 'isolationmethods': ['VLAN'],
+                                 'name': 'AdvPhyNetwork',
+                                 'providers': [{'broadcastdomainrange': 'ZONE',
+                                                 'name': 'VirtualRouter'},
+                                                {'broadcastdomainrange': 'ZONE',
+                                                 'name': 'VpcVirtualRouter'},
+                                                {'broadcastdomainrange': 'ZONE',
+                                                 'name': 'InternalLbVm'}],
+                                 'traffictypes': [{'typ': 'Guest'},
+                                                   {'typ': 'Management'},
+                                                   {'typ': 'Public'}],
+                                 'vlan': '3000-3009'}],
+         'pods': [{'XRT_PodIPRangeSize': 10,
+                    'clusters': [{'XRT_Hosts': 1,
+                                   'XRT_HyperVHostIds': '0',
+                                   'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
+                                   'clustertype': 'CloudManaged',
+                                   'hosts': [{'password': 'xenroot',
+                                              'url': 'http://10.0.0.3',
+                                              'username': 'root'}],
+                                   'hypervisor': 'hyperv',
+                                   'primaryStorages': [{'details': {'user': 'Administrator',
+                                                                    'password': 'xenroot01T',
+                                                                    'domain': 'XSQA'},
+                                                        'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
+                                                        'url': 'cifs://10.0.0.3/storage/primary'}]}],
+                    'endip': '10.1.0.10',
+                    'gateway': '10.0.0.1',
+                    'name': 'XenRT-Zone-0-Pod-0',
+                    'netmask': '255.255.255.0',
+                    'startip': '10.1.0.1'}],
+         'secondaryStorages': [{'XRT_SMBHostId': '0',
+                                'details': {'domain': 'XSQA',
+                                            'password': 'xenroot01T',
+                                            'user': 'Administrator'},
+                                'provider': 'SMB',
+                                'url': 'cifs://smbserver/path'}]}]} 
+

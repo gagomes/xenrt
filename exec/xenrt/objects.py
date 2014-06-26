@@ -4031,6 +4031,12 @@ bootlocal.close()
     def reboot(self):
         raise xenrt.XRTError("Function 'reboot' not implemented for this class")
 
+    def devcon(self, command):
+        devconexe = "devcon.exe"
+        if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+            self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+        return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -7283,12 +7289,6 @@ class GenericGuest(GenericPlace):
                 certs.append((certno, subject, sha1))
 
         return certs
-
-    def devcon(self, command):
-        devconexe = "devcon.exe"
-        if not self.xmlrpcFileExists("c:\\%s" % devconexe):
-            self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
-        return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
 
     def increaseServiceStartTimeOut(self):
         # CA-56951 - increase the windows timeout for starting a service

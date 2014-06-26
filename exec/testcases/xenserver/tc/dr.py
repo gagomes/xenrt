@@ -79,6 +79,9 @@ def createIscsiLun(storage_host, lun_size):
     res = storage_host.execdom0('cd /root; /root/iu.py create_lun -s %s' % lun_size)
     lun_id = res.strip()
     mac = xenrt.randomMAC()
+    # CA-138805 - Transfer VM does not renew IPs, so we'll reserve one
+    if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
+        xenrt.StaticIP4Addr(mac=mac)
     res = storage_host.execdom0('cd /root; /root/iu.py expose -l %s --mac %s' % (lun_id, mac))
     return lun_id
     

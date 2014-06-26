@@ -111,7 +111,7 @@ class DebianBasedLinux(LinuxOS):
                                filename,
                                arch=self.arch)
         ps.generate()
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         self.cleanupdir = path
         try:
@@ -137,7 +137,7 @@ class DebianBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a Debian guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time

@@ -65,6 +65,8 @@ class MyPatientTrans(xmlrpclib.Transport):
 
 class WindowsOS(OS):
 
+    COMMUNICATION_PORTS={"XML/RPC": 8936}
+
     implements(xenrt.interfaces.InstallMethodIso)
 
     @staticmethod
@@ -142,7 +144,7 @@ class WindowsOS(OS):
         
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
-        self.parent.getIP(10800)
+        self.parent.getIP(trafficType="XML/RPC", timeout=10800)
         xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
         self.updateDaemon()
@@ -196,13 +198,13 @@ class WindowsOS(OS):
         else:
             trans = MyTrans()
             
-        ip = IPy.IP(self.parent.getIP())
+        ip = IPy.IP(self.parent.getIP(trafficType="XML/RPC"))
         url = ""
         if ip.version() == 6:
-            url = 'http://[%s]:8936'
+            url = 'http://[%s]:%d'
         else:
-            url = 'http://%s:8936'
-        return xmlrpclib.ServerProxy(url % (self.parent.getIP()),
+            url = 'http://%s:%d'
+        return xmlrpclib.ServerProxy(url % (self.parent.getIP(trafficType="XML/RPC"), self.parent.getPort(trafficType="XML/RPC")),
                                      transport=trans, 
                                      allow_none=True)
 

@@ -15,6 +15,10 @@ class Instance(object):
         self.extraConfig = extraConfig
         self.mainip = None
 
+        self.inboundmap = {}
+        self.outboundip = None
+
+
         self.os = xenrt.lib.opsys.osFactory(self.distro, self)
 
         self.rootdisk = rootdisk or self.os.defaultRootdisk
@@ -58,7 +62,34 @@ class Instance(object):
                           (self.name, state), level)
             xenrt.sleep(15, log=False)
 
-    def getIP(self, timeout=600, level=xenrt.RC_ERROR):
+    def getPort(self, trafficType):
+        if self.inboundmap.has_key(trafficType):
+            return self.inboundmap[trafficType][1]
+        else:
+            return self.os.COMMUNICATION_PORTS[trafficType] 
+
+    def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
+        if self.inboundmap.has_key(trafficType):
+            return self.inboundmap[trafficType]
+        else:
+            return (self.getMainIP(timeout, level), self.os.COMMUNICATION_PORTS[trafficType])
+        
+
+    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
+        if trafficType:
+            if trafficType == "OUTBOUND":
+                if self.outboundip:
+                    return self.outboundip
+                else:
+                    return self.getMainIP(timeout, level)
+            elif self.inboundmap.has_key(trafficType):
+                return self.inboundmap[trafficType][0]
+            else:
+                return self.getMainIP(timeout, level)
+        else:
+            return self.getMainIP(timeout, level)
+
+    def getMainIP(self, timeout, level):
         if self.mainip:
             return self.mainip
         return self.toolstack.getInstanceIP(self, timeout, level)

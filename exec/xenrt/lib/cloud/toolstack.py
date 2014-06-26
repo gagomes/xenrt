@@ -42,15 +42,19 @@ class CloudStack(object):
     def name(self):
         return "CS-%s" % self.mgtsvr.place.mainip
 
+    @property
+    def cloudApi(self):
+        return self.marvin.cloudApi
+
     def instanceHypervisorType(self, instance, nativeCloudType=False):
         """Returns the hypervisor type for the given instance. nativeCloudType allows the internal cloud string to be returned"""
-        hypervisor = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hypervisor
+        hypervisor = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hypervisor
         return nativeCloudType and hypervisor or self.hypervisorToHypervisorType(hypervisor)
 
     def instanceHypervisorTypeAndVersion(self, instance, nativeCloudType=False):
         hypervisorInfo = namedtuple('hypervisorInfo', ['type','version'])
-        host = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostid
-        hostdetails = self.marvin.cloudApi.listHosts(id=host)[0]
+        host = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostid
+        hostdetails = self.cloudApi.listHosts(id=host)[0]
         if nativeCloudType:
             return hypervisorInfo(hostdetails.hypervisor, hostdetails.hypervisorversion)
         else:
@@ -70,10 +74,10 @@ class CloudStack(object):
             raise xenrt.XRTError("Unknown XenRT hypervisorType: %s" % hypervisorType)
 
     def instanceResidentOn(self, instance):
-        return self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostname
+        return self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].hostname
 
     def instanceCanMigrateTo(self, instance):
-        hosts = self.marvin.cloudApi.findHostsForMigration(virtualmachineid = instance.toolstackId)
+        hosts = self.cloudApi.findHostsForMigration(virtualmachineid = instance.toolstackId)
         if hosts is None:
             return []
         else:
@@ -93,7 +97,7 @@ class CloudStack(object):
         return ops
 
     def _getDefaultHypervisor(self):
-        hypervisors = [h.hypervisor for h in self.marvin.cloudApi.listHosts(type="routing")]
+        hypervisors = [h.hypervisor for h in self.cloudApi.listHosts(type="routing")]
         if len(hypervisors) > 0:
             # TODO reinstate this when all controllers run python >=2.7
             # return Counter(hypervisors).most_common(1)[0][0]
@@ -127,7 +131,7 @@ class CloudStack(object):
                 hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             if startOn:
-                hosts = self.marvin.cloudApi.listHosts(name=startOn)
+                hosts = self.cloudApi.listHosts(name=startOn)
                 if len(hosts) != 1:
                     raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
                 startOnId = hosts[0].id
@@ -147,14 +151,14 @@ class CloudStack(object):
                     url = "%s/%s/%s.%s.bz2" % (templateDir, hypervisor, instance.os.canonicalDistroName, templateFormat.lower())
                     if xenrt.TEC().fileExists(url):
                         self.marvin.addTemplateIfNotPresent(hypervisor, templateFormat, instance.os.canonicalDistroName, url)
-                        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName][0].id
+                        template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName][0].id
                 # If we use a template, we can't specify the disk size
                 diskOffering=None        
 
             # If we don't have a template, do ISO instead
             if not template:
                 self.marvin.addIsoIfNotPresent(instance.os.canonicalDistroName, instance.os.isoName, instance.os.isoRepo)
-                template = self.marvin.cloudApi.listIsos(name=instance.os.isoName)[0].id
+                template = self.cloudApi.listIsos(name=instance.os.isoName)[0].id
                 supportedInstallMethods = [xenrt.InstallMethod.Iso, xenrt.InstallMethod.IsoWithAnswerFile]
 
                 for m in supportedInstallMethods:
@@ -167,23 +171,23 @@ class CloudStack(object):
                 diskOffering = self.findOrCreateDiskOffering(disksize = instance.rootdisk / xenrt.GIGA)
 
             if zone:
-                zoneid = self.marvin.cloudApi.listZones(name=zone)[0].id
+                zoneid = self.cloudApi.listZones(name=zone)[0].id
             else:
-                zoneid = self.marvin.cloudApi.listZones()[0].id
+                zoneid = self.cloudApi.listZones()[0].id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
             # Do we need to sort out a security group?
-            if self.marvin.cloudApi.listZones(id=zoneid)[0].securitygroupsenabled:
-                secGroups = self.marvin.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
+            if self.cloudApi.listZones(id=zoneid)[0].securitygroupsenabled:
+                secGroups = self.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
                 if not isinstance(secGroups, list):
-                    domainid = self.marvin.cloudApi.listDomains(name='ROOT')[0].id
-                    secGroup = self.marvin.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
-                    self.marvin.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                    domainid = self.cloudApi.listDomains(name='ROOT')[0].id
+                    secGroup = self.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
+                    self.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
                                                                       protocol="TCP",
                                                                       startport=0,
                                                                       endport=65535,
                                                                       cidrlist = "0.0.0.0/0")
-                    self.marvin.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                    self.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
                                                                       protocol="ICMP",
                                                                       icmptype=-1,
                                                                       icmpcode=-1,
@@ -197,7 +201,9 @@ class CloudStack(object):
 
             xenrt.TEC().logverbose("Deploying VM")
 
-            rsp = self.marvin.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
+            networks = self.getDefaultGuestNetworks(zoneid)
+
+            rsp = self.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                             zoneid=zoneid,
                                                             displayname=name,
                                                             name=name,
@@ -206,13 +212,20 @@ class CloudStack(object):
                                                             hostid = startOnId,
                                                             hypervisor=hypervisor,
                                                             startvm=False,
-                                                            securitygroupids=secGroupIds)
+                                                            securitygroupids=secGroupIds,
+                                                            networkids = networks)
 
             instance.toolstackId = rsp.id
 
-            self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
+            self.cloudApi.createTags(resourceids=[instance.toolstackId],
                                             resourcetype="userVm",
                                             tags=[{"key":"distro", "value":distro}])
+
+
+
+            # If we've got an isolated network, we need to create a port forwarding rule
+            if len(networks) > 0:
+                self.createDefaultPortForwardingRules(instance, networks[0])
 
             xenrt.TEC().logverbose("Starting VM")
 
@@ -250,12 +263,12 @@ class CloudStack(object):
 
     def getAllExistingInstances(self):
         """Returns all existing instances"""
-        return self.marvin.cloudApi.listVirtualMachines()
+        return self.cloudApi.listVirtualMachines()
 
     def existingInstance(self, name):
 
-        vm = [x for x in self.marvin.cloudApi.listVirtualMachines(name=name) if x.name==name][0]
-        tags = self.marvin.cloudApi.listTags(resourceid = vm.id)
+        vm = [x for x in self.cloudApi.listVirtualMachines(name=name) if x.name==name][0]
+        tags = self.cloudApi.listTags(resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
         # TODO: Sort out the other arguments here
@@ -272,14 +285,14 @@ class CloudStack(object):
         return instance
 
     def destroyInstance(self, instance):
-        self.marvin.cloudApi.destroyVirtualMachine(id=instance.toolstackId, expunge=True)
+        self.cloudApi.destroyVirtualMachine(id=instance.toolstackId, expunge=True)
 
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.marvin.addIsoIfNotPresent(None, isoName, isoRepo)
-        isoId = self.marvin.cloudApi.listIsos(name=isoName)[0].id
+        isoId = self.cloudApi.listIsos(name=isoName)[0].id
 
-        self.marvin.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
+        self.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 
         # Allow the CD to appear
         xenrt.sleep(30)
@@ -294,27 +307,27 @@ class CloudStack(object):
             instance.extraConfig['CCP_PV_TOOLS'] = True
 
     def getInstanceIP(self, instance, timeout, level):
-        instance.mainip = [x.ipaddress for x in self.marvin.cloudApi.listNics(virtualmachineid = instance.toolstackId) if x.isdefault][0]
+        instance.mainip = [x.ipaddress for x in self.cloudApi.listNics(virtualmachineid = instance.toolstackId) if x.isdefault][0]
         return instance.mainip
 
     def startInstance(self, instance, on=None):
         if on:
-            hosts = self.marvin.cloudApi.listHosts(name=on)
+            hosts = self.cloudApi.listHosts(name=on)
             if len(hosts) != 1:
                 raise xenrt.XRTError("Cannot find host %s on cloud" % on)
-            self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId, hostid=hosts[0].id)
+            self.cloudApi.startVirtualMachine(id=instance.toolstackId, hostid=hosts[0].id)
         else:
-            self.marvin.cloudApi.startVirtualMachine(id=instance.toolstackId)
+            self.cloudApi.startVirtualMachine(id=instance.toolstackId)
 
     def stopInstance(self, instance, force=False):
-        self.marvin.cloudApi.stopVirtualMachine(id=instance.toolstackId, forced=force)
+        self.cloudApi.stopVirtualMachine(id=instance.toolstackId, forced=force)
 
     def rebootInstance(self, instance, force=False):
         if force:
             self.stopInstance(instance, True)
             self.startInstance(instance)
         else:
-            self.marvin.cloudApi.rebootVirtualMachine(id=instance.toolstackId)
+            self.cloudApi.rebootVirtualMachine(id=instance.toolstackId)
 
     def suspendInstance(self, instance):
         raise xenrt.XRTError("Not implemented")
@@ -326,11 +339,11 @@ class CloudStack(object):
         if not live:
             raise xenrt.XRTError("Non-live migrate is not supported")
 
-        hostid = [x for x in self.marvin.cloudApi.listHosts(name=to) if x.name==to][0].id
-        self.marvin.cloudApi.migrateVirtualMachine(hostid=hostid, virtualmachineid=instance.toolstackId)
+        hostid = [x for x in self.cloudApi.listHosts(name=to) if x.name==to][0].id
+        self.cloudApi.migrateVirtualMachine(hostid=hostid, virtualmachineid=instance.toolstackId)
 
     def getInstancePowerState(self, instance):
-        state = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].state
+        state = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0].state
         if state in ("Stopped", "Starting"):
             return xenrt.PowerState.down
         elif state in ("Running", "Stopping"):
@@ -341,23 +354,23 @@ class CloudStack(object):
         origState = instance.getPowerState()
         instance.setPowerState(xenrt.PowerState.down)
 
-        volume = self.marvin.cloudApi.listVolumes(virtualmachineid=instance.toolstackId, type="ROOT")[0].id
+        volume = self.cloudApi.listVolumes(virtualmachineid=instance.toolstackId, type="ROOT")[0].id
 
-        vm = self.marvin.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
+        vm = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
         ostypeid = vm.guestosid
 
-        tags = self.marvin.cloudApi.listTags(resourceid = vm.id)
+        tags = self.cloudApi.listTags(resourceid = vm.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
 
 
-        t = self.marvin.cloudApi.createTemplate(
+        t = self.cloudApi.createTemplate(
                             name=templateName,
                             displaytext=templateName,
                             ispublic=True,
                             ostypeid=ostypeid,
                             volumeid = volume)
         
-        self.marvin.cloudApi.createTags(resourceids=[t.id],
+        self.cloudApi.createTags(resourceids=[t.id],
                                         resourcetype="Template",
                                         tags=[{"key":"distro", "value":distro}])
         instance.setPowerState(origState)
@@ -365,16 +378,16 @@ class CloudStack(object):
     def createInstanceFromTemplate(self, templateName, name=None, start=True):
         if not name:
             name = xenrt.util.randomGuestName()
-        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0]
+        template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0]
         
-        tags = self.marvin.cloudApi.listTags(resourceid = template.id)
+        tags = self.cloudApi.listTags(resourceid = template.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
         
         # TODO support different service offerings
-        svcOffering = self.marvin.cloudApi.listServiceOfferings(name = "Medium Instance")[0].id
+        svcOffering = self.cloudApi.listServiceOfferings(name = "Medium Instance")[0].id
 
         xenrt.TEC().logverbose("Deploying VM")
-        rsp = self.marvin.cloudApi.deployVirtualMachine(
+        rsp = self.cloudApi.deployVirtualMachine(
                                         serviceofferingid=svcOffering,
                                         zoneid=template.zoneid,
                                         displayname=name,
@@ -386,7 +399,7 @@ class CloudStack(object):
         instance = xenrt.lib.Instance(self, name, distro, 0, 0, {}, [], 0)
         instance.toolstackId = rsp.id
 
-        self.marvin.cloudApi.createTags(resourceids=[instance.toolstackId],
+        self.cloudApi.createTags(resourceids=[instance.toolstackId],
                                         resourcetype="userVm",
                                         tags=[{"key":"distro", "value":distro}])
         if start:
@@ -395,36 +408,36 @@ class CloudStack(object):
         return instance
 
     def ejectInstanceIso(self, instance):
-        self.marvin.cloudApi.detachIso(virtualmachineid = instance.toolstackId)
+        self.cloudApi.detachIso(virtualmachineid = instance.toolstackId)
 
     def createInstanceSnapshot(self, instance, name, memory=False, quiesce=False):
-        self.marvin.cloudApi.createVMSnapshot(virtualmachineid = instance.toolstackId,
+        self.cloudApi.createVMSnapshot(virtualmachineid = instance.toolstackId,
                                                name = name,
                                                snapshotmemory=memory,
                                                quiesce=quiesce)
 
     def getSnapshotId(self, instance, name):
-        return self.marvin.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name)[0].id
+        return self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name)[0].id
 
     def deleteInstanceSnapshot(self, instance, name):
-        self.marvin.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
+        self.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
 
     def revertInstanceToSnapshot(self, instance, name):
-        self.marvin.cloudApi.revertToVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
+        self.cloudApi.revertToVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
 
 
     def downloadTemplate(self, templateName, downloadLocation):
-        template = [x for x in self.marvin.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0].id
-        rsp = self.marvin.cloudApi.extractTemplate(mode = "HTTP_DOWNLOAD", id = template)
+        template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == templateName][0].id
+        rsp = self.cloudApi.extractTemplate(mode = "HTTP_DOWNLOAD", id = template)
         xenrt.util.command("wget -nv '%s' -O '%s'" % (rsp.url, downloadLocation))
         
     def findOrCreateServiceOffering(self, cpus, memory):               
-        svcOfferingExist = [x for x in self.marvin.cloudApi.listServiceOfferings() if x.cpunumber == cpus and x.memory == memory]        
+        svcOfferingExist = [x for x in self.cloudApi.listServiceOfferings() if x.cpunumber == cpus and x.memory == memory]        
         if svcOfferingExist :
             return svcOfferingExist[0].id
         else :
             xenrt.TEC().logverbose("Creating New Service Offering ")
-            svcOfferingNew = self.marvin.cloudApi.createServiceOffering(cpunumber=cpus,
+            svcOfferingNew = self.cloudApi.createServiceOffering(cpunumber=cpus,
                                                                          memory=memory,
                                                                          name="CPUs=%d ,Memory=%d MB offering" %(cpus,memory),
                                                                          displaytext="New Offering",
@@ -433,12 +446,12 @@ class CloudStack(object):
         
     def findOrCreateDiskOffering(self, disksize):
         xenrt.log("Inside the disk Offering")        
-        diskOfferingExist = [x for x in self.marvin.cloudApi.listDiskOfferings() if x.disksize == disksize]        
+        diskOfferingExist = [x for x in self.cloudApi.listDiskOfferings() if x.disksize == disksize]        
         if diskOfferingExist :
             return diskOfferingExist[0].id
         else :
             xenrt.TEC().logverbose("Creating new Disk Offering ")
-            diskOfferingNew = self.marvin.cloudApi.createDiskOffering(disksize=disksize,
+            diskOfferingNew = self.cloudApi.createDiskOffering(disksize=disksize,
                                                                       name="Disk=%d GB offering" %disksize,
                                                                       displaytext="Disk Offering")
             return diskOfferingNew.id
@@ -477,3 +490,56 @@ class CloudStack(object):
     def getLogs(self, path):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
+
+    def getDefaultGuestNetworks(self, zoneid):
+        if self.cloudApi.listZones(id=zoneid)[0].networktype == "Advanced":
+            nets = [x for x in self.cloudApi.listNetworks(zoneid=zoneid) or [] if x.name=="xenrtnet"]
+            if len(nets) > 0:
+                return [nets[0].id]
+            else:
+                return [self.createDefaultGuestNetwork(zoneid)]
+        else:
+            return []
+
+    def createDefaultGuestNetwork(self, zoneid):
+        netOffering = [x.id for x in self.marvin.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
+        net = self.cloudApi.createNetwork(name="xenrtnet", displaytext="xenrtnet", networkofferingid=netOffering, zoneid=zoneid).id
+        self.cloudApi.associateIpAddress(networkid=net)
+        cidr = self.cloudApi.listNetworks(id=net)[0].cidr
+        self.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)
+        return net
+
+    def createDefaultPortForwardingRules(self, instance, networkid):
+        ip = self.cloudApi.listPublicIpAddresses(associatednetworkid=networkid, issourcenat=True)[0]
+
+        for p in instance.os.COMMUNICATION_PORTS.keys():
+            existingRules = self.cloudApi.listPortForwardingRules(ipaddressid=ip.id) or []
+            i = 1024
+            while True:
+                ok = True
+                for r in existingRules:
+                    if i >= int(r.publicport) and i <= int(r.publicendport):
+                        ok = False
+                        break
+                if ok:
+                    break
+                i += 1
+
+                if i > 65535:
+                    raise xenrt.XRTError("Not enough ports available for port forwarding")
+
+            self.cloudApi.createPortForwardingRule(openfirewall=True,
+                                                   protocol="TCP",
+                                                   publicport=i,
+                                                   publicendport=i,
+                                                   privateport=instance.os.COMMUNICATION_PORTS[p],
+                                                   privateendport=instance.os.COMMUNICATION_PORTS[p],
+                                                   ipaddressid=ip.id,
+                                                   virtualmachineid=instance.toolstackId)
+            instance.inboundmap[p] = (ip.ipaddress, i)
+
+        instance.outboundip = ip.ipaddress
+
+
+
+        

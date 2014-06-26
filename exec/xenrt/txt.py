@@ -36,7 +36,7 @@ class TXTSuppPackInstaller:
 
     def __modifyPassword(self, host):
         pw = self.__hashPassword()
-        host.execdom0("echo %s > %s" % (pw, self.__CONFIG_FILE))
+        host.execdom0("echo password=%s > %s" % (pw, self.__CONFIG_FILE))
 
     def __hashPassword(self):
         """Create a sha1 hash of the default password"""

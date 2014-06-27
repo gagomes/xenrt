@@ -113,7 +113,7 @@ class XenRTDHCPAllocator(object):
         intfcfg = self.config['interfaces'][intf]
         self._sql("SELECT addr FROM leases WHERE addr='%s' AND mac='%s' AND interface='%s'" % (ip, mac.lower(), intf))
         r = self.cur.fetchone()
-        self._sql("UPDATE leases SET expiry=%d WHERE addr='%s'" % (int(time.time() + intfcfg['leasetime']), r[0]))
+        self._sql("UPDATE leases SET expiry=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), r[0]))
 
     def _getNewLease(self, intf, mac):
         # Exclude Cloudstack MACs
@@ -125,7 +125,7 @@ class XenRTDHCPAllocator(object):
         if not r:
             return None
         else:
-            self._sql("UPDATE leases SET expiry=%d,mac='%s' WHERE addr='%s'" % (int(time.time() + intfcfg['leasetime']), mac.lower(), r[0]))
+            self._sql("UPDATE leases SET expiry=%d,mac='%s' WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), mac.lower(), r[0]))
             return r[0]
         
     def getResponse(self, intf, mac, packet):
@@ -151,7 +151,7 @@ class XenRTDHCPAllocator(object):
                 if not ip:
                     _logger.warn("Could not allocate lease for %s on %s" % (str(mac), intf))
                     return None
-                lease = cfg['leasetime']
+                lease = cfg['clientleasetime']
         self._populatePXEInfo(packet, intf)
 
         intfdetails = self.getInterfaceInfo(intf)
@@ -230,7 +230,7 @@ class XenRTDHCPAllocator(object):
 
             for i in xrange(size):
                 ip = IPy.IP(start + i).strNormal()
-                self._sql("UPDATE leases SET reserved='%s',reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), ip))
+                self._sql("UPDATE leases SET reserved='%s',mac=NULL,reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), ip))
                 res.append(ip)
 
             return res

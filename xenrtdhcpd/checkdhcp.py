@@ -17,6 +17,7 @@ with os.popen("grep 'xenrtdhcpd :' /var/log/syslog | tail -1") as f:
 
         if myts - 300 > logts:
             print "DHCP server not running"
+            os.system("sudo /etc/init.d/xenrtdhcpd restart")
         else:
             print "DHCP activity in the last 5 minutes"
     else:

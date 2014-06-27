@@ -212,11 +212,20 @@ class CloudStack(object):
             if not instance.os.installMethod:
                 instance.start()
             else:
-                self.startInstance(instance)
+                if instance.outboundip and instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                    # We could have multiple instances behind the same IP, so we can only do one install at a time
+                    with xenrt.GEC().getLock("CCP_INSTANCE_INSTALL-%s" % instance.outboundip):
+                        xenrt.TEC().logverbose("Generating answer file")
+                        instance.os.generateIsoAnswerfile()
+                        self.startInstance(instance)
+                        instance.os.waitForIsoAnswerfileAccess()
 
-                if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
-                    xenrt.TEC().logverbose("Generating answer file")
-                    instance.os.generateIsoAnswerfile()
+                else:
+                    self.startInstance(instance)
+    
+                    if instance.os.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
+                        xenrt.TEC().logverbose("Generating answer file")
+                        instance.os.generateIsoAnswerfile()
 
                 xenrt.TEC().logverbose("Waiting for install complete")
                 instance.os.waitForInstallCompleteAndFirstBoot()

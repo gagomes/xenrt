@@ -135,7 +135,7 @@ class HyperVHost(xenrt.GenericHost):
         if not drivers:
             return
 
-        driverlist = driverlist.split(",")
+        driverlist = drivers.split(",")
         for d in driverlist:
             (archive, inf, pci) = d.split(":",2)
             self.xmlrpcUnpackTarball("%s/archive.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")

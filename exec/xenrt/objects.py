@@ -4032,7 +4032,10 @@ bootlocal.close()
         raise xenrt.XRTError("Function 'reboot' not implemented for this class")
 
     def devcon(self, command):
-        devconexe = "devcon.exe"
+        if self.xmlrpcGetArch() == "amd64":
+            devconexe = "devcon64.exe"
+        else:
+            devconexe = "devcon.exe"
         if not self.xmlrpcFileExists("c:\\%s" % devconexe):
             self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
         return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)

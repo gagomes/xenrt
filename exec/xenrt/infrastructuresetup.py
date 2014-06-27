@@ -257,10 +257,10 @@ def buildDHCPFile(config,machines,testpeers,sharedhosts):
     dns = config.lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], None)
     if dns:
         dnsconfig = "option domain-name-servers %s;" % (dns)
-        globalcfg['dns'] = dns.split(",")[0]
     else:
         dnsconfig = ""
-        globalcfg['dns'] = "self"
+    
+    globalcfg['dns'] = "self"
 
     globalcfg['clientleasetime'] = 3600 
     globalcfg['trueleasetime'] = 7200

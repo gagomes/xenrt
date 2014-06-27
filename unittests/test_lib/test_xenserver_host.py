@@ -26,21 +26,40 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         self.assertFalse(rand.called)
 
     @patch("random.choice")
-    def testClearWaterGetsRandomCores(self, rand):
+    @patch("xenrt.GEC")
+    @patch("xenrt.TEC")
+    def testClearWaterGetsRandomCores(self, tec, gec, rand):
         """Clearwater hosts do get random called when setting sockets"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        tec.return_value.lookup = Mock(return_value = 0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertTrue(rand.called)
 
-    def testClearwaterGetsSocketsSet(self):
+    @patch("xenrt.GEC")
+    @patch("xenrt.TEC")
+    def testClearwaterGetsSocketsSet(self, tec, gec):
         """For a CLR host the number of sockets should be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        tec.return_value.lookup = Mock(return_value = 0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertTrue(self.__sockets.called)
 
-    def testTampaDoesntGetSocketsSet(self):
+    @patch("xenrt.GEC")
+    @patch("xenrt.TEC")
+    def testClearwaterGetsSocketsSetWithDbValueSet(self, tec, gec):
+        """For a CLR host the number of sockets should be set if the
+        cores per socket value has been pulled from the database"""
+        host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
+        tec.return_value.lookup = Mock(return_value = 4)
+        host.setRandomCoresPerSocket(self.__guest, 23)
+        self.assertTrue(self.__sockets.called)
+
+    @patch("xenrt.GEC")
+    @patch("xenrt.TEC")
+    def testTampaDoesntGetSocketsSet(self, tec, gec):
         """For TAM hosts expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.TampaHost(None, None))
+        tec.return_value.lookup = Mock(return_value = 0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertFalse(self.__sockets.called)
 

@@ -1,0 +1,29 @@
+# Description: Intel drivers for Gigabit VT Quad Port Server Adapter
+# Status: proprietary
+# Obtaining:
+# http://www.dell.com/support/drivers/us/en/19/DriverDetails?driverId=J89P6&fileId=2731104916&URL=http%3A%2F%2Fwww.dell.com%2Fsupport%2Fdrivers%2Fus%2Fen%2F19%2FDriverDetails%3FdriverId%3DJ89P6%26fileId%3D2731104916&ACD=11708984-3662453-skim725X1388725Xf9dd98b88987989649844db27e61de74&AID=3662453
+# Use 7-zip to extract payload directory
+a2f8a4c0b8f669405b1359171b442a28  ./e1e6232e.cat
+ee0701a0a4c4b7be8f63b18250a71ba0  ./e1e6232e.din
+9def317a6b5b4fde8303f243a00a8f66  ./e1e6232e.inf
+099e01a94167ca8bda2cf72037ad0e28  ./e1e6232e.sys
+394ffc95f4e1157e2159fa6c74c425ff  ./e1p62x64.cat
+90f0ef4edcad54b3c22c4edc1fdbb9af  ./e1p62x64.inf
+713a471bd352ba1dfcf54509a0eb4632  ./e1q62x64.cat
+04405ab0b9279012c3377e1397736437  ./e1q62x64.din
+c8dbe86d417f9100d99b2ae9f31a78f8  ./e1q62x64.Inf
+691bf51e44376912dfe1ec8f9bfd0891  ./e1q62x64.sys
+e824e922f1d440263c9b87b2435ba000  ./ixe62x64.cat
+7a2b524c4de8fc15befbaa98249b7908  ./ixe62x64.din
+48606787a7d54794c834e90c14fecab1  ./ixe62x64.inf
+2ff2dd32f9278abb6c7aa2bd6431f576  ./ixe62x64.sys
+a3427fb3fae5583405cd4607fbea75e2  ./ixn62x64.cat
+fd18ad3c2eb52228b2e63ea3103da307  ./ixn62x64.din
+5b9dab8ca0d4991f1f6bb382f373a518  ./ixn62x64.inf
+642e282a93c99b3f9d25904bc907589a  ./ixn62x64.sys
+4aa441f4ad7491bdb2162f87a1da6a3a  ./NicCo36.dll
+0f6c8d56a2167ba4a717d8e84b84478c  ./NicInE6.dll
+e67417cc2c1f9cb0a929cd844a349362  ./NicInIXE.dll
+153cd7c8cc02cbc4f1b5f988adfeb19d  ./NicInIXN.dll
+4a7f75995432233e691b23914ccddc5e  ./NicInstQ.dll
+f37e97602b2dc5613ac8fe1a1426947f  ./PROUnstl.exe

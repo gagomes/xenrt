@@ -129,6 +129,19 @@ class HyperVHost(xenrt.GenericHost):
                        "Booted",
                        "SZ",
                        "c:\\onboot.cmd")
+        self.installAdditionalNICDrivers()
+
+    def installAdditionalNICDrivers(self):
+        drivers = self.lookup("WINDRIVERS", None)
+        if not drivers:
+            return
+
+        driverlist = drivers.split(",")
+        for d in driverlist:
+            (archive, inf, pci) = d.split(":",2)
+            self.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), archive), "c:\\")
+            self.devcon("update \"c:\\%s\\%s\" \"%s\"" % (archive, inf, pci))
+
 
     def installHyperV(self):
         if self.productVersion.startswith("hvs"):

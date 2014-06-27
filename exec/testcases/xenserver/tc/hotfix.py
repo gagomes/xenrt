@@ -540,6 +540,7 @@ class _OrlandoAllHFonly(_OrlandoRTM):
 
 class _FloodgateRTM(_Hotfix):
     INITIAL_VERSION = "Orlando HF3"
+    INITIAL_BRANCH = "RTM"
 
 class _GeorgeRTM(_Hotfix):
     INITIAL_VERSION = "George"
@@ -555,9 +556,11 @@ class _GeorgeHF2(_GeorgeRTM):
 
 class _GeorgeU1(_Hotfix):
     INITIAL_VERSION = "George HF1"
+    INITIAL_BRANCH = "RTM"
 
 class _GeorgeU2(_Hotfix):
     INITIAL_VERSION = "George HF2"
+    INITIAL_BRANCH = "RTM"
     
 class _GeorgeU2HFd(_GeorgeRTM):
     INITIAL_HOTFIXES = ["HF1", "HF2", "XS55EU2004", "XS55EU2005", "XS55EU2006", "XS55EU2007", "XS55EU2008", "XS55EU2009", "XS55EU2010", "XS55EU2011", "XS55EU2012", "XS55EU2013", "XS55EU2014", "XS55EU2015", "XS55EU2016", "XS55EU2017", "XS55EU2018", "XS55EU2019", "XS55EU2020"]

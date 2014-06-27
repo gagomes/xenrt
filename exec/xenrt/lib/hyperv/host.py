@@ -129,6 +129,7 @@ class HyperVHost(xenrt.GenericHost):
                        "Booted",
                        "SZ",
                        "c:\\onboot.cmd")
+        self.installAdditionalNICDrivers()
 
     def installAdditionalNICDrivers(self):
         drivers = self.lookup("WINDRIVERS", None)

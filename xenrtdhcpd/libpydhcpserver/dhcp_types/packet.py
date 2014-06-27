@@ -51,9 +51,6 @@ _PACKET_HEADER_SIZE = 240
 
 _MANDATORY_OPTIONS = set((
  1, #subnet_mask
- 3, #router
- 6, #domain_name_servers
- 15, #domain_name
  51, #ip_address_lease_time
  53, #dhcp_message_type
  54, #server_identifier

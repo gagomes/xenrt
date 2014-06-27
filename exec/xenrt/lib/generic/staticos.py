@@ -24,7 +24,7 @@ class StaticOS(object):
         """Poll for reaching the specified state"""
         raise xenrt.XRTError("Not supported")
 
-    def getIP(self, timeout=600, level=xenrt.RC_ERROR):
+    def getIP(self, trafficType=None, timeout=600, level=xenrt.RC_ERROR):
         return self.mainip
 
     def setIP(self, ip):

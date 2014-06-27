@@ -81,7 +81,7 @@ class OSParent(Interface):
 
     hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
 
-    def getIP(timeout, level):
+    def getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
     def setIP(ip):
@@ -112,6 +112,8 @@ class OS(Interface):
     defaultMemory = Attribute("Default memory size")
 
     canonicalDistroName = Attribute("Canonical distro name")
+
+    tcpCommunicationPorts = Attribute("TCP Ports needed for inbound communication, of type {name:port}")
 
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""

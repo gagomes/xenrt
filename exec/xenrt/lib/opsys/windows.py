@@ -65,7 +65,7 @@ class MyPatientTrans(xmlrpclib.Transport):
 
 class WindowsOS(OS):
 
-    COMMUNICATION_PORTS={"XML/RPC": 8936}
+    tcpCommunicationPorts={"XML/RPC": 8936}
 
     implements(xenrt.interfaces.InstallMethodIso)
 

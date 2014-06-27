@@ -6,7 +6,7 @@ from xenrt.lib.opsys import OS
 class LinuxOS(OS):
     vifStem = "eth"
 
-    COMMUNICATION_PORTS={"SSH": 22}
+    tcpCommunicationPorts={"SSH": 22}
 
     def execSSH(self,
                 command,

@@ -176,32 +176,13 @@ class CloudStack(object):
                 zoneid = self.cloudApi.listZones()[0].id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
 
-            # Do we need to sort out a security group?
-            if self.cloudApi.listZones(id=zoneid)[0].securitygroupsenabled:
-                secGroups = self.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
-                if not isinstance(secGroups, list):
-                    domainid = self.cloudApi.listDomains(name='ROOT')[0].id
-                    secGroup = self.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
-                    self.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
-                                                                      protocol="TCP",
-                                                                      startport=0,
-                                                                      endport=65535,
-                                                                      cidrlist = "0.0.0.0/0")
-                    self.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
-                                                                      protocol="ICMP",
-                                                                      icmptype=-1,
-                                                                      icmpcode=-1,
-                                                                      cidrlist = "0.0.0.0/0")
-                    secGroupId = secGroup.id
-                else:
-                    secGroupId = secGroups[0].id
-                secGroupIds = [secGroupId]
-            else:
-                secGroupIds = []
 
             xenrt.TEC().logverbose("Deploying VM")
 
-            networks = self.getDefaultGuestNetworks(zoneid)
+            networkProvider = NetworkProvider.factory(self, zoneid, instance, extraConfig)
+
+            secGroupIds = networkProvider.getSecurityGroupIds()
+            networks = networkProvider.getNetworkIds()
 
             rsp = self.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                             zoneid=zoneid,
@@ -223,9 +204,7 @@ class CloudStack(object):
 
 
 
-            # If we've got an isolated network, we need to create a port forwarding rule
-            if len(networks) > 0:
-                self.createDefaultPortForwardingRules(instance, networks[0])
+            networkProvider.setupNetworkAccess()
 
             xenrt.TEC().logverbose("Starting VM")
 
@@ -491,30 +470,106 @@ class CloudStack(object):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
 
-    def getDefaultGuestNetworks(self, zoneid):
-        if self.cloudApi.listZones(id=zoneid)[0].networktype == "Advanced":
-            nets = [x for x in self.cloudApi.listNetworks(zoneid=zoneid) or [] if x.name=="xenrtnet"]
-            if len(nets) > 0:
-                return [nets[0].id]
-            else:
-                return [self.createDefaultGuestNetwork(zoneid)]
+class NetworkProvider(object):
+
+    @staticmethod
+    def factory(cloudstack, zoneid, instance, config):
+        # Is this a basic zone?
+        cls = None
+        if cloudstack.cloudApi.listZones(id=zoneid)[0].networktype == "Basic":
+            cls = BasicNetworkProvider
         else:
-            return []
+            if config.has_key("networktype") and config['networktype']:
+                networkType = config['networktype']
+            else:
+                networkType = "IsolatedWithSourceNAT"
 
-    def createDefaultGuestNetwork(self, zoneid):
-        netOffering = [x.id for x in self.marvin.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
-        net = self.cloudApi.createNetwork(name="xenrtnet", displaytext="xenrtnet", networkofferingid=netOffering, zoneid=zoneid).id
-        self.cloudApi.associateIpAddress(networkid=net)
-        cidr = self.cloudApi.listNetworks(id=net)[0].cidr
-        self.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)
-        return net
+            if networkType == "IsolatedWithSourceNAT":
+                cls = AdvancedNetworkProviderIsolatedWithSourceNAT 
 
-    def createDefaultPortForwardingRules(self, instance, networkid):
-        ip = self.cloudApi.listPublicIpAddresses(associatednetworkid=networkid, issourcenat=True)[0]
+        if not cls:
+            raise xenrt.XRTError("No suitable network provider found")
 
-        for p in instance.os.COMMUNICATION_PORTS.keys():
-            existingRules = self.cloudApi.listPortForwardingRules(ipaddressid=ip.id) or []
-            i = 1024
+        return cls(cloudstack, zoneid, instance, config)
+
+    def __init__(self, cloudstack, zoneid, instance, config):
+        self.cloudstack = cloudstack
+        self.zoneid = zoneid
+        self.instance = instance
+        self.config = config
+
+    def getSecurityGroupIds(self):
+        # Do we need to sort out a security group?
+        if self.cloudstack.cloudApi.listZones(id=self.zoneid)[0].securitygroupsenabled:
+            secGroups = self.cloudstack.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
+            if not isinstance(secGroups, list):
+                domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
+                secGroup = self.cloudstack.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
+                self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                                                                       protocol="TCP",
+                                                                       startport=0,
+                                                                       endport=65535,
+                                                                       cidrlist = "0.0.0.0/0")
+                self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                                                                       protocol="ICMP",
+                                                                       icmptype=-1,
+                                                                       icmpcode=-1,
+                                                                       cidrlist = "0.0.0.0/0")
+                secGroupId = secGroup.id
+            else:
+                secGroupId = secGroups[0].id
+            secGroupIds = [secGroupId]
+        else:
+            secGroupIds = []
+
+        return secGroupIds
+
+    def getNetworkIds(self):
+        raise xenrt.XRTError("Not Implemented")
+
+    def setupNetworkAccess(self):
+        pass
+
+class BasicNetworkProvider(NetworkProvider):
+    def getNetworkIds(self):
+        return []
+
+class AdvancedNetworkProviderIsolatedWithSourceNAT(NetworkProvider):
+    def __init__(self, cloudstack, zoneid, instance, config):
+        super(self.__class__, self).__init__(cloudstack, zoneid, instance, config)
+        self.network = None
+    
+    def getNetworkIds(self):
+        if self.config.has_key('networkname') and self.config['networkname']:
+            netName = self.config['networkname']
+        else:
+            netName = "XenRT-IsolatedSourceNAT-%s" % self.zoneid
+
+
+        nets = [x for x in self.cloudstack.cloudApi.listNetworks(zoneid=self.zoneid) or [] if x.name==netName]
+        if len(nets) > 0:
+            self.network = nets[0].id
+        else:
+            netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
+            net = self.cloudstack.cloudApi.createNetwork(name=netName,
+                                                         displaytext=netName,
+                                                         networkofferingid=netOffering,
+                                                         zoneid=self.zoneid).id
+            self.cloudstack.cloudApi.associateIpAddress(networkid=net)
+            cidr = self.cloudstack.cloudApi.listNetworks(id=net)[0].cidr
+            self.cloudstack.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)
+            self.network = net
+
+        return [self.network]
+
+    def setupNetworkAccess(self):
+        ip = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=True)[0]
+
+        # For each communication port, find a free port on the NAT IP to use
+        for p in self.instance.os.tcpCommunicationPorts.keys():
+            existingRules = self.cloudstack.cloudApi.listPortForwardingRules(ipaddressid=ip.id) or []
+            i = 1025
+            # Find a free port, by checking the existing rules
             while True:
                 ok = True
                 for r in existingRules:
@@ -528,18 +583,19 @@ class CloudStack(object):
                 if i > 65535:
                     raise xenrt.XRTError("Not enough ports available for port forwarding")
 
-            self.cloudApi.createPortForwardingRule(openfirewall=True,
-                                                   protocol="TCP",
-                                                   publicport=i,
-                                                   publicendport=i,
-                                                   privateport=instance.os.COMMUNICATION_PORTS[p],
-                                                   privateendport=instance.os.COMMUNICATION_PORTS[p],
-                                                   ipaddressid=ip.id,
-                                                   virtualmachineid=instance.toolstackId)
-            instance.inboundmap[p] = (ip.ipaddress, i)
+            # Crete the rule
+            self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
+                                                              protocol="TCP",
+                                                              publicport=i,
+                                                              publicendport=i,
+                                                              privateport=self.instance.os.tcpCommunicationPorts[p],
+                                                              privateendport=self.instance.os.tcpCommunicationPorts[p],
+                                                              ipaddressid=ip.id,
+                                                              virtualmachineid=self.instance.toolstackId)
 
-        instance.outboundip = ip.ipaddress
+            # And update the inbound IP map
+            self.instance.inboundmap[p] = (ip.ipaddress, i)
 
-
+        self.instance.outboundip = ip.ipaddress
 
         

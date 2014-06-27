@@ -1,9 +1,7 @@
 <xenrt>
 
-  <!-- MNR to Boston VM Tools/drivers/kernel upgrade test -->
+  <!-- Clearwater to Creedence VM Tools/drivers/kernel upgrade test -->
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
   <default name="GUESTMEMORY" value="1024"/>
   <default name="GUESTVCPUS" value="2"/>
 

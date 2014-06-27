@@ -415,8 +415,9 @@ class TC18381(TC9352):
 
     def postInstall(self):
 
-        # Install Borehamwood Supplemental Pack.
-        self.installBorehamwoodSuppPack()
+        # Borehamwood Supplemental Pack is integrated in Creedence. Install only for previous releases.
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.installBorehamwoodSuppPack()
 
         # Find out the SCSID of the root disk on a LUN delivered by HBA
         primarydisk = self.host.getInventoryItem("PRIMARY_DISK") # '/dev/disk/by-id/scsi-360a98000534b4f50476f707a63743464'

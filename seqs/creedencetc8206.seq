@@ -1,12 +1,10 @@
 <xenrt>
-
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>1</PREPARE_WORKERS>
   </variables>
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <prepare>
     <pool>

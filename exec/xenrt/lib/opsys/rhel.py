@@ -112,6 +112,7 @@ class RHELBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
         xenrt.command("rm -f %s/kickstart.stamp" % path)
         shutil.copyfile(filename, "%s/kickstart" % (path))
 

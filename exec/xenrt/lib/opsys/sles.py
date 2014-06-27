@@ -104,6 +104,7 @@ class SLESBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
         xenrt.command("rm -f %s/autoyast.stamp" % path)
         shutil.copyfile(filename, "%s/autoyast" % (path))
 

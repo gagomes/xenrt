@@ -219,6 +219,7 @@ class CloudStack(object):
                         instance.os.generateIsoAnswerfile()
                         self.startInstance(instance)
                         instance.os.waitForIsoAnswerfileAccess()
+                        instance.os.cleanupIsoAnswerfile()
 
                 else:
                     self.startInstance(instance)

@@ -158,6 +158,9 @@ class InstallMethodIsoWithAnswerFile(InstallMethodIso):
     def generateIsoAnswerfile():
         """Generate an answerfile for ISO installation"""
 
+    def waitForIsoAnswerfileAccess():
+        """Wait for the generated answerfile to be accessed, and clean up"""
+
 
 class StringGenerator(Interface):
     def generate(length):

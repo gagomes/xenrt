@@ -118,7 +118,14 @@ class DebianBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
+        xenrt.command("rm -f %s/preseed.stamp" % path)
         shutil.copyfile(filename, "%s/preseed" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/preseed.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:

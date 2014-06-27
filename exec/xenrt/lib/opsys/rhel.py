@@ -104,7 +104,7 @@ class RHELBasedLinux(LinuxOS):
         f.write(ks)
         f.close()
 
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
 
         self.cleanupdir = path
@@ -112,7 +112,14 @@ class RHELBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
+        xenrt.command("rm -f %s/kickstart.stamp" % path)
         shutil.copyfile(filename, "%s/kickstart" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/kickstart.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -149,7 +156,7 @@ class RHELBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time

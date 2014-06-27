@@ -4154,7 +4154,7 @@ def createVM(host,
             g.setVCPUs(vcpus)
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
-        elif xenrt.TEC().lookup("RANDOM_CORES_PER_SOCKET", default=False, boolean=True):
+        elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             host.setRandomCoresPerSocket(g, vcpus)
         if memory:
             g.setMemory(memory)
@@ -4878,7 +4878,16 @@ class TampaGuest(BostonGuest):
                 if not isinstance(self, xenrt.lib.xenserver.guest.ClearwaterGuest):
                     raise xenrt.XRTError('Windows guest agent HostTime=UTC functional only availalbe in Clearwater or later')
                 hostTimeString = 'HOSTTIME=utc'
-            self.xmlrpcStart("D:\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log %s" % (hostTimeString))
+
+            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ", None)
+            pvToolsDir = "D:"
+            if pvToolsTgz:
+                xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
+                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                pvToolsDir = self.xmlrpcTempDir()
+                self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
+
+            self.xmlrpcStart("%s\\installwizard.msi /passive /liwearcmuopvx c:\\tools_msi_install.log %s" % (pvToolsDir, hostTimeString))
         
         # Monitor the guest for a domid change, this is the (first) reboot
         deadline = xenrt.util.timenow() + 3600

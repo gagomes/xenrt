@@ -47,7 +47,7 @@
       </vm>
       <vm name="attacker">
         <distro>ubuntu1004</distro>
-        <memory>128</memory>
+        <memory>1024</memory>
         <vcpus>2</vcpus>
         <network device="0" />
         <network device="1" bridge="internal"/>

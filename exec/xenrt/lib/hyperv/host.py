@@ -138,7 +138,7 @@ class HyperVHost(xenrt.GenericHost):
         driverlist = drivers.split(",")
         for d in driverlist:
             (archive, inf, pci) = d.split(":",2)
-            self.xmlrpcUnpackTarball("%s/archive.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+            self.xmlrpcUnpackTarball("%s/%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), arvchive), "c:\\")
             self.devcon("update \"c:\\%s\\%s\" \"%s\"" % (archive, inf, pci))
 
 

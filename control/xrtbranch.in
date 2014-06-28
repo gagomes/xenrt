@@ -8,7 +8,7 @@ shift
 
 echo $branch
 
-cd @rootdir@/xenrt.git
+cd @rootdir@
 oldbranch=`git symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3`
 git checkout -f $branch
 git pull --ff-only

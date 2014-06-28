@@ -155,14 +155,17 @@ class MarvinApi(object):
     def marvinDeployerFactory(self):
         return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
 
-    def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
+    def getCloudGlobalConfig(self, name):
         configSetting = self.cloudApi.listConfigurations(name=name)
         if configSetting == None or len(configSetting) == 0:
             raise xenrt.XRTError('Could not find setting: %s' % (name))
         elif len(configSetting) > 1:
             configSetting = filter(lambda x:x.name == name, configSetting)
-        xenrt.TEC().logverbose('Current value for setting: %s is %s, new value: %s' % (name, configSetting[0].value, value))
-        if value != configSetting[0].value:
+        xenrt.TEC().logverbose('Current value for setting: %s is %s' % (name, configSetting[0].value))
+        return configSetting[0].value
+
+    def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
+        if value != self.getCloudGlobalConfig(name):
             self.cloudApi.updateConfiguration(name=name, value=value)
             if restartManagementServer:
                 self.mgtSvr.restart()
@@ -202,8 +205,8 @@ class MarvinApi(object):
             raise xenrt.XRTError('Failed to find system templates')
 
         # Check if any non-default system templates have been specified
-        # These should be added in the form -D CLOUD_SYS_TEMPLATES/hypervisor=url
-        sysTemplates = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATES", {})
+        # These should be added in the form -D CLOUD_TMPLT/hypervisor=url
+        sysTemplates = xenrt.TEC().lookup("CLOUD_TMPLT", {})
         for s in sysTemplates:
             templates[s] = sysTemplates[s]
 

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -ex
+
+branch=$1
+
+shift
+
+echo $branch
+
+cd @rootdir@/xenrt.git
+oldbranch=`git symbolic-ref HEAD 2>/dev/null | cut -d"/" -f 3`
+git checkout -f $branch
+git pull --ff-only
+BUILDPREFIX=$branch make install
+git checkout -f $oldbranch
+
+@sharedir@/control/venvwrapper.sh `mktemp -d` @sharedir@/$branch-exec/main.py "$@"

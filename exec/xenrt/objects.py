@@ -7014,9 +7014,8 @@ class GenericGuest(GenericPlace):
                 # as this no longer exists due to Etch going end of life
                 if debver <= 4.0:
                     for filename in ["/etc/apt/sources.list.d/xensource.list", "/etc/apt/sources.list.d/citrix.list"]:
-                        try:
-                            if self.execguest("test -e %s" % (filename), retval="code") == 0:
-                                self.execguest("rm -f %s" % (filename))
+                        if self.execguest("test -e %s" % (filename), retval="code") == 0:
+                            self.execguest("rm -f %s" % (filename))
 
                 # Later Debian versions can use the original install
                 # mirror. The preseeder kindly does this for us however

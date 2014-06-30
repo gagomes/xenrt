@@ -760,12 +760,14 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
 
 class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolated):
 
-    def _getIP(self):
+    def _getOutboundIP(self):
         return self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=True)[0]
-        
+    
+    def _getInboundIP(self):
+        return self._getOutboundIP()
 
     def setupNetworkAccess(self):
-        ip = self._getIP()
+        ip = self._getInboundIP()
 
         # For each communication port, find a free port on the NAT IP to use
         for p in self.instance.os.tcpCommunicationPorts.keys():
@@ -798,10 +800,10 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
             # And update the inbound IP map
             self.instance.inboundmap[p] = (ip.ipaddress, i)
 
-        self.instance.outboundip = ip.ipaddress
+        self.instance.outboundip = self._getOutboundIP().ipaddress
 
 class AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric(AdvancedNetworkProviderIsolatedWithSourceNAT):
-    def _getIP(self):
+    def _getInboundIP(self):
         # First see if there's an IP not being used for source NAT or static NAT
 
         addrs = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=False, isstaticnat=False)

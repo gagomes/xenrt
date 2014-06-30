@@ -596,7 +596,9 @@ def buildHostsFile(config,machines,testpeers,sharedhosts):
         f.write("%s xenrt-controller.xenrt.nsec-xenrtcloud\n" % secAddr)
 
     for v in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys():
-        f.write("%s xenrt-controller.xenrt.%s-xenrtcloud\n" % (xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ADDRESS"]), v.lower()))
+        addr = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ADDRESS"]. None)
+        if addr:
+            f.write("%s xenrt-controller.xenrt.%s-xenrtcloud\n" % (addr, v.lower()))
 
     for machine in machines:
         addr = config.lookup(["HOST_CONFIGS", machine, "HOST_ADDRESS"], None)

@@ -354,8 +354,6 @@ def doDeploy(cloudSpec, manSvr=None):
         if cloudSpec.has_key('globalConfig'):
             manSvr.restart()
 
-        marvin.tailorCloudForXenRT()
-
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvin.waitForBuiltInTemplatesReady()
     finally:

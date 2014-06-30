@@ -267,7 +267,7 @@ def buildDHCPFile(config,machines,testpeers,sharedhosts):
     globalcfg['staticleasetime'] = 7200
     globalcfg['ipxe'] = xenrt.TEC().lookup("USE_IPXE", False, boolean=True)
 
-    domainname = config.lookup(["NETWORK_CONFIG", "DEFAULT", "DOMAIN"], "uk.xensource.com")
+    domainname = config.lookup(["NETWORK_CONFIG", "DEFAULT", "DOMAIN"], "xenrtcloud")
     if domainname:
         domainnameconfig = "option domain-name \"%s\";" % (domainname)
         globalcfg['domain'] = domainname

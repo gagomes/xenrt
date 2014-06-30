@@ -237,7 +237,7 @@ class CloudStack(object):
             secGroupIds = networkProvider.getSecurityGroupIds()
             networks = networkProvider.getNetworkIds()
 
-            domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
+            domainid = self.cloudApi.listDomains(name='ROOT')[0].id
             rsp = self.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                      zoneid=zoneid,
                                                      displayname=name,

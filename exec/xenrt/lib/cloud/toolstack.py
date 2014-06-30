@@ -813,7 +813,7 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
 
         ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network)
       
-        xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress)
+        xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress))
 
         # Setup static NAT to this VM
         self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)

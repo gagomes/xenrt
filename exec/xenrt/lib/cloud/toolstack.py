@@ -294,6 +294,7 @@ class CloudStack(object):
                                          tags=[{"key":"tools", "value":"yes"}])
 
         except Exception, ex:
+            raise
             try:
                 instance.screenshot(xenrt.TEC().getLogdir())
             except Exception, e:

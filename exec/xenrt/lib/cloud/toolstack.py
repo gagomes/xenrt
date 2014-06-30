@@ -748,7 +748,7 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
 class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolated):
 
     def _getIP(self):
-        ip = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=True)[0]
+        return self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=True)[0]
         
 
     def setupNetworkAccess(self):
@@ -788,7 +788,7 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
         self.instance.outboundip = ip.ipaddress
 
 class AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric(AdvancedNetworkProviderIsolatedWithSourceNAT):
-    def getIP(self):
+    def _getIP(self):
         # First see if there's an IP not being used for source NAT or static NAT
 
         # If yes, use it, otherwise create a new one

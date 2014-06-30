@@ -811,7 +811,7 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
     def setupNetworkAccess(self):
         # Acquire IP for network
 
-        ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network)
+        ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network).ipaddress
       
         xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress))
 

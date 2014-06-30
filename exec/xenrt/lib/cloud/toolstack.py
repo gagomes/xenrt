@@ -719,7 +719,7 @@ class BasicNetworkProvider(NetworkProvider):
 
 class AdvancedNetworkProviderIsolated(NetworkProvider):
     def __init__(self, cloudstack, zoneid, instance, config):
-        super(self.__class__, self).__init__(cloudstack, zoneid, instance, config)
+        super(AdvancedNetworkProviderIsolated, self).__init__(cloudstack, zoneid, instance, config)
         self.network = None
     
     def getNetworkIds(self):

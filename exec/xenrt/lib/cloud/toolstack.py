@@ -183,13 +183,15 @@ class CloudStack(object):
                 hypervisor = self._getDefaultHypervisor()
 
             # If we can use a template and it exists, use it
-            if distro and useTemplateIfAvailable:
+            if not templateid and useTemplateIfAvailable:
                 # See what templates we've got
+                xenrt.TEC().logverbose("Seeing if we have a suitable template")
                 templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName and x.hypervisor == hypervisor]
                 for t in templates:
                     if not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id:
                         zoneid = t.zoneid
-                        templateid == t.id
+                        templateid = t.id
+                        xenrt.TEC().logverbose("Found template %s" % templateid)
                         break
                     
                 if not templateid:
@@ -216,7 +218,7 @@ class CloudStack(object):
                 toolsInstalled=False
             else:
                 diskOffering = None
-                toolsInstalled = [x for x in tags if x.key=="tools" and x.value=="yes"]
+                toolsInstalled = [x for x in self.cloudApi.listTags(resourceid=templateid) if x.key=="tools" and x.value=="yes"]
 
             if zoneid and zone:
                 xenrt.XRTAssert(zoneid ==  self.cloudApi.listZones(name=zone)[0].id, "Specified Zone ID does not match template zone ID")
@@ -618,7 +620,7 @@ class CloudStack(object):
             zoneid = self.cloudApi.listZones(name=zone)[0].id
         else:
             zoneid = self.getDefaultZone().id
-        isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displayname == isoName and x.zoneid == zoneid]
+        isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid]
         if not isos:
             xenrt.TEC().logverbose("ISO is not present, registering")
             if isoRepo == xenrt.IsoRepository.Windows:
@@ -647,7 +649,7 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Waiting for ISO to be ready")
         while True:
             try:
-                iso = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displayname == isoName and x.zoneid == zoneid][0]
+                iso = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid][0]
                 if iso.isready:
                     break
                 else:

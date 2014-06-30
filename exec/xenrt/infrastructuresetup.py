@@ -590,14 +590,13 @@ def buildHostsFile(config,machines,testpeers,sharedhosts):
             "127.0.0.1 localhost localhost.localdomain\n"
             "%s controller\n" % (config.lookup("XENRT_SERVER_ADDRESS")))
 
-    import netifaces
-    for i in netifaces.interfaces():
-        if i == "lo":
-            continue
-        addrs = netifaces.ifaddresses(i)
-        if addrs.has_key(2):
-            for a in addrs[2]:
-                f.write("%s xenrt-controller.xenrt\n" % a['addr'])
+    f.write("%s xenrt-controller.xenrt.xenrtcloud\n" % config.lookup("XENRT_SERVER_ADDRESS"))
+    secAddr = xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "ADDRESS"], None)
+    if secAddr:
+        f.write("%s xenrt-controller.xenrt.nsec-xenrtcloud\n" % secAddr)
+
+    for v in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"], {}).keys():
+        f.write("%s xenrt-controller.xenrt.%s-xenrtcloud\n" % (v.lower(), xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "ADDRESS"])))
 
     for machine in machines:
         addr = config.lookup(["HOST_CONFIGS", machine, "HOST_ADDRESS"], None)

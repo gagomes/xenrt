@@ -16,6 +16,7 @@ class Instance(object):
         self.mainip = None
 
         self.inboundmap = {}
+        self.inboundip = None
         self.outboundip = None
 
 
@@ -71,6 +72,8 @@ class Instance(object):
     def getIPAndPort(self, trafficType, timeout=600, level=xenrt.RC_ERROR):
         if self.inboundmap.has_key(trafficType):
             return self.inboundmap[trafficType]
+        elif self.inboundip:
+            return (self.inboundip, self.os.tcpCommunicationPorts[trafficType])
         else:
             return (self.getMainIP(timeout, level), self.os.tcpCommunicationPorts[trafficType])
         
@@ -84,6 +87,8 @@ class Instance(object):
                     return self.getMainIP(timeout, level)
             elif self.inboundmap.has_key(trafficType):
                 return self.inboundmap[trafficType][0]
+            elif self.inboundip:
+                return self.inboundip
             else:
                 return self.getMainIP(timeout, level)
         else:

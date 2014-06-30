@@ -760,7 +760,8 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
                                                          networkofferingid=netOffering,
                                                          zoneid=self.zoneid,
                                                          account="admin",
-                                                         domainid=domainid).id
+                                                         domainid=domainid,
+                                                         networkdomain="xenrtcloud").id
             self.cloudstack.cloudApi.associateIpAddress(networkid=net)
             cidr = self.cloudstack.cloudApi.listNetworks(id=net)[0].cidr
             self.cloudstack.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)
@@ -884,7 +885,8 @@ class AdvancedNetworkProviderShared(NetworkProvider):
                                                          netmask=vlan['SUBNETMASK'],
                                                          gateway=vlan['GATEWAY'],
                                                          account="admin",
-                                                         domainid=domainid).id
+                                                         domainid=domainid,
+                                                         networkdomain="%s-xenrtcloud" % vlanName.lower()).id
 
             self.network = net
 

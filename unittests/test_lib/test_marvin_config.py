@@ -15,6 +15,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
     DEFAULT_VARS = {"NETWORK_CONFIG/DEFAULT/NAMESERVERS": "10.0.0.2",
                     "NETWORK_CONFIG/DEFAULT/SUBNETMASK": "255.255.255.0",
                     "NETWORK_CONFIG/DEFAULT/GATEWAY": "10.0.0.1",
+                    "XENRT_SERVER_ADDRESS": "10.0.0.2",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
                     "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net"}

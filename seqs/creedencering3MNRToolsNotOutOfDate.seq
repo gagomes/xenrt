@@ -2,8 +2,8 @@
 
   <!-- Treat Midnight Ride non-Windows Tools as up-to-date on Boston -->
 
-  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
   <default name="GUESTMEMORY" value="1024"/>
   <default name="GUESTVCPUS" value="2"/>
 

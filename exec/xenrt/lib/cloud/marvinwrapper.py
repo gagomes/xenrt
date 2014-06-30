@@ -319,6 +319,10 @@ class MarvinApi(object):
                 pass
             xenrt.sleep(15)
 
+    def tailorCloudForXenRT(self):
+        for z in self.cloudApi.listZones():
+            self.cloudApi.updateZone(domain="xenrtcloud", id=z.id)
+
 from lxml import etree
 import glob, shutil, os, re, json
 

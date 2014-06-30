@@ -572,94 +572,96 @@ class CloudStack(object):
             zoneid = self.cloudApi.listZones(name=zone)[0].id
         else:
             zoneid = self.getDefaultZone().id
-        
-        templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
-                                    x.hypervisor == hypervisor and \
-                                    x.displaytext == distro and \
-                                    x.zoneid == zoneid)]
-        if not templates:
-            xenrt.TEC().logverbose("Template is not present, registering")
+        with xenrt.GEC().getLock("CCP_TEMPLATE_DOWNLOAD-%s-%s-%s" % (hypervisor, distro, zone)):
+            
+            templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
+                                        x.hypervisor == hypervisor and \
+                                        x.displaytext == distro and \
+                                        x.zoneid == zoneid)]
+            if not templates:
+                xenrt.TEC().logverbose("Template is not present, registering")
 
-            zone = self.cloudApi.listZones()[0].id
+                zone = self.cloudApi.listZones()[0].id
 
-            osname = self.mgtsvr.lookup(["OS_NAMES", distro])
+                osname = self.mgtsvr.lookup(["OS_NAMES", distro])
 
-            ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
 
-            self.cloudApi.registerTemplate(zoneid=zoneid,
-                                           ostypeid=ostypeid,
-                                           name="%s-%s" % (distro, xenrt.randomSuffix()),
-                                           displaytext=distro,
-                                           ispublic=True,
-                                           url=url,
-                                           hypervisor=hypervisor,
-                                           format=templateFormat)
+                self.cloudApi.registerTemplate(zoneid=zoneid,
+                                               ostypeid=ostypeid,
+                                               name="%s-%s" % (distro, xenrt.randomSuffix()),
+                                               displaytext=distro,
+                                               ispublic=True,
+                                               url=url,
+                                               hypervisor=hypervisor,
+                                               format=templateFormat)
 
-        # Now wait until the Template is ready
-        deadline = xenrt.timenow() + 3600
-        xenrt.TEC().logverbose("Waiting for Template to be ready")
-        while True:
-            try:
-                template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
-                                            x.hypervisor == hypervisor and \
-                                            x.displaytext == distro and \
-                                            x.zoneid == zoneid)][0]
-                if template.isready:
-                    break
-                else:
-                    xenrt.TEC().logverbose("Status: %s" % template.status)
-            except:
-                pass
-            if xenrt.timenow() > deadline:
-                raise xenrt.XRTError("Timed out waiting for template to be ready")
-            xenrt.sleep(15)
-        return template.id
+            # Now wait until the Template is ready
+            deadline = xenrt.timenow() + 3600
+            xenrt.TEC().logverbose("Waiting for Template to be ready")
+            while True:
+                try:
+                    template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
+                                                x.hypervisor == hypervisor and \
+                                                x.displaytext == distro and \
+                                                x.zoneid == zoneid)][0]
+                    if template.isready:
+                        break
+                    else:
+                        xenrt.TEC().logverbose("Status: %s" % template.status)
+                except:
+                    pass
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for template to be ready")
+                xenrt.sleep(15)
+            return template.id
 
     def addIsoIfNotPresent(self, distro, isoName, isoRepo, zone):
         if zone:
             zoneid = self.cloudApi.listZones(name=zone)[0].id
         else:
             zoneid = self.getDefaultZone().id
-        isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid]
-        if not isos:
-            xenrt.TEC().logverbose("ISO is not present, registering")
-            if isoRepo == xenrt.IsoRepository.Windows:
-                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
-            elif isoRepo == xenrt.IsoRepository.Linux:
-                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC"), isoName)
-            else:
-                raise xenrt.XRTError("ISO Repository not recognised")
-
-            zone = self.cloudApi.listZones()[0].id
-            if distro:
-                osname = self.mgtsvr.lookup(["OS_NAMES", distro])
-            else:
-                osname = "None"
-
-            ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
-            self.cloudApi.registerIso(zoneid= zoneid,
-                                      ostypeid=ostypeid,
-                                      name="%s-%s" % (isoName, xenrt.randomSuffix()),
-                                      displaytext=isoName,
-                                      ispublic=True,
-                                      url=url)
-
-        # Now wait until the ISO is ready
-        deadline = xenrt.timenow() + 3600
-        xenrt.TEC().logverbose("Waiting for ISO to be ready")
-        while True:
-            try:
-                iso = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid][0]
-                if iso.isready:
-                    break
+        with xenrt.GEC().getLock("CCP_ISO_DOWNLOAD-%s-%s" % (distro, zone)):
+            isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid]
+            if not isos:
+                xenrt.TEC().logverbose("ISO is not present, registering")
+                if isoRepo == xenrt.IsoRepository.Windows:
+                    url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
+                elif isoRepo == xenrt.IsoRepository.Linux:
+                    url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC"), isoName)
                 else:
-                    xenrt.TEC().logverbose("Status: %s" % iso.status)
-            except:
-                pass
-            if xenrt.timenow() > deadline:
-                raise xenrt.XRTError("Timed out waiting for ISO to be ready")
-            xenrt.sleep(15)
-        return iso.id
+                    raise xenrt.XRTError("ISO Repository not recognised")
+
+                zone = self.cloudApi.listZones()[0].id
+                if distro:
+                    osname = self.mgtsvr.lookup(["OS_NAMES", distro])
+                else:
+                    osname = "None"
+
+                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                self.cloudApi.registerIso(zoneid= zoneid,
+                                          ostypeid=ostypeid,
+                                          name="%s-%s" % (isoName, xenrt.randomSuffix()),
+                                          displaytext=isoName,
+                                          ispublic=True,
+                                          url=url)
+
+            # Now wait until the ISO is ready
+            deadline = xenrt.timenow() + 3600
+            xenrt.TEC().logverbose("Waiting for ISO to be ready")
+            while True:
+                try:
+                    iso = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid][0]
+                    if iso.isready:
+                        break
+                    else:
+                        xenrt.TEC().logverbose("Status: %s" % iso.status)
+                except:
+                    pass
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for ISO to be ready")
+                xenrt.sleep(15)
+            return iso.id
 
 class NetworkProvider(object):
 
@@ -804,9 +806,10 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
 
 class AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric(AdvancedNetworkProviderIsolatedWithSourceNAT):
     def _getInboundIP(self):
-        # First see if there's an IP not being used for source NAT or static NAT
-
-        addrs = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=False, isstaticnat=False)
+        # Lock around this in case another thread is setting up a static NAT
+        with xenrt.GEC().getLock("CCP_NETWORK_IP-%s" % self.network):
+            # First see if there's an IP not being used for source NAT or static NAT
+            addrs = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=False, isstaticnat=False)
         if addrs:
             return addrs[0]
         else:
@@ -816,14 +819,16 @@ class AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric(AdvancedNetworkProv
 
 class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolated):
     def setupNetworkAccess(self):
-        # Acquire IP for network
+        # Lock around this in case another thread is looking for a free IP that isn't Source NAT
+        with xenrt.GEC().getLock("CCP_NETWORK_IP-%s" % self.network):
+            # Acquire IP for network
 
-        ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network).ipaddress
+            ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network).ipaddress
       
-        xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress))
+            xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress))
 
-        # Setup static NAT to this VM
-        self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)
+            # Setup static NAT to this VM
+            self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)
         
         self.instance.inboundip = ip.ipaddress
         self.instance.outboundip = ip.ipaddress

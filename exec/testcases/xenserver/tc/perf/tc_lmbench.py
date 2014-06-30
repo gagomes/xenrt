@@ -44,7 +44,7 @@ class TCLMBench(libperf.PerfTestCase):
 
         # Install make, gcc
         extraargs = ""
-        if xenrt.productLib(self.host) == xenrt.lib.xenserver:
+        if xenrt.productLib(host=self.host) == xenrt.lib.xenserver:
             extraargs = "--disablerepo=citrix --enablerepo=base,updates"
         cmds = [
             "yum %s install -y make" % extraargs,

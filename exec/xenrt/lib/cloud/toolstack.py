@@ -1,6 +1,6 @@
 import xenrt
 import logging
-import os, urllib, re
+import os, urllib, re, random
 from datetime import datetime
 from xenrt.lazylog import log
 from zope.interface import implements

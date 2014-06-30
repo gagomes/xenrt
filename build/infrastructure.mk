@@ -322,8 +322,7 @@ ifeq ($(DOHOSTS),yes)
 	$(info Installing $(HOSTS)...)
 	$(call BACKUP,$(HOSTS))
 	$(SUDO) mv $(ROOT)/$(XENRT)/hosts $(HOSTS)
-	$(SUDO) sed -i /localise-queries/d /etc/dnsmasq.conf
-	$(SUDOSH) 'echo "localise-queries" >> /etc/dnsmasq.conf'
+	$(SUDO) mv $(ROOT)/$(XENRT)/dnsmasq.conf /etc/dnsmasq.conf
 	$(SUDO) /etc/init.d/dnsmasq restart
 endif
 

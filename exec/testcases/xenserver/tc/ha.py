@@ -516,6 +516,8 @@ class _HATest(xenrt.TestCase):
 
         except xenrt.XRTFailure, e:
             # This isn't a failure of the TC
+            if "No space left on device" in e.data:
+                xenrt.TEC().pause("CA-138629 repro found", email="alex.brett@citrix.com")
             raise xenrt.XRTError(e.reason,e.data)
 
         if enable:

@@ -147,6 +147,7 @@ class CloudStack(object):
                          zone=None):
         
         zoneid = None
+        templateid = None
 
         if not name:
             name = xenrt.util.randomGuestName()

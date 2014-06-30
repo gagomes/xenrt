@@ -804,8 +804,13 @@ class AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric(AdvancedNetworkProv
     def _getIP(self):
         # First see if there's an IP not being used for source NAT or static NAT
 
-        # If yes, use it, otherwise create a new one
-        return None
+        addrs = self.cloudstack.cloudApi.listPublicIpAddresses(associatednetworkid=self.network, issourcenat=False, isstaticnat=False)
+        if addrs:
+            return addrs[0]
+        else:
+            # There isn't - create one
+            return self.cloudstack.cloudApi.associateIpAddress(networkid=self.network).ipaddress
+
 
 class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolated):
     def setupNetworkAccess(self):
@@ -820,3 +825,7 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
         
         self.instance.inboundip = ip.ipaddress
         self.instance.outboundip = ip.ipaddress
+        
+        for p in self.instance.os.tcpCommunicationPorts.values():
+            self.cloudstack.cloudApi.createFirewallRule(ipaddressid=ip.id, protocol="TCP", cidrlist=["0.0.0.0/0"], startport=p, endport=p)
+            

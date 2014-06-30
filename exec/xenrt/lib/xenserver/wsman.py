@@ -16,6 +16,7 @@ import tarfile
 import xenrt
 import xenrt.lib.xenserver.guest
 import XenAPI
+from xenrt.lazylog import log
 
 # Symbols we want to export from the package.
 __all__ = ["getCIMClasses",
@@ -2986,26 +2987,37 @@ def destroyWSMANetwork(password = None,
 
     return psScript
 
-def exportWSMANSnapshotTree(password = None,
-                            hostIPAddr = None,
-                            vmuuid = None,
-                            driveName = None):
-
-    wsmanConn = wsmanConnection(password,hostIPAddr)
-    endPointRef = endPointReference("Xen_VirtualSystemSnapshotService")
-
+def startExportWithStaticIP(start_ip,end_ip,mask,gateway):
     psScript = u"""
-    %s
-    %s
-    $actionURI = $xenEnum
+    @"
+    <StartSnapshotForestExport_INPUT
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns ="http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_VirtualSystemSnapshotService">
+        <NetworkConfiguration>%s</NetworkConfiguration>
+        <NetworkConfiguration>%s</NetworkConfiguration>
+        <NetworkConfiguration>%s</NetworkConfiguration>
+        <NetworkConfiguration>%s</NetworkConfiguration>
+        <System>
+            <a:Address xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+            <a:ReferenceParameters
+            xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+            xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+                <w:ResourceURI>http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_ComputerSystem</w:ResourceURI>
+                <w:SelectorSet>
+                    <w:Selector Name="Name">$vmName</w:Selector>
+                    <w:Selector Name="CreationClassName">Xen_ComputerSystem</w:Selector>
+                </w:SelectorSet>
+            </a:ReferenceParameters>
+        </System>
+    </StartSnapshotForestExport_INPUT>
+"@
+    """ % (start_ip,end_ip,mask,gateway)
+    return psScript
 
-    $vmName = "%s"
-    Import-Module BitsTransfer
-    $downloadPath = "%s"
-    $exportOutput = $downloadPath + "exportSnapshotTree.txt"
-
-    # Start the Export
-    $parameters = @"
+def startExportWithoutStaticIP():
+    psScript = u"""
+    @"
     <StartSnapshotForestExport_INPUT
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
@@ -3024,6 +3036,38 @@ def exportWSMANSnapshotTree(password = None,
         </System>
     </StartSnapshotForestExport_INPUT>
 "@
+    """
+    return psScript
+
+def exportWSMANSnapshotTree(password = None,
+                            hostIPAddr = None,
+                            vmuuid = None,
+                            driveName = None,
+                            start_ip = None,
+                            end_ip = None,
+                            mask = None,
+                            gateway = None,):
+
+    wsmanConn = wsmanConnection(password,hostIPAddr)
+    endPointRef = endPointReference("Xen_VirtualSystemSnapshotService")
+    if start_ip:
+        log("Static IP configuration we got is %s %s %s %s" % (str(start_ip),str(end_ip),str(mask),str(gateway)))
+        startSnapahotForestExport = startExportWithStaticIP(start_ip,end_ip,mask,gateway)
+    else:
+        startSnapahotForestExport = startExportWithoutStaticIP()
+    
+    psScript = u"""
+    %s
+    %s
+    $actionURI = $xenEnum
+
+    $vmName = "%s"
+    Import-Module BitsTransfer
+    $downloadPath = "%s"
+    $exportOutput = $downloadPath + "exportSnapshotTree.txt"
+
+    # Start the Export
+    $parameters = %s
 
     $startExport = $objSession.Invoke("StartSnapshotForestExport", $actionURI, $parameters)
     "StartSnapshotForestExport" | Out-File $exportOutput
@@ -3126,7 +3170,7 @@ def exportWSMANSnapshotTree(password = None,
         }
     }
 
-    """ % (wsmanConn,endPointRef,vmuuid,driveName)
+    """ % (wsmanConn,endPointRef,vmuuid,driveName,startSnapahotForestExport)
 
     return psScript
 

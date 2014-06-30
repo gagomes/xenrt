@@ -145,6 +145,7 @@ class ManagementServer(object):
 
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
+        marvinApi.setCloudGlobalConfig("use.external.dns", "true", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.

@@ -576,7 +576,7 @@ class CloudStack(object):
 
             zone = self.cloudApi.listZones()[0].id
 
-            osname = self.mgtSvr.lookup(["OS_NAMES", distro])
+            osname = self.mgtsvr.lookup(["OS_NAMES", distro])
 
             ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
 
@@ -623,7 +623,7 @@ class CloudStack(object):
 
             zone = self.cloudApi.listZones()[0].id
             if distro:
-                osname = self.mgtSvr.lookup(["OS_NAMES", distro])
+                osname = self.mgtsvr.lookup(["OS_NAMES", distro])
             else:
                 osname = "None"
 

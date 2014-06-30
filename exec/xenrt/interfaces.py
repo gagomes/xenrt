@@ -21,6 +21,9 @@ class Toolstack(Interface):
     def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
         """Create and install and instance on this toolstack"""
 
+    def createOSTemplate(distro, rootdisk,installTools, useTemplateIfAvailable, hypervisorType=None):
+        """Create a template for the specified OS, to be used later by createInstance"""
+
     def existingInstance(name):
         """Return an existing instance with the specified name"""
 

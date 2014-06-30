@@ -102,6 +102,14 @@ class XLToolstack(object):
     def destroyInstance(self, instance):
         raise xenrt.XRTError("Not implemented")
 
+    def createOSTemplate(self,
+                         distro,
+                         rootdisk=None,
+                         installTools=True,
+                         useTemplateIfAvailable=True,
+                         hypervisorType=None):
+        raise xenrt.XRTError("Not implemented")
+
     def createInstance(self,
                        distro,
                        name,

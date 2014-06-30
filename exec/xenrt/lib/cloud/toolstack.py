@@ -683,6 +683,8 @@ class NetworkProvider(object):
                 cls = AdvancedNetworkProviderIsolatedWithStaticNAT
             elif networkType == "IsolatedWithSourceNATAsymmetric":
                 cls = AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric
+            elif networkType == "Shared":
+                cls = AdvancedNetworkProviderShared
                 
 
         if not cls:
@@ -836,3 +838,45 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
         for p in self.instance.os.tcpCommunicationPorts.values():
             self.cloudstack.cloudApi.createFirewallRule(ipaddressid=ip.id, protocol="TCP", cidrlist=["0.0.0.0/0"], startport=p, endport=p)
             
+class AdvancedNetworkProviderShared(NetworkProvider):
+    def __init__(self, cloudstack, zoneid, instance, config):
+        super(AdvancedNetworkProviderShared, self).__init__(cloudstack, zoneid, instance, config)
+    
+    def getNetworkIds(self):
+        if self.config.has_key('networkname') and self.config['networkname']:
+            netName = self.config['networkname']
+        else:
+            netName = "XenRT-Shared-%s" % self.zoneid
+
+        nets = [x for x in self.cloudstack.cloudApi.listNetworks(zoneid=self.zoneid) or [] if x.name==netName]
+        if len(nets) > 0:
+            self.network = nets[0].id
+        else:
+            if config.has_key("sharednetworkvlan"):
+                vlanName = config["sharednetworkvlan"]
+            else:
+                vlanName = random.choice([x for x in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"]).keys() if x.startswith("VR")])
+            vlan = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", vlanName])
+
+            if config.has_key("sharednetworksize"):
+                sharednetworksize = config['sharednetworksize']
+            else:
+                sharednetworksize = 10
+
+            ips = xenrt.StaticIP4Addr.getIPRange(sharednetworksize, network=vlanName)
+
+
+            netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='Offering for Shared networks')][0]
+            net = self.cloudstack.cloudApi.createNetwork(name=netName,
+                                                         displaytext=netName,
+                                                         networkofferingid=netOffering,
+                                                         zoneid=self.zoneid,
+                                                         startip=ips[0].getAddr(),
+                                                         endip=ips[-1].getAddr(),
+                                                         vlan=vlan['ID'],
+                                                         netmask=vlan['SUBNETMASK'],
+                                                         gateway=vlan['GATEWAY']).id
+
+            self.network = net
+
+        return [self.network]

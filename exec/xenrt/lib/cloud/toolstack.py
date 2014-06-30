@@ -419,7 +419,7 @@ class CloudStack(object):
 
         vm = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
 
-        self.createTemplateFromInstance(instance, "%s-%s-%s" % (instance.distro, instance.hypervisor, instance.zoneid), instance.distro)
+        self.createTemplateFromInstance(instance, "%s-%s" % (instance.distro, xenrt.randomGuestName()), instance.distro)
         instance.destroy()
 
     def createTemplateFromInstance(self, instance, templateName, displayText=None):
@@ -571,7 +571,10 @@ class CloudStack(object):
         else:
             zoneid = self.getDefaultZone().id
         
-        templates = [x for x in self.cloudApi.listTemplates(templatefilter="all", name="%s-%s-%s" % (distro, hypervisor, zoneid))]
+        templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
+                                    x.hypervisor == hypervisor and \
+                                    x.displaytext == distro and \
+                                    x.zoneid == zoneid)]
         if not templates:
             xenrt.TEC().logverbose("Template is not present, registering")
 
@@ -583,7 +586,7 @@ class CloudStack(object):
 
             self.cloudApi.registerTemplate(zoneid=zoneid,
                                            ostypeid=ostypeid,
-                                           name="%s-%s-%s" % (distro, hypervisor, zoneid),
+                                           name="%s-%s" % (distro, xenrt.randomGuestName()),
                                            displaytext=distro,
                                            ispublic=True,
                                            url=url,
@@ -595,7 +598,10 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Waiting for Template to be ready")
         while True:
             try:
-                template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name="%s-%s-%s" % (distro, hypervisor, zoneid))][0]
+                template = [x for x in self.cloudApi.listTemplates(templatefilter="all") if ( \
+                                            x.hypervisor == hypervisor and \
+                                            x.displaytext == distro and \
+                                            x.zoneid == zoneid)][0]
                 if template.isready:
                     break
                 else:
@@ -612,7 +618,7 @@ class CloudStack(object):
             zoneid = self.cloudApi.listZones(name=zone)[0].id
         else:
             zoneid = self.getDefaultZone().id
-        isos = self.cloudApi.listIsos(isofilter="all", name="%s-%s" % (isoName, zoneid))
+        isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displayname == isoName and x.zoneid == zoneid]
         if not isos:
             xenrt.TEC().logverbose("ISO is not present, registering")
             if isoRepo == xenrt.IsoRepository.Windows:
@@ -631,7 +637,7 @@ class CloudStack(object):
             ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
             self.cloudApi.registerIso(zoneid= zoneid,
                                       ostypeid=ostypeid,
-                                      name="%s-%s" % (isoName, zoneid),
+                                      name="%s-%s" % (isoName, xenrt.randomGuestName()),
                                       displaytext=isoName,
                                       ispublic=True,
                                       url=url)
@@ -641,7 +647,7 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Waiting for ISO to be ready")
         while True:
             try:
-                iso = self.cloudApi.listIsos(isofilter="all", name="%s-%s" % (isoName, zoneid))[0]
+                iso = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displayname == isoName and x.zoneid == zoneid][0]
                 if iso.isready:
                     break
                 else:

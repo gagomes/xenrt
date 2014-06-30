@@ -674,10 +674,10 @@ class NetworkProvider(object):
                 networkType = config['networktype']
             else:
                 networkType = "IsolatedWithSourceNAT"
-
+            xenrt.TEC().logverbose("Finding a network provider for %s" % networkType)
             if networkType == "IsolatedWithSourceNAT":
                 cls = AdvancedNetworkProviderIsolatedWithSourceNAT
-            elif networkType == "IsolatedStaticNAT":
+            elif networkType == "IsolatedWithStaticNAT":
                 cls = AdvancedNetworkProviderIsolatedWithStaticNAT
             elif networkType == "IsolatedWithSourceNATAsymmetric":
                 cls = AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric

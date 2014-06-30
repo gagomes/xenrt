@@ -237,6 +237,7 @@ class CloudStack(object):
             secGroupIds = networkProvider.getSecurityGroupIds()
             networks = networkProvider.getNetworkIds()
 
+            domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
             rsp = self.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                      zoneid=zoneid,
                                                      displayname=name,
@@ -247,7 +248,9 @@ class CloudStack(object):
                                                      hypervisor=hypervisor,
                                                      startvm=False,
                                                      securitygroupids=secGroupIds,
-                                                     networkids = networks)
+                                                     networkids = networks,
+                                                     account="admin",
+                                                     domainid=domainid)
 
             instance.toolstackId = rsp.id
 
@@ -704,7 +707,7 @@ class NetworkProvider(object):
             secGroups = self.cloudstack.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
             if not isinstance(secGroups, list):
                 domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
-                secGroup = self.cloudstack.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="system", domainid=domainid)
+                secGroup = self.cloudstack.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="admin", domainid=domainid)
                 self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
                                                                        protocol="TCP",
                                                                        startport=0,
@@ -751,10 +754,13 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
             self.network = nets[0].id
         else:
             netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
+            domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
             net = self.cloudstack.cloudApi.createNetwork(name=netName,
                                                          displaytext=netName,
                                                          networkofferingid=netOffering,
-                                                         zoneid=self.zoneid).id
+                                                         zoneid=self.zoneid,
+                                                         account="admin",
+                                                         domainid=domainid).id
             self.cloudstack.cloudApi.associateIpAddress(networkid=net)
             cidr = self.cloudstack.cloudApi.listNetworks(id=net)[0].cidr
             self.cloudstack.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)
@@ -867,6 +873,7 @@ class AdvancedNetworkProviderShared(NetworkProvider):
 
 
             netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultSharedNetworkOffering') if x.name=='DefaultSharedNetworkOffering'][0]
+            domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
             net = self.cloudstack.cloudApi.createNetwork(name=netName,
                                                          displaytext=netName,
                                                          networkofferingid=netOffering,
@@ -875,7 +882,9 @@ class AdvancedNetworkProviderShared(NetworkProvider):
                                                          endip=ips[-1].getAddr(),
                                                          vlan=vlan['ID'],
                                                          netmask=vlan['SUBNETMASK'],
-                                                         gateway=vlan['GATEWAY']).id
+                                                         gateway=vlan['GATEWAY'],
+                                                         account="admin",
+                                                         domainid=domainid).id
 
             self.network = net
 

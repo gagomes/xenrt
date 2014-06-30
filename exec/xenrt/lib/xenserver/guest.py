@@ -522,6 +522,9 @@ class Guest(xenrt.GenericGuest):
         if self.distro:
             self.paramSet("other-config:xenrt-distro", self.distro)
 
+        # eject the CD, it's no longer needed
+        self.changeCD(None)
+        
         if not dontstartinstall:
             if start:
                 self.start()

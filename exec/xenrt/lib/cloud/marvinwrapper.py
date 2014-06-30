@@ -242,6 +242,10 @@ class MarvinApi(object):
         webdir.remove()
 
 
+    def tailorCloudForXenRT(self):
+        for z in self.cloudApi.listZones():
+            self.cloudApi.updateZone(domain="xenrtcloud", id=z.id)
+
 from lxml import etree
 import glob, shutil, os, re, json
 

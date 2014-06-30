@@ -852,14 +852,14 @@ class AdvancedNetworkProviderShared(NetworkProvider):
         if len(nets) > 0:
             self.network = nets[0].id
         else:
-            if config.has_key("sharednetworkvlan"):
-                vlanName = config["sharednetworkvlan"]
+            if self.config.has_key("sharednetworkvlan"):
+                vlanName = self.config["sharednetworkvlan"]
             else:
                 vlanName = random.choice([x for x in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"]).keys() if x.startswith("VR")])
             vlan = xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", vlanName])
 
-            if config.has_key("sharednetworksize"):
-                sharednetworksize = config['sharednetworksize']
+            if self.config.has_key("sharednetworksize"):
+                sharednetworksize = self.config['sharednetworksize']
             else:
                 sharednetworksize = 10
 

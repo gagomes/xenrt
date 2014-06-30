@@ -676,7 +676,12 @@ class NetworkProvider(object):
                 networkType = "IsolatedWithSourceNAT"
 
             if networkType == "IsolatedWithSourceNAT":
-                cls = AdvancedNetworkProviderIsolatedWithSourceNAT 
+                cls = AdvancedNetworkProviderIsolatedWithSourceNAT
+            elif networkType == "IsolatedStaticNAT":
+                cls = AdvancedNetworkProviderIsolatedWithStaticNAT
+            elif networkType == "IsolatedWithSourceNATAsymmetric":
+                cls = AdvancedNetworkProviderIsolatedWithSourceNATAsymmetric
+                
 
         if not cls:
             raise xenrt.XRTError("No suitable network provider found")
@@ -806,8 +811,10 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
     def setupNetworkAccess(self):
         # Acquire IP for network
 
-        # Setup static NAT to this VM
-        ip = None
+        ip = self.cloudstack.cloudApi.associateIpAddress(networkid=self.network)
         
-        self.instance.inboundip = None
-        self.instance.outboundip = None
+        # Setup static NAT to this VM
+        self.cloudstack.cloudApi.enableStaticNat(ipaddressid = ip.id, virtualmachineid=self.instance.toolstackId)
+        
+        self.instance.inboundip = ip.ipaddress
+        self.instance.outboundip = ip.ipaddress

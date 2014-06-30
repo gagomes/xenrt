@@ -419,7 +419,7 @@ class CloudStack(object):
 
         vm = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
 
-        self.createTemplateFromInstance(instance, "%s-%s" % (instance.distro, xenrt.randomGuestName()), instance.distro)
+        self.createTemplateFromInstance(instance, "%s-%s" % (instance.distro, xenrt.randomSuffix()), instance.distro)
         instance.destroy()
 
     def createTemplateFromInstance(self, instance, templateName, displayText=None):
@@ -586,7 +586,7 @@ class CloudStack(object):
 
             self.cloudApi.registerTemplate(zoneid=zoneid,
                                            ostypeid=ostypeid,
-                                           name="%s-%s" % (distro, xenrt.randomGuestName()),
+                                           name="%s-%s" % (distro, xenrt.randomSuffix()),
                                            displaytext=distro,
                                            ispublic=True,
                                            url=url,
@@ -637,7 +637,7 @@ class CloudStack(object):
             ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
             self.cloudApi.registerIso(zoneid= zoneid,
                                       ostypeid=ostypeid,
-                                      name="%s-%s" % (isoName, xenrt.randomGuestName()),
+                                      name="%s-%s" % (isoName, xenrt.randomSuffix()),
                                       displaytext=isoName,
                                       ispublic=True,
                                       url=url)

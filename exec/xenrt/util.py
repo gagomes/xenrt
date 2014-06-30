@@ -38,6 +38,7 @@ __all__ = ["timenow",
            "formSubnet",
            "median",
            "Timer",
+           "randomSuffix",
            "randomGuestName",
            "randomApplianceName",
            "isUUID",
@@ -690,7 +691,10 @@ def median(values):
     if l & 1:
         return v[l/2]
     return (v[(l/2)-1] + v[l/2])/2
-    
+   
+def randomSuffix():
+    return "%08x" % random.randint(0, 0x7fffffff)
+
 def randomGuestName():
     return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
                               random.randint(0, 0x7fffffff))

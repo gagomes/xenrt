@@ -10107,7 +10107,7 @@ class BostonHost(MNRHost):
 
     def tailorForCloudStack(self):
         # Set the Linux templates with PV args to autoinstall
-        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+        myip = "xenrt-controller.xenrt"
 
         args = {}
         args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip

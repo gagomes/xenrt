@@ -568,7 +568,7 @@ class CitrixCloudBase(xenrt.TestCase):
     def configureCloudstack(self, testContVM, manSvrVMAddr, secondaryStoragePath, hostAddr, networkNames, primaryStorageNameLabel):
         config = self.CLOUD_CONFIG
 
-        config['dnsAddr'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+        config['dnsAddr'] = xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
         config['gateway'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
         config['netmask'] = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
 
@@ -743,7 +743,7 @@ class TCBasicCloudStack(CitrixCloudBase):
         self.reserveNetworkResources(publicIpSize=10, managementIpSize=5, storageIpSize=0, guestVLANSize=0, useIPv6=False)
         secondaryStoragePath = self.secondaryStorage.getMount().replace(':','')
 
-        dnsAddr = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+        dnsAddr = xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
         gateway = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
         netmask = xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
 
@@ -1083,7 +1083,7 @@ class TCCloudUpgrade(TCCloudScale):
 
 class TCCloudAllocateResources(xenrt.TestCase):
     def run(self, arglist):
-        xenrt.TEC().comment('DNS:     %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0])
+        xenrt.TEC().comment('DNS:     %s' % xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS"))
         xenrt.TEC().comment('GATEWAY: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY']))
         xenrt.TEC().comment('NETMASK: %s' % xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK']))
 

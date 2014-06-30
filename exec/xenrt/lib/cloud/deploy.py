@@ -51,7 +51,7 @@ class DeployerPlugin(object):
         return nameValue
 
     def getDNS(self, key, ref):
-        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
+        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getNetmask(self, key, ref):
         return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])

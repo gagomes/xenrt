@@ -866,7 +866,7 @@ class AdvancedNetworkProviderShared(NetworkProvider):
             ips = xenrt.StaticIP4Addr.getIPRange(sharednetworksize, network=vlanName)
 
 
-            netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultSharedNetworkOffering')][0]
+            netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultSharedNetworkOffering') if x.name=='DefaultSharedNetworkOffering'][0]
             net = self.cloudstack.cloudApi.createNetwork(name=netName,
                                                          displaytext=netName,
                                                          networkofferingid=netOffering,

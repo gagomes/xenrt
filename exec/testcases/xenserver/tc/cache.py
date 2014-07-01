@@ -1506,7 +1506,7 @@ class _CachePerformance(_Cache):
 
 class TC12005(_CachePerformance):
     """Compare scenarios where the VMs' disks have a "reset-on-boot" policy and 
-       where the VMs' disks have a "persistent without caching" policy."""
+       where the VMs' disks have a "reset-on-boot without caching" policy."""
 
     RESET = True
     CACHED = True
@@ -1526,6 +1526,49 @@ class TC12006(_CachePerformance):
     #WRITEMAXGAIN = 1.15 # Due to increase in cache writeback, this increase is expected.
     WRITEMAXGAIN = 1.3 # Refer CA-124004
     WRITEMINGAIN = 0.5 # Ensure writes are still being sent back to nfs.
+
+class _ReadCachePerformance(_CachePerformance):
+    """ Same test with _CachePerformance except it tests read cache. """
+    
+    INTELLICACHE = False
+
+    def enableCaching(self):
+        """ Turn on read cache instead of intelli cache. """
+        self.host.enableReadCaching()
+
+    def disableCaching(self):
+        """ Turn off read cache instead of intelli cache. """
+        self.host.disableReadCaching()
+
+    def run(self, arglist=[]):
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            raise xenrt.XRTError("Read cache requires Creedence or later.")
+
+        # it is on by default in _Cache class.
+        if not self.INTELLICACHE:
+            _Cache.disableCaching(self)
+        _CachePerformance.run(self, arglist)
+
+class TC21544(_ReadCachePerformance):
+    """ Compare scenarios where read cache is on and where read cache is off
+    when intelliCache is off."""
+
+    CACHED = True
+    READMAXGAIN = 0.3
+    READMINGAIN = 0.01
+    WRITEMAXGAIN = 1.1
+    WRITEMINGAIN = 0.9
+
+class TC21545(_ReadCachePerformance):
+    """ Compare scenarios where read cache is on and where read cache is off
+    when intelliCache is on."""
+    
+    INTELLICACHE = True
+    CACHED = True
+    READMAXGAIN = 0.3
+    READMINGAIN = 0.01
+    WRITEMAXGAIN = 1.1
+    WRITEMINGAIN = 0.9
 
 class TC12008(_Cache):
     """Check that vm-start succeeds if a VM's VDIs are set for caching but no

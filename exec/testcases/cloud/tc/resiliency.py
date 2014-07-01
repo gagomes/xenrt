@@ -2,7 +2,15 @@ import xenrt
 from datetime import datetime
 import random
 
-class TCStorageResiliency(xenrt.TestCase):
+class _TCCloudResiliencyBase(xenrt.TestCase):
+    def prepare(self, arglist):
+        self.cloud = self.getDefaultToolstack()
+        self.instances = []
+        args = self.parseArgsKeyValue(arglist)
+        for zone in self.cloud.marvin.cloudApi.listZones():
+            self.instances += self.createInstances(zoneName=zone.name,
+                                                   distroList=args.has_key('distros') and args['distros'].split(','))
+        map(lambda x:x.assertHealthy(), self.instances)
 
     def createInstances(self, zoneName, distroList=None, instancesPerDistro=1):
         instances = []
@@ -29,17 +37,10 @@ class TCStorageResiliency(xenrt.TestCase):
         # Create instances
         for templateName in templateList:
             instances += map(lambda x:self.cloud.createInstanceFromTemplate(templateName=templateName, 
-                                                                            name='%s-%d' % (templateName, x)), range(instancesPerDistro))
+                                                                            name='%s-%d' % (templateName.replace("_","-"), x)), range(instancesPerDistro))
         return instances
 
-    def prepare(self, arglist):
-        self.cloud = self.getDefaultToolstack()
-        self.instances = []
-        args = self.parseArgsKeyValue(arglist)
-        for zone in self.cloud.marvin.cloudApi.listZones():
-            self.instances += self.createInstances(zoneName=zone.name,
-                                                   distroList=args.has_key('distros') and args['distros'].split(','))
-        map(lambda x:x.assertHealthy(), self.instances)
+class TCStorageResiliency(_TCCloudResiliencyBase):
 
     def storageOutage(self, storageVM, durationSec):
         storageVM.shutdown(force=True)
@@ -60,3 +61,75 @@ class TCStorageResiliency(xenrt.TestCase):
 
         for i in range(iterations):
             self.runSubcase('storageOutage', (storageVM, outageDurationSec), 'StorageOutage', 'Iter-%d' % (i))
+
+class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
+
+    def specificCheck(self):
+        pass
+
+    def genericCheck(self):
+        map(lambda x:x.assertHealthy(), self.instances)
+        # TODO - Check CCP health
+
+    def run(self, arglist):
+        self.args = self.parseArgsKeyValue(arglist)
+        iterations = self.args.has_key('iterations') and self.args['iterations'] or 3
+
+        for i in range(iterations):
+            self.runSubcase('outage', (), 'Outage', 'Iter-%d' % (i))
+            self.runSubcase('specificCheck', (), 'SpecificCheck', 'Iter-%d' % (i))
+            self.runSubcase('genericCheck', (), 'GenericCheck', 'Iter-%d' % (i))
+
+    def waitForCCP(self):
+        deadline = xenrt.timenow() + 600
+        while True:
+            try:
+                self.cloud.cloudApi.listHosts()
+                break
+            except:
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTFailure("Cloudstack Management did not come back after 10 minutes")
+                xenrt.sleep(15) 
+
+class TCManServerVMReboot(_TCManServerResiliencyBase):
+    
+    def outage(self):
+        msvm = self.cloud.mgtsvr.place
+        msvm.reboot()
+
+    def specificCheck(self):
+        self.waitForCCP()
+
+
+class TCManServerRestart(_TCManServerResiliencyBase):
+    
+    def outage(self):
+        msvm = self.cloud.mgtsvr.place
+        msvm.execcmd("service cloudstack-management restart")
+
+    def specificCheck(self):
+        self.waitForCCP()
+
+
+class TCDBRestart(_TCManServerResiliencyBase):
+    
+    def outage(self):
+        msvm = self.cloud.mgtsvr.place
+        msvm.execcmd("service mysqld restart")
+
+    def specificCheck(self):
+        self.waitForCCP()
+
+
+class TCDBOutage(_TCManServerResiliencyBase):
+    
+    def outage(self):
+        msvm = self.cloud.mgtsvr.place
+        msvm.execcmd("service mysqld stop")
+        xenrt.sleep(120)
+        msvm.execcmd("service mysqld start")
+
+    def specificCheck(self):
+        self.waitForCCP()
+
+

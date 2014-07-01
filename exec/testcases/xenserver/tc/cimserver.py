@@ -27,6 +27,14 @@ class _CIMInterface:
   
     RPMCHECK = True
 
+    def _startCimLogging(self):
+        #start capturing cimserver logs
+        script = self.cimLogScript()
+        try:
+            self.host.execdom0(command=script)
+        except:
+            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")
+
     def prepare(self,host):
         """Install a host with xenserver integration supplemental pack"""
 
@@ -41,6 +49,7 @@ class _CIMInterface:
                 break
 
         if flag == False:
+            self._startCimLogging()
             return
 
         suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.PACK),self.PACK)
@@ -96,12 +105,7 @@ class _CIMInterface:
         if not self.checkCimServerRunning(self.host):
             raise xenrt.XRTFailure("Cim Server is not running")
 
-        #start capturing cimserver logs
-        script = self.cimLogScript()
-        try:
-            self.host.execdom0(command=script)
-        except:
-            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")            
+        self._startCimLogging()
 
     def cimLogScript(self):
  

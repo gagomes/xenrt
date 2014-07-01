@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app
 
-import traceback, StringIO, string, time
+import traceback, StringIO, string, time, json
 
 class XenRTMachinePage(XenRTAPIPage):
     pass
@@ -650,6 +650,24 @@ class XenRTUtilisation(XenRTMachinePage):
         else:
             return "%02u:%02u:%02u" % (hours,mins,ts)
 
+class XenRTMachineDashboardJSON(XenRTMachinePage):
+    def render(self):
+        machineslist = self.scm_machine_list()
+        ret = {}
+        for m in machineslist:
+            ret[m[0]] = {}
+            i = ret[m[0]]
+            i['site'] = m[1]
+            i['cluster'] = m[2]
+            i['pool'] = m[3]
+            i['runstate'] = m[4]
+            if m[8]:
+                i['borrowed'] = m[8]
+            else:
+                i['borrowed'] = None
+        return json.dumps(ret, indent=2)
+            
+    
 
 PageFactory(XenRTMList, "mlist", "/api/machine/list", compatAction="mlist2")
 PageFactory(XenRTMStatus, "mstatus", "/api/machine/setstatus", compatAction="mstatus")
@@ -660,3 +678,4 @@ PageFactory(XenRTReturn, "return", "/api/machine/return", compatAction="return")
 PageFactory(XenRTMachine, "machine", "/api/machine/details", compatAction="machine")
 PageFactory(XenRTMUpdate, "mupdate", "/api/machine/update", compatAction="mupdate")
 PageFactory(XenRTUtilisation, "utilisation", "/api/machine/utilisation", compatAction="utilisation")
+PageFactory(XenRTMachineDashboardJSON, "machinedashboardjson", "/api/machine/dashboardjson", contentType="application/json")

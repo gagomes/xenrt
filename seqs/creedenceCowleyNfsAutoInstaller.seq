@@ -5,7 +5,7 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALLER_PATCH>
-      <INSTALLER>XS62E006.xsupdate</INSTALLER>
+      <INSTALLER>XS56EFP1002.xsupdate</INSTALLER>
       <PROTOCOL>NFS</PROTOCOL>
     </INSTALLER_PATCH>
   </variables>

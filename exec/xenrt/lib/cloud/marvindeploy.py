@@ -211,6 +211,14 @@ class MarvinDeployer(object):
         else:
             marvinDeployer = ddcCls(test_client=self.__marvinTestClient, cfg=cfg, logger=self.logger)
 
+        # Disable the automatic cleanup on failure that was introduced with Marvin 4.4
+        try:
+            from marvin.config.test_data import test_data
+            if test_data.has_key('deleteDC'):
+                test_data['deleteDC'] = False
+        except ImportError:
+            pass
+
         try:
             marvinDeployer.deploy()
         except SystemExit, e:

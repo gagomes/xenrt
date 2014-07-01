@@ -211,4 +211,9 @@ class MarvinDeployer(object):
         else:
             marvinDeployer = ddcCls(test_client=self.__marvinTestClient, cfg=cfg, logger=self.logger)
 
-        marvinDeployer.deploy()
+        try:
+            marvinDeployer.deploy()
+        except SystemExit, e:
+            # Some versions of Marvin report a failure by calling sys.exit(1) rather than raising an exception, fix this...
+            raise xenrt.XRTError("Marvin Deploy Data Center failed with exit code %s" % (e.code))
+

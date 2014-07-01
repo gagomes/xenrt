@@ -663,8 +663,10 @@ class XenRTMachineDashboardJSON(XenRTMachinePage):
             i['runstate'] = m[4]
             if m[8]:
                 i['borrowed'] = m[8]
+                i['borrowreason'] = m[12]
             else:
                 i['borrowed'] = None
+                i['borrowreason'] = None
         return json.dumps(ret, indent=2)
             
     

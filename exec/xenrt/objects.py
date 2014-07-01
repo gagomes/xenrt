@@ -10335,6 +10335,7 @@ class V6LicenseServer:
             # Start the daemon
             self.place.xmlrpcExec("net start \"Citrix Licensing\"")
         else:
+
             self.place.writeToConsole("/etc/init.d/citrixlicensing stop\\n")
             xenrt.sleep(20)
             self.place.execcmd("rm -f %s/myfiles/%s.lic" % (self.workdir, license))
@@ -10345,13 +10346,17 @@ class V6LicenseServer:
             xenrt.sleep(30)            
             self.place.writeToConsole("/etc/init.d/citrixlicensing start\\n")
             xenrt.sleep(30)
+
+            #restarting license server to make sure that everything is working fine
+            self.place.reboot()
+
             try:
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             except:
                 xenrt.sleep(30) # Allow a bit longer for the license server to start
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             self.port = None
-
+            
         xenrt.TEC().logverbose("Removed license %s from license server" % (license))
         self.licenses.remove(license)
 

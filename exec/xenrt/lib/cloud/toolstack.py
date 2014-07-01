@@ -173,9 +173,9 @@ class CloudStack(object):
 
             if template:
                 t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template)][0]
-                xenrt.XRTAssert(not hypervisor, "Cannot specify hypervisor when specifying a template")
+                xenrt.xrtAssert(t.hypervisor == hypervisor or not hypervisor, "Cannot specify different hypervisor when specifying a template")
                 hypervisor = t.hypervisor
-                xenrt.XRTAssert(not zone, "Cannot specify zone when specifying a template")
+                xenrt.xrtAssert(not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id, "Cannot specify different zone when specifying a template")
                 zoneid = t.zoneid
                 templateid = t.id
 
@@ -221,7 +221,7 @@ class CloudStack(object):
                 toolsInstalled = [x for x in self.cloudApi.listTags(resourceid=templateid) if x.key=="tools" and x.value=="yes"]
 
             if zoneid and zone:
-                xenrt.XRTAssert(zoneid ==  self.cloudApi.listZones(name=zone)[0].id, "Specified Zone ID does not match template zone ID")
+                xenrt.xrtAssert(zoneid ==  self.cloudApi.listZones(name=zone)[0].id, "Specified Zone ID does not match template zone ID")
 
             if not zoneid:
                 if zone:
@@ -238,6 +238,7 @@ class CloudStack(object):
             networks = networkProvider.getNetworkIds()
 
             domainid = self.cloudApi.listDomains(name='ROOT')[0].id
+
             rsp = self.cloudApi.deployVirtualMachine(serviceofferingid=svcOffering,
                                                      zoneid=zoneid,
                                                      displayname=name,

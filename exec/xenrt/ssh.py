@@ -46,7 +46,7 @@ class SSHSession:
             try:
                 if useThread:
                     t = xenrt.util.ThreadWithException(target=self.connect,
-                                                       args=(ip, username,
+                                                       args=(ip, port, username,
                                                              password, timeout))
                     # Make the thread daemonic (so python will exit if it ends
                     # up hung and still running)

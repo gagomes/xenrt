@@ -64,6 +64,9 @@ class TCStorageResiliency(_TCCloudResiliencyBase):
 
 class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
 
+    def recover(self):
+        pass
+
     def specificCheck(self):
         pass
 
@@ -77,6 +80,7 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
 
         for i in range(iterations):
             self.runSubcase('outage', (), 'Outage', 'Iter-%d' % (i))
+            self.runSubcase('recover', (), 'Recover', 'Iter-%d' % (i))
             self.runSubcase('specificCheck', (), 'SpecificCheck', 'Iter-%d' % (i))
             self.runSubcase('genericCheck', (), 'GenericCheck', 'Iter-%d' % (i))
 
@@ -97,7 +101,7 @@ class TCManServerVMReboot(_TCManServerResiliencyBase):
         msvm = self.cloud.mgtsvr.place
         msvm.reboot()
 
-    def specificCheck(self):
+    def recover(self):
         self.waitForCCP()
 
 
@@ -107,7 +111,7 @@ class TCManServerRestart(_TCManServerResiliencyBase):
         msvm = self.cloud.mgtsvr.place
         msvm.execcmd("service cloudstack-management restart")
 
-    def specificCheck(self):
+    def recover(self):
         self.waitForCCP()
 
 
@@ -117,7 +121,7 @@ class TCDBRestart(_TCManServerResiliencyBase):
         msvm = self.cloud.mgtsvr.place
         msvm.execcmd("service mysqld restart")
 
-    def specificCheck(self):
+    def recover(self):
         self.waitForCCP()
 
 
@@ -129,7 +133,7 @@ class TCDBOutage(_TCManServerResiliencyBase):
         xenrt.sleep(120)
         msvm.execcmd("service mysqld start")
 
-    def specificCheck(self):
+    def recover(self):
         self.waitForCCP()
 
 

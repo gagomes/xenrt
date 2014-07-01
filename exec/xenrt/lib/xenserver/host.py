@@ -2998,30 +2998,31 @@ done
                 to Clearwater or non-windows guests")
             return
 
-        with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
-            dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
-            if dbVal > 0:
-                xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
-                guest.setCoresPerSocket(dbVal)
-            else:
-                # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-                cpuCoresOnHost = self.getCPUCores()
-                socketsOnHost  = self.getNoOfSockets()
-                maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-                xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" %
-                                                              (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
-                if vcpus != None:
-                    # This gives us all the factors of the vcpus specified
-                    possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-                    xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+        cpuCoresOnHost = self.getCPUCores()
+        socketsOnHost  = self.getNoOfSockets()
+        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
 
-                    # This eliminates the factors that would exceed the host's cores per socket
-                    validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-                    xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+        if vcpus != None:
+            # This gives us all the factors of the vcpus specified
+            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
 
-                    # Then choose a value from here
-                    coresPerSocket = random.choice(validCoresPerSocket)
+            # This eliminates the factors that would exceed the host's cores per socket
+            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
 
+            # Then choose a value from here
+            coresPerSocket = random.choice(validCoresPerSocket)
+
+            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
+                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
+
+                if dbVal in validCoresPerSocket:
+                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    guest.setCoresPerSocket(dbVal)
+                else:
                     xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
                     guest.setCoresPerSocket(coresPerSocket)
                     xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))

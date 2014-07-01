@@ -40,6 +40,10 @@ class SingleSkuBase(xenrt.TestCase):
             if arg.startswith('edition'):
                 self.args['edition'] = arg.split('=')[1]
 
+    def licenseName(self):
+
+        return xenrt.TEC().lookup("LICENSE_NAME","CXS_STD_CCS")
+
     def setParam(self):
 
         self.param = {}
@@ -72,7 +76,7 @@ class SingleSkuBase(xenrt.TestCase):
             raise xenrt.XRTFailure("Unknown Site type")
 
         if self.LICENSEFILE:
-            self.LICENSENAME = "CXS_STD_CCS"
+            self.LICENSENAME = self.licenseName()
             self.param['edition'] = self.args['edition']
             return
 
@@ -95,7 +99,7 @@ class SingleSkuBase(xenrt.TestCase):
             else:
                 if self.param['edition'].startswith('per-socket'):
                     self.LICENSEFILE = "valid-persocket"
-                    self.LICENSENAME = "CXS_STD_CCS"
+                    self.LICENSENAME = self.licenseName()
         else:
             raise xenrt.XRTFailure("Unknown license type")
         

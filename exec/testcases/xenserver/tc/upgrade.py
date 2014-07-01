@@ -4165,7 +4165,16 @@ class TC15290(xenrt.TestCase):
         if not guestUuid in h0.execdom0('xe host-get-vms-which-prevent-evacuation uuid=%s' % h0.uuid).strip():
             raise xenrt.XRTFailure("Shouldn't be allowed to evacuate with HVM guest and no PV drivers")
 
+
 class TCUpgradeVMMigrate(xenrt.TestCase):
+
+    def prepare(self, arglist):
+        self.__balloonTo = None
+
+        for arg in arglist:
+            if arg.startswith("BalloonTo"):
+                  self.__balloonTo = arg.split("=")[-1]
+
     def run(self, arglist=None):
         oldHost = self.getHost("RESOURCE_HOST_0")
         newHost = self.getHost("RESOURCE_HOST_1")
@@ -4180,11 +4189,22 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             arch = None
             memory = items[1]
 
+        memory = self.__getMemorySize(memory)
+
+        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
+
+        if self.__balloonTo:
+            xenrt.TEC().logverbose("Ballooning Memory to %s" % self.__balloonTo)
+            balloonMemory = self.__getMemorySize(self.__balloonTo)
+            g.setDynamicMemRange(balloonMemory, balloonMemory)
+
+        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        g.uninstall()
+
+    def __getMemorySize(self, memory):
         if memory[-1] == "M":
             memory = int(memory[:-1])
         elif memory[-1] == "G":
             memory = int(memory[:-1]) * 1024
 
-        g = oldHost.createBasicGuest(distro=distro, arch=arch, memory=memory)
-        g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
-        g.uninstall()
+        return memory

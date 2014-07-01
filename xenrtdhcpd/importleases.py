@@ -33,7 +33,10 @@ with open(sys.argv[1]) as f:
         if ip and mac and lease:
             query = "UPDATE leases SET mac='%s', expiry=%d WHERE addr='%s'" % (mac, lease, ip)
             print query
-            cur.execute(query)
+            try:
+                cur.execute(query)
+            except Exception, e:
+                print "Warning: " + str(e)
             ip = None
             mac = None
             lease = None

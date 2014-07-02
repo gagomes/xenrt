@@ -418,7 +418,11 @@ class _Responder(object):
         bytes_sent = self._send(packet, str(ip), port, **kwargs)
         if broadcast_changed: #Restore the broadcast bit, in case the packet needs to be used for something else
             packet.setFlag(FLAGBIT_BROADCAST, original_was_broadcast)
-        return (bytes_sent, Address(IPv4(ip), port))
+        try:
+            sendip = IPv4(ip)
+        except:
+            sendip = "255.255.255.255"
+        return (bytes_sent, Address(sendip, port))
         
     def _send(self, packet, ip, port, **kwargs):
         """

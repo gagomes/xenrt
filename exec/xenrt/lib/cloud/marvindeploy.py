@@ -1,3 +1,6 @@
+# Marvin Deployment wrapper
+# This wrapper is intended to be used to deploy clouds with Marvin using the deployDataCenter logic,
+# it should only have dependencies on standard Python libraries, and Marvin.
 
 import pprint
 import json
@@ -8,11 +11,8 @@ import os
 import inspect
 import re
 
-try:
-    from marvin import deployDataCenter
-    from marvin import jsonHelper
-except ImportError:
-    pass
+from marvin import deployDataCenter
+from marvin import jsonHelper
 
 class MarvinDeployException(Exception):
     def __init__(self, value):
@@ -223,5 +223,5 @@ class MarvinDeployer(object):
             marvinDeployer.deploy()
         except SystemExit, e:
             # Some versions of Marvin report a failure by calling sys.exit(1) rather than raising an exception, fix this...
-            raise xenrt.XRTError("Marvin Deploy Data Center failed with exit code %s" % (e.code))
+            raise MarvinDeployException("Marvin Deploy Data Center failed with exit code %s" % (e.code))
 

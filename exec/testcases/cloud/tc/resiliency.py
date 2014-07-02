@@ -326,3 +326,19 @@ class TCDBOutage(_TCManServerResiliencyBase):
 
     def recover(self):
         self.waitForCCP()
+
+class TCManServerStartAfterDB(_TCManServerResiliencyBase):
+    
+    def outage(self):
+        msvm = self.cloud.mgtsvr.place
+        msvm.execcmd("service mysqld stop")
+        msvm.execcmd("service cloudstack-management stop")
+        
+        msvm.execcmd("service cloudstack-management start")
+        
+        xenrt.sleep(120)
+
+        msvm.execcmd("service mysqld start")
+
+    def recover(self):
+        self.waitForCCP()

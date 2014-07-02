@@ -652,6 +652,9 @@ class NetAppFCLun(StorageArrayLun):
     def size(self):
         return int(self.list()[self.__path][4])
 
+    def sizeUsed(self):
+        return int(self.list()[self.__path][5])
+
     def list(self):
         """Get the status (size, online/offline state, shared state, comment string, serial number, LUN mapping) of the given LUN, or all LUNs."""
         # path  string optional - Path of LUN. If specified, only the information of that LUN is returned.

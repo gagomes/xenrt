@@ -53,7 +53,12 @@ class LunPerVDI(xenrt.TestCase):
         for host in self.hosts:
             host.scanFibreChannelBus()
             host.enableMultipathing()
-            self.enableBorehamwood(host)
+            
+            # In Creedence, Borehamwood features are installed by default. However, it requires to enable it.
+            # In other releases, installing the supplimental pack will enable Borehamwood features.
+            if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+                self.enableBorehamwood(host)
+
             self.checkForStaticLuns(host)
             self.getLogsFrom(host)
 

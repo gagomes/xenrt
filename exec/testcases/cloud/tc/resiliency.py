@@ -279,6 +279,13 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
                     raise xenrt.XRTFailure("Cloudstack Management did not come back after 10 minutes")
                 xenrt.sleep(15) 
 
+    def postRun(self):
+        # See if the management server is behaving, if not, restart it
+        try:
+            self.cloud.cloudApi.listHosts()
+        except:
+            self.cloud.mgtsvr.restart()
+
 class TCManServerVMReboot(_TCManServerResiliencyBase):
     
     def outage(self):

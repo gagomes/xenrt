@@ -658,8 +658,8 @@ class _DHCPServer(libpydhcpserver.dhcp.DHCPServer):
         if config.NAK_RENEWALS and not wrapper.pxe and (renew or config.AUTHORITATIVE):
             wrapper.packet.transformToDHCPNakPacket()
             self._emitDHCPPacket(
-             wrapper.packet, libpydhcpserver.dhcp.Address(wrapper.ciaddr, 0), wrapper.pxe,
-             wrapper.mac, wrapper.ciaddr
+             wrapper.packet, wrapper.source_address, wrapper.pxe,
+             wrapper.mac, _IP_REJECTED
             )
             wrapper.markAddressed()
         else:

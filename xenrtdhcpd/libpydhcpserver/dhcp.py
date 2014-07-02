@@ -609,7 +609,7 @@ class _L2Responder(_Responder):
         try:
             ip_destination = socket.inet_aton(ip)
         except:
-            ip_destination = socket.inet_aton(_IP_BROADCAST)
+            ip_destination = socket.inet_aton(str(_IP_BROADCAST))
         binary.extend((
          self._pack_("<H", self._ipChecksum(binary[-1], ip_destination)),
          self._server_address,

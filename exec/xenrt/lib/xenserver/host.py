@@ -10994,13 +10994,17 @@ done
             xenrt.TEC().logverbose("Dom0 vCPU count: %s" % vcpuPinningData['dom0vCPUs'])
             xenrt.TEC().logverbose("Dom0 Pinning status: %s" % vcpuPinningData['pinning'])
             if vcpuPinningData['dom0vCPUs']!='4' or not vcpuPinningData['pinning']:
-              raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
+                raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
 
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             # Check that we're not using a debugging-enabled Xen by seeing if the "debug=y" flag is present
             if not self.execdom0("xl dmesg | fgrep \"Xen version\" | fgrep \"debug=y\"", retval = 'code'):
                 raise xenrt.XRTFailure("Booted a debug=y Xen when FORCE_NON_DEBUG_XEN flag was present")
-     
+
+        if self.getName() == "capelin":
+            xenrt.TEC().logverbose("Machine is capelin")
+            self.execdom0('echo "options bnx2x debug=0x100032" > /etc/modprobe.d/bnx2x')
+
     def postInstall(self):
         TampaHost.postInstall(self)
         #CP-6193: Verify check for XenRT installation cookie

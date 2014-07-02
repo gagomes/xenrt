@@ -3,7 +3,7 @@
   <!-- Creedence alpha 1 NFS pool rolling upgrade test -->
 
   <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.5/alpha/85329"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/xen/carbon/creedence/86801"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

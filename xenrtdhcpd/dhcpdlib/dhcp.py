@@ -644,7 +644,7 @@ class _DHCPServer(libpydhcpserver.dhcp.DHCPServer):
         else:
             wrapper.packet.transformToDHCPNakPacket()
             self._emitDHCPPacket(
-             wrapper.packet, wrapper.source_address, wrapper.pxe,
+             wrapper.packet, "255.255.255.255", wrapper.pxe,
              wrapper.mac, wrapper.ip
             )
             wrapper.markAddressed()

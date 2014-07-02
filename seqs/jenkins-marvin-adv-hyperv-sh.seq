@@ -44,7 +44,7 @@
           "pods": [
             { "XRT_PodIPRangeSize": 10,
               "clusters": [
-                { "hypervisor": "Hyper-V", "XRT_Hosts": 1 }
+                { "hypervisor": "hyperv", "XRT_Hosts": 1 }
               ]
             }
           ]

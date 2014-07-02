@@ -606,7 +606,10 @@ class _L2Responder(_Responder):
          128, #Make the default TTL sane, but not maximum
          0x11, #Protocol=UDP
         ))
-        ip_destination = socket.inet_aton(ip)
+        try:
+            ip_destination = socket.inet_aton(ip)
+        except:
+            ip_destination = socket.inet_aton(_IP_BROADCAST)
         binary.extend((
          self._pack_("<H", self._ipChecksum(binary[-1], ip_destination)),
          self._server_address,

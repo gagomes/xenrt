@@ -53,6 +53,7 @@ class LunPerVDI(xenrt.TestCase):
         for host in self.hosts:
             host.scanFibreChannelBus()
             host.enableMultipathing()
+            self.enableBorehamwood(host)
             self.checkForStaticLuns(host)
             self.getLogsFrom(host)
 
@@ -60,6 +61,10 @@ class LunPerVDI(xenrt.TestCase):
         self.netAppFiler.provisionLuns(10, 10, self._createInitiators())
         map(lambda host : self._customiseXenServerTemplates(host), self.hosts)
         map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        
+    def enableBorehamwood(self, host):
+        """Enable Borehamwood pluggins on host"""
+        host.execdom0("/opt/xensource/sm/enable-borehamwood enable")
  
     def checkForStaticLuns(self, host):
         """Check for any pre-existing LUNs on the host."""

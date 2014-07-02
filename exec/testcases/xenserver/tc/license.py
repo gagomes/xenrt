@@ -1341,7 +1341,7 @@ if __name__ == "__main__":
         if self.EDITION:
             host.license(edition=sku, expirein=5, applyEdition=False)
         else:
-            host.license(sku=sku, expirein=5, applyEdition=False)
+            host.license(sku=sku, expirein=5, applyedition=False)
 
         # Advance the host clocks to 10 minutes before license expires
         expires = host.getLicenseDetails()["expiry"]

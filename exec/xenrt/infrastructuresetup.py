@@ -903,12 +903,12 @@ def portConfig(config,switch,port,network):
     allvlans.append(config.lookup(["NETWORK_CONFIG","DEFAULT", "VLAN"]))
     allvlans.append(config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]))
     allvlans.append("1")
-    if network == "NPRI":
-        nativevlan = config.lookup(["NETWORK_CONFIG","DEFAULT", "VLAN"])
-    elif network == "NSEC":
-        nativevlan = config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"])
-    else:
-        nativevlan = config.lookup(["NETWORK_CONFIG","VLANS", network, "ID"])
+    mainvlans = {"NPRI": config.lookup(["NETWORK_CONFIG","DEFAULT", "VLAN"]),
+                 "NSEC": config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]),
+                 "IPRI": config.lookup(["NETWORK_CONFIG","VLANS", "IPRI", "ID"]),
+                 "ISEC": config.lookup(["NETWORK_CONFIG","VLANS", "ISEC", "ID"])}
+    nativevlan = mainvlans[network]
+    extravlanstoadd = [mainvlans[x] for x in mainvlans.keys() if x != network]
     vlanstoadd = [config.lookup(["NETWORK_CONFIG","VLANS", x, "ID"]) for x in
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
@@ -925,6 +925,8 @@ def portConfig(config,switch,port,network):
                 print "vlan %d tagged %s" % (v, port)
         for v in vlanstoremove:
             print "no vlan %s untagged %s" % (v, port)
+        for v in extravlanstoadd:
+            print "vlan %d tagged %s" % (v, port)
     elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5"):
         print "interface %s" % port
         print "switchport mode general"
@@ -934,6 +936,7 @@ def portConfig(config,switch,port,network):
         if privvlans:
             print "switchport general allowed vlan add %s-%s tagged" % (privvlanstart, privvlanend)
         print "switchport general allowed vlan remove %s" % ",".join(vlanstoremove)
+        print "switchport general allowed vlan add %s tagged" % ",".join(extravlanstoadd)
         print "spanning-tree portfast"
         print "mtu 9216"
         print "exit"
@@ -948,6 +951,7 @@ def portConfig(config,switch,port,network):
         if privvlans:
             print "switchport trunk allowed vlan add %s-%s" % (privvlanstart, privvlanend)
         print "switchport trunk allowed vlan remove %s" % ",".join(vlanstoremove)
+        print "switchport trunk allowed vlan add %s" % ",".join(extravlanstoadd)
         print "spanning-tree portfast trunk"
         print "exit"
     if swtype == "FujitsuBX600":
@@ -965,6 +969,9 @@ def portConfig(config,switch,port,network):
                 print "switchport tagging %s" % v
         for v in vlanstoremove:
             print "switchport allowed vlan remove %s" % v
+        for v in extravlanstoadd:
+            print "switchport allowed vlan add tagged %s" % v
+            print "switchport tagging %s" % v
         print "exit"
     if swtype == "FujitsuBX900":
         print "interface %s" % port
@@ -978,6 +985,8 @@ def portConfig(config,switch,port,network):
                 print "switchport allowed vlan add tagged %s" % v
         for v in vlanstoremove:
             print "switchport allowed vlan remove %s" % v
+        for v in extravlanstoadd:
+            print "switchport allowed vlan add tagged %s" % v
         print "exit"
     
     

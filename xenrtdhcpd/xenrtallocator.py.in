@@ -152,6 +152,8 @@ class XenRTDHCPAllocator(object):
                     _logger.warn("Could not allocate lease for %s on %s" % (str(mac), intf))
                     return None
                 lease = cfg['clientleasetime']
+                if mac.lower()=="76:8f:25:d7:18:ce":
+                    lease = 120
         self._populatePXEInfo(packet, intf)
 
         intfdetails = self.getInterfaceInfo(intf)

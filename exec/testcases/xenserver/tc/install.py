@@ -418,6 +418,8 @@ class TC18381(TC9352):
         # Borehamwood Supplemental Pack is integrated in Creedence. Install only for previous releases.
         if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.installBorehamwoodSuppPack()
+        else: # Simply enable the pluggins in Creedence hosts.
+            self.host.execdom0("/opt/xensource/sm/enable-borehamwood enable; exit 0")
 
         # Find out the SCSID of the root disk on a LUN delivered by HBA
         primarydisk = self.host.getInventoryItem("PRIMARY_DISK") # '/dev/disk/by-id/scsi-360a98000534b4f50476f707a63743464'

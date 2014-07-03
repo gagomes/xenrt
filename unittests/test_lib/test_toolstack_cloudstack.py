@@ -4,8 +4,8 @@ import xenrt
 
 
 class VMListDataDouble(object):
-        def __init__(self, name):
-            self.hostname = name
+    def __init__(self, name):
+        self.hostname = name
 
 
 class CloudStackDouble(xenrt.lib.cloud.toolstack.CloudStack):
@@ -15,11 +15,16 @@ class CloudStackDouble(xenrt.lib.cloud.toolstack.CloudStack):
     """
     def __init__(self, listResult):
         super(CloudStackDouble, self).__init__(place="MyPlace")
+        self.marvin.cloudApi = CloudApiDouble(listResult)
+
+
+class CloudApiDouble(object):
+    def __init__(self, listResult):
         self.__results = listResult
 
-    def _vmListProvider(self, toolstackid):
+    def listVirtualMachines(self, **kwargs):
         return self.__results
-
+    
 
 class testCloudStackResidentOn(XenRTUnitTestCase):
 

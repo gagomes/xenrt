@@ -3,13 +3,10 @@ import os.path
 import sys
 
 try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
-    sys.stderr.write("Could not import cloud libraries\n")
+    pass
 
 def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
     jenkinsUrl = 'http://jenkins.buildacloud.org'

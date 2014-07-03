@@ -1,5 +1,5 @@
 import xenrt
-import os, copy, time, random, re, json, string
+import os, copy, time, random, re, json, string, threading
 import testcases.xenserver.guest
 from xenrt.lazylog import step, comment, log, warning
 from testcases.benchmarks import workloads
@@ -815,14 +815,43 @@ class _VGPUOwnedVMsTest(_VGPUTest):
         else:
             pStart = [xenrt.PTask(self.startVM, vm) for vm in vmlist]
             xenrt.pfarm(pStart)
-            
+    
+    def bootstormStartVM(self, vm):
+        lock = threading.Lock()
+        try:
+            vm.start()
+        except Exception, e:
+            xenrt.TEC().reason("Failed to start vm %s - %s" % (vm.getName(), str(e)))
+            lock.acquire()
+            self.failedVMs.append(vm)
+            lock.release()
+    
     def rebootAllVMs(self, vmlist = None):
+        # For bootstorm reboot do shutdown all the VMs
+        # Then start all the VMs instantly
+        self.failedVMs = []
         if not vmlist:
             vmlist = [guest for guest, ostype in self._guestsAndTypes]
         
-        pt = map(lambda vm: xenrt.PTask(vm.reboot), vmlist)
+        for vm in vmlist:
+            vm.shutdown()
+        
+        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist]
         xenrt.pfarm(pt)
-
+        
+        # Give more tries to start the failed vms
+        for i in range(5):
+            failedGuests = self.failedVMs
+            self.failedVMs = []
+            if len(failedGuests) > 0:
+                pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in failedGuests]
+                xenrt.pfarm(pt)
+            else:
+                break
+        
+        if len(self.failedVMs) > 0:
+            raise xenrt.XRTFailure("Total Guests failed to reboot %d out of %d" % (len(self.failedVMs), len(vmlist)))
+    
     def prepare(self, arglist):
         self.nfs = xenrt.ExternalNFSShare()
         self.host = self.getDefaultHost()
@@ -3672,14 +3701,21 @@ class TCinstallNVIDIAGuestDrivers(_VGPUTest):
         for arg in arglist:
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('vgputype'):
+                vgpuType = arg.split('=')[1]
 
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
 
         g = self.getGuest(vmName)
         g.installNvidiaVGPUDriver(self.driverType)
+        self.assertvGPURunningInVM(g,self._CONFIGURATION[int(vgpuType)])
 
 class TCcreatevGPU(VGPUAllocationModeBase):
+
+    POOL = [["K1"]]
+    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    VGPU_CONFIG = [VGPUConfig.K120]
 
     def run(self,arglist):
 
@@ -3689,6 +3725,8 @@ class TCcreatevGPU(VGPUAllocationModeBase):
                 vgpuType = arg.split('=')[1]
             if arg.startswith('vmName'):
                 vmName = arg.split('=')[1]
+            if arg.startswith('distro'):
+                self.REQUIRED_DISTROS[0] = int(arg.split('=')[1]) 
         
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
@@ -3709,3 +3747,19 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         g.setState("UP")
       
         g.snapshot('aftervGPU')
+
+class TCcheckNvidiaDriver(xenrt.TestCase):
+    """Sanity check to verify the NVIDIA driver is built correctly for the host kernel version"""
+
+    def run(self, arglist):
+        host = self.getDefaultHost()
+        host.installNVIDIAHostDrivers(reboot=False)
+        try:
+            host.execdom0("modprobe nvidia")
+        except:
+            # We expect this to fail if we run on a machine without NVIDIA hardware
+            pass
+
+        if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
+            raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
+

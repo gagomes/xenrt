@@ -85,6 +85,29 @@ LABEL %s
 %s
 """ % (self.label, self.kernel, extra)
 
+class PXEBootEntryMemdisk(PXEBootEntry):
+    def __init__(self, cfg, label):
+        PXEBootEntry.__init__(self, cfg, label)
+        self.initrd = ""
+        self.args = None
+
+    def setInitrd(self, initrd):
+        self.initrd = initrd
+
+    def setArgs(self, args):
+        self.args = args
+
+    def generate(self):
+        if self.args:
+            extra = "    APPEND %s" % (self.args)
+        else:
+            extra = ""
+        return """
+LABEL %s
+    LINUX memdisk
+    INITRD %s
+%s
+""" % (self.label, self.initrd, extra)
 
 class PXEBootEntryPxeGrub(PXEBootEntryLinux):
     """An individual boot entry in a PXE config for pxegrub chainloading."""
@@ -195,6 +218,9 @@ class PXEBoot(xenrt.resources.DirectoryResource):
         self.filename = None
         self.iSCSINICs = []
         self.removeOnExit = removeOnExit
+        self.iPXE = False
+        if self.iSCSILUN:
+            self.iPXE = True
         xenrt.TEC().gec.registerCallback(self)
 
     def setSerial(self, serport, serbaud):
@@ -221,6 +247,8 @@ class PXEBoot(xenrt.resources.DirectoryResource):
             e = PXEBootEntryPxeGrub(self, label)
         elif boot == "grub":
             e = PXEGrubBootEntry(self, label)
+        elif boot == "memdisk":
+            e = PXEBootEntryMemdisk(self, label)
         else:
             raise xenrt.XRTError("Unknown PXE boot type %s" % (boot))
         if default:
@@ -277,14 +305,68 @@ DEFAULT %s
     def addISCSINIC(self, index, pci):
         self.iSCSINICs.append((index, pci))
 
-    def writeISCSIConfig(self, machine, forceip=None, boot=False):
-        if not self.iSCSILUN:
-            return
+    def getIPXEFile(self, machine, forceip=None):
         if forceip:
             filename = "%s/%s" % (self._getIPXEDir(), forceip)
         else:
             filename = "%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)
+        return filename
 
+    def waitForIPXEStamp(self, machine, forceip=None):
+        if forceip:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), forceip)
+        else:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), machine.pxeipaddr)
+        self._rmtree(filename)
+        xenrt.waitForFile(filename, 1800, desc="Waiting for iPXE config to be accessed on !%s" % (machine.name))
+
+    def clearIPXEConfig(self, machine, forceip=None):
+        xenrt.TEC().logverbose("Clearing iPXE config")
+        self.iPXE = False
+        if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
+        if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
+            
+
+    def writeIPXEExit(self, machine, forceip=None):
+        filename = self.getIPXEFile(machine, forceip)
+        
+        out = "goto end\n"
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
+    def writeIPXEConfig(self, machine, url, forceip=None):
+        self.iPXE = True
+        filename = self.getIPXEFile(machine, forceip)
+        
+        if url:
+            out = "chain %s\n" % url
+            out += "goto end\n"
+        else:
+            out = ""
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
+    def writeISCSIConfig(self, machine, forceip=None, boot=False):
+        if not self.iSCSILUN:
+            return
+
+        filename = self.getIPXEFile(machine, forceip)
 
 
         out = "set initiator-iqn %s\n" % (self.iSCSILUN.getInitiatorName())
@@ -331,12 +413,18 @@ dhcp
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 
-        if not self.iSCSILUN:
+
+        if not self.iPXE:
             if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
             if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
 
+        if xenrt.TEC().lookup("USE_IPXE", False, boolean=True) and \
+          self.default == "local" and \
+          xenrt.TEC().lookupHost(machine.name,"IPXE_EXIT", False, boolean=True):
+            self.writeIPXEExit(machine, forceip) 
+        
         if not forcemac:
             forcemac = xenrt.TEC().lookupHost(machine.name,"PXE_MAC_ADDRESS", None)
         if forcemac:

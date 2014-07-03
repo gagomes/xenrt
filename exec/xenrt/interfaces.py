@@ -3,6 +3,9 @@ from zope.interface import Interface, Attribute
 __all__=["Toolstack", "OSParent", "OS", "InstallMethodPV", "InstallMethodIso", "InstallMethodIsoWithAnswerFile"]
 
 class Toolstack(Interface):
+
+    name = Attribute("Name of the Toolstack")
+
     def instanceHypervisorType(instance):
         """Return the hypervisor type for the specified instance"""
 
@@ -15,8 +18,11 @@ class Toolstack(Interface):
     def instanceSupportedLifecycleOperations(instance):
         """Return the lifecycle operations supported by the specified instance on this toolstack"""
 
-    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable):
+    def createInstance(distro, name, vcpus,  memory, vifs, rootdisk, extraConfig, startOn, installTools, useTemplateIfAvailable, hypervisorType):
         """Create and install and instance on this toolstack"""
+
+    def createOSTemplate(distro, rootdisk,installTools, useTemplateIfAvailable, hypervisorType=None):
+        """Create a template for the specified OS, to be used later by createInstance"""
 
     def existingInstance(name):
         """Return an existing instance with the specified name"""
@@ -66,13 +72,19 @@ class Toolstack(Interface):
     def revertInstanceToSnapshot(instance, name):
         """Revert an Instance to a named snapshot"""
 
+    def instanceScreenshot(instance, path):
+        """Screenshot an instance"""
+
+    def getLogs(path):
+        """Retrieve logs into path"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")
 
     hypervisorType = Attribute("Hypervisor (or native) on which the OS is running")
 
-    def getIP(timeout, level):
+    def getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
     def setIP(ip):
@@ -90,10 +102,6 @@ class OSParent(Interface):
     def poll(state, timeout, level, pollperiod):
         """Poll for a change in power state"""
 
-    def assertHealthy():
-        """Quickly assert the health of the instance"""
-
-
 class OS(Interface):
 
     installMethod = Attribute("Selected installation method")
@@ -105,6 +113,10 @@ class OS(Interface):
     defaultRootdisk = Attribute("Default root disk size")
 
     defaultMemory = Attribute("Default memory size")
+
+    canonicalDistroName = Attribute("Canonical distro name")
+
+    tcpCommunicationPorts = Attribute("TCP Ports needed for inbound communication, of type {name:port}")
 
     def knownDistro(distro):
         """Determine if the given distro is known to this library"""
@@ -149,6 +161,11 @@ class InstallMethodIsoWithAnswerFile(InstallMethodIso):
     def generateIsoAnswerfile():
         """Generate an answerfile for ISO installation"""
 
+    def waitForIsoAnswerfileAccess():
+        """Wait for the generated answerfile to be accessed"""
+
+    def cleanupIsoAnswerfile():
+        """Cleanup the generated answer file (safe to call multiple times)"""
 
 class StringGenerator(Interface):
     def generate(length):

@@ -28,19 +28,19 @@
           <arg>threads=4</arg>
           <arg>instances=8</arg>
       </testcase>
-      <testcase id="cloud.tc.scalability..TCScaleInstanceXenDesktopStart" name="StartInstance" tc="TC-21359">
+      <testcase id="cloud.tc.scalability.TCScaleInstanceXenDesktopStart" name="StartInstance" tc="TC-21359">
           <arg>iterations=1</arg>
           <arg>threads=4</arg>
       </testcase>
-      <testcase id="cloud.tc.scalability..TCScaleInstanceXenDesktopReboot" name="RebootInstance" tc="TC-21360">
+      <testcase id="cloud.tc.scalability.TCScaleInstanceXenDesktopReboot" name="RebootInstance" tc="TC-21360">
           <arg>iterations=1</arg>
           <arg>threads=4</arg>
       </testcase>
-      <testcase id="cloud.tc.scalability..TCScaleInstanceXenDesktopStop" name="ShutdownInstance" tc="TC-21361">
+      <testcase id="cloud.tc.scalability.TCScaleInstanceXenDesktopStop" name="ShutdownInstance" tc="TC-21361">
           <arg>iterations=1</arg>
           <arg>threads=4</arg>
       </testcase>
-      <testcase id="cloud.tc.scalability..TCScaleInstanceXenDesktopDestroy" name="DestroyInstance" tc="TC-21362">
+      <testcase id="cloud.tc.scalability.TCScaleInstanceXenDesktopDestroy" name="DestroyInstance" tc="TC-21362">
           <arg>iterations=1</arg>
           <arg>threads=4</arg>
       </testcase>

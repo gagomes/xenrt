@@ -11,6 +11,7 @@
 import string, time, re, traceback, sys
 import xml.dom.minidom
 import xenrt, testcases
+from xenrt.lazylog import step
 
 class _VDISnapshotBase(xenrt.TestCase):
     """Base class for VDI Snapshot Tests."""

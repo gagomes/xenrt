@@ -27,6 +27,14 @@ class _CIMInterface:
   
     RPMCHECK = True
 
+    def _startCimLogging(self):
+        #start capturing cimserver logs
+        script = self.cimLogScript()
+        try:
+            self.host.execdom0(command=script)
+        except:
+            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")
+
     def prepare(self,host):
         """Install a host with xenserver integration supplemental pack"""
 
@@ -41,6 +49,7 @@ class _CIMInterface:
                 break
 
         if flag == False:
+            self._startCimLogging()
             return
 
         suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.PACK),self.PACK)
@@ -96,12 +105,7 @@ class _CIMInterface:
         if not self.checkCimServerRunning(self.host):
             raise xenrt.XRTFailure("Cim Server is not running")
 
-        #start capturing cimserver logs
-        script = self.cimLogScript()
-        try:
-            self.host.execdom0(command=script)
-        except:
-            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")            
+        self._startCimLogging()
 
     def cimLogScript(self):
  
@@ -723,11 +727,18 @@ class _WSMANProtocol(_CIMInterface):
         psScript = xenrt.lib.xenserver.convertWSMANVMToTemplate(self.hostPassword,self.hostIPAddr,vmuuid)
         ret = self.psExecution(psScript,timeout = 3600)
 
-    def exportVMSnapshotTree(self,vmuuid):
+    def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
         driveName = "Q:\\"
-        psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
+        if staticIPs:
+            s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
+            start_ip = s_obj[1].getAddr()
+            end_ip = s_obj[staticIPs].getAddr()
+            (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+            psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
+        else:
+            psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
         ret = self.psExecution(psScript,timeout = 30000)
 
     def importVMSnapshotTree(self,transProtocol,ssl):
@@ -842,7 +853,7 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         #Check the VM state using CLI command
         deadline = xenrt.timenow() + timeout
         pollPeriod = 5
-        time.sleep(3)
+        time.sleep(10)
         while 1:
             data = host.execdom0("xe vm-param-get uuid=%s param-name=power-state" % (vmuuid))
             state = data.splitlines()[0]
@@ -3359,6 +3370,7 @@ class ExportImportSnapshotTree(_CimBase):
     LARGEVM = False
     SIZE = None 
     COPY = False
+    STATICIP = None
 
     def run(self,arglist):
 
@@ -3403,7 +3415,7 @@ class ExportImportSnapshotTree(_CimBase):
             self.guest.shutdown()
 
         vmuuid = self.guest.getUUID()
-        self.protocolObj.exportVMSnapshotTree(vmuuid)
+        self.protocolObj.exportVMSnapshotTree(vmuuid,self.STATICIP)
 
         ret = self.protocolObj.importVMSnapshotTree(transProtocol,ssl)
  
@@ -3462,9 +3474,11 @@ class ExportImportSnapshotTree(_CimBase):
             raise xenrt.XRTFailure("Exception occurred while reverting to snapshot")
         if importedVM.getState() == "UP":
             importedVM.shutdown()
+            self.changeVif(importedVM)
             importedVM.start()
 
         if importedVM.getState() == "DOWN":
+            self.changeVif(importedVM)
             importedVM.start()
 
     def verifySnapshotTree(self,snapshotPattern,host,vmuuid,guest):
@@ -3532,6 +3546,7 @@ class ExportImportSnapshotTree(_CimBase):
         guest.revert(snapshot)
         if guest.getState() == "DOWN":
             try:
+                self.changeVif(guest)
                 guest.start()
             except:
                 raise xenrt.XRTFailure("After reverting VM to snapshot %s, VM is not coming up" % snapshot)
@@ -3601,7 +3616,14 @@ class ExportImportSnapshotTree(_CimBase):
         else:
             guest.execguest("mkdir /tmp/%s" % (str(name)))
         time.sleep(15)
- 
+    
+    def changeVif(self, guest):
+        # Change the vif of newly created guest to XenRT random mac before guest start
+        mac = xenrt.randomMAC()
+        bridge = guest.host.getPrimaryBridge()
+        device = 'eth0'
+        guest.changeVIF(device, bridge, mac)
+    
     def fullTree(self,guest,isWindows):
 
         snapshotList = []
@@ -3636,6 +3658,7 @@ class TC14445(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 1
     ISWINDOWS = False
+    STATICIP = 7
 
 class TC14446(ExportImportSnapshotTree):
     """To verify the export and import of Linux VM snapshot tree of 14 snapshot (pattern 2) using WSMAN protocol"""
@@ -3643,6 +3666,7 @@ class TC14446(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 2 
     ISWINDOWS = False
+    STATICIP = 1
 
 class TC14447(ExportImportSnapshotTree):
     """To verify the export and import of Linux VM snapshot tree of 14 snapshot (pattern 3) using WSMAN protocol"""
@@ -3650,6 +3674,7 @@ class TC14447(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 3
     ISWINDOWS = False
+    STATICIP = 13
 
 class TC14448(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 1) using WSMAN protocol"""
@@ -3657,6 +3682,7 @@ class TC14448(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 1
     ISWINDOWS = True
+    STATICIP = 7
 
 class TC14449(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 2) using WSMAN protocol"""
@@ -3664,6 +3690,7 @@ class TC14449(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 2
     ISWINDOWS = True
+    STATICIP = 1
 
 class TC14450(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 3) using WSMAN protocol"""
@@ -3671,6 +3698,7 @@ class TC14450(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 3
     ISWINDOWS = True
+    STATICIP = 13
 
 class TC13207(ExportImportSnapshotTree):
     """To verify the export and import of Large Windows VM (100GB) with 1 snapshot using WSMAN protocol"""

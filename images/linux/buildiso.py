@@ -15,7 +15,7 @@ def execcmd(cmd):
 
 def repackiso(inputiso, outputiso, isolinuxfile):
     try:
-        td = tempfile.mkdtemp()
+        td = tempfile.mkdtemp(prefix="isobuild", dir="/local/scratch/tmp")
         print "Created directory %s" % td
         os.mkdir("%s/mp" % td)
         execcmd("sudo mount -o loop,ro %s %s/mp" % (inputiso, td))
@@ -34,11 +34,17 @@ if __name__ == "__main__":
     inputiso = sys.argv[1]
     outputiso = sys.argv[2]
 
+    noCopy = False
+
+    if len(sys.argv) > 3:
+        if "nocopy" in sys.argv[3]:
+            noCopy = True
+
     doTailor = False
 
     isoname = inputiso.split("/")[-1]
 
-    m = re.match("(.*)_(x86-\d\d)\.iso", isoname)
+    m = re.match("(.*)[-_](x86-\d\d)\.iso", isoname)
 
     if m:
         doTailor = True
@@ -69,4 +75,5 @@ if __name__ == "__main__":
         repackiso(inputiso, outputiso, fileToUse)
     else:
         print "Not tailoring ISO"
-        shutil.copyfile(inputiso, outputiso)
+        if not noCopy:
+            shutil.copyfile(inputiso, outputiso)

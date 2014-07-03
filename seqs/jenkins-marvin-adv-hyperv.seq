@@ -1,0 +1,82 @@
+<xenrt>
+  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing on Hyper-V -->
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
+  </variables>
+
+  <prepare>
+    <cloud>
+      { "zones": [
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
+          "physical_networks": [
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 2,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 15 }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 10,
+              "clusters": [
+                { "hypervisor": "hyperv", "XRT_Hosts": 2 }
+              ]
+            }
+          ]
+        }
+        ],
+        "globalConfig": [
+          { "name": "network.gc.wait", "value": "60" },
+          { "name": "storage.cleanup.interval", "value": "300" },
+          { "name": "vm.op.wait.interval", "value": "5" },
+          { "name": "default.page.size", "value": "10000" },
+          { "name": "network.gc.interval", "value": "60" },
+          { "name": "workers", "value": "10" },
+          { "name": "account.cleanup.interval", "value": "600" },
+          { "name": "expunge.delay", "value": "60" },
+          { "name": "expunge.interval", "value": "60" },
+          { "name": "expunge.workers", "value": "3" },
+          { "name": "enable.dynamic.scale.vm", "value": "true" },
+          { "name": "direct.agent.load.size", "value": "1000" }
+        ]
+      }
+    </cloud>
+    
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+  </prepare>
+</xenrt>
+

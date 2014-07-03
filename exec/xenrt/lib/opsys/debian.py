@@ -33,6 +33,10 @@ class DebianBasedLinux(LinuxOS):
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
 
+    @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
+
     @abstractproperty
     def isoName(self): pass
 
@@ -107,14 +111,22 @@ class DebianBasedLinux(LinuxOS):
                                filename,
                                arch=self.arch)
         ps.generate()
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         self.cleanupdir = path
         try:
             os.makedirs(path)
         except:
             pass
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
+        xenrt.command("rm -f %s/preseed.stamp" % path)
         shutil.copyfile(filename, "%s/preseed" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/preseed.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -133,7 +145,7 @@ class DebianBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a Debian guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time

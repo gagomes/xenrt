@@ -24,9 +24,11 @@ class XenRTGuestFile(XenRTAPIPage):
             time.sleep(1)
 
         try:
-            self.request.response.body_file = open(fname)
-            self.request.response.content_type="text/plain"
-            return self.request.response
+            with open(fname) as f:
+                data = f.read()
+            with open("%s.stamp" % fname, "w") as f:
+                f.write("access")
+            return data
         except Exception, e:
             traceback.print_exc()
             return "ERROR Exception occurred, see error_log for details"

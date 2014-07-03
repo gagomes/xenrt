@@ -35,6 +35,15 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
+    def test_staticOsInterface(self):
+        """Verify the Instance class implements the OSParent interface"""
+        # Mock out the methods used by the Instance __init__ so they don't get called
+        xenrt.lib.opsys.osFactory = Mock()
+        # Crete the Instance, mocking toolstack
+        i = xenrt.lib.generic.StaticOS(None, None)
+        # Do the verification
+        verifyObject(xenrt.interfaces.OSParent, i)
+
 def test_osLibraries():
     """Generate tests for each known OS library"""
 

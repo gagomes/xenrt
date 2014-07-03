@@ -2859,7 +2859,14 @@ class XenRTRunSuite(XenRTCommand):
                 print "Building status: %s" % j['building']
             if not j['building']:
                 if j['result'] != "SUCCESS":
-                    raise Exception("Could not start suite: " + str(j['result']))
+                    # Find the failure reason if available
+                    lines = urlopen_with_retry("%s/consoleText" % self.build)
+                    reason = "Unknown"
+                    for l in lines:
+                        if l.startswith("REASON: "):
+                            reason = l[8:].strip()
+                            break
+                    raise Exception("Could not start suite: %s (%s)" % (str(j['result']), reason))
                 return
             time.sleep(10)
 
@@ -3190,9 +3197,9 @@ class XenRTConsole(_XenRTControllerOperation):
                 self.printout("%s\n" % line)
         return 0
 
-class XenRTResLock(XenRTCommand):
+class XenRTGlobalResLock(XenRTCommand):
    
-    name = "reslock"
+    name = "globalreslock"
     summary = "Lock a global resource (controller command)"
     mandatory = "<type> <jobid> <site>"
     group = "resources"
@@ -3217,8 +3224,8 @@ class XenRTResLock(XenRTCommand):
         self.printout(json.dumps(results)+"\n")
         return 0
 
-class XenRTResRelease(XenRTCommand):
-    name = "resrelease"
+class XenRTGlobalResRelease(XenRTCommand):
+    name = "globalresrelease"
     summary = "Release a global resource"
     mandatory = "<job id or resource name>"
     group = "resources"
@@ -3244,7 +3251,83 @@ class XenRTResRelease(XenRTCommand):
     def render(self, args, results):
         print results
         return 0
-            
+
+class XenRTMGetResource(_XenRTControllerOperation):
+    name = "mgetresource"
+    summary = "Get a controller resource for a machine"
+    mandatory = "<machine> <resource type> [<args>]"
+
+    def run(self, args):
+        if len(args) < 2:
+            sys.stderr.write("Invalid usage\n")
+            return None
+        machine = args[0]
+        addr = self.getControllerAddrForMachine(machine, args[2:])
+        if not addr:
+            sys.stderr.write("Controller for machine %s not found\n" % machine)
+            return None
+        details = {"machine": args[0], "type": args[1]}
+        if len(args) > 2:
+            details['args'] = " ".join(args[2:])
+        u = urlopen_with_retry("http://%s/xenrt/api/controller/getresource" % addr + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = u.read()
+        return data
+
+    def render(self, args, results):
+        print results
+        return 0
+        
+class XenRTMListResources(_XenRTControllerOperation):
+    name = "mlistresources"
+    summary = "List controller resources for a machine"
+    mandatory = "<machine>"
+
+    def run(self, args):
+        if len(args) < 1:
+            sys.stderr.write("Invalid usage\n")
+            return None
+        machine = args[0]
+        addr = self.getControllerAddrForMachine(machine, args[1:])
+        if not addr:
+            sys.stderr.write("Controller for machine %s not found\n" % machine)
+            return None
+        details = {"machine": args[0]}
+        u = urlopen_with_retry("http://%s/xenrt/api/controller/listresources" % addr + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = u.read()
+        return data
+
+    def render(self, args, results):
+        print results
+        return 0
+        
+class XenRTMReleaseResources(_XenRTControllerOperation):
+    name = "mreleaseresources"
+    summary = "Relase controller resources"
+    mandatory = "<machine> [<resource1> <resource2>...]"
+
+    def run(self, args):
+        if len(args) < 2:
+            sys.stderr.write("Invalid usage\n")
+            return None
+        machine = args[0]
+        addr = self.getControllerAddrForMachine(machine, args[1:])
+        if not addr:
+            sys.stderr.write("Controller for machine %s not found\n" % machine)
+            return None
+        details = []
+        for r in args[1:]:
+            details.append("resource=%s" % r)
+        
+        u = urlopen_with_retry("http://%s/xenrt/api/controller/releaseresources" % addr + "?" + "&".join(details),
+                           proxies=self.proxies)
+        data = u.read()
+        return data
+
+    def render(self, args, results):
+        print results
+        return 0
         
 #############################################################################
 
@@ -3308,8 +3391,11 @@ class Commands:
         self.add(XenRTPower)
         self.add(XenRTSNetwork)
         self.add(XenRTConsole)
-        self.add(XenRTResLock)
-        self.add(XenRTResRelease)
+        self.add(XenRTGlobalResLock)
+        self.add(XenRTGlobalResRelease)
+        self.add(XenRTMGetResource)
+        self.add(XenRTMListResources)
+        self.add(XenRTMReleaseResources)
 
     def add(self, cl):
         c = cl(self)

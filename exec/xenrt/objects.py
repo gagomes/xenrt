@@ -20,6 +20,11 @@ import XenAPI
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 
+#Dummy import of _strptime module
+#This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
+time.strptime('2014-06-12','%Y-%m-%d')
+#End dummy import 
+
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
            "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]
@@ -207,6 +212,8 @@ def productLib(productType=None, host=None, hostname=None):
         return xenrt.lib.kvm
     if productType in ["esx"]:
         return xenrt.lib.esx
+    if productType == "hyperv":
+        return xenrt.lib.hyperv
     else:
         raise xenrt.XRTError("Unknown productType %s" % (productType, ))
 
@@ -2956,7 +2963,16 @@ Add-WindowsFeature as-net-framework"""
                 pass
         for lf in string.split(xenrt.TEC().lookup("XENCENTER_LOG_FILE"), ";"):
             self.addExtraLogFile(lf)
-            
+        
+        if xenrt.TEC().lookup("XENCENTER_EXE", None):
+            xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenCenterMain.exe")
+        if xenrt.TEC().lookup("XENMODEL_DLL", None):
+            xcexe = xenrt.TEC().lookup("XENMODEL_DLL")
+            exe = xenrt.TEC().getFile(xcexe)
+            self.xmlrpcSendFile(exe, "C:\\Program Files\\Citrix\\XenCenter\\XenModel.dll")
+
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
         self.xmlrpcDelTree("c:\\XenCenterTestResources")
@@ -3319,6 +3335,43 @@ DHCPServer = 1
         xenrt.sleep(5)
 
         return scsiid
+
+    def createLinuxNfsShare(self, name, verifyShare=True):
+        """Share a directory over NFS on this Linux VM.
+           The NFS Server service will be installed / started if required"""
+        if self.windows == True:
+            raise xenrt.XRTError('createLinuxNfsShare called for Windows guest')
+
+        exportPath = '/xenrtexport/%s' % (name)
+        if self.execcmd('test -e %s' % (exportPath), retval='code') == 0:
+            raise xenrt.XRTError('Export path: %s already exists on %s' % (exportPath, self.name))
+        xenrt.TEC().logverbose('Creating export on %s at path: %s' % (self.name, exportPath))
+        self.execcmd('mkdir -p %s' % (exportPath))
+        self.execcmd('echo "%s *(rw,async,no_root_squash)" >> /etc/exports' % (exportPath))
+
+        if self.distro.startswith('centos') or self.distro.startswith('rhel'):
+            self.execcmd('service nfs start')
+            self.execcmd('chkconfig nfs on')
+            self.execcmd('exportfs -a')
+        else:
+            if self.execcmd('test -e /etc/init.d/nfs-kernel-server', retval='code') != 0:
+                self.execcmd('apt-get install -y --force-yes nfs-kernel-server nfs-common portmap')
+                self.execcmd('update-rc.d nfs-kernel-server defaults')
+            self.execcmd('/etc/init.d/nfs-kernel-server reload')
+        nfsPath = '%s:%s' % (self.getIP(), exportPath)
+        xenrt.TEC().logverbose('Created NFS share: %s' % (nfsPath))
+
+        if verifyShare:
+            tempMnt = xenrt.TempDirectory().dir
+            tempFile = 'verifyShare.txt'
+            self.execcmd('touch %s' % (os.path.join(exportPath, tempFile)))
+            try:
+                xenrt.util.command('sudo mount %s %s && test -e %s' % (nfsPath, tempMnt, os.path.join(tempMnt, tempFile)))
+            finally:
+                xenrt.util.command('sudo umount %s' % (tempMnt))
+                self.execcmd('rm %s' % (os.path.join(exportPath, tempFile)))
+
+        return nfsPath
 
     def updateWindows(self):
         """Apply all relevant critical updates to a Windows guest"""
@@ -3762,7 +3815,7 @@ bootlocal.close()
             pass
 
         # Enable EMS on Windows (XRT-514)
-        if xenrt.TEC().lookup("OPTION_USE_EMS", "no", boolean=True):
+        if xenrt.TEC().lookup("OPTION_USE_EMS", False, boolean=True):
             try:
                 if float(self.xmlrpcWindowsVersion()) > 5.99:
                     self.xmlrpcExec("bcdedit /bootems {default} ON", ignoreHealthCheck=True)  
@@ -4068,6 +4121,15 @@ bootlocal.close()
     def reboot(self):
         raise xenrt.XRTError("Function 'reboot' not implemented for this class")
 
+    def devcon(self, command):
+        if self.xmlrpcGetArch() == "amd64":
+            devconexe = "devcon64.exe"
+        else:
+            devconexe = "devcon.exe"
+        if not self.xmlrpcFileExists("c:\\%s" % devconexe):
+            self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
+        return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -4346,6 +4408,9 @@ class GenericHost(GenericPlace):
         if rem:
             leasefile = xenrt.TEC().tempFile()
             xenrt.util.command("%s > %s" % (rem, leasefile))
+        elif self.lookup("XENRT_DHCPD", False, boolean=True):
+            leasefile = xenrt.TEC().tempFile()
+            xenrt.util.command("%s/xenrtdhcpd/leases.py > %s" % (xenrt.TEC().lookup("XENRT_BASE"), leasefile))
         elif os.path.exists("/var/lib/dhcp/dhcpd.leases"):
             leasefile = "/var/lib/dhcp/dhcpd.leases"
         elif os.path.exists("/var/lib/dhcpd/dhcpd.leases"):
@@ -4972,7 +5037,12 @@ class GenericHost(GenericPlace):
                 rebootTime = xenrt.util.timenow()
                 self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
             # Check what we can SSH to is the rebooted host
-            uptime = self.execdom0("uptime")
+            
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4984,7 +5054,11 @@ class GenericHost(GenericPlace):
             # This is to try to avoid a race on slow shutdowns (XRT-3155)
             xenrt.sleep(60)
             self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
-            uptime = self.execdom0("uptime")
+            try:
+                uptime = self.execdom0("uptime")
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
+                uptime = ""
             r = re.search(r"up (\d+) min", uptime)
             minsSinceReboot = int((xenrt.util.timenow() - rebootTime) / 60)
             if r and int(r.group(1)) <= minsSinceReboot:
@@ -4992,7 +5066,10 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            self.execdom0("/sbin/reboot", timeout=600)
+            try:
+                self.execdom0("/sbin/reboot", timeout=600)
+            except Exception, e:
+                xenrt.TEC().logverbose(str(e))
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -5430,6 +5507,9 @@ exit 0
     def getVncSnapshot(self,domid,filename):
         """Get a VNC snapshot of domain domid and write it to filename"""
         vncsnapshot = None
+        if self.execdom0("test -e /usr/lib64/xen/bin/vncsnapshot",
+                              retval="code") == 0:
+            vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
         if self.execdom0("test -e /usr/lib/xen/bin/vncsnapshot",
                               retval="code") == 0:
             vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"
@@ -6104,7 +6184,7 @@ exit 0
                         xenrt.TEC().warning(\
                             "Found known boot problem '%s' for machine %s. "
                             "Power cycling." % (desc, self.getName()))
-                        self.machine.powerctl.cycle()
+                        self.machine.powerctl.cycle(fallback = True)
                         return True
                     break
             if found:
@@ -6117,11 +6197,11 @@ exit 0
             xenrt.TEC().warning("Machine %s is known to have unreliable "
                                 "PXE/BIOS boot, power cycling." %
                                 (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         if self.lookup("CONSOLE_TYPE", None) != "basic" and self.lookup("CONSOLE_TYPE", None) != "slave":
             xenrt.TEC().warning("Machine %s may have unreliable serial output, power cycling." % (self.getName()))
-            self.machine.powerctl.cycle()
+            self.machine.powerctl.cycle(fallback = True)
             return True
         return False
 
@@ -7020,6 +7100,13 @@ class GenericGuest(GenericPlace):
                     except:
                         pass
 
+                # If running Debian Etch, we need to disable the updates.vmd.citrix.com repository,
+                # as this no longer exists due to Etch going end of life
+                if debVer <= 4.0:
+                    for filename in ["/etc/apt/sources.list.d/xensource.list", "/etc/apt/sources.list.d/citrix.list"]:
+                        if self.execguest("test -e %s" % (filename), retval="code") == 0:
+                            self.execguest("rm -f %s" % (filename))
+
                 # Later Debian versions can use the original install
                 # mirror. The preseeder kindly does this for us however
                 # we need some more tweaks.
@@ -7302,12 +7389,6 @@ class GenericGuest(GenericPlace):
                 certs.append((certno, subject, sha1))
 
         return certs
-
-    def devcon(self, command):
-        devconexe = "devcon.exe"
-        if not self.xmlrpcFileExists("c:\\%s" % devconexe):
-            self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
-        return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
 
     def increaseServiceStartTimeOut(self):
         # CA-56951 - increase the windows timeout for starting a service
@@ -8806,7 +8887,23 @@ class GenericGuest(GenericPlace):
 
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
-            au3scr = """If WinWait ("Windows Security", "") Then
+
+            if "win81-x64" in self.distro:
+                au3scr = """If WinWait ("Windows Security", "") Then
+sleep (10000)
+SendKeepActive("Windows Security")
+sleep (10000)
+send ("{LEFT}")
+sleep(10000)
+send ("{ENTER}")
+sleep(10000)
+send ("{DOWN}")
+sleep (1000)
+send ("{ENTER}")
+EndIf
+"""
+            else:
+                au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)
@@ -10329,6 +10426,7 @@ class V6LicenseServer:
             # Start the daemon
             self.place.xmlrpcExec("net start \"Citrix Licensing\"")
         else:
+
             self.place.writeToConsole("/etc/init.d/citrixlicensing stop\\n")
             xenrt.sleep(20)
             self.place.execcmd("rm -f %s/myfiles/%s.lic" % (self.workdir, license))
@@ -10339,13 +10437,17 @@ class V6LicenseServer:
             xenrt.sleep(30)            
             self.place.writeToConsole("/etc/init.d/citrixlicensing start\\n")
             xenrt.sleep(30)
+
+            #restarting license server to make sure that everything is working fine
+            self.place.reboot()
+
             try:
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             except:
                 xenrt.sleep(30) # Allow a bit longer for the license server to start
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             self.port = None
-
+            
         xenrt.TEC().logverbose("Removed license %s from license server" % (license))
         self.licenses.remove(license)
 

@@ -3,9 +3,11 @@
 import os
 
 extra = ""
+writeStamp = False
 
 try:
     extra = open("%s/ipxe.cfg/%s" % (os.getcwd(), os.environ["REMOTE_ADDR"])).read()
+    writeStamp = True
 except:
     pass
 
@@ -15,6 +17,7 @@ print """Content-type: text/plain
 
 menu
 item default  Default XenRT boot
+item winpe  Boot into WinPE
 item razor  Boot into Razor MicroKernel
 item tc     Boot into Tinycore Linux
 item end    Local boot
@@ -26,6 +29,10 @@ echo Loading PXELINUX
 set 210:string tftp://${next-server}/
 chain tftp://${next-server}/pxelinux.0
 goto end
+
+:winpe
+echo Loading WinPE
+chain http://${next-server}/wininstall/netinstall/default/boot.ipxe
 
 :razor
 echo Loading Razor Microkernel
@@ -41,3 +48,8 @@ goto end
 
 :end
 """ % extra
+
+if writeStamp:
+    f = open("%s/ipxe.cfg/%s.stamp" % (os.getcwd(), os.environ["REMOTE_ADDR"]), "w")
+    f.write("Accessed")
+    f.close()

@@ -18,15 +18,17 @@ class SingleSkuBase(xenrt.TestCase):
     LICENSEFILE = ''
     LICENSENAME = ''
     v6 = None
+    NEED_LINUX_VM = True
 
     def prepare(self,arglist=None):
     
         self.parseArgs(arglist)
         self.setParam()
         self.addLicense()
-        sampleGuest = self.getGuest("linux")      
-        if sampleGuest.getState() == "DOWN":
-            sampleGuest.start() 
+        if self.NEED_LINUX_VM:
+            sampleGuest = self.getGuest("linux")      
+            if sampleGuest.getState() == "DOWN":
+                sampleGuest.start() 
  
     def parseArgs(self,arglist):
 
@@ -37,6 +39,10 @@ class SingleSkuBase(xenrt.TestCase):
                 self.args['system'] = arg.split('=')[1]
             if arg.startswith('edition'):
                 self.args['edition'] = arg.split('=')[1]
+
+    def licenseName(self):
+
+        return xenrt.TEC().lookup("LICENSE_NAME","CXS_STD_CCS")
 
     def setParam(self):
 
@@ -70,7 +76,7 @@ class SingleSkuBase(xenrt.TestCase):
             raise xenrt.XRTFailure("Unknown Site type")
 
         if self.LICENSEFILE:
-            self.LICENSENAME = "CXS_STD_CCS"
+            self.LICENSENAME = self.licenseName()
             self.param['edition'] = self.args['edition']
             return
 
@@ -93,7 +99,7 @@ class SingleSkuBase(xenrt.TestCase):
             else:
                 if self.param['edition'].startswith('per-socket'):
                     self.LICENSEFILE = "valid-persocket"
-                    self.LICENSENAME = "CXS_STD_CCS"
+                    self.LICENSENAME = self.licenseName()
         else:
             raise xenrt.XRTFailure("Unknown license type")
         
@@ -192,9 +198,9 @@ class SingleSkuBase(xenrt.TestCase):
                         obj = self.param['hosts'][0] 
 
                     if not reset:
-                        if not ((obj.getNoOfCPUSockets() + self.param['licenseinuse']) == currentLicinuse):
+                        if not ((obj.getNoOfSockets() + self.param['licenseinuse']) == currentLicinuse):
                             raise xenrt.XRTFailure("No of licenses in use: %d , no of socket in whole pool: %d,"
-                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfCPUSockets(),self.param['licenseinuse']))              
+                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfSockets(),self.param['licenseinuse']))              
                     else:
                         if not (currentLicinuse == self.param['licenseinuse']):    
                             raise xenrt.XRTFailure("All the licenses are not returned to License server,"
@@ -315,6 +321,14 @@ class SingleSkuBase(xenrt.TestCase):
         # This is to verify the number of licenses used
         self.verifyLicenseServer(reset = True)
 
+class TC21468(SingleSkuBase):
+
+    NEED_LINUX_VM = False
+
+    def postRun(self):
+        #This is for WLB functional tests which need a licensed XS.
+        pass
+
 class LicensedSystem(SingleSkuBase):
 
     def preLicenseApplyAction(self):
@@ -351,7 +365,7 @@ class VerifyHostSocketCount(xenrt.TestCase):
         err = []
         for host in self.hosts: 
             xenrtCount = self.getSocketsFromXenrt(host)
-            cliCount = host.getSocketsonHost()
+            cliCount = host.getNoOfSockets()
             if not (xenrtCount == cliCount): 
                 err.append("Socket count from Xenrt %d and Socket count from CLI %d are not same\n" % (xenrtCount,cliCount))
 

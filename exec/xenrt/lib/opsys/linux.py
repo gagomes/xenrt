@@ -6,6 +6,8 @@ from xenrt.lib.opsys import OS
 class LinuxOS(OS):
     vifStem = "eth"
 
+    tcpCommunicationPorts={"SSH": 22}
+
     def execSSH(self,
                 command,
                 username=None,
@@ -37,8 +39,9 @@ class LinuxOS(OS):
                 self.password = self.findPassword()
             password = self.password
 
-        return xenrt.ssh.SSH(self.parent.getIP(),
+        return xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
                              command,
+                             port=self.parent.getPort(trafficType="SSH"),
                              level=level,
                              retval=retval,
                              password=password,
@@ -51,6 +54,22 @@ class LinuxOS(OS):
                              getreply=getreply,
                              useThread=useThread)
 
+    def getLogs(self, path):
+        sftp = self.sftpClient()
+        sftp.copyLogsFrom(["/var/log/messages",
+                           "/var/log/syslog",
+                           "/var/log/daemon.log",
+                           "/var/log/kern.log"], path)
+
+
+    def sftpClient(self):
+        """Get a SFTP client object to the guest"""
+        return xenrt.ssh.SFTPSession(self.parent.getIP(trafficType="SSH"),
+                                     username="root",
+                                     password=self.password,
+                                     level=xenrt.RC_FAIL,
+                                     port=self.parent.getPort(trafficType="SSH"))
+
     def populateFromExisting(self):
         self.findPassword()
 
@@ -60,22 +79,23 @@ class LinuxOS(OS):
             # Use a 30s timeout if we know the IP. If we don't try 10s first
             if len(ipList) == 0:
                 timeouts = [30]
-                ipList = [self.parent.getIP()]
+                ipList = [self.parent.getIPAndPort(trafficType="SSH")]
             else:
                 timeouts = [10, 30]
+                ipList = [(x,22) for x in ipList]
             passwords = string.split(xenrt.TEC().lookup("ROOT_PASSWORDS", ""))
             for t in timeouts:
                 for p in passwords:
                     for i in ipList:
                         xenrt.TEC().logverbose("Trying %s on %s" % (p, i))
                         try:
-                            xenrt.ssh.SSH(i, "true", username="root",
+                            xenrt.ssh.SSH(i[0], "true", username="root",
                                           password=p, level=xenrt.RC_FAIL,
-                                          timeout=10)
+                                          timeout=10, port=i[1])
                             xenrt.TEC().logverbose("Setting my password to %s"
                                                     % (p))
                             self.password = p
-                            if i != self.parent.getIP():
+                            if i[0] != self.parent.getIP(trafficType="SSH"):
                                 xenrt.TEC().logverbose("Setting my IP to %s"
                                                         % (i))
                                 self.parent.setIP(i)
@@ -90,15 +110,16 @@ class LinuxOS(OS):
         while 1:
             if not self.password:
                 self.findPassword()
-            if xenrt.ssh.SSH(self.parent.getIP(),
+            if xenrt.ssh.SSH(self.parent.getIP(trafficType="SSH"),
                              cmd,
+                             port=self.parent.getPort(trafficType="SSH"),
                              password=self.password,
                              level=xenrt.RC_OK,
                              timeout=20,
                              username=username,
                              nowarn=True) == xenrt.RC_OK:
-                xenrt.TEC().logverbose(" ... OK reply from %s" %
-                                       (self.parent.getIP()))
+                xenrt.TEC().logverbose(" ... OK reply from %s:%s" %
+                                       (self.parent.getIP(trafficType="SSH"), self.parent.getPort(trafficType="SSH")))
                 return xenrt.RC_OK
             now = xenrt.util.timenow()
             if now > deadline:

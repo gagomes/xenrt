@@ -882,17 +882,17 @@ class TC8623(_HostEvacuateRecBase):
 class TC8624(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM to the host itself"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = False
 class TC8625(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM that's not resident on the host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     VM_OFF_HOST = False
 class TC8626(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        non agile VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = False
 
 class TC8627(_KirkwoodErrorBase):
@@ -1112,12 +1112,13 @@ class _PoolRecommendationBase(_KirkwoodBase):
         # Set up VMs
         sruuid1 = self.pool.master.lookupDefaultSR()
         sruuid2 = sruuid1
+        slave = self.pool.getSlaves()[0]
         if self.USE_LOCAL_SR:
             sruuid1 = self.pool.master.getLocalSR()
-            sruuid2 = self.pool.getSlaves()[0].getLocalSR()
+            sruuid2 = slave.getLocalSR()
         g1 = self.pool.master.createGenericLinuxGuest(sr=sruuid1)
         self.uninstallOnCleanup(g1)
-        g2 = self.pool.getSlaves()[0].createGenericLinuxGuest(sr=sruuid1)
+        g2 = slave.createGenericLinuxGuest(sr=sruuid2)
         self.uninstallOnCleanup(g2)
 
         # Build the recommendations
@@ -1185,17 +1186,17 @@ class TC8629(_PoolRecommendationBase):
 class TC8631(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to an
        offline / unavailable host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_OFFLINE = True
 class TC8632(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to a
        host it's already resident on"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = True
 class TC8634(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a non agile
        VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = True
 
 class TC8633(_KirkwoodErrorBase):

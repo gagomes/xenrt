@@ -1341,7 +1341,7 @@ if __name__ == "__main__":
         if self.EDITION:
             host.license(edition=sku, expirein=5, applyEdition=False)
         else:
-            host.license(sku=sku, expirein=5, applyEdition=False)
+            host.license(sku=sku, expirein=5, applyedition=False)
 
         # Advance the host clocks to 10 minutes before license expires
         expires = host.getLicenseDetails()["expiry"]
@@ -2190,6 +2190,10 @@ class TC10017(_V6PlatinumEDN):
     """Verify WLB can be initialised"""
     FEATURE = "Kirkwood"
     ALLOWED = True
+class TC21479(_V6PlatinumEDN):
+    """Verify WLB cannot be initialised for unlicensed host on Creedence"""
+    FEATURE = "Kirkwood"
+    ALLOWED = False
 class TC11002(_V6PlatinumEDN):
     """Verify DMC can be used"""
     FEATURE = "DMC"

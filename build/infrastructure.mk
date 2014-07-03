@@ -62,13 +62,13 @@ endif
 
 .PHONY: extrapackages
 extrapackages: extrapackages-install dython-sync
-    
+	
 
 .PHONY: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2
 	# Squeeze only
 	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
@@ -90,7 +90,8 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade jenkinsapi
 	$(SUDO) easy_install --upgrade virtualenv
 	$(SUDO) easy_install --upgrade fs
-	$(SUDO) easy_install --upgrade coverage
+	$(SUDO) easy_install --upgrade netifaces
+	$(SUDO) easy_install --upgrade mysql-connector-python
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -188,10 +189,10 @@ endif
 
 
 .PHONY: files
-files: $(SHAREDIR)/control/xrt
+files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
-	$(SHAREDIR)/control/xrt --make-configs --debian
+	$(SHAREDIR)/exec/main.py --make-configs --debian
 endif
 
 .PHONY: prompt 
@@ -245,9 +246,32 @@ nfs-uninstall:
 	$(call RESTORE,$(EXPORTS))
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
+.PHONY: dhcpdb
+dhcpdb: files
+	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(ROOT)/$(XENRT)/xenrtdhcpd/importleases.py /var/lib/dhcp/dhcpd.leases 
+
 .PHONY: dhcpd
-dhcpd: files
+dhcpd: install files
 ifeq ($(DODHCPD),yes)
+ifeq ($(XENRT_DHCPD), yes)
+	$(info Removing ISC DHCPD)
+	$(SUDO) apt-get remove -y isc-dhcp-server
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init /etc/init.d/xenrtdhcpd
+	$(SUDO) insserv xenrtdhcpd
+	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
+	$(SUDO) /etc/init.d/xenrtdhcpd restart
+	$(SUDO) sed -i '/leases/d' $(INETD)
+	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /usr/bin/python python $(SHAREDIR)/xenrtdhcpd/leases.py" >> $(INETD)'
+	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+else
+	-$(SUDO) insserv -r xenrtdhcpd
+	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
+ifeq ($(DHCP_UID_WORKAROUND),yes)
+	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
+endif
 	$(info Installing DHCPD...)
 	$(SUDO) apt-get install -y --force-yes dhcp3-server
 	$(call BACKUP,$(DHCPD))
@@ -259,6 +283,7 @@ endif
 	$(SUDO) sed -i '/leases/d' $(INETD)
 	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /bin/cat cat /var/lib/dhcp/dhcpd.leases" >> $(INETD)'
 	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+endif
 else
 	$(info Skipping DHCP config)
 endif
@@ -298,6 +323,7 @@ ifeq ($(DOHOSTS),yes)
 	$(info Installing $(HOSTS)...)
 	$(call BACKUP,$(HOSTS))
 	$(SUDO) mv $(ROOT)/$(XENRT)/hosts $(HOSTS)
+	$(SUDO) mv $(ROOT)/$(XENRT)/dnsmasq.conf /etc/dnsmasq.conf
 	$(SUDO) /etc/init.d/dnsmasq restart
 endif
 
@@ -342,6 +368,7 @@ tftp:
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/menu.c32 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/mboot.c32 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/chain.c32 $(TFTPROOT)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/memdisk $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/banner $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default $(TFTPROOT)/pxelinux.cfg
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/razor.ipxe $(TFTPROOT)
@@ -396,6 +423,12 @@ httpd:
 	$(SUDO) a2enmod deflate
 	-$(SUDO) /etc/init.d/apache2 start
 	$(SUDO) /etc/init.d/apache2 restart
+
+.PHONY: samba
+samba:
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/samba/smb.conf /etc/samba/smb.conf
+	$(SUDO) sed -i s/xenrtd/$(USERNAME)/ /etc/samba/smb.conf
+	$(SUDO) /etc/init.d/samba restart
 
 .PHONY: iscsi
 iscsi:
@@ -542,4 +575,4 @@ infrastructure-uninstall: network-uninstall \
 marvin:
 	$(info Installing marvin)
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
-	sudo easy_install $(SHAREDIR)/marvin.tar.gz
+	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz

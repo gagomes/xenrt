@@ -57,7 +57,7 @@
         <arg>threads=1</arg>
         <arg>endpoint0=debian60-0-1v</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-	<arg>gro=on</arg>
+        <arg>gro=on</arg>
       </testcase>
     </serial>
     <serial group="debian60/t08/v01/gon">
@@ -65,7 +65,7 @@
         <arg>threads=8</arg>
         <arg>endpoint0=debian60-0-1v</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-	<arg>gro=on</arg>
+        <arg>gro=on</arg>
       </testcase>
     </serial>
 

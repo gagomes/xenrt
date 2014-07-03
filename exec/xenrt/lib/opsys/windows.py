@@ -1,5 +1,5 @@
 import xenrt
-import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2
+import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2, time
 from xenrt.lib.opsys import OS, registerOS
 from zope.interface import implements
 
@@ -65,6 +65,8 @@ class MyPatientTrans(xmlrpclib.Transport):
 
 class WindowsOS(OS):
 
+    tcpCommunicationPorts={"XML/RPC": 8936}
+
     implements(xenrt.interfaces.InstallMethodIso)
 
     @staticmethod
@@ -100,15 +102,35 @@ class WindowsOS(OS):
         self.viridian = True
         self.__randomStringGenerator = None
 
-    def ensurePackageInstalled(self, package):
+    @property
+    def canonicalDistroName(self):
+        return "%s" % (self.distro)
+    
+    def ensurePackageInstalled(self, *args):
         global packageList
-        installer = None
-        for p in packageList:
-            if p.NAME == package:
-                installer = p(self)
-        if not installer:
-            raise xenrt.XRTError("No installer found for package %s" % package)
-        installer.ensureInstalled()
+        needReboot = False
+        for package in args:
+            installer = None
+            for p in packageList:
+                if p.NAME == package:
+                    installer = p(self)
+            if not installer:
+                raise xenrt.XRTError("No installer found for package %s" % package)
+            r = installer.ensureInstalled()
+            if r:
+                if installer.REQUIRE_IMMEDIATE_REBOOT:
+                    self.reboot()
+                    xenrt.sleep(120)
+                    self.waitForBoot(600)
+                    needReboot = False
+                elif installer.REQUIRE_REBOOT:
+                    needReboot = True
+
+        if needReboot:
+            self.reboot()
+            xenrt.sleep(120)
+            self.waitForBoot(600)
+                
 
     def isPackageInstalled(self, package, installOptions={}):
         global packageList
@@ -122,7 +144,7 @@ class WindowsOS(OS):
         
     def waitForInstallCompleteAndFirstBoot(self):
         xenrt.TEC().logverbose("Getting IP address")
-        self.parent.getIP(10800)
+        self.parent.getIP(trafficType="XML/RPC", timeout=10800)
         xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
         self.updateDaemon()
@@ -176,13 +198,13 @@ class WindowsOS(OS):
         else:
             trans = MyTrans()
             
-        ip = IPy.IP(self.parent.getIP())
+        ip = IPy.IP(self.parent.getIP(trafficType="XML/RPC"))
         url = ""
         if ip.version() == 6:
-            url = 'http://[%s]:8936'
+            url = 'http://[%s]:%d'
         else:
-            url = 'http://%s:8936'
-        return xmlrpclib.ServerProxy(url % (self.parent.getIP()),
+            url = 'http://%s:%d'
+        return xmlrpclib.ServerProxy(url % (self.parent.getIP(trafficType="XML/RPC"), self.parent.getPort(trafficType="XML/RPC")),
                                      transport=trans, 
                                      allow_none=True)
 
@@ -1091,6 +1113,15 @@ class WindowsOS(OS):
        if word not in reread:
            raise xenrt.XRTError("assertHealthy has failed")
 
+    def getPowershellVersion(self):
+        version = 0.0
+        try:
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\1\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+            version = float(self.winRegLookup("HKLM", "SOFTWARE\\Microsoft\\PowerShell\\3\\PowerShellEngine", "PowerShellVersion", healthCheckOnFailure=False))
+        except:
+            pass
+        return version
+
     @property
     def randomStringGenerator(self):
         if not self.__randomStringGenerator:
@@ -1102,5 +1133,58 @@ class WindowsOS(OS):
     def randomStringGenerator(self, value):
         self.__randomStringGenerator = value
 
+    def _xenstore(self, operation, path, data=None):
+        """Perform a xenstore operation"""
+        assert(operation in ["read", "write", "dir", "remove"], "Unknown xenstore operation %s" % operation)
+
+        # First find the xenstore_client.exe binary
+        if self.getArch() == "amd64":
+            cmdpath = "C:\\Program Files (x86)\\Citrix\\XenTools\\xenstore_client.exe"
+        else:
+            cmdpath = "C:\\Program Files\\Citrix\\XenTools\\xenstore_client.exe"
+    
+        cmd = "\"%s\" %s %s" % (cmdpath, operation, path)
+        if data is not None:
+            cmd = "%s %s" % (cmd, data)
+
+        response = self.execCmd(cmd, returndata=True)
+        # This will have some rows we need to strip off
+        lines = response.splitlines()
+        return "\n".join(lines[2:])
+
+    def xenstoreRead(self, path):
+        return self._xenstore("read", path)
+
+    def xenstoreWrite(self, path, data):
+        return self._xenstore("write", path, data)
+
+    def xenstoreLs(self, path):
+        return self._xenstore("dir", path)
+
+    def xenstoreRemove(self, path):
+        return self._xenstore("remove", path)
+
+    @property
+    def uptime(self):
+        """Returns the uptime of the Windows VM"""
+
+        # TODO: Find a better way of doing this - for 32-bit we can use the win32api.GetTickCount(), but need an equivalent for
+        # 64-bit systems.
+        stats = self.execCmd("net statistics server", returndata=True)
+        m = re.search("Statistics since (.+)", stats)
+        if not m:
+            raise xenrt.XRTError("Unable to determine uptime")
+        startDate = m.group(1)
+        # startDate is in the format MM/DD/YYYY HH:MM AM/PM or MM/DD/YYYY HH:MM:SS AM/PM
+        try:
+            startTime = time.strptime(startDate, "%m/%d/%Y %H:%M %p")
+        except ValueError:
+            startTime = time.strptime(startDate, "%m/%d/%Y %H:%M:%S %p")
+        # Unfortunately time.strptime doesn't handle AM/PM correctly (it ignores it), so work out if we need to add 12
+        if startDate.endswith("PM"):
+            start = time.mktime(startTime) + 12*3600
+        else:
+            start = time.mktime(startTime)
+        return time.time() - start
 
 registerOS(WindowsOS)

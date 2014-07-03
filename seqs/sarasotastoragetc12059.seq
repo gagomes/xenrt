@@ -1,13 +1,8 @@
 <xenrt>
-
   <!-- multipath boot-from-san tests -->
-
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
     <SR_ISCSI_MINSIZE>8</SR_ISCSI_MINSIZE>
-    
-    <!-- This is changed between tests-->
-    <OPTION_ROOT_MPATH></OPTION_ROOT_MPATH>
   </variables>
 
   <testsequence>

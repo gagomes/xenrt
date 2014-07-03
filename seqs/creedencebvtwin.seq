@@ -21,6 +21,7 @@
     <serial group="HostInstallation">
       <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6643"/>
       <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6649"/>
+      <testcase id="xenserver.tc.vgpu.TCcheckNvidiaDriver" tc="TC-21483"/>
 
       <parallel>
         <serial group="WindowsGuest1">

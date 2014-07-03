@@ -2,7 +2,10 @@
 27746f6e6c8ff6fa75ba7c6448a3d6c2  ./patches/memsize_1024MB_limit.patch
 d1ff679a95546db356bdb7f0cdbb8900  ./tweaks
 8551236aedeb698587ee264d59601bc9  ./config.in.withnet
-641760af27929f3435f609787db96892  ./lmbench-3.0-a4.tgz
 8c17d9b3b0fafb12944d1db31bc238cd  ./config.in
 b6fc7518c71b64cc217ec2e3c27f9927  ./config.in.lite
 26ab0db90d72e28ad0ba1e22ee510510  ./.version
+b3351a3294db66a72e2864a199d37cbf  ./lmbench-3.0-a9.tgz
+26ab0db90d72e28ad0ba1e22ee510510  ./.version
+641760af27929f3435f609787db96892  ./lmbench-3.0-a4.tgz
+6f7e27b11621d57b21c784cd7035d15f  ./lmbench.config

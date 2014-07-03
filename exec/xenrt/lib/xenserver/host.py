@@ -1,5 +1,4 @@
 #
-#
 # XenRT: Test harness for Xen and the XenServer product family
 #
 # Encapsulate a XenServer host.
@@ -10,7 +9,7 @@
 #
 
 
-import sys, string, os.path, glob, time, re, random, shutil, os, stat, datetime
+import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, datetime
 import traceback, threading, types
 import xml.dom.minidom, libxml2
 import tarfile
@@ -155,7 +154,8 @@ def createHost(id=0,
                enableAllPorts=True,
                noipv4=False,
                iScsiBootLun=None,
-               iScsiBootNets=[]):
+               iScsiBootNets=[],
+               extraConfig=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -385,7 +385,8 @@ def createHostViaVersionPath(id=0,
                              suppackcds=None,
                              addToLogCollectionList=False,
                              ipv6=None,
-                             noipv4=False):
+                             noipv4=False,
+                             extraConfig=None):
     """Install a host and update/upgrade via the specified path."""
     # "Orlando +HF1 +HF2 George"
     # "Miami Orlando George"
@@ -415,7 +416,8 @@ def createHostViaVersionPath(id=0,
                       suppackcds=suppackcds,
                       addToLogCollectionList=addToLogCollectionList,
                       ipv6=ipv6,
-                      noipv4=noipv4)
+                      noipv4=noipv4,
+                      extraConfig=extraConfig)
     # Leave the inputdir set for this version to properly handle any
     # updates needed later.
     xenrt.TEC().setInputDir(inputdir)
@@ -2035,6 +2037,10 @@ fi
         if xenrt.TEC().lookup("HOST_ENFORCE_CC_RESTRICTIONS", False):
             self.enableCC()
 
+        if xenrt.TEC().lookup("USE_BLKTAP2", False):
+            self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
+            self.restartToolstack()
+
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
@@ -2951,8 +2957,13 @@ fi
                 except:
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
+
         if vcpus != None:
             guest.setVCPUs(vcpus)
+
+        if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
+            self.setRandomCoresPerSocket(guest, vcpus)
+
         if memory != None:
             guest.setMemory(memory)
         if (not disksize) or disksize == None or disksize == guest.DEFAULT:
@@ -2992,6 +3003,44 @@ fi
         if not nodrivers:
             guest.check()
         return guest
+
+    def setRandomCoresPerSocket(self, guest, vcpus):
+        log("Setting random cores per socket....")
+
+        if not isinstance(self, xenrt.lib.xenserver.ClearwaterHost) or not guest.windows:
+            log("Refusing to set cores-per-socket on anything prior \
+                to Clearwater or non-windows guests")
+            return
+
+        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+        cpuCoresOnHost = self.getCPUCores()
+        socketsOnHost  = self.getNoOfSockets()
+        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+
+        if vcpus != None:
+            # This gives us all the factors of the vcpus specified
+            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+
+            # This eliminates the factors that would exceed the host's cores per socket
+            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+
+            # Then choose a value from here
+            coresPerSocket = random.choice(validCoresPerSocket)
+
+            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
+                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
+
+                if dbVal in validCoresPerSocket:
+                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    guest.setCoresPerSocket(dbVal)
+                else:
+                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                    guest.setCoresPerSocket(coresPerSocket)
+                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
+                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.
@@ -3909,7 +3958,7 @@ fi
         args = []
         args.append("uuid=%s" % (self.getMyHostUUID()))
         cli.execute("host-disable-local-storage-caching", string.join(args))
-        
+
     def getMyHostName(self):
         """Return a host name-label suitable for e.g. vm-start on="""
         return self.getHostParam("name-label")
@@ -3928,6 +3977,20 @@ fi
 
     def getCPUCores(self):
         return len(self.minimalList("host-cpu-list", "number"))
+
+    def getNoOfSockets(self):
+        count = "0"
+        data = self.paramGet("cpu_info")
+
+        for d in data.split(';'):
+            r=re.search(".*socket_count.*\s*\d+",d)
+            if r:
+                count = re.search("\d+",r.group(0)).group(0)
+
+        if int(count) == 0:
+            raise xenrt.XRTFailure("Socket Count returned from CLI: %s" % count)
+        else:
+            return int(count)
 
     def getPhysInfo(self):
         data = self.execdom0("/opt/xensource/debug/xenops physinfo")
@@ -6412,6 +6475,14 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204_64")
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
+            elif re.search("ubuntu1404", distro):
+                if hvm:
+                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
+                else:
+                    if arch and arch == "x86-64":
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404_64")
+                    else:
+                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -7624,6 +7695,14 @@ rm -f /etc/xensource/xhad.conf || true
             if not self.rebootingforbugtool:
                 self.rebootingforbugtool = True
                 xenrt.sleep(300) # Allow 5 minutes for all logs to sync
+                
+                # poke Xen to give us a crash-dump
+                try:
+                    xenrt.command("/bin/echo -e \"\\x01\\x01\\x01C\\x05c.\" | console %s -f" % self.machine.name, timeout=120)
+                except Exception, e:
+                    xenrt.TEC().logverbose(str(e))
+                xenrt.sleep(120)
+                
                 self.poweroff()
                 xenrt.sleep(30)
                 self.poweron()
@@ -7845,6 +7924,14 @@ rm -f /etc/xensource/xhad.conf || true
         for key in kwargs:
             value = kwargs[key]
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
+
+    def _findXenBinary(self, binary):
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin"]
+        for p in paths:
+            joinedPath = os.path.join(p, binary)
+            if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
+                return joinedPath
+        raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
 
 #############################################################################
 
@@ -10035,7 +10122,7 @@ class BostonHost(MNRHost):
 
     def tailorForCloudStack(self):
         # Set the Linux templates with PV args to autoinstall
-        myip = xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")
+        myip = "xenrt-controller.xenrt"
 
         args = {}
         args["Debian Wheezy 7.0 (64-bit)"] = "auto=true priority=critical console-keymaps-at/keymap=us preseed/locale=en_US auto-install/enable=true netcfg/choose_interface=eth0 url=http://%s/xenrt/guestfile/preseed" % myip
@@ -10056,6 +10143,8 @@ class BostonHost(MNRHost):
         args["Red Hat Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Red Hat Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Red Hat Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6.0 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Red Hat Enterprise Linux 6.0 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
 
         args["CentOS 4.5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["CentOS 4.6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
@@ -10065,11 +10154,15 @@ class BostonHost(MNRHost):
         args["CentOS 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["CentOS 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["CentOS 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6.0 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["CentOS 6.0 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
 
         args["Oracle Enterprise Linux 5 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Oracle Enterprise Linux 5 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Oracle Enterprise Linux 6 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         args["Oracle Enterprise Linux 6 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6.0 (32-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
+        args["Oracle Enterprise Linux 6.0 (64-bit)"] = "graphical utf8 ks=http://%s/xenrt/guestfile/kickstart" % myip
         
         args["SUSE Linux Enterprise Server 10 (32-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
         args["SUSE Linux Enterprise Server 10 (64-bit)"] = "console=ttyS0 xencons=ttyS autoyast=http://%s/xenrt/guestfile/kickstart showopts netdevice=eth0 netsetup=dhcp" % myip
@@ -10522,21 +10615,6 @@ class ClearwaterHost(TampaHost):
                             or (edition=="xendesktop" and skuname == "Citrix XenServer for XenDesktop")) :
             raise xenrt.XRTFailure("Sku_Marketing_Name %s doesnt matches with the edition %s" % (skuname,edition))            
 
-    def getNoOfCPUSockets(self):
-
-        cpuInfo = self.minimalList("host-param-get", args = "param-name=cpu_info uuid=%s" % self.uuid)
-
-        count = 0
-        for info in cpuInfo:
-            if "socket_count" in info:
-                count = info.split(':')[1].strip()
-                break
-        
-        if int(count) == 0:
-            raise xenrt.XRTFailure("Unable to get the socket count")
-
-        return int(count)
-
     def installv6dRPM(self):
  
         filename = "v6d.rpm"
@@ -10560,22 +10638,6 @@ class ClearwaterHost(TampaHost):
         
         self.execdom0("service v6d restart")
 
-    def getSocketsonHost(self):
-
-        count = "0"
-        data = self.paramGet("cpu_info")
-
-        for d in data.split(';'):
-            r=re.search(".*socket_count.*\s*\d+",d)
-            if r:
-                count = re.search("\d+",r.group(0)).group(0)
-
-        if int(count) == 0:
-            raise xenrt.XRTFailure("Socket Count returned from CLI: %s" % count)
-        else:
-            return int(count)
-
-
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.
         The list is a string of comma-separated ISO names or None if
@@ -10592,21 +10654,18 @@ class ClearwaterHost(TampaHost):
     
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.ClearwaterGuest
-        
-
-        
 
     def setDom0PinningPolicy(self, numberOfvCPUs, pinning):
         if pinning:
             pinningPolicy = self.DOM0_VCPU_PINNED 
         else:
             pinningPolicy = self.DOM0_VCPU_NOT_PINNED
-        self.execdom0('/usr/lib/xen/bin/host-cpu-tune set %s %s' % (numberOfvCPUs, pinningPolicy))
+        self.execdom0('%s set %s %s' % (self._findXenBinary('host-cpu-tune'), numberOfvCPUs, pinningPolicy))
         self.reboot()
 
     def getDom0PinningPolicy(self):
         vcpuPinningData = {}
-        output = self.execdom0('/usr/lib/xen/bin/host-cpu-tune show')
+        output = self.execdom0('%s show' % self._findXenBinary('host-cpu-tune'))
         output = output.split(':')[1].strip().split(', ')
         vcpuPinningData['dom0vCPUs'] = output[0]
         if re.search('exclusively pinned', output[1]):
@@ -10905,7 +10964,7 @@ done
         else:
             return True
 
-    def installNVIDIAHostDrivers(self):
+    def installNVIDIAHostDrivers(self, reboot=True):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
         rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
         xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
@@ -10933,7 +10992,8 @@ done
             sh.close()
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
-        self.reboot()
+        if reboot:
+            self.reboot()
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):
         return int(self.execdom0("xe gpu-group-get-remaining-capacity uuid=%s vgpu-type-uuid=%s" %(groupUUID,vGPUTypeUUID)))
@@ -10948,7 +11008,7 @@ done
             xenrt.TEC().logverbose("Dom0 vCPU count: %s" % vcpuPinningData['dom0vCPUs'])
             xenrt.TEC().logverbose("Dom0 Pinning status: %s" % vcpuPinningData['pinning'])
             if vcpuPinningData['dom0vCPUs']!='4' or not vcpuPinningData['pinning']:
-              raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
+                raise xenrt.XRTFailure("Dom0 vCPU pinning policy not present after reboot")        
 
         setxen = xenrt.TEC().lookup("SETXENCMDLINE", None) #eg. SETXENCMDLINE=x=a,y=b
         if setxen:
@@ -11011,6 +11071,38 @@ class CreedenceHost(ClearwaterHost):
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
+    def enableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' in self.genParamGet("sr", sr, "other-config"):
+                    self.genParamRemove("sr", sr, "other-config", "o_direct")
+
+    def disableReadCaching(self, sruuid=None):
+        if sruuid:
+            srlist = [sruuid]
+        else:
+            srlist = self.minimalList("sr-list")
+
+        for sr in srlist:
+            type = self.genParamGet("sr", sr, "type")
+            # Read cache only works for ext and nfs.
+            if type == 'nfs' or type == 'ext':
+                oc = self.genParamGet("sr", sr, "other-config")
+                # When o_direct is not defined, it is on by default.
+                if 'o_direct' not in oc or 'true' not in self.genParamGet("sr", sr, "other-config", "o_direct"):
+                    self.genParamSet("sr", sr, "other-config", "true", "o_direct")
+
+    def vSwitchCoverageLog(self):
+        self.vswitchAppCtl("coverage/show")
+
 #############################################################################
 class SarasotaHost(ClearwaterHost):
     USE_CCISS = False
@@ -11062,7 +11154,7 @@ class SarasotaHost(ClearwaterHost):
         return "/usr/lib/xcp/alternatives"
         
     def getXenGuestLocation(self):
-        return "/usr/lib/xen/bin/xenguest"
+        return self._findXenBinary("xenguest")
         
     def getQemuDMWrapper(self):
         return "/usr/libexec/xenopsd/qemu-dm-wrapper"
@@ -13869,12 +13961,12 @@ class ClearwaterPool(TampaPool):
             xenrt.TEC().logverbose("Following hosts have not got same editions")
             raise xenrt.XRTFailure(failure)
 
-    def getNoOfCPUSockets(self):
+    def getNoOfSockets(self):
 
         socketCount = 0
 
         for h in self.getHosts():
-            socketCount = socketCount + h.getNoOfCPUSockets()
+            socketCount = socketCount + h.getNoOfSockets()
 
         if socketCount == 0:
             raise xenrt.XRTFailure("There is no socket with in the pool")

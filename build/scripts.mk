@@ -9,6 +9,7 @@ PYTHONLIB ?= /usr/local/lib/python2.6/dist-packages/
 PYTHONLIB2 ?= /usr/local/lib/python2.7/dist-packages/
 JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
+WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 
 include build/config.mk
@@ -20,12 +21,12 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
-LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt
-BINLINKS    := xenrt xrt
+LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
+BINLINKS    := xenrt xrt xrt1 xrtbranch
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -169,12 +170,24 @@ $(EXECDIR)/xenrt/ctrl.py:
 control/xrt:
 	$(info Creating link to $@...)
 	rm $(SHAREDIR)/$@
-	echo '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
+
+control/xrt1:
+	$(info Creating link to $@...)
+	ln -sf $(SHAREDIR)/exec/main.py $(SHAREDIR)/$@
 
 xrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
+
+xrt1:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt1 $(BINDIR)/$@
+
+xrtbranch:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrtbranch $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)
@@ -250,6 +263,9 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
+	sed -i 's#@user@#$(USERNAME)#g' $@
+	sed -i 's#@group@#$(GROUPNAME)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)
@@ -272,7 +288,10 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd $(SHAREDIR)/unittests && python runner.py
-	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
-	mv $(SHAREDIR)/unittests/.coverage $(CURRENT_DIR)/
-	cd $(CURRENT_DIR) && coverage xml --include="$(SHAREDIR)/*" && sed -ie "s,$(SHAREDIR)/,,g" coverage.xml
+	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
+
+.PHONY: minimal-check
+minimal-check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)

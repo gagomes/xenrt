@@ -1,16 +1,13 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>
-      Boston
-    </PRODUCT_VERSION>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
   </prepare>
   <testsequence>
     <parallel group="HVM5G2C_3" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC14864" prio="4" tc="TC-14864"/>
       <testcase id="xenserver.tc.smoketest.TC14879" prio="4" tc="TC-14879"/>
       <testcase id="xenserver.tc.smoketest.TC14880" prio="4" tc="TC-14880"/>
       <testcase id="xenserver.tc.smoketest.TC15440" prio="4" tc="TC-15440"/>
@@ -20,6 +17,7 @@
       <testcase id="xenserver.tc.smoketest.TC15444" prio="4" tc="TC-15444"/>
       <testcase id="xenserver.tc.smoketest.TC15445" prio="4" tc="TC-15445"/>
       <testcase id="xenserver.tc.smoketest.TC15446" prio="4" tc="TC-15446"/>
+      <testcase id="xenserver.tc.smoketest.TC15447" prio="4" tc="TC-15447"/>
     </parallel>
   </testsequence>
 </xenrt>

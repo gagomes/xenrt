@@ -10,6 +10,10 @@ class XLToolstack(object):
         self.residentOn = {} # A dictionary mapping running instances to their resident host
         self.suspendedInstances = []
 
+    @property
+    def name(self):
+        return "XL"
+
     def getAllExistingInstances(self):
         raise xenrt.XRTError("Not implemented")
 
@@ -98,6 +102,14 @@ class XLToolstack(object):
     def destroyInstance(self, instance):
         raise xenrt.XRTError("Not implemented")
 
+    def createOSTemplate(self,
+                         distro,
+                         rootdisk=None,
+                         installTools=True,
+                         useTemplateIfAvailable=True,
+                         hypervisorType=None):
+        raise xenrt.XRTError("Not implemented")
+
     def createInstance(self,
                        distro,
                        name,
@@ -108,7 +120,12 @@ class XLToolstack(object):
                        extraConfig={},
                        startOn=None,
                        installTools=True,
-                       useTemplateIfAvailable=True):
+                       useTemplateIfAvailable=True,
+                       hypervisorType=xenrt.HypervisorType.xen):
+
+        if hypervisorType != xenrt.HypervisorType.xen:
+            raise xenrt.XRTError("XL only supports the Xen hypervisor")
+
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
         instance.toolstackId = str(uuid.uuid4())
 
@@ -275,5 +292,11 @@ disk = [ %s ]
 
     def revertInstanceToSnapshot(self, instance, name):
         raise xenrt.XRTError("Not implemented")
+
+    def instanceScreenshot(self, instance, path):
+        raise xenrt.XRTError("Not implemented")
+
+    def getLogs(self, path):
+        return
 
 __all__ = ["XLToolstack"]

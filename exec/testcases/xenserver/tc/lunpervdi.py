@@ -53,6 +53,12 @@ class LunPerVDI(xenrt.TestCase):
         for host in self.hosts:
             host.scanFibreChannelBus()
             host.enableMultipathing()
+            
+            # In Creedence, Borehamwood features are installed by default. However, it requires to enable it.
+            # In other releases, installing the supplimental pack will enable Borehamwood features.
+            if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+                self.enableBorehamwood(host)
+
             self.checkForStaticLuns(host)
             self.getLogsFrom(host)
 
@@ -60,6 +66,19 @@ class LunPerVDI(xenrt.TestCase):
         self.netAppFiler.provisionLuns(10, 10, self._createInitiators())
         map(lambda host : self._customiseXenServerTemplates(host), self.hosts)
         map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        
+    def enableBorehamwood(self, host):
+        """Enable Borehamwood pluggins on host"""
+        
+        try:
+           commandOutput = host.execdom0("/opt/xensource/sm/enable-borehamwood enable; exit 0")
+        except:
+            if re.search("Error: 17 [errno=File exists]", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are already enabled on host %s" % host)
+            elif re.search("RawHBASR symlink created", commandOutput) and re.search("toolstack restarted", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are successfully enabled on host %s" % host)            
+            else:
+                raise xenrt.XRTFailure("Borehamwood pluggins are not enabled on host %s" % host)
  
     def checkForStaticLuns(self, host):
         """Check for any pre-existing LUNs on the host."""

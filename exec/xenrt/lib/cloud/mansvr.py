@@ -5,9 +5,6 @@ from datetime import datetime
 
 import xenrt.lib.cloud
 try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
@@ -103,6 +100,7 @@ class ManagementServer(object):
 
             self.place.execcmd('yum -y install mysql-server mysql')
             self.place.execcmd('service mysqld restart')
+            self.place.execcmd('chkconfig mysqld on')
 
             self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
             self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
@@ -125,15 +123,47 @@ class ManagementServer(object):
 
             templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
                                 "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
+                                "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                                "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                               "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
+                                "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                               "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
                                 "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+
+            if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
+                templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \
+                        "%s/cloudTemplates/centos56-httpd-64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+                  
 
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
         self.restart()
+        marvinApi = xenrt.lib.cloud.MarvinApi(self)
+
+        marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
+        marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)
+        marvinApi.setCloudGlobalConfig("use.external.dns", "true", restartManagementServer=True)
         xenrt.GEC().dbconnect.jobUpdate("CLOUD_MGMT_SVR_IP", self.place.getIP())
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
+        # Create one secondary storage, to speed up deployment.
+        # Additional locations will need to be created during deployment
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
+            secondaryStorage = xenrt.ExternalNFSShare()
+            storagePath = secondaryStorage.getMount()
+            url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
+            marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "NFS")
+            self.place.special['initialNFSSecStorageUrl'] = url
+        elif "hyperv" in hvlist:
+            if xenrt.TEC().lookup("EXTERNAL_SMB", False, boolean=True):
+                secondaryStorage = xenrt.ExternalSMBShare()
+                storagePath = secondaryStorage.getMount()
+                url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
+                marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
+                self.place.special['initialSMBSecStorageUrl'] = url
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -167,6 +197,8 @@ class ManagementServer(object):
 
         if self.place.distro in ['rhel63', 'rhel64', ]:
             manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
+            if manSvrFile is None:
+                raise xenrt.XRTError("Couldn't find CCP build")
             webdir = xenrt.WebDirectory()
             webdir.copyIn(manSvrFile)
             manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
@@ -178,6 +210,7 @@ class ManagementServer(object):
             installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
             self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
@@ -194,10 +227,14 @@ class ManagementServer(object):
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
+        self.installCifs()
         self.checkJavaVersion()
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+
+    def installCifs(self):
+        self.place.execcmd("yum install -y samba-client samba-common cifs-utils")
 
     @property
     def version(self):
@@ -237,9 +274,9 @@ class ManagementServer(object):
     @property
     def isCCP(self):
         if self.__isCCP is None:
-            # We're using an existing management server, so we need to try and determine whether it is ACS or CCP
-            # Currently we use the existance of the cloudPlatform webapp module for this
-            self.__isCCP = self.place.execcmd("ls /usr/share/cloudstack-management/webapps/client/modules/cloudPlatform", retval="code") == 0
+            # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
+            # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None
 
         return self.__isCCP
 

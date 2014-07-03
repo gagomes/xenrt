@@ -1,8 +1,7 @@
 <xenrt>
   <!-- Auto-installer tests from Cowley using FTP -->
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265"/>
-
+  <default name="OLD_PRODUCT_VERSION" value="MNR" />
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265" />
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALLER_PATCH>
@@ -12,11 +11,11 @@
   </variables>
 
   <prepare>
-    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
   </prepare>
 
   <testsequence>
-    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-13506"/>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-13506" />
   </testsequence>
 
 </xenrt>

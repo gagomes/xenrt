@@ -2,7 +2,7 @@
 
 import psycopg2, time
 
-LEASE_TIME=3600
+LEASE_TIME=14400
 
 conn = psycopg2.connect("host='127.0.0.1' dbname='dhcp' user='dhcp' password='dhcp'")
 cur = conn.cursor()

@@ -262,8 +262,8 @@ def buildDHCPFile(config,machines,testpeers,sharedhosts):
     
     globalcfg['dns'] = "self"
 
-    globalcfg['clientleasetime'] = 3600 
-    globalcfg['trueleasetime'] = 7200
+    globalcfg['clientleasetime'] = 7200 
+    globalcfg['trueleasetime'] = 14400
     globalcfg['staticleasetime'] = 7200
     globalcfg['ipxe'] = xenrt.TEC().lookup("USE_IPXE", False, boolean=True)
 

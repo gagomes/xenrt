@@ -1558,6 +1558,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         d = xenrt.TEC().getLogdir()
         xenrt.command("/bin/ps wwwaxf -eo pid,tty,stat,time,nice,psr,pcpu,pmem,nwchan,wchan:25,args > %s/xenrt-process-tree.txt" % (d))
         xenrt.command("TERM=linux /usr/bin/top -b -n 1 > %s/xenrt-top.txt" % (d))
+        xenrt.command("/usr/sbin/arp > %s/xenrt-arp.txt" % (d))
 
     def getLogsFrom(self, obj, paths=None):
         """Register a host or guest for log collection.

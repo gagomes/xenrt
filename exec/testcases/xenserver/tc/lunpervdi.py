@@ -69,7 +69,16 @@ class LunPerVDI(xenrt.TestCase):
         
     def enableBorehamwood(self, host):
         """Enable Borehamwood pluggins on host"""
-        host.execdom0("/opt/xensource/sm/enable-borehamwood enable")
+        
+        try:
+           commandOutput = host.execdom0("/opt/xensource/sm/enable-borehamwood enable; exit 0")
+        except:
+            if re.search("Error: 17 [errno=File exists]", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are already enabled on host %s" % host)
+            elif re.search("RawHBASR symlink created", commandOutput) and re.search("toolstack restarted", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are successfully enabled on host %s" % host)            
+            else:
+                raise xenrt.XRTFailure("Borehamwood pluggins are not enabled on host %s" % host)
  
     def checkForStaticLuns(self, host):
         """Check for any pre-existing LUNs on the host."""

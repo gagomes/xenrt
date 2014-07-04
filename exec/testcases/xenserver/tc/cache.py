@@ -234,9 +234,6 @@ class _Cache(xenrt.TestCase):
         for sr in unique(sr_list):
             self.host.execdom0("ls -l /var/run/sr-mount/%s/" % sr)
 
-
-           
-
     def configureNetwork(self):
         if "latency" in self.networkCharacteristics:
             for bridge in self.host.getExternalBridges():
@@ -1540,6 +1537,20 @@ class _ReadCachePerformance(_CachePerformance):
         """ Turn off read cache instead of intelli cache. """
         self.host.disableReadCaching()
 
+    def flushCache(self):
+        """ Flushing read cache for exact tests. """
+
+        for g in self.guests:
+            try:
+                g.shutdown(force=True)
+            except Exception, e:
+                xenrt.TEC().warning("Exception %s shutting down" % str(e))
+            g.uninstall()
+
+        self.guests = []
+        self.host.execdom0("sync && echo 3 > /proc/sys/vm/drop_caches")
+        xenrt.sleep(5)
+
     def run(self, arglist=[]):
         if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             raise xenrt.XRTError("Read cache requires Creedence or later.")
@@ -1554,10 +1565,10 @@ class TC21544(_ReadCachePerformance):
     when intelliCache is off."""
 
     CACHED = True
-    READMAXGAIN = 0.3
+    READMAXGAIN = 0.5
     READMINGAIN = 0.01
-    WRITEMAXGAIN = 1.1
-    WRITEMINGAIN = 0.9
+    WRITEMAXGAIN = 1.2
+    WRITEMINGAIN = 0.8
 
 class TC21545(_ReadCachePerformance):
     """ Compare scenarios where read cache is on and where read cache is off
@@ -1565,10 +1576,10 @@ class TC21545(_ReadCachePerformance):
     
     INTELLICACHE = True
     CACHED = True
-    READMAXGAIN = 0.3
+    READMAXGAIN = 0.5
     READMINGAIN = 0.01
-    WRITEMAXGAIN = 1.1
-    WRITEMINGAIN = 0.9
+    WRITEMAXGAIN = 1.2
+    WRITEMINGAIN = 0.8
 
 class TC12008(_Cache):
     """Check that vm-start succeeds if a VM's VDIs are set for caching but no

@@ -267,6 +267,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info["iperf_version"] = "%s %s %s" % (ivs[0], ivs[2], ivs[6])
         return dict( [ (("%s%s" % (key_prefix, k)), v) for k,v in info.iteritems() ] )
 
+    def getHostname(self, endpoint):
+        return endpoint.execcmd("hostname").strip()
+
     def physicalDeviceOf(self, guest, endpointdev):
         if endpointdev is None:
             return None
@@ -294,6 +297,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0branch"]  = self.endpoint0.productVersion
             info["host0build"]   = self.endpoint0.productRevision
             info["host0issue"]   = self.getIssue(self.endpoint0)
+            info["host0hostname"]= self.getHostname(self.endpoint0)
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint0,self.e0dev,"guest0:"))
             info.update(self.nicinfo(self.endpoint0.host,self.physicalDeviceOf(self.endpoint0, self.e0dev),"host0:"))
@@ -306,6 +310,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0branch"]  = self.endpoint0.host.productVersion
             info["host0build"]   = self.endpoint0.host.productRevision
             info["host0issue"]   = self.getIssue(self.endpoint0.host)
+            info["host0hostname"]= self.getHostname(self.endpoint0.host)
         if isinstance(self.endpoint1, xenrt.GenericHost):
             info.update(self.nicinfo(self.endpoint1,self.e1dev,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
@@ -317,6 +322,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1branch"]  = self.endpoint1.productVersion
             info["host1build"]   = self.endpoint1.productRevision
             info["host1issue"]   = self.getIssue(self.endpoint1)
+            info["host1hostname"]= self.getHostname(self.endpoint1)
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint1,self.e1dev,"guest1:"))
             info.update(self.nicinfo(self.endpoint1.host,self.physicalDeviceOf(self.endpoint1, self.e1dev),"host1:"))
@@ -329,6 +335,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1branch"]  = self.endpoint1.host.productVersion
             info["host1build"]   = self.endpoint1.host.productRevision
             info["host1issue"]   = self.getIssue(self.endpoint1.host)
+            info["host1hostname"]= self.getHostname(self.endpoint1.host)
         kvs = "\n".join(["%s=%s" % (k,info[k]) for k in info.keys()])
         self.log("rageinfo", kvs)
 

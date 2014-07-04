@@ -253,6 +253,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info["iperf_version"] = "%s %s %s" % (ivs[0], ivs[2], ivs[6])
         return dict( [ (("%s%s" % (key_prefix, k)), v) for k,v in info.iteritems() ] )
 
+    def physicalDeviceOf(self, guest, endpointdev):
+        (_, bridge, _, _) = guest.vifs[endpointdev]
+        # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
+        if bridge.startswith("xenbr"):
+            return int(bridge[5:])
+
     def rageinfo(self, info = {}):
         if isinstance(self.endpoint0, xenrt.GenericHost):
             info.update(self.nicinfo(self.endpoint0,self.e0dev,"host0:"))
@@ -266,7 +272,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0build"]   = self.endpoint0.productRevision
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint0,self.e0dev,"guest0:"))
-            info.update(self.nicinfo(self.endpoint0.host,None,"host0:"))
+            info.update(self.nicinfo(self.endpoint0.host,self.physicalDeviceOf(self.endpoint0, self.e0dev),"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = self.endpoint0.distro
             info["vm0ram"]   = self.endpoint0.memory
@@ -287,7 +293,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1build"]   = self.endpoint1.productRevision
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
             #info.update(self.nicinfo(self.endpoint1,self.e1dev,"guest1:"))
-            info.update(self.nicinfo(self.endpoint1.host,None,"host1:"))
+            info.update(self.nicinfo(self.endpoint1.host,self.physicalDeviceOf(self.endpoint1, self.e1dev),"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = self.endpoint1.distro
             info["vm1ram"]   = self.endpoint1.memory

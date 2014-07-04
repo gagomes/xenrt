@@ -817,40 +817,34 @@ class _VGPUOwnedVMsTest(_VGPUTest):
             xenrt.pfarm(pStart)
     
     def bootstormStartVM(self, vm):
-        lock = threading.Lock()
         try:
-            vm.start()
+            name = vm.getName()
+            name = name.replace(" ", "\ ")
+            cmd = "xe vm-start vm=%s" % name
+            self.runAsync(self.host, cmd, timeout=3600, ignoreSSHErrors=False)
         except Exception, e:
-            xenrt.TEC().reason("Failed to start vm %s - %s" % (vm.getName(), str(e)))
-            lock.acquire()
-            self.failedVMs.append(vm)
-            lock.release()
+            raise xenrt.XRTFailure("Failed to start vm %s - %s" % (vm.getName(), str(e)))
     
     def rebootAllVMs(self, vmlist = None):
-        # For bootstorm reboot do shutdown all the VMs
-        # Then start all the VMs instantly
-        self.failedVMs = []
+        
         if not vmlist:
             vmlist = [guest for guest, ostype in self._guestsAndTypes]
         
+        # Shutdown all the VMs
         for vm in vmlist:
             vm.shutdown()
         
-        pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist]
+        # Start all the VMs in chunks
+        chunk = 25
+        count = len(vmlist)/chunk
+        
+        for i in range(count+1):
+            pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in vmlist[i*chunk:i*chunk+chunk]]
+            xenrt.pfarm(pt)
+        
+        # WaitforDaemon for all VMs
+        pt = [xenrt.PTask(vm.waitForDaemon, 1800) for vm in vmlist]
         xenrt.pfarm(pt)
-        
-        # Give more tries to start the failed vms
-        for i in range(5):
-            failedGuests = self.failedVMs
-            self.failedVMs = []
-            if len(failedGuests) > 0:
-                pt = [xenrt.PTask(self.bootstormStartVM, vm) for vm in failedGuests]
-                xenrt.pfarm(pt)
-            else:
-                break
-        
-        if len(self.failedVMs) > 0:
-            raise xenrt.XRTFailure("Total Guests failed to reboot %d out of %d" % (len(self.failedVMs), len(vmlist)))
     
     def prepare(self, arglist):
         self.nfs = xenrt.ExternalNFSShare()

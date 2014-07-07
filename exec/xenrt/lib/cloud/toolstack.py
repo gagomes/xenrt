@@ -790,7 +790,7 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
             if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"]):
                 domain = "nsec-xenrtcloud"
             else:
-                for v in vlans:
+                for v in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"]).keys():
                     if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "GATEWAY"]):
                         domain = "%s-xenrtcloud" % v.lower()
                 

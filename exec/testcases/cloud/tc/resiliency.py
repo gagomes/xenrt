@@ -40,7 +40,7 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
                                                                             name='%s-%d' % (templateName.replace("_","-"), x)), range(instancesPerDistro))
         return instances
 
-class TCStorageResiliency(_TCCloudResiliencyBase):
+class TCStorageResiliencyBase(_TCCloudResiliencyBase):
     def logCloudHostInfo(self):
         keysToLog = ['state', 'events', 'lastpinged', 'disconnected', 'created', 'resourcestate']
         hosts = self.cloud.marvin.cloudApi.listHosts(type='Routing')

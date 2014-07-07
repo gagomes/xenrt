@@ -59,9 +59,9 @@ def createHost(id=0,
 
 def HostFactory(machine, productVersion, productType):
     if productVersion.startswith("2"):
-        return OracleVMHost(m, productVersion=productVersion, productType=productType)
+        return OracleVMHost(machine, productVersion=productVersion, productType=productType)
     else:
-        return OracleVMV3Host(m, productVersion=productVersion, productType=productType)
+        return OracleVMV3Host(machine, productVersion=productVersion, productType=productType)
 
 class OracleVMHost(xenrt.GenericHost):
 

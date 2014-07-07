@@ -3921,10 +3921,12 @@ class _HardwareMultipath(xenrt.TestCase):
         
         except Exception, e:
             raise xenrt.XRTError("Exception cleaning up guest and FC SR.", data=str(e))
-        
-        self.enableFCPort(0)
-        self.enableFCPort(1)
-    
+        finally:
+            try: self.enableFCPort(0)
+            except: pass
+            try: self.enableFCPort(1)
+            except: pass
+
     def checkGuest(self):
         # Check the periodic read/write script is still running on the VM
         rc = self.guest.execguest("pidof python",retval="code")

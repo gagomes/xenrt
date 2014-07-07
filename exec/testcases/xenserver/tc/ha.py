@@ -1032,6 +1032,9 @@ class TC7507(_HATest):
         g.setHAPriority(2)
         g.memory = None
 
+        # Attempt to workaround CA-139127 by allowing time for the pool-sync-database to go through
+        xenrt.sleep(30)
+
         # Power off the host that g is running om
         self.poweroff(host0)
 
@@ -1089,6 +1092,9 @@ class TC7508(_HATest):
             g.start()
             g.setHAPriority(2)
             g.memory = None
+
+        # Attempt to workaround CA-139127 by allowing time for the pool-sync-database to go through
+        xenrt.sleep(30)
 
         # Power off host0
         self.poweroff(host0)

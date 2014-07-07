@@ -162,7 +162,7 @@ class CloudStack(object):
                 hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             if startOn:
-                hosts = self.cloudApi.listHosts(name=startOn)
+                hosts = [x for x in self.cloudApi.listHosts(name=startOn) if x.name==startOn]
                 if len(hosts) != 1:
                     raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
                 startOnId = hosts[0].id
@@ -172,10 +172,10 @@ class CloudStack(object):
             
 
             if template:
-                t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template)][0]
+                t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template) if x.name==template][0]
                 xenrt.xrtAssert(t.hypervisor == hypervisor or not hypervisor, "Cannot specify different hypervisor when specifying a template")
                 hypervisor = t.hypervisor
-                xenrt.xrtAssert(not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id, "Cannot specify different zone when specifying a template")
+                xenrt.xrtAssert(not zone or t.zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id, "Cannot specify different zone when specifying a template")
                 zoneid = t.zoneid
                 templateid = t.id
 
@@ -188,7 +188,7 @@ class CloudStack(object):
                 xenrt.TEC().logverbose("Seeing if we have a suitable template")
                 templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName and x.hypervisor == hypervisor]
                 for t in templates:
-                    if not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id:
+                    if not zone or t.zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id:
                         zoneid = t.zoneid
                         templateid = t.id
                         xenrt.TEC().logverbose("Found template %s" % templateid)
@@ -221,11 +221,11 @@ class CloudStack(object):
                 toolsInstalled = [x for x in self.cloudApi.listTags(resourceid=templateid) if x.key=="tools" and x.value=="yes"]
 
             if zoneid and zone:
-                xenrt.xrtAssert(zoneid ==  self.cloudApi.listZones(name=zone)[0].id, "Specified Zone ID does not match template zone ID")
+                xenrt.xrtAssert(zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id, "Specified Zone ID does not match template zone ID")
 
             if not zoneid:
                 if zone:
-                    zoneid = self.cloudApi.listZones(name=zone)[0].id
+                    zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
                 else:
                     zoneid = self.getDefaultZone().id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
@@ -377,7 +377,7 @@ class CloudStack(object):
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.addIsoIfNotPresent(None, isoName, isoRepo)
-        isoId = self.cloudApi.listIsos(name=isoName)[0].id
+        isoId = [x for x in self.cloudApi.listIsos(name=isoName)[0].id if x.name==isoName]
 
         self.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 
@@ -399,7 +399,7 @@ class CloudStack(object):
 
     def startInstance(self, instance, on=None):
         if on:
-            hosts = self.cloudApi.listHosts(name=on)
+            hosts = [x for x in self.cloudApi.listHosts(name=on) if x.name==on]
             if len(hosts) != 1:
                 raise xenrt.XRTError("Cannot find host %s on cloud" % on)
             self.cloudApi.startVirtualMachine(id=instance.toolstackId, hostid=hosts[0].id)
@@ -501,7 +501,7 @@ class CloudStack(object):
                                    installTools=True):
         if not name:
             name = xenrt.util.randomGuestName()
-        template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=templateName)][0]
+        template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=templateName) if x.name==templateName][0]
         
         tags = self.cloudApi.listTags(resourceid = template.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
@@ -526,7 +526,7 @@ class CloudStack(object):
                                                quiesce=quiesce)
 
     def getSnapshotId(self, instance, name):
-        return self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name)[0].id
+        return [x for x in self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name) if x.name==name][0].id
 
     def deleteInstanceSnapshot(self, instance, name):
         self.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
@@ -603,7 +603,7 @@ class CloudStack(object):
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
 
         if zone:
-            zoneid = self.cloudApi.listZones(name=zone)[0].id
+            zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_TEMPLATE_DOWNLOAD-%s-%s-%s" % (hypervisor, distro, zone)):
@@ -619,7 +619,7 @@ class CloudStack(object):
 
                 osname = self.mgtsvr.lookup(["OS_NAMES", distro])
 
-                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
 
                 self.cloudApi.registerTemplate(zoneid=zoneid,
                                                ostypeid=ostypeid,
@@ -652,7 +652,7 @@ class CloudStack(object):
 
     def addIsoIfNotPresent(self, distro, isoName, isoRepo, zone):
         if zone:
-            zoneid = self.cloudApi.listZones(name=zone)[0].id
+            zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_ISO_DOWNLOAD-%s-%s" % (distro, zone)):
@@ -672,7 +672,7 @@ class CloudStack(object):
                 else:
                     osname = "None"
 
-                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
                 self.cloudApi.registerIso(zoneid= zoneid,
                                           ostypeid=ostypeid,
                                           name="%s-%s" % (isoName, xenrt.randomSuffix()),

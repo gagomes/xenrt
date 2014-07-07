@@ -138,7 +138,7 @@ umount /tmp/xenrttmpmount
             pxe.copyIn("%s/images/pxeboot/vmlinuz" % d.path())
             pxe.copyIn("%s/images/pxeboot/initrd.img" % d.path())
 
-            install = pxe.addEntry("ovminstall", boot="mboot")
+            install = pxe.addEntry("ovminstall", boot="linux")
             install.linuxSetKernel("%s/vmlinuz" % pxe.path())
             install.linuxArgsKernelAdd("initrd=%s" % install.cfg.makeBootPath("%s/initrd.img" % pxe.path()))
             install.linuxArgsKernelAdd("load_ramdisk=1")

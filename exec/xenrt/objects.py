@@ -3187,10 +3187,10 @@ DHCPServer = 1
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
             # Workaround for incorrect symlink
-            path = self.execcmd("ls /lib/modules").split()[0].strip()
-            self.execcmd("rm -f /lib/modules/%s/build" % (path))
-            self.execcmd("ln -s /usr/src/linux-headers-%s "
-                         "/lib/modules/%s/build" % (path,path))
+            for path in self.execcmd("ls /lib/modules").split():
+                self.execcmd("rm -f /lib/modules/%s/build" % (path.strip()))
+                self.execcmd("ln -s /usr/src/linux-headers-%s "
+                             "/lib/modules/%s/build" % (path.strip(),path.strip()))
 
             # Setup iscsitarget
             self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" %

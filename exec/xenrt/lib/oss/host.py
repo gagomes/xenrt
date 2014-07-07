@@ -40,6 +40,7 @@ def createHost(id=0,
                ipv6=None,
                enableAllPorts=True,
                noipv4=False,
+               basicNetwork=True,
                extraConfig=None):
 
     machine = str("RESOURCE_HOST_%s" % (id))

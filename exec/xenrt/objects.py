@@ -3234,11 +3234,11 @@ DHCPServer = 1
        
         isLegacy = True
         try:
-            debversion = self.execcmd("cat /etc/debian_version").strip()
+            debversion = float(self.execcmd("cat /etc/debian_version").strip())
         except:
             debversion = None
         
-        if debversion == "6.0":
+        if debversion >= 6.0:
             isLegacy = False
 
         try:
@@ -3255,6 +3255,7 @@ DHCPServer = 1
                 self.execcmd("apt-get install linux-headers-%s --force-yes -y" % kernel)
             elif redhat:
                 self.execcmd("yum install -y openssl-devel kernel-headers")
+
             # Get and install the iscsi target
             self.execcmd("cd /root && wget '%s/iscsitarget-1.4.20.2.tgz'" %
                          (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
@@ -3269,11 +3270,19 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
+            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
+                # On Etch on George we need to workaround the fact the updates repo no longer exists,
+                # and thus we don't pick up kernel headers from it
+                url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+                self.execcmd("wget -O /root/linux-headers.tar.gz %s/etch/linux-headers.tar.gz" % url)
+                self.execcmd("cd /root && tar -xzf linux-headers.tar.gz")
+                self.execcmd("cd /root && dpkg -i linux-headers*.deb")
+
             # Workaround for incorrect symlink
-            path = self.execcmd("ls /lib/modules").split()[0].strip()
-            self.execcmd("rm -f /lib/modules/%s/build" % (path))
-            self.execcmd("ln -s /usr/src/linux-headers-%s "
-                         "/lib/modules/%s/build" % (path,path))
+            for path in self.execcmd("ls /lib/modules").split():
+                self.execcmd("rm -f /lib/modules/%s/build" % (path.strip()))
+                self.execcmd("ln -s /usr/src/linux-headers-%s "
+                             "/lib/modules/%s/build" % (path.strip(),path.strip()))
 
             # Setup iscsitarget
             self.execcmd("cd /root && wget '%s/iscsitarget.tgz'" %

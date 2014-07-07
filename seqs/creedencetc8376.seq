@@ -10,7 +10,7 @@
   <default name="SRMWORKLOADS" value="noworkloads" />
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
   <default name="OPTION_EMBEDDED" value="no" />
-  <default name="GUESTDISTRO" value="rhel51" />
+  <default name="GUESTDISTRO" value="rhel57" />
   <default name="TCID" value="TC-8376" />
 
   <variables>

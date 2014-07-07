@@ -299,4 +299,8 @@ disk = [ %s ]
     def getLogs(self, path):
         return
 
+    def discoverInstanceAdvancedNetworking(self, instance):
+        # We don't do any advanced networking, so just return
+        return
+
 __all__ = ["XLToolstack"]

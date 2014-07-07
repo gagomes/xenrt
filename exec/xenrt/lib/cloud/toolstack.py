@@ -162,7 +162,7 @@ class CloudStack(object):
                 hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             if startOn:
-                hosts = self.cloudApi.listHosts(name=startOn)
+                hosts = [x for x in self.cloudApi.listHosts(name=startOn) if x.name==startOn]
                 if len(hosts) != 1:
                     raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
                 startOnId = hosts[0].id
@@ -172,10 +172,10 @@ class CloudStack(object):
             
 
             if template:
-                t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template)][0]
+                t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template) if x.name==template][0]
                 xenrt.xrtAssert(t.hypervisor == hypervisor or not hypervisor, "Cannot specify different hypervisor when specifying a template")
                 hypervisor = t.hypervisor
-                xenrt.xrtAssert(not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id, "Cannot specify different zone when specifying a template")
+                xenrt.xrtAssert(not zone or t.zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id, "Cannot specify different zone when specifying a template")
                 zoneid = t.zoneid
                 templateid = t.id
 
@@ -188,7 +188,7 @@ class CloudStack(object):
                 xenrt.TEC().logverbose("Seeing if we have a suitable template")
                 templates = [x for x in self.cloudApi.listTemplates(templatefilter="all") if x.displaytext == instance.os.canonicalDistroName and x.hypervisor == hypervisor]
                 for t in templates:
-                    if not zone or t.zoneid == self.cloudApi.listZones(name=zone)[0].id:
+                    if not zone or t.zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id:
                         zoneid = t.zoneid
                         templateid = t.id
                         xenrt.TEC().logverbose("Found template %s" % templateid)
@@ -221,11 +221,11 @@ class CloudStack(object):
                 toolsInstalled = [x for x in self.cloudApi.listTags(resourceid=templateid) if x.key=="tools" and x.value=="yes"]
 
             if zoneid and zone:
-                xenrt.xrtAssert(zoneid ==  self.cloudApi.listZones(name=zone)[0].id, "Specified Zone ID does not match template zone ID")
+                xenrt.xrtAssert(zoneid == [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id, "Specified Zone ID does not match template zone ID")
 
             if not zoneid:
                 if zone:
-                    zoneid = self.cloudApi.listZones(name=zone)[0].id
+                    zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
                 else:
                     zoneid = self.getDefaultZone().id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
@@ -341,13 +341,43 @@ class CloudStack(object):
         instance.extraConfig['CCP_PV_TOOLS'] = True
         return instance
 
+    def discoverInstanceAdvancedNetworking(self, instance):
+        vm = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
+        if self.cloudApi.listZones(id=vm.zoneid)[0].networktype == "Basic":
+            xenrt.TEC().logverbose("Instance uses basic networking")
+            return
+        else:
+            nic = vm.nic[0]
+            if nic.type == "Shared":
+                # Shared networking, no special access
+                xenrt.TEC().logverbose("Instance uses shared networking")
+                return
+            elif nic.type == "Isolated":
+                # First look for a static NAT IP
+                vmips = [x for x in self.cloudApi.listPublicIpAddresses(associatednetworkid=nic.networkid, isstaticnat=True) or [] if x.virtualmachineid == instance.toolstackId]
+                if vmips:
+                    instance.inboundip = vmips[0].ipaddress
+                    instance.outboundip = vmips[0].ipaddress
+                    xenrt.TEC().logverbose("Found Static NAT IP %s" % vmips[0].ipaddress)
+                    return
+                else:
+                    instance.outboundip = self.cloudApi.listPublicIpAddresses(associatednetworkid=nic.networkid, issourcenat=True)[0].ipaddress
+                    xenrt.TEC().logverbose("Found Outbound IP %s" % instance.outboundip)
+                    rules = [x for x in self.cloudApi.listPortForwardingRules(listall=True, networkid=nic.networkid) or [] if x.virtualmachineid==instance.toolstackId]
+                    for p in instance.os.tcpCommunicationPorts.keys():
+                        validrules = [x for x in rules if int(x.privateport) == instance.os.tcpCommunicationPorts[p]]
+                        if not validrules:
+                            raise xenrt.XRTError("Could not find valid port forwarding rule for %s" % p)
+                        xenrt.TEC().logverbose("Found %s:%s for %s" % (validrules[0].ipaddress, validrules[0].publicport, p))
+                        instance.inboundmap[p] = (validrules[0].ipaddress, int(validrules[0].publicport))
+
     def destroyInstance(self, instance):
         self.cloudApi.destroyVirtualMachine(id=instance.toolstackId, expunge=True)
 
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.addIsoIfNotPresent(None, isoName, isoRepo)
-        isoId = self.cloudApi.listIsos(name=isoName)[0].id
+        isoId = [x for x in self.cloudApi.listIsos(name=isoName)[0].id if x.name==isoName]
 
         self.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 
@@ -369,7 +399,7 @@ class CloudStack(object):
 
     def startInstance(self, instance, on=None):
         if on:
-            hosts = self.cloudApi.listHosts(name=on)
+            hosts = [x for x in self.cloudApi.listHosts(name=on) if x.name==on]
             if len(hosts) != 1:
                 raise xenrt.XRTError("Cannot find host %s on cloud" % on)
             self.cloudApi.startVirtualMachine(id=instance.toolstackId, hostid=hosts[0].id)
@@ -471,7 +501,7 @@ class CloudStack(object):
                                    installTools=True):
         if not name:
             name = xenrt.util.randomGuestName()
-        template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=templateName)][0]
+        template = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=templateName) if x.name==templateName][0]
         
         tags = self.cloudApi.listTags(resourceid = template.id)
         distro = [x.value for x in tags if x.key=="distro"][0]
@@ -496,7 +526,7 @@ class CloudStack(object):
                                                quiesce=quiesce)
 
     def getSnapshotId(self, instance, name):
-        return self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name)[0].id
+        return [x for x in self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name) if x.name==name][0].id
 
     def deleteInstanceSnapshot(self, instance, name):
         self.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))
@@ -573,7 +603,7 @@ class CloudStack(object):
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
 
         if zone:
-            zoneid = self.cloudApi.listZones(name=zone)[0].id
+            zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_TEMPLATE_DOWNLOAD-%s-%s-%s" % (hypervisor, distro, zone)):
@@ -589,7 +619,7 @@ class CloudStack(object):
 
                 osname = self.mgtsvr.lookup(["OS_NAMES", distro])
 
-                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
 
                 self.cloudApi.registerTemplate(zoneid=zoneid,
                                                ostypeid=ostypeid,
@@ -622,7 +652,7 @@ class CloudStack(object):
 
     def addIsoIfNotPresent(self, distro, isoName, isoRepo, zone):
         if zone:
-            zoneid = self.cloudApi.listZones(name=zone)[0].id
+            zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_ISO_DOWNLOAD-%s-%s" % (distro, zone)):
@@ -642,7 +672,7 @@ class CloudStack(object):
                 else:
                     osname = "None"
 
-                ostypeid = self.cloudApi.listOsTypes(description=osname)[0].id
+                ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
                 self.cloudApi.registerIso(zoneid= zoneid,
                                           ostypeid=ostypeid,
                                           name="%s-%s" % (isoName, xenrt.randomSuffix()),
@@ -754,6 +784,17 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
         if len(nets) > 0:
             self.network = nets[0].id
         else:
+            # Find the network for this zone
+            gw=self.cloudstack.cloudApi.listVlanIpRanges(physicalnetworkid=self.cloudstack.cloudApi.listPhysicalNetworks(zoneid = self.zoneid)[0].id)[0].gateway
+            domain = "xenrtcloud"
+            if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"]):
+                domain = "nsec-xenrtcloud"
+            else:
+                for v in xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS"]).keys():
+                    if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "GATEWAY"], None):
+                        domain = "%s-xenrtcloud" % v.lower()
+                
+
             netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
             domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
             net = self.cloudstack.cloudApi.createNetwork(name=netName,
@@ -762,7 +803,7 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
                                                          zoneid=self.zoneid,
                                                          account="admin",
                                                          domainid=domainid,
-                                                         networkdomain="xenrtcloud").id
+                                                         networkdomain=domain).id
             self.cloudstack.cloudApi.associateIpAddress(networkid=net)
             cidr = self.cloudstack.cloudApi.listNetworks(id=net)[0].cidr
             self.cloudstack.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)

@@ -44,6 +44,7 @@ def createHost(id=0,
                ipv6=None,
                enableAllPorts=True,
                noipv4=False,
+               basicNetwork=True,
                extraConfig=None):
 
     # noisos isn't used here, it is present in the arg list to

@@ -49,6 +49,7 @@ class Instance(object):
             self.mainip = ip
         else:
             self.mainip = self.getIP()
+        self.toolstack.discoverInstanceAdvancedNetworking(self)
         self.os.populateFromExisting()
 
     def poll(self, state, timeout=600, level=xenrt.RC_FAIL, pollperiod=15):

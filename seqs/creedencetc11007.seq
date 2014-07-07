@@ -9,7 +9,7 @@
   <default name="LINUXINSTALLPAR" value="2" />
   <default name="HOSTPAIRS" value="(0,1),(1,2),(2,3),(3,0)" />
   <default name="OPTION_EMBEDDED" value="no" />
-  <default name="GUESTDISTRO" value="rhel53" />
+  <default name="GUESTDISTRO" value="rhel57" />
   <default name="TCID" value="TC-11007" />
   <default name="POOLSTRESSSNAP" value="10" />
   <default name="DURATION" value="NA" />

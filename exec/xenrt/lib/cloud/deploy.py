@@ -51,13 +51,41 @@ class DeployerPlugin(object):
         return nameValue
 
     def getDNS(self, key, ref):
-        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+        if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
+            if ref['XRT_ZoneNetwork'] == "NSEC":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "ADDRESS"])
+            else:
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_ZoneNetwork'], "ADDRESS"])
+                
+        else:
+            return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+
+    def getDomain(self, key, ref):
+        if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
+            return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
+        return "xenrtcloud"
 
     def getNetmask(self, key, ref):
-        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+        if ref.has_key("XRT_VlanName"):
+            if ref['XRT_VlanName'] == "NPRI":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"])
+            elif ref['XRT_VlanName'] == "NSEC":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "SUBNETMASK"])
+            else:
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "SUBNETMASK"])
+        else:
+            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
 
     def getGateway(self, key, ref):
-        return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+        if ref.has_key("XRT_VlanName"):
+            if ref['XRT_VlanName'] == "NPRI":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
+            elif ref['XRT_VlanName'] == "NSEC":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"])
+            else:
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "GATEWAY"])
+        else:
+            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
 
     def getSecondaryStorages(self, key, ref):
         storageTypes = []
@@ -146,13 +174,27 @@ class DeployerPlugin(object):
         self.currentIPRange = None
         return endAddr
 
+    def getZonePublicVlan(self, key, ref):
+        if ref.has_key("XRT_VlanName"):
+            if ref['XRT_VlanName'] == "NPRI":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "VLAN"])
+            elif ref['XRT_VlanName'] == "NSEC":
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "VLAN"])
+            else:
+                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "ID"])
+        else:
+            return None
+
     def getGuestIPRangeStartAddr(self, key, ref):
         if self.currentIPRange != None:
             raise xenrt.XRTError('Start IP range addr requested on existing IP range')
         ipRangeSize = self.DEFAULT_GUEST_IP_RANGE
         if ref.has_key('XRT_GuestIPRangeSize'):
             ipRangeSize = ref['XRT_GuestIPRangeSize']
-        self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
+        if ref.has_key("XRT_VlanName"):
+            self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize, network = ref['XRT_VlanName'])
+        else:
+            self.currentIPRange = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
         return self.currentIPRange[0].getAddr()
 
     def getGuestIPRangeEndAddr(self, key, ref):

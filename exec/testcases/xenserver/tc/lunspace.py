@@ -108,3 +108,32 @@ class StorageTrimTestcase(NetappFCTrimSupport):
         # Destroy the lvmoHBA SR on the pool.
         self.destroySR()
     
+class VerifyTrimTrigger(xenrt.TestCase):
+    """Verify whether TRIM can be triggered on HBA and ISCSI SRs """
+    
+    def prepare(self, arglist):
+        #Get the default host
+        self.host = self.getDefaultHost()
+        
+    def run(self, arglist):
+        if self.SR_TYPE == "lvmoiscsi":
+            self.sr = self.host.getSRs(type="lvmoiscsi")
+        elif self.SR_TYPE == "lvmohba":
+            self.sr = self.host.getSRs(type="lvmohba")
+        else:
+            raise xenrt.XRTError("Invalid SR Type specified for enabling TRIM")
+        
+        result = self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %(self.host.getMyHostUUID(),self.sr[0])).strip()
+        
+        if result == 'True':
+            xenrt.TEC().logverbose("Enabling TRIM operation Successful")
+        else:
+            raise xenrt.XRTFailure("Failed to Enable TRIM on the %s SR of type %s with %s" %(self.sr[0],self.SR_TYPE,result))
+
+class TC21549(VerifyTrimTrigger):
+    """Verify whether TRIM can be triggered on ISCSI SR """
+    SR_TYPE = "lvmoiscsi"
+    
+class TC21550(VerifyTrimTrigger):
+    """Verify whether TRIM can be triggered on HBA SR  """
+    SR_TYPE = "lvmohba"

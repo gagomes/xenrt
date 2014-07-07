@@ -87,7 +87,7 @@ rootpw --iscrypted %s
 bootloader --location=mbr
 install
 nfs --server %s --dir %s
-clearpart --all --initlabel msdos
+clearpart --all --initlabel
 part /boot --fstype ext3 --size 512 --ondisk sda
 part  swap --size 4096 --ondisk sda
 part / --fstype ext3 --size 1 --grow --ondisk sda

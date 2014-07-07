@@ -40,6 +40,13 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
                                                                             name='%s-%d' % (templateName.replace("_","-"), x)), range(instancesPerDistro))
         return instances
 
+    def destroyInstances(self):
+        [x.destroy() for x in self.instances]
+        self.instances = []
+
+    def postRun(self):
+        self.destroyInstances()
+
 class TCStorageResiliencyBase(_TCCloudResiliencyBase):
     def logCloudHostInfo(self):
         keysToLog = ['state', 'events', 'lastpinged', 'disconnected', 'created', 'resourcestate']
@@ -285,6 +292,8 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
             self.cloud.cloudApi.listHosts()
         except:
             self.cloud.mgtsvr.restart()
+
+        _TCCloudResiliencyBase.postRun(self)
 
 class TCManServerVMReboot(_TCManServerResiliencyBase):
     

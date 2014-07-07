@@ -1131,7 +1131,7 @@ class PrepareNode:
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
                     host = self.handleHostNode(x, params, id=i)
                     host["pool"] = pool["name"]
-                    hosts.append(hosts)
+                    hosts.append(host)
                     if not pool["master"]:
                         pool["master"] = "RESOURCE_HOST_%s" % (i)
                     if i == stop:

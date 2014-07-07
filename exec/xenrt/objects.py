@@ -3187,7 +3187,7 @@ DHCPServer = 1
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
-            if debversion == 4.0 and self.execcmd("uname -r") == "2.6.18.8.xs5.5.0.14.443":
+            if debversion == 4.0 and self.execcmd("uname -r").strip() == "2.6.18.8.xs5.5.0.14.443":
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")

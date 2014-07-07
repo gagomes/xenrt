@@ -64,7 +64,7 @@
       <testcase id="cloud.tc.resiliency.TCManServerVMReboot">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerVMRestart">
+      <testcase id="cloud.tc.resiliency.TCManServerRestart">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
       <testcase id="cloud.tc.resiliency.TCDBRestart">

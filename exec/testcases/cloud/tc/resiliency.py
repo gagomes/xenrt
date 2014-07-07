@@ -36,9 +36,18 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
 
         # Create instances
         for templateName in templateList:
-            instances += map(lambda x:self.cloud.createInstanceFromTemplate(templateName=templateName, 
-                                                                            name='%s-%d' % (templateName.replace("_","-"), x)), range(instancesPerDistro))
+            instances += map(lambda x:self.createOrExistingInstance(templateName=templateName, 
+                                                                    name='%s-%d' % (templateName.replace("_","-"), x)), range(instancesPerDistro))
         return instances
+
+    def createOrExistingInstance(self, templateName, name):
+        try:
+            i = self.cloud.existingInstance(name)
+        except:
+            return self.cloud.createInstanceFromTemplate(templateName=templateName, name=name)
+        else:
+            i.setPowerState(xenrt.PowerState.up)
+            return i
 
 class TCStorageResiliencyBase(_TCCloudResiliencyBase):
     def logCloudHostInfo(self):

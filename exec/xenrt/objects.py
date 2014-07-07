@@ -3191,8 +3191,8 @@ DHCPServer = 1
                 # On Etch on George we need to workaround the fact the updates repo no longer exists,
                 # and thus we don't pick up kernel headers from it
                 url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-                self.execcmd("wget -O /root/linux-headers.tgz %s/etch/linux-headers.tgz" % url)
-                self.execcmd("cd /root && tar -xzf linux-headers.tgz")
+                self.execcmd("wget -O /root/linux-headers.tar.gz %s/etch/linux-headers.tar.gz" % url)
+                self.execcmd("cd /root && tar -xzf linux-headers.tar.gz")
                 self.execcmd("cd /root && dpkg -i linux-headers*.deb")
 
             # Workaround for incorrect symlink

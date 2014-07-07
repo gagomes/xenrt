@@ -153,6 +153,7 @@ def createHost(id=0,
                ipv6=None,
                enableAllPorts=True,
                noipv4=False,
+               basicNetwork=True,
                iScsiBootLun=None,
                iScsiBootNets=[],
                extraConfig=None):
@@ -386,6 +387,7 @@ def createHostViaVersionPath(id=0,
                              addToLogCollectionList=False,
                              ipv6=None,
                              noipv4=False,
+                             basicNetwork=True,
                              extraConfig=None):
     """Install a host and update/upgrade via the specified path."""
     # "Orlando +HF1 +HF2 George"

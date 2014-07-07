@@ -31,7 +31,7 @@ class MarvinDeployer(object):
           'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
-          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None },
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None, 'domain': 'getDomain' },
           'defaults': { 'physical_networks': [ { } ]},
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
@@ -54,7 +54,8 @@ class MarvinDeployer(object):
           'required': { 'name': None, 'broadcastdomainrange': None } },
         'ipranges': {
           'abstractName': 'IPRange',
-          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },
+          'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
+          'optional': { 'vlan': 'getZonePublicVlan' } },
         'guestIpRanges': {
           'abstractName': 'GuestIPRange',
           'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' } },

@@ -78,6 +78,9 @@ class Toolstack(Interface):
     def getLogs(path):
         """Retrieve logs into path"""
 
+    def discoverInstanceAdvancedNetworking(instance):
+        """Discover advanced networking for instance, e.g. access using port forwarding"""
+
 class OSParent(Interface):
 
     name = Attribute("Name of the OS")

@@ -15,6 +15,10 @@ class TestMarvinConfig(XenRTUnitTestCase):
     DEFAULT_VARS = {"NETWORK_CONFIG/DEFAULT/NAMESERVERS": "10.0.0.2",
                     "NETWORK_CONFIG/DEFAULT/SUBNETMASK": "255.255.255.0",
                     "NETWORK_CONFIG/DEFAULT/GATEWAY": "10.0.0.1",
+                    "NETWORK_CONFIG/SECONDARY/VLAN" : 800,
+                    "NETWORK_CONFIG/SECONDARY/SUBNETMASK" : "255.255.255.128",
+                    "NETWORK_CONFIG/SECONDARY/GATEWAY" : "10.1.0.1",
+                    "NETWORK_CONFIG/SECONDARY/ADDRESS" : "10.1.0.2",
                     "XENRT_SERVER_ADDRESS": "10.0.0.2",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
@@ -82,7 +86,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         values.update(self.extravars)
         if not values.has_key(var):
             if default == "BADVALUE":
-                raise Exception("No default value specified for test")
+                raise Exception("No default value specified for %s" % var)
             return default
         else:
             if boolean:
@@ -115,7 +119,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         return vlans
 
     @classmethod
-    def __getIPRange(cls, size):
+    def __getIPRange(cls, size, network=None):
         addrs = []
         global nextIP
         for i in range(size):
@@ -161,7 +165,8 @@ class TC1(BaseTC):
     """Test that Hyper-V zones use SMB storage"""
 
     IN = {'zones': [{'guestcidraddress': '192.168.200.0/24',
-             'ipranges': [{'XRT_GuestIPRangeSize': 10}],
+             'ipranges': [{'XRT_GuestIPRangeSize': 10, 'XRT_VlanName': 'NSEC'}],
+             'XRT_ZoneNetwork': 'NSEC',
              'networktype': 'Advanced',
              'physical_networks': [{'XRT_VLANRangeSize': 10,
                                      'isolationmethods': ['VLAN'],
@@ -180,14 +185,16 @@ class TC1(BaseTC):
                                        'XRT_HyperVHostIds': '0',
                                        'hypervisor': 'hyperv'}]}]}]}
 
-    OUT = {'zones': [{'dns1': '10.0.0.2',
+    OUT = {'zones': [{'dns1': '10.1.0.2',
+         'domain': 'nsec-xenrtcloud',
          'guestcidraddress': '192.168.200.0/24',
-         'internaldns1': '10.0.0.2',
+         'internaldns1': '10.1.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,
                         'endip': '10.1.0.10',
-                        'gateway': '10.0.0.1',
-                        'netmask': '255.255.255.0',
-                        'startip': '10.1.0.1'}],
+                        'gateway': '10.1.0.1',
+                        'netmask': '255.255.255.128',
+                        'startip': '10.1.0.1',
+                        'vlan': 800}],
          'name': 'XenRT-Zone-0',
          'networktype': 'Advanced',
          'physical_networks': [{'XRT_VLANRangeSize': 10,
@@ -254,6 +261,7 @@ class TC2(BaseTC):
                                        'hypervisor': 'KVM'}]}]}]}
 
     OUT = {'zones': [{'dns1': '10.0.0.2',
+         'domain': 'xenrtcloud',
          'guestcidraddress': '192.168.200.0/24',
          'internaldns1': '10.0.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,
@@ -311,6 +319,7 @@ class TC3(BaseTC):
 
     OUT = {'zones': [{'dns1': '10.0.0.2',
             'internaldns1': '10.0.0.2',
+            'domain': 'xenrtcloud',
             'name': 'XenRT-Zone-0',
             'networktype': 'Basic',
             'physical_networks': [{'broadcastdomainrange': 'Zone',
@@ -356,6 +365,7 @@ class TC4(BaseTC):
 
     OUT = {'zones': [{'dns1': '10.0.0.2',
             'internaldns1': '10.0.0.2',
+            'domain': 'xenrtcloud',
             'name': 'XenRT-Zone-0',
             'networktype': 'Basic',
             'physical_networks': [{'broadcastdomainrange': 'Zone',
@@ -413,6 +423,7 @@ class TC5(BaseTC):
                                        'hypervisor': 'hyperv'}]}]}]}
 
     OUT = {'zones': [{'dns1': '10.0.0.2',
+         'domain': 'xenrtcloud',
          'guestcidraddress': '192.168.200.0/24',
          'internaldns1': '10.0.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,

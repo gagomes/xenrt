@@ -1041,6 +1041,12 @@ class PrepareNode:
 
                             hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'] == "hyperv":
+                        if not zone.has_key('XRT_ZoneNetwork'):
+                            zone['XRT_ZoneNetwork'] = "NSEC"
+                        if zone.has_key('ipranges'):
+                            for i in zone['ipranges']:
+                                if not i.has_key("XRT_VlanName"):
+                                    i['XRT_VlanName'] = "NSEC"
                         if not cluster.has_key('XRT_HyperVHostIds'):
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                             for hostId in hostIds:
@@ -1054,6 +1060,12 @@ class PrepareNode:
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
                             hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'] == "vmware":
+                        if not zone.has_key('XRT_ZoneNetwork'):
+                            zone['XRT_ZoneNetwork'] = "NSEC"
+                        if zone.has_key('ipranges'):
+                            for i in zone['ipranges']:
+                                if not i.has_key("XRT_VlanName"):
+                                    i['XRT_VlanName'] = "NSEC"
                         if not zone.has_key('XRT_VMWareDC'):
                             zone['XRT_VMWareDC'] = 'dc-%s-%s' % (uuid.uuid4().hex, job)
                         if not cluster.has_key('XRT_VMWareCluster'):
@@ -1096,12 +1108,14 @@ class PrepareNode:
                 else:
                     otherNodes.append(x)
 
+        hosts = []
         # We have to process host elements first, as we may need to
         # determine who the master is (XRT-6100 + XRT-6101)
         for x in hostNodes:
             if x.localName == "host":
                 host = self.handleHostNode(x, params)
                 host["pool"] = pool["name"]
+                hosts.append(host)
                 if not pool["master"]:
                     pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
             elif x.localName == "allhosts":
@@ -1117,12 +1131,13 @@ class PrepareNode:
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
                     host = self.handleHostNode(x, params, id=i)
                     host["pool"] = pool["name"]
+                    hosts.append(hosts)
                     if not pool["master"]:
                         pool["master"] = "RESOURCE_HOST_%s" % (i)
                     if i == stop:
                         break
                     i = i + 1
-
+        hasAdvancedNet = False
         for x in otherNodes:
             if x.localName == "storage":
                 type = expand(x.getAttribute("type"), params)
@@ -1161,7 +1176,12 @@ class PrepareNode:
                 if x.getAttribute("controller"):
                     self.controllersForPools[pool["name"]] = expand(x.getAttribute("controller"), params)
                 self.networksForPools[pool["name"]] = x.parentNode
+                hasAdvancedNet = True
         self.pools.append(pool)
+
+        if hasAdvancedNet:
+            for h in hosts:
+                h['basicNetwork'] = False
 
         return pool
 
@@ -1242,6 +1262,8 @@ class PrepareNode:
         host['extraConfig'] = expand(node.getAttribute("extraConfig"), params)
         if not host['extraConfig']:
             host['extraConfig'] = None
+        
+        hasAdvancedNet = False
         for x in node.childNodes:
             if x.nodeType == x.ELEMENT_NODE:
                 if x.localName == "storage":
@@ -1281,6 +1303,8 @@ class PrepareNode:
                     self.networksForHosts[host["name"]] = x.parentNode
                     if x.getAttribute("controller"):
                         self.controllersForHosts[host["name"]] = expand(x.getAttribute("controller"), params)
+                    hasAdvancedNet = True
+        host['basicNetwork'] = not hasAdvancedNet
 
         self.hosts.append(host)
 

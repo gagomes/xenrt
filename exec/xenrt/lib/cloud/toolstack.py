@@ -341,6 +341,36 @@ class CloudStack(object):
         instance.extraConfig['CCP_PV_TOOLS'] = True
         return instance
 
+    def discoverInstanceAdvancedNetworking(self, instance):
+        vm = self.cloudApi.listVirtualMachines(id=instance.toolstackId)[0]
+        if self.cloudApi.listZones(id=vm.zoneid)[0].networktype == "Basic":
+            xenrt.TEC().logverbose("Instance uses basic networking")
+            return
+        else:
+            nic = vm.nic[0]
+            if nic.type == "Shared":
+                # Shared networking, no special access
+                xenrt.TEC().logverbose("Instance uses shared networking")
+                return
+            elif nic.type == "Isolated":
+                # First look for a static NAT IP
+                vmips = [x for x in self.cloudApi.listPublicIpAddresses(associatednetworkid=nic.networkid, isstaticnat=True) or [] if x.virtualmachineid == instance.toolstackId]
+                if vmips:
+                    instance.inboundip = vmips[0].ipaddress
+                    instance.outboundip = vmips[0].ipaddress
+                    xenrt.TEC().logverbose("Found Static NAT IP %s" % vmips[0].ipaddress)
+                    return
+                else:
+                    instance.outboundip = self.cloudApi.listPublicIpAddresses(associatednetworkid=nic.networkid, issourcenat=True)[0].ipaddress
+                    xenrt.TEC().logverbose("Found Outbound IP %s" % instance.outboundip)
+                    rules = [x for x in self.cloudApi.listPortForwardingRules(listall=True, networkid=nic.networkid) or [] if x.virtualmachineid==instance.toolstackId]
+                    for p in instance.os.tcpCommunicationPorts.keys():
+                        validrules = [x for x in rules if int(x.privateport) == instance.os.tcpCommunicationPorts[p]]
+                        if not validrules:
+                            raise xenrt.XRTError("Could not find valid port forwarding rule for %s" % p)
+                        xenrt.TEC().logverbose("Found %s:%s for %s" % (validrules[0].ipaddress, validrules[0].publicport, p))
+                        instance.inboundmap[p] = (validrules[0].ipaddress, int(validrules[0].publicport))
+
     def destroyInstance(self, instance):
         self.cloudApi.destroyVirtualMachine(id=instance.toolstackId, expunge=True)
 
@@ -754,6 +784,17 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
         if len(nets) > 0:
             self.network = nets[0].id
         else:
+            # Find the network for this zone
+            gw=self.cloudstack.cloudApi.listVlanIpRanges(physicalnetworkid=self.cloudstack.cloudApi.listPhysicalNetworks(zoneid = self.zoneid)[0].id)[0].gateway
+            domain = "xenrtcloud"
+            if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"]):
+                domain = "nsec-xenrtcloud"
+            else:
+                for v in vlans:
+                    if gw == xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", v, "GATEWAY"]):
+                        domain = "%s-xenrtcloud" % v.lower()
+                
+
             netOffering = [x.id for x in self.cloudstack.cloudApi.listNetworkOfferings(name='DefaultIsolatedNetworkOfferingWithSourceNatService')][0]
             domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
             net = self.cloudstack.cloudApi.createNetwork(name=netName,
@@ -762,7 +803,7 @@ class AdvancedNetworkProviderIsolated(NetworkProvider):
                                                          zoneid=self.zoneid,
                                                          account="admin",
                                                          domainid=domainid,
-                                                         networkdomain="xenrtcloud").id
+                                                         networkdomain=domain).id
             self.cloudstack.cloudApi.associateIpAddress(networkid=net)
             cidr = self.cloudstack.cloudApi.listNetworks(id=net)[0].cidr
             self.cloudstack.cloudApi.createEgressFirewallRule(protocol="all", cidrlist=[cidr], networkid=net)

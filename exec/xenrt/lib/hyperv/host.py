@@ -37,6 +37,7 @@ def createHost(id=0,
                usev6testd=True,
                ipv6=None,
                noipv4=False,
+               basicNetwork=True,
                extraConfig=None):
 
     machine = str("RESOURCE_HOST_%s" % (id))
@@ -54,6 +55,9 @@ def createHost(id=0,
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
 
+    if basicNetwork:
+        host.createBasicNetwork()
+
     return host
 
 class HyperVHost(xenrt.GenericHost):
@@ -64,11 +68,13 @@ class HyperVHost(xenrt.GenericHost):
             return
         self.installWindows()
         self.installHyperV()
+
+    def createBasicNetwork(self):
         self.joinDefaultDomain()
         self.setupDomainUserPermissions()
         self.reconfigureToStatic()
         self.createCloudStackShares()
-        self.createVirtualSwitch()
+        self.createVirtualSwitch(0)
 
     def installWindows(self):
         xenrt.xrtAssert(xenrt.TEC().lookup("USE_IPXE", False, boolean=True), "iPXE must be in use for Windows installation")
@@ -159,15 +165,15 @@ class HyperVHost(xenrt.GenericHost):
         if needReboot:
             self.softReboot()
 
-    def createVirtualSwitch(self):
+    def createVirtualSwitch(self, eth):
         ps = """Import-Module Hyper-V
 $ethernet = Get-NetAdapter | where {$_.MacAddress -eq "%s"}
 New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagementOS $true -Notes 'Parent OS, VMs, LAN'
-""" % self.getNICMACAddress(0).replace(":","-")
+""" % self.getNICMACAddress(eth).replace(":","-")
 
         self.xmlrpcWriteFile("c:\\createvirtualswitch.ps1", ps)
         self.enablePowerShellUnrestricted()
-        cmd = "powershell.exe c:\\createvirtualswitch.ps1 %s" % self.getNICMACAddress(0).replace(":","-")
+        cmd = "powershell.exe c:\\createvirtualswitch.ps1"
         ref = self.xmlrpcStart(cmd)
         deadline = xenrt.timenow() + 120
 
@@ -260,3 +266,118 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
 
     def isEnabled(self):
         return True
+
+    def getNIC(self, assumedid):
+        """ Return the product enumeration name (e.g. "eth2") for the
+        assumed enumeration ID (integer)"""
+        mac = self.getNICMACAddress(assumedid)
+        mac = xenrt.util.normaliseMAC(mac)
+        out = self.xmlrpcExec("Get-NetAdapter | where {$_.MacAddress -eq \"%s\"} | Format-List -Property Name" % mac.replace(":", "-"), powershell=True, returndata=True)
+        for l in out.splitlines():
+            m = re.match("Name : (.+)", l.strip())
+            if m and not m.group(1).startswith("vEthernet"):
+                return m.group(1)
+        raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
+
+    def createNetworkTopology(self, topology):
+        """Create the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+
+        physList = self._parseNetworkTopology(topology)
+        if not physList:
+            xenrt.TEC().logverbose("Empty network configuration.")
+            return
+
+        # configure single nic non vlan jumbo networks
+        requiresReboot = False
+        has_mgmt_ip = False
+        usedEths = []
+        for p in physList:
+            network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode = p
+            xenrt.TEC().logverbose("Processing p=%s" % (p,))
+            # create only on single nic non valn nets
+            if len(nicList) == 1  and len(vlanList) == 0:
+                eth = self.getNIC(nicList[0])
+                usedEths.append(nicList[0])
+                xenrt.TEC().logverbose("Processing eth%s: %s" % (eth, p))
+                #make sure it is up
+
+                if mgmt or storage:
+                    #use the ip of the mgtm nic on the list as the default ip of the host
+                    if mgmt:
+                        mode = mgmt
+                        usegw = True
+                    else: 
+                        mode = storage
+                        usegw = False
+
+                    # Enable this network device
+
+                    if mode == "dhcp":
+                        xenrt.TEC().logverbose("DHCP not supported for advanced windows network configurations, using static") 
+                        mode = "static"
+                   
+                    if mode == "static":
+                        # Configure this device for static
+                        xenrt.TEC().logverbose("Configuring %s to static" % eth)
+                        newip, netmask, gateway = self.getNICAllocatedIPAddress(nicList[0])
+                        cmd = "netsh interface ip set address \"%s\" static %s %s %s 1" % (eth, newip, netmask, gateway)
+                        self.xmlrpcExec(cmd)
+                        cmd = "netsh interface ipv4 set interface \"%s\" ignoredefaultroutes=%s" % (eth, 'disabled' if usegw else 'enabled')
+                        self.xmlrpcExec(cmd)
+                    
+                    #read final ip in eth
+                    # newip = code to get IP for eth
+                    if newip and len(newip)>0:
+                        xenrt.TEC().logverbose("New IP %s for host %s on eth%s" % (newip, self, eth))
+                        if mgmt:
+                            self.machine.ipaddr = newip
+                            has_mgmt_ip = True
+                    else:
+                        raise xenrt.XRTError("Wrong new IP %s for host %s on eth%s" % (newip, self, eth))
+
+                if vms:
+                    self.createVirtualSwitch(nicList[0])
+
+
+            if len(nicList) > 1:
+                raise xenrt.XRTError("Can't create bond on %s using %s" %
+                                       (network, str(nicList)))
+            if len(vlanList) > 0:
+                raise xenrt.XRTError("Can't create vlan on %s using %s" %
+                                       (network, str(vlanList)))
+
+        if len(physList)>0:
+            if not has_mgmt_ip:
+                raise xenrt.XRTError("The network topology did not define a management IP for the host")
+        
+        allEths = [0]
+        allEths.extend(self.listSecondaryNICs())
+
+        for e in allEths:
+            if e not in usedEths:
+                eth = self.getNIC(e)
+                cmd = "netsh interface ip set address \"%s\" dhcp" % (eth)
+                try:
+                    self.xmlrpcExec(cmd)
+                except:
+                    pass
+                cmd = "netsh interface ipv4 set interface \"%s\" ignoredefaultroutes=enabled" % (eth)
+                try:
+                    self.xmlrpcExec(cmd)
+                except:
+                    pass
+
+        self.joinDefaultDomain()
+        self.setupDomainUserPermissions()
+        self.createCloudStackShares()
+
+    def checkNetworkTopology(self,
+                             topology,
+                             ignoremanagement=False,
+                             ignorestorage=False,
+                             plugtest=False):
+        """Verify the topology specified by XML on this host. Takes either
+        a string containing XML or a XML DOM node."""
+        pass
+

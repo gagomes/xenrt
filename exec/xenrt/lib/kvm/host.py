@@ -37,6 +37,7 @@ def createHost(id=0,
                usev6testd=True,
                ipv6=None,
                noipv4=False,
+               basicNetwork=True,
                extraConfig=None):
 
     machine = str("RESOURCE_HOST_%s" % (id))

@@ -175,5 +175,6 @@ umount /tmp/xenrttmpmount
         self.machine.powerctl.cycle()
 
         self.waitForSSH(1800, desc="Host boot (!%s)" % (self.getName()))
-         
 
+    def isEnabled(self):
+        return True

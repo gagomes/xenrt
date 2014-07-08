@@ -1,0 +1,30 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+    <CLOUDINPUTDIR>http://repo-ccp.citrix.com/releases/release_builds/4.3/RTM/CloudPlatform-4.3.0.0-rhel6.3.tar.gz</CLOUDINPUTDIR>
+  </variables>
+  <prepare>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </sharedhost>
+    <host id="0">
+      <vm name="CS-PXE1">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

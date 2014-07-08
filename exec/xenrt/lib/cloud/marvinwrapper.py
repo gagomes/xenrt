@@ -216,7 +216,11 @@ class MarvinApi(object):
             xenrt.TEC().warning("Use of CLOUD_SYS_TEMPLATE is deprecated, use CLOUD_SYS_TEMPLATES/xenserver instead")
             templates['xenserver'] = sysTemplateSrcLocation
 
-        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
+        if hvlist:
+            hvlist = hvlist.split(",")
+        else:
+            hvlist = []
         for t in templates.keys():
             if t not in hvlist:
                 del templates[t]

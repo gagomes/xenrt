@@ -4518,6 +4518,7 @@ class TC11514(_Controller):
 
 
     """
+    DURATION         = 60
     SIZE = 1472 # Note size must be MTU less IP and ethernet headers
                 # otherwise this will result in fragmentation skewing results
                 # considerably

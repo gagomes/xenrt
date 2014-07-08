@@ -150,7 +150,11 @@ class ManagementServer(object):
         xenrt.TEC().registry.toolstackPut("cloud", xenrt.lib.cloud.CloudStack(place=self.place))
         # Create one secondary storage, to speed up deployment.
         # Additional locations will need to be created during deployment
-        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS").split(",")
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
+        if hvlist:
+            hvlist = hvlist.split(",")
+        else:
+            hvlist = []
         if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
             secondaryStorage = xenrt.ExternalNFSShare()
             storagePath = secondaryStorage.getMount()

@@ -31,8 +31,15 @@ CREATE TABLE leases (
     interface character varying(20)
 );
 
+CREATE TABLE blocks (
+    mac character varying(20),
+    blockuser character varying(20)
+);
+
 
 ALTER TABLE public.leases OWNER TO dhcp;
+ALTER TABLE public.blocks OWNER TO dhcp;
+ALTER TABLE ONLY blocks ADD CONSTRAINT pkey PRIMARY KEY (mac);
 ALTER TABLE ONLY leases ADD CONSTRAINT pkey PRIMARY KEY (addr);
 CREATE INDEX idx_expiry ON leases USING btree (expiry);
 CREATE INDEX idx_mac ON leases USING btree (mac);

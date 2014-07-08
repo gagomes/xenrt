@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>    
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
+    <testcase id="testcases.xenserver.tc.lunspace.TC21547"/>
+    
+  </testsequence>
+</xenrt>

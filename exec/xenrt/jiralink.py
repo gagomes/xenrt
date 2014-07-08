@@ -20,7 +20,7 @@ class JiraLink:
 
     TRIAGE = "10760"
     TRIAGEDEV = "11891"
-    DEFAULT_ASSIGNEE = "xenrt"
+    DEFAULT_ASSIGNEE = "svcacct_xs_xenrt"
 
     def __init__(self):
         # JIRA settings

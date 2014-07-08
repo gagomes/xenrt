@@ -523,7 +523,7 @@ class CloudStack(object):
         self.cloudApi.createVMSnapshot(virtualmachineid = instance.toolstackId,
                                                name = name,
                                                snapshotmemory=memory,
-                                               quiesce=quiesce)
+                                               quiescevm=quiesce)
 
     def getSnapshotId(self, instance, name):
         return [x for x in self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name) if x.name==name][0].id

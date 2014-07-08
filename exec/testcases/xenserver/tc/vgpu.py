@@ -381,6 +381,9 @@ class TCVGPUSetup(_VGPUTest):
         if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
             self.guest.setVGPUVNCActive(False)
         self.host.installNVIDIAHostDrivers()
+        #setting up dom0 mem 
+        self.host.execDom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=6144M,max:6144M") 
+        self.host.reboot()
         cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)

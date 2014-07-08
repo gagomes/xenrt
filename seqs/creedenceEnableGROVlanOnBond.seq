@@ -26,6 +26,7 @@
     <serial group="hfx997">
       <testcase id="xenserver.tc.bonding.TCGROEnable" name="TC-20998"/>
     </serial>
+    <testcase id="xenserver.tc.bonding.TCGSOBondedInterface" name="TC-21157" group="hfx1001"/>
   </testsequence>
 
 </xenrt>

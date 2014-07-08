@@ -822,36 +822,37 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
     def setupNetworkAccess(self):
         ip = self._getInboundIP()
 
-        # For each communication port, find a free port on the NAT IP to use
-        for p in self.instance.os.tcpCommunicationPorts.keys():
-            existingRules = self.cloudstack.cloudApi.listPortForwardingRules(ipaddressid=ip.id) or []
-            i = 1025
-            # Find a free port, by checking the existing rules
-            while True:
-                ok = True
-                for r in existingRules:
-                    if i >= int(r.publicport) and i <= int(r.publicendport):
-                        ok = False
+        with xenrt.GEC().getLock("CCP_NETWORK_PORTFORWARD-%s" % ip):
+            # For each communication port, find a free port on the NAT IP to use
+            for p in self.instance.os.tcpCommunicationPorts.keys():
+                existingRules = self.cloudstack.cloudApi.listPortForwardingRules(ipaddressid=ip.id) or []
+                i = 1025
+                # Find a free port, by checking the existing rules
+                while True:
+                    ok = True
+                    for r in existingRules:
+                        if i >= int(r.publicport) and i <= int(r.publicendport):
+                            ok = False
+                            break
+                    if ok:
                         break
-                if ok:
-                    break
-                i += 1
+                    i += 1
 
-                if i > 65535:
-                    raise xenrt.XRTError("Not enough ports available for port forwarding")
+                    if i > 65535:
+                        raise xenrt.XRTError("Not enough ports available for port forwarding")
 
-            # Crete the rule
-            self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
-                                                              protocol="TCP",
-                                                              publicport=i,
-                                                              publicendport=i,
-                                                              privateport=self.instance.os.tcpCommunicationPorts[p],
-                                                              privateendport=self.instance.os.tcpCommunicationPorts[p],
-                                                              ipaddressid=ip.id,
-                                                              virtualmachineid=self.instance.toolstackId)
+                # Crete the rule
+                self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
+                                                                  protocol="TCP",
+                                                                  publicport=i,
+                                                                  publicendport=i,
+                                                                  privateport=self.instance.os.tcpCommunicationPorts[p],
+                                                                  privateendport=self.instance.os.tcpCommunicationPorts[p],
+                                                                  ipaddressid=ip.id,
+                                                                  virtualmachineid=self.instance.toolstackId)
 
-            # And update the inbound IP map
-            self.instance.inboundmap[p] = (ip.ipaddress, i)
+                # And update the inbound IP map
+                self.instance.inboundmap[p] = (ip.ipaddress, i)
 
         self.instance.outboundip = self._getOutboundIP().ipaddress
 

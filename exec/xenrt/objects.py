@@ -2563,6 +2563,21 @@ Add-WindowsFeature as-net-framework"""
             self.execcmd("cp %s/latency/latency.x86_32 /root/latency" % workdir)
         self.execcmd("rm -rf %s" % workdir)
 
+    def installUDPGen(self):
+        """Install udpgen into a host"""
+
+        workdir = string.strip(self.execcmd("mktemp -d /tmp/XXXXXX"))
+        self.execcmd("wget -O - '%s/udpgen.tgz' | tar -xz -C %s" %
+                     (xenrt.TEC().lookup("TEST_TARBALL_BASE"), workdir))
+
+        if self.getBasicArch() == "x86-64":
+            self.execcmd("cp %s/udpgen/udptx.x86_64 /root/udptx" % workdir)
+            self.execcmd("cp %s/udpgen/udprx.x86_64 /root/udprx" % workdir)
+        else:
+            self.execcmd("cp %s/udpgen/udptx.x86_32 /root/udptx" % workdir)
+            self.execcmd("cp %s/udpgen/udprx.x86_32 /root/udprx" % workdir)
+        self.execcmd("rm -rf %s" % workdir)
+
     def installKernBench(self):
         """Install KernBench into the guest"""
 

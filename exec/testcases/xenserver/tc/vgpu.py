@@ -2122,6 +2122,120 @@ class TCRevertvGPUSnapshot(FunctionalBase):
             if not (expVGPUType in vgpuType):
                 raise xenrt.XRTFailure("VM has not got expected vGPU type which is %s" % (expVGPUType))
 
+class TCvGPUBalloon(FunctionalBase):
+
+    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    VGPU_CONFIG = [VGPUConfig.K240]
+
+    def prepare(self,arglist):
+
+        super(TCvGPUBalloon, self).prepare(arglist)
+
+        step("Creating %d vGPUs configurations." % (len(self.VGPU_CONFIG)))
+        self.vGPUCreator = {}
+        self.vms = {}
+
+        for config in self.VGPU_CONFIG:
+            self.vGPUCreator[config] = VGPUInstaller(self.host, config)
+
+        for distro in self.REQUIRED_DISTROS:
+
+            osType = self.getOSType(distro)
+
+            log("Creating Master VM of type %s" % osType)
+            vm = self.createMaster(osType)
+
+            log("Creating vGPU of type %s" % (self.getConfigurationName(self.VGPU_CONFIG[0])))
+            self.configureVGPU(self.VGPU_CONFIG[0], vm)
+            vm.setState("UP")
+
+            log("Install guest drivers for %s" % str(vm))
+            self.installGuestDrivers(vm)
+
+            log("Checking vGPU should be running")
+            self.assertvGPURunningInVM(vm,self.getConfigurationName(self.VGPU_CONFIG[0]))
+
+            vm.setState("DOWN")
+            guests = []
+            for i in range(2):
+                log("Cloning VM from Master VM")
+                guests.append(self.cloneVM(osType))
+                self.vms[osType] = guests
+
+    def run(self,arglist):
+
+        for distro in self.REQUIRED_DISTROS:
+
+            vms = self.vms[self.getOSType(distro)]
+            host = self.getDefaultHost()
+
+            for vm in vms:
+                vm.setState("DOWN")
+
+            #Filling up whole Memory
+ 
+            remainingMem = host.getMaxMemory() 
+            maxStatic0 = remainingMem * 2/3
+            minDynamic0 = remainingMem/3
+            maxDynamic0 = maxStatic0
+
+            maxStatic1 = remainingMem * 2/3
+            minDynamic1 = remainingMem/3
+            maxDynamic1 = remainingMem/2
+                  
+            g0 = vms[0]
+            g1 = vms[1]        
+            g0.setMemoryProperties(None,minDynamic0,maxDynamic0,maxStatic0) 
+            g1.setMemoryProperties(None,minDynamic1,maxDynamic1,maxStatic1)
+
+            g0.setState("UP")
+            domid0 = g0.getDomid()
+            
+            g1.setState("UP")
+
+            #Checking that first VM is still UP
+            if g0.getState() != "UP":
+                raise xenrt.XRTFailure("VM %s is not UP" % g0.uuid)
+
+            #Checking whether first VM is reset
+            domid01 = g0.getDomid()
+            if domid0 != domid01:
+                raise xenrt.XRTFailure("VM %s is reset during the start of second VM" % g0.uuid)
+
+            xenrt.sleep(120) 
+
+            #Changing Memory of both the VMs            
+            for i in range(5):
+                g0.setDynamicMemRange(minDynamic1,maxDynamic1)
+                g0.waitForTarget(600)
+                xenrt.sleep(10)
+                g1.setDynamicMemRange(minDynamic0,maxDynamic0)
+                g1.waitForTarget(600)
+                xenrt.sleep(10)
+                g0.reboot()
+                g1.reboot()
+                temp = g0
+                g0 = g1
+                g1 = temp
+            
+            g0.setState("DOWN")
+            g1.setState("DOWN")
+
+            #Scale up to Max
+            g0.setMemoryProperties(None,minDynamic0,remainingMem,remainingMem)
+            g0.setState("UP")
+            g0.setDynamicMemRange(remainingMem,remainingMem)
+            g0.waitForTarget(600)
+            xenrt.sleep(10)
+            g0.checkMemory(inGuest=True)
+            g0.reboot()
+ 
+            #Scale down to Min
+            g0.setDynamicMemRange(minDynamic0,minDynamic0)
+            g0.waitForTarget(600)
+            xenrt.sleep(10)
+            g0.checkMemory(inGuest=True)
+             
 class TCRevertnonvGPUSnapshot(FunctionalBase):
 
     REQUIRED_DISTROS = [VGPUOS.Win7x86]

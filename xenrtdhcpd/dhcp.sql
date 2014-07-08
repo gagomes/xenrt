@@ -39,7 +39,7 @@ CREATE TABLE blocks (
 
 ALTER TABLE public.leases OWNER TO dhcp;
 ALTER TABLE public.blocks OWNER TO dhcp;
-ALTER TABLE ONLY blocks ADD CONSTRAINT pkey PRIMARY KEY (mac);
+ALTER TABLE ONLY blocks ADD CONSTRAINT pkeymac PRIMARY KEY (mac);
 ALTER TABLE ONLY leases ADD CONSTRAINT pkey PRIMARY KEY (addr);
 CREATE INDEX idx_expiry ON leases USING btree (expiry);
 CREATE INDEX idx_mac ON leases USING btree (mac);

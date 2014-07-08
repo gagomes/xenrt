@@ -231,6 +231,8 @@ class _VMScalability(_Scalability):
             if not self.NOPOSTRUN:
                 self.uninstallOnCleanup(guest)
         
+        if self.pri_bridge == False:
+            self.pri_bridge = host.getPrimaryBridge()
         if self.FLOW_EVT_THRESHOLD:
             host.execdom0("ovs-vsctl set bridge %s other-config:flow-eviction-threshold=%u" % (self.pri_bridge,self.FLOW_EVT_THRESHOLD))
         

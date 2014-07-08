@@ -234,6 +234,13 @@ class _Cache(xenrt.TestCase):
         for sr in unique(sr_list):
             self.host.execdom0("ls -l /var/run/sr-mount/%s/" % sr)
 
+        # Flushing read cache, too.
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.guests = []
+            self.host.execdom0("sync && echo 3 > /proc/sys/vm/drop_caches")
+            xenrt.sleep(5)
+
+
     def configureNetwork(self):
         if "latency" in self.networkCharacteristics:
             for bridge in self.host.getExternalBridges():
@@ -1529,36 +1536,33 @@ class _ReadCachePerformance(_CachePerformance):
     
     INTELLICACHE = False
 
-    def enableCaching(self):
-        """ Turn on read cache instead of intelli cache. """
-        self.host.enableReadCaching()
-
-    def disableCaching(self):
-        """ Turn off read cache instead of intelli cache. """
-        self.host.disableReadCaching()
-
-    def flushCache(self):
-        """ Flushing read cache for exact tests. """
-
-        for g in self.guests:
-            try:
-                g.shutdown(force=True)
-            except Exception, e:
-                xenrt.TEC().warning("Exception %s shutting down" % str(e))
-            g.uninstall()
-
-        self.guests = []
-        self.host.execdom0("sync && echo 3 > /proc/sys/vm/drop_caches")
-        xenrt.sleep(5)
-
     def run(self, arglist=[]):
         if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             raise xenrt.XRTError("Read cache requires Creedence or later.")
 
         # it is on by default in _Cache class.
         if not self.INTELLICACHE:
-            _Cache.disableCaching(self)
-        _CachePerformance.run(self, arglist)
+            self.disableCaching()
+
+        self.host.disableReadCaching()
+        basereadiops, basewriteiops, basereadpackets, basewritepackets = self.measure()
+        # Note: these are numbers (counts) of IO operations, not ops per second.
+        xenrt.TEC().logverbose("Baseline read IOPS: %s" % (basereadiops))
+        xenrt.TEC().logverbose("Baseline write IOPS: %s" % (basewriteiops))
+        xenrt.TEC().logverbose("Baseline read Packets: %s" % (basereadpackets))
+        xenrt.TEC().logverbose("Baseline write Packets: %s" % (basewritepackets))
+        self.host.enableReadCaching()
+        self.iocounter = self.IOCounter(self.host)
+        self.packetCatcher = IOPPacketCatcher(self.host, nolog=True)
+        readiops, writeiops, readpackets, writepackets = self.measure()
+        xenrt.TEC().logverbose("Test read IOPS: %s" % (readiops))
+        xenrt.TEC().logverbose("Test write IOPS: %s" % (writeiops))
+        xenrt.TEC().logverbose("Test read Packets: %s" % (readpackets))
+        xenrt.TEC().logverbose("Test write Packets: %s" % (writepackets))
+        self.runSubcase("check", (basereadiops, readiops, self.READMAXGAIN, self.READMINGAIN), "IOPS", "Read")
+        self.runSubcase("check", (basewriteiops, writeiops, self.WRITEMAXGAIN, self.WRITEMINGAIN), "IOPS", "Write")
+        self.runSubcase("check", (basereadpackets, readpackets, self.READMAXGAIN, self.READMINGAIN), "Packets", "Read")
+        self.runSubcase("check", (basewritepackets, writepackets, self.WRITEMAXGAIN, self.WRITEMINGAIN), "Packets", "Write")
 
 class TC21544(_ReadCachePerformance):
     """ Compare scenarios where read cache is on and where read cache is off
@@ -1567,8 +1571,8 @@ class TC21544(_ReadCachePerformance):
     CACHED = True
     READMAXGAIN = 0.5
     READMINGAIN = 0.01
-    WRITEMAXGAIN = 1.2
-    WRITEMINGAIN = 0.8
+    WRITEMAXGAIN = 1.15
+    WRITEMINGAIN = 0.9
 
 class TC21545(_ReadCachePerformance):
     """ Compare scenarios where read cache is on and where read cache is off
@@ -1576,10 +1580,10 @@ class TC21545(_ReadCachePerformance):
     
     INTELLICACHE = True
     CACHED = True
-    READMAXGAIN = 0.5
-    READMINGAIN = 0.01
-    WRITEMAXGAIN = 1.2
-    WRITEMINGAIN = 0.8
+    READMAXGAIN = 1.15
+    READMINGAIN = 0.9
+    WRITEMAXGAIN = 1.15
+    WRITEMINGAIN = 0.9
 
 class TC12008(_Cache):
     """Check that vm-start succeeds if a VM's VDIs are set for caching but no

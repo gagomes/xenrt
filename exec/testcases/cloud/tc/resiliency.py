@@ -279,12 +279,15 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
         deadline = xenrt.timenow() + 600
         while True:
             try:
-                self.cloud.cloudApi.listHosts()
-                break
+                downhosts = [x.name for x in self.cloud.cloudApi.listHosts() if x.state != "Up"]
+                if len(downhosts) == 0:
+                    break
+                xenrt.TEC().logverbose("Hosts %s are still down" % ", ".join(downhosts))
             except:
-                if xenrt.timenow() > deadline:
-                    raise xenrt.XRTFailure("Cloudstack Management did not come back after 10 minutes")
-                xenrt.sleep(15) 
+                pass
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTFailure("Cloudstack Management did not come back after 10 minutes")
+            xenrt.sleep(15) 
 
     def postRun(self):
         # See if the management server is behaving, if not, restart it
@@ -292,7 +295,7 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
             self.cloud.cloudApi.listHosts()
         except:
             self.cloud.mgtsvr.restart()
-
+        self.waitForCCP()
         _TCCloudResiliencyBase.postRun(self)
 
 class TCManServerVMReboot(_TCManServerResiliencyBase):

@@ -526,7 +526,7 @@ class CloudStack(object):
                                                quiescevm=quiesce)
 
     def getSnapshotId(self, instance, name):
-        return [x for x in self.cloudApi.listSnapshots(virtualmachineid = instance.toolstackId, name=name) if x.name==name][0].id
+        return [x for x in self.cloudApi.listVMSnapshot(virtualmachineid = instance.toolstackId, name=name, listall=True) if x.displayname==name][0].id
 
     def deleteInstanceSnapshot(self, instance, name):
         self.cloudApi.deleteVMSnapshot(vmsnapshotid = self.getSnapshotId(instance, name))

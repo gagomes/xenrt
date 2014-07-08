@@ -14,7 +14,8 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
 
         for i in xrange(int(self.args.get("iterations", 400))):
             op = random.choice(ops.keys())
-            self.runSubcase(ops[op], (), op, "Iter-%d" % i)
+            if self.runSubcase(ops[op], (), "Iter-%d" % i, op) != xenrt.RESULT_PASS:
+                break
 
     def stopStart(self):
         self.instance.stop()
@@ -34,7 +35,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
     def snapRevert(self):
         snapName = xenrt.randomGuestName()
         self.instance.createSnapshot(snapName)
-        self.instance.revertInstanceToSnapshot(snapName)
+        self.instance.revertToSnapshot(snapName)
         self.instance.setPowerState(xenrt.PowerState.up)
         self.instance.deleteSnapshot(snapName)
 

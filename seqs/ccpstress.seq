@@ -87,18 +87,18 @@
 
   <testsequence>
     <parallel workers="2" group="CreateTemplates">
-      <testcase id="cloud.tc.basic.TCCreateTemplate">
+      <testcase id="cloud.tc.basic.TCCreateTemplate" name="centos">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.basic.TCCreateTemplate">
+      <testcase id="cloud.tc.basic.TCCreateTemplate" name="debian">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
     </parallel>
     <parallel workers="2" group="Stress">
-      <testcase id="cloud.tc.stress.TCInstanceLifecycleStress">
+      <testcase id="cloud.tc.stress.TCInstanceLifecycleStress" name="centos1">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCInstanceLifecycleStress">
+      <testcase id="cloud.tc.stress.TCInstanceLifecycleStress" name="debian1">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
     </parallel>

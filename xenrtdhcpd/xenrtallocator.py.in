@@ -131,6 +131,8 @@ class XenRTDHCPAllocator(object):
     def getResponse(self, intf, mac, packet):
         ip = None
         cfg = self.config['interfaces'][intf]
+        if self.isBlocked(mac):
+            return None
         _logger.info("Request for MAC %s on interface %s" % (intf, mac))
         hostname = None
         (ip, hostname) = self._findStaticReservation(intf, str(mac))
@@ -252,6 +254,28 @@ class XenRTDHCPAllocator(object):
 
         return res
 
+    def isBlocked(self, mac):
+        self._sql("SELECT mac from blocks WHERE mac='%s'" % mac)
+        if self.cur.fetchone():
+            return True
+        else:
+            return False
+
+    def listBlockedMacs(self):
+        self._sql("SELECT mac,blockuser FROM blocks")
+        res = []
+        rs = self.cur.fetchall()
+        for r in rs:
+            res.append((r[0], r[1]))
+
+    def unblockMac(self, mac):
+        self._sql("DELETE from blocks WHERE mac='%s'" % mac)
+
+    def blockMac(self, mac, data):
+        with self.lock:
+            self._sql("DELETE from blocks WHERE mac='%s'" % mac)
+            self._sql("INSERT INTO blocks (mac, blockuser) VALUES ('%s', '%s')" % (mac, data))
+
 class XMLRPCAllocator(object):
     def __init__(self, parent):
         self.parent = parent
@@ -273,3 +297,14 @@ class XMLRPCAllocator(object):
 
     def listReservedAddresses(self):
         return self.parent.listReservedAddresses()
+
+    def blockMac(self, mac, data):
+        self.parent.blockMac(mac, data)
+        return True
+
+    def unblockMac(self, mac):
+        self.parent.unblockMac(mac)
+        return True
+
+    def listBlockedMacs(self):
+        return self.parent.listBlockedMacs()

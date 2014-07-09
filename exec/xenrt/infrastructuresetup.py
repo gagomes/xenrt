@@ -904,11 +904,11 @@ def portConfig(config,switch,port,network):
     allvlans.append(config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]))
     allvlans.append("1")
     mainvlans = {"NPRI": config.lookup(["NETWORK_CONFIG","DEFAULT", "VLAN"]),
-                 "NSEC": config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]),
-                 "IPRI": config.lookup(["NETWORK_CONFIG","VLANS", "IPRI", "ID"]),
-                 "ISEC": config.lookup(["NETWORK_CONFIG","VLANS", "ISEC", "ID"])}
+                 "NSEC": config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"], None),
+                 "IPRI": config.lookup(["NETWORK_CONFIG","VLANS", "IPRI", "ID"], None),
+                 "ISEC": config.lookup(["NETWORK_CONFIG","VLANS", "ISEC", "ID"], None)}
     nativevlan = mainvlans[network]
-    extravlanstoadd = [mainvlans[x] for x in mainvlans.keys() if x != network]
+    extravlanstoadd = [mainvlans[x] for x in mainvlans.keys() if x != network and mainvlans[x]]
     vlanstoadd = [config.lookup(["NETWORK_CONFIG","VLANS", x, "ID"]) for x in
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
@@ -988,8 +988,33 @@ def portConfig(config,switch,port,network):
         for v in extravlanstoadd:
             print "switchport allowed vlan add tagged %s" % v
         print "exit"
-    
-    
+
+    if swtype == "GBe2c":
+        for v in vlanstoadd:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "add %s" % port
+        if privvlans:
+            for v in range(privvlanstart, privvlanend+1):
+                print "/c/l2/vlan %s" % v
+                print "ena"
+                print "add %s" % port
+        for v in vlanstoremove:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "rem %s" % port
+        for v in extravlanstoadd:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "add %s" % port
+        print "/c/l2/vlan %s" % nativevlan
+        print "ena"
+        print "add %s" % port
+        print "/c/port %s" % port
+        print "tag ena"
+        print "pvid %s" % nativevlan
+        print "tagpvid dis"
+
 
 def portName(config, switch, unit, port):
     swtype = config.lookup(["NETSWITCHES", switch, "TYPE"], None)
@@ -1009,6 +1034,8 @@ def portName(config, switch, unit, port):
         return "0/%s" % (port)
     elif swtype == "FujitsuBX900":
         return "%s/0/%s" % (config.lookup(["NETSWITCHES", switch, "PORTPREFIX"]), port)
+    elif swtype == "GBe2c":
+        return port
 
 def routerInterfaceConfig(config):
     ifs = []

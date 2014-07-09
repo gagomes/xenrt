@@ -8,6 +8,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
 
         cloud = self.getDefaultToolstack()
         self.instance = cloud.createInstance(distro=self.args['distro'], hypervisorType=self.args.get("hypervisor"), name=self.args.get("instancename"))
+        self.instance.createSnapshot("%s-base" % self.instance.name)
         self.getLogsFrom(self.instance)
     
     def run(self, arglist):
@@ -39,8 +40,14 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
         self.instance.revertToSnapshot(snapName)
         self.instance.setPowerState(xenrt.PowerState.up)
         self.instance.deleteSnapshot(snapName)
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self.instance.revertToSnapshot("%s-base" % self.instance.name)
+        self.instance.setPowerState(xenrt.PowerState.up)
 
     def snapDelete(self):
         snapName = xenrt.randomGuestName()
         self.instance.createSnapshot(snapName)
         self.instance.deleteSnapshot(snapName)
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self.instance.revertToSnapshot("%s-base" % self.instance.name)
+        self.instance.setPowerState(xenrt.PowerState.up)

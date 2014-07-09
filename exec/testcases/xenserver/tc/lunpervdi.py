@@ -1208,7 +1208,7 @@ class TC18377(LunPerVDI):
 class TC18378(LunPerVDI):
     """Verify whether Storage Xen Motion is possible with LUN/VDI SR"""
 
-    DISTRO = "rhel56"
+    DISTRO = "rhel65"
     
     def run(self, arglist=[]):
 

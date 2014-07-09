@@ -841,15 +841,37 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
                     if i > 65535:
                         raise xenrt.XRTError("Not enough ports available for port forwarding")
 
-                # Crete the rule
-                self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
-                                                                  protocol="TCP",
-                                                                  publicport=i,
-                                                                  publicendport=i,
-                                                                  privateport=self.instance.os.tcpCommunicationPorts[p],
-                                                                  privateendport=self.instance.os.tcpCommunicationPorts[p],
-                                                                  ipaddressid=ip.id,
-                                                                  virtualmachineid=self.instance.toolstackId)
+                try:
+                    # Crete the rule
+                    self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
+                                                                      protocol="TCP",
+                                                                      publicport=i,
+                                                                      publicendport=i,
+                                                                      privateport=self.instance.os.tcpCommunicationPorts[p],
+                                                                      privateendport=self.instance.os.tcpCommunicationPorts[p],
+                                                                      ipaddressid=ip.id,
+                                                                      virtualmachineid=self.instance.toolstackId)
+                except:
+                    # Workaround for CS-20617
+                    # Wait for the virtual routers to be running
+
+                    deadline = xenrt.timenow() + 600
+                    while True:
+                        if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                            break
+                        if xenrt.timenow() > deadline:
+                            raise xenrt.XRTFailure("Timed out waiting for VR to come up")
+                        xenrt.sleep(15)
+
+                    # Now the VR is up, try again
+                    self.cloudstack.cloudApi.createPortForwardingRule(openfirewall=True,
+                                                                      protocol="TCP",
+                                                                      publicport=i,
+                                                                      publicendport=i,
+                                                                      privateport=self.instance.os.tcpCommunicationPorts[p],
+                                                                      privateendport=self.instance.os.tcpCommunicationPorts[p],
+                                                                      ipaddressid=ip.id,
+                                                                      virtualmachineid=self.instance.toolstackId)
 
                 # And update the inbound IP map
                 self.instance.inboundmap[p] = (ip.ipaddress, i)
@@ -879,8 +901,23 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
       
             xenrt.TEC().logverbose("Got IP, ID=%s, Address=%s" % (ip.id, ip.ipaddress))
 
-            # Setup static NAT to this VM
-            self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)
+            try:
+                # Setup static NAT to this VM
+                self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)
+            except:
+                # Workaround for CS-20617
+                # Wait for the virtual routers to be running
+
+                deadline = xenrt.timenow() + 600
+                while True:
+                    if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                        break
+                    if xenrt.timenow() > deadline:
+                        raise xenrt.XRTFailure("Timed out waiting for VR to come up")
+                    xenrt.sleep(15)
+
+                # Now the VR is up, try again
+                self.cloudstack.cloudApi.enableStaticNat(ipaddressid=ip.id, virtualmachineid=self.instance.toolstackId)
         
         self.instance.inboundip = ip.ipaddress
         self.instance.outboundip = ip.ipaddress

@@ -8,6 +8,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
 
         cloud = self.getDefaultToolstack()
         self.instance = cloud.createInstance(distro=self.args['distro'], hypervisorType=self.args.get("hypervisor"), name=self.args.get("instancename"))
+        self.getLogsFrom(self.instance)
     
     def run(self, arglist):
         ops = {"StopStart": "stopStart", "Reboot": "reboot", "Migrate": "migrate", "SnapRevert": "snapRevert", "SnapDelete": "snapDelete"}

@@ -926,7 +926,7 @@ def portConfig(config,switch,port,network):
         for v in vlanstoremove:
             print "no vlan %s untagged %s" % (v, port)
         for v in extravlanstoadd:
-            print "vlan %d tagged %s" % (v, port)
+            print "vlan %s tagged %s" % (v, port)
     elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5"):
         print "interface %s" % port
         print "switchport mode general"

@@ -699,6 +699,190 @@ class CloudStack(object):
                 xenrt.sleep(15)
             return iso.id
 
+    def getAllHypervisors(self):
+
+        return self.marvin.cloudApi.listHosts(type="routing")
+
+    def _createDestroyInstance(self,host,distro=None):
+
+        if not distro:
+           distro = "debian70_x86-64"
+
+        try:
+            xenrt.TEC().logverbose("Creating VM instance on %s" % str(host.name))
+            instance = self.createInstance(distro,startOn = host.name)
+
+            xenrt.TEC().logverbose("Taking snapshot of instance")
+            self.createInstanceSnapshot(instance,"sampleSnapshot")
+
+            xenrt.TEC().logverbose("Deleting snapshot of instance")
+            self.deleteInstanceSnapshot(instance,"sampleSnapshot")
+
+            xenrt.TEC().logverbose("Destroying VM instance from %s" % str(host.name))
+            self.destroyInstance(instance)
+        except Exception, e:
+            msg = "Create/destroy/snaphsot Instance failed on host %s with error %s" % (host.name,str(e))
+            xenrt.TEC().reason(msg)
+            raise xenrt.XRTFailure(msg)
+
+    def _checkVM(self, vm):
+
+        xenrt.TEC().registry.instanceGet(vm.name).assertHealthy()
+
+    def _checkSystemVMs(self,sv):
+
+        os.system("ping -c 10 %s > /tmp/ping" % str(sv.privateip))
+        output = os.popen('cat /tmp/ping').read()
+        m = re.search(", (\d+)% packet loss, time", output)
+
+        if int(m.group(1)) >=5:
+            reason = "System VM %s is not reachable" % str(sv.name)
+            xenrt.TEC().reason(reason)
+            raise xenrt.XRTFailure(reason)
+
+    def _level1HealthCheck(self):
+
+        errors = []
+
+        xenrt.TEC().logverbose("Level 1 Health check in progress")
+
+        xenrt.TEC().logverbose("Checking all the host in the cloud")
+        hosts = self.getAllHypervisors()
+        for host in hosts:
+            if host.state != 'Up':
+                msg = 'Host %s is DOWN as per CLOUD' % host.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all the system VMs in the cloud")
+        svms = self.marvin.cloudApi.listSystemVms()
+        for svm in svms:
+            if svm.state != 'Running':
+                msg = 'System VM %s is DOWN as per CLOUD' % svm.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all Zones in the cloud")
+        zones = self.marvin.cloudApi.listZones()
+        for zone in zones:
+            if zone.allocationstate != 'Enabled':
+                msg  = 'Zone %s is DOWN as per CLOUD' % zone.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all Pods in the cloud")
+        pods = self.marvin.cloudApi.listPods()
+        for pod in pods:
+            if pod.allocationstate != 'Enabled':
+                msg  = 'Pod %s is DOWN as per CLOUD' % pod.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all Clusters in the cloud")
+        clusters = self.marvin.cloudApi.listClusters()
+        for cluster in clusters:
+            if cluster.allocationstate != 'Enabled':
+                msg  = 'Cluster %s is DOWN as per CLOUD' % cluster.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all the Networks in the cloud")
+        nws = self.marvin.cloudApi.listNetworks()
+        for nw in nws:
+            if nw.state != 'Setup':
+                msg = 'Network %s is DOWN as per CLOUD' % nw.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking Primary Storage in the cloud")
+        sps = self.marvin.cloudApi.listStoragePools()
+        for sp in sps:
+            if sp.state != 'Up':
+                msg = 'Storage %s is DOWN as per CLOUD' % sp.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all zones in the cloud")
+        zs = self.marvin.cloudApi.listZones()
+        for z in zs:
+            if sp.state != 'Up':
+                msg = 'Zone %s is Not enabled as per CLOUD' % z.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        xenrt.TEC().logverbose("Checking all the VMs in the cloud")
+        vms = self.marvin.cloudApi.listVirtualMachines()
+        for vm in vms:
+            if vm.state != 'Running':
+                msg = 'VM %s is DOWN as per CLOUD' % vm.name
+                errors.append(msg)
+                xenrt.TEC().reason(msg)
+
+        return errors
+
+    def _level2HealthCheck(self):
+
+        errors = []
+        xenrt.TEC().logverbose("Level 2 Health check in progress")
+
+        xenrt.TEC().logverbose("Pinging all the System VMs")
+        svms = self.marvin.cloudApi.listSystemVms()
+        for svm in svms:
+            try:
+                self._checkSystemVMs(svm)
+            except Exception, e:
+                errors.append(str(e))
+
+        return errors
+
+    def _level3HealthCheck(self):
+
+        errors = []
+        xenrt.TEC().logverbose("Level 3 Health check in progress")
+
+        xenrt.TEC().logverbose("Creating VM instance, snapshoting it and destroying VM")
+        hosts = self.getAllHypervisors()
+        try:
+            xenrt.pfarm([xenrt.PTask(self._createDestroyInstance, host) for host in hosts])
+        except Exception, e:
+            errors.append(str(e))
+
+        xenrt.TEC().logverbose("Checking health of all the VMs in the cloud")
+        vms = self.marvin.cloudApi.listVirtualMachines()
+        try:
+            xenrt.pfarm([xenrt.PTask(self._checkVM, vm) for vm in vms])
+        except Exception, e:
+            errors.append("VM health check failed with error message %s " % (str(e)))
+
+        return errors
+
+    def healthCheck(self):
+
+        errors = []
+
+        errors = self._level1HealthCheck()
+        if len(errors) > 0:
+            xenrt.TEC().logverbose("Level 1 Health check of Cloud has failed")
+            xenrt.TEC().logverbose(errors)
+            m = ' '.join(errors)
+            raise xenrt.XRTFailure(m)
+
+        errors = self._level2HealthCheck()
+        if len(errors) > 0:
+            xenrt.TEC().logverbose("Level 2 Health check of Cloud has failed")
+            xenrt.TEC().logverbose(errors)
+            m = ' '.join(errors)
+            raise xenrt.XRTFailure(m)
+
+        errors = self._level3HealthCheck()
+        if len(errors) > 0:
+            xenrt.TEC().logverbose("Level 3 Health check of Cloud has failed")
+            xenrt.TEC().logverbose(errors)
+            m = ' '.join(errors)
+            raise xenrt.XRTFailure(m)
+
+        xenrt.TEC().logverbose("No problem found during the healthcheck of Cloud")
+
 class NetworkProvider(object):
 
     @staticmethod
@@ -859,7 +1043,7 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
 
                     deadline = xenrt.timenow() + 600
                     while True:
-                        if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                        if not [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
                             break
                         if xenrt.timenow() > deadline:
                             raise xenrt.XRTFailure("Timed out waiting for VR to come up")
@@ -912,7 +1096,7 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
 
                 deadline = xenrt.timenow() + 600
                 while True:
-                    if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                    if not [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
                         break
                     if xenrt.timenow() > deadline:
                         raise xenrt.XRTFailure("Timed out waiting for VR to come up")

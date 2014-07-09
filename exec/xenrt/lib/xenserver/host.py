@@ -7699,6 +7699,7 @@ rm -f /etc/xensource/xhad.conf || true
                 xenrt.sleep(300) # Allow 5 minutes for all logs to sync
                 
                 # poke Xen to give us a crash-dump
+                xenrt.TEC().warning("Poking Xen from job %s to give us a crashdump on %s" % (str(xenrt.GEC().jobid()), self.machine.name))
                 try:
                     xenrt.command("/bin/echo -e \"\\x01\\x01\\x01C\\x05c.\" | console %s -f" % self.machine.name, timeout=120)
                 except Exception, e:

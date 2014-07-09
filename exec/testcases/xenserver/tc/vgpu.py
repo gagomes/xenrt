@@ -382,7 +382,7 @@ class TCVGPUSetup(_VGPUTest):
             self.guest.setVGPUVNCActive(False)
         self.host.installNVIDIAHostDrivers()
         #setting up dom0 mem 
-        self.host.execDom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=6144M,max:6144M") 
+        self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=6144M,max:6144M") 
         self.host.reboot()
         cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
         installer = VGPUInstaller(self.host, cfg)

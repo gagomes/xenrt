@@ -112,6 +112,7 @@ class VerifyTrimTrigger(xenrt.TestCase):
     """Verify whether TRIM can be triggered on storage repositories"""
 
     SR_TYPE = None
+    TRIM_SUPPORTED_SR = ['lvm', 'lvmoiscsi', 'lvmohba']
     
     def prepare(self, arglist):
         #Get the default host
@@ -122,9 +123,9 @@ class VerifyTrimTrigger(xenrt.TestCase):
             self.sr = self.host.getSRs(type="ext")
         elif self.SR_TYPE == "lvm":
             self.sr = self.host.getSRs(type="lvm")
-        if self.SR_TYPE == "nfs":
+        elif self.SR_TYPE == "nfs":
             self.sr = self.host.getSRs(type="nfs")
-        if self.SR_TYPE == "lvmoiscsi":
+        elif self.SR_TYPE == "lvmoiscsi":
             self.sr = self.host.getSRs(type="lvmoiscsi")
         elif self.SR_TYPE == "lvmohba":
             self.sr = self.host.getSRs(type="lvmohba")
@@ -134,14 +135,20 @@ class VerifyTrimTrigger(xenrt.TestCase):
         result = self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %
                                                                     (self.host.getMyHostUUID(),self.sr[0])).strip()
         
-        if result == 'True':
-            xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
-        else:
-            if re.search('UnsupportedSRForTrim', result):
-                xenrt.TEC().logverbose("TRIM is not supported on %s SR" % self.SR_TYPE)    
+        if self.SR_TYPE in self.TRIM_SUPPORTED_SR:
+            if (result == 'True'):
+                xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
             else:
-                raise xenrt.XRTFailure("Failed to Enable TRIM on the %s SR of type %s with %s" %
-                                                                    (self.sr[0],self.SR_TYPE,result))
+                raise xenrt.XRTFailure("Failed to enable TRIM on supported SR %s : %s" %
+                                                                    (self.SR_TYPE, result))
+        else: # ext or nfs
+            if (result == 'True'):
+                raise xenrt.XRTFailure("TRIM is triggered on an unsupported SR %s" % self.SR_TYPE)
+            elif re.search('UnsupportedSRForTrim', result):
+                xenrt.TEC().logverbose("TRIM is not supported on %s SR as expected" % self.SR_TYPE)
+            else:
+                raise xenrt.XRTFailure("TRIM verification failed on SR %s with unknown errors %s" %
+                                                                                (self.SR_TYPE, result))
 
 class TC21549(VerifyTrimTrigger):
     """Verify enable TRIM operation on ISCSI SR"""

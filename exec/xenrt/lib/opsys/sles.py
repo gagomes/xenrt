@@ -54,6 +54,10 @@ class SLESBasedLinux(LinuxOS):
         basePath = "%s/isolinux" % (self.installURL)
         return ("%s/vmlinuz" % (basePath), "%s/initrd.img" % basePath)
 
+    def preCloneTailor(self):
+        # TODO - see objects.py
+        return
+
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
         autoyastfile = "autoyast-%s.cfg" % (self.parent.name)

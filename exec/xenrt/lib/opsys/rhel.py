@@ -58,6 +58,9 @@ class RHELBasedLinux(LinuxOS):
         basePath = "%s/isolinux" % (self.installURL)
         return ("%s/vmlinuz" % (basePath), "%s/initrd.img" % basePath)
 
+    def preCloneTailor(self):
+        self.execSSH("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-*")
+
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir,
         returning any command line arguments needed to boot the OS"""

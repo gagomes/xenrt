@@ -106,6 +106,9 @@ class WindowsOS(OS):
     def canonicalDistroName(self):
         return "%s" % (self.distro)
     
+    def preCloneTailor(self):
+        return
+
     def ensurePackageInstalled(self, *args):
         global packageList
         needReboot = False

@@ -103,6 +103,9 @@ class DebianBasedLinux(LinuxOS):
         # TODO: handle native where console is different, and handle other interfaces
         return ["vga=normal", "auto=true priority=critical", "console=hvc0", "interface=eth0", "url=%s" % url]
 
+    def preCloneTailor(self):
+        return
+
     def generateIsoAnswerfile(self):
         preseedfile = "preseed-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)

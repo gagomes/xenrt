@@ -142,6 +142,9 @@ class OS(Interface):
     def assertHealthy():
         """Quickly verify that the OS is in a healthy state"""
 
+    def preCloneTailor():
+        """Perform any necessary steps to make it possible to clone this VM"""
+
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")
     installerKernelAndInitRD = Attribute("Installer PV kernel and initrd")

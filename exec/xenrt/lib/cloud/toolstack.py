@@ -462,6 +462,8 @@ class CloudStack(object):
         if not displayText:
             displayText = templateName
         origState = instance.getPowerState()
+        instance.setPowerState(xenrt.PowerState.up)
+        instance.os.preCloneTailor()
         instance.setPowerState(xenrt.PowerState.down)
 
         volume = self.cloudApi.listVolumes(virtualmachineid=instance.toolstackId, type="ROOT")[0].id

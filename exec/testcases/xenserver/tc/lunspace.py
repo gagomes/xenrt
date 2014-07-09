@@ -109,7 +109,9 @@ class StorageTrimTestcase(NetappFCTrimSupport):
         self.destroySR()
     
 class VerifyTrimTrigger(xenrt.TestCase):
-    """Verify whether TRIM can be triggered on HBA and ISCSI SRs """
+    """Verify whether TRIM can be triggered on storage repositories"""
+
+    SR_TYPE = None
     
     def prepare(self, arglist):
         #Get the default host
@@ -131,15 +133,17 @@ class VerifyTrimTrigger(xenrt.TestCase):
             raise xenrt.XRTFailure("Failed to Enable TRIM on the %s SR of type %s with %s" %(self.sr[0],self.SR_TYPE,result))
 
 class TC21549(VerifyTrimTrigger):
-    """Verify whether TRIM can be triggered on ISCSI SR """
+    """Verify whether TRIM can be triggered on ISCSI SR"""
     SR_TYPE = "lvmoiscsi"
     
 class TC21550(VerifyTrimTrigger):
-    """Verify whether TRIM can be triggered on HBA SR  """
+    """Verify whether TRIM can be triggered on HBA SR"""
     SR_TYPE = "lvmohba"
     
-    
-        
+class TC21554(VerifyTrimTrigger):
+    """Verify whether TRIM can be triggered on LVHD SR"""
+    SR_TYPE = "lvm"
+
 class TC21547(xenrt.TestCase):
 
     OLDSIZE = 50 #in GB

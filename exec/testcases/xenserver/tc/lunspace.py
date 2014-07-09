@@ -118,6 +118,12 @@ class VerifyTrimTrigger(xenrt.TestCase):
         self.host = self.getDefaultHost()
         
     def run(self, arglist):
+        if self.SR_TYPE == "ext":
+            self.sr = self.host.getSRs(type="ext")
+        elif self.SR_TYPE == "lvm":
+            self.sr = self.host.getSRs(type="lvm")
+        if self.SR_TYPE == "nfs":
+            self.sr = self.host.getSRs(type="nfs")
         if self.SR_TYPE == "lvmoiscsi":
             self.sr = self.host.getSRs(type="lvmoiscsi")
         elif self.SR_TYPE == "lvmohba":
@@ -125,24 +131,37 @@ class VerifyTrimTrigger(xenrt.TestCase):
         else:
             raise xenrt.XRTError("Invalid SR Type specified for enabling TRIM")
         
-        result = self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %(self.host.getMyHostUUID(),self.sr[0])).strip()
+        result = self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %
+                                                                    (self.host.getMyHostUUID(),self.sr[0])).strip()
         
         if result == 'True':
-            xenrt.TEC().logverbose("Enabling TRIM operation Successful")
+            xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
         else:
-            raise xenrt.XRTFailure("Failed to Enable TRIM on the %s SR of type %s with %s" %(self.sr[0],self.SR_TYPE,result))
+            if re.search('UnsupportedSRForTrim', result):
+                xenrt.TEC().logverbose("TRIM is not supported on %s SR" % self.SR_TYPE)    
+            else:
+                raise xenrt.XRTFailure("Failed to Enable TRIM on the %s SR of type %s with %s" %
+                                                                    (self.sr[0],self.SR_TYPE,result))
 
 class TC21549(VerifyTrimTrigger):
-    """Verify whether TRIM can be triggered on ISCSI SR"""
+    """Verify enable TRIM operation on ISCSI SR"""
     SR_TYPE = "lvmoiscsi"
     
 class TC21550(VerifyTrimTrigger):
-    """Verify whether TRIM can be triggered on HBA SR"""
+    """Verify enable TRIM operation on HBA SR"""
     SR_TYPE = "lvmohba"
     
 class TC21554(VerifyTrimTrigger):
-    """Verify whether TRIM can be triggered on LVHD SR"""
+    """Verify enable TRIM operation on LVHD SR"""
     SR_TYPE = "lvm"
+
+class TC21553(VerifyTrimTrigger):
+    """Verify whether TRIM can be triggered on NFS SR"""
+    SR_TYPE = "nfs"
+
+class TC21555(VerifyTrimTrigger):
+    """Verify whether TRIM can be triggered on EXT SR"""
+    SR_TYPE = "ext"
 
 class TC21547(xenrt.TestCase):
 

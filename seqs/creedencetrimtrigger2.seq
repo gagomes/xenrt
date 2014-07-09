@@ -1,6 +1,6 @@
 <xenrt>
 
-<!-- Triggering TRIM on various type of SRs -->
+<!-- Negative testing to verify whether TRIM is supported on NFS and ext SRs -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -14,7 +14,7 @@
   </prepare>
 
   <testsequence>
-    <serial group="EnableTRIM">
+    <serial group="NegativeTRIM">
       <testcase id="xenserver.tc.lunspace.TC21553"/>
       <testcase id="xenserver.tc.lunspace.TC21555"/>
     </serial>

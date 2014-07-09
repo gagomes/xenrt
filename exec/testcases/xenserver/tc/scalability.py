@@ -209,6 +209,7 @@ class _VMScalability(_Scalability):
         # Get the Existing Guests
         existingGuests = host.listGuests()
         for gname in existingGuests:
+            if host.getGuest(gname):
                 self.guests.append(host.getGuest(gname))
         
         if self.MAX == True:

@@ -859,7 +859,7 @@ class AdvancedNetworkProviderIsolatedWithSourceNAT(AdvancedNetworkProviderIsolat
 
                     deadline = xenrt.timenow() + 600
                     while True:
-                        if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                        if not [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
                             break
                         if xenrt.timenow() > deadline:
                             raise xenrt.XRTFailure("Timed out waiting for VR to come up")
@@ -912,7 +912,7 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
 
                 deadline = xenrt.timenow() + 600
                 while True:
-                    if [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
+                    if not [x for x in self.cloudstack.cloudApi.listRouters(listall=True, networkid=self.network) or [] if x.state != "Running"]:
                         break
                     if xenrt.timenow() > deadline:
                         raise xenrt.XRTFailure("Timed out waiting for VR to come up")

@@ -828,7 +828,10 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Pinging all the System VMs")
         svms = self.marvin.cloudApi.listSystemVms()
         for svm in svms:
-            errors.append(self._checkSystemVMs(svm))
+            try:
+                self._checkSystemVMs(svm)
+            except Exception, e:
+                errors.append(str(e))
 
         return errors
 

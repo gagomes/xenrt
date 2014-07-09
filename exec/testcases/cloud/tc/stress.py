@@ -11,7 +11,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
         self.instance.createSnapshot("%s-base" % self.instance.name)
         self.getLogsFrom(self.instance)
 
-        self.snapCount = self.args.get("snapcount", 10)
+        self.snapCount = self.args.get("snapcount", 9)
     
     def run(self, arglist):
         ops = {"StopStart": "stopStart",

@@ -2332,15 +2332,15 @@ MachinePassword=%s
     def do_DOM0RAM(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0RAM value=[%s]" % value)
         # change dom0 ram and reboot host
-        xenrt.TEC().config.setVariable("OPTION_DOM0_MEM", value)
+        xenrt.TEC().config.setVariable("DOM0_MEM", value)
         self.dom0ram=value
 
     def do_DOM0PARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0PARAMS value=[%s]" % value)
         self.dom0params=value
-        d0memsettarget = 'nod0memtarget' not in self.dom0params
-        xenrt.TEC().logverbose("OPT_DOM0MEM_SET_TARGET=%s" % d0memsettarget)
-        xenrt.TEC().config.setVariable("OPT_DOM0MEM_SET_TARGET", d0memsettarget)
+        #d0memsettarget = 'nod0memtarget' not in self.dom0params
+        #xenrt.TEC().logverbose("OPT_DOM0MEM_SET_TARGET=%s" % d0memsettarget)
+        #xenrt.TEC().config.setVariable("OPT_DOM0MEM_SET_TARGET", d0memsettarget)
 
     def do_XENOPSPARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: XENOPSPARAMS value=[%s]" % value)

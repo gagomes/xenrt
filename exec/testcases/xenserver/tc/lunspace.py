@@ -171,6 +171,7 @@ class TC21555(VerifyTrimTrigger):
     SR_TYPE = "ext"
 
 class TC21547(xenrt.TestCase):
+    """Verify that HBA SR size is updated after resizing the mapped NetApp lun"""
 
     OLDSIZE = 50 #in GB
     NEWSIZE = 80 #

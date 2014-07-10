@@ -1,6 +1,6 @@
 <xenrt>
   <prepare>
-    <host productType="nativelinux" productVersion="centos64-x64" id="0" />
+    <host productType="nativelinux" productVersion="centos65-x64" id="0" />
   </prepare>
   <testsequence>
     <testcase id="maintenance.TCPrepareDellUpdate"/>

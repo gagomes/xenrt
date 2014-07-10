@@ -377,7 +377,7 @@ class CloudStack(object):
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.addIsoIfNotPresent(None, isoName, isoRepo)
-        isoId = [x for x in self.cloudApi.listIsos(name=isoName)[0].id if x.name==isoName]
+        isoId = [x for x in self.cloudApi.listIsos(name=isoName, isofilter="all") if x.name==isoName][0].id
 
         self.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 

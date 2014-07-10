@@ -79,6 +79,19 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
                 xenrt.TEC().logverbose(diffLogStr + 'TYPE: %d: Old capacity: %s, new capacity: %s' % (oldCapacity.type, pformat(oldCapacity), pformat(newCapacity[0])))
         return (capacityDataChanged, newCapacityData)
 
+    def waitForCCP(self):
+        deadline = xenrt.timenow() + 600
+        while True:
+            try:
+                pods = self.cloud.marvin.cloudApi.listPods()
+                break
+            except:
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTFailure("Cloudstack Management did not come back after 10 minutes")
+                xenrt.sleep(15)
+        for pod in pods:
+            self.waitForHostState(podid=pod.id, state='Up', timeout=600)
+
     def waitForSystemVmAgentState(self, podid, state, timeout=300, pollPeriod=20):
         """Wait for all System VMs (associated with the Pod) to reach the specified state"""
         allSystemVmsReachedState = False
@@ -131,7 +144,7 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
         if not allHostsReachedState:
             raise xenrt.XRTFailure('Not all Hosts reached state %s in %d seconds' % (state, timeout))
 
-    def waitForUserInstanceState(self, instanceNames, state, timeout=300):
+    def waitForUserInstanceState(self, instanceNames, state, timeout=300, pollPeriod=20):
         """Wait for all User Instances (specified) to reach the specified state"""
         xenrt.xrtAssert(len(instanceNames) > 0, 'No instance names specifed in call to waitForUserInstanceState')
         allInstancesReachedState = False
@@ -276,11 +289,6 @@ class _TCManServerResiliencyBase(_TCCloudResiliencyBase):
             self.runSubcase('recover', (), 'Recover', 'Iter-%d' % (i))
             self.runSubcase('specificCheck', (), 'SpecificCheck', 'Iter-%d' % (i))
             self.runSubcase('genericCheck', (), 'GenericCheck', 'Iter-%d' % (i))
-
-    def waitForCCP(self):
-        pods = self.cloud.marvin.cloudApi.listPods()
-        for pod in pods:
-            self.waitForHostState(podid=pod.id, state='Up', timeout=600)
 
     def postRun(self):
         # See if the management server is behaving, if not, restart it

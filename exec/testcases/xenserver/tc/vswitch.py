@@ -158,8 +158,9 @@ class _VSwitch(xenrt.TestCase):
             for guest in self.guests:
                 guest.shutdown()
         operation(*args, **kwargs)
-        xenrt.TEC().logverbose("Enabling host after operation.")
-        host.enable()
+        host.waitForXapi(300)
+        #xenrt.TEC().logverbose("Enabling host after operation.")
+        #host.enable()
         self._restore(host, resident)
 
     def _restore(self, host, guests):
@@ -175,7 +176,7 @@ class _VSwitch(xenrt.TestCase):
 
     def reboot(self, host):
         xenrt.TEC().logverbose("Rebooting %s." % (host.getName()))
-        self._hostOperation(host, host.cliReboot)
+        self._hostOperation(host, host.reboot)
 
     def enablevswitch(self, host):
         xenrt.TEC().logverbose("Enabling vswitch on %s." % (host.getName()))
@@ -648,7 +649,6 @@ class TC11515(_VSwitch):
         # Now bring the pool back out of maintenance mode
         for host in self.pool_map:
             host.enable()
-
         # bring the vms back up
         for host in self.pool_map:
             # restart the orignal running vms
@@ -657,33 +657,24 @@ class TC11515(_VSwitch):
                 guest = self.getGuestFromName(vm_name)
                 guest.start()
             host.running_vms = []
-
         # otherwise where pool is enabled and diasbled
         # the poll map grows with each enter maintenence mode
         self.pool_map = []
 
     def poolwideVswitchDisable(self):
         self.enterMaintenanceMode()
-
         # so now the pool is in maintenance mode
         # disable the vswitches
         for host in self.pool_map:
-            host.disablevswitch()
-            host.reboot()
-
-
+            self.disablevswitch(host)
         self.exitMaintenanceMode()
 
     def poolwideVswitchEnable(self):
         self.enterMaintenanceMode()
-
         # configure the hosts back to vswitch
         for host in self.pool_map:
-            host.enablevswitch()
-            host.reboot()
-
+            self.enablevswitch(host)
         self.exitMaintenanceMode()
-
 
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)

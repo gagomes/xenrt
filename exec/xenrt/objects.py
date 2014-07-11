@@ -2585,6 +2585,41 @@ Add-WindowsFeature as-net-framework"""
         self.execcmd("wget -O - '%s/kernbench3.10.tgz' | tar -xz -C /root" %
                      xenrt.TEC().lookup("TEST_TARBALL_BASE"))
 
+    def installIOMeter(self):
+        """Install IOMeter into the guest"""
+
+        self.xmlrpcUnpackTarball("%s/iometer1.1.0.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"), "c:\\")
+        self.xmlrpcExec("move c:\\iometer1.1.0\\* c:\\")
+
+        # Prevent IOMeter license box from appearing
+        self.winRegAdd("HKCU",
+                       "Software\\iometer.org\\Iometer\\Recent File List",
+                       "dummy",
+                       "SZ",
+                       "")
+        self.winRegDel("HKCU",
+                       "Software\\iometer.org\\Iometer\\Recent File List",
+                       "dummy")
+        self.winRegAdd("HKCU",
+                       "Software\\iometer.org\\Iometer\\Settings",
+                       "Version",
+                       "SZ",
+                       "1.1.0")
+
+        # Allow through the firewall
+        try:
+            self.xmlrpcExec('NETSH firewall set allowedprogram '
+                            'program="C:\\IOmeter.exe" '
+                            'name="Iometer Control/GUI" mode=ENABLE')
+        except:
+            xenrt.TEC().comment("Error disabling firewall")
+        try:
+            self.xmlrpcExec('NETSH firewall set allowedprogram '
+                            'program="C:\\Dynamo.exe" '
+                            'name="Iometer Workload Generator" mode=ENABLE')
+        except:
+            xenrt.TEC().comment("Error disabling firewall")
+
     def installVSSTools(self):
         """Install Microsoft VSS tools into a Windows XML-RPC guest"""
         g = self.xmlrpcGlobPattern("c:\\vshadow.exe")

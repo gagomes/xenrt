@@ -115,3 +115,29 @@ class TestCheckRpmInstalled(XenRTUnitTestCase):
         squashed and false returned"""
         self.__exec.side_effect = Exception
         self.assertFalse(self.__cut.checkRPMInstalled("Polymorph"))
+
+
+class TestSarasotaHost(XenRTUnitTestCase):
+    @patch('xenrt.TEC')
+    def testGetTestHotfix(self, tec):
+        tec_instance = tec.return_value = Mock()
+
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        host.getTestHotfix(1)
+
+        tec_instance.getFile.assert_called_once_with(
+            'xe-phase-1/test-hotfix-1-*.unsigned')
+
+
+class TestCreedenceHost(XenRTUnitTestCase):
+    @patch('xenrt.TEC')
+    def testGetTestHotfix(self, tec):
+        tec_instance = tec.return_value = Mock()
+
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        host.getTestHotfix(1)
+
+        tec_instance.getFile.assert_called_once_with(
+            'xe-phase-1/test-hotfix-1-*.unsigned')

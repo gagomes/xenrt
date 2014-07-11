@@ -248,6 +248,12 @@ class Guest(xenrt.GenericGuest):
                 rawHBAVDIs=None):
         self.setHost(host)
         
+        #If guest is Ubuntu1404 or RHEL7 or SLES12, it is HVM and hence, PXE has to be true
+        if distro in ['ubuntu1404','rhel7','sles12']:
+            pxe = True
+            xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
+
+
         # Workaround NOV-1 - SLES 11SP2 installer needs at least 2GB RAM
         if distro and distro=="sles112" and ((self.memory and self.memory<4096) or not self.memory):
             self.memory=4096

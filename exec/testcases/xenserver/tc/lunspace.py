@@ -140,16 +140,18 @@ class VerifyTrimTrigger(xenrt.TestCase):
             if (result == 'True'):
                 xenrt.TEC().logverbose("Enabling TRIM on %s SR is successful" % self.SR_TYPE)
             else:
-                raise xenrt.XRTFailure("Failed to enable TRIM on supported SR %s : %s" %
-                                                                    (self.SR_TYPE, result))
+                xenrt.TEC().logverbose("Error: %s" % result)
+                raise xenrt.XRTFailure("TRIM trigger failed on supported SR %s with unknown trim exceptions" % 
+                                                                                                    self.SR_TYPE)
         else: # ext or nfs
             if (result == 'True'):
                 raise xenrt.XRTFailure("TRIM is triggered on an unsupported SR %s" % self.SR_TYPE)
             elif re.search('UnsupportedSRForTrim', result):
                 xenrt.TEC().logverbose("TRIM is not supported on %s SR as expected" % self.SR_TYPE)
             else:
-                raise xenrt.XRTFailure("TRIM verification failed on SR %s with unknown errors %s" %
-                                                                                (self.SR_TYPE, result))
+                xenrt.TEC().logverbose("Error: %s" % result)
+                raise xenrt.XRTFailure("TRIM operation failed on an unsupported SR %s with unknown exceptions" %
+                                                                                                        self.SR_TYPE)
 
 class TC21549(VerifyTrimTrigger):
     """Verify enable TRIM operation on ISCSI SR"""

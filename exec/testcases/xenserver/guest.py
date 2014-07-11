@@ -530,7 +530,7 @@ class TCXenServerVendorInstall(xenrt.TestCase):
         #If guest is Ubuntu1404 or RHEL7 or SLES12, it is HVM and hence, PXE has to be true
         if distro in ['ubuntu1404','rhel7','sles12']:
             pxe = True
-        xenrt.TEC().logverbose("distro: %s pxe: %s"%(distro,pxe))
+            xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
         if not guestname:
             if not config:
                 raise xenrt.XRTError("Must specify at least one of guest name and config string.")

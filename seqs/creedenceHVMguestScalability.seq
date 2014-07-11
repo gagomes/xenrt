@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Clearwater HVM Guests scalability test sequence -->
+  <!-- HVM Guests scalability test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

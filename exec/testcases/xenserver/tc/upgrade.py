@@ -907,7 +907,7 @@ class TCRpuBlockedOperations(xenrt.TestCase):
         # may need to add code here to create the pool
         self.pool = self.getDefaultPool()
         
-        self.upgrader = BlockedOperationsPoolUpgrade(self.pool, 'Boston')
+        self.upgrader = BlockedOperationsPoolUpgrade(self.pool)
 
         # code here to create SRs of differnet types
         self.sharedSR = self.pool.getPoolParam("default-SR")

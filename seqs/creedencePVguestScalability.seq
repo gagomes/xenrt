@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Clearwater PV Guests scalability test sequence -->
+  <!-- PV Guests scalability test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

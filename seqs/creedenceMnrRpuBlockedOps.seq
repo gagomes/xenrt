@@ -1,5 +1,5 @@
 <xenrt>
-  <!-- Clearwater to Creedence rolling pool upgrade: Blocked operations test -->
+  <!-- Boston to Creedence rolling pool upgrade: Blocked operations test -->
   <default name="OLD_PRODUCT_VERSION" value="Boston"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
 

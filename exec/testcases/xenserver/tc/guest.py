@@ -1667,7 +1667,7 @@ $a[0].log("THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S  %s")
         
         xenrt.sleep(20)
         
-        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -d " " -f1| rev').strip('\n')
+        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -c -3| rev').strip('\n')
         
         if "%s" in data:
             xenrt.TEC().logverbose("Found '%s' in /var/log/daemon.log as expected" % data )

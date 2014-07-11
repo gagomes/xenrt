@@ -62,6 +62,7 @@ class StorageTrimTestcase(NetappFCTrimSupport):
         
         spaceUsedByGuests = {}
         spaceFreedByGuests = {}
+        delta = 2 # Keep delta as 2% space on lun which is not freed after deleting a VM: Workaround for CA-139518
         
         # Creating 1 windows and 4 linux guests on Hardware HBA SR
         for i in range(5):
@@ -96,7 +97,7 @@ class StorageTrimTestcase(NetappFCTrimSupport):
         # Match the space is freed on LUN
         step("Match the space used while creating and deleting guest on lun")
         for guest in spaceUsedByGuests.keys():
-            if not (spaceUsedByGuests[guest][2] == spaceFreedByGuests[guest][2]):
+            if not ((spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]) < ((delta * spaceUsedByGuests[guest][2]) / 100)):
                 log("Print matrix for used space in Format : {guestInstance : [spaceUsedBeforeGuestCreation, spaceUsedAfterGuestCreation, DifferenceInSpaceUsed]}")
                 log("%s" % str(spaceUsedByGuests))
                 log("Print matrix for used space in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, DifferenceInSpaceUsed]}")
@@ -171,6 +172,7 @@ class TC21555(VerifyTrimTrigger):
     SR_TYPE = "ext"
 
 class TC21547(xenrt.TestCase):
+    """Verify that HBA SR size is updated after resizing the mapped NetApp lun"""
 
     OLDSIZE = 50 #in GB
     NEWSIZE = 80 #

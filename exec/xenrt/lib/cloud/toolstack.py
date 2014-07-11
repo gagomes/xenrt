@@ -161,15 +161,15 @@ class CloudStack(object):
             if hypervisorType:
                 hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
+            startOnZoneId = None
             if startOn:
                 hosts = [x for x in self.cloudApi.listHosts(name=startOn) if x.name==startOn]
                 if len(hosts) != 1:
                     raise xenrt.XRTError("Cannot find host %s on cloud" % startOn)
                 startOnId = hosts[0].id
+                startOnZoneId = hosts[0].zoneid
                 # Ignore any provided hypervisorType and set this based on the host
                 hypervisor = hosts[0].hypervisor
-            
-            
 
             if template:
                 t = [x for x in self.cloudApi.listTemplates(templatefilter="all", name=template) if x.name==template][0]
@@ -226,6 +226,8 @@ class CloudStack(object):
             if not zoneid:
                 if zone:
                     zoneid = [x for x in self.cloudApi.listZones(name=zone) if x.name==zone][0].id
+                elif startOnZoneId:
+                    zoneid = startOnZoneId
                 else:
                     zoneid = self.getDefaultZone().id
             svcOffering = self.findOrCreateServiceOffering(cpus = instance.vcpus , memory = instance.memory)
@@ -377,7 +379,7 @@ class CloudStack(object):
     def setInstanceIso(self, instance, isoName, isoRepo):
         if isoRepo:
             self.addIsoIfNotPresent(None, isoName, isoRepo)
-        isoId = [x for x in self.cloudApi.listIsos(name=isoName)[0].id if x.name==isoName]
+        isoId = [x for x in self.cloudApi.listIsos(name=isoName, isofilter="all") if x.name==isoName][0].id
 
         self.cloudApi.attachIso(id=isoId, virtualmachineid=instance.toolstackId)
 

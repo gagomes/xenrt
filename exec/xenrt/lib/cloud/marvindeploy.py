@@ -11,9 +11,6 @@ import os
 import inspect
 import re
 
-from marvin import deployDataCenter
-from marvin import jsonHelper
-
 class MarvinDeployException(Exception):
     def __init__(self, value):
         self.value = value
@@ -177,6 +174,9 @@ class MarvinDeployer(object):
                                 p['name'] = re.sub("\d+$", "", p['name'])
 
     def deployMarvinConfig(self):
+        from marvin import deployDataCenter
+        from marvin import jsonHelper
+
         cfg = jsonHelper.jsonLoader(self.marvinCfg)
 
         if hasattr(deployDataCenter, 'deployDataCenters'):

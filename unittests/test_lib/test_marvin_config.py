@@ -46,6 +46,8 @@ class TestMarvinConfig(XenRTUnitTestCase):
     @patch("xenrt.GEC")
     @patch("xenrt.TEC")
     def __test_marvin_config_generator(self, data, tec, gec, pvlan, ip, td, cmd, nfs, smb):
+        import xenrt.lib.cloud.marvindeploy
+
         ip.side_effect = self.__getIPRange
         pvlan.side_effect = self.__getVLANRange
         self.dummytec = DummyTEC(self)

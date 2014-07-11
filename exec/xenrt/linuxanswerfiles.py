@@ -57,49 +57,12 @@ class RHELKickStartFile :
         self.installXenToolsInPostInstall=installXenToolsInPostInstall
         
     def generate(self):
-        if self.installOn==xenrt.HypervisorType.xen:
-            kf=self._generateKS()
-        else :
-        #Native installation
-            kf=self._generateKS()               
-            # Put a fix up script
-            # in %post to check that the interface's MAC matches what we
-            # expected. This has to be done because NIC enumeration can differ
-            # depending on the Linux/XenServer version
-
-            # Create an NFS directory for the installer to signal completion
-            kf = kf + """
-    %%post
-
-    CONFDIR=/etc/sysconfig/network-scripts
-    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
-    if [ "$MAC" != "%s" ]; then
-        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
-        for c in ${CONFDIR}/ifcfg-eth*; do
-            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
-            if [ "$MAC" = "%s" ]; then
-                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
-                echo 'BOOTPROTO=dhcp' >> $c
-            fi
-        done
-    fi
-
-    sed -i '/^serial/d' /boot/grub/grub.conf
-    sed -i '/^terminal/d' /boot/grub/grub.conf
-
-    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
-    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
-
-    mkdir /tmp/xenrttmpmount
-    mount -onolock -t nfs %s /tmp/xenrttmpmount
-    touch /tmp/xenrttmpmount/.xenrtsuccess
-    umount /tmp/xenrttmpmount
-    """ % (self.ethdev, self.ethmac, self.ethdev, self.ethmac, self.mounturl)
-            
-        return kf
+        return self._generateKS()
 
     def _generateKS(self):
-        if self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
+        if self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7"):
+            kf=self._generate7()
+        elif self.distro.startswith("rhel6") or self.distro.startswith("oel6") or self.distro.startswith("centos6"):
             kf=self._generate6()
         elif self.distro.startswith("rhel5") or self.distro.startswith("oel5") or self.distro.startswith("centos5"):
             kf=self._generate5()
@@ -194,6 +157,111 @@ echo GATEWAY=%s >> /etc/sysconfig/network
 """ % (gateway)
         return netconfig
                
+    def _generate7(self):
+      
+
+        out = """install
+text
+%s
+unsupported_hardware
+lang en_US.UTF-8
+keyboard us
+network --device %s --onboot yes --bootproto dhcp
+rootpw --iscrypted %s
+firewall --service==ssh
+authconfig --enableshadow --enablemd5
+selinux --disabled
+timezone %s
+bootloader --location=mbr --append="crashkernel=auto rhgb quiet"
+zerombr
+# The following is the partition information you requested
+# Note that any partitions you deleted are not expressed
+# here so unless you clear all partitions first, this is
+# not guaranteed to work
+clearpart --all --initlabel
+part /boot --fstype=ext4 --size=%d --ondisk=%s
+part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
+volgroup VolGroup --pesize=32768 pv.8
+logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
+logvol swap --name=lv_swap --vgname=VolGroup --grow --size=1008 --maxsize=2016
+%s
+%s
+
+%%packages
+@ core
+@ development
+@ console-internet
+@ network-tools
+bridge-utils
+lvm2
+e2fsprogs
+nfs-utils
+stunnel
+net-tools
+%s
+%%end
+""" % (self._url(),
+       self.ethDevice,
+       self._password(),
+       self._timezone(),
+       self.bootDiskSize,
+       self.mainDisk,
+       self.mainDisk,
+       self._key(),
+       self._more(),
+       self._extra()
+       )
+
+        if self.installOn == xenrt.HypervisorType.xen:
+            postInstall = self._netconfig(self.vifs,self.host)
+        else:
+            postInstall = """
+    CONFDIR=/etc/sysconfig/network-scripts
+    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+    if [ "$MAC" != "%s" ]; then
+        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
+        for c in ${CONFDIR}/ifcfg-eth*; do
+            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+            if [ "$MAC" = "%s" ]; then
+                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
+                echo 'BOOTPROTO=dhcp' >> $c
+            fi
+        done
+    fi
+
+    sed -i '/^serial/d' /boot/grub/grub.conf
+    sed -i '/^terminal/d' /boot/grub/grub.conf
+
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
+"""
+
+        out = out+ """
+%%post
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true " >> /etc/rc.local
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+echo "sleep 10" >> /etc/rc.local
+echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
+chmod +x /etc/rc.d/rc.local
+%s
+mkdir /tmp/xenrttmpmount
+mount -onolock -t nfs %s /tmp/xenrttmpmount
+%s
+touch /tmp/xenrttmpmount/.xenrtsuccess
+umount /tmp/xenrttmpmount
+%s
+%s
+%%end""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+        return out
+                
     def _generate6(self):
       
         # RHEL 6.4+ allows use of the unsupported_hardware command, which means we'll be able to run it on newer hardware
@@ -257,8 +325,31 @@ stunnel
        self._extra()
        )
 
-        if self.installOn == xenrt.HypervisorType.xen:       
-            out = out+ """
+        if self.installOn == xenrt.HypervisorType.xen:
+            postInstall = self._netconfig(self.vifs,self.host)
+        else:
+            postInstall = """
+    CONFDIR=/etc/sysconfig/network-scripts
+    MAC=`grep ^HWADDR ${CONFDIR}/ifcfg-%s | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+    if [ "$MAC" != "%s" ]; then
+        sed -i -e's/ONBOOT=yes/ONBOOT=no/' ${CONFDIR}/ifcfg-%s
+        for c in ${CONFDIR}/ifcfg-eth*; do
+            MAC=`grep ^HWADDR $c | cut -d = -f 2 | tr '[:lower:]' '[:upper:]'`
+            if [ "$MAC" = "%s" ]; then
+                sed -i -e's/ONBOOT=no/ONBOOT=yes/' $c
+                echo 'BOOTPROTO=dhcp' >> $c
+            fi
+        done
+    fi
+
+    sed -i '/^serial/d' /boot/grub/grub.conf
+    sed -i '/^terminal/d' /boot/grub/grub.conf
+
+    echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
+    echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
+"""
+
+        out = out+ """
 %%post
 %s
 mkdir /tmp/xenrttmpmount
@@ -267,10 +358,8 @@ mount -onolock -t nfs %s /tmp/xenrttmpmount
 touch /tmp/xenrttmpmount/.xenrtsuccess
 umount /tmp/xenrttmpmount
 %s
-%s""" % (self._netconfig(self.vifs,self.host),self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
-            return out
-        else:   
-            return out
+%s""" % (postInstall,self.mounturl, self.rpmpost, self._installTools(), self.sleeppost)
+        return out
                 
     def _generate4(self):
         

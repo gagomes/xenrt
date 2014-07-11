@@ -269,6 +269,9 @@ class GenericPlace:
             self.checkHealth()
             raise
 
+    def deprecatedIfConfig(self):
+        return self.distro.startswith("rhel7") or self.distro.startswith("oel7") or self.distro.startswith("centos7")
+
     def getMyVIFs(self):
         try:
             if self.windows:
@@ -284,6 +287,8 @@ class GenericPlace:
             elif re.search("solaris", self.distro):
                 macs = self.execcmd("ifconfig -a|grep \"ether [0-9a-fA-F:]\"|awk '{print $2}'").strip().upper().splitlines()
                 return map(lambda mac:":".join([("%s" % oc).zfill(2) for oc in (string.split(mac,":"))]),macs)
+            elif self.deprecatedIfConfig():
+                return self.execcmd("ip link show | grep -o \"link/ether [0-9a-fA-F:]\+\" | sed -e 's#link/ether ##'").strip().upper().splitlines()
             else:
                 return self.execcmd("ifconfig -a | grep -o \"HWaddr [0-9a-fA-F:]\+\" | sed -e 's/HWaddr //'").strip().upper().splitlines()
         except Exception, e:
@@ -7873,12 +7878,15 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxSetKernel("vmlinuz")
             pxecfg.linuxArgsKernelAdd("ks=nfs:%s:%s" % (h, p))
             pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
-            pxecfg.linuxArgsKernelAdd("console=tty0")
-            pxecfg.linuxArgsKernelAdd("console=ttyS0,9600n8")
-            pxecfg.linuxArgsKernelAdd("serial")
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
+            if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+                pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
+            else:
+                pxecfg.linuxArgsKernelAdd("console=tty0")
+                pxecfg.linuxArgsKernelAdd("console=ttyS0,9600n8")
+                pxecfg.linuxArgsKernelAdd("serial")
+                pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
             xeth, xbridge, mac, xip = self.vifs[0]
             pxefile = pxe.writeOut(None, forcemac=mac)
             pfname = os.path.basename(pxefile)
@@ -8024,7 +8032,10 @@ class GenericGuest(GenericPlace):
         if pxe:
             # No guest agent, so do a normal shutdown
             xenrt.sleep(30)
-            self.execguest("/sbin/poweroff")
+            try:
+                self.execguest("/sbin/poweroff")
+            except:
+                pass
         else:
             self.lifecycleOperation("vm-shutdown")
         self.poll("DOWN", timeout=240)

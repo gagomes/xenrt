@@ -955,6 +955,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.3 (32-bit),Oracle Enterprise Linux 5.3"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.3 (64-bit),Oracle Enterprise Linux 5.3 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_54"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.4 (32-bit),Oracle Enterprise Linux 5.4"
@@ -1001,6 +1002,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1204"] = "Ubuntu Precise Pangolin 12.04 (32-bit),Ubuntu Precise Pangolin 12.04"
@@ -1046,6 +1048,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008"] = "Citrix XenApp on Windows Server 2008 (32-bit),Citrix XenApp on Windows Server 2008"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
         self.config["VERSION_CONFIG"]["Sarasota"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
@@ -1992,6 +1995,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos45"] = {}
         self.config["GUEST_LIMITATIONS"]["centos45"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["centos45"]["MAXMEMORY"] = "16384"
@@ -2072,6 +2079,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos7"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["oel53"] = {}
         self.config["GUEST_LIMITATIONS"]["oel53"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel53"]["MAXMEMORY"] = "65536"

@@ -6407,6 +6407,8 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhel7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
@@ -6419,6 +6421,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_OEL_%s_64" % (v))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_OEL_%s" % (v))
+            elif re.search(r"oel7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_OEL_7_64")
             elif re.search(r"oel6", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6435,6 +6439,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_%s_64" % (v))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_%s" % (v))
+            elif re.search(r"centos7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_7_64")
             elif re.search(r"centos6", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")

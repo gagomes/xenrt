@@ -224,6 +224,10 @@ class Guest(xenrt.GenericGuest):
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
 
+    def isHVMLinux(self, distro=None):
+        if not distro:
+            distro=self.distro
+        return distro in string.split(self.getHost().lookup("HVM_LINUX", ""), ",")
     
     def install(self,
                 host,
@@ -248,8 +252,8 @@ class Guest(xenrt.GenericGuest):
                 rawHBAVDIs=None):
         self.setHost(host)
         
-        #If guest is Ubuntu1404 or RHEL7 or SLES12, it is HVM and hence, PXE has to be true
-        if distro in ['ubuntu1404','rhel7','sles12']:
+        #If guest is HVM Linux PXE has to be true
+        if self.isHVMLinux(distro):
             pxe = True
             xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
 
@@ -835,7 +839,10 @@ class Guest(xenrt.GenericGuest):
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/poweroff >/tmp/poweroff.out 2>/tmp/poweroff.err </dev/null &")
         else:
-            self.execguest("/sbin/poweroff")
+            try:
+                self.execguest("/sbin/poweroff")
+            except:
+                pass
 
     def unenlightenedReboot(self):
         if self.windows:
@@ -843,7 +850,10 @@ class Guest(xenrt.GenericGuest):
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/reboot >/tmp/reboot.out 2>/tmp/reboot.err </dev/null &")
         else:
-            self.execguest("/sbin/reboot")
+            try:
+                self.execguest("/sbin/reboot")
+            except:
+                pass
 
     def reboot(self, force=False, skipsniff=None):
         if not force:
@@ -3676,13 +3686,20 @@ exit /B 1
             raise xenrt.XRTError("Given up trying to find the ISO.")
 
         if installsh:
-            toolscdname = self.insertToolsCD()
-            xenrt.sleep(60)
-            device = self.getHost().minimalList("vbd-list", 
-                                                "device", 
-                                                "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                (toolscdname, self.getUUID()))[0]
-            xenrt.sleep(60)
+            if self.isHVMLinux():
+                device="sr0"
+                removeDevice=None
+                toolscdname = self.insertToolsCD()
+                xenrt.sleep(60)
+            else:
+                toolscdname = self.insertToolsCD()
+                xenrt.sleep(60)
+                device = self.getHost().minimalList("vbd-list", 
+                                                    "device", 
+                                                    "type=CD vdi-name-label=%s vm-uuid=%s" %
+                                                    (toolscdname, self.getUUID()))[0]
+                removeDevice=device
+                xenrt.sleep(60)
             for dev in [device, device, "cdrom"]:
                 try:
                     self.execguest("mount /dev/%s /mnt" % (dev))
@@ -3698,10 +3715,11 @@ exit /B 1
             if not updateKernel:
                 args += " -k"
             self.execguest("/mnt/Linux/install.sh %s" % (args))
+            self.enlightenedDrivers=True
             self.execguest("umount /mnt")
             xenrt.sleep(10)
             try:
-                self.removeCD(device=device)
+                self.removeCD(device=removeDevice)
             except xenrt.XRTFailure as e:
                 # In case of Linux on HVM, vbd-destroy on CD may fail.
                 if "vbd-destroy" in e.reason:

@@ -48,7 +48,8 @@ class TestGenericPlace(XenRTUnitTestCase):
         self.assertTrue(self.genericobject.execcmd.called)
         self.assertEqual(expected, output)
 
-    def test_getwindowsipconfigdata_validinput_returnexpected(self):
+    @patch('xenrt.TEC')
+    def test_getwindowsipconfigdata_validinput_returnexpected(self, _tec):
         """
         Given clean windows environment , when ipconfig data is provided with
         xmlrpcexec supported , then output is as expected

@@ -4,7 +4,7 @@ import xenrt.lib.xl
 import xenrt.lib.opsys
 from zope.interface.verify import verifyObject, verifyClass
 from zope.interface import implementedBy
-from mock import Mock
+from mock import Mock, patch
 
 class TestInterfaces(XenRTTestCaseUnitTestCase):
     def test_cloudstackInterface(self):
@@ -44,11 +44,9 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
-def test_osLibraries():
+@patch('xenrt.TEC')
+def test_osLibraries(_tec):
     """Generate tests for each known OS library"""
-
-    # Some of the libraries call xenrt.TEC().lookup, so we need to mock xenrt.TEC
-    xenrt.TEC = Mock()
 
     def oslib_test(oslib):
         # Instantiate the OS library

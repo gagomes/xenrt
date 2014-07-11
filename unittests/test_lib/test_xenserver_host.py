@@ -18,8 +18,9 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         host.getNoOfSockets = Mock(return_value=2)
         return host
 
+    @patch("xenrt.TEC")
     @patch("random.choice")
-    def testTampaDoesNotGetRandomCores(self, rand):
+    def testTampaDoesNotGetRandomCores(self, rand, _tec):
         """Tampa hosts don't get random called when setting sockets"""
         host = xenrt.lib.xenserver.host.TampaHost(None, None)
         host.setRandomCoresPerSocket(self.__guest, 23)
@@ -63,7 +64,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertFalse(self.__sockets.called)
 
-    def testClearwaterPVGuestDoesNotGetSocketsSet(self):
+    @patch('xenrt.TEC')
+    def testClearwaterPVGuestDoesNotGetSocketsSet(self, _tec):
         """For a CLR host given a PV guest expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
         self.__win.return_value = False
@@ -74,7 +76,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
 
 class TestCheckRpmInstalled(XenRTUnitTestCase):
 
-    def setUp(self):
+    @patch('xenrt.TEC')
+    def setUp(self, _tec):
         self.__cut = xenrt.lib.xenserver.host.ClearwaterHost(None, None)
         self.__exec = Mock(return_value="I am installed, honest")
         self.__cut.execdom0 = self.__exec

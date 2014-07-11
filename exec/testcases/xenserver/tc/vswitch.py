@@ -158,7 +158,8 @@ class _VSwitch(xenrt.TestCase):
             for guest in self.guests:
                 guest.shutdown()
         operation(*args, **kwargs)
-        host.waitForXapi(300)
+        # let toolstack intialize
+        xenrt.sleep(10)
         xenrt.TEC().logverbose("Enabling host after operation.")
         host.enable()
         self._restore(host, resident)

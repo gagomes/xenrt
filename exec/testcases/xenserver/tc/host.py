@@ -421,17 +421,13 @@ class TC8213(xenrt.TestCase):
         load = self.checkLoad()
         if load > 0.7:
             self.diagnoseUsage()
-            raise xenrt.XRTFailure("Dom0 load on an idle system is "
-                                   "too high %s minutes after boot. "
-                                   "(%s)" % (self.duration/120, load))
+            raise xenrt.XRTFailure("Dom0 load on an idle system is too high %s minutes after boot." % (self.duration/120))
         xenrt.TEC().logverbose("Sleeping for %ss." % (self.duration/2))
         time.sleep(self.duration/2)
         load = self.checkLoad()
         if load > 0.5:
             self.diagnoseUsage()
-            raise xenrt.XRTFailure("Dom0 load on an idle system is "
-                                   "too high %s minutes after boot. "
-                                   "(%s)" % (self.duration/60, load))
+            raise xenrt.XRTFailure("Dom0 load on an idle system is too high %s minutes after boot." % (self.duration/60))
         # Do a diagnose anyway
         self.diagnoseUsage()
 

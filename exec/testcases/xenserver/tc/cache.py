@@ -236,7 +236,6 @@ class _Cache(xenrt.TestCase):
 
         # Flushing read cache, too.
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
-            self.guests = []
             self.host.execdom0("sync && echo 3 > /proc/sys/vm/drop_caches")
             xenrt.sleep(5)
 
@@ -1548,21 +1547,21 @@ class _ReadCachePerformance(_CachePerformance):
         basereadiops, basewriteiops, basereadpackets, basewritepackets = self.measure()
         # Note: these are numbers (counts) of IO operations, not ops per second.
         xenrt.TEC().logverbose("Baseline read IOPS: %s" % (basereadiops))
-        xenrt.TEC().logverbose("Baseline write IOPS: %s" % (basewriteiops))
+        #xenrt.TEC().logverbose("Baseline write IOPS: %s" % (basewriteiops))
         xenrt.TEC().logverbose("Baseline read Packets: %s" % (basereadpackets))
-        xenrt.TEC().logverbose("Baseline write Packets: %s" % (basewritepackets))
+        #xenrt.TEC().logverbose("Baseline write Packets: %s" % (basewritepackets))
         self.host.enableReadCaching()
         self.iocounter = self.IOCounter(self.host)
         self.packetCatcher = IOPPacketCatcher(self.host, nolog=True)
         readiops, writeiops, readpackets, writepackets = self.measure()
         xenrt.TEC().logverbose("Test read IOPS: %s" % (readiops))
-        xenrt.TEC().logverbose("Test write IOPS: %s" % (writeiops))
+        #xenrt.TEC().logverbose("Test write IOPS: %s" % (writeiops))
         xenrt.TEC().logverbose("Test read Packets: %s" % (readpackets))
-        xenrt.TEC().logverbose("Test write Packets: %s" % (writepackets))
+        #xenrt.TEC().logverbose("Test write Packets: %s" % (writepackets))
         self.runSubcase("check", (basereadiops, readiops, self.READMAXGAIN, self.READMINGAIN), "IOPS", "Read")
-        self.runSubcase("check", (basewriteiops, writeiops, self.WRITEMAXGAIN, self.WRITEMINGAIN), "IOPS", "Write")
+        #self.runSubcase("check", (basewriteiops, writeiops, self.WRITEMAXGAIN, self.WRITEMINGAIN), "IOPS", "Write")
         self.runSubcase("check", (basereadpackets, readpackets, self.READMAXGAIN, self.READMINGAIN), "Packets", "Read")
-        self.runSubcase("check", (basewritepackets, writepackets, self.WRITEMAXGAIN, self.WRITEMINGAIN), "Packets", "Write")
+        #self.runSubcase("check", (basewritepackets, writepackets, self.WRITEMAXGAIN, self.WRITEMINGAIN), "Packets", "Write")
 
 class TC21544(_ReadCachePerformance):
     """ Compare scenarios where read cache is on and where read cache is off

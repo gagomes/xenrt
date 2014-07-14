@@ -321,6 +321,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             ccpUrl = webdir.getURL(os.path.basename(ccpTar))
             self.execdom0('wget %s -O /tmp/cp.tar.gz' % (ccpUrl))
             webdir.remove()
+            self.installJSVC()
             self.execdom0("cd /tmp && mkdir cloudplatform && tar -xvzf cp.tar.gz -C /tmp/cloudplatform")
             installDir = os.path.dirname(self.execdom0('find /tmp/cloudplatform/ -type f -name install.sh'))
             self.execdom0("cd %s && ./install.sh -a" % (installDir))
@@ -335,20 +336,8 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Apache CloudStack specific operations
 
             # Install cloudstack-agent
-            # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
-            #  java-1.7.0, so we need to update-alternatives to use it)
-            self.execdom0("yum install -y java-1.6.0 java*1.7* ipset jakarta-commons-daemon jna")
-            if not '1.7.0' in self.execdom0('java -version').strip():
-                javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
-                self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
-            # TODO: Don't hardcode the jsvc URL
-            jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
-            webdir = xenrt.WebDirectory()
-            webdir.copyIn(jsvc)
-            jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
-            self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
-            webdir.remove()
-            self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            self.installJSVC()
+            self.execdom0("yum install -y ipset jna")
             artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-common-", "cloudstack-agent-"])
             self.execdom0("rpm -ivh %s/cloudstack-*.rpm" % artifactDir)
 
@@ -367,3 +356,20 @@ class KVMHost(xenrt.lib.libvirt.Host):
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")
         self.execdom0("touch /var/lib/xenrt/cloudTailored")
+
+    def installJSVC(self):
+        self.execdom0("yum install -y java-1.6.0 java*1.7* jakarta-commons-daemon")
+        # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
+        #  java-1.7.0, so we need to update-alternatives to use it - GRR!)
+        if not '1.7.0' in self.execdom0('java -version').strip():
+                javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
+                self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
+        # TODO: Don't hardcode the jsvc URL
+        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        webdir = xenrt.WebDirectory()
+        webdir.copyIn(jsvc)
+        jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
+        webdir.remove()
+        self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+

@@ -727,6 +727,12 @@ class _WSMANProtocol(_CIMInterface):
         psScript = xenrt.lib.xenserver.convertWSMANVMToTemplate(self.hostPassword,self.hostIPAddr,vmuuid)
         ret = self.psExecution(psScript,timeout = 3600)
 
+    def getTheWsmanScriptsLogs(self, filename):
+        
+        base = xenrt.TEC().getLogdir()
+        self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
+        self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
+    
     def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
@@ -739,14 +745,28 @@ class _WSMANProtocol(_CIMInterface):
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
-        ret = self.psExecution(psScript,timeout = 30000)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
 
     def importVMSnapshotTree(self,transProtocol,ssl):
 
         driveName = "Q:\\"
         psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl)
-        ret = self.psExecution(psScript,timeout = 30000)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+        
         return ret
+        
 
     def createInternalNetwork(self,networkName):
 

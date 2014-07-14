@@ -11072,9 +11072,9 @@ done
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):
-    
+
     V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
-    
+
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
@@ -11111,9 +11111,8 @@ class CreedenceHost(ClearwaterHost):
         self.vswitchAppCtl("coverage/show")
 
 #############################################################################
-class SarasotaHost(ClearwaterHost):
+class SarasotaHost(CreedenceHost):
     USE_CCISS = False
-    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
         ClearwaterHost.__init__(self,
@@ -11125,10 +11124,7 @@ class SarasotaHost(ClearwaterHost):
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest
-        
-    def getTestHotfix(self, hotfixNumber):
-        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
-        
+
     def postInstall(self):
         ClearwaterHost.postInstall(self)
 
@@ -11165,10 +11161,7 @@ class SarasotaHost(ClearwaterHost):
         
     def getQemuDMWrapper(self):
         return "/usr/libexec/xenopsd/qemu-dm-wrapper"
-    
-    def vSwitchCoverageLog(self):
-        self.vswitchAppCtl("coverage/show")
-    
+
     def getBridgeInterfaces(self, bridge):
         """Return a list of interfaces on the bridge, or None if that bridge
         does not exist."""

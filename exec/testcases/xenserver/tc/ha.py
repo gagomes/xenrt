@@ -2258,6 +2258,12 @@ class _Overcommit(_HATest):
 
             if wTol < cTol:
                 # We'd support fewer failures, op should be blocked
+                if currentUsage == 0 and cTol == liveHosts and wTol == 1 and loseHosts > 0:
+                    # Xapi requires at least one host live, even if no VMs are running,
+                    # as such in this situation the operation will be allowed because although
+                    # we think it would reduce our failure capacity to 1, actually Xapi will
+                    # already think it's cTol is 1.
+                    return True
                 return False
             else:
                 # Won't change failure count, so will be allowed

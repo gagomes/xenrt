@@ -5460,7 +5460,7 @@ class ClearwaterGuest(TampaGuest):
 
 ##############################################################################
 
-class SarasotaGuest(ClearwaterGuest):
+class CreedenceGuest(ClearwaterGuest):
     def crash(self):
         xenrt.TEC().logverbose("Sleeping for 180 seconds to let the VM run for atleast 2 minutes before crashing")
         time.sleep(180)
@@ -5491,6 +5491,11 @@ default:
             self.execguest("make")
             try: self.execguest("insmod panic.ko", timeout=1)
             except: pass
+
+
+class SarasotaGuest(CreedenceGuest):
+    pass
+
 
 class StorageMotionObserver(xenrt.EventObserver):
 

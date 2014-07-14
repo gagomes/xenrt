@@ -11078,6 +11078,9 @@ class CreedenceHost(ClearwaterHost):
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
+    def guestFactory(self):
+        return xenrt.lib.xenserver.guest.CreedenceGuest
+
     def enableReadCaching(self, sruuid=None):
         if sruuid:
             srlist = [sruuid]

@@ -146,6 +146,14 @@ class TestSarasotaHost(XenRTUnitTestCase):
             'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
             host.V6MOCKD_LOCATION)
 
+    @patch('xenrt.TEC')
+    def testguestFactory(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        guestFactory = host.guestFactory()
+
+        self.assertEquals('SarasotaGuest', guestFactory.__name__)
+
 
 class TestCreedenceHost(XenRTUnitTestCase):
     @patch('xenrt.TEC')
@@ -175,3 +183,11 @@ class TestCreedenceHost(XenRTUnitTestCase):
         self.assertEquals(
             'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
             host.V6MOCKD_LOCATION)
+
+    @patch('xenrt.TEC')
+    def testguestFactory(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        guestFactory = host.guestFactory()
+
+        self.assertEquals('CreedenceGuest', guestFactory.__name__)

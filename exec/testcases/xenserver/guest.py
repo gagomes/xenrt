@@ -246,6 +246,26 @@ class TCXGTInstall(xenrt.TestCase):
                 except:
                     pass
 
+
+class TCRebootLoopNoDrivers(xenrt.TestCase):
+
+    def run(self, args):
+        gname = ""
+        for arg in args:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+                break
+
+        if len(gname) == 0:
+            raise xenrt.XRTFailure("No guest")
+
+        g = self.getGuest(gname)
+        g.enlightenedDrivers = False
+
+        for i in range(10000):
+            g.reboot()
+
 class TCXenServerWindowsInstall(xenrt.TestCase):
 
     def __init__(self):
@@ -3008,4 +3028,5 @@ class TCPVHVMIInstall(xenrt.TestCase):
                                                   disksize=rootdisk)
         xenrt.sleep(30)
         guest.setState("DOWN")
+
 

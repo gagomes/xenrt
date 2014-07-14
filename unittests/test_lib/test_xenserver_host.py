@@ -138,6 +138,14 @@ class TestSarasotaHost(XenRTUnitTestCase):
 
         host.vswitchAppCtl.assert_called_once_with('coverage/show')
 
+    @patch('xenrt.TEC')
+    def testMockLocation(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        self.assertEquals(
+            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
+            host.V6MOCKD_LOCATION)
+
 
 class TestCreedenceHost(XenRTUnitTestCase):
     @patch('xenrt.TEC')
@@ -159,3 +167,11 @@ class TestCreedenceHost(XenRTUnitTestCase):
         host.vSwitchCoverageLog()
 
         host.vswitchAppCtl.assert_called_once_with('coverage/show')
+
+    @patch('xenrt.TEC')
+    def testMockLocation(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        self.assertEquals(
+            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
+            host.V6MOCKD_LOCATION)

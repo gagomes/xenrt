@@ -129,6 +129,15 @@ class TestSarasotaHost(XenRTUnitTestCase):
         tec_instance.getFile.assert_called_once_with(
             'xe-phase-1/test-hotfix-1-*.unsigned')
 
+    @patch('xenrt.TEC')
+    def testvSwitchCoverageLog(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host.vswitchAppCtl = Mock()
+
+        host.vSwitchCoverageLog()
+
+        host.vswitchAppCtl.assert_called_once_with('coverage/show')
+
 
 class TestCreedenceHost(XenRTUnitTestCase):
     @patch('xenrt.TEC')
@@ -141,3 +150,12 @@ class TestCreedenceHost(XenRTUnitTestCase):
 
         tec_instance.getFile.assert_called_once_with(
             'xe-phase-1/test-hotfix-1-*.unsigned')
+
+    @patch('xenrt.TEC')
+    def testvSwitchCoverageLog(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+        host.vswitchAppCtl = Mock()
+
+        host.vSwitchCoverageLog()
+
+        host.vswitchAppCtl.assert_called_once_with('coverage/show')

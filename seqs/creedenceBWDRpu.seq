@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- Clearwater Borehamwood to Creedence rolling pool upgrade test using RawHBA SR -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <default name="SUPPLEMENTAL_PACK_CDS" value="xe-phase-2/borehamwood-supp-pack.iso"/>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="BWDEnv" id="xenserver.tc.lunpervdi.TCBwdEnvironment" tc="TC-21561"/>
+    <testcase group="Upgrade" id="xenserver.tc.bwdupgrade.TCRpuBwd" tc="TC-21562"/>
+  </testsequence>
+
+</xenrt>

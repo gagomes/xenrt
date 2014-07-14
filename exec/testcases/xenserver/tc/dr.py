@@ -25,18 +25,26 @@ def getSCSIID(host, iscsi_params):
             'device-config:chappassword=%(password)s' % iscsi_params]
     
     cli = host.getCLIInstance()
-    try:
-        uuid = cli.execute('sr-create',' '.join(args), strip=True)
-        xenrt.TEC().warning("SR was created without a SCSI ID")
-        cli.execute("sr-forget", "uuid=%s" % (uuid))
-    except xenrt.XRTFailure, e:
-        # If this was a CLI timeout then raise that
-        if "timed out" in e.reason:
-            raise e.__class__, e, sys.exc_info()[2]
-        else:
-            res = e.data
+    out=[]
+    for i in range(3):
+        try:
+            uuid = cli.execute('sr-create',' '.join(args), strip=True)
+            xenrt.TEC().warning("SR was created without a SCSI ID")
+            cli.execute("sr-forget", "uuid=%s" % (uuid))
+        except xenrt.XRTFailure, e:
+            # If this was a CLI timeout then raise that
+            if "timed out" in e.reason:
+                raise e.__class__, e, sys.exc_info()[2]
+            else:
+                res = e.data
 
-    out = res.split('<?')
+        out = res.split('<?')
+        if len(out) != 2:
+            xenrt.sleep(10)
+            xenrt.TEC().logverbose("sr-create didn't create xml output...Retrying...")
+        else:
+            break;
+            
     if len(out) != 2:
         raise xenrt.XRTFailure("sr-create didn't create xml output (need this for SCSIid)")
         

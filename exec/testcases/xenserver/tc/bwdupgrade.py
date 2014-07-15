@@ -14,4 +14,10 @@ import testcases.xenserver.tc.upgrade
 
 class TCRpuBwd(testcases.xenserver.tc.upgrade._RPUBasic):
     """Clearwater Borehamwood to Creedence rolling pool upgrade test using RawHBA SR"""
-    pass
+
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+
+    def run(self, arglist):
+        # Perform the upgrade 
+        xenrt.TEC().logverbose("perform the upgrade here")

@@ -3062,6 +3062,12 @@ fi
         """Returns a list of supplemental CDs to be installed."""
 
         supp_cds = self.lookup("SUPPLEMENTAL_PACK_CDS", None)
+        
+        if not supp_cds:
+            # Look for a release specific Supp Packs, if provided.
+            supp_cds = xenrt.TEC().lookup("SUPP_PACK_CDS_%s" %
+                                        (self.productVersion.upper()), None)
+        
         return supp_cds
 
     def getVdiMD5Sum(self, vdi):

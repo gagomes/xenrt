@@ -186,10 +186,10 @@ class SingleSkuBase(xenrt.TestCase):
 
         if self.USELICENSESERVER:
 
-            system = self.param['system']
-            tmp , currentLicinuse = self.v6.getLicenseInUse(self.LICENSENAME)
+            system = self.param['system']            
 
             if not self.EXPIRED :
+                tmp , currentLicinuse = self.v6.getLicenseInUse(self.LICENSENAME)
                 if system == 'pool' or system == 'host':
 
                     if system == 'pool':
@@ -612,6 +612,9 @@ class HostReboot(SingleSkuBase):
         self.verifyLicenseServer()
 
 class GraceLic(SingleSkuBase):
+    
+    def postRun(self):
+        pass
 
     def postLicenseApplyAction(self):
 
@@ -688,6 +691,8 @@ class GraceLic(SingleSkuBase):
         guest = self.getGuest("LicenseServer")
         sampleGuest = self.getGuest("linux")
 
+        
+        guest.execguest("echo 'xen.independent_wallclock=1' >> /etc/sysctl.conf")
         guest.shutdown()
 
         xenrt.sleep(120)
@@ -720,8 +725,18 @@ class GraceLic(SingleSkuBase):
 
         self.verifySystemLicenseState(licensed=False)
         
-        #verify the host license state after license server is back up
+        #verify the host license state after license server is back up and ruuning 
         guest.start()
+        guest.execguest("date -u")
+        expirelicenseserver = expiry + 900
+        expirelicenseserver = time.gmtime(expirelicenseserver)
+        guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
+        guest.execguest("/etc/init.d/citrixlicensing stop")
+        xenrt.sleep(10)      
+        guest.execguest("/etc/init.d/citrixlicensing start > /dev/null 2>&1 < /dev/null")
+        xenrt.sleep(10)        
+        guest.execguest("date -u")
+        
         for host in self.param['hosts']:
             host.restartToolstack()
             xenrt.sleep(120)
@@ -741,8 +756,41 @@ class GraceLic(SingleSkuBase):
 
         self.verifySystemLicenseState(licensed=True)
         self.verifyLicenseServer()
-
+        
         if self.hotfixStatus():
+            raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
+        
+        #Now fast forward the time in host to cross its license-expiry date 
+        for host in self.param['hosts']:    
+            licenseInfo = host.getLicenseDetails()
+            expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
+            
+            expiretarget = expiry + 60*24*60*60 
+            expiretarget = time.gmtime(expiretarget)
+            host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))            
+            host.restartToolstack()        
+        
+        #Fast forward the time by same amount in license server too 
+        expirelicenseserver = expiry + 60*24*60*60
+        expirelicenseserver = time.gmtime(expirelicenseserver)
+        guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
+        guest.execguest("service citrixlicensing restart" , getreply=False)        
+        xenrt.sleep(20)        
+        
+        sampleGuest.shutdown()
+        
+        for host in self.param['hosts']:            
+            host.reboot()            
+            xenrt.sleep(15)                      
+            host.restartToolstack()
+            xenrt.sleep(60)            
+            licenseInfo = host.getLicenseDetails()           
+            if '19700101T00:00:00Z' != licenseInfo['expiry']:
+                raise xenrt.XRTFailure("Host License expiry time is not epoch time") 
+                
+        self.EXPIRED = True 
+
+        if not self.hotfixStatus():
             raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
 
         #reset time

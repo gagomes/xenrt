@@ -1,0 +1,63 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+  </variables>
+
+  <scheduler>
+    <resources>memory&gt;=10G/disk1&gt;=150G</resources>
+  </scheduler>
+
+  <prepare>
+    <host id="0">
+      <vm name="1">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="2">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="3">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="4">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="4">
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=1</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=2</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=3</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=4</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+</xenrt>

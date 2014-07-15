@@ -760,38 +760,39 @@ class GraceLic(SingleSkuBase):
         if self.hotfixStatus():
             raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
         
-        #Now fast forward the time in host to cross its license-expiry date 
-        for host in self.param['hosts']:    
-            licenseInfo = host.getLicenseDetails()
-            expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-            
-            expiretarget = expiry + 60*24*60*60 
-            expiretarget = time.gmtime(expiretarget)
-            host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))            
-            host.restartToolstack()        
-        
-        #Fast forward the time by same amount in license server too 
-        expirelicenseserver = expiry + 60*24*60*60
-        expirelicenseserver = time.gmtime(expirelicenseserver)
-        guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
-        guest.execguest("service citrixlicensing restart" , getreply=False)        
-        xenrt.sleep(20)        
-        
-        sampleGuest.shutdown()
-        
-        for host in self.param['hosts']:            
-            host.reboot()            
-            xenrt.sleep(15)                      
-            host.restartToolstack()
-            xenrt.sleep(60)            
-            licenseInfo = host.getLicenseDetails()           
-            if '19700101T00:00:00Z' != licenseInfo['expiry']:
-                raise xenrt.XRTFailure("Host License expiry time is not epoch time") 
+        if not self.LICENSEFILE == "valid-xendesktop" :
+            #Now fast forward the time in host to cross its license-expiry date 
+            for host in self.param['hosts']:    
+                licenseInfo = host.getLicenseDetails()
+                expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
                 
-        self.EXPIRED = True 
+                expiretarget = expiry + 60*24*60*60 
+                expiretarget = time.gmtime(expiretarget)
+                host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))            
+                host.restartToolstack()        
+            
+            #Fast forward the time by same amount in license server too 
+            expirelicenseserver = expiry + 60*24*60*60
+            expirelicenseserver = time.gmtime(expirelicenseserver)
+            guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
+            guest.execguest("service citrixlicensing restart" , getreply=False)        
+            xenrt.sleep(20)        
+            
+            sampleGuest.shutdown()
+            
+            for host in self.param['hosts']:            
+                host.reboot()            
+                xenrt.sleep(15)                      
+                host.restartToolstack()
+                xenrt.sleep(60)            
+                licenseInfo = host.getLicenseDetails()           
+                if '19700101T00:00:00Z' != licenseInfo['expiry']:
+                    raise xenrt.XRTFailure("Host License expiry time is not epoch time") 
+                    
+            self.EXPIRED = True 
 
-        if not self.hotfixStatus():
-            raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
+            if not self.hotfixStatus():
+                raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
 
         #reset time
         for host in self.param['hosts']:

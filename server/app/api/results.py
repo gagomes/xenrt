@@ -18,10 +18,9 @@ class XenRTSubResults(XenRTAPIPage):
 
             detailid = self.lookup_detailid(int(jobid), phase, test)
             if detailid == -1:
-                sql = "INSERT INTO tblResults (jobid, phase, test, result) " \
-                      "VALUES (%s, '%s', '%s', '%s');" % \
-                      (jobid, phase, test, "unknown")
-                cur.execute(sql)
+                cur.execute("INSERT INTO tblResults (jobid, phase, test, result) " \
+                            "VALUES (%s, %s, %s, %s);",
+                            (jobid, phase, test, "unknown"))
                 detailid = self.lookup_detailid(int(jobid), phase, test)
             try:
                 fh = self.request.POST["file"].file
@@ -76,34 +75,23 @@ class XenRTSubResults(XenRTAPIPage):
                                 tname = tname[0:48]
                                 reason = reason[0:48]
                                 # Insert this record
-                                sql = "SELECT subid from tblSubResults " \
-                                      "WHERE detailid = %u AND subgroup = " \
-                                      "'%s' AND subtest = '%s'" % \
-                                      (detailid,
-                                       app.utils.sqlescape(gname),
-                                       app.utils.sqlescape(tname))
-                                cur.execute(sql)
+                                cur.execute("SELECT subid from tblSubResults " \
+                                            "WHERE detailid = %u AND subgroup = " \
+                                            "%s AND subtest = %s",
+                                            (detailid, gname, tname))
                                 rc = cur.fetchone()
                                 if rc:
                                     subid = int(rc[0])
-                                    sql = "UPDATE tblSubResults SET result =" \
-                                          " '%s', reason = '%s' WHERE " \
-                                          "subid = %u" % \
-                                          (app.utils.sqlescape(result),
-                                           app.utils.sqlescape(reason),
-                                           subid)
-                                    cur.execute(sql)
+                                    cur.execute("UPDATE tblSubResults SET result =" \
+                                                " %s, reason = %s WHERE " \
+                                                "subid = %u",
+                                                (result, reason, subid))
                                 else:
-                                    sql = "INSERT INTO tblSubResults " \
-                                          "(detailid, subgroup, subtest, " \
-                                          "result, reason) VALUES " \
-                                          "(%u, '%s', '%s', '%s', '%s')" % \
-                                          (detailid,
-                                           app.utils.sqlescape(gname),
-                                           app.utils.sqlescape(tname),
-                                           app.utils.sqlescape(result),
-                                           app.utils.sqlescape(reason))
-                                    cur.execute(sql)
+                                    cur.execute("INSERT INTO tblSubResults " \
+                                                "(detailid, subgroup, subtest, " \
+                                                "result, reason) VALUES " \
+                                                "(%u, %s, %s, %s, %s)" % \
+                                                (detailid, gname, tname, result, reason))
             db.commit()
             cur.close()        
             return "OK"        
@@ -131,7 +119,7 @@ class XenRTEvent(XenRTAPIPage):
 
         try:
             cur.execute("INSERT INTO tblEvents (ts, etype, subject, edata) "
-                        "VALUES ('%s', '%s', '%s', '%s');" %
+                        "VALUES (%s, %s, %s, %s);",
                         (timenow, etype, subject, edata))
             
             db.commit()
@@ -169,16 +157,16 @@ class XenRTLogData(XenRTAPIPage):
         if key == "result":
             result = value
         detailid = 0
-        cur.execute(("SELECT detailid FROM tblResults " +
-                     "WHERE jobid = %u AND phase = '%s' AND test = '%s';") %
+        cur.execute("SELECT detailid FROM tblResults " +
+                    "WHERE jobid = %u AND phase = %s AND test = %s;",
                     (id, phase, test))
         rc = cur.fetchone()
         if not rc:
             cur.execute("INSERT INTO tblResults (jobid, phase, test, result) "
-                        "VALUES (%u, '%s', '%s', '%s');" %
+                        "VALUES (%u, %s, %s, %s);",
                         (id, phase, test, result))
-            cur.execute(("SELECT detailid FROM tblResults " +
-                         "WHERE jobid = %u AND phase = '%s' AND test = '%s';") %
+            cur.execute("SELECT detailid FROM tblResults " +
+                        "WHERE jobid = %u AND phase = %s AND test = %s;",
                         (id, phase, test))
             rc = cur.fetchone()
             if not rc:
@@ -196,19 +184,20 @@ class XenRTLogData(XenRTAPIPage):
             value = value[0:255]
         value = string.replace(value, "'", app.utils.sqlescape(value))
         cur.execute("INSERT INTO tblDetails (detailid, ts, key, value) "
-                    "VALUES (%u, '%s', '%s', '%s');" %
+                    "VALUES (%u, %s, %s, %s);",
                     (detailid, timenow, key, value))
 
         # If the key was "result" the update the result in tblResult as well
         if key == "result":
-            cur.execute(("UPDATE tblResults SET result = '%s' WHERE jobid = %u " +
-                         " AND phase = '%s' AND test = '%s';") %
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+                        "AND phase = %s AND test = %s;",
                         (value, id, phase, test))
 
         # If the key was "warning" then modify the result in tblResult
         if key == "warning":
-            cur.execute(("SELECT result FROM tblResults WHERE jobid = %u " +
-                         "AND phase = '%s' AND test = '%s';") % (id, phase, test))
+            cur.execute("SELECT result FROM tblResults WHERE jobid = %u "
+                        "AND phase = %s AND test = %s;",
+                        (id, phase, test))
             rc = cur.fetchone()
             if rc and rc[0]:
                 result = string.strip(rc[0])
@@ -216,8 +205,8 @@ class XenRTLogData(XenRTAPIPage):
                 result = "unknown"
             if result[-2:] != "/w":
                 result = result + "/w"
-            cur.execute(("UPDATE tblResults SET result = '%s' WHERE jobid = %u " +
-                         " AND phase = '%s' AND test = '%s';") %
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+                        "AND phase = %s AND test = %s;",
                         (result, id, phase, test))
             
         db.commit()
@@ -245,22 +234,22 @@ class XenRTSetResult(XenRTAPIPage):
         cur = db.cursor()
 
 
-        cur.execute(("SELECT jobid, phase, test, result FROM tblResults " +
-                     "WHERE jobid = %u AND phase = '%s' AND test = '%s';") %
+        cur.execute("SELECT jobid, phase, test, result FROM tblResults "
+                    "WHERE jobid = %u AND phase = %s AND test = %s;",
                     (id, phase, test))
         rc = cur.fetchone()
         if not rc:
             cur.execute("INSERT INTO tblResults (jobid, phase, test, result) "
-                        "VALUES (%u, '%s', '%s', '%s');" %
+                        "VALUES (%u, %s, %s, %s);",
                         (id, phase, test, result))
         else:
-            cur.execute(("UPDATE tblResults SET result = '%s' WHERE jobid = %u " +
-                         " AND phase = '%s' AND test = '%s';") %
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+                        "AND phase = %s AND test = %s;",
                         (result, id, phase, test))
 
         # Also add to the detailed history
-        cur.execute(("SELECT detailid FROM tblResults " +
-                     "WHERE jobid = %u AND phase = '%s' AND test = '%s';") %
+        cur.execute("SELECT detailid FROM tblResults "
+                    "WHERE jobid = %u AND phase = %s AND test = %s;",
                     (id, phase, test))
         rc = cur.fetchone()
         if not rc:
@@ -270,7 +259,7 @@ class XenRTSetResult(XenRTAPIPage):
             detailid = int(rc[0])
             cur.execute(
                 "INSERT INTO tblDetails (detailid, ts, key, value) VALUES "
-                "(%u, '%s', 'result', '%s');" % (detailid, timenow, result))
+                "(%u, %s, 'result', %s);", (detailid, timenow, result))
             
         db.commit()
         cur.close()
@@ -359,7 +348,7 @@ class XenRTPerfData(XenRTAPIPage):
                             if l == 0:
                                 v.append(dp[dpi])
                             elif l == 1:
-                                v.append("'%s'" % (app.utils.sqlescape(dp[dpi])))
+                                v.append(dp[dpi])
                             elif l == 2:
                                 if string.lower(dp[dpi][0]) in ("1", "y", "t"):
                                     v.append("TRUE")
@@ -368,12 +357,16 @@ class XenRTPerfData(XenRTAPIPage):
                             elif l == 3:
                                 v.append(dp[dpi])
                             elif l == 4:
-                                v.append("'%s'" % (app.utils.sqlescape(dp[dpi])))
+                                v.append(dp[dpi])
                             else:
                                 v.append(dp[dpi])
-                    sql = "INSERT INTO tblPerf (ts, %s) VALUES ('%s', %s)" % \
-                          (string.join(f, ", "), timenow, string.join(v, ", "))
-                    cur.execute(sql)
+                    sql = "INSERT INTO tblPerf (ts, %s)" % string.join(f, ", ")
+                    sql += " VALUES (%s"
+                    for val in v:
+                        sql += ", %s"
+                    sql += ")"
+                    v.insert(0, timenow)
+                    cur.execute(sql, v)
 
             db.commit()
             cur.close()

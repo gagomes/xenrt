@@ -21,35 +21,38 @@ class XenRTSitePage(XenRTAPIPage):
                         createNew=False):
         db = self.getDB()
         cur = db.cursor()
-        sql = "SELECT site FROM tblSites WHERE site = '%s'" % (site)
-        cur.execute(sql)
+        cur.execute("SELECT site FROM tblSites WHERE site = %s", site)
         if not cur.fetchone():
             if not createNew:
                 raise Exception("Could not find site '%s'" % (site))
             # Need to create a new record
-            sql = "INSERT into tblSites (site) VALUES ('%s')" % (app.utils.sqlescape(site))
-            cur.execute(sql)
+            cur.execute("INSERT into tblSites (site) VALUES (%s)", site)
         
         u = []
         if status:
-            u.append("status = '%s'" % (app.utils.sqlescape(status)))
+            u.append(("status", status))
         if flags:
-            u.append("flags = '%s'" % (app.utils.sqlescape(flags)))
+            u.append(("flags", flags))
         if descr:
-            u.append("descr = '%s'" % (app.utils.sqlescape(descr)))
+            u.append(("descr", descr))
         if comment:
-            u.append("comment = '%s'" % (app.utils.sqlescape(comment)))
+            u.append(("comment", comment))
         if ctrladdr:
-            u.append("ctrladdr = '%s'" % (app.utils.sqlescape(ctrladdr)))
+            u.append(("ctrladdr", ctrladdr))
         if adminid:
-            u.append("adminid = '%s'" % (app.utils.sqlescape(adminid)))
+            u.append(("adminid", adminid))
         if maxjobs:
-            u.append("maxjobs = %d" % (maxjobs))
+            u.append(("maxjobs", maxjobs))
         if sharedresources:
-            u.append("sharedresources = '%s'" % app.utils.sqlescape(sharedresources))
-        sql = "UPDATE tblSites SET %s WHERE site = '%s'" % \
-              (string.join(u, ", "), app.utils.sqlescape(site))
-        cur.execute(sql)
+            u.append(("sharedresources", sharedresources))
+        sqlset = []
+        vals = []
+        for field, val in u:
+            sqlset.append("%s = %%s" % field)
+            vals.append(val)
+        vals.append(site)
+        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (sqlset)
+        cur.execute(sql, vals)
 
         db.commit()
         cur.close()
@@ -158,14 +161,12 @@ class XenRTSUnDefine(XenRTSitePage):
         """Handle the sundefine CLI call"""
         site = self.request.params["site"]
         try:
-            sql = "DELETE FROM tblSites WHERE site = '%s';" % (site)
             db = self.getDB()
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("DELETE FROM tblSites WHERE site = %s;", site)
             try:
                 # Remove the pseudohost
-                sql2 = "DELETE FROM tblMachines WHERE machine = '_%s';" % (site)
-                cur.execute(sql2)
+                cur.execute("DELETE FROM tblMachines WHERE machine = %s;", ("_%s" % site))
             except:
                 pass
             db.commit()
@@ -286,7 +287,7 @@ class XenRTSUpdate(XenRTSitePage):
             raise Exception("Unknown operation %s" % (operation))
         
         cur = db.cursor()
-        cur.execute("SELECT flags FROM tblSites WHERE site = '%s' " % (site))
+        cur.execute("SELECT flags FROM tblSites WHERE site = %s", site)
         rc = cur.fetchone()
         if not rc:
             raise Exception("Could not find site '%s'" % (site))
@@ -310,7 +311,7 @@ class XenRTSUpdate(XenRTSitePage):
             if op == 1 and match == 0:
                 llnew.append(value)
             value = string.join(llnew, ",")
-            cur.execute("UPDATE tblSites SET flags = '%s' WHERE site = '%s'" %
+            cur.execute("UPDATE tblSites SET flags = %s WHERE site = %s",
                         (value, site))
 
         db.commit()

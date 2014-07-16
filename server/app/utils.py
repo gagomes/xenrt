@@ -76,8 +76,8 @@ def parse_job(rc,cur):
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
 
-    cur.execute(("SELECT param, value FROM tblJobDetails WHERE " +
-                      "jobid = %u;") % (rc[0]))
+    cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
+                "jobid = %u;", rc[0])
     
     while 1:
         rd = cur.fetchone()
@@ -88,7 +88,7 @@ def parse_job(rc,cur):
             d[string.strip(rd[0])] = string.strip(rd[1])
     
     if d['JOBSTATUS'] == "running":
-        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';" % (d['JOBID']))
+        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", d['JOBID'])
         rd = cur.fetchone()
         if rd[0] > 0:
             d['PAUSED'] = "yes"
@@ -145,7 +145,7 @@ def mystrip(s):
     return string.strip(str(s))
 
 def sqlescape(s):
-    return string.replace(s, "'", "''")
+    raise Exception("sqlescape should not be used, use the database layers quoting instead")
 
 def parse_shared_resources(resourcestring):
     result = {}

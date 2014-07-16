@@ -848,7 +848,7 @@ class GPUBasic(_GPU):
         else:
             vmcount = gpucount
         host = self.getDefaultHost()
-        groups = self.getGPUGroups(host,vendor=vendor)
+        groups = self.getGPUGroups(host, vendor=vendor)
         for i in range(vmcount):
             if xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i)):
                 g = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
@@ -861,17 +861,20 @@ class GPUBasic(_GPU):
             self.cloneGolden(gold, "%s-clone%d" % (gold, i))
 
         # Shutdown all VMs:
-        [xenrt.TEC().registry.guestGet(x).setState("DOWN") for x in xenrt.TEC().registry.guestList()]
+        [
+            xenrt.TEC().registry.guestGet(x).setState("DOWN")
+            for x in xenrt.TEC().registry.guestList()
+        ]
 
         # Attach a GPU to each VM
         vmindex = 0
         workloads = []
         for i in range(gpucount):
             vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
-            self.attachGPU(vm,groups[i])
+            self.attachGPU(vm, groups[i])
             vm.start()
-            #self.assertGPUPresentInVM(vm, vendor)
-            #self.assertGPUNotRunningInVM(vm, vendor)
+            # self.assertGPUPresentInVM(vm, vendor)
+            # self.assertGPUNotRunningInVM(vm, vendor)
             vm.installGPUDriver()
             self.assertGPURunningInVM(vm, vendor)
             vm.shutdown()
@@ -890,7 +893,7 @@ class GPUBasic(_GPU):
         for i in range(vmcount):
             vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
             vm.shutdown()
-            
+
 
 class StartAllGPU(_GPU):
 

@@ -13,14 +13,11 @@
   </variables>
 
   <prepare>
-    <pool>
-      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
-    </pool>
+    <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
   </prepare>
 
   <testsequence>
-    <testcase group="BWDEnv" id="xenserver.tc.lunpervdi.TCBwdEnvironment" tc="TC-21561"/>
-    <testcase group="Upgrade" id="xenserver.tc.bwdupgrade.TCRpuBwd" tc="TC-21562"/>
+    <testcase group="BWDUpgrade" id="xenserver.tc.bwdupgrade.TCRpuBwd" tc="TC-21562"/>
   </testsequence>
 
 </xenrt>

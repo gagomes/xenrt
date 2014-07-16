@@ -10,14 +10,35 @@ import socket, re, string, time, traceback, sys, random, copy, os, shutil
 import os.path
 import IPy
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.call, xenrt.lib.xenserver.context
-import testcases.xenserver.tc.upgrade
+import testcases.xenserver.tc.lunpervdi
 
-class TCRpuBwd(testcases.xenserver.tc.upgrade._RPUBasic):
+class TCRpuBwd(testcases.xenserver.tc.lunpervdi.TCBwdEnvironment):
     """Clearwater Borehamwood to Creedence rolling pool upgrade test using RawHBA SR"""
 
-    def prepare(self, arglist):
-        self.pool = self.getDefaultPool()
+    def run(self, arglist=[]):
+        # Prepare the basic borehamwood environment.
+        testcases.xenserver.tc.lunpervdi.TCBwdEnvironment.run(self, arglist=[])
+    
+        self.upgrader = xenrt.lib.xenserver.host.RollingPoolUpdate(self.pool, 'Creedence')
+        
+        # Perform upgrade.
+        self.newPool = self.pool.upgrade(poolUpgrade=self.upgrader) 
+        self.newPool.verifyRollingPoolUpgradeInProgress(expected=False)
 
-    def run(self, arglist):
-        # Perform the upgrade 
-        xenrt.TEC().logverbose("perform the upgrade here")
+        # Enable borehamwood plugins after upgrade.
+        for host in self.newPool.getHosts():
+            self.enableBorehamwood(host)
+
+        # Verify whether the RawHBA SR has all VDIs that is created in Clearwater environment.
+        # Expecting 10 VDIs as we have created 10 LUNs by default.
+        self.checkSR()
+
+        # Check the VMs are healthy.
+        for guest in self.guests:
+            # Logs?
+            guest.shutdown()
+            guest.start()
+            guest.reboot()
+            guest.suspend()
+            guest.resume()
+            guest.shutdown()

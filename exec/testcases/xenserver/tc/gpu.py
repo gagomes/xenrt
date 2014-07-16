@@ -24,26 +24,34 @@ from testcases.xenserver.tc.ns import SRIOVTests
 class _GPU(xenrt.TestCase):
     """Common parent of all GPU testcases"""
 
-    def getGPUHosts(self,pool):
+    def getGPUHosts(self, pool):
         hosts = pool.getHosts()
-        return filter( (lambda h: len(self.getGPUGroups(h))>0), hosts) 
-    
-    def getGPUGroups(self,host,check=True,workaround=None,vendor=None):
+        return filter((lambda h: len(self.getGPUGroups(h)) > 0), hosts)
+
+    def getGPUGroups(self, host, check=True, workaround=None, vendor=None):
         """return gpu groups available on some host"""
         def isVendor(gpu_group_uuid, allowedVendor):
             cli = host.getCLIInstance()
-            vendor = cli.execute("gpu-group-param-get", "uuid=%s param-name=name-label" % (gpu_group_uuid)).strip()
+            vendor = cli.execute(
+                "gpu-group-param-get",
+                "uuid=%s param-name=name-label" % (gpu_group_uuid)).strip()
             return (allowedVendor in vendor)
-        gpu_group_uuids = host.minimalList("pgpu-list",args="params=gpu-group-uuid host-uuid=%s" % host.getMyHostUUID())
+        gpu_group_uuids = host.minimalList(
+            "pgpu-list",
+            args="params=gpu-group-uuid host-uuid=%s" % host.getMyHostUUID())
         if check and len(gpu_group_uuids) < 1:
-            raise xenrt.XRTFailure("This host does not contain a GPU group list as expected")
-        if workaround=="WORKAROUND_CA61226": # ignore Matrox GPUs for TC13532
-            gpu_group_uuids = filter(lambda u:not isVendor(u,"Matrox"), gpu_group_uuids)
+            raise xenrt.XRTFailure(
+                "This host does not contain a GPU group list as expected")
+        # ignore Matrox GPUs for TC13532
+        if workaround == "WORKAROUND_CA61226":
+            gpu_group_uuids = filter(
+                lambda u: not isVendor(u, "Matrox"), gpu_group_uuids)
         if vendor:
-            gpu_group_uuids = filter(lambda u:isVendor(u,vendor), gpu_group_uuids)
+            gpu_group_uuids = filter(
+                lambda u: isVendor(u, vendor), gpu_group_uuids)
         return gpu_group_uuids
 
-    def getGPUGroup(self,host,name):
+    def getGPUGroup(self, host, name):
         for i in host.minimalList("gpu-group-list"):
             if name in host.genParamGet("gpu-group", i, "name-label"):
                 return i
@@ -70,73 +78,101 @@ class _GPU(xenrt.TestCase):
                 indices[j] = indices[j-1] + 1
             yield tuple(pool[i] for i in indices)
 
-    def hostsWithCommonGPUGroup(self,hosts):
-        if len(hosts)<2:
-            raise xenrt.XRTError("There must be at least 2 gpu hosts in the list")
-        hosts_with_common_gpu_group = filter(lambda (h0,h1): len(self.commonGPUGroups(h0,h1,check=False)) > 0, self.combinations(hosts,2))
+    def hostsWithCommonGPUGroup(self, hosts):
+        if len(hosts) < 2:
+            raise xenrt.XRTError(
+                "There must be at least 2 gpu hosts in the list")
+        hosts_with_common_gpu_group = filter(
+            lambda (h0, h1): len(
+                self.commonGPUGroups(h0, h1, check=False)) > 0,
+            self.combinations(hosts, 2))
         if len(hosts_with_common_gpu_group) < 1:
-            raise xenrt.XRTError("There must be at least a pair of hosts with a common gpu model in the pool")
+            raise xenrt.XRTError(
+                "There must be at least a pair of hosts"
+                " with a common gpu model in the pool")
         return hosts_with_common_gpu_group
 
-    def hostWithExclusiveGPUGroup(self,hosts):
-        if len(hosts)<2:
-            raise xenrt.XRTError("There must be at least 2 gpu hosts in the list")
-        for host_pair in self.combinations(hosts,2):
-            host0=host_pair[0]
-            host1=host_pair[1]
-            common_gpu_groups = self.commonGPUGroups(host0,host1,check=False)
-            h0_gpu_groups = self.getGPUGroups(host0,check=False)
-            h1_gpu_groups = self.getGPUGroups(host1,check=False)
-            h0_exclusive_gpu_groups = list(set(h0_gpu_groups).difference(set(common_gpu_groups)))
-            h1_exclusive_gpu_groups = list(set(h1_gpu_groups).difference(set(common_gpu_groups)))
+    def hostWithExclusiveGPUGroup(self, hosts):
+        if len(hosts) < 2:
+            raise xenrt.XRTError(
+                "There must be at least 2 gpu hosts in the list")
+        for host_pair in self.combinations(hosts, 2):
+            host0 = host_pair[0]
+            host1 = host_pair[1]
+            common_gpu_groups = self.commonGPUGroups(host0, host1, check=False)
+            h0_gpu_groups = self.getGPUGroups(host0, check=False)
+            h1_gpu_groups = self.getGPUGroups(host1, check=False)
+            h0_exclusive_gpu_groups = list(
+                set(h0_gpu_groups).difference(set(common_gpu_groups)))
+            h1_exclusive_gpu_groups = list(
+                set(h1_gpu_groups).difference(set(common_gpu_groups)))
             if len(h0_exclusive_gpu_groups) > 0:
-                return (host0,host1,h0_exclusive_gpu_groups) # (from,to,gpu_only_in_from_not_in_to)
+                # (from,to,gpu_only_in_from_not_in_to)
+                return (host0, host1, h0_exclusive_gpu_groups)
             if len(h1_exclusive_gpu_groups) > 0:
-                return (host1,host0,h1_exclusive_gpu_groups) # (from,to,gpu_only_in_from_not_in_to)
-        raise xenrt.XRTFailure("no host in the pool has any exclusive GPU group")
+                # (from,to,gpu_only_in_from_not_in_to)
+                return (host1, host0, h1_exclusive_gpu_groups)
+        raise xenrt.XRTFailure(
+            "no host in the pool has any exclusive GPU group")
 
-    def attachGPU(self,vm,gpu_group_uuid):
+    def attachGPU(self, vm, gpu_group_uuid):
         host = self.getDefaultHost()
         cli = host.getCLIInstance()
-        #assign a vGPU to this VM
-        vgpu_uuid = cli.execute("vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (gpu_group_uuid,vm.getUUID())).strip()
+        # assign a vGPU to this VM
+        vgpu_uuid = cli.execute(
+            "vgpu-create",
+            "gpu-group-uuid=%s vm-uuid=%s" % (
+                gpu_group_uuid, vm.getUUID())).strip()
         return vgpu_uuid
 
     def detachGPU(self, vm):
         host = self.getDefaultHost()
         cli = host.getCLIInstance()
-        vm_vgpu_uuids = host.minimalList("vgpu-list",args="params=uuid vm-uuid=%s" % vm.getUUID())
+        vm_vgpu_uuids = host.minimalList(
+            "vgpu-list", args="params=uuid vm-uuid=%s" % vm.getUUID())
         for vm_vgpu_uuid in vm_vgpu_uuids:
-            cli.execute("vgpu-destroy", "uuid=%s"% vm_vgpu_uuid)
+            cli.execute("vgpu-destroy", "uuid=%s" % vm_vgpu_uuid)
 
-    def commonGPUGroups(self,host0,host1,check=True):
-        h0_gpu_groups = self.getGPUGroups(host0,check)
-        h1_gpu_groups = self.getGPUGroups(host1,check)
+    def commonGPUGroups(self, host0, host1, check=True):
+        h0_gpu_groups = self.getGPUGroups(host0, check)
+        h1_gpu_groups = self.getGPUGroups(host1, check)
         gpu_groups = list(set(h0_gpu_groups).intersection(set(h1_gpu_groups)))
         if check and len(gpu_groups) < 1:
-            raise xenrt.XRTFailure("host0=%s and host1=%s do not have a common GPU group" % (host0.getMyHostUUID(),host1.getMyHostUUID()))
+            raise xenrt.XRTFailure(
+                "host0=%s and host1=%s do not have a common GPU group" % (
+                    host0.getMyHostUUID(), host1.getMyHostUUID()))
         return gpu_groups
 
-    def getPGPUs(self,host,gpu_group_uuid):
+    def getPGPUs(self, host, gpu_group_uuid):
         """return pgpus available on some host for some gpu group"""
-        pgpu_uuids = host.minimalList("pgpu-list",args="gpu-group-uuid=%s host-uuid=%s" % (gpu_group_uuid,host.getMyHostUUID()))
+        pgpu_uuids = host.minimalList(
+            "pgpu-list", args="gpu-group-uuid=%s host-uuid=%s" % (
+                gpu_group_uuid, host.getMyHostUUID()))
         return pgpu_uuids
 
     def assertGPUPresentInVM(self, vm, vendor=None):
         if not self.findGPUInVM(vm, vendor):
-            raise xenrt.XRTFailure("GPU not detected for vm %s: %s" % (vm.getName(),vm.getUUID()))
-        
+            raise xenrt.XRTFailure(
+                "GPU not detected for vm %s: %s" % (
+                    vm.getName(), vm.getUUID()))
+
     def assertGPUAbsentInVM(self, vm, vendor=None):
         if self.findGPUInVM(vm, vendor):
-            raise xenrt.XRTFailure("GPU detected when not expected for vm %s: %s" % (vm.getName(),vm.getUUID()))
+            raise xenrt.XRTFailure(
+                "GPU detected when not expected for vm %s: %s" % (
+                    vm.getName(), vm.getUUID()))
 
     def assertGPURunningInVM(self, vm, vendor=None):
         if not self.checkGPURunningInVM(vm, vendor):
-            raise xenrt.XRTFailure("GPU not running in VM %s: %s" % (vm.getName(),vm.getUUID()))            
+            raise xenrt.XRTFailure(
+                "GPU not running in VM %s: %s" % (
+                    vm.getName(), vm.getUUID()))
 
     def assertGPUNotRunningInVM(self, vm, vendor=None):
         if self.checkGPURunningInVM(vm, vendor):
-            raise xenrt.XRTFailure("GPU running when not expected in VM %s: %s" % (vm.getName(),vm.getUUID()))            
+            raise xenrt.XRTFailure(
+                "GPU running when not expected in VM %s: %s" % (
+                    vm.getName(), vm.getUUID()))
 
     def checkGPURunningInVM(self, vm, vendor=None):
         gpu = self.findGPUInVM(vm, vendor)
@@ -148,68 +184,82 @@ class _GPU(xenrt.TestCase):
             if "Driver is running" in l:
                 return True
         raise xenrt.XRTError("Could not determine whether GPU is running")
-        
 
-    def findGPUInVM(self,vm, vendor=None): 
+    def findGPUInVM(self, vm, vendor=None):
         vm.waitForDaemon(1800, desc="Windows starting up")
         xenrt.TEC().logverbose("Obtaining graphics card maker/model")
         lines = vm.devcon("findall *").splitlines()
         gpu_detected = 0
         if not vendor:
-            gpu_patterns = ["PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"  #nvidia pci vendor id
-                            ,"PCI.VEN_1002.*(ATI|VGA|Display).*"    #ati/amd pci vendor id
-                            ,"PCI.VEN_102B.*(Matrox|VGA|Display).*" #matrox  pci vendor id
-                           ]
+            gpu_patterns = [
+                "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*",  # nvidia pci vendor id
+                "PCI.VEN_1002.*(ATI|VGA|Display).*",   # ati/amd pci vendor id
+                "PCI.VEN_102B.*(Matrox|VGA|Display).*"  # matrox pci vendor id
+            ]
         elif vendor == "NVIDIA":
-            gpu_patterns = ["PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"]  #nvidia pci vendor id
+            gpu_patterns = [
+                "PCI.VEN_10DE.*(NVIDIA|VGA|Display).*"]  # nvidia pci vendor id
         elif vendor == "ATI":
-            gpu_patterns = ["PCI.VEN_1002.*(ATI|VGA|Display).*"]    #ati/amd pci vendor id
+            gpu_patterns = [
+                "PCI.VEN_1002.*(ATI|VGA|Display).*"]  # ati/amd pci vendor id
         elif vendor == "Matrox":
-            gpu_patterns = ["PCI.VEN_102B.*(Matrox|VGA|Display).*"] #matrox  pci vendor id
+            gpu_patterns = [
+                "PCI.VEN_102B.*(Matrox|VGA|Display).*"]  # matrox pci vendor id
         for line in lines:
             if line.startswith("PCI"):
                 xenrt.TEC().logverbose("devcon: %s" % line)
                 for gpu_pattern in gpu_patterns:
-                    if re.search(gpu_pattern,line) and not re.search(".*(Audio).*",line):
+                    gpu_found = (
+                        re.search(gpu_pattern, line)
+                        and not re.search(".*(Audio).*", line)
+                    )
+                    if gpu_found:
                         xenrt.TEC().logverbose("Found GPU device: %s" % line)
                         return line.strip()
         return None
 
-    def vmLevelOperations(self,vm):
+    def vmLevelOperations(self, vm):
 
         try:
             vm.suspend()
-            raise xenrt.XRTFailure("GPU-bound VM did not fail suspend as expected")
+            raise xenrt.XRTFailure(
+                "GPU-bound VM did not fail suspend as expected")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("vm-suspend failed as expected: %s" % str(e))
+            xenrt.TEC().logverbose(
+                "vm-suspend failed as expected: %s" % str(e))
             pass
-        #check that resume fails for this VM
+        # check that resume fails for this VM
         try:
             vm.resume()
-            raise xenrt.XRTFailure("GPU-bound VM did not fail resume as expected")
+            raise xenrt.XRTFailure(
+                "GPU-bound VM did not fail resume as expected")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("vm-resume failed as expected: %s" % str(e))
+            xenrt.TEC().logverbose(
+                "vm-resume failed as expected: %s" % str(e))
             pass
-        #check that checkpoint fails for this VM
+        # check that checkpoint fails for this VM
         try:
             vm.checkpoint()
-            raise xenrt.XRTFailure("GPU-bound VM did not fail checkpoint as expected")
+            raise xenrt.XRTFailure(
+                "GPU-bound VM did not fail checkpoint as expected")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("vm-checkpoint failed as expected: %s" % str(e))
+            xenrt.TEC().logverbose(
+                "vm-checkpoint failed as expected: %s" % str(e))
             pass
-        #check that snapshot succeeds for this VM
+        # check that snapshot succeeds for this VM
         try:
             vm.snapshot()
         except xenrt.XRTFailure, e:
             xenrt.XRTFailure("vm-snapshot failed : %s" % str(e))
-        #check that shutdown succeeds for this VM
+        # check that shutdown succeeds for this VM
         vm.shutdown()
 
-        #check that start succeeds for this VM
+        # check that start succeeds for this VM
         vm.start()
-  
-        #check that reboot succeeds for this VM
+
+        # check that reboot succeeds for this VM
         vm.reboot()
+
 
 class TC13527(_GPU):
     """GPU-Passthrough: Test tying more than one GPU to a VM fails"""

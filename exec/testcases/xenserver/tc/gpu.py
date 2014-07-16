@@ -531,23 +531,31 @@ class TC13532(_GPU):
 
 
 class TC13533(_GPU):
-    """GPU-Passthrough: Test move VM from host with GPU model x to host with GPU model x which is already assigned to another VM fails"""
+    """
+    GPU-Passthrough: Test move VM from host with GPU model x
+    to host with GPU model x which is already assigned to another VM fails
+    """
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
         pool = self.getDefaultPool()
         host_pairs = self.hostsWithCommonGPUGroup(self.getGPUHosts(pool))
-        if len(host_pairs)<1:
-            raise xenrt.XRTError("There must be at least a pair of hosts with same gpu in the pool")
-        (host0,host1)=host_pairs[0]
+        if len(host_pairs) < 1:
+            raise xenrt.XRTError(
+                "There must be at least a pair of hosts"
+                " with same gpu in the pool")
+        (host0, host1) = host_pairs[0]
         if host0 == host1:
             raise xenrt.XRTError("gpu hosts must not be the same")
-        # Assume two hosts have been previously installed with the appropriate shared SR 
+        # Assume two hosts have been previously installed with the
+        # appropriate shared SR
         # Both hosts should have the same GPU model x
-        common_gpu_groups = self.commonGPUGroups(host0,host1)
-        h1_pgpus = self.getPGPUs(host1,common_gpu_groups[0])
+        common_gpu_groups = self.commonGPUGroups(host0, host1)
+        h1_pgpus = self.getPGPUs(host1, common_gpu_groups[0])
         if len(h1_pgpus) > 1:
-            raise xenrt.XRTFailure("Host1 cannot have more than 1 PGPU of the same GPU group as host0")
+            raise xenrt.XRTFailure(
+                "Host1 cannot have more than 1 PGPU"
+                " of the same GPU group as host0")
         defaultSR = pool.master.lookupDefaultSR()
         vm0 = host0.createGenericWindowsGuest(sr=defaultSR)
         self.uninstallOnCleanup(vm0)
@@ -555,26 +563,31 @@ class TC13533(_GPU):
         vm1 = host1.createGenericWindowsGuest(sr=defaultSR)
         self.uninstallOnCleanup(vm1)
         vm1.shutdown()
-        self.attachGPU(vm0,common_gpu_groups[0])
-        self.attachGPU(vm1,common_gpu_groups[0])
-        vm0.host=host0
+        self.attachGPU(vm0, common_gpu_groups[0])
+        self.attachGPU(vm1, common_gpu_groups[0])
+        vm0.host = host0
         vm0.start(specifyOn=True)
-        vm1.host=host1
+        vm1.host = host1
         vm1.start(specifyOn=True)
-        #check that live migrate fails for this VM
+        # check that live migrate fails for this VM
         try:
-            vm0.migrateVM(host1,live="true")
+            vm0.migrateVM(host1, live="true")
             raise xenrt.XRTFailure("GPU-bound VM did not fail live migrate")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("vm-migrate (live) failed as expected: %s" % str(e))
+            xenrt.TEC().logverbose(
+                "vm-migrate (live) failed as expected: %s" % str(e))
             pass
         vm0.shutdown()
         try:
-            vm0.host=host1
+            vm0.host = host1
             vm0.start(specifyOn=True)
-            raise xenrt.XRTFailure("VM bound to GPU x started on a host without any available GPU x")
+            raise xenrt.XRTFailure(
+                "VM bound to GPU x started on a host without"
+                " any available GPU x")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("VM started failed as expected due to lack of available GPU of the expected type in host")
+            xenrt.TEC().logverbose(
+                "VM started failed as expected due to lack of available GPU"
+                " of the expected type in host")
 
 
 class TC13539(_GPU):

@@ -762,65 +762,72 @@ class TC13540(_GPU):
             cli.execute("vgpu-destroy", "uuid=%s" % vgpu_uuid)
 
 
-class TC13570(_GPU,SRIOVTests):
-    """GPU-Passthrough: Test VM remains tied to GPU when SR-IOV device is bound & unbound"""
+class TC13570(_GPU, SRIOVTests):
+    """
+    GPU-Passthrough: Test VM remains tied to GPU when
+    SR-IOV device is bound & unbound
+    """
 
     def prepare(self, arglist=None):
         pool = self.getDefaultPool()
         hosts = self.getGPUHosts(pool)
-        if len(hosts)<1:
-            raise xenrt.XRTError("There must be at least 1 gpu host in the pool")
+        if len(hosts) < 1:
+            raise xenrt.XRTError(
+                "There must be at least 1 gpu host in the pool")
         host = hosts[0]
         self.io = xenrt.lib.xenserver.IOvirt(host)
         self.io.enableIOMMU(restart_host=False)
         self.io.enableVirtualFunctions()
 
-
     def run(self, arglist=None):
         pool = self.getDefaultPool()
         hosts = self.getGPUHosts(pool)
-        if len(hosts)<1:
-            raise xenrt.XRTError("There must be at least 1 gpu host in the pool")
+        if len(hosts) < 1:
+            raise xenrt.XRTError(
+                "There must be at least 1 gpu host in the pool")
         host = hosts[0]
         cli = host.getCLIInstance()
-        #create vm on host
+        # create vm on host
         defaultSR = pool.master.lookupDefaultSR()
         host_gpu_groups = self.getGPUGroups(host)
         vm = host.createGenericWindowsGuest(sr=defaultSR)
         self.uninstallOnCleanup(vm)
-        vm.shutdown() 
-        #attach vgpu to vm
-        self.attachGPU(vm,host_gpu_groups[0])
-        #bind sr-iov device to vm
+        vm.shutdown()
+        # attach vgpu to vm
+        self.attachGPU(vm, host_gpu_groups[0])
+        # bind sr-iov device to vm
         self.assignVFsToVM(vm, 1)
         vfs = self.getVFsAssignedToVM(vm)
-        xenrt.TEC().logverbose("VFs assigned to VM (%s): %s" 
+        xenrt.TEC().logverbose("VFs assigned to VM (%s): %s"
                                % (vm.getUUID(), vfs))
         if len(vfs) < 1:
             raise xenrt.XRTFailure("No VFs assigned to VM (%s)"
                                    % vm.getUUID())
-        #start vm
-        vm.host=host
+        # start vm
+        vm.host = host
         vm.start(specifyOn=True)
-        #detect gpu from inside the vm
+        # detect gpu from inside the vm
         self.assertGPUPresentInVM(vm)
-        #(optional) detect sr-iov dev from inside the vm
-        #self.checkPCIDevicesInVM(vm) #this function does not work for windows vms
-        #shutdown vm
+        # (optional) detect sr-iov dev from inside the vm
+        # self.checkPCIDevicesInVM(vm) #this function does not work for
+        # windows vms
+        # shutdown vm
         vm.shutdown()
-        #unbind sr-iov device from vm
+        # unbind sr-iov device from vm
         self.unassignVFsByPCIID(vm)
         vfs = self.getVFsAssignedToVM(vm)
         xenrt.TEC().logverbose("VFs assigned to VM: %s" % vfs)
         if len(vfs) > 0:
-            raise xenrt.XRTFailure("VFs assigned to VM (%s) when none were expected"
-                                   % vm.getUUID())
-        #start vm
+            raise xenrt.XRTFailure(
+                "VFs assigned to VM (%s)"
+                " when none were expected" % vm.getUUID())
+        # start vm
         vm.start(specifyOn=True)
-        #detect gpu from inside the vm
+        # detect gpu from inside the vm
         self.assertGPUPresentInVM(vm)
-        #shutdown the vm
+        # shutdown the vm
         vm.shutdown()
+
 
 class GPUBasic(_GPU):
 

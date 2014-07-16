@@ -695,44 +695,62 @@ class TC13539(_GPU):
 
 
 class TC13540(_GPU):
-    """GPU-Passthrough: Test to confirm that GPU devices show inside Windows VMs"""
+    """
+    GPU-Passthrough: Test to confirm that GPU devices show inside Windows VMs
+    """
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
         cli = host.getCLIInstance()
 
-        #create HVM Windows VM
-        gpu_group_uuids = host.minimalList("pgpu-list",args="params=gpu-group-uuid") #>0 gpu hw required for this license test
-        if len(gpu_group_uuids)<1:
-            raise xenrt.XRTFailure("This pool does not contain a GPU group list as expected")
+        # create HVM Windows VM
+        # >0 gpu hw required for this license test
+        gpu_group_uuids = host.minimalList(
+            "pgpu-list", args="params=gpu-group-uuid")
+        if len(gpu_group_uuids) < 1:
+            raise xenrt.XRTFailure(
+                "This pool does not contain a GPU group list as expected")
         vms = []
         vgpu_uuids = []
-        #windows_isos = ["win7sp1-x86.iso","vistaeesp2.iso","winxpsp3.iso","ws08sp2-x86.iso","w2k3sesp2.iso"]
+
+        # windows_isos = ["win7sp1-x86.iso","vistaeesp2.iso","winxpsp3.iso",
+        #                 "ws08sp2-x86.iso","w2k3sesp2.iso"]
         for i in range(len(gpu_group_uuids)):
-            vmname="VM"+str(i)
-            #assumes that the corresponding sequence has already created the VMs to test
+            vmname = "VM" + str(i)
+            # assumes that the corresponding sequence has
+            # already created the VMs to test
             vms.append(self.getGuest(vmname))
             if not vms[i]:
-                xenrt.TEC().warning("VM '%s' not found in pool: creating a generic windows guest" % vmname)
+                xenrt.TEC().warning(
+                    "VM '%s' not found in pool:" % vmname
+                    + " creating a generic windows guest")
                 vms[i] = host.createGenericWindowsGuest()
             self.uninstallOnCleanup(vms[i])
             if vms[i].paramGet("power-state") == "running":
                 vms[i].shutdown()
-            #destroy any vgpus associated with this vm
-            vm_vgpu_uuids = host.minimalList("vgpu-list",args="params=uuid vm-uuid=%s" % vms[i].getUUID())
+            # destroy any vgpus associated with this vm
+            vm_vgpu_uuids = host.minimalList(
+                "vgpu-list",
+                args="params=uuid vm-uuid=%s" % vms[i].getUUID())
             for vm_vgpu_uuid in vm_vgpu_uuids:
-                cli.execute("vgpu-destroy", "uuid=%s"% vm_vgpu_uuid)
-            #freshly assign a vGPU to this VM
-            vgpu_uuid = cli.execute("vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (gpu_group_uuids[i],vms[i].getUUID())).strip()
+                cli.execute("vgpu-destroy", "uuid=%s" % vm_vgpu_uuid)
+            # freshly assign a vGPU to this VM
+            vgpu_uuid = cli.execute(
+                "vgpu-create",
+                "gpu-group-uuid=%s vm-uuid=%s" % (
+                    gpu_group_uuids[i], vms[i].getUUID())).strip()
             vgpu_uuids.append(vgpu_uuid)
 
-        #no need to install video drivers on each VM, devcon reports all pci devices
+        # no need to install video drivers on each VM,
+        # devcon reports all pci devices
 
-        #check that the gpu maker/model is detected from inside the VM
+        # check that the gpu maker/model is detected from inside the VM
         xenrt.TEC().logverbose("Found %d GPU groups" % len(gpu_group_uuids))
         for i in range(len(gpu_group_uuids)):
-            #as constructed above, each gpu group entry has at least a pgpu somewhere in the pool
-            #xapi should know that and start the vm on a proper host, that's why specifyOn is false here
+            # as constructed above, each gpu group entry has at least a pgpu
+            # somewhere in the pool
+            # xapi should know that and start the vm on a proper host, that's
+            # why specifyOn is false here
             vms[i].start(specifyOn=False)
             self.assertGPUPresentInVM(vms[i])
 

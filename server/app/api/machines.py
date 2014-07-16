@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app
 
-import traceback, StringIO, string, time, json
+import traceback, StringIO, string, time, json, sys
 
 class XenRTMachinePage(XenRTAPIPage):
     pass

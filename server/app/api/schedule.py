@@ -1,7 +1,7 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
 
-import traceback, StringIO, string, time, random, pgdb
+import traceback, StringIO, string, time, random, pgdb, sys
 
 import config, app
 

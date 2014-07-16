@@ -116,7 +116,7 @@ class _GPU(xenrt.TestCase):
             "no host in the pool has any exclusive GPU group")
 
     def attachGPU(self, vm, gpu_group_uuid):
-        host = self.getDefaultHost()
+        host = vm.getHost()
         cli = host.getCLIInstance()
         # assign a vGPU to this VM
         vgpu_uuid = cli.execute(
@@ -126,7 +126,7 @@ class _GPU(xenrt.TestCase):
         return vgpu_uuid
 
     def detachGPU(self, vm):
-        host = self.getDefaultHost()
+        host = vm.getHost()
         cli = host.getCLIInstance()
         vm_vgpu_uuids = host.minimalList(
             "vgpu-list", args="params=uuid vm-uuid=%s" % vm.getUUID())

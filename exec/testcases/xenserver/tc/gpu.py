@@ -8,10 +8,18 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, tempfile, xmlrpclib, copy, os, string
-import xenrt, testcases.xenserver.tc.security, testcases.xenserver.tc.ns
+import re
+import tempfile
+import xmlrpclib
+import copy
+import os
+import string
+import xenrt
+import testcases.xenserver.tc.security
+import testcases.xenserver.tc.ns
 from xenrt.lib.xenserver.call import *
 from testcases.xenserver.tc.ns import SRIOVTests
+
 
 class _GPU(xenrt.TestCase):
     """Common parent of all GPU testcases"""

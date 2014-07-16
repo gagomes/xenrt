@@ -268,36 +268,52 @@ class TC13527(_GPU):
         host = self.getDefaultHost()
         cli = host.getCLIInstance()
 
-        #create a vm
+        # create a vm
         vm_name = xenrt.randomGuestName()
         vm_template = "\"Demo Linux VM\""
         vm = host.guestFactory()(vm_name, vm_template)
         self.uninstallOnCleanup(vm)
         vm.host = host
         self._guestsToUninstall.append(vm)
-        args=[]
+        args = []
         args.append("new-name-label=%s" % (vm_name))
         args.append("sr-uuid=%s" % host.getLocalSR())
         args.append("template-name=%s" % (vm_template))
-        vm_uuid = cli.execute("vm-install",string.join(args),timeout=3600).strip()
-        vm_uuids = host.minimalList("vm-list") #there's always at least 1 vm (dom0)
-        gpu_group_uuids = host.minimalList("gpu-group-list") #>0 gpu hw required for this license test
-        if len(gpu_group_uuids)<1:
-            raise xenrt.XRTFailure("This host does not contain a GPU group list as expected")
-        for vm_uuid in vm_uuids:
-            #assign a VGPU to this VM and check this works
-            vgpu_uuid = cli.execute("vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (gpu_group_uuids[0],vm_uuid)).strip()
+        vm_uuid = cli.execute(
+            "vm-install", string.join(args), timeout=3600).strip()
 
-            #assign another VGPU to this VM and check this fails
+        # there's always at least 1 vm (dom0)
+        vm_uuids = host.minimalList("vm-list")
+
+        # >0 gpu hw required for this license test
+        gpu_group_uuids = host.minimalList("gpu-group-list")
+
+        if len(gpu_group_uuids) < 1:
+            raise xenrt.XRTFailure(
+                "This host does not contain a GPU group list as expected")
+        for vm_uuid in vm_uuids:
+            # assign a VGPU to this VM and check this works
+            vgpu_uuid = cli.execute(
+                "vgpu-create",
+                "gpu-group-uuid=%s vm-uuid=%s" % (
+                    gpu_group_uuids[0], vm_uuid)).strip()
+
+            # assign another VGPU to this VM and check this fails
             for gpu_group_uuid in gpu_group_uuids:
                 try:
-                    data = cli.execute("vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (gpu_group_uuid,vm_uuid))
-                    raise xenrt.XRTFailure("Tying more than one GPU to a VM did not fail")
+                    data = cli.execute(
+                        "vgpu-create",
+                        "gpu-group-uuid=%s vm-uuid=%s" % (
+                            gpu_group_uuid, vm_uuid))
+                    raise xenrt.XRTFailure(
+                        "Tying more than one GPU to a VM did not fail")
                 except xenrt.XRTFailure, e:
-                    xenrt.TEC().logverbose("vgpu-create failed as expected: %s" % str(e))
+                    xenrt.TEC().logverbose(
+                        "vgpu-create failed as expected: %s" % str(e))
                     pass
             # clean up vgpu list
-            cli.execute("vgpu-destroy","uuid=%s" % vgpu_uuid)
+            cli.execute("vgpu-destroy", "uuid=%s" % vgpu_uuid)
+
 
 class TC13529(_GPU):
     """GPU-Passthrough: Test suspend/resume/checkpoint fails for tied VM"""

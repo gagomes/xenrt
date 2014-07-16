@@ -1,10 +1,11 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
   </variables>
 
   <scheduler>
-    <resources>memory&gt;=10G/disk1&gt;=150G</resources>
+    <resources>memory&gt;=32G/disk1&gt;=250G</resources>
   </scheduler>
 
   <prepare>
@@ -41,11 +42,43 @@
         <network device="0" />
         <disk device="0" size="24" />
       </vm>
+      <vm name="5">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="6">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="7">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="8">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
     </host>
   </prepare>
 
   <testsequence>
-    <parallel workers="4">
+    <parallel workers="8">
       <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
         <arg>guest=1</arg>
       </testcase>
@@ -57,6 +90,18 @@
       </testcase>
       <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
         <arg>guest=4</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=5</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=6</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=7</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCRebootLoopNoDrivers">
+        <arg>guest=8</arg>
       </testcase>
     </parallel>
   </testsequence>

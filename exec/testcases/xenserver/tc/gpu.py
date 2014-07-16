@@ -904,21 +904,25 @@ class StartAllGPU(_GPU):
         gpucount = int(args['gpucount'])
         host = self.getDefaultHost()
 
-        pStart = [xenrt.PTask(self.startVM, xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, x))) for x in range(gpucount)]
+        pStart = [
+            xenrt.PTask(
+                self.startVM, xenrt.TEC().registry.guestGet(
+                    "%s-clone%d" % (gold, x))) for x in range(gpucount)]
         xenrt.pfarm(pStart)
-        
+
         # Let the GPU workloads run for a bit
         xenrt.sleep(5)
         for i in range(gpucount):
             vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
             vm.shutdown()
-    
+
     def startVM(self, vm):
         vm.start()
         self.assertGPURunningInVM(vm, self.vendor)
         w = vm.startGPUWorkloads()
         time.sleep(300)
         vm.checkGPUWorkloads(w)
+
 
 class TCGPUSetup(_GPU):
     def parseArgs(self, arglist):

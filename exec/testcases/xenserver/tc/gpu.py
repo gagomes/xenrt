@@ -392,33 +392,37 @@ class TC13529(_GPU):
 
 
 class TC13530(_GPU):
-    """GPU-Passthrough: Test VM can be moved between hosts with same GPU model"""
+    """
+    GPU-Passthrough: Test VM can be moved between hosts with same GPU model
+    """
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
         pool = self.getDefaultPool()
         host_pairs = self.hostsWithCommonGPUGroup(self.getGPUHosts(pool))
-        for (host0,host1) in host_pairs:
+        for (host0, host1) in host_pairs:
             if host0 == host1:
                 raise xenrt.XRTError("gpu hosts must not be the same")
-            # Assume two hosts have been previously installed with the appropriate shared SR 
+            # Assume two hosts have been previously installed with the
+            # appropriate shared SR.
             # Both hosts should have the same GPU model x
-            common_gpu_groups = self.commonGPUGroups(host0,host1)
+            common_gpu_groups = self.commonGPUGroups(host0, host1)
             defaultSR = pool.master.lookupDefaultSR()
             vm = host0.createGenericWindowsGuest(sr=defaultSR)
             self.uninstallOnCleanup(vm)
             vm.shutdown()
-            self.attachGPU(vm,common_gpu_groups[0])
-            vm.host=host0
+            self.attachGPU(vm, common_gpu_groups[0])
+            vm.host = host0
             vm.start(specifyOn=True)
             vm.shutdown()
             for i in range(5):
-                vm.host=host1
+                vm.host = host1
                 vm.start(specifyOn=True)
                 vm.shutdown()
-                vm.host=host0
+                vm.host = host0
                 vm.start(specifyOn=True)
                 vm.shutdown()
+
 
 class TC13531(_GPU):
     """GPU-Passthrough: Test move VM from host with GPU model x to host with GPU model y fails"""

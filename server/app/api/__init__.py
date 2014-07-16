@@ -82,7 +82,6 @@ class XenRTAPIPage(XenRTPage):
                               s.adminid, s.maxjobs, s.sharedresources
                        FROM tblSites s WHERE s.site = %s""",
                     site)
-        cur.execute(sql)
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -231,7 +230,7 @@ class XenRTAPIPage(XenRTPage):
         
         if param in app.constants.core_params:
             cur.execute("SELECT jobid, %s FROM tblJobs WHERE jobid in (%s)" %
-                        (param, string.join(map(str, joblist), ","))
+                        (param, string.join(map(str, joblist), ",")))
         else:
             cur.execute("SELECT jobid, value FROM tblJobDetails WHERE jobid in (%s)"
                         " AND param = %%s" %

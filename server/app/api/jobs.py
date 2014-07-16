@@ -352,14 +352,14 @@ class XenRTSubmit(XenRTJobPage):
 
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute(("INSERT INTO tbljobs (version,revision,options,"
-                     "jobstatus,userid,uploaded,removed) VALUES "
-                     "(%s,%s,%s,%s,%s,%s,%s);",
-                     (c["VERSION"], c["REVISION"], c["OPTIONS"], c["JOBSTATUS"], \
-                      c["USERID"], c["UPLOADED"], c["REMOVED"]))
+        cur.execute("INSERT INTO tbljobs (version,revision,options,"
+                    "jobstatus,userid,uploaded,removed) VALUES "
+                    "(%s,%s,%s,%s,%s,%s,%s);",
+                    (c["VERSION"], c["REVISION"], c["OPTIONS"], c["JOBSTATUS"], \
+                     c["USERID"], c["UPLOADED"], c["REMOVED"]))
 
         # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq");
+        cur.execute("SELECT last_value FROM jobid_seq")
         rc = cur.fetchone()
         id = int(rc[0])
         db.commit() # Commit to release the lock

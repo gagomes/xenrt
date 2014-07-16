@@ -591,91 +591,107 @@ class TC13533(_GPU):
 
 
 class TC13539(_GPU):
-    """GPU-Passthrough: stress test: drive a VM bound to a GPU through repeated lifecycle operations"""
+    """
+    GPU-Passthrough: stress test: drive a VM bound to a GPU
+    through repeated lifecycle operations
+    """
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
         cli = host.getCLIInstance()
 
-        #create HVM Windows VM
+        # create HVM Windows VM
         vm = host.createGenericWindowsGuest()
         self.uninstallOnCleanup(vm)
         vm.shutdown()
-        #assign a vGPU to this VM
-        gpu_group_uuids = host.minimalList("gpu-group-list") #>0 gpu hw required for this license test
-        if len(gpu_group_uuids)<1:
-            raise xenrt.XRTFailure("This pool does not contain a GPU group list as expected")
-        vgpu_uuid = cli.execute("vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (gpu_group_uuids[0],vm.getUUID())).strip()
+        # assign a vGPU to this VM
+        # >0 gpu hw required for this license test
+        gpu_group_uuids = host.minimalList("gpu-group-list")
+        if len(gpu_group_uuids) < 1:
+            raise xenrt.XRTFailure(
+                "This pool does not contain a GPU group list as expected")
+        vgpu_uuid = cli.execute(
+            "vgpu-create", "gpu-group-uuid=%s vm-uuid=%s" % (
+                gpu_group_uuids[0], vm.getUUID())).strip()
 
-        #TCStartStop,TCReboot,TCSuspendResume,TCMigrate,TCShutdown
-        for j in range(3):  
-            #start this VM
+        # TCStartStop,TCReboot,TCSuspendResume,TCMigrate,TCShutdown
+        for j in range(3):
+            # start this VM
             vm.start(specifyOn=False)
             for i in range(10):
-                #shutdown this VM
+                # shutdown this VM
                 vm.shutdown()
-                #start this VM
+                # start this VM
                 vm.start(specifyOn=False)
 
             for i in range(10):
-                #reboots this VM
+                # reboots this VM
                 vm.reboot()
 
             for i in range(1):
-                #check that suspend fails for this VM
+                # check that suspend fails for this VM
                 try:
                     vm.suspend()
-                    raise xenrt.XRTFailure("GPU-bound VM did not fail suspend as expected")
+                    raise xenrt.XRTFailure(
+                        "GPU-bound VM did not fail suspend as expected")
                 except xenrt.XRTFailure, e:
-                    xenrt.TEC().logverbose("vm-suspend failed as expected: %s" % str(e))
+                    xenrt.TEC().logverbose(
+                        "vm-suspend failed as expected: %s" % str(e))
                     pass
-                #check that resume fails for this VM
+                # check that resume fails for this VM
                 try:
                     vm.resume()
-                    raise xenrt.XRTFailure("GPU-bound VM did not fail resume as expected")
-                except xenrt.XRTFailure, e:  
-                    xenrt.TEC().logverbose("vm-resume failed as expected: %s" % str(e))
+                    raise xenrt.XRTFailure(
+                        "GPU-bound VM did not fail resume as expected")
+                except xenrt.XRTFailure, e:
+                    xenrt.TEC().logverbose(
+                        "vm-resume failed as expected: %s" % str(e))
                     pass
 
-            #check that checkpoint fails for this VM
+            # check that checkpoint fails for this VM
             try:
                 vm.checkpoint()
-                raise xenrt.XRTFailure("GPU-bound VM did not fail checkpoint as expected")
+                raise xenrt.XRTFailure(
+                    "GPU-bound VM did not fail checkpoint as expected")
             except xenrt.XRTFailure, e:
-                xenrt.TEC().logverbose("vm-checkpoint failed as expected: %s" % str(e))
+                xenrt.TEC().logverbose(
+                    "vm-checkpoint failed as expected: %s" % str(e))
                 pass
-            #check that live migrate fails for this VM
+            # check that live migrate fails for this VM
             try:
-                vm.migrateVM(host,live="true")
-                raise xenrt.XRTFailure("GPU-bound VM did not fail live migrate as expected")
+                vm.migrateVM(host, live="true")
+                raise xenrt.XRTFailure(
+                    "GPU-bound VM did not fail live migrate as expected")
             except xenrt.XRTFailure, e:
-                xenrt.TEC().logverbose("vm-migrate (live) failed as expected: %s" % str(e))
+                xenrt.TEC().logverbose(
+                    "vm-migrate (live) failed as expected: %s" % str(e))
                 pass
-            #check that 'dead' migrate fails for this VM
+            # check that 'dead' migrate fails for this VM
             try:
-                vm.migrateVM(host,live="false")
-                raise xenrt.XRTFailure("GPU-bound VM did not fail migrate as expected")
+                vm.migrateVM(host, live="false")
+                raise xenrt.XRTFailure(
+                    "GPU-bound VM did not fail migrate as expected")
             except xenrt.XRTFailure, e:
-                xenrt.TEC().logverbose("vm-migrate failed as expected: %s" % str(e))
+                xenrt.TEC().logverbose(
+                    "vm-migrate failed as expected: %s" % str(e))
                 pass
 
             snapshots = []
             for i in range(10):
-                #check that snapshot succeeds for this VM
+                # check that snapshot succeeds for this VM
                 snapshots.append(vm.snapshot())
 
             vm.shutdown()
             for i in range(10):
-                #start this VM
+                # start this VM
                 vm.start(specifyOn=False)
-                #check that snapshot succeeds for this VM
+                # check that snapshot succeeds for this VM
                 snapshots.append(vm.snapshot())
-                #check that shutdown succeeds for this VM
+                # check that shutdown succeeds for this VM
                 vm.shutdown()
 
             for uuid in snapshots:
                 vm.removeSnapshot(uuid, force=True)
-
 
 
 class TC13540(_GPU):

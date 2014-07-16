@@ -5,7 +5,7 @@
   </variables>
 
   <scheduler>
-    <resources>memory&gt;=32G/disk1&gt;=250G</resources>
+    <resources>memory&gt;=32G/disk1&gt;=300G</resources>
   </scheduler>
 
   <prepare>

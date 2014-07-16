@@ -930,7 +930,7 @@ class TCGPUSetup(_GPU):
         for a in arglist:
             (arg, value) = a.split("=", 1)
             self.args[arg] = value
-    
+
     def prepare(self, arglist):
         self.parseArgs(arglist)
         if not self.args.has_key("host"):
@@ -938,9 +938,13 @@ class TCGPUSetup(_GPU):
         self.host = self.getHost("RESOURCE_HOST_%s" % self.args['host'])
         self.guest = self.getGuest(self.args['guest'])
         if not self.guest:
-            self.guest = self.host.createBasicGuest(name=self.args['guest'], distro=self.args['distro'])
+            self.guest = self.host.createBasicGuest(
+                name=self.args['guest'], distro=self.args['distro'])
         # If we have a clean snapshot, revert to it, otherwise create one
-        snaps = self.host.minimalList("snapshot-list", "uuid", "snapshot-of=%s name-label=clean" % self.guest.uuid)
+        snaps = self.host.minimalList(
+            "snapshot-list",
+            "uuid",
+            "snapshot-of=%s name-label=clean" % self.guest.uuid)
         self.guest.setState("DOWN")
         if len(snaps) == 0:
             self.guest.snapshot("clean")

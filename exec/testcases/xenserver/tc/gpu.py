@@ -425,41 +425,52 @@ class TC13530(_GPU):
 
 
 class TC13531(_GPU):
-    """GPU-Passthrough: Test move VM from host with GPU model x to host with GPU model y fails"""
+    """
+    GPU-Passthrough: Test move VM from host with GPU model x
+    to host with GPU model y fails.
+    """
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
         pool = self.getDefaultPool()
         defaultSR = pool.master.lookupDefaultSR()
         _hosts = self.getGPUHosts(pool)
-        if len(_hosts)<2:
-            raise xenrt.XRTError("There must be at least 2 gpu hosts in the pool")
-        (host0,host1,h0_exclusive_gpu_groups) = self.hostWithExclusiveGPUGroup(_hosts)
+        if len(_hosts) < 2:
+            raise xenrt.XRTError(
+                "There must be at least 2 gpu hosts in the pool")
+        (host0, host1, h0_exclusive_gpu_groups) = (
+            self.hostWithExclusiveGPUGroup(_hosts)
+        )
+
         if host0 == host1:
             raise xenrt.XRTError("gpu hosts must not be the same")
         # Host0 should have GPU model x and Host1 should have GPU model y != x
-        
+
         vm = host0.createGenericWindowsGuest(sr=defaultSR)
         self.uninstallOnCleanup(vm)
         vm.shutdown()
-        self.attachGPU(vm,h0_exclusive_gpu_groups[0])
-        vm.host=host0
+        self.attachGPU(vm, h0_exclusive_gpu_groups[0])
+        vm.host = host0
         vm.start(specifyOn=True)
-        #check that live migrate fails for this VM
+        # check that live migrate fails for this VM
         try:
-            vm.migrateVM(host1,live="true")
+            vm.migrateVM(host1, live="true")
             raise xenrt.XRTFailure("GPU-bound VM did not fail live migrate")
         except xenrt.XRTFailure, e:
-            xenrt.TEC().logverbose("vm-migrate (live) failed as expected: %s" % str(e))
+            xenrt.TEC().logverbose(
+                "vm-migrate (live) failed as expected: %s" % str(e))
             pass
         vm.shutdown()
         try:
-            vm.host=host1
+            vm.host = host1
             vm.start(specifyOn=True)
-            raise xenrt.XRTFailure("VM bound to GPU x did not fail start on a different GPU model y")
+            raise xenrt.XRTFailure(
+                "VM bound to GPU x did not fail start"
+                " on a different GPU model y")
         except xenrt.XRTFailure, e:
             xenrt.TEC().logverbose("VM start failed as expected: %s" % str(e))
             pass
+
 
 class TC13532(_GPU):
     """GPU-Passthrough: Test move VM from host with GPU model x to host with no GPU fails"""

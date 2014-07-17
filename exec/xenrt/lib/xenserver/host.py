@@ -10975,30 +10975,54 @@ done
 
     def installNVIDIAHostDrivers(self, reboot=True):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
-        rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
+        inputDir = xenrt.TEC().lookup("INPUTDIR", default=None)
+        rel = xenrt.TEC().lookup("RELEASE", default=None)
+
+        getItFromDist = False
+
+        if inputDir and rel:
+            branch = inputDir.split("/")[-2]
+            build = inputDir.split("/")[-1]
+            url = "http://vgpubuilder.uk.xensource.com/%s/%s/vgpuhost.rpm" % (branch,build)
+            try:
+                self.execdom0("wget --directory-prefix=/tmp %s" % url)
+                data=self.execdom0("rpm -qpil /tmp/vgpuhost.rpm")
+                m=re.match(r"Name *[^:]*: (\S+)", data)
+                rpm = m.group(1)
+                self.execdom0("mv /tmp/vgpuhost.rpm /tmp/%s.rpm" % rpm)
+            except Exception, e:
+                xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
+                getItFromDist = True
+                                 
+        else:
+            getItFromDist = True
+
+        if getItFromDist:
+            rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
+
+            url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            hostRPMURL = "%s/vgpudriver/hostdriver/%s" %(url,rpm)
+            hostRPM = xenrt.TEC().getFile(hostRPMURL,hostRPMURL)
+
+            try:
+                xenrt.checkFileExists(hostRPM)
+            except:
+                raise xenrt.XRTError("Host RPM not found")
+
+            hostPath = "/tmp/%s" % (rpm)
+
+            sh = self.sftpClient()
+
+            try:
+                sh.copyTo(hostRPM,hostPath)
+            finally:
+                sh.close()
+
         xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
             return
-
-        url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-        hostRPMURL = "%s/vgpudriver/hostdriver/%s" %(url,rpm)
-        hostRPM = xenrt.TEC().getFile(hostRPMURL,hostRPMURL)
-
-        try:
-            xenrt.checkFileExists(hostRPM)
-        except:
-            raise xenrt.XRTError("Host RPM not found")
-
-        hostPath = "/tmp/%s" % (rpm)
-
-        sh = self.sftpClient()
-
-        try:
-            sh.copyTo(hostRPM,hostPath)
-        finally:
-            sh.close()
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
         if reboot:

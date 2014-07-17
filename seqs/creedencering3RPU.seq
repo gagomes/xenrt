@@ -1,7 +1,7 @@
 <xenrt>
   <!-- Rolling pool update tests -->
-  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -12,7 +12,7 @@
   <prepare>
     <pool id="0">
       <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-        <vm name="debian60">
+        <vm name="debian70">
           <distro>debian60</distro>
           <memory>128</memory>
           <vcpus>2</vcpus>

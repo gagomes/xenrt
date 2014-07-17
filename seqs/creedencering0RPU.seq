@@ -1,7 +1,7 @@
 <xenrt>
   <!-- Rolling pool update tests -->
-  <default name="OLD_PRODUCT_VERSION" value="Sanibel"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -12,7 +12,7 @@
   <prepare>
     <pool id="0">
       <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-        <vm name="debian60">
+        <vm name="debian70">
           <distro>debian60</distro>
           <memory>128</memory>
           <vcpus>2</vcpus>
@@ -20,7 +20,7 @@
           <disk device="0" size="8" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="rhel56">
+        <vm name="rhel57">
           <distro>rhel56</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
@@ -28,7 +28,7 @@
           <disk device="0" size="8" />
           <storage>nfs1</storage>
         </vm>
-        <vm name="centos56">
+        <vm name="centos57">
           <distro>centos56</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
@@ -45,8 +45,8 @@
         </vm>
       </host>
       <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
-        <vm name="ubuntu1004">
-          <distro>ubuntu1004</distro>
+        <vm name="ubuntu1204">
+          <distro>ubuntu1204</distro>
           <memory>128</memory>
           <vcpus>2</vcpus>
           <network device="0" />

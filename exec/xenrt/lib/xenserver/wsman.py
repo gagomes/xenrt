@@ -361,8 +361,10 @@ def exportWSMANVM(password = None,
     wsmanConn = wsmanConnection(password,hostIPAddr)
     connToDiskImage = connectToDiskImage(transProtocol,ssl)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
+    writexmlToFile = writeXmlToFile()
     str = '"' + "Xen:%s" % (vmuuid) + "%"+ '"'
     psScript = u"""
+    %s
     %s
     $dialect = "http://schemas.microsoft.com/wbem/wsman/1/WQL"
     $filter1 = "SELECT * FROM Xen_DiskSettingData where InstanceID like"
@@ -441,7 +443,7 @@ def exportWSMANVM(password = None,
     }
 
     
-    """ % (wsmanConn,str,connToDiskImage,disconFromDiskImage)
+    """ % (writexmlToFile,wsmanConn,str,connToDiskImage,disconFromDiskImage)
     return psScript
 
 def importWSMANVM(password = None,
@@ -456,6 +458,7 @@ def importWSMANVM(password = None,
     wsmanConn = wsmanConnection(password,hostIPAddr)
     connToDiskImage = connectToDiskImage(transProtocol,ssl)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
+    writexmlToFile = writeXmlToFile()
     vmData = '"' + "%" + "%s" % (vmuuid) + "%" + '"'
     createVM = createVMScript()
     vdiCreate = createVMVDI()
@@ -463,6 +466,7 @@ def importWSMANVM(password = None,
     
  
     psScript = u"""
+    %s
     %s
     
     $vmName = "%s"
@@ -605,7 +609,7 @@ def importWSMANVM(password = None,
     $vmUuid = $vm.Xen_ComputerSystem.Name
     $vmUuid
  
-    """ % (wsmanConn,vmName,vmData,vmRam,vmProc,createVM,storage,vdiCreate,connToDiskImage,disconFromDiskImage)
+    """ % (writexmlToFile,wsmanConn,vmName,vmData,vmRam,vmProc,createVM,storage,vdiCreate,connToDiskImage,disconFromDiskImage)
     
     return psScript
 
@@ -735,7 +739,7 @@ def connectToDiskImage(transProtocol = None,
     # Log the Cim call response for connectToDiskImage into importWSMANScriptsOutput.txt
     "Cim call response for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    $startTransfer | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    WriteXmlToFile $startTransfer | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     if ($startTransfer -ne $NULL)
     {
@@ -751,7 +755,7 @@ def connectToDiskImage(transProtocol = None,
         # Log the jobResult for connectToDiskImage into importWSMANScriptsOutput.txt
         "jobResult for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-        $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+        WriteXmlToFile $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     }
     """ % (transProtocol,ssl,endPointRef)
  
@@ -784,7 +788,7 @@ def disconnectFromDiskImage(connHandle = None):
     # Log the Cim call response for DisconnectFromDiskImageResponse into importWSMANScriptsOutput.txt
     "Cim call response for DisconnectFromDiskImageResponse" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    $output | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    WriteXmlToFile $output | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     """ % (endPointRef,connHandle)
      
     return psScript
@@ -1088,9 +1092,11 @@ def createWSMANCifsIsoSr(password = None,
     ssl = "0"
     connToDiskImage = connectToDiskImage(transProtocol,ssl)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
+    writexmlToFile = writeXmlToFile()
     attachIso  = attachISO(vmuuid)
 #    $isoFile = Get-ChildItem Q: | where {$_.Extension -eq ".iso"}
     psScript = u"""
+    %s
     %s
     %s
     $actionUri = $xenEnum
@@ -1185,7 +1191,7 @@ def createWSMANCifsIsoSr(password = None,
     }
 
     %s
-    """ % (wsmanConn,endPointRef,isoSRName,location,cifsuser,cifspassword,vdiName,vdiCreate,connToDiskImage,disconFromDiskImage,attachIso)
+    """ % (writexmlToFile,wsmanConn,endPointRef,isoSRName,location,cifsuser,cifspassword,vdiName,vdiCreate,connToDiskImage,disconFromDiskImage,attachIso)
 
     return psScript
 

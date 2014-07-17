@@ -13,7 +13,7 @@
     <pool id="0">
       <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
         <vm name="debian70">
-          <distro>debian60</distro>
+          <distro>debian70</distro>
           <memory>128</memory>
           <vcpus>2</vcpus>
           <network device="0" />
@@ -21,7 +21,7 @@
           <storage>nfs1</storage>
         </vm>
         <vm name="rhel57">
-          <distro>rhel56</distro>
+          <distro>rhel57</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
@@ -29,7 +29,7 @@
           <storage>nfs1</storage>
         </vm>
         <vm name="centos57">
-          <distro>centos56</distro>
+          <distro>centos57</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />

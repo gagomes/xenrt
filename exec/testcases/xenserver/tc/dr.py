@@ -40,7 +40,7 @@ def getSCSIID(host, iscsi_params):
 
         out = res.split('<?')
         if len(out) != 2:
-            xenrt.sleep(10)
+            xenrt.sleep(30)
             xenrt.TEC().logverbose("sr-create didn't create xml output...Retrying...")
         else:
             break;

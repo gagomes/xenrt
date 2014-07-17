@@ -702,8 +702,10 @@ def connectToDiskImage(transProtocol = None,
 
     %s
     $actionUri = $xenEnum
+    $timestamp = Get-Date -Format o
     # Log the actionUri for connectToDiskImage endpoint reference into importWSMANScriptsOutput.txt
     "Get the actionUri for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $actionUri | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     $parameters = @"
@@ -729,8 +731,10 @@ def connectToDiskImage(transProtocol = None,
 "@
 
     $startTransfer = [xml]$objSession.Invoke("ConnectToDiskImage", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
     # Log the Cim call response for connectToDiskImage into importWSMANScriptsOutput.txt
     "Cim call response for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $startTransfer | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     if ($startTransfer -ne $NULL)
@@ -743,8 +747,10 @@ def connectToDiskImage(transProtocol = None,
             sleep 3
             }
         }
+        $timestamp = Get-Date -Format o
         # Log the jobResult for connectToDiskImage into importWSMANScriptsOutput.txt
         "jobResult for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     }
     """ % (transProtocol,ssl,endPointRef)
@@ -758,8 +764,10 @@ def disconnectFromDiskImage(connHandle = None):
 
     %s
     $actionUri = $xenEnum
+    $timestamp = Get-Date -Format o
     # Log the actionUri for DisconnectFromDiskImage Call into importWSMANScriptsOutput.txt
     "actionUri for DisconnectFromDiskImage Call" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $actionUri | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     $parameters = @"
@@ -772,8 +780,10 @@ def disconnectFromDiskImage(connHandle = None):
 "@
 
     $output = [xml]$objSession.Invoke("DisconnectFromDiskImage", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
     # Log the Cim call response for DisconnectFromDiskImageResponse into importWSMANScriptsOutput.txt
     "Cim call response for DisconnectFromDiskImageResponse" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $output | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     """ % (endPointRef,connHandle)
      
@@ -1410,8 +1420,10 @@ def createVDI():
     psScript = u"""
     %s
     $actionUri = $xenEnum
+    $timestamp = Get-Date -Format o
     # Log the ActionUri for CreatingDiskImage via Xen_StoragePoolManagementService into importWSMANScriptsOutput.txt
     "ActionUri for CreatingDiskImage via Xen_StoragePoolManagementService" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $actionUri | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $parameters = @"
         <CreateDiskImage_INPUT
@@ -1436,8 +1448,10 @@ def createVDI():
 
     # $objSession.Get($actionURI)
     $output = [xml]$objSession.Invoke("CreateDiskImage", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
     # Log the cim call response for CreatingDiskImage into importWSMANScriptsOutput.txt
     "Cim call response for CreatingDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $output | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $createVdiResult = $output
     if ($createVdiResult -ne $NULL)
@@ -1451,8 +1465,10 @@ def createVDI():
                 sleep 1
             }
         }
+        $timestamp = Get-Date -Format o
         # Log the Job Result for CreatingDiskImage into importWSMANScriptsOutput.txt
         "Job Result of CreateDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     }
 
@@ -3101,6 +3117,8 @@ def exportWSMANSnapshotTree(password = None,
     $actionURI = $xenEnum
     # Log the actionURI for Xen_VirtualSystemSnapshotService into file exportWSMANScriptsOutput.txt
     "actionURI for Xen_VirtualSystemSnapshotService :" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp = Get-Date -Format o
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     $scriptOutput = [xml]$actionURI
     WriteXmlToFile $scriptOutput | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
@@ -3113,11 +3131,13 @@ def exportWSMANSnapshotTree(password = None,
     $parameters = %s
 
     $startExport = $objSession.Invoke("StartSnapshotForestExport", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
     "StartSnapshotForestExport" | Out-File $exportOutput
     $startExport | Out-File $exportOutput -Append
     $startExport = [xml]$startExport
     # Log the Cim call response for StartSnapshotForestExport into file exportWSMANScriptsOutput.txt
     "Cim call response for StartSnapshotForestExport :" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $startExport | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     # Check for Job Status
@@ -3138,8 +3158,10 @@ def exportWSMANSnapshotTree(password = None,
         $jobResult | Out-File $exportOutput -Append
         $jobResult = [xml]$jobResult
     }
+    $timestamp = Get-Date -Format o
     # Log the Job Status for StartSnapshotForestExport into file exportWSMANScriptsOutput.txt
     "Job Status for StartSnapshotForestExport :" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $jobResult | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     $connectionHandle = $jobResult.Xen_StartSnapshotForestExportJob.ExportConnectionHandle
@@ -3152,17 +3174,21 @@ def exportWSMANSnapshotTree(password = None,
     # Download the Metadata file (this is an HTTP file download)
     $downloadClient = New-Object System.Net.WebClient
     $result = $downloadClient.DownloadFile($metadataUri,($downloadPath + "export.xva"))
+    $timestamp = Get-Date -Format o
     # Log the metadata file download result into file exportWSMANScriptsOutput.txt
     "Check the metadata file download is done" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     $result | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     # Capture the virtual disk image URIs to pass to BITS
     $vDisksToDownload = @()
     $vDisksToDownload = $jobResult.Xen_StartSnapshotForestExportJob.DiskImageURIs
+    $timestamp = Get-Date -Format o
     "The URIs for the disks that will be downloaded" | Out-File $exportOutput -Append
     $vDisksToDownload | Out-File $exportOutput -Append
     # Log the URIs for the disks that will be downloaded into file exportWSMANScriptsOutput.txt
     "The URIs for the disks that will be downloaded" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     $vDisksToDownload | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     # download each disk one at a time
@@ -3172,8 +3198,10 @@ def exportWSMANSnapshotTree(password = None,
         $destination = $downloadPath + $file
 
         $transferJob = Start-BitsTransfer -Source $element -destination $destination -DisplayName SnapshotDiskExport -asynchronous
+        $timestamp = Get-Date -Format o
         # Log the transferJob status for BitsTransfer into file exportWSMANScriptsOutput.txt
         "Transfer job status for BitsTransfer of disks" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
         $transferJob | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
         "-Source $element -destination $destination" | Out-File $exportOutput -Append
 
@@ -3201,8 +3229,10 @@ def exportWSMANSnapshotTree(password = None,
                     Remove-BitsTransfer $transferJob
                     }
             }
+            $timestamp = Get-Date -Format o
             # Log the transferJob status for BitsTransfer after completion into file exportWSMANScriptsOutput.txt
             "Transfer job status for BitsTransfer of disks after completion" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
             $transferJob | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     }
 
@@ -3218,10 +3248,12 @@ def exportWSMANSnapshotTree(password = None,
 
     # $objSession.Get($actionURI)
     $endExport = $objSession.Invoke("EndSnapshotForestExport", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
     $endExport | Out-File $exportOutput -Append
     $endExport = [xml]$endExport
     # Log the Cim call response for EndSnapshotForestExport into file exportWSMANScriptsOutput.txt
     "Cim call response for EndSnapshotForestExport :" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $endExport | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     # Check for Job Status
@@ -3233,8 +3265,10 @@ def exportWSMANSnapshotTree(password = None,
         sleep 3
         }
     }
+    $timestamp = Get-Date -Format o
     # Log the jobResult for EndSnapshotForestExport into file exportWSMANScriptsOutput.txt
     "jobResult for EndSnapshotForestExport" | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $jobResult | Out-File "c:\exportWSMANScriptsOutput.txt" -Append
 
     """ % (writexmlToFile,wsmanConn,endPointRef,vmuuid,driveName,startSnapahotForestExport)
@@ -3269,8 +3303,10 @@ def importWSMANSnapshotTree(password = None,
     $filter1 = "SELECT * FROM Xen_StoragePool where Name like "
     $filter = $filter1 + '"' + "%s" + '"'
     $xenEnum = $objSession.Enumerate("http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_StoragePool", $filter, $dialect)
+    $timestamp = Get-Date -Format o
     # Log the Response from WQL filters for storage into importWSMANScriptsOutput.txt
     "Response from WQL filters for storage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $xenEnum | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $localSr = [xml]$xenEnum.ReadItem()
 
@@ -3285,8 +3321,10 @@ def importWSMANSnapshotTree(password = None,
 
 
     $importFiles = Get-ChildItem $downloadPath
+    $timestamp = Get-Date -Format o
     # Log the Files which are going to be downloaded into importWSMANScriptsOutput.txt
     "Files which are going to be downloaded" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $importFiles | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     "0 - The items found in the import folder" | Out-File $importOutput   # note -append nor -noclobber is used, thus the file is reset
     $importFiles | Out-File -append $importOutput
@@ -3297,10 +3335,12 @@ def importWSMANSnapshotTree(password = None,
             %s
             $createMetadataVdi = $createVdiResult 
             $metadataVdi = $objSession.Get($createMetadataVdi.CreateDiskImage_OUTPUT.ResultingDiskImage.outerxml)
+            $timestamp = Get-Date -Format o
             $metadataVdi | Out-File -append $importOutput
             $metaDataVdi = [xml]$metaDataVdi
             # Log the metadataVdis details into importWSMANScriptsOutput.txt
             "Get the metadataVdi details" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             WriteXmlToFile $metaDataVdi | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             $vdi = $metaDataVdi
             # Copy the export.xva to the VDI endpoint
@@ -3310,10 +3350,12 @@ def importWSMANSnapshotTree(password = None,
             $source =  $downloadPath + $element.Name
             # This is a RAW file copy using BITS as the transport
             $transferJob = Start-BitsTransfer -Source $source -destination $transferVm.Xen_ConnectToDiskImageJob.TargetURI -DisplayName ImportSnapshotTreeMetadataUpload -TransferType Upload -Asynchronous
+            $timestamp = Get-Date -Format o
             "-Source " + $source + " -destination " + $transferVm.Xen_ConnectToDiskImageJob.TargetURI | Out-File -append $importOutput
             
             # Log the Cim call response on RAW file copy using BITS into importWSMANScriptsOutput.txt
             "Cim call response on RAW file copy using BITS" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             $transferJob | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
             while (($transferJob.JobState -eq "Transferring") -or ($transferJob.JobState -eq "Connecting"))
@@ -3340,8 +3382,10 @@ def importWSMANSnapshotTree(password = None,
                     Remove-BitsTransfer $transferJob
                     }
             }
+            $timestamp = Get-Date -Format o
             # Log the Transfer Job Status for RAW file into importWSMANScriptsOutput.txt
             "Transfer Job Status for RAW file" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             $transferJob | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             
             $connectionHandle = $transferVm.Xen_ConnectToDiskImageJob.ConnectionHandle
@@ -3354,8 +3398,10 @@ def importWSMANSnapshotTree(password = None,
                 $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                 sleep 10
             }
+            $timestamp = Get-Date -Format o
             # Log the jobResult for DisconnectFromDiskImage into importWSMANScriptsOutput.txt
             "jobResult for DisconnectFromDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
             WriteXmlToFile $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         }
     }
@@ -3368,8 +3414,10 @@ def importWSMANSnapshotTree(password = None,
 
     %s
     $actURI = $xenEnum
+    $timestamp = Get-Date -Format o
     # Log the actionURI for endpoint reference into importWSMANScriptsOutput.txt
     "actionURI for endpoint reference" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $actURI | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     
 
@@ -3396,11 +3444,13 @@ def importWSMANSnapshotTree(password = None,
 "@
 
     $prepareImport = $objSession.Invoke("PrepareSnapshotForestImport", $actURI, $parameters)
+    $timestamp = Get-Date -Format o
     "PrepareImport" | Out-File -append $importOutput
     $prepareImport  | Out-File -append $importOutput
     $prepareImport = [xml]$prepareImport
     # Log the Cim call response for PrepareSnapshotForestImport into importWSMANScriptsOutput.txt
     "Cim call response for PrepareSnapshotForestImport" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $prepareImport | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     # Start the Import
@@ -3437,11 +3487,13 @@ def importWSMANSnapshotTree(password = None,
 "@
 
         $diskImport = $objSession.Invoke("CreateNextDiskInImportSequence", $actURI, $parameters)
+        $timestamp = Get-Date -Format o
         "DiskImport" | Out-File -append $importOutput
         $diskImport  | Out-File -append $importOutput
         $diskImport = [xml]$diskImport
         # Log the Cim call response for CreateNextDiskInImportSequence into importWSMANScriptsOutput.txt
         "Cim call response for CreateNextDiskInImportSequence" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         WriteXmlToFile $diskImport | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     #    $diskImport.CreateNextDiskInImportSequence_OUTPUT
@@ -3456,12 +3508,14 @@ def importWSMANSnapshotTree(password = None,
                 if ($element.Name -match $diskToImport) {
 
                     $newVdi = $objSession.Get($diskImport.CreateNextDiskInImportSequence_OUTPUT.NewDiskImage.outerxml)
+                    $timestamp = Get-Date -Format o
                     "DiskImportNewVdi" | Out-File -append $importOutput
                     $newVdi  | Out-File -append $importOutput
                     $newVdi = [xml]$newVdi
                     $vdi = $newVdi
                     # Log the vdi information to be import into importWSMANScriptsOutput.txt
                     "vdi information to be import" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+                    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     WriteXmlToFile $vdi | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     %s
                     $transferVM = $jobResult
@@ -3476,10 +3530,12 @@ def importWSMANSnapshotTree(password = None,
 
 
                     $transferJob = Start-BitsTransfer -Source $source -destination $destination -DisplayName ImportSnapshotVirtualDiskUpload -TransferType Upload -Asynchronous
+                    $timestamp = Get-Date -Format o
                     "DiskImportTransferJob" | Out-File -append $importOutput
                     $transferJob  | Out-File -append $importOutput
                     # Log the transferJob for ImportSnapshotVirtualDiskUpload into importWSMANScriptsOutput.txt
                     "transferJob for ImportSnapshotVirtualDiskUpload" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+                    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     $transferJob | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
                     while (($transferJob.JobState -eq "Transferring") -or ($transferJob.JobState -eq "Connecting"))
@@ -3506,8 +3562,10 @@ def importWSMANSnapshotTree(password = None,
                             Remove-BitsTransfer $transferJob
                             }
                     }
+                    $timestamp = Get-Date -Format o
                     # Log the transferJob status for ImportSnapshotVirtualDiskUpload into importWSMANScriptsOutput.txt
                     "transferJob status for ImportSnapshotVirtualDiskUpload" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+                    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     $transferJob | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     $connectionHandle = $transferVm.Xen_ConnectToDiskImageJob.ConnectionHandle
                     %s
@@ -3519,8 +3577,10 @@ def importWSMANSnapshotTree(password = None,
                         $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                         sleep 3
                     }
+                    $timestamp = Get-Date -Format o
                     # Log the jobResult for DisconnectFromDiskImage into importWSMANScriptsOutput.txt
                     "jobResult for DisconnectFromDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+                    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                     $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
                 }
             }
@@ -3564,19 +3624,23 @@ def importWSMANSnapshotTree(password = None,
 "@
 
     $importFinalize = $objSession.Invoke("FinalizeSnapshotForestImport", $actURI, $parameters)
+    $timestamp = Get-Date -Format o
     "ImportFinalize" | Out-File -append $importOutput
     $importFinalize  | Out-File -append $importOutput
     $importFinalize = [xml]$importFinalize
     # Log the Cim call response for FinalizeSnapshotForestImport into importWSMANScriptsOutput.txt
     "Cim call response for FinalizeSnapshotForestImport" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $importFinalize | Out-File "c:\importWSMANScriptsOutput.txt" -Append
 
     # Get the imported VM back to pass back out
     $vmImportResult = [xml]$objSession.Get($importFinalize.FinalizeSnapshotForestImport_OUTPUT.VirtualSystem.outerxml)
+    $timestamp = Get-Date -Format o
     "VmImportResult" | Out-File -append $importOutput
     $vmImportResult  | Out-File -append $importOutput
     # Log the ImportVM details into importWSMANScriptsOutput.txt
     "ImportVM details" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     WriteXmlToFile $vmImportResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     $vmImportResult.Xen_ComputerSystem.Name
 

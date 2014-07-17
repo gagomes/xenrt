@@ -234,7 +234,7 @@ class _VMScalability(_Scalability):
         
         if self.pri_bridge == False:
             self.pri_bridge = host.getPrimaryBridge()
-        if self.FLOW_EVT_THRESHOLD:
+        if self.FLOW_EVT_THRESHOLD and xenrt.TEC().lookup("NETWORK_BACKEND", None) != "bridge":
             host.execdom0("ovs-vsctl set bridge %s other-config:flow-eviction-threshold=%u" % (self.pri_bridge,self.FLOW_EVT_THRESHOLD))
         
         if not self.VIFS and not self.CHECKREACHABLE:

@@ -1,5 +1,5 @@
 from xml.dom.minidom import parse, parseString
-import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subprocess, hashlib, binascii
+import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subprocess, hashlib, binascii, traceback
 import xenrt, xenrt.lib.xenserver
 from M2Crypto import BIO, RSA, EVP, m2
 import socket
@@ -147,15 +147,22 @@ class TXTCommand:
             output = session.xenapi.host.call_plugin(hostRef, self.__PLUGIN_NAME, command, args)
             return output
         except:
+            traceback.print_exc(file=sys.stderr)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+
             xenrt.TEC().logverbose("HostRef: %s, Plugin: %s, Command: %s Args: %s" % (hostRef, self.__PLUGIN_NAME, command, str(args)))
             hostName = session.xenapi.host.get_record(hostRef)['hostname']
-            host = xenrt.TEC().registry.hostGet(hostName)
-            if host is not None:
+            hosts = xenrt.TEC().registry.hostFind(hostName)
+            if len(hosts) > 0:
+                host = hosts[0]
                 xenrt.TEC().logverbose(host.execdom0("find /etc/xapi.d/plugins -name tpm"))
                 xenrt.TEC().logverbose("Host is %s" % hostName)
+                m = re.search('xentpm\[[0-9]*\]', str(exc_value))
+                if m:
+                    xenrt.TEC().logverbose(host.execdom0("grep -F '%s' /var/log/messages" % m.group(0)))
             else:
                 xenrt.TEC().logverbose("Hostname not found")
-            raise xenrt.XRTFailure("Could not find TXT command %s on host" % command)
+            raise
 
     def __logDebug(self, *message):
         if self.__DEBUG:

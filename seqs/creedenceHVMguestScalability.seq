@@ -2,7 +2,7 @@
 
   <!-- HVM Guests scalability test sequence -->
   
-  <default name="HOST_FORCE_CLEANUP" value="False"/>    <!-- True|False  Force host cleanup, to save time. This is recommended only in nightly. Not recommended for regression suites -->
+  <default name="POSTRUN_CLEANUP" value="cleanup"/>    <!-- nocleanup|cleanup|forcecleanup -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -25,13 +25,13 @@
   <testsequence group="VMScale">
     <testcase id="xenserver.tc.scalability.TC7336">
         <arg>max=300</arg> <!--  Maximum possible stable HVM VMs with default settings  -->
-        <arg>noPostrun=true</arg>
+        <arg>postrun=nocleanup</arg>
     </testcase>
     <!--  Keep the below test to the last of any test sequence, as it update the host, which is not reverted in PostRun action-->
     <testcase id="xenserver.tc.scalability.TC19271">
         <arg>max=500</arg> <!--  Maximum possible HVM VMs with some tweak -->
         <arg>dom0mem=8192</arg>
-        <arg>forcecleanup=${HOST_FORCE_CLEANUP}</arg> 
+        <arg>postrun=${POSTRUN_CLEANUP}</arg>
     </testcase>
   </testsequence>
 </xenrt>

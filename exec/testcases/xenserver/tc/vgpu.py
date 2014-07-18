@@ -1051,7 +1051,7 @@ class _VGPUStressTest(_VGPUBenchmarkTest):
         super(_VGPUStressTest, self).run(arglist)
 
 class _VGPUScalabilityTest(_VGPUBenchmarkTest):
-    __ONE_DAY_SECS = 60 * 60 * 24
+    __ONE_DAY_SECS = 60 * 60
     __PAUSE_BETWEEN_REBOOTS_SECS = 60
     CAPACITY_THROTTLE = 0
       

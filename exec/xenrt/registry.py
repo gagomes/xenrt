@@ -124,6 +124,15 @@ class Registry:
         if not self.data.has_key("/xenrt/specific/hostlist"):
             return []
         return self.data["/xenrt/specific/hostlist"]
+
+    def hostFind(self, hostName):
+        hosts = self.hostList()
+        found = []
+        for host in hosts:
+            possibleHost = self.hostGet(host)
+            if hostName == possibleHost.getName():
+                found.append(possibleHost)
+        return found
     
     def guestLookup(self, vcpus=None, 
                           memory=None,

@@ -867,24 +867,30 @@ class _VGPUOwnedVMsTest(_VGPUTest):
 
             self._requiredEnvironments = self.randomGuestFromSelection(capacity)
 
-        step("Create %d required guests" % len(self._requiredEnvironments))
-        for requiredEnv in self._requiredEnvironments:
-            step("Create a %s guest" % self.getOSType(requiredEnv))
-            guest = self._createGuests(self.host, requiredEnv)
-            guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
-            step("Set VNC enabled to %s" % str(self.__vncEnabled))
-            guest.setVGPUVNCActive(self.__vncEnabled)
-            guest.snapshot(self.SNAPSHOT_PREVGPU)
-            step("Configure vGPU")
-            self.configureVGPU(guest)
-            xenrt.sleep(10) # Give some time to settle vGPU down.
-            if (guest.getState() != "UP"):
-                guest.start()
+        step("Create Master guests")
+        guest = self._createGuests(self.host, self._requiredEnvironments[0])
+        guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
+        step("Set VNC enabled to %s" % str(self.__vncEnabled))
+        guest.setVGPUVNCActive(self.__vncEnabled)
+        guest.snapshot(self.SNAPSHOT_PREVGPU)
+        step("Configure vGPU")
+        self.configureVGPU(guest)
+        xenrt.sleep(10) # Give some time to settle vGPU down.
+        if (guest.getState() != "UP"):
+            guest.start()
             guest.snapshot(self.SNAPSHOT_PRE_GUEST_DRIVERS)   
             step("Install guest drivers for %s" % str(guest))
             self.installGuestDrivers(guest)
             guest.snapshot(self.SNAPSHOT_POST_GUEST_DRIVERS) 
+            self._guestsAndTypes.append((guest, self._requiredEnvironments[0]))
+
+        step("Create %d required guests" % len(self._requiredEnvironments))
+        for i, requiredEnv in enumerate(self._requiredEnvironments):
+            if i == 0 :
+                continue
+            guest = self._createGuests(self.host, requiredEnv)
             self._guestsAndTypes.append((guest, requiredEnv))
+
 
         log("Created guests: %s" % str(self._guestsAndTypes))
 

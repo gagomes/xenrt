@@ -10988,7 +10988,7 @@ done
                 self.execdom0("wget --directory-prefix=/tmp %s" % url)
                 data=self.execdom0("rpm -qpil /tmp/vgpuhost.rpm")
                 m=re.match(r"Name *[^:]*: (\S+)", data)
-                rpm = m.group(1)
+                rpm = m.group(1) + '.rpm'
                 self.execdom0("mv /tmp/vgpuhost.rpm /tmp/%s.rpm" % rpm)
             except Exception, e:
                 xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
@@ -11018,7 +11018,7 @@ done
             finally:
                 sh.close()
 
-        xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
+        xenrt.TEC().logverbose("Installing Host driver: %s" % rpm)
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")

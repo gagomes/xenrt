@@ -448,10 +448,15 @@ class _WSMANProtocol(_CIMInterface):
     def copyVM(self,origVMName,copyVMName):
 
         psScript =  xenrt.lib.xenserver.copyWSMANVM(self.hostPassword,self.hostIPAddr,origVMName,copyVMName)
-        ret = self.psExecution(psScript,timeout = 3600)
-        vm = ret.splitlines()[2]
-        xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
-        return vm
+        try:
+            ret = self.psExecution(psScript,timeout = 3600)
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            vm = ret.splitlines()[2]
+            xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
+            return vm
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
  
     def createCIFSISO(self,targetHost,isoSRName,vdiName,vmuuid,sharename,cifsGuest,host):
       

@@ -984,10 +984,12 @@ def copyWSMANVM(password = None,
     storage = "%Local storage%"
     sourceVMName = '"' + "%" + "%s" % (origVMName)+ "%" + '"'
     endPointRef = endPointReference("Xen_VirtualSystemManagementService")
+    writexmlToFile = writeXmlToFile()
     vm = '"' + "%" + "%s" % (copiedVMName)+ "%" + '"'
     jobName = '"' + "%" + "$jobVmName" + "%" + '"'
 
     psScript = u"""
+    %s
     %s
     $newVmName = "%s"
     $dialect = "http://schemas.microsoft.com/wbem/wsman/1/WQL"  # This is used for all WQL filters
@@ -1006,6 +1008,11 @@ def copyWSMANVM(password = None,
 
     %s
     $actionUri = $xenEnum
+    $timestamp = Get-Date -Format o
+    "Action URI for copyvm CIM call" | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+    $scriptOutput = [xml]$actionUri
+    WriteXmlToFile $scriptOutput | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
 
     $parameters = @"
     <CopySystem_INPUT
@@ -1044,6 +1051,10 @@ def copyWSMANVM(password = None,
 "@
 
     $output = [xml]$objSession.Invoke("CopySystem", $actionURI, $parameters)
+    $timestamp = Get-Date -Format o
+    "CIM call response for CopySystem" | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+    WriteXmlToFile $output | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
  
     sleep 10
     $createVmResult = $output
@@ -1056,6 +1067,11 @@ def copyWSMANVM(password = None,
             $jobPercentComplete = $jobresult.Xen_VirtualSystemCreateJob.PercentComplete
             sleep 3
         }
+        $timestamp = Get-Date -Format o
+        "jobResult for CopySystem" | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+        WriteXmlToFile $jobResult | Out-File "c:\copyVMWSMANScriptsOutput.txt" -Append
+        
         # query for the new VM
         $jobVmName = $jobresult.Xen_VirtualSystemCreateJob.ElementName
         $filter1 = "SELECT * FROM Xen_ComputerSystem where ElementName like "
@@ -1072,7 +1088,7 @@ def copyWSMANVM(password = None,
     }
     $vmUuid
 
-    """ % (wsmanConn,copiedVMName,sourceVMName,storage,endPointRef,jobName,vm)
+    """ % (writexmlToFile,wsmanConn,copiedVMName,sourceVMName,storage,endPointRef,jobName,vm)
 
     return psScript 
 

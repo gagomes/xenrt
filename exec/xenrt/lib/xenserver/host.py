@@ -10988,8 +10988,9 @@ done
                 self.execdom0("wget --directory-prefix=/tmp %s" % url)
                 data=self.execdom0("rpm -qpil /tmp/vgpuhost.rpm")
                 m=re.match(r"Name *[^:]*: (\S+)", data)
-                rpm = m.group(1) + '.rpm'
+                rpm = m.group(1)
                 self.execdom0("mv /tmp/vgpuhost.rpm /tmp/%s.rpm" % rpm)
+                rpm = rpm + '.rpm'
             except Exception, e:
                 xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
                 getItFromDist = True

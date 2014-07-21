@@ -1686,7 +1686,7 @@ class DestSesDownDuringMig(MidMigrateFailure):
        
 class InsuffSpaceDestSR(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated
-    # Destination SR will have somewhere between 50 GB and 100GB specified in the suite file and since the VM has got 55GB of disk migration should fail
+    # Destination SR will have somewhere between 200 GB and 225GB specified in the suite file and since the VM has got 220GB of disk migration should fail
 
     def preHook(self):
 
@@ -1694,7 +1694,7 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm = self.guests[0]
         device = vm.listDiskDevices()[0]
         vm.shutdown()
-        vm.resizeDisk(device,56320)
+        vm.resizeDisk(device,225280)
         vm.start()
 
 class LargeDiskWin(LiveMigrate):

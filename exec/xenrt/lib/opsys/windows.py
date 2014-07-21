@@ -1138,7 +1138,7 @@ class WindowsOS(OS):
 
     def _xenstore(self, operation, path, data=None):
         """Perform a xenstore operation"""
-        assert(operation in ["read", "write", "dir", "remove"], "Unknown xenstore operation %s" % operation)
+        xenrt.xrtAssert(operation in ["read", "write", "dir", "remove"], "Unknown xenstore operation %s" % operation)
 
         # First find the xenstore_client.exe binary
         if self.getArch() == "amd64":

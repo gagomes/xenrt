@@ -2737,7 +2737,7 @@ class Config:
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
        
        # Burglarbill: sm. Rolls up XS60E003, XS60E004, XS60E016, XS60E017, XS60E022, XS60E027, XS60E030
-        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"] = "/usr/groups/build/boston-lcm/86305/hotfix-XS60E038/XS60E038.xsupdate"
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E038/86305/hotfix-XS60E038/XS60E038.xsupdate"
        
        
        
@@ -2834,7 +2834,7 @@ class Config:
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E033/84969/hotfix-XS602E033/XS602E033.xsupdate"
         
         #Burglarbill : sm. Rolls up XS602E001, XS602E003, XS602E004, XS602E005, XS602E007, XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E0030, XS602E032, XS602E033
-        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/build/sanibel-lcm/86306/hotfix-XS602E034/XS602E034.xsupdate"
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E034/86306/hotfix-XS602E034/XS602E034.xsupdate"
         
       
       
@@ -2954,7 +2954,7 @@ class Config:
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E039/84261/hotfix-XS61E039/XS61E039.xsupdate"
         
         # Burglarbill: sm. Rolls up XS61E001, XS61E007, XS61E015, XS61E034
-        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"] = "/usr/groups/build/tampa-lcm/86307/hotfix-XS61E040/XS61E040.xsupdate"
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E040/86307/hotfix-XS61E040/XS61E040.xsupdate"
       
       
       
@@ -2988,7 +2988,7 @@ class Config:
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
         
         # Burglarbill - sm, blktap . Rolls up nothing. 
-        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/build/sweeney-lcm/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC010/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
       
       
       
@@ -3035,7 +3035,7 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E015/83715/hotfix-XS62E015/XS62E015.xsupdate"
         
         # Burglarbill: sm, blktap . Rools up XS62E011
-        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/build/clearwater-lcm/85780/hotfix-XS62E016/XS62E016.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E016/85780/hotfix-XS62E016/XS62E016.xsupdate"
 
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
@@ -3057,7 +3057,7 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1006/85395/hotfix-XS62ESP1006/XS62ESP1006.xsupdate"
         
         # Burglarbill - sm, blktap. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62E014
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/build/clearwater-sp1-lcm/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1007/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
 
 
 

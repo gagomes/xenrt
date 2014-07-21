@@ -3477,7 +3477,10 @@ DHCPServer = 1
         if not url:
             return False
         try:
-            if not distro.startswith("centos"):
+            # All versions of CentOS and RHEL7+ don't have Server in the repo path
+            if distro.startswith("centos") or distro.startswith("rhel7") or distro.startswith("oel7"):
+                pass
+            else:
                 url = os.path.join(url, 'Server')
             try:
                 # Try to rename the files to .orig. This could fail if they don't exist
@@ -5190,6 +5193,7 @@ class GenericHost(GenericPlace):
         if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
             pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
             pxecfg.linuxArgsKernelAdd("biosdevname=0")
+            pxecfg.linuxArgsKernelAdd("net.ifnames=0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
             if re.search(r"(rhel|oel|centos)6", distro):

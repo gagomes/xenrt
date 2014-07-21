@@ -1551,6 +1551,7 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel64_x86-64"] = "Red Hat Enterprise Linux 6.4 (64-bit)"
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel7_x86-64"] = "Other (64-bit)"
 
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-32"] = "CentOS 4.3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-64"] = "CentOS 4.3 (64-bit)"

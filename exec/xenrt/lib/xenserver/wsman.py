@@ -356,10 +356,13 @@ def exportWSMANVM(password = None,
                   hostIPAddr = None,
                   vmuuid = None,
                   transProtocol = None,
-                  ssl = None):
+                  ssl = None,
+                  static_ip = None,
+                  mask = None,
+                  gateway = None):
 
     wsmanConn = wsmanConnection(password,hostIPAddr)
-    connToDiskImage = connectToDiskImage(transProtocol,ssl)
+    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
     writexmlToFile = writeXmlToFile()
     str = '"' + "Xen:%s" % (vmuuid) + "%"+ '"'
@@ -453,10 +456,13 @@ def importWSMANVM(password = None,
                   ssl = None,
                   vmName = None,
                   vmProc = None,
-                  vmRam = None):
+                  vmRam = None,
+                  static_ip = None,
+                  mask = None,
+                  gateway = None):
 
     wsmanConn = wsmanConnection(password,hostIPAddr)
-    connToDiskImage = connectToDiskImage(transProtocol,ssl)
+    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
     writexmlToFile = writeXmlToFile()
     vmData = '"' + "%" + "%s" % (vmuuid) + "%" + '"'
@@ -689,8 +695,68 @@ def enumClassFilter(cimClass = None):
 
     return psScript
 
-def connectToDiskImage(transProtocol = None, 
+def connectToDiskImage(transProtocol = None,
                        ssl = None):
+    
+    endPointRef = endPointReference("Xen_StoragePoolManagementService")
+    psScript = u"""
+    if ($vdi.GetType().Name -ne "XmlDocument") {
+        $vdi = [xml]$vdi
+    }
+    $protocol = "%s"
+    $ssl = "%s"
+    $DeviceID = $vdi.Xen_DiskImage.DeviceID
+    $CreationClassName = $vdi.Xen_DiskImage.CreationClassName
+    $SystemCreationClassName = $vdi.Xen_DiskImage.SystemCreationClassName
+    $SystemName = $vdi.Xen_DiskImage.SystemName
+
+    %s
+    $actionUri = $xenEnum
+    
+    $parameters = @"
+    <ConnectToDiskImage_INPUT
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns="http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_StoragePoolManagementService">
+            <DiskImage xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:wsman="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+                <wsa:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</wsa:Address>
+                <wsa:ReferenceParameters>
+                <wsman:ResourceURI>http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_DiskImage</wsman:ResourceURI>
+                <wsman:SelectorSet>
+                        <wsman:Selector Name="DeviceID">$DeviceID</wsman:Selector>
+                        <wsman:Selector Name="CreationClassName">$CreationClassName</wsman:Selector>
+                        <wsman:Selector Name="SystemCreationClassName">$SystemCreationClassName</wsman:Selector>
+                        <wsman:Selector Name="SystemName">$SystemName</wsman:Selector>
+                </wsman:SelectorSet>
+                </wsa:ReferenceParameters>
+            </DiskImage>
+            <Protocol>$protocol</Protocol>
+            <UseSSL>$ssl</UseSSL>
+    </ConnectToDiskImage_INPUT>
+"@
+
+    $startTransfer = [xml]$objSession.Invoke("ConnectToDiskImage", $actionURI, $parameters)
+    
+    if ($startTransfer -ne $NULL)
+    {
+        if ($startTransfer.RequestStateChange_OUTPUT.ReturnValue -ne 0) {
+        $jobPercentComplete = 0
+        while ($jobPercentComplete -ne 100) {
+            $jobResult = [xml]$objSession.Get($startTransfer.ConnectToDiskImage_OUTPUT.job.outerxml)
+            $jobPercentComplete = $jobResult.Xen_ConnectToDiskImageJob.PercentComplete
+            sleep 3
+            }
+        }
+    }
+    """ % (transProtocol,ssl,endPointRef)
+ 
+    return psScript
+
+def connectToDiskImageWithStaticIP(transProtocol = None, 
+                                   ssl = None,
+                                   static_ip = None,
+                                   mask = None,
+                                   gateway = None):
 
     endPointRef = endPointReference("Xen_StoragePoolManagementService")
     psScript = u"""
@@ -717,6 +783,9 @@ def connectToDiskImage(transProtocol = None,
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     xmlns="http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_StoragePoolManagementService">
+            <NetworkConfiguration>%s</NetworkConfiguration>
+            <NetworkConfiguration>%s</NetworkConfiguration>
+            <NetworkConfiguration>%s</NetworkConfiguration>
             <DiskImage xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:wsman="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
                 <wsa:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</wsa:Address>
                 <wsa:ReferenceParameters>
@@ -757,7 +826,7 @@ def connectToDiskImage(transProtocol = None,
         $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
         WriteXmlToFile $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
     }
-    """ % (transProtocol,ssl,endPointRef)
+    """ % (transProtocol,ssl,endPointRef,static_ip,mask,gateway)
  
     return psScript
 
@@ -3301,14 +3370,17 @@ def importWSMANSnapshotTree(password = None,
                             hostIPAddr = None,
                             driveName = None,
                             transProtocol = None,
-                            ssl = None):
+                            ssl = None,
+                            static_ip = None,
+                            mask = None,
+                            gateway = None):
 
     wsmanConn = wsmanConnection(password,hostIPAddr)
     endPointRef = endPointReference("Xen_VirtualSystemSnapshotService")
     storage = "%Local storage%"
-    connToDiskImage = connectToDiskImage(transProtocol,ssl)
+    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway)
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
-    vdiCreate = createVDI() 
+    vdiCreate = createVDI()
     writexmlToFile = writeXmlToFile()
     vdiName = "vdi_importSnapshotTree"
 

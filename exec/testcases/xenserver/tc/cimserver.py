@@ -388,10 +388,14 @@ class _WSMANProtocol(_CIMInterface):
     def exportVM(self,vmuuid,transProtocol,ssl):
 
         self.createSharedDirectory()
-        #Export vm
-        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Export vm
+        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
         self.psExecution(psScript,timeout = 40000)
-        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))         
+        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
         
@@ -431,7 +435,12 @@ class _WSMANProtocol(_CIMInterface):
  
     def importVM(self,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam):
 
-        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # import VM
+        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 20000)
         vm = ret.splitlines()[2]
         xenrt.TEC().logverbose("VM %s imported" % (vm))
@@ -761,7 +770,12 @@ class _WSMANProtocol(_CIMInterface):
     def importVMSnapshotTree(self,transProtocol,ssl):
 
         driveName = "Q:\\"
-        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Import VMSnapshotTree
+        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl,static_ip,mask,gateway)
         
         try:
             ret = self.psExecution(psScript,timeout = 30000)

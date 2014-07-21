@@ -4,7 +4,7 @@
 include build/config.mk
 include build/tools.mk
 
-LINUX_ISOS_INPLACE_LIST	= $(shell ls $(LINUX_ISOS))
+LINUX_ISOS_INPLACE_LIST	= $(shell ls $(LINUX_ISOS)/*.iso)
 
 linuxisos:
 	$(info Building Linux ISOs in place...)

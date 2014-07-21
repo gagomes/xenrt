@@ -1505,6 +1505,8 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1004_x86-64"] = "Ubuntu 10.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-32"] = "Ubuntu 12.04 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-64"] = "Ubuntu 12.04 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1404_x86-32"] = "Other (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Other (64-bit)"
 
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel2_x86-32"] = "Red Hat Enterprise Linux 2" # assuming 32-bit
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel3_x86-32"] = "Red Hat Enterprise Linux 3(32-bit)"

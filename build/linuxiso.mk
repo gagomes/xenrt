@@ -14,6 +14,6 @@ linuxisos:
 %.iso.linux:
 	$(info Building $@...)
 	mkdir -p $(SCRATCHDIR)/tmp/isobuild
-	if [ ! -e $(LINUX_ISOS)/$(patsubst %.linux,%.stamp,$@)]; then images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux,%,$@) $(SCRATCHDIR)/tmp/isobuild/$@ nocopy; fi
+	if [ ! -e $(LINUX_ISOS)/$(patsubst %.linux,%.stamp,$@) ]; then images/linux/buildiso.py $(LINUX_ISOS)/$(patsubst %.linux,%,$@) $(SCRATCHDIR)/tmp/isobuild/$@ nocopy; fi
 	if [ -e $(SCRATCHDIR)/tmp/isobuild/$@ ]; then mv $(SCRATCHDIR)/tmp/isobuild/$@ $(LINUX_ISOS)/$(patsubst %.linux,%,$@); fi
 	touch $(LINUX_ISOS)/$(patsubst %.linux,%.stamp,$@) 

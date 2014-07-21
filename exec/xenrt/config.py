@@ -2351,6 +2351,9 @@ class Config:
         #  Carabosse:openssl, xenstored , qla2xxx-modules-kdump, qla2xxx-modules-xen, qla4xxx-modules-kdump, qla4xxx-modules-xen, xen-bugtool , vncterm, xen-device-model, xen-hypervisor xen-tools... Rolls up XS55EU2001, XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018, XS55EU2019
         self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2020"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2020/77604/hotfix-XS55EU2020/XS55EU2020.xsupdate"
         
+        #  AliBaba:openssl, xen-hyp , qemu. Rolls up XS55EU2001,XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018, XS55EU2019, XS55EU2020
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2021/86503/hotfix-XS55EU2021/XS55EU2021.xsupdate"
+        
         
         
         # INT-mnr-1: stunnel
@@ -2738,6 +2741,9 @@ class Config:
        
        # Burglarbill: sm. Rolls up XS60E003, XS60E004, XS60E016, XS60E017, XS60E022, XS60E027, XS60E030
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E038/86305/hotfix-XS60E038/XS60E038.xsupdate"
+        
+        # AliBaba: xenhyp, qemu, openSSL. Rolls up XXS60E014,XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035, XS60E037
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E039/86675/hotfix-XS60E039/XS60E039.xsupdate"
        
        
        
@@ -2835,6 +2841,9 @@ class Config:
         
         #Burglarbill : sm. Rolls up XS602E001, XS602E003, XS602E004, XS602E005, XS602E007, XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E0030, XS602E032, XS602E033
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E034/86306/hotfix-XS602E034/XS602E034.xsupdate"
+        
+        #AliBaba : qemu, xen-hyp, openSSL. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E030, XS602E032, XS602E033, XS602E034
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E035/86670/hotfix-XS602E035/XS602E035.xsupdate"
         
       
       
@@ -2955,6 +2964,9 @@ class Config:
         
         # Burglarbill: sm. Rolls up XS61E001, XS61E007, XS61E015, XS61E034
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E040/86307/hotfix-XS61E040/XS61E040.xsupdate"
+        
+        # AliBaba: xen-hyp, qemu, openSSL. Rolls up XS61E003,XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E041/86672/hotfix-XS61E041/XS61E041.xsupdate"
       
       
       
@@ -2989,6 +3001,9 @@ class Config:
         
         # Burglarbill - sm, blktap . Rolls up nothing. 
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC010/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
+        
+        # AliBaba - qemu, xen-hyp, openSSL . Rolls up XS602ECC001,XS602ECC002, XS602ECC003,XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC011/86671/hotfix-XS602ECC011/XS602ECC011.xsupdate"
       
       
       
@@ -3036,6 +3051,9 @@ class Config:
         
         # Burglarbill: sm, blktap . Rools up XS62E011
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E016/85780/hotfix-XS62E016/XS62E016.xsupdate"
+        
+        # AliBaba: xen-hyp, openSSL, qemu . Rools up XS62E002,XS62E007, XS62E009, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E017/86676/hotfix-XS62E017/XS62E017.xsupdate"
 
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
@@ -3058,6 +3076,10 @@ class Config:
         
         # Burglarbill - sm, blktap. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1007/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
+        
+        # AliBaba - qemu, xen-hyp, openSSL, xapi. Rolls up XS62ESP1002,XS62ESP1004, XS62ESP1006,XS62ESP1007, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1008/86714/hotfix-XS62ESP1008/XS62ESP1008.xsupdate"
+
 
 
 
@@ -3100,7 +3122,7 @@ class Config:
         self.config["CARBON_PATCHES_GEORGE"]["HF08"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2008"]
         self.config["CARBON_PATCHES_GEORGE"]["HF09"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2009"]
         self.config["CARBON_PATCHES_GEORGE"]["HF10"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2010"]
-        self.config["CARBON_PATCHES_GEORGE"]["HF20"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2020"]
+        self.config["CARBON_PATCHES_GEORGE"]["HF21"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"]
         
         if not self.config.has_key("CARBON_PATCHES_MNR"):
             self.config["CARBON_PATCHES_MNR"] = {}
@@ -3146,8 +3168,8 @@ class Config:
         self.config["CARBON_PATCHES_BOSTON"]["HF31"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E031"]
         self.config["CARBON_PATCHES_BOSTON"]["HF32"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E032"]
         self.config["CARBON_PATCHES_BOSTON"]["HF36"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF37"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"]
         self.config["CARBON_PATCHES_BOSTON"]["HF38"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF39"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
             self.config["CARBON_PATCHES_SANIBEL"] = {}
@@ -3156,24 +3178,24 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF34"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF35"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
         self.config["CARBON_PATCHES_SANIBELCC"]["HF04"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC004"]
-        self.config["CARBON_PATCHES_SANIBELCC"]["HF08"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF09"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF11"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
         self.config["CARBON_PATCHES_TAMPA"]["HF39"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF41"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -3181,18 +3203,17 @@ class Config:
         branch = self.lookup("HFX_BRANCH_CLEARWATER", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Clearwater"]))
         if branch == "RTM":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E012"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF08"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

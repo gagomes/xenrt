@@ -124,6 +124,9 @@ class RHELBasedLinux(LinuxOS):
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         filename = "%s/kickstart.stamp" % path
         xenrt.waitForFile(filename, 1800)
+        if self.distro.startswith("rhel7") or self.distro.startswith("centos7") or self.distro.startswith("oel7"):
+            xenrt.TEC().logverbose("Waiting 2 minutes as the kickstart file is accessed multiple times")
+            xenrt.sleep(120)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:

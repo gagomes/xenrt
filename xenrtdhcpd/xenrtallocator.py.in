@@ -133,6 +133,8 @@ class XenRTDHCPAllocator(object):
             return r[0]
         
     def getResponse(self, intf, mac, packet):
+        if packet.isDHCPDeclinePacket():
+            _logger.info("Handling DECLINE - blacklisting existing IP")
         ip = None
         cfg = self.config['interfaces'][intf]
         if self.isBlocked(mac):

@@ -138,7 +138,7 @@ class XenRTDHCPAllocator(object):
     def getResponse(self, intf, mac, packet):
         if packet.isDHCPDeclinePacket():
             _logger.info("Handling DECLINE - blacklisting existing IP")
-            currentIp = self._findActiveLease(intf, str(mac))
+            currentIp = packet.extractIPOrNone("requested_ip_address") 
             if currentIp:
                 self._blacklistIp(currentIp)
                 

@@ -6,4 +6,4 @@ label linux
     menu label ^Install
     menu default
     kernel vmlinuz
-    append initrd=initrd.img inst.stage2=hd:LABEL=RHEL-7.0\x20Server.x86_64 ks=http://xenrt-controller.xenrt/xenrt/guestfile/kickstart
+    append initrd=initrd.img inst.repo=cdrom inst.ks=http://xenrt-controller.xenrt/xenrt/guestfile/kickstart

@@ -168,4 +168,13 @@ class JTGro(xenrt.JobTest):
         else:
             return "GRO is off for NICs : %s" % string.join(nics,", ")
 
-__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro"]
+class JTDeadLetter(xenrt.JobTest):
+    TCID = "TC-21564"
+    FAIL_MSG = "/root/dead.letter file found"
+
+    def postJob(self):
+        # Verify we don't have a /root/dead.letter file
+        if self.host.execdom0("ls -l /root/dead.letter", retval="code") == 0:
+            return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
+
+__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter"]

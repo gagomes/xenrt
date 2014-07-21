@@ -119,6 +119,9 @@ class XenRTDHCPAllocator(object):
         else:
             self._sql("UPDATE leases SET expiry=%d WHERE addr='%s'" % (int(time.time() + intfcfg['trueleasetime']), r[0]))
 
+    def _blacklistIp(self, ip):
+        self._sql("UPDATE leases SET mac='INVALID',expiry=%d WHERE addr='%s'" % (int(time.time() + 24*3600), ip))
+
     def _getNewLease(self, intf, mac):
         # Exclude Cloudstack MACs
         if mac.startswith("02:") or mac.startswith("06:"):
@@ -135,6 +138,10 @@ class XenRTDHCPAllocator(object):
     def getResponse(self, intf, mac, packet):
         if packet.isDHCPDeclinePacket():
             _logger.info("Handling DECLINE - blacklisting existing IP")
+            currentIp = self._findActiveLease(intf, str(mac))
+            if currentIp:
+                self._blacklistIp(currentIp)
+                
         ip = None
         cfg = self.config['interfaces'][intf]
         if self.isBlocked(mac):

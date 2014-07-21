@@ -5187,9 +5187,13 @@ class GenericHost(GenericPlace):
                                   (serport, serbaud))
         pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                   (pxe.makeBootPath("initrd.img")))
-        pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
-        if re.search(r"(rhel|oel|centos)6", distro):
+        if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
+            pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
             pxecfg.linuxArgsKernelAdd("biosdevname=0")
+        else:
+            pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
+            if re.search(r"(rhel|oel|centos)6", distro):
+                pxecfg.linuxArgsKernelAdd("biosdevname=0")
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
         xenrt.TEC().copyToLogDir(pxefile,target="%s.pxe.txt" % (pfname))

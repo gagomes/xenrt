@@ -869,7 +869,7 @@ class Measurement_loginvsi(Measurement):
 
         #wait until the last thread has finished first loginvsi loop at least
         xenrt.TEC().logverbose("waiting for last rdplogon thread to finish first loginvsi loop")
-        time.sleep(3600) #TODO: instead of waiting an ad-hoc time, smbget vm's share every minute or so and probe for the vsimax file
+        time.sleep(600) #TODO: instead of waiting an ad-hoc time, smbget vm's share every minute or so and probe for the vsimax file
 
 class Measurement_loginvsi_rds(Measurement_loginvsi):
 

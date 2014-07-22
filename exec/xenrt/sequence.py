@@ -1097,7 +1097,7 @@ class PrepareNode:
         instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools") in ('y', 't', '1', 'Y', 'T')
         instance["hypervisorType"] = expand(node.getAttribute("hypervisorType"), params)
         
-        # TODO: rootdisk + vifs
+        # TODO: vifs
         for x in node.childNodes:
             if x.nodeType == x.ELEMENT_NODE:
                 if x.localName == "vcpus":

@@ -207,6 +207,43 @@
     </xs:sequence>
   </xs:group>
 
+  <xs:group name="instance">
+    <xs:sequence>
+      <xs:element name ="instance" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name ="memory" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="vcpus" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="rootdisk" minOccurs="0" maxOccurs="1" type="xs:string"/>
+          </xs:choice>
+          <xs:attribute name="distro" use="required" type="xs:string" />
+          <xs:attribute name="name" use="optional" type="xs:string" />
+          <xs:attribute name="installTools" use="optional" type="xbool" />
+          <xs:attribute name="hypervisorType" use="optional" type="xs:string" />
+          <xs:attribute name="zone" use="optional" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="template">
+    <xs:sequence>
+      <xs:element name ="template" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:choice minOccurs="0" maxOccurs="unbounded">
+            <xs:element name ="memory" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="vcpus" minOccurs="0" maxOccurs="1" type="xs:string"/>
+            <xs:element name ="rootdisk" minOccurs="0" maxOccurs="1" type="xs:string"/>
+          </xs:choice>
+          <xs:attribute name="distro" use="required" type="xs:string" />
+          <xs:attribute name="installTools" use="optional" type="xbool" />
+          <xs:attribute name="hypervisorType" use="optional" type="xs:string" />
+          <xs:attribute name="zone" use="optional" type="xs:string" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
   <xs:group name ="storage">
     <xs:sequence>
       <xs:element name ="storage" minOccurs="0" maxOccurs="unbounded">
@@ -523,6 +560,8 @@
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="template" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="instance" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>

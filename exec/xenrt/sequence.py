@@ -1108,6 +1108,10 @@ class PrepareNode:
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             instance["memory"] = int(expand(str(a.data), params))
+                elif x.localName == "rootdisk":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["rootdisk"] = int(expand(str(a.data), params))
 
         if template:
             self.templates.append(instance)

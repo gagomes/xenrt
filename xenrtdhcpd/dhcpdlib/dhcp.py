@@ -444,7 +444,8 @@ class _DHCPServer(libpydhcpserver.dhcp.DHCPServer):
         @param wrapper: A wrapper around the packet, exposing helpful details.
         """
         if not wrapper.ip:
-            raise _PacketSourceBlacklist("conflicting IP was not specified")
+            wrapper.retrieveDefinition()
+            raise _PacketRejection("conflicting IP was not specified")
             
         if not wrapper.sid:
             raise _PacketSourceBlacklist("server-identifier was not specified")

@@ -1592,7 +1592,7 @@ class Experiment_vmrun(Experiment):
                 diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
                 sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
                 sr.create(device)
-                host.setPoolParam("default-SR", sr.uuid)
+                host.pool.setPoolParam("default-SR", sr.uuid)
 
             # 1. reinstall pool with $value version of xenserver
             # for each h in self.hosts: self.pool.install_host(...)

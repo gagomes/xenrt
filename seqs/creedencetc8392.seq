@@ -16,7 +16,7 @@
   <prepare>
     <host>
       <vm name="mixvm">
-        <distro>debian60</distro>
+        <distro>debian70</distro>
         <network device="0"/>
       </vm>
     </host>

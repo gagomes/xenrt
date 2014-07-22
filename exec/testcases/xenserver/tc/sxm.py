@@ -1938,6 +1938,25 @@ class AgentlessVMStorageMigration(LiveMigrate):
             self.test_config['negative_test'] = self.args['negative_test']
             
         return
+        
+class SxmFromLowToHighVersion(LiveMigrate):
+    """Baseclass for migrating VMs without PV drivers"""
+
+    def setTestParameters(self):
+    
+        self.test_config['test_VMs'] = ['win01']
+        assert self.args.has_key('src_SR_type')
+        assert self.args.has_key('dest_SR_type')
+
+        self.test_config['win01'] = {'distro' : 'win7-x86',
+                                    'src_SR_type' : self.args['src_SR_type'],
+                                    'dest_SR_type' : self.args['dest_SR_type'],
+                                    'nodrivers' : False }
+
+        self.test_config['src_SR_type'] = self.args['src_SR_type']
+        self.test_config['dest_SR_type'] = self.args['dest_SR_type']
+       
+        return
 
 #class TC17088(AgentlessVMStorageMigration):
 #    """Intra Pool Storage Migration when the PV drivers are not installed on the VM"""

@@ -1531,7 +1531,7 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
-            if self.defaultsr in ["lvm","ext"]:
+            if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr
                 sharedsr = ""
             else:
@@ -1576,6 +1576,23 @@ class Experiment_vmrun(Experiment):
             host = self.tc.getDefaultHost()
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
+
+            # If given a defaultsr like ext:/dev/sdb, create and ext SR on
+            # /dev/sdb and make it the default SR
+            if self.defaultsr.startswith("ext:"):
+                device = self.defaultsr[4:]
+
+                # Remove any existing SRs on the device
+                uuids = host.minimalList("pbd-list",
+                                         args="params=sr-uuid "
+                                              "device-config:device=%s" % device)
+                for uuid in uuids:
+                    host.forgetSR(uuids[0])
+
+                diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
+                sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
+                sr.create(device)
+                host.setPoolParam("default-SR", sr.uuid)
 
             # 1. reinstall pool with $value version of xenserver
             # for each h in self.hosts: self.pool.install_host(...)

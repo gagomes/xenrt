@@ -1532,7 +1532,7 @@ class Experiment_vmrun(Experiment):
 
             networkcfg = ""
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
-                localsr = self.defaultsr
+                localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
                 sharedsr = ""
             else:
                 localsr = "ext"

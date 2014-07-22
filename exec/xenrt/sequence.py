@@ -1092,7 +1092,8 @@ class PrepareNode:
         instance = {}
 
         instance["distro"] = expand(node.getAttribute("distro"), params)
-        instance["name"] = expand(node.getAttribute("name"), params)
+        if not template:
+            instance["name"] = expand(node.getAttribute("name"), params)
         instance["zone"] = expand(node.getAttribute("zone"), params)
         instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools") in ('y', 't', '1', 'Y', 'T')
         instance["hypervisorType"] = expand(node.getAttribute("hypervisorType"), params)

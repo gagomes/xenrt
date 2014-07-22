@@ -139,6 +139,8 @@ class XenRTDHCPAllocator(object):
         if packet.isDHCPDeclinePacket():
             _logger.info("Handling DECLINE - blacklisting existing IP")
             currentIp = packet.extractIPOrNone("requested_ip_address") 
+            if not currentIp:
+                currentIp = self._findActiveLease(intf, str(mac))
             if currentIp:
                 self._blacklistIp(currentIp)
                 
@@ -269,6 +271,8 @@ class XenRTDHCPAllocator(object):
         return res
 
     def isBlocked(self, mac):
+        if str(mac).lower() in [x.lower() for x in self.config['global'].get("blockedmacs", [])]:
+            return True
         with self.lock:
             self._sql("SELECT mac from blocks WHERE mac='%s'" % mac)
             if self.cur.fetchone():

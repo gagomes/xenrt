@@ -175,6 +175,15 @@ class JTDeadLetter(xenrt.JobTest):
     def postJob(self):
         # Verify we don't have a /root/dead.letter file
         if self.host.execdom0("ls -l /root/dead.letter", retval="code") == 0:
+            # Put it in the logdir
+            try:
+                sftp = self.host.sftpClient()
+                try:
+                    sftp.copyFrom("/root/dead.letter", "%s/%s_dead.letter" % (xenrt.TEC().getLogdir(), self.host.getName()))
+                finally:
+                    sftp.close()
+            except:
+                pass
             return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
 
 __all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter"]

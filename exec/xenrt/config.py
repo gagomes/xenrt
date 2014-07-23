@@ -976,6 +976,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_47"] = "CentOS 4.7 (32-bit),CentOS 4.7"
@@ -1555,6 +1556,7 @@ class Config:
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel7_x86-64"] = "Other (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos7_x86-64"] = "Other (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel7_x86-64"] = "Other (64-bit)"
 
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-32"] = "CentOS 4.3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-64"] = "CentOS 4.3 (64-bit)"
@@ -2144,6 +2146,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel65"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel7"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["sles92"] = {}
         self.config["GUEST_LIMITATIONS"]["sles92"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["sles92"]["MAXMEMORY"] = "16384"

@@ -997,8 +997,11 @@ class LiveMigrate(xenrt.TestCase):
         session = guest.getHost().getAPISession(secure=False)
         vmRef = session.xenapi.VM.get_by_uuid(guest.getUUID())
         domid = session.xenapi.VM.get_domid(vmRef)
-        try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
+        try:            
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+                guest.getHost().execdom0("xl pause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
         except:
             error_msg.append("Unable to pause VM")
             guest.getHost().logoutAPISession(session)
@@ -1022,7 +1025,10 @@ class LiveMigrate(xenrt.TestCase):
                 error_msg.append("FAILURE_SXM: VDI %s MD5 sum is not same after migration" % vdi)
 
         try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+                guest.getHost().execdom0("xl unpause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
         except:
             xenrt.TEC().logverbose('INFO_SXM: Exception occurred while trying to unpause the VM')
 

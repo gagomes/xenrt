@@ -748,8 +748,6 @@ class TC18358(TCBwdEnvironment):
         xenrt.TEC().logverbose("VM Migration...")
         for guest in self.guests:
             self.getLogsFrom(guest)
-            if guest.windows:
-                guest.installDrivers()
             guest.migrateVM(host=self.hosts[1], live="true")
             guest.check()
 

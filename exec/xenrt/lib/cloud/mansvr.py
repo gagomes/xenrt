@@ -284,7 +284,7 @@ class ManagementServer(object):
         if self.__isCCP is None:
             # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
             # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
-            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None and xenrt.TEC().lookup("CLOUDRPMTAR", None) is None
 
         return self.__isCCP
 
@@ -310,7 +310,7 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
-        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None:
             self.installCloudStackManagementServer()
         else:
             raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')

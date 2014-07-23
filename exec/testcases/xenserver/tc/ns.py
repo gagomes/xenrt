@@ -1341,7 +1341,11 @@ class TC14935(xenrt.TestCase):
         # cannot easily check this is enforced but the main threat here
         # is losing the patch which makes the timeslice tunable.
         self.host.reboot()
-        self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+        if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            self.host.execdom0("xl debug-keys r")
+        else:
+            self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+            
         dmesg = self.host.execdom0("xe host-dmesg uuid=%s" % (self.host.getMyHostUUID()))
         r = re.search(r"\stslice\s+=\s+(\d+)ms", dmesg)
         if not r:

@@ -5526,6 +5526,7 @@ fi
         args.append("physical-size=1")
         args.append("type=file")
         args.append("content-type=\"XenRT Content\"")
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
         if createVDI:
             args.append("device-config-location=%s/SRs/%s/sr" % 
                        (xenrt.TEC().lookup("LOCAL_BASE"),name))
@@ -11692,6 +11693,7 @@ class CIFSStorageRepository(StorageRepository):
         args.append("name-label=%s" % (self.name))
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):

@@ -15,7 +15,7 @@ def getArtifactsFromTar(place, artifacts):
     placeArtifactDir = '/tmp/csartifacts'
     place.execcmd('mkdir %s' % (placeArtifactDir))
     place.execcmd('wget %s -P %s' % (tar, placeArtifactDir))
-    place.execcmd('cd %s; tar -xZf %s' % (placeArtifactDir, os.path.basename(tar)))
+    place.execcmd('cd %s; tar -xzf %s' % (placeArtifactDir, os.path.basename(tar)))
     # Remove any artifacts that weren't asked for
     allArtifacts = place.execcmd('cd %s; ls *' % (placeArtifactDir))
     for a in allArtifacts:

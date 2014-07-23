@@ -8,7 +8,7 @@ try:
 except ImportError:
     pass
 
-def getAtrifactsFromTar(place, artifacts):
+def getArtifactsFromTar(place, artifacts):
     tar = xenrt.TEC().lookup("CLOUDRPMTAR", None)
     if not tar:
         raise xenrt.XRTError("CLOUDRPMTAR not specified")

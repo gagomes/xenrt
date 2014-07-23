@@ -1005,7 +1005,7 @@ class PrepareNode:
                     
                     xenrt.TEC().config.setVariable("CLOUD_REQ_SYS_TMPLS", sysTemplates)
 
-                    if cluster['hypervisor'] == "XenServer":
+                    if cluster['hypervisor'].lower() == "xenserver":
                         if not cluster.has_key('XRT_MasterHostId'):
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                             poolId = poolIdIndex
@@ -1026,7 +1026,7 @@ class PrepareNode:
                             self.handlePoolNode(simplePoolNode, params)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
                             cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
-                    elif cluster['hypervisor'] == "KVM":
+                    elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
                             for hostId in hostIds:
@@ -1040,8 +1040,8 @@ class PrepareNode:
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                             hostIdIndex += cluster['XRT_Hosts']
-                    elif cluster['hypervisor'] == "hyperv":
-                        if not zone.has_key('XRT_ZoneNetwork'):
+                    elif cluster['hypervisor'].lower() == "hyperv":
+                        if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
                         if zone.has_key('ipranges'):
                             for i in zone['ipranges']:
@@ -1059,8 +1059,8 @@ class PrepareNode:
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
                             hostIdIndex += cluster['XRT_Hosts']
-                    elif cluster['hypervisor'] == "vmware":
-                        if not zone.has_key('XRT_ZoneNetwork'):
+                    elif cluster['hypervisor'].lower() == "vmware":
+                        if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
                         if zone.has_key('ipranges'):
                             for i in zone['ipranges']:
@@ -1068,6 +1068,10 @@ class PrepareNode:
                                     i['XRT_VlanName'] = "NSEC"
                         if not zone.has_key('XRT_VMWareDC'):
                             zone['XRT_VMWareDC'] = 'dc-%s-%s' % (uuid.uuid4().hex, job)
+                        if not pod.has_key('XRT_VMWareDC'):
+                            pod['XRT_VMWareDC'] = zone['XRT_VMWareDC']
+                        if not cluster.has_key('XRT_VMWareDC'):
+                            cluster['XRT_VMWareDC'] = zone['XRT_VMWareDC']
                         if not cluster.has_key('XRT_VMWareCluster'):
                             cluster['XRT_VMWareCluster'] = 'cluster-%s' % (uuid.uuid4().hex)
                             hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
@@ -1078,7 +1082,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_ESXI_VERSION', '5.5.0-update01'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
-                                simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s"}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
+                                simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
                     
@@ -1259,9 +1263,11 @@ class PrepareNode:
                 host["disablefw"] = False
         if not host["suppackcds"]:
             host["suppackcds"] = None
-        host['extraConfig'] = expand(node.getAttribute("extraConfig"), params)
-        if not host['extraConfig']:
-            host['extraConfig'] = None
+        extraCfg = expand(node.getAttribute("extraConfig"), params)
+        if not extraCfg:
+            host['extraConfig'] = {}
+        else:
+            host['extraConfig'] = json.loads(extraCfg)
         
         hasAdvancedNet = False
         for x in node.childNodes:
@@ -2101,7 +2107,7 @@ class HostInstallWorker(_InstallWorker):
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
             # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
-            work["productVersion"] = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+            work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
             xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
             xenrt.lib.hyperv.createHost(**work)

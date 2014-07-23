@@ -266,10 +266,32 @@ class DeployerPlugin(object):
         else:
             return None
 
+    def getClusterType(self, key, ref):
+        if ref.has_key("hypervisor") and ref['hypervisor'].lower() == "vmware":
+            return "ExternalManaged"
+        else:
+            return "CloudManaged"
+
+    def getClusterUrl(self, key, ref):
+        if ref.has_key("hypervisor") and ref['hypervisor'].lower() == "vmware":
+            return "http://%s/%s/%s" % (xenrt.TEC().lookup(["VCENTER", "ADDRESS"]), ref['XRT_VMWareDC'], ref['XRT_VMWareCluster'])
+        else:
+            return None
+        
+    def getVmWareDc(self, key, ref):
+        if ref.has_key("XRT_VMWareDC"):
+            vc = xenrt.TEC().lookup("VCENTER")
+            return {"name": ref['XRT_VMWareDC'],
+                    "vcenter": vc['ADDRESS'],
+                    "username": vc['USERNAME'],
+                    "password": vc['PASSWORD']}
+        else:
+            return None
+
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
         hosts = []
-        if ref.has_key('hypervisor') and ref['hypervisor'] == 'XenServer' and ref.has_key('XRT_MasterHostId'):
+        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostId'):
             # TODO - move this to the host notify block (in notifyNewElement)
             hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (ref['XRT_MasterHostId']))
             try:
@@ -289,7 +311,7 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
             hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
-        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRT_KVMHostIds'):
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'kvm' and ref.has_key('XRT_KVMHostIds'):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
@@ -305,13 +327,29 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
-        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
             hostIds = ref['XRT_HyperVHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 self.getHyperVMsi()
                 try:
                     h.tailorForCloudStack(self.hyperVMsi)
+                except:
+                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'vmware' and ref.has_key('XRT_VMWareHostIds'):
+            hostIds = ref['XRT_VMWareHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
+                try:
+                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
                 except:
                     xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
 

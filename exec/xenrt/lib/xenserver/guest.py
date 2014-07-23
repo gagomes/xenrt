@@ -5346,8 +5346,10 @@ class TampaGuest(BostonGuest):
         ***** Method deprecated *****
         Setting hostname via XenStore was disabled in Tampa
         Use setHostname method for setting the hostname
+        In Creedence a similar method has been added as a new implementation
+        has been added
         """
-        xenrt.TEC().logverbose("setHostnameViaXenstore no longer supported from Tampa onwards")
+        xenrt.TEC().logverbose("setHostnameViaXenstore not supported in this release")
 
     def waitForShutdownReady(self):
         # Best effort function to wait for feature-shutdown xenstore key to be set if VM is windows.
@@ -5491,6 +5493,25 @@ default:
             self.execguest("make")
             try: self.execguest("insmod panic.ko", timeout=1)
             except: pass
+
+    def setNameViaXenstore(self, name, reboot=True):
+        """
+        This is a second version of the mechanism to set the guest name
+        via. xenstore. It was added in Creedence and the original for deprecated
+        in Tampa
+        NETBIOS name should be up 15 chars, the rest will be trucated
+        """
+        domid = self.getDomid()
+        host = self.getHost()
+        featurePresent = host.xenstoreRead("/local/domain/%u/control/feature-setcomputername" % domid).strip()
+        if not featurePresent == "1":
+            raise xenrt.XRTFailure("Cannot set the host name via. xenstore as the feature is not present")
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/name" % domid, name)
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/action" % domid, "set")
+
+        # A reboot is required to make these changes appear in the guest
+        if reboot:
+            self.reboot()
 
 
 class SarasotaGuest(CreedenceGuest):

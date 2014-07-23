@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import csv, os, re, string, StringIO
+import csv, os, re, string, StringIO, random
 import xenrt
 
 __all__ = ["createHost",
@@ -36,7 +36,7 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig={}):
 
     machine = str("RESOURCE_HOST_%s" % (id, ))
 
@@ -45,22 +45,28 @@ def createHost(id=0,
 
     if productVersion:
         esxVersion = productVersion
+        xenrt.TEC().logverbose("Product version specified, using %s" % esxVersion)
     elif xenrt.TEC().lookup("ESXI_VERSION", None):
         esxVersion = xenrt.TEC().lookup("ESXI_VERSION")
+        xenrt.TEC().logverbose("ESXI_VERSION specified, using %s" % esxVersion)
     else:
         esxVersion = "5.0.0.update01"
+        xenrt.TEC().logverbose("No version specified, using %s" % esxVersion)
 
     host = ESXHost(m)
     host.esxiVersion = esxVersion
     host.password = xenrt.TEC().lookup("ROOT_PASSWORD")
-    host.install()
+    if not xenrt.TEC().lookup("EXISTING_VMWARE", False, boolean=True):
+        host.install()
 
-    host.virConn = host._openVirConn()
+    if extraConfig.get("virconn", True):
+        host.virConn = host._openVirConn()
 
-    # Add the default SR which is installed by ESX
-    sr = xenrt.lib.esx.EXTStorageRepository(host, "datastore1")
-    sr.existing()
-    host.addSR(sr)
+    if installSRType != "no":
+        # Add the default SR which is installed by ESX
+        sr = xenrt.lib.esx.EXTStorageRepository(host, "datastore1")
+        sr.existing()
+        host.addSR(sr)
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
@@ -418,18 +424,7 @@ reboot
         pass
 
     def addToVCenter(self, dc, cluster):
-        lock = xenrt.resources.CentralResource()
-        attempts = 0
-        while True:
-            try:
-                lock.acquire("VCENTER")
-                break
-            except:
-                xenrt.sleep(60)
-                attempts += 1
-                if attempts > 20:
-                    raise xenrt.XRTError("Couldn't get vCenter lock.")
-        try:
+        with xenrt.GEC().getLock("VCENTER"):
             vc = xenrt.TEC().lookup("VCENTER")
             s = xenrt.lib.generic.StaticOS(vc['DISTRO'], vc['ADDRESS'])
             s.os.enablePowerShellUnrestricted()
@@ -444,6 +439,33 @@ reboot
                                 self.getIP(),
                                 "root",
                                 self.password), returndata=True))
-        finally:
-            lock.release()
 
+            # Now get the list of licenses
+
+            s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
+                                vc['ADDRESS'],
+                                vc['USERNAME'],
+                                vc['PASSWORD']))
+
+
+            liclist =csv.DictReader(StringIO.StringIO(s.os.readFile("c:\\vmware\\licenses.csv")))
+
+            # Filter ESX licenses
+            liclist = [x for x in liclist if x['EditionKey'].startswith("esx")]
+
+            # Filter ones with remaining capacity
+            liclist = [x for x in liclist if int(x['Used']) < int(x['Total'])]
+
+            if liclist:
+                lic = random.choice(liclist)['LicenseKey']
+                xenrt.TEC().logverbose("Using license %s" % lic)
+                xenrt.TEC().logverbose(s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\assignlicense.ps1 %s %s %s %s %s" % (
+                                    vc['ADDRESS'],
+                                    vc['USERNAME'],
+                                    vc['PASSWORD'],
+                                    self.getIP(),
+                                    lic), returndata=True))
+
+
+            else:
+                xenrt.TEC().logverbose("No VMWare Licenses available, continuing in evaluation mode")

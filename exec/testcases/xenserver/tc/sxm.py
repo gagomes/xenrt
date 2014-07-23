@@ -339,12 +339,12 @@ class LiveMigrate(xenrt.TestCase):
 
         lin0_A = host_A['obj'].getGuest('lin0')
         if lin0_A is None and (host_A['lin_VMs'] > 0):
-            lin0_A = host_A['obj'].createBasicGuest(name='lin0', distro="debian70", sr=local_sr_host_A)
+            lin0_A = host_A['obj'].createBasicGuest(name='lin0', distro="debian60", sr=local_sr_host_A)
             lin0_A.shutdown()
 
         lin0_B = host_B['obj'].getGuest('lin0')
         if lin0_B is None and (host_B['lin_VMs'] > 0):
-            lin0_B = host_B['obj'].createBasicGuest(name='lin0', distro="debian70", sr=local_sr_host_B)
+            lin0_B = host_B['obj'].createBasicGuest(name='lin0', distro="debian60", sr=local_sr_host_B)
             lin0_B.shutdown()
             
         for vm_name in self.test_config['test_VMs']:
@@ -997,8 +997,11 @@ class LiveMigrate(xenrt.TestCase):
         session = guest.getHost().getAPISession(secure=False)
         vmRef = session.xenapi.VM.get_by_uuid(guest.getUUID())
         domid = session.xenapi.VM.get_domid(vmRef)
-        try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
+        try:            
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+                guest.getHost().execdom0("xl pause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
         except:
             error_msg.append("Unable to pause VM")
             guest.getHost().logoutAPISession(session)
@@ -1022,7 +1025,10 @@ class LiveMigrate(xenrt.TestCase):
                 error_msg.append("FAILURE_SXM: VDI %s MD5 sum is not same after migration" % vdi)
 
         try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+                guest.getHost().execdom0("xl unpause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
         except:
             xenrt.TEC().logverbose('INFO_SXM: Exception occurred while trying to unpause the VM')
 
@@ -2030,7 +2036,7 @@ class MoreVDIsStorageMigration(LiveMigrate):
         assert self.args.has_key('src_SR_type')
         assert self.args.has_key('dest_SR_type')
 
-        self.test_config['lin01'] = {'distro' : 'debian70',
+        self.test_config['lin01'] = {'distro' : 'debian60',
                                     'VDI_src_SR_types' : ['ext', 'ext', 'ext', 'ext', 'ext', 'ext', 'ext'],
                                     'VDI_dest_SR_types' : ['lvm', 'lvm', 'lvm', 'lvm', 'lvm', 'lvm', 'lvm']}
 
@@ -2208,7 +2214,7 @@ class RawVDIStorageMigration(LiveMigrate):
         assert self.args.has_key('src_SR_type')
         assert self.args.has_key('dest_SR_type')
 
-        self.test_config['lin01'] = {'distro' : 'debian70',
+        self.test_config['lin01'] = {'distro' : 'debian60',
                                      'VDI_src_SR_types' : ['ext', 'ext'],
                                      'VDI_dest_SR_types' : ['nfs', 'nfs'],
                                      'raw_vdi_required' : True} # Raw VDI required is True

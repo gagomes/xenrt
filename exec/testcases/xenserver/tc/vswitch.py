@@ -521,8 +521,8 @@ class TC11586(_VSwitch):
 
 class TC11539(_VSwitch):
     """
-    128 Bridges on Host
-    Create 128 Bridges on a vSwitch enabled host
+    N Bridges on Host
+    Create N Bridges on a vSwitch enabled host
     Generate Traffic
     """
     myguests = []
@@ -540,10 +540,12 @@ class TC11539(_VSwitch):
             targetguest.execguest("cp /etc/network/interfaces /root/interfaces")
 
     def run(self, arglist):
-        # self.checkNetwork(self.myguests, "before creating 128 bridges")
-
+        self.nbrOfBridges = 128
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.nbrOfBridges = 100
+        
         # remember we have one working bridge already
-        for i in range(127):
+        for i in range(self.nbrOfBridges-1):
             name = "nw%d" % i
             xenrt.TEC().logverbose("Creating network %s" % name)
             uuid = self.host.createNetwork(name)
@@ -565,7 +567,7 @@ class TC11539(_VSwitch):
                                   "/etc/network/interfaces")
 
         # loop through bridges
-        for i in range(127):
+        for i in range(self.nbrOfBridges - 1):
             # create and bring up VIFs for master's 1st 2 VMs
             for j in range(2):
                 targetguest = self.host.guests[self.myguests[j]]
@@ -595,7 +597,7 @@ class TC11539(_VSwitch):
             # give time to delete too
             time.sleep(5)
 
-        xenrt.TEC().logverbose("PASS: Pinged across 128 bridges on a single host")
+        xenrt.TEC().logverbose("PASS: Pinged across %d bridges on a single host" % self.nbrOfBridges)
 
     def postRun(self):
         # restore interface file backups

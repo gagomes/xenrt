@@ -1,4 +1,7 @@
 <xenrt>
+
+  <!-- iSCSI Boot From SAN testcases -->
+    
   <variables>
     <PREPARE_WORKERS>1</PREPARE_WORKERS>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

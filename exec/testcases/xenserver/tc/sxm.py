@@ -339,12 +339,12 @@ class LiveMigrate(xenrt.TestCase):
 
         lin0_A = host_A['obj'].getGuest('lin0')
         if lin0_A is None and (host_A['lin_VMs'] > 0):
-            lin0_A = host_A['obj'].createBasicGuest(name='lin0', distro="debian70", sr=local_sr_host_A)
+            lin0_A = host_A['obj'].createBasicGuest(name='lin0', distro="debian60", sr=local_sr_host_A)
             lin0_A.shutdown()
 
         lin0_B = host_B['obj'].getGuest('lin0')
         if lin0_B is None and (host_B['lin_VMs'] > 0):
-            lin0_B = host_B['obj'].createBasicGuest(name='lin0', distro="debian70", sr=local_sr_host_B)
+            lin0_B = host_B['obj'].createBasicGuest(name='lin0', distro="debian60", sr=local_sr_host_B)
             lin0_B.shutdown()
             
         for vm_name in self.test_config['test_VMs']:
@@ -2030,7 +2030,7 @@ class MoreVDIsStorageMigration(LiveMigrate):
         assert self.args.has_key('src_SR_type')
         assert self.args.has_key('dest_SR_type')
 
-        self.test_config['lin01'] = {'distro' : 'debian70',
+        self.test_config['lin01'] = {'distro' : 'debian60',
                                     'VDI_src_SR_types' : ['ext', 'ext', 'ext', 'ext', 'ext', 'ext', 'ext'],
                                     'VDI_dest_SR_types' : ['lvm', 'lvm', 'lvm', 'lvm', 'lvm', 'lvm', 'lvm']}
 
@@ -2208,7 +2208,7 @@ class RawVDIStorageMigration(LiveMigrate):
         assert self.args.has_key('src_SR_type')
         assert self.args.has_key('dest_SR_type')
 
-        self.test_config['lin01'] = {'distro' : 'debian70',
+        self.test_config['lin01'] = {'distro' : 'debian60',
                                      'VDI_src_SR_types' : ['ext', 'ext'],
                                      'VDI_dest_SR_types' : ['nfs', 'nfs'],
                                      'raw_vdi_required' : True} # Raw VDI required is True

@@ -66,6 +66,11 @@ class _VDICopyPerf(xenrt.TestCase):
 
     def run(self, arglist):
 
+        # Check guest is running
+        if self.guest.getState() == "DOWN":
+            self.guest.start()
+            time.sleep(300)
+
         # Retrieve the guest disk UUID.
         self.guestVdiUuid = self.guest.getAttachedVDIs()[0]
         self.guest.shutdown()

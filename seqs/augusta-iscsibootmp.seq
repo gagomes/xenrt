@@ -1,4 +1,7 @@
 <xenrt>
+
+  <!-- Multipathed iSCSI Boot From SAN testcases -->
+
   <variables>
     <PREPARE_WORKERS>1</PREPARE_WORKERS>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>

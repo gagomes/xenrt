@@ -18,7 +18,7 @@ def getArtifactsFromTar(place, artifacts):
     place.execcmd('cd %s; tar -xzf %s' % (placeArtifactDir, os.path.basename(tar)))
     # Remove any artifacts that weren't asked for
     allArtifacts = place.execcmd('cd %s; ls *' % (placeArtifactDir))
-    for a in allArtifacts:
+    for a in allArtifacts.split():
         if not any(map(lambda r: a.startswith(r), artifacts)):
             place.execcmd('rm -f %s' % (os.path.join(placeArtifactDir, a)))
     return placeArtifactDir

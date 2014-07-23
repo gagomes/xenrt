@@ -8,7 +8,7 @@ try:
 except ImportError:
     pass
 
-def getAtrifactsFromTar(place):
+def getAtrifactsFromTar(place, artifacts):
     tar = xenrt.TEC().lookup("CLOUDRPMTAR", None)
     if not tar:
         raise xenrt.XRTError("CLOUDRPMTAR not specified")
@@ -16,11 +16,16 @@ def getAtrifactsFromTar(place):
     place.execcmd('mkdir %s' % (placeArtifactDir))
     place.execcmd('wget %s -P %s' % (tar, placeArtifactDir))
     place.execcmd('cd %s; tar -xZf %s' % (placeArtifactDir, os.path.basename(tar)))
+    # Remove any artifacts that weren't asked for
+    allArtifacts = place.execcmd('cd %s; ls *' % (placeArtifactDir))
+    for a in allArtifacts:
+        if not any(lambda r: a.startswith(r), artifacts):
+            place.execcmd('rm -f %s' % (os.path.join(placeArtifactDir, a)))
     return placeArtifactDir
 
 def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
     if xenrt.TEC().lookup("CLOUDRPMTAR", None) is not None:
-        return getArtifactsFromTar(place)
+        return getArtifactsFromTar(place, artifacts)
 
     jenkinsUrl = 'http://jenkins.buildacloud.org'
 

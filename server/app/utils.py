@@ -221,6 +221,8 @@ def check_attributes(available, required):
 
     # Check each required attribute
     for req in reqlist:
+        if len(req) == 0:
+            continue
         if req[0] == "~":
             # This isn't a required attribute, but it allows it to run on a machine that specifies "+"
             continue

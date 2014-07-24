@@ -315,10 +315,7 @@ class DeployerPlugin(object):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                try:
-                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -332,10 +329,7 @@ class DeployerPlugin(object):
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 self.getHyperVMsi()
-                try:
-                    h.tailorForCloudStack(self.hyperVMsi)
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+                h.tailorForCloudStack(self.hyperVMsi)
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -348,10 +342,6 @@ class DeployerPlugin(object):
             hostIds = ref['XRT_VMWareHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                try:
-                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -375,6 +365,8 @@ class DeployerPlugin(object):
         t = xenrt.TempDirectory()
         xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
         self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
+        if not self.hyperVMsi:
+            raise xenrt.XRTError("Could not find Hyper-V agent in build")
 
     def notifyNewElement(self, key, name):
         xenrt.TEC().logverbose('New Element, key: %s, value: %s' % (key, name))

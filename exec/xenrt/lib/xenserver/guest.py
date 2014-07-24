@@ -26,6 +26,18 @@ __all__ = ["Guest",
 def getTemplate(host, distro, hvm=None, arch=None):
     return host.getTemplate(distro, hvm=hvm, arch=arch)
 
+
+def isBSODBlue(img):
+    pix = img.load()
+    blue = 0
+    for x in range (img.size[0]):
+        for y in range(img.size[1]):
+            if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
+                            blue += 1
+    pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
+    return pc > 50
+
+
 class Guest(xenrt.GenericGuest):
     """Encapsulates a single guest VM."""
 
@@ -3146,14 +3158,7 @@ exit /B 1
                                    (self.getName(), self.getHost().getName()))
 
     def checkBSOD(self,img):
-        pix = img.load()
-        blue = 0
-        for x in range (img.size[0]):
-                for y in range(img.size[1]):
-                        if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
-                                blue += 1
-        pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
-        if pc > 50:
+        if isBSODBlue(img):
                 # This is almost certainly a BSOD (> 50% of the screen is the BSOD blue...)
                 xenrt.TEC().tc._bluescreenGuests.append(self)
                 img.save("%s/bsod.jpg" % (xenrt.TEC().getLogdir()))

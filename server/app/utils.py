@@ -221,19 +221,20 @@ def check_attributes(available, required):
 
     # Check each required attribute
     for req in reqlist:
-        if len(req) == 0:
+        try:
+            if req[0] == "~":
+                # This isn't a required attribute, but it allows it to run on a machine that specifies "+"
+              continue
+            elif req[0] == '!':
+                if req[1:] in availlist:
+                    suitable = 0
+                    break
+            else:
+                if not req in availlist or "-%s" % (req) in availlist:
+                    suitable = 0
+                    break
+        except:
             continue
-        if req[0] == "~":
-            # This isn't a required attribute, but it allows it to run on a machine that specifies "+"
-            continue
-        elif req[0] == '!':
-            if req[1:] in availlist:
-                suitable = 0
-                break
-        else:
-            if not req in availlist or "-%s" % (req) in availlist:
-                suitable = 0
-                break
             
     # See if we have mandatory flags (the job must specify these flags
     # to be able to use this machine).

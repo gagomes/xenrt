@@ -355,16 +355,19 @@ class DeployerPlugin(object):
         return hosts
 
     def getHyperVMsi(self):
-        # Install CloudPlatform packages
-        cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
-        if not cloudInputDir:
-            raise xenrt.XRTError("No CLOUDINPUTDIR specified")
-        xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
-        ccpTar = xenrt.TEC().getFile(cloudInputDir)
-        xenrt.TEC().logverbose("Got %s" % ccpTar)
-        t = xenrt.TempDirectory()
-        xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
-        self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
+        if xenrt.TEC().lookup("HYPERV_AGENT", None):
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT"))
+        else:
+            # Install CloudPlatform packages
+            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            if not cloudInputDir:
+                raise xenrt.XRTError("No CLOUDINPUTDIR specified")
+            xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
+            ccpTar = xenrt.TEC().getFile(cloudInputDir)
+            xenrt.TEC().logverbose("Got %s" % ccpTar)
+            t = xenrt.TempDirectory()
+            xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
+            self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
         if not self.hyperVMsi:
             raise xenrt.XRTError("Could not find Hyper-V agent in build")
 

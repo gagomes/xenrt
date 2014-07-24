@@ -110,7 +110,7 @@ class TC21567(_VDICopyPerf):
 
     SAME_HOST = True
     FROM_TYPE = "lvm"
-    TO_TYPE = "ext"
+    TO_TYPE = "lvm"
     SCENARIO = "IntraHost-LocalSR-To-LocalSR"
 
 class TC21568(_VDICopyPerf):

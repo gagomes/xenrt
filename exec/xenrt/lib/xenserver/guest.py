@@ -1374,11 +1374,10 @@ exit /B 1
                         xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
                         xenrt.sleep(extrawait)
 
-                        if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
-                            for i in range(24):
-                                if self.pvDriversUpToDate():
-                                    break
-                                xenrt.sleep(10)
+                        for i in range(48):
+                            if self.pvDriversUpToDate():
+                                break
+                            xenrt.sleep(10)
                     return xenrt.RC_OK
                 else:
                     xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)

@@ -1263,6 +1263,8 @@ class PrepareNode:
                 host["disablefw"] = False
         if not host["suppackcds"]:
             host["suppackcds"] = None
+        # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
+        host["cpufreqgovernor"] = expand(node.getAttribute("cpufreqgovernor"), params)
         extraCfg = expand(node.getAttribute("extraConfig"), params)
         if not extraCfg:
             host['extraConfig'] = {}

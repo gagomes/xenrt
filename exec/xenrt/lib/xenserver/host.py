@@ -149,6 +149,7 @@ def createHost(id=0,
                suppackcds=None,
                addToLogCollectionList=False,
                disablefw=False,
+               cpufreqgovernor=None,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
@@ -303,6 +304,16 @@ def createHost(id=0,
         xenrt.TEC().warning("Disabling host firewall")
         host.execdom0("service iptables stop")
         host.execdom0("chkconfig iptables off")
+
+    if cpufreqgovernor:
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
+
+        # Set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        host.execdom0("xenpm set-scaling-governor performance")
+
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)

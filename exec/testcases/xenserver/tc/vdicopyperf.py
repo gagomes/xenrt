@@ -60,8 +60,8 @@ class _VDICopyPerf(xenrt.TestCase):
 
                 # Initial set of vdi performance parameters.
         self.vdiCopyPerfResults = {}
-        self.vdiCopyPerfResults = {"fromSR": self.FROM_TYPE}
-        self.vdiCopyPerfResults = {"toSR": self.TO_TYPE}
+        self.vdiCopyPerfResults["fromSR"] = self.FROM_TYPE
+        self.vdiCopyPerfResults["toSR"] = self.TO_TYPE
         self.vdiCopyPerfResults["scenario"] = self.SCENARIO
 
     def run(self, arglist):
@@ -110,7 +110,7 @@ class TC21567(_VDICopyPerf):
 
     SAME_HOST = True
     FROM_TYPE = "lvm"
-    TO_TYPE = "lvm"
+    TO_TYPE = "ext"
     SCENARIO = "IntraHost-LocalSR-To-LocalSR"
 
 class TC21568(_VDICopyPerf):
@@ -126,5 +126,5 @@ class TC21569(_VDICopyPerf):
 
     SAME_HOST = False
     FROM_TYPE = "lvm"
-    TO_TYPE = "lvm"
+    TO_TYPE = "ext"
     SCENARIO = "InterHost-LocalSR-To-LocalSR"

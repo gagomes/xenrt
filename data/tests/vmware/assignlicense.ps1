@@ -15,3 +15,5 @@ $LicAssign = Get-View -Id $LicMan.LicenseAssignmentManager
 $hostobj = Get-View -ViewType "HostSystem" -Filter @{Name=$hostname} -Property Config.Host
 
 $LicAssign.UpdateAssignedLicense($hostObj.Config.Host.Value, $lic, $null)
+
+Get-VMHost -Name $hostname | Export-CSV c:\vmware\lic-$hostname.csv -notype

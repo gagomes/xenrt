@@ -32,3 +32,5 @@ if (Get-DataCenter -VMHost $hostaddr) {
 
 Write-Output Adding Host
 Add-VMHost -Name $hostaddr -Location (Get-Cluster $cluster) -Force -User $huser -Password $hpassword
+
+Get-VMHost -Location $datacenter | Export-CSV c:\vmware\$datacenter.csv -notype

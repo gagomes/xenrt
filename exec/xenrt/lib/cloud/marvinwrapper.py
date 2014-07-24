@@ -172,6 +172,37 @@ class MarvinApi(object):
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
+    def waitForSytemVmsReady(self):
+        deadline = xenrt.timenow() + 1200
+
+        while True:
+            systemvms = self.cloudApi.listSystemVms() or []
+            systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
+            if systemvms:
+                # First check if all sytem VMs are running
+                downvms = [x for x in systemvms if x.state != "Running"]
+                if not downvms:
+                    # First check we have a host record for each system VM record
+                    if len(systemvms) != len(systemvmhosts):
+                        xenrt.TEC().logverbose("Warning: Inconsistent number of System VMs in listHosts and listSystemVMs.")
+                    else: 
+                        # They are, now we see if all of the hosts are up:
+                        downhosts = [x for x in systemvmhosts if x.state != "Up"]
+                        if not downhosts:
+                            # All up, complete
+                            xenrt.TEC().logverbose("All System VMs ready")
+                            return
+                        else:
+                            xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                else:
+                    xenrt.TEC().logverbose("%s not running" % ", ".join([x.name for x in downvms]))
+            else:
+                xenrt.TEC().logverbose("No system VMs present yet")
+            
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Waiting for system VMs timed out")
+            xenrt.sleep(15)
+
     def waitForBuiltInTemplatesReady(self):
         templateList = [x for x in self.cloudApi.listTemplates(templatefilter='all') if x.templatetype == "BUILTIN"]
         map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)

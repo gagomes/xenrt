@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
-<!-- netthru_vm2bare_1vif_interhost_xsbare_eth1static_40gb_minimal.seq
+<!-- netthru_vm2bare_1vif_interhost_xsbare_eth1static_ipri_minimal.seq
 
   This sequence contains network throughput experiments between
   a VM in XenServer and bare metal hosts.
 
-  The VM has two VIFs, with eth1 on a 40 Gb/s network (NET_A).
+  The VM has two VIFs, with eth1 on the IPRI network (NET_A).
   The host also has eth1 on NET_A.
   We use eth1 for the iperf session.
 
@@ -23,7 +23,7 @@
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" speed="40G" name="NET_A">
+        <PHYSICAL network="IPRI" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>
@@ -45,7 +45,7 @@
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" speed="40G" name="NET_A">
+        <PHYSICAL network="IPRI" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>

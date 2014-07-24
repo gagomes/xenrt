@@ -56,8 +56,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
         # Optionally, the sequence file can specify which eth device to use in each endpoint
-        self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
-        self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
+        self.e0devstr = libperf.getArgument(arglist, "endpoint0dev", str, None)
+        self.e1devstr = libperf.getArgument(arglist, "endpoint1dev", str, None)
+        self.e0dev = None
+        self.e1dev = None
 
         # Optionally, the sequence file can specify IP addresses to use in each endpoint
         self.e0ip = libperf.getArgument(arglist, "endpoint0ip", str, None)
@@ -129,10 +131,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else:
             raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
 
-    def ethOfDev(self, endpoint, endpointdev):
-        assert isinstance(endpoint, xenrt.GenericHost)
-        return endpoint.getNIC(endpointdev)
-
     def setIPAddress(self, endpoint, endpointdev, ip):
         if isinstance(endpoint, xenrt.GenericGuest):
             (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
@@ -142,7 +140,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         elif isinstance(endpoint, xenrt.lib.xenserver.Host):
             raise xenrt.XRTError("setting IP on XenServer PIF is not yet implemented")
         elif isinstance(endpoint, xenrt.GenericHost):
-            endpoint.execcmd("ifconfig %s %s netmask 255.255.255.0" % (self.ethOfDev(endpoint, endpointdev), ip))
+            endpoint.execcmd("ifconfig %s %s netmask 255.255.255.0" % (endpoint.getNIC(endpointdev), ip))
 
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
@@ -152,14 +150,15 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             elif isinstance(endpoint, xenrt.lib.xenserver.Host):
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)
             elif isinstance(endpoint, xenrt.GenericHost):
-                ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (self.ethOfDev(endpoint, endpointdev))).strip()
+                ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (endpoint.getNIC(endpointdev))).strip()
         else:
             ip = endpoint.getIP()
         return ip
 
+    # endpointdev is the (integer) assumedid of the device
     def nicdevOfEndpointDev(self, endpoint, endpointdev):
         assert isinstance(endpoint, xenrt.GenericHost)
-        ethdev = self.ethOfDev(endpoint, endpointdev)
+        ethdev = endpoint.getNIC(endpointdev)
         mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (ethdev)).strip()
         return ethdev, mac
 
@@ -191,6 +190,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         return dev, mac
 
     # endpoint is always a xenrt.GenericHost
+    # endpointdev is the (integer) assumedid of the device, or None to use the default device
     def nicinfo(self, endpoint, endpointdev=None, key_prefix=""):
         assert isinstance(endpoint, xenrt.GenericHost)
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
@@ -285,6 +285,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         return endpoint.execcmd("hostname").strip()
 
     def physicalDeviceOf(self, guest, endpointdev):
+        assert isinstance(guest, xenrt.GenericGuest)
         if endpointdev is None:
             return None
         else:
@@ -313,7 +314,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0issue"]   = self.getIssue(self.endpoint0)
             info["host0hostname"]= self.getHostname(self.endpoint0)
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint0,self.e0dev,"guest0:"))
             info.update(self.nicinfo(self.endpoint0.host,self.physicalDeviceOf(self.endpoint0, self.e0dev),"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = self.endpoint0.distro
@@ -338,7 +338,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1issue"]   = self.getIssue(self.endpoint1)
             info["host1hostname"]= self.getHostname(self.endpoint1)
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint1,self.e1dev,"guest1:"))
             info.update(self.nicinfo(self.endpoint1.host,self.physicalDeviceOf(self.endpoint1, self.e1dev),"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = self.endpoint1.distro
@@ -394,8 +393,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             except Exception, e:
                 self.log(None, "error while breathing: %s" % (e,))
 
-    def run(self, arglist=None):
+    def convertNetworkToAssumedid(self, endpoint, network):
+        if isinstance(endpoint, xenrt.GenericHost):
+            nics = endpoint.listSecondaryNICs(network=network)
+            assert len(nics) > 0
+            # Use the first device on this network
+            return nics[0]
 
+    def run(self, arglist=None):
         # unpause endpoints if paused
         self.vmunpause()
         # set up gro if required
@@ -408,6 +413,18 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         if 'iperf_installed' not in self.endpoint1.__dict__.keys():
             self.endpoint1.installIperf(version="2.0.5")
             self.endpoint1.iperf_installed = True
+
+        # Get the device position (assumedid) for the devices to use:
+        #  - For hosts, endpointdev is a network name, so convert this.
+        #  - For guests, endpointdev is a number. Just use this.
+        if isinstance(self.endpoint0, xenrt.GenericHost):
+            self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+        else:
+            self.e0dev = int(self.e0devstr)
+        if isinstance(self.endpoint1, xenrt.GenericHost):
+            self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+        else:
+            self.e1dev = int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

@@ -84,7 +84,7 @@ class XenRTMList(XenRTMachinePage):
                 siteprops = dict([(x[0], x[2]) for x in self.scm_site_list()])
             cur = self.getDB().cursor()
             cur.execute("SELECT machine, value FROM tblMachineData "
-                        "WHERE key IN ('BROKEN_TICKET', 'BROKEN_INFO'';")
+                        "WHERE key IN ('BROKEN_TICKET', 'BROKEN_INFO');")
             while 1:
                 rc = cur.fetchone()
                 if not rc:

@@ -293,8 +293,8 @@ class XenRTBorrow(XenRTMachinePage):
             rc = cur.fetchone()
             cur.close()
             if rc[2] and hours > rc[2]:
-                if hours > 48:
-                    return "ERROR: The policy for this manchine only allows leasing for %d days, please contact QA if you need a longer lease" % rc[2]/24
+                if rc[2] > 48:
+                    return "ERROR: The policy for this manchine only allows leasing for %d days, please contact QA if you need a longer lease" % (rc[2]/24)
                 else:
                     return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
             if rc[0] and rc[0].strip() != userid and not force:

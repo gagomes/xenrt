@@ -53,14 +53,13 @@
             <arg>workloads</arg>
             <arg>loops=20</arg>
           </testcase>
-          <!-- this fails due to CA-73512 which has been fixed by Red Hat but won't be out until 6.3 or later
           <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-14474">
             <arg>N/A</arg>
             <arg>guest=rhel7x86-64</arg>
             <arg>noshutdown</arg>
             <arg>initial=4</arg>
             <arg>max=7</arg>
-          </testcase>-->
+          </testcase>
           <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-14475">
             <arg>N/A</arg>
             <arg>guest=rhel7x86-64</arg>

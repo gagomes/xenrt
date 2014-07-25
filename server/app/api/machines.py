@@ -82,6 +82,19 @@ class XenRTMList(XenRTMachinePage):
                         machineprops[string.strip(rc[0])] = string.strip(rc[1])
                 cur.close()
                 siteprops = dict([(x[0], x[2]) for x in self.scm_site_list()])
+            cur = self.getDB().cursor()
+            cur.execute("SELECT machine, value FROM tblMachineData "
+                        "WHERE key IN ('BROKEN_TICKET', 'BROKEN_INFO'';")
+            while 1:
+                rc = cur.fetchone()
+                if not rc:
+                    break
+                if rc[0] and rc[1] and string.strip(rc[0]) != "" and \
+                       string.strip(rc[1]) != "":
+                    if not machinebrokeninfo.has_key(rc[0].strip()):
+                        machinebrokeninfo[string.strip(rc[0])] = "Broken -"
+                    machinebrokeninfo[string.strip(rc[0])] += " %s" % string.strip(rc[1])
+            cur.close()
             fmt = "%-12s %-7s %-8s %-9s %-8s %s\n"
             if not quiet:
                 outfh.write(fmt %
@@ -111,9 +124,12 @@ class XenRTMList(XenRTMachinePage):
                 if rfilter:
                     if not app.utils.check_resources(m[5], rfilter):
                         continue
-                if broken:
-                    if not m[3].endswith("x"):
-                        continue
+
+                if m[3].endswith("x"):
+                    mbroken = True
+                    
+                if broken and not mbroken:
+                    continue
                 if pfilter:
                     if machineprops.has_key(m[0]):
                         avail = machineprops[m[0]]
@@ -148,31 +164,37 @@ class XenRTMList(XenRTMachinePage):
                         else:
                             comment = ""
                     else:
-                        if m[8]:
-                            c = string.strip(m[8])
-                            if m[12]:
-                                c += " - %s" % m[12]
-                        else:
-                            c = None
-                        if m[9]:
-                            ts = string.strip(str(m[9]))
-                        else:
-                            ts = None
-                        if ts:
-                            if c:
-                                comment = "%s (%s)" % (ts, c)
+                        if mbroken:
+                            if machinebrokeninfo.has_key(m[0]):
+                                comment = machinebrokeninfo[m[0]]
                             else:
-                                comment = "%s" % (ts)
-                        elif c:
-                            comment = c
-                        elif m[10] and descs.has_key(int(m[10])) and \
-                                 status != "idle" and status != "offline":
-                            comment = descs[int(m[10])]
-                        elif m[10] and deps.has_key(int(m[10])) and users.has_key(int(m[10])) and \
-                                 status != "idle" and status != "offline":
-                            comment = "%s - %s" % (deps[int(m[10])], users[int(m[10])])
+                                comment = "Broken"
                         else:
-                            comment = ""
+                            if m[8]:
+                                c = string.strip(m[8])
+                                if m[12]:
+                                    c += " - %s" % m[12]
+                            else:
+                                c = None
+                            if m[9]:
+                                ts = string.strip(str(m[9]))
+                            else:
+                                ts = None
+                            if ts:
+                                if c:
+                                    comment = "%s (%s)" % (ts, c)
+                                else:
+                                    comment = "%s" % (ts)
+                            elif c:
+                                comment = c
+                            elif m[10] and descs.has_key(int(m[10])) and \
+                                     status != "idle" and status != "offline":
+                                comment = descs[int(m[10])]
+                            elif m[10] and deps.has_key(int(m[10])) and users.has_key(int(m[10])) and \
+                                     status != "idle" and status != "offline":
+                                comment = "%s - %s" % (deps[int(m[10])], users[int(m[10])])
+                            else:
+                                comment = ""
                     if m[2]:
                         cluster = string.strip(m[2])
                     else:

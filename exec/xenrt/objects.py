@@ -5185,6 +5185,7 @@ class GenericHost(GenericPlace):
         pxecfg.linuxSetKernel("vmlinuz")
         pxecfg.linuxArgsKernelAdd("ks=nfs:%s:%s" % (h, p))
         pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
+        pxecfg.linuxArgsKernelAdd("nousb")
         pxecfg.linuxArgsKernelAdd("console=tty0")
         pxecfg.linuxArgsKernelAdd("console=ttyS%s,%sn8" %
                                   (serport, serbaud))

@@ -1485,6 +1485,122 @@ class XenRTUpdate(XenRTCommand):
         u.close()
         return reply
 
+class XenRTMBroken(XenRTCommand):
+    name = "mbroken"
+    summary = "Mark a machine as broken"
+    mandatory = "<machine> <reason>"
+    group = "Machine"
+
+    def run(self, args):
+        if len(args) < 2:
+            sys.stderr.write("Invalid usage\n")
+            return None
+        machine = args[0]
+        reason = " ".join(args[1:])
+
+        details = {'action': 'machine', 'machine':machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+            return None
+        else:
+            data = self.parse_job(data)
+        u.close()
+        pool = data['POOL']
+        pool = pool.rstrip("x")
+        pool = "%sx" % pool
+
+        details = {'action': 'mupdate', 'POOL': pool, 'machine':machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+            return None
+        u.close()
+        
+        m = re.search("([A-Z]+-\d+)", reason)
+        if m:
+            details = {'action': 'mupdate', 'BROKEN_TICKET': m.group(1), 'machine':machine}
+            u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                               proxies=self.proxies)
+            data = u.read()
+            if data[0:5] == "ERROR":
+                sys.stderr.write(data)
+                return None
+            u.close()
+
+        details = {'action': 'mupdate', 'BROKEN_INFO': reason, 'machine': machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        reply = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+        else:
+            reply = 1
+        u.close()
+        return reply
+
+class XenRTMFixed(XenRTCommand):
+    name = "mfixed"
+    summary = "Mark a machine as fixed"
+    mandatory = "<machine>"
+    group = "Machine"
+
+    def run(self, args):
+        if len(args) != 1:
+            sys.stderr.write("Invalid usage\n")
+            return None
+        machine = args[0]
+
+        details = {'action': 'machine', 'machine':machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+            return None
+        else:
+            data = self.parse_job(data)
+        u.close()
+        pool = data['POOL']
+        pool = pool.rstrip("x")
+
+        details = {'action': 'mupdate', 'POOL': pool, 'machine':machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+            return None
+        u.close()
+        
+        details = {'action': 'mupdate', 'BROKEN_TICKET': "", 'machine':machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+            return None
+        u.close()
+
+        details = {'action': 'mupdate', 'BROKEN_INFO': "", 'machine': machine}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        reply = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+        else:
+            reply = 1
+        u.close()
+        return reply
+
 class XenRTMUpdate(XenRTCommand):
 
     name = "mupdate"
@@ -3363,6 +3479,8 @@ class Commands:
         self.add(XenRTPool)
         self.add(XenRTProp)
         self.add(XenRTMRes)
+        self.add(XenRTMBroken)
+        self.add(XenRTMFixed)
         self.add(XenRTSFlag)
         self.add(XenRTUtilisation)
         self.add(XenRTMStatus)

@@ -5225,6 +5225,28 @@ class GenericHost(GenericPlace):
             self.execdom0("ethtool -K %s sg off" % (ethDevice))
             self.execdom0("ethtool -K %s tso off" % (ethDevice))
 
+        # Optionally install some RPMs
+        rpms = xenrt.TEC().lookupLeaves("RHEL_RPM_UPDATES")
+        if len(rpms) == 1:
+            rpms = string.split(rpms[0], ",")
+        remotenames = []
+        for rpm in [x for x in rpms if x != "None"]:
+            rpmfile = xenrt.TEC().getFile(rpm)
+            remotefn = "/tmp/%s" % os.path.basename(rpm)
+            sftp = self.sftpClient()
+            try:
+                sftp.copyTo(rpmfile, remotefn)
+            finally:
+                sftp.close()
+            remotenames.append(remotefn)
+        if len(remotenames) > 0:
+            force = xenrt.TEC().lookup("FORCE_RHEL_RPM_UPDATES", False,boolean=True)
+            if force:
+                self.execdom0("rpm --upgrade -v --force --nodeps %s" % (string.join(remotenames)))
+            else:
+                self.execdom0("rpm --upgrade -v %s" % (string.join(remotenames)))
+            self.reboot()
+
         self.tailor()
 
     def installLinuxVendorSLES(self,

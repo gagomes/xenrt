@@ -783,6 +783,7 @@ def processMatrixTests(release=None):
                   ('rhel63','RHEL 6.3'),
                   ('rhel64','RHEL 6.4'),
                   ('rhel65','RHEL 6.5'),
+                  ('rhel7','RHEL 7.0'),
                   ('centos5','CentOS 5.0'),
                   ('centos51','CentOS 5.1'),
                   ('centos52','CentOS 5.2'),
@@ -800,6 +801,7 @@ def processMatrixTests(release=None):
                   ('centos63','CentOS 6.3'),
                   ('centos64','CentOS 6.4'),
                   ('centos65','CentOS 6.5'),
+                  ('centos7','CentOS 7.0'),
                   ('oel53','Oracle Enterprise Linux 5.3'),
                   ('oel54','Oracle Enterprise Linux 5.4'),
                   ('oel55','Oracle Enterprise Linux 5.5'),
@@ -814,6 +816,7 @@ def processMatrixTests(release=None):
                   ('oel63','Oracle Enterprise Linux 6.3'),
                   ('oel64','Oracle Enterprise Linux 6.4'),
                   ('oel65','Oracle Enterprise Linux 6.5'),
+                  ('oel7','Oracle Enterprise Linux 7.0'),
                   ('sles101','SLES10 SP1'),
                   ('sles102','SLES10 SP2'),
                   ('sles103','SLES10 SP3'),
@@ -1077,7 +1080,7 @@ def processMatrixTests(release=None):
 
     #  (Creedence)
     distrosToRels['Creedence'] = {}
-    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65',
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel7','oel7','centos7',
                                           'sles104','sles113',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',

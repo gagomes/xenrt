@@ -85,6 +85,7 @@ class XenRTMList(XenRTMachinePage):
             cur = self.getDB().cursor()
             cur.execute("SELECT machine, value FROM tblMachineData "
                         "WHERE key IN ('BROKEN_TICKET', 'BROKEN_INFO');")
+            machinebrokeninfo = {}
             while 1:
                 rc = cur.fetchone()
                 if not rc:
@@ -127,6 +128,8 @@ class XenRTMList(XenRTMachinePage):
 
                 if m[3].endswith("x"):
                     mbroken = True
+                else:
+                    mbroken = False
                     
                 if broken and not mbroken:
                     continue

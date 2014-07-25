@@ -64,6 +64,8 @@ class XenRTMList(XenRTMachinePage):
                 leasefilter = True 
             if form.has_key("verbose") and form["verbose"] == "yes":
                 verbose = True
+            if form.has_key("broken") and form["broken"] == "yes":
+                broken = True
             machines = self.scm_machine_list(site, cluster, pool=pool, leasecheck=leasefilter)
             if showprops or pfilter:
                 machineprops = {}
@@ -107,6 +109,9 @@ class XenRTMList(XenRTMachinePage):
                             machineprops[m[0]] = siteprops[m[1]]
                 if rfilter:
                     if not app.utils.check_resources(m[5], rfilter):
+                        continue
+                if broken:
+                    if not m[4].endswith("x"):
                         continue
                 if pfilter:
                     if machineprops.has_key(m[0]):

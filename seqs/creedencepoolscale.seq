@@ -88,7 +88,7 @@
     <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopShutdown" tc="TC-18707">
       <arg>threads=${THREADS}</arg>
     </testcase>
-    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" tc="TC-18709">
+    <testcase id="xenserver.tc.scalability.TCScaleVMXenDesktopStart" name="Start2" tc="TC-18709">
       <arg>threads=${THREADS}</arg>
     </testcase>
     <testcase id="xenserver.tc.scalability.TCStbltyMasterReboot" tc="TC-18808" />

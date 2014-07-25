@@ -790,7 +790,7 @@ class XenRTMList2(XenRTCommand):
         details = {'action': 'mlist2'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
         try:
-            optlist, optx = getopt.getopt(args, 's:c:o:qCrdR:pP:vf:mb:na', "broken")
+            optlist, optx = getopt.getopt(args, 's:c:o:qCrdR:pP:vf:mb:na')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
@@ -826,8 +826,6 @@ class XenRTMList2(XenRTCommand):
                     details["leased"] = "yes"
                 elif flag == "-v":
                     details["verbose"] = "yes"
-                elif flag == "--broken":
-                    details['broken'] = "yes"
                 else:
                     sys.stderr.write("Unknown argument '%s'\n" % (flag))
                     return None

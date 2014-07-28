@@ -14,7 +14,7 @@
   </prepare>
 
   <testsequence>
-    <parallel group="Rename" workers="3">
+    <parallel group="Rename" workers="5">
       <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenWin7" tc="TC-21563">
         <arg>distro=win7sp1-x86</arg>
       </testcase>

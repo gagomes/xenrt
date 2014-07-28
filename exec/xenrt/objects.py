@@ -2519,7 +2519,7 @@ Add-WindowsFeature as-net-framework"""
                 self.execcmd("rm -rf %s" % (workdir))
 
     def installIperf(self, version=""):
-        """Install iperf into the guest"""
+        """Install iperf into the container (requires gcc/make already installed) """
 
         if version=="":
             sfx = "2.0.4"
@@ -2546,6 +2546,7 @@ Add-WindowsFeature as-net-framework"""
                 self.execcmd("cd %s/iperf-%s && make install" %
                              (workdir, sfx))
                 self.execcmd("rm -rf %s" % (workdir))
+                self.execcmd("mkdir ./iperf && cp /usr/local/bin/iperf ./iperf/iperf")
 
     def startIperf(self):
         """Starts iperf as server in the Guest"""
@@ -5185,6 +5186,7 @@ class GenericHost(GenericPlace):
         pxecfg.linuxSetKernel("vmlinuz")
         pxecfg.linuxArgsKernelAdd("ks=nfs:%s:%s" % (h, p))
         pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
+        pxecfg.linuxArgsKernelAdd("nousb")
         pxecfg.linuxArgsKernelAdd("console=tty0")
         pxecfg.linuxArgsKernelAdd("console=ttyS%s,%sn8" %
                                   (serport, serbaud))
@@ -5223,6 +5225,28 @@ class GenericHost(GenericPlace):
             self.execdom0("ethtool -K %s tx off" % (ethDevice))
             self.execdom0("ethtool -K %s sg off" % (ethDevice))
             self.execdom0("ethtool -K %s tso off" % (ethDevice))
+
+        # Optionally install some RPMs
+        rpms = xenrt.TEC().lookupLeaves("RHEL_RPM_UPDATES")
+        if len(rpms) == 1:
+            rpms = string.split(rpms[0], ",")
+        remotenames = []
+        for rpm in [x for x in rpms if x != "None"]:
+            rpmfile = xenrt.TEC().getFile(rpm)
+            remotefn = "/tmp/%s" % os.path.basename(rpm)
+            sftp = self.sftpClient()
+            try:
+                sftp.copyTo(rpmfile, remotefn)
+            finally:
+                sftp.close()
+            remotenames.append(remotefn)
+        if len(remotenames) > 0:
+            force = xenrt.TEC().lookup("FORCE_RHEL_RPM_UPDATES", False,boolean=True)
+            if force:
+                self.execdom0("rpm --upgrade -v --force --nodeps %s" % (string.join(remotenames)))
+            else:
+                self.execdom0("rpm --upgrade -v %s" % (string.join(remotenames)))
+            self.reboot()
 
         self.tailor()
 
@@ -8882,23 +8906,7 @@ class GenericGuest(GenericPlace):
 
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
-
-            if "win81-x64" in self.distro:
-                au3scr = """If WinWait ("Windows Security", "") Then
-sleep (10000)
-SendKeepActive("Windows Security")
-sleep (10000)
-send ("{LEFT}")
-sleep(10000)
-send ("{ENTER}")
-sleep(10000)
-send ("{DOWN}")
-sleep (1000)
-send ("{ENTER}")
-EndIf
-"""
-            else:
-                au3scr = """If WinWait ("Windows Security", "") Then
+            au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)

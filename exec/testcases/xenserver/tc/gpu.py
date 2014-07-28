@@ -21,8 +21,8 @@ from xenrt.lib.xenserver.call import *
 from testcases.xenserver.tc.ns import SRIOVTests
 
 
-class _GPU(xenrt.TestCase):
-    """Common parent of all GPU testcases"""
+class GPUHelper():
+    """Helper for GPU related operations"""
 
     def getGPUHosts(self, pool):
         hosts = pool.getHosts()
@@ -116,7 +116,7 @@ class _GPU(xenrt.TestCase):
             "no host in the pool has any exclusive GPU group")
 
     def attachGPU(self, vm, gpu_group_uuid):
-        host = self.getDefaultHost()
+        host = vm.getHost()
         cli = host.getCLIInstance()
         # assign a vGPU to this VM
         vgpu_uuid = cli.execute(
@@ -126,7 +126,7 @@ class _GPU(xenrt.TestCase):
         return vgpu_uuid
 
     def detachGPU(self, vm):
-        host = self.getDefaultHost()
+        host = vm.getHost()
         cli = host.getCLIInstance()
         vm_vgpu_uuids = host.minimalList(
             "vgpu-list", args="params=uuid vm-uuid=%s" % vm.getUUID())
@@ -259,6 +259,10 @@ class _GPU(xenrt.TestCase):
 
         # check that reboot succeeds for this VM
         vm.reboot()
+
+
+class _GPU(xenrt.TestCase, GPUHelper):
+    """Common parent of all GPU testcases"""
 
 
 class TC13527(_GPU):

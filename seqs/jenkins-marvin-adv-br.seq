@@ -40,7 +40,7 @@
             }
           ],
           "ipranges": [
-            { "XRT_GuestIPRangeSize": 15 }
+            { "XRT_GuestIPRangeSize": 35 }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 10,

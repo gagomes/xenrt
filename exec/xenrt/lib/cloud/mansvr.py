@@ -184,7 +184,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if self.version in ['4.4', 'master']:
+            if self.version in ['4.4', '4.5', 'master']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java*1.7*')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
@@ -265,6 +265,9 @@ class ManagementServer(object):
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
+                if len(installVersionMatches) > 1 and "master" in installVersionMatches:
+                    installVersionMatches.remove("master")
+
             xenrt.TEC().logverbose('XenRT support MS versions matching DB version: %s' % (dbVersionMatches))
             xenrt.TEC().logverbose('XenRT support MS versions matching install version: %s' % (installVersionMatches))
 
@@ -284,7 +287,7 @@ class ManagementServer(object):
         if self.__isCCP is None:
             # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
             # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
-            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None and xenrt.TEC().lookup("CLOUDRPMTAR", None) is None
 
         return self.__isCCP
 
@@ -310,7 +313,7 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
-        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None:
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None:
             self.installCloudStackManagementServer()
         else:
             raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')

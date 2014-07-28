@@ -26,6 +26,18 @@ __all__ = ["Guest",
 def getTemplate(host, distro, hvm=None, arch=None):
     return host.getTemplate(distro, hvm=hvm, arch=arch)
 
+
+def isBSODBlue(img):
+    pix = img.load()
+    blue = 0
+    for x in range (img.size[0]):
+        for y in range(img.size[1]):
+            if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
+                            blue += 1
+    pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
+    return pc > 50
+
+
 class Guest(xenrt.GenericGuest):
     """Encapsulates a single guest VM."""
 
@@ -325,7 +337,10 @@ class Guest(xenrt.GenericGuest):
         self.isoname = isoname
         if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
-            rootdisk=32000
+            
+            if not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
+                # this hack isn't required on Creedence as we've got the templates sorted
+                rootdisk=32000
         if distro:
             self.distro = distro
         host.addGuest(self)
@@ -1374,11 +1389,10 @@ exit /B 1
                         xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
                         xenrt.sleep(extrawait)
 
-                        if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
-                            for i in range(24):
-                                if self.pvDriversUpToDate():
-                                    break
-                                xenrt.sleep(10)
+                        for i in range(48):
+                            if self.pvDriversUpToDate():
+                                break
+                            xenrt.sleep(10)
                     return xenrt.RC_OK
                 else:
                     xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)
@@ -3147,14 +3161,7 @@ exit /B 1
                                    (self.getName(), self.getHost().getName()))
 
     def checkBSOD(self,img):
-        pix = img.load()
-        blue = 0
-        for x in range (img.size[0]):
-                for y in range(img.size[1]):
-                        if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
-                                blue += 1
-        pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
-        if pc > 50:
+        if isBSODBlue(img):
                 # This is almost certainly a BSOD (> 50% of the screen is the BSOD blue...)
                 xenrt.TEC().tc._bluescreenGuests.append(self)
                 img.save("%s/bsod.jpg" % (xenrt.TEC().getLogdir()))
@@ -5346,8 +5353,10 @@ class TampaGuest(BostonGuest):
         ***** Method deprecated *****
         Setting hostname via XenStore was disabled in Tampa
         Use setHostname method for setting the hostname
+        In Creedence a similar method has been added as a new implementation
+        has been added
         """
-        xenrt.TEC().logverbose("setHostnameViaXenstore no longer supported from Tampa onwards")
+        xenrt.TEC().logverbose("setHostnameViaXenstore not supported in this release")
 
     def waitForShutdownReady(self):
         # Best effort function to wait for feature-shutdown xenstore key to be set if VM is windows.
@@ -5491,6 +5500,25 @@ default:
             self.execguest("make")
             try: self.execguest("insmod panic.ko", timeout=1)
             except: pass
+
+    def setNameViaXenstore(self, name, reboot=True):
+        """
+        This is a second version of the mechanism to set the guest name
+        via. xenstore. It was added in Creedence and the original for deprecated
+        in Tampa
+        NETBIOS name should be up 15 chars, the rest will be trucated
+        """
+        domid = self.getDomid()
+        host = self.getHost()
+        featurePresent = host.xenstoreRead("/local/domain/%u/control/feature-setcomputername" % domid).strip()
+        if not featurePresent == "1":
+            raise xenrt.XRTFailure("Cannot set the host name via. xenstore as the feature is not present")
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/name" % domid, name)
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/action" % domid, "set")
+
+        # A reboot is required to make these changes appear in the guest
+        if reboot:
+            self.reboot()
 
 
 class SarasotaGuest(CreedenceGuest):

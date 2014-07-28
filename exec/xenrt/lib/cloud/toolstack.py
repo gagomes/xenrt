@@ -27,6 +27,7 @@ class CloudStack(object):
     # Mapping of hypervisors to template formats
     _templateFormats = {"XenServer": "VHD",
                         "KVM": "QCOW2",
+                        "VMware": "OVA",
                         "Hyperv": "VHD"}
 
     def __init__(self, place=None, ip=None):
@@ -234,7 +235,7 @@ class CloudStack(object):
 
             xenrt.TEC().logverbose("Deploying VM")
 
-            networkProvider = NetworkProvider.factory(self, zoneid, instance, extraConfig)
+            networkProvider = NetworkProvider.factory(self, zoneid, instance, hypervisor, extraConfig)
 
             secGroupIds = networkProvider.getSecurityGroupIds()
             networks = networkProvider.getNetworkIds()
@@ -888,7 +889,7 @@ class CloudStack(object):
 class NetworkProvider(object):
 
     @staticmethod
-    def factory(cloudstack, zoneid, instance, config):
+    def factory(cloudstack, zoneid, instance, hypervisor, config):
         # Is this a basic zone?
         cls = None
         if cloudstack.cloudApi.listZones(id=zoneid)[0].networktype == "Basic":
@@ -912,17 +913,18 @@ class NetworkProvider(object):
         if not cls:
             raise xenrt.XRTError("No suitable network provider found")
 
-        return cls(cloudstack, zoneid, instance, config)
+        return cls(cloudstack, zoneid, instance, hypervisor, config)
 
-    def __init__(self, cloudstack, zoneid, instance, config):
+    def __init__(self, cloudstack, zoneid, instance, hypervisor, config):
         self.cloudstack = cloudstack
         self.zoneid = zoneid
         self.instance = instance
         self.config = config
+        self.hypervisor = hypervisor
 
     def getSecurityGroupIds(self):
         # Do we need to sort out a security group?
-        if self.cloudstack.cloudApi.listZones(id=self.zoneid)[0].securitygroupsenabled:
+        if self.cloudstack.cloudApi.listZones(id=self.zoneid)[0].securitygroupsenabled and self.hypervisor.lower() != "vmware":
             with xenrt.GEC().getLock("CCP_SEC_GRP-%s" % self.zoneid):
                 secGroups = self.cloudstack.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
                 if not isinstance(secGroups, list):
@@ -958,8 +960,8 @@ class BasicNetworkProvider(NetworkProvider):
         return []
 
 class AdvancedNetworkProviderIsolated(NetworkProvider):
-    def __init__(self, cloudstack, zoneid, instance, config):
-        super(AdvancedNetworkProviderIsolated, self).__init__(cloudstack, zoneid, instance, config)
+    def __init__(self, cloudstack, zoneid, instance, hypervisor, config):
+        super(AdvancedNetworkProviderIsolated, self).__init__(cloudstack, zoneid, instance, hypervisor, config)
         self.network = None
     
     def getNetworkIds(self):
@@ -1115,8 +1117,8 @@ class AdvancedNetworkProviderIsolatedWithStaticNAT(AdvancedNetworkProviderIsolat
             self.cloudstack.cloudApi.createFirewallRule(ipaddressid=ip.id, protocol="TCP", cidrlist=["0.0.0.0/0"], startport=p, endport=p)
             
 class AdvancedNetworkProviderShared(NetworkProvider):
-    def __init__(self, cloudstack, zoneid, instance, config):
-        super(AdvancedNetworkProviderShared, self).__init__(cloudstack, zoneid, instance, config)
+    def __init__(self, cloudstack, zoneid, instance, hypervisor, config):
+        super(AdvancedNetworkProviderShared, self).__init__(cloudstack, zoneid, instance, hypervisor, config)
     
     def getNetworkIds(self):
         if self.config.has_key('networkname') and self.config['networkname']:

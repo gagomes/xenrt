@@ -235,6 +235,7 @@ setupstatichost = False
 setupstaticguest = False
 staticguest = None
 cleanupsharedhosts = False
+cleanupvcenter = False
 powercontrol = False
 powerhost = None
 poweroperation = None
@@ -348,6 +349,7 @@ try:
                                       'install-linux=',
                                       'install-guest=',
                                       'cleanup-shared-hosts',
+                                      'cleanup-vcenter',
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
@@ -699,6 +701,9 @@ try:
             remote = True
             installguest = value
             verbose = True
+            aux = True
+        elif flag == "--cleanup-vcenter":
+            cleanupvcenter = True
             aux = True
         elif flag == "--cleanup-shared-hosts":
             cleanupsharedhosts = True
@@ -1924,6 +1929,29 @@ if installguest:
     place.populateSubclass(host)
     host.existing()
     host.createBasicGuest(distro, arch=arch)
+
+if cleanupvcenter:
+    if xenrt.TEC().lookup("VCENTER_MANAGED", False, boolean=True):
+        v = xenrt.lib.esx.getVCenter()
+        dcs = v.listDataCenters()
+        for d in dcs:
+            try:
+                m = re.match(".*-(\d+$)", d)
+                if m:
+                    xrs = xenrt.ctrl.XenRTStatus(None)                
+                    try:
+                        if xenrt.canCleanJobResources(m.group(1)):
+                            print "Cleaning up datacenter %s" % d
+                            v.removeDataCenter(d)
+                        else:
+                            print "Not cleaning up datacenter %s" % d
+                    except Exception, e:
+                        sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
+                        continue
+                else:
+                    print "Not cleaning up datacenter %s" % d
+            except Exception,e:
+                sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
 
 if cleanupsharedhosts:
     # Setup logdir

@@ -22,7 +22,9 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     "XENRT_SERVER_ADDRESS": "10.0.0.2",
                     "CLOUDINPUTDIR": "http://repo/location",
                     "ROOT_PASSWORD": "xenroot",
-                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net"}
+                    "AD_CONFIG": {"ADMIN_USER": "Administrator", "ADMIN_PASSWORD": "xenroot01T", "DOMAIN_NAME": "XSQA", "DOMAIN": "ad.qa.xs.citrite.net"},
+                    "VCENTER": {"ADDRESS": "10.2.0.1", "USERNAME": "Administrator@vsphere.local", "PASSWORD": "xenroot01T!"},
+                    "VCENTER/ADDRESS": "10.2.0.1"
                     }
 
     def addTC(self, cls):
@@ -35,6 +37,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         self.addTC(TC3)
         self.addTC(TC4)
         self.addTC(TC5)
+        self.addTC(TC6)
         self.run_for_many(self.tcs, self.__test_marvin_config_generator)
 
     @patch("xenrt.ExternalSMBShare")
@@ -190,7 +193,7 @@ class TC1(BaseTC):
     OUT = {'zones': [{'dns1': '10.1.0.2',
          'domain': 'nsec-xenrtcloud',
          'guestcidraddress': '192.168.200.0/24',
-         'internaldns1': '10.1.0.2',
+         'internaldns1': '10.0.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,
                         'endip': '10.1.0.10',
                         'gateway': '10.1.0.1',
@@ -474,4 +477,81 @@ class TC5(BaseTC):
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
                                 'url': 'cifs://smbserver/path'}]}]} 
+
+class TC6(BaseTC):
+    """Test VMWare zones populate pods and clusters with correct info"""
+
+    IN = {'zones': [{'guestcidraddress': '192.168.200.0/24',
+             'ipranges': [{'XRT_GuestIPRangeSize': 10}],
+             'networktype': 'Advanced',
+             'XRT_VMWareDC': 'vmwd1',
+             'physical_networks': [{'XRT_VLANRangeSize': 10,
+                                     'isolationmethods': ['VLAN'],
+                                     'name': 'AdvPhyNetwork',
+                                     'providers': [{'broadcastdomainrange': 'ZONE',
+                                                     'name': 'VirtualRouter'},
+                                                    {'broadcastdomainrange': 'ZONE',
+                                                     'name': 'VpcVirtualRouter'},
+                                                    {'broadcastdomainrange': 'ZONE',
+                                                     'name': 'InternalLbVm'}],
+                                     'traffictypes': [{'typ': 'Guest'},
+                                                       {'typ': 'Management'},
+                                                       {'typ': 'Public'}]}],
+             'pods': [{'XRT_PodIPRangeSize': 10,
+                        'XRT_VMWareDC': 'vmwd1',
+                        'clusters': [{'XRT_Hosts': 1,
+                                       'XRT_VMWareDC': 'vmwd1',
+                                       'XRT_VMWareCluster': 'vmwc1',
+                                       'XRT_VMWareHostIds': '0',
+                                       'hypervisor': 'vmware'}]}]}]}
+
+    OUT = {'zones': [{'dns1': '10.0.0.2',
+         'domain': 'xenrtcloud',
+         'guestcidraddress': '192.168.200.0/24',
+         'internaldns1': '10.0.0.2',
+         'ipranges': [{'XRT_GuestIPRangeSize': 10,
+                        'endip': '10.1.0.10',
+                        'gateway': '10.0.0.1',
+                        'netmask': '255.255.255.0',
+                        'startip': '10.1.0.1'}],
+         'name': 'XenRT-Zone-0',
+         'networktype': 'Advanced',
+         'physical_networks': [{'XRT_VLANRangeSize': 10,
+                                 'broadcastdomainrange': 'Zone',
+                                 'isolationmethods': ['VLAN'],
+                                 'name': 'AdvPhyNetwork',
+                                 'providers': [{'broadcastdomainrange': 'ZONE',
+                                                 'name': 'VirtualRouter'},
+                                                {'broadcastdomainrange': 'ZONE',
+                                                 'name': 'VpcVirtualRouter'},
+                                                {'broadcastdomainrange': 'ZONE',
+                                                 'name': 'InternalLbVm'}],
+                                 'traffictypes': [{'typ': 'Guest'},
+                                                   {'typ': 'Management'},
+                                                   {'typ': 'Public'}],
+                                 'vlan': '3000-3009'}],
+         'pods': [{'XRT_PodIPRangeSize': 10,
+                    'vmwaredc': {'name': 'vmwd1',
+                                 'vcenter': '10.2.0.1',
+                                 'username': 'Administrator@vsphere.local',
+                                 'password': 'xenroot01T!'},
+                    'clusters': [{'XRT_Hosts': 1,
+                                   'XRT_VMWareHostIds': '0',
+                                   'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
+                                   'clustertype': 'ExternalManaged',
+                                   'url': 'http://10.2.0.1/vmwd1/vmwc1',
+                                   'hosts': [{'password': 'xenroot',
+                                              'url': 'http://10.0.0.3',
+                                              'username': 'root'}],
+                                   'hypervisor': 'vmware',
+                                   'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
+                                                        'url': 'nfs://nfsserver/path'}]}],
+                    'endip': '10.1.0.10',
+                    'gateway': '10.0.0.1',
+                    'name': 'XenRT-Zone-0-Pod-0',
+                    'netmask': '255.255.255.0',
+                    'startip': '10.1.0.1'}],
+         'secondaryStorages': [{'provider': 'NFS',
+                                'url': 'nfs://nfsserver/path'}]}]} 
+
 

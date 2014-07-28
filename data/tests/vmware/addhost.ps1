@@ -26,9 +26,11 @@ if (!(Get-Cluster $cluster)) {
     New-Cluster -Name $cluster -Location (Get-DataCenter $datacenter)
 }
 
-if (Get-VMHost -Name $hostaddr) {
-    Get-VMHost -Name $hostaddr | Remove-VMHost -Confirm:$false
+if (Get-DataCenter -VMHost $hostaddr) {
+    Get-DataCenter -VMHost $hostaddr | Remove-DataCenter -Confirm:$false
 }
 
 Write-Output Adding Host
 Add-VMHost -Name $hostaddr -Location (Get-Cluster $cluster) -Force -User $huser -Password $hpassword
+
+Get-VMHost -Location $datacenter | Export-CSV c:\vmware\$datacenter.csv -notype

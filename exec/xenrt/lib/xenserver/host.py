@@ -149,6 +149,7 @@ def createHost(id=0,
                suppackcds=None,
                addToLogCollectionList=False,
                disablefw=False,
+               cpufreqgovernor=None,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
@@ -189,7 +190,7 @@ def createHost(id=0,
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"enabled")
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"yes")
         else:
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],None)
+            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"")
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"no")
 
     if enableAllPorts:
@@ -303,6 +304,16 @@ def createHost(id=0,
         xenrt.TEC().warning("Disabling host firewall")
         host.execdom0("service iptables stop")
         host.execdom0("chkconfig iptables off")
+
+    if cpufreqgovernor:
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
+
+        # Set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        host.execdom0("xenpm set-scaling-governor performance")
+
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
@@ -1935,13 +1946,13 @@ fi
             self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
         except xenrt.XRTFailure, e:
             if not self.checkForHardwareBootProblem(True):
-                raise e
+                raise
             # checkForHardwareBootProblem power cycled the machine, check again
             try:
                 self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
             except xenrt.XRTFailure, e:
                 self.checkForHardwareBootProblem(False)
-                raise e
+                raise
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 
@@ -2603,9 +2614,9 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
-            self.execdom0("wget %s/iperf%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version))
-            self.execdom0("tar -zxf iperf%s.tgz" % (version,))
-            self.execdom0("ln -s ~/iperf%s/iperf /usr/bin" % (version,))
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
+            xenrt.objects.GenericPlace.installIperf(self, version)
 
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):
@@ -5526,6 +5537,7 @@ fi
         args.append("physical-size=1")
         args.append("type=file")
         args.append("content-type=\"XenRT Content\"")
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
         if createVDI:
             args.append("device-config-location=%s/SRs/%s/sr" % 
                        (xenrt.TEC().lookup("LOCAL_BASE"),name))
@@ -11692,6 +11704,7 @@ class CIFSStorageRepository(StorageRepository):
         args.append("name-label=%s" % (self.name))
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):

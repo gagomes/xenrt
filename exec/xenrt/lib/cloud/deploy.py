@@ -60,6 +60,9 @@ class DeployerPlugin(object):
         else:
             return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
+    def getInternalDNS(self, key, ref):
+        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+
     def getDomain(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
@@ -266,10 +269,32 @@ class DeployerPlugin(object):
         else:
             return None
 
+    def getClusterType(self, key, ref):
+        if ref.has_key("hypervisor") and ref['hypervisor'].lower() == "vmware":
+            return "ExternalManaged"
+        else:
+            return "CloudManaged"
+
+    def getClusterUrl(self, key, ref):
+        if ref.has_key("hypervisor") and ref['hypervisor'].lower() == "vmware":
+            return "http://%s/%s/%s" % (xenrt.TEC().lookup(["VCENTER", "ADDRESS"]), ref['XRT_VMWareDC'], ref['XRT_VMWareCluster'])
+        else:
+            return None
+        
+    def getVmWareDc(self, key, ref):
+        if ref.has_key("XRT_VMWareDC"):
+            vc = xenrt.TEC().lookup("VCENTER")
+            return {"name": ref['XRT_VMWareDC'],
+                    "vcenter": vc['ADDRESS'],
+                    "username": vc['USERNAME'],
+                    "password": vc['PASSWORD']}
+        else:
+            return None
+
     def getHostsForCluster(self, key, ref):
         xenrt.TEC().logverbose('getHostsForCluster, %s, %s' % (key, ref))
         hosts = []
-        if ref.has_key('hypervisor') and ref['hypervisor'] == 'XenServer' and ref.has_key('XRT_MasterHostId'):
+        if ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'xenserver' and ref.has_key('XRT_MasterHostId'):
             # TODO - move this to the host notify block (in notifyNewElement)
             hostObject = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (ref['XRT_MasterHostId']))
             try:
@@ -289,14 +314,11 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
             hosts.append( { 'url': 'http://%s' % (hostObject.getIP()) } )
-        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'KVM' and ref.has_key('XRT_KVMHostIds'):
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'kvm' and ref.has_key('XRT_KVMHostIds'):
             hostIds = ref['XRT_KVMHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                try:
-                    h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP)
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -305,15 +327,24 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
-        elif ref.has_key('hypervisor') and ref['hypervisor'] == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
             hostIds = ref['XRT_HyperVHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 self.getHyperVMsi()
+                h.tailorForCloudStack(self.hyperVMsi)
+
                 try:
-                    h.tailorForCloudStack(self.hyperVMsi)
-                except:
-                    xenrt.TEC().logverbose("Warning - could not run tailorForCloudStack()")
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'vmware' and ref.has_key('XRT_VMWareHostIds'):
+            hostIds = ref['XRT_VMWareHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
@@ -327,16 +358,23 @@ class DeployerPlugin(object):
         return hosts
 
     def getHyperVMsi(self):
-        # Install CloudPlatform packages
-        cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
-        if not cloudInputDir:
-            raise xenrt.XRTError("No CLOUDINPUTDIR specified")
-        xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
-        ccpTar = xenrt.TEC().getFile(cloudInputDir)
-        xenrt.TEC().logverbose("Got %s" % ccpTar)
-        t = xenrt.TempDirectory()
-        xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
-        self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
+        if xenrt.TEC().lookup("HYPERV_AGENT", None):
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT"))
+        else:
+            # Install CloudPlatform packages
+            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            if not cloudInputDir:
+                raise xenrt.XRTError("No CLOUDINPUTDIR specified")
+            xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
+            ccpTar = xenrt.TEC().getFile(cloudInputDir)
+            xenrt.TEC().logverbose("Got %s" % ccpTar)
+            t = xenrt.TempDirectory()
+            xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
+            self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
+        if not self.hyperVMsi and  xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", None):
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK"))
+        if not self.hyperVMsi:
+            raise xenrt.XRTError("Could not find Hyper-V agent in build")
 
     def notifyNewElement(self, key, name):
         xenrt.TEC().logverbose('New Element, key: %s, value: %s' % (key, name))
@@ -396,6 +434,7 @@ def doDeploy(cloudSpec, manSvr=None):
         if cloudSpec.has_key('globalConfig'):
             manSvr.restart()
 
+        marvin.waitForSystemVmsReady()
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvin.waitForBuiltInTemplatesReady()
     finally:

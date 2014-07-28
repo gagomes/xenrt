@@ -179,7 +179,7 @@ class _VMScalability(_Scalability):
             #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus 
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
-                host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=1000)
+                host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=3600)
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to xpin Dom0 : %s" % (e))
         
@@ -341,7 +341,11 @@ class _VMScalability(_Scalability):
             try:
                 self.pool.disableHA(check=False)
             except:
-                pass    
+                pass
+        
+        if self.getResult(code=True) == xenrt.RESULT_FAIL or self.getResult(code=True) == xenrt.RESULT_ERROR:
+            self.POSTRUN = "forcecleanup"
+
         if self.POSTRUN != "nocleanup":
             xenrt.TEC().logverbose("Starting Host Cleanup")
             if self.POSTRUN == "forcecleanup":                

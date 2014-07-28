@@ -521,7 +521,11 @@ class _WSMANProtocol(_CIMInterface):
         except:
             raise xenrt.XRTError("Exception caught while mapping the share directory")
 
-        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 3600)
         return ret
 

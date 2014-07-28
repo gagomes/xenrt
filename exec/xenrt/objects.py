@@ -4672,7 +4672,7 @@ class GenericHost(GenericPlace):
         mac = self.getNICMACAddress(assumedid)
         mac = xenrt.util.normaliseMAC(mac)
         data = self.execdom0("ifconfig -a")
-        intfs = re.findall(r"(eth\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
+        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
         for intf in intfs:
             ieth, imac = intf
             if xenrt.util.normaliseMAC(imac) == mac:

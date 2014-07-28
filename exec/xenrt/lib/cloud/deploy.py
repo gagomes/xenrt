@@ -60,6 +60,9 @@ class DeployerPlugin(object):
         else:
             return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
+    def getInternalDNS(self, key, ref):
+        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+
     def getDomain(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()

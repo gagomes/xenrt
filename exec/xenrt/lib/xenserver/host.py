@@ -1946,13 +1946,13 @@ fi
             self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
         except xenrt.XRTFailure, e:
             if not self.checkForHardwareBootProblem(True):
-                raise e
+                raise
             # checkForHardwareBootProblem power cycled the machine, check again
             try:
                 self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
             except xenrt.XRTFailure, e:
                 self.checkForHardwareBootProblem(False)
-                raise e
+                raise
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 

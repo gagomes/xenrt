@@ -60,6 +60,9 @@ class DeployerPlugin(object):
         else:
             return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
+    def getInternalDNS(self, key, ref):
+        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+
     def getDomain(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
@@ -431,7 +434,7 @@ def doDeploy(cloudSpec, manSvr=None):
         if cloudSpec.has_key('globalConfig'):
             manSvr.restart()
 
-        marvin.waitForSytemVmsReady()
+        marvin.waitForSystemVmsReady()
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvin.waitForBuiltInTemplatesReady()
     finally:

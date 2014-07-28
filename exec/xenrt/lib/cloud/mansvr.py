@@ -265,6 +265,9 @@ class ManagementServer(object):
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
+                if len(installVersionMatches) > 1 and "master" in installVersionMatches:
+                    installVersionMatches.remove("master")
+
             xenrt.TEC().logverbose('XenRT support MS versions matching DB version: %s' % (dbVersionMatches))
             xenrt.TEC().logverbose('XenRT support MS versions matching install version: %s' % (installVersionMatches))
 

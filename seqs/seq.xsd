@@ -107,6 +107,7 @@
                 <xs:attribute name="suppackcds" use="optional" type="xs:string" />
                 <xs:attribute name="alias" use="optional" type="xs:string" />
                 <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
+                <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
               </xs:complexType>
             </xs:element>
           </xs:choice>
@@ -146,6 +147,7 @@
           <xs:attribute name="suppackcds" use="optional" type="xs:string" />
           <xs:attribute name="alias" use="optional" type="xs:string" />
           <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
+          <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>

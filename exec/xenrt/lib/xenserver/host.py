@@ -2616,7 +2616,7 @@ fi
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
-            xenrt.objects.installIperf(self, version)
+            xenrt.objects.GenericPlace.installIperf(self, version)
 
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):

@@ -193,7 +193,7 @@ class TC1(BaseTC):
     OUT = {'zones': [{'dns1': '10.1.0.2',
          'domain': 'nsec-xenrtcloud',
          'guestcidraddress': '192.168.200.0/24',
-         'internaldns1': '10.1.0.2',
+         'internaldns1': '10.0.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,
                         'endip': '10.1.0.10',
                         'gateway': '10.1.0.1',

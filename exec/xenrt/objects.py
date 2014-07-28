@@ -2519,7 +2519,7 @@ Add-WindowsFeature as-net-framework"""
                 self.execcmd("rm -rf %s" % (workdir))
 
     def installIperf(self, version=""):
-        """Install iperf into the guest"""
+        """Install iperf into the container (requires gcc/make already installed) """
 
         if version=="":
             sfx = "2.0.4"

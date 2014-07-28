@@ -2614,9 +2614,9 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
-            self.execdom0("wget %s/iperf%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version))
-            self.execdom0("tar -zxf iperf%s.tgz" % (version,))
-            self.execdom0("ln -s ~/iperf%s/iperf /usr/bin" % (version,))
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
+            xenrt.objects.installIperf(self, version)
 
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):

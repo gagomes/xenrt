@@ -18,7 +18,7 @@
           "physical_networks": [
             { "name": "AdvPhyNetwork",
               "isolationmethods": [ "VLAN" ],
-              "XRT_VLANRangeSize": 2,
+              "XRT_VLANRangeSize": 10,
               "traffictypes": [
                 { "typ": "Guest" },
                 { "typ": "Management" },
@@ -51,14 +51,14 @@
         ],
         "globalConfig": [
           { "name": "network.gc.wait", "value": "60" },
-          { "name": "storage.cleanup.interval", "value": "300" },
+          { "name": "storage.cleanup.interval", "value": "30" },
           { "name": "vm.op.wait.interval", "value": "5" },
           { "name": "default.page.size", "value": "10000" },
           { "name": "network.gc.interval", "value": "60" },
           { "name": "workers", "value": "10" },
-          { "name": "account.cleanup.interval", "value": "600" },
-          { "name": "expunge.delay", "value": "60" },
-          { "name": "expunge.interval", "value": "60" },
+          { "name": "account.cleanup.interval", "value": "30" },
+          { "name": "expunge.delay", "value": "30" },
+          { "name": "expunge.interval", "value": "30" },
           { "name": "expunge.workers", "value": "3" },
           { "name": "enable.dynamic.scale.vm", "value": "true" },
           { "name": "direct.agent.load.size", "value": "1000" }

@@ -2484,11 +2484,11 @@ class TC21632(_TCHostPowerON):
             raise xenrt.XRTError("Do not know how to enable power on method %s"
                                                             % (self.POWERONMETHOD))
 
-        # install Dell OpenManage on every hosts in the pool.
+        # Install Dell OpenManage Supplemental Pack on every hosts in the pool.
         self.installDellOpenManage()
 
     def installDellOpenManage(self):
-        """Installs Dell OpenManage on every host in the pool"""
+        """Installs Dell OpenManage Supplemental Pack"""
 
         script = """#!/usr/bin/expect
 set cmd [lindex $argv 0]
@@ -2501,14 +2501,22 @@ expect eof
 """
 
         for host in self.pool.getHosts():
-            # Get the OpenManage Software from distmaster and install.
+            # Get the OpenManage Supplemental Pack from distmaster and install.
             host.execdom0("wget -nv '%s/dellom.tgz' -O - | tar -zx -C /tmp" %
                                                     (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             host.execdom0("mv /tmp/dellom/%s /root" % self.DELL_OM_NAME)            
             
             host.execdom0("echo '%s' > script.sh; exit 0" % script)
             host.execdom0("chmod a+x script.sh; exit 0")
-            host.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
+ 
+            try:
+               commandOutput = host.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
+               xenrt.sleep(60)
+            except:
+                if re.search("Pack installation successful", commandOutput):
+                    xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on host %s" % host)
+                else:
+                    raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack")
 
             # Retart toolstack
             host.execdom0("xe-toolstack-restart")

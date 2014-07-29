@@ -813,7 +813,7 @@ class Guest(xenrt.GenericGuest):
                     
                     # sometimes SSH can be a little temperamental immediately after boot
                     # a small sleep should help this.
-                    xenrt.sleep(20)
+                    xenrt.sleep(10)
                     
                 except Exception, e:
                     # Check the VM is still running

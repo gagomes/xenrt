@@ -2495,7 +2495,9 @@ set cmd [lindex $argv 0]
 set iso [lindex $argv 1]
 spawn $cmd $iso
 expect "(Y/N)"
-send "Y"
+sleep 5
+send "Y\n"
+expect eof
 """
 
         for host in self.pool.getHosts():

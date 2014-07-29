@@ -3622,7 +3622,7 @@ exit /B 1
         xenrt.TEC().logverbose("Guest health check for %s couldn't find anything wrong" % (self.getName()))
 
 
-    def installTools(self, source=None, reboot=True, updateKernel=True):
+    def installTools(self, source=None, reboot=False, updateKernel=True):
         """Install tools package into a guest"""
 
         if self.windows:
@@ -3714,13 +3714,13 @@ exit /B 1
                 xenrt.sleep(60)
             else:
                 toolscdname = self.insertToolsCD()
-                xenrt.sleep(60)
+                xenrt.sleep(10)
                 device = self.getHost().minimalList("vbd-list", 
                                                     "device", 
                                                     "type=CD vdi-name-label=%s vm-uuid=%s" %
                                                     (toolscdname, self.getUUID()))[0]
                 removeDevice=device
-                xenrt.sleep(60)
+                xenrt.sleep(10)
             for dev in [device, device, "cdrom"]:
                 try:
                     self.execguest("mount /dev/%s /mnt" % (dev))

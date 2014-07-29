@@ -2491,12 +2491,14 @@ class TC21632(_TCHostPowerON):
         """Installs Dell OpenManage Supplemental Pack"""
 
         script = """#!/usr/bin/expect
+set timeout 120
 set cmd [lindex $argv 0]
 set iso [lindex $argv 1]
 spawn $cmd $iso
-expect "(Y/N)"
+expect -exact "(Y/N)"
 sleep 5
-send "Y\n"
+send -- "Y\r"
+expect -exact "Pack installation successful"
 expect eof
 """
 

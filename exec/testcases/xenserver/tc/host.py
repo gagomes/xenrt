@@ -2404,13 +2404,11 @@ class _TCHostPowerON(xenrt.TestCase):
                             "to power on a host when power on is disabled "
                             "%s" % (str(e.data)))
                         raise e  
-
             else:
                 self.poweron(name,slaves,timeout=240)
     
     def postRun(self):
         self.cleanup() 
-
 
 class TC10181(_TCHostPowerON):
     """Testcase for Host Power On over wake-on-lan"""
@@ -2454,7 +2452,65 @@ class TC10182(_TCHostPowerON):
                 cli.execute("host-set-power-on-mode", string.join(args))
         else:
             raise xenrt.XRTError("Do not know how to enable power on method %s"
-                                 % (self.POWERONMETHOD))
+                                                            % (self.POWERONMETHOD))
+
+class TC21632(_TCHostPowerON):
+    """Test Case for Host Power On over Dell's DRAC."""
+
+    POWERONMETHOD = 'DRAC'
+    DELL_OM_NAME = 'OM-SrvAdmin-Dell-Web-XS-8.x-prerelease.iso'
+    
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        cli = self.pool.getCLIInstance()
+
+        if self.POWERONMETHOD == 'DRAC':
+            for name, host in self.pool.slaves.iteritems():
+                powerOnUser = host.lookup("IPMI_USERNAME",None)
+                powerOnPassword = host.lookup("IPMI_PASSWORD",None)
+                powerOnIP = host.lookup("BMC_ADDRESS",None)
+
+                secret = cli.execute("secret-create",
+                                     "value=%s" % (powerOnPassword).strip())
+                args = []
+                args.append("power-on-mode=%s" % (self.POWERONMETHOD))
+                args.append("host=%s" % (name))
+                args.append("power-on-config:power_on_user=%s" % (powerOnUser))
+                args.append("power-on-config:power_on_ip=%s" % (powerOnIP))
+                args.append("power-on-config:power_on_password_secret=%s" % (secret))
+                
+                cli.execute("host-set-power-on-mode", string.join(args))
+        else:
+            raise xenrt.XRTError("Do not know how to enable power on method %s"
+                                                            % (self.POWERONMETHOD))
+
+        # install Dell OpenManage on every hosts in the pool.
+        self.installDellOpenManage()
+
+    def installDellOpenManage(self):
+        """Installs Dell OpenManage on every host in the pool"""
+
+        script = """#!/usr/bin/expect
+set cmd [lindex $argv 0]
+set iso [lindex $argv 1]
+spawn $cmd $iso
+expect "(Y/N)"
+send "Y"
+"""
+
+        for host in self.pool.getHosts():
+            # Get the OpenManage Software from distmaster and install.
+            host.execdom0("wget -nv '%s/dellom.tgz' -O - | tar -zx -C /tmp" %
+                                                    (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            host.execdom0("mv /tmp/dellom/%s /root" % self.DELL_OM_NAME)            
+            
+            host.execdom0("echo '%s' > script.sh; exit 0" % script)
+            host.execdom0("chmod a+x script.sh; exit 0")
+            host.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
+
+            # Retart toolstack
+            host.execdom0("xe-toolstack-restart")
+            host.waitForXapi(600, desc="Xapi response after restart")
 
 class TC10811(_TCHostPowerON):
     """Testcase Exsures power control is disabled for a host"""

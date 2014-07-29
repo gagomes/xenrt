@@ -2484,14 +2484,15 @@ class TC21632(_TCHostPowerON):
             raise xenrt.XRTError("Do not know how to enable power on method %s"
                                                             % (self.POWERONMETHOD))
 
-        # Install Dell OpenManage Supplemental Pack on every hosts in the pool.
-        self.installDellOpenManage()
+        # Install Dell OpenManage (OM) Supplemental Pack on pool master.
+        self.installDellOpenManage(self.pool.master)
 
-    def installDellOpenManage(self):
+    def installDellOpenManage(self, master):
         """Installs Dell OpenManage Supplemental Pack"""
 
+        # A timeout of 3 minutes in expect script to allow the OM to install.
         script = """#!/usr/bin/expect
-set timeout 120
+set timeout 180
 set cmd [lindex $argv 0]
 set iso [lindex $argv 1]
 spawn $cmd $iso
@@ -2501,28 +2502,24 @@ send -- "Y\r"
 expect -exact "Pack installation successful"
 expect eof
 """
+        # Get the OpenManage Supplemental Pack from distmaster and install.
+        master.execdom0("wget -nv '%s/dellom.tgz' -O - | tar -zx -C /tmp" %
+                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+        master.execdom0("mv /tmp/dellom/%s /root" % self.DELL_OM_NAME)            
+        
+        master.execdom0("echo '%s' > script.sh; exit 0" % script)
+        master.execdom0("chmod a+x script.sh; exit 0")
+        commandOutput = master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
+        xenrt.sleep(30) # Allowing OM to settle before Xapi restart.
+        
+        if re.search("Pack installation successful", commandOutput):
+                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % master)
+        else:
+            raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack on master")
 
-        for host in self.pool.getHosts():
-            # Get the OpenManage Supplemental Pack from distmaster and install.
-            host.execdom0("wget -nv '%s/dellom.tgz' -O - | tar -zx -C /tmp" %
-                                                    (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            host.execdom0("mv /tmp/dellom/%s /root" % self.DELL_OM_NAME)            
-            
-            host.execdom0("echo '%s' > script.sh; exit 0" % script)
-            host.execdom0("chmod a+x script.sh; exit 0")
- 
-            try:
-               commandOutput = host.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
-               xenrt.sleep(60)
-            except:
-                if re.search("Pack installation successful", commandOutput):
-                    xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on host %s" % host)
-                else:
-                    raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack")
-
-            # Retart toolstack
-            host.execdom0("xe-toolstack-restart")
-            host.waitForXapi(600, desc="Xapi response after restart")
+        # Retart toolstack
+        master.execdom0("xe-toolstack-restart")
+        master.waitForXapi(600, desc="Xapi response after restart the master")
 
 class TC10811(_TCHostPowerON):
     """Testcase Exsures power control is disabled for a host"""

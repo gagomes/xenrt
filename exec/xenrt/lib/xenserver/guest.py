@@ -779,7 +779,10 @@ class Guest(xenrt.GenericGuest):
                         if self.reservedIP:
                             self.mainip = self.reservedIP
                         else:
-                            if not self.windows and self.paramGet("HVM-boot-policy") == "BIOS order" and not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
+                            if not self.windows and \
+                                   self.paramGet("HVM-boot-policy") == "BIOS order" and \
+                                   'n' in self.paramGet("HVM-boot-params", "order") and \
+                                   not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
                                 # HVM Linux detected. ARP watch cannot be used as multiple IP addresses are present."
                                 xenrt.TEC().logverbose("Waiting 20 mins, then checking DHCP leases to get IP address.")
                                 xenrt.sleep(20 * 60)
@@ -1115,6 +1118,17 @@ at > c:\\xenrtatlog.txt
                        "SZ",
                        "c:\\runoncepvdrivers.bat")
     
+    def convertHVMtoPV(self):
+        """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
+
+        self.paramSet("HVM-boot-policy", "")
+        self.paramRemove("HVM-boot-params", "order")
+        self.paramSet("PV-bootloader", "pygrub")
+
+        # If VM is running, reboot it
+        if self.getState() in ['UP', 'PAUSED']:
+            self.reboot()
+
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
         
@@ -4287,6 +4301,49 @@ def createVM(host,
                 eval("g.%s()" % (p))
 
         return g
+
+    def xenDesktopTailor(self):
+        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
+
+        try:
+            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
+        except:
+            pass
+
+
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
 
 #############################################################################
 

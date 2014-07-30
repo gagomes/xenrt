@@ -5108,6 +5108,7 @@ class GenericHost(GenericPlace):
             ethDevice = self.getNICMACAddress(0)
         
         bootDiskSize = self.lookup("BOOTDISKSIZE",100)
+        bootDiskFS = self.lookup("BOOTDISKFS","ext4")
         ethdev = self.getDefaultInterface()
         ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()    
         nfsdir = xenrt.NFSDirectory()        
@@ -5115,6 +5116,7 @@ class GenericHost(GenericPlace):
         ksf=RHELKickStartFile(distro,
                              mainDisk,
                              nfsdir.getMountURL(""),
+                             bootDiskFS=bootDiskFS,
                              bootDiskSize=bootDiskSize,
                              password=self.password,
                              vcpus=self.vcpus,
@@ -7831,6 +7833,8 @@ class GenericGuest(GenericPlace):
         else:
             ethDevice = vifname
             maindisk = options["maindisk"]
+
+        bootDiskFS = xenrt.TEC().lookup("BOOTDISKFS", "ext4")
                       
         # Build a kickstart file.
         ksf=RHELKickStartFile(distro,                              
@@ -7844,6 +7848,7 @@ class GenericGuest(GenericPlace):
                               repository=repository,
                               arch=self.arch,
                               bootDiskSize=100,
+                              bootDiskFS=bootDiskFS,
                               ethDevice=ethDevice,
                               pxe=pxe,
                               extraPackages=extrapackages,

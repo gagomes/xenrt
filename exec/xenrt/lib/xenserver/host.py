@@ -2778,7 +2778,7 @@ fi
         """Installs a generic Linux VM for non-OS-specific tests."""
 
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro="genericlin", arch=arch)
 
         if arch != None and arch.endswith("64"):
             distro = self.lookup("GENERIC_LINUX_OS_64", "centos53")
@@ -2862,7 +2862,7 @@ fi
         """Installs a Windows VM and PV drivers for general test use"""
         
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro="genericwin", arch=arch)
         
         if not distro:
             if arch is not None and arch.endswith("64"):
@@ -2952,7 +2952,7 @@ fi
         else:
             password = None
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro=distro, arch=arch)
         guest = self.guestFactory()(name, template, password=password)
         guest.primaryMAC=primaryMAC
         guest.reservedIP=reservedIP

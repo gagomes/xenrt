@@ -3624,44 +3624,6 @@ gpgcheck=0
     def configureIPv6Router(self):
         pass
 
-    def xenDesktopTailor(self):
-        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
-
-        try:
-            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
-        except:
-            pass
-
-
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-
-        
-
     def preCloneTailor(self):
         # Tailor this guest to be clone-friendly - i.e. remove any MAC adddress
         # hardcodings
@@ -4710,7 +4672,7 @@ class GenericHost(GenericPlace):
         mac = self.getNICMACAddress(assumedid)
         mac = xenrt.util.normaliseMAC(mac)
         data = self.execdom0("ifconfig -a")
-        intfs = re.findall(r"(eth\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
+        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
         for intf in intfs:
             ieth, imac = intf
             if xenrt.util.normaliseMAC(imac) == mac:
@@ -7722,8 +7684,12 @@ class GenericGuest(GenericPlace):
             # Pull boot files from HTTP repository.
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
-            xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
+            if self.arch=="x86-64":
+                xenrt.getHTTP("%s/boot/x86_64/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/x86_64/loader/initrd" % (repository), fr)
+            else:
+                xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
         
         if pxe:
             # HVM PXE install
@@ -7813,7 +7779,10 @@ class GenericGuest(GenericPlace):
 
         self.waitForSSH(1800, desc="Post installation reboot")
         xenrt.sleep(30)
-        self.execguest("/sbin/poweroff")
+        try:
+            self.execguest("/sbin/poweroff")
+        except:
+            pass
         self.poll("DOWN", timeout=240)
 
     def installRHEL(self,

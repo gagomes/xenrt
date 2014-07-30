@@ -2404,13 +2404,11 @@ class _TCHostPowerON(xenrt.TestCase):
                             "to power on a host when power on is disabled "
                             "%s" % (str(e.data)))
                         raise e  
-
             else:
                 self.poweron(name,slaves,timeout=240)
     
     def postRun(self):
         self.cleanup() 
-
 
 class TC10181(_TCHostPowerON):
     """Testcase for Host Power On over wake-on-lan"""
@@ -2454,7 +2452,84 @@ class TC10182(_TCHostPowerON):
                 cli.execute("host-set-power-on-mode", string.join(args))
         else:
             raise xenrt.XRTError("Do not know how to enable power on method %s"
-                                 % (self.POWERONMETHOD))
+                                                            % (self.POWERONMETHOD))
+
+class TC21632(_TCHostPowerON):
+    """Test Case for Host Power On over Dell's DRAC."""
+
+    POWERONMETHOD = 'DRAC'
+    UNSATISFIED_DEPENDENCY = False
+    
+    def prepare(self, arglist):
+        self.pool = self.getDefaultPool()
+        cli = self.pool.getCLIInstance()
+
+        for arg in arglist:
+            if arg.startswith('unsatisfieddependency'):
+                self.UNSATISFIED_DEPENDENCY = True
+
+        if self.POWERONMETHOD == 'DRAC':
+            for name, host in self.pool.slaves.iteritems():
+                powerOnUser = host.lookup("IPMI_USERNAME",None)
+                powerOnPassword = host.lookup("IPMI_PASSWORD",None)
+                powerOnIP = host.lookup("BMC_ADDRESS",None)
+
+                secret = cli.execute("secret-create",
+                                     "value=%s" % (powerOnPassword).strip())
+                args = []
+                args.append("power-on-mode=%s" % (self.POWERONMETHOD))
+                args.append("host=%s" % (name))
+                args.append("power-on-config:power_on_user=%s" % (powerOnUser))
+                args.append("power-on-config:power_on_ip=%s" % (powerOnIP))
+                args.append("power-on-config:power_on_password_secret=%s" % (secret))
+                
+                cli.execute("host-set-power-on-mode", string.join(args))
+        else:
+            raise xenrt.XRTError("Do not know how to enable power on method %s"
+                                                            % (self.POWERONMETHOD))
+
+        # Install Dell OpenManage (OM) Supplemental Pack on pool master.
+        self.installDellOpenManage(self.pool.master)
+
+    def installDellOpenManage(self, master):
+        """Installs Dell OpenManage Supplemental Pack"""
+
+        # Get the OpenManage Supplemental Pack from distmaster and install.
+        master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
+                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+
+        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
+
+        if self.UNSATISFIED_DEPENDENCY:
+            # A timeout of 3 minutes in expect script to allow the OM to install.
+            script = """#!/usr/bin/expect
+    set timeout 180
+    set cmd [lindex $argv 0]
+    set iso [lindex $argv 1]
+    spawn $cmd $iso
+    expect -exact "(Y/N)"
+    sleep 5
+    send -- "Y\r"
+    expect -exact "Pack installation successful"
+    expect eof
+    """
+            master.execdom0("echo '%s' > script.sh; exit 0" % script)
+            master.execdom0("chmod a+x script.sh; exit 0")
+            commandOutput = master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % dellomSupppack)
+        else:
+            commandOutput = master.execdom0("xe-install-supplemental-pack %s" % dellomSupppack)
+
+        xenrt.sleep(30) # Allowing OM to settle before Xapi restart.
+        
+        if re.search("Pack installation successful", commandOutput):
+                xenrt.TEC().logverbose("Dell OpenManage Supplemental Pack is successfully installed on master %s" % master)
+        else:
+            raise xenrt.XRTFailure("Failed to install Dell OpenManage Supplemental Pack on master")
+
+        # Retart toolstack
+        master.execdom0("xe-toolstack-restart")
+        master.waitForXapi(600, desc="Xapi response after restart the master")
 
 class TC10811(_TCHostPowerON):
     """Testcase Exsures power control is disabled for a host"""

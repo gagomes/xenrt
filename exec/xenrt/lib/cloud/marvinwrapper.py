@@ -240,6 +240,9 @@ class MarvinApi(object):
         hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
         if hvlist:
             hvlist = hvlist.split(",")
+            if "lxc" in hvlist:
+                # LXC uses KVM for system VMs
+                hvlist.append("kvm")
         else:
             hvlist = []
         for t in templates.keys():

@@ -159,7 +159,7 @@ class ManagementServer(object):
             hvlist = hvlist.split(",")
         else:
             hvlist = []
-        if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
+        if any(map(lambda hv: hv in hvlist, ["kvm", "xenserver", "vmware", "lxc"])):
             secondaryStorage = xenrt.ExternalNFSShare()
             storagePath = secondaryStorage.getMount()
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))

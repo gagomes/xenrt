@@ -1046,6 +1046,20 @@ class PrepareNode:
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                             hostIdIndex += cluster['XRT_Hosts']
+                    elif cluster['hypervisor'].lower() == "lxc":
+                        if not cluster.has_key('XRT_LXCHostIds'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'kvm')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_LXCHostIds'] = string.join(map(str, hostIds),',')
+
+                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'].lower() == "hyperv":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"

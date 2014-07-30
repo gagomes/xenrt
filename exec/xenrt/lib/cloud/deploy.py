@@ -327,6 +327,19 @@ class DeployerPlugin(object):
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+        elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'lxc' and ref.has_key('XRT_LXCHostIds'):
+            hostIds = ref['XRT_LXCHostIds'].split(',')
+            for hostId in hostIds:
+                h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, lxc=True)
+
+                try:
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSGUEST", "%s/%s" % (self.marvin.mgtSvr.place.getHost().getName(), self.marvin.mgtSvr.place.getName())])
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
+
+                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
         elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
             hostIds = ref['XRT_HyperVHostIds'].split(',')
             for hostId in hostIds:

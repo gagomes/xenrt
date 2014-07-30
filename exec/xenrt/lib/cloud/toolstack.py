@@ -22,13 +22,15 @@ class CloudStack(object):
                      "VMware": xenrt.HypervisorType.vmware,
                      "Hyperv": xenrt.HypervisorType.hyperv,
                      "BareMetal": xenrt.HypervisorType.native,
-                     "Simulator": xenrt.HypervisorType.simulator}
+                     "Simulator": xenrt.HypervisorType.simulator,
+                     "LXC": xenrt.HypervisorType.lxc}
 
     # Mapping of hypervisors to template formats
     _templateFormats = {"XenServer": "VHD",
                         "KVM": "QCOW2",
                         "VMware": "OVA",
-                        "Hyperv": "VHD"}
+                        "Hyperv": "VHD",
+                        "LXC": "tar.gz"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip

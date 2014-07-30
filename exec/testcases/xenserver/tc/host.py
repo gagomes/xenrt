@@ -2458,11 +2458,15 @@ class TC21632(_TCHostPowerON):
     """Test Case for Host Power On over Dell's DRAC."""
 
     POWERONMETHOD = 'DRAC'
-    DELL_OM_NAME = 'OM-SrvAdmin-Dell-Web-XS-8.x-prerelease.iso'
+    UNSATISFIED_DEPENDENCY = False
     
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
         cli = self.pool.getCLIInstance()
+
+        for arg in arglist:
+            if arg.startswith('unsatisfieddependency'):
+                self.UNSATISFIED_DEPENDENCY = True
 
         if self.POWERONMETHOD == 'DRAC':
             for name, host in self.pool.slaves.iteritems():
@@ -2490,26 +2494,32 @@ class TC21632(_TCHostPowerON):
     def installDellOpenManage(self, master):
         """Installs Dell OpenManage Supplemental Pack"""
 
-        # A timeout of 3 minutes in expect script to allow the OM to install.
-        script = """#!/usr/bin/expect
-set timeout 180
-set cmd [lindex $argv 0]
-set iso [lindex $argv 1]
-spawn $cmd $iso
-expect -exact "(Y/N)"
-sleep 5
-send -- "Y\r"
-expect -exact "Pack installation successful"
-expect eof
-"""
         # Get the OpenManage Supplemental Pack from distmaster and install.
-        master.execdom0("wget -nv '%s/dellom.tgz' -O - | tar -zx -C /tmp" %
+        master.execdom0("wget -nv '%sdellomsupppack.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-        master.execdom0("mv /tmp/dellom/%s /root" % self.DELL_OM_NAME)            
-        
-        master.execdom0("echo '%s' > script.sh; exit 0" % script)
-        master.execdom0("chmod a+x script.sh; exit 0")
-        commandOutput = master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % self.DELL_OM_NAME)
+
+        dellomSupppack = "dellomsupppack-%s.iso" % master.productVersion.lower().strip()
+        master.execdom0("mv /tmp/dellomsupppack/%s /root" % dellomSupppack)
+
+        if self.UNSATISFIED_DEPENDENCY:
+            # A timeout of 3 minutes in expect script to allow the OM to install.
+            script = """#!/usr/bin/expect
+    set timeout 180
+    set cmd [lindex $argv 0]
+    set iso [lindex $argv 1]
+    spawn $cmd $iso
+    expect -exact "(Y/N)"
+    sleep 5
+    send -- "Y\r"
+    expect -exact "Pack installation successful"
+    expect eof
+    """
+            master.execdom0("echo '%s' > script.sh; exit 0" % script)
+            master.execdom0("chmod a+x script.sh; exit 0")
+            commandOutput = master.execdom0("/root/script.sh xe-install-supplemental-pack %s" % dellomSupppack)
+        else:
+            commandOutput = master.execdom0("xe-install-supplemental-pack %s" % dellomSupppack)
+
         xenrt.sleep(30) # Allowing OM to settle before Xapi restart.
         
         if re.search("Pack installation successful", commandOutput):

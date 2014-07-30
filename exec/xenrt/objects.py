@@ -7684,8 +7684,12 @@ class GenericGuest(GenericPlace):
             # Pull boot files from HTTP repository.
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
-            xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
+            if self.arch=="x86-64":
+                xenrt.getHTTP("%s/boot/x86_64/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/x86_64/loader/initrd" % (repository), fr)
+            else:
+                xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
         
         if pxe:
             # HVM PXE install
@@ -7775,7 +7779,10 @@ class GenericGuest(GenericPlace):
 
         self.waitForSSH(1800, desc="Post installation reboot")
         xenrt.sleep(30)
-        self.execguest("/sbin/poweroff")
+        try:
+            self.execguest("/sbin/poweroff")
+        except:
+            pass
         self.poll("DOWN", timeout=240)
 
     def installRHEL(self,

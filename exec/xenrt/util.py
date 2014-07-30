@@ -695,9 +695,16 @@ def median(values):
 def randomSuffix():
     return "%08x" % random.randint(0, 0x7fffffff)
 
-def randomGuestName():
-    return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
-                              random.randint(0, 0x7fffffff))
+def randomGuestName(distro=None, arch=None):
+    if distro:
+        if not arch:
+            arch = ""
+        else:
+            arch = arch[-2:]
+        return "%s%s%08x" % (distro, arch, random.randint(0, 0x7fffffff))
+    else:
+        return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
+                                  random.randint(0, 0x7fffffff))
 
 def randomApplianceName():
     return "appl%08x%08x" % (random.randint(0, 0x7fffffff),

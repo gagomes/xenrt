@@ -779,7 +779,10 @@ class Guest(xenrt.GenericGuest):
                         if self.reservedIP:
                             self.mainip = self.reservedIP
                         else:
-                            if not self.windows and self.paramGet("HVM-boot-policy") == "BIOS order" and not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
+                            if not self.windows and \
+                                   self.paramGet("HVM-boot-policy") == "BIOS order" and \
+                                   'n' in self.paramGet("HVM-boot-params", "order") and \
+                                   not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
                                 # HVM Linux detected. ARP watch cannot be used as multiple IP addresses are present."
                                 xenrt.TEC().logverbose("Waiting 20 mins, then checking DHCP leases to get IP address.")
                                 xenrt.sleep(20 * 60)

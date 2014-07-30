@@ -1301,7 +1301,11 @@ class PrepareNode:
         if not host["suppackcds"]:
             host["suppackcds"] = None
         # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
-        host["cpufreqgovernor"] = expand(node.getAttribute("cpufreqgovernor"), params)
+        cpufreqGovernor = expand(node.getAttribute("cpufreqgovernor"), params)
+        if cpufreqGovernor:
+            host["cpufreqgovernor"] = cpufreqGovernor
+        else:
+            host["cpufreqgovernor"] = xenrt.TEC().lookup("CPUFREQ_GOVERNOR", None)
         extraCfg = expand(node.getAttribute("extraConfig"), params)
         if not extraCfg:
             host['extraConfig'] = {}

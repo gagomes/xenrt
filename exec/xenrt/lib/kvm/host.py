@@ -292,7 +292,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         a string containing XML or a XML DOM node."""
         pass
 
-    def tailorForCloudStack(self, isCCP):
+    def tailorForCloudStack(self, isCCP, isLXC=False):
         """Tailor this host for use with ACS/CCP"""
 
         # Check that we haven't already tailored the host

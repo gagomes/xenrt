@@ -331,7 +331,7 @@ class DeployerPlugin(object):
             hostIds = ref['XRT_LXCHostIds'].split(',')
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
-                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, lxc=True)
+                h.tailorForCloudStack(self.marvin.mgtSvr.isCCP, isLXC=True)
 
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [h.getName(), "CSIP", self.marvin.mgtSvr.place.getIP()])

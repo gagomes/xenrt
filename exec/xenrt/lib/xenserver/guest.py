@@ -1115,6 +1115,17 @@ at > c:\\xenrtatlog.txt
                        "SZ",
                        "c:\\runoncepvdrivers.bat")
     
+    def convertHVMtoPV(self):
+        """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
+
+        self.paramSet("HVM-boot-policy", "")
+        self.paramRemove("HVM-boot-params", "order")
+        self.paramSet("PV-bootloader", "pygrub")
+
+        # If VM is running, reboot it
+        if self.getState() in ['UP', 'PAUSED']:
+            self.reboot()
+
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
         

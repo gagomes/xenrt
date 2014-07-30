@@ -2133,7 +2133,7 @@ class TCRevertvGPUSnapshot(FunctionalBase):
 
 class TCvGPUBalloon(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    REQUIRED_DISTROS = [VGPUOS.Win7x64]
     VGPU_CONFIG = [VGPUConfig.K240]
 
     def prepare(self,arglist):

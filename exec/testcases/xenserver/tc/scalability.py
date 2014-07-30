@@ -151,6 +151,9 @@ class _VMScalability(_Scalability):
                                                   disks=disklist,
                                                   vcpus=self.VCPUCOUNT)
         
+        if g0.windows:
+            g0.installDrivers()
+        
         g0.shutdown()
         
         #If memory set

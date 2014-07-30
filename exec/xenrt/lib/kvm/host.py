@@ -61,8 +61,11 @@ def createHost(id=0,
     host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []
     extrapackages.append("libvirt")
-    extrapackages.append("python-virtinst")
-    extrapackages.append("kvm")
+    if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
+        pass
+    else:
+        extrapackages.append("python-virtinst")
+        extrapackages.append("kvm")
     extrapackages.append("bridge-utils")
     host.installLinuxVendor(distro, arch=arch, extrapackages=extrapackages, options={"ossvg":True})
     host.checkVersion()
@@ -72,7 +75,10 @@ def createHost(id=0,
     host.execdom0("sed -i 's/\\#auth_tcp = \"sasl\"/auth_tcp = \"none\"/' /etc/libvirt/libvirtd.conf")
     host.execdom0("sed -i 's/\\#LIBVIRTD_ARGS=\"--listen\"/LIBVIRTD_ARGS=\"--listen\"/' /etc/sysconfig/libvirtd")
     host.execdom0("service libvirtd restart")
-    host.execdom0("service iptables stop")
+    try:
+        host.execdom0("service firewalld stop")
+    except:
+        host.execdom0("service iptables stop")
 
     host.virConn = host._openVirConn()
 
@@ -375,6 +381,9 @@ class KVMHost(xenrt.lib.libvirt.Host):
         if not '1.7.0' in self.execdom0('java -version').strip():
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
+        if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
+            # RHEL7 based systems don't have jakarta-commons-daemon
+            return
         # TODO: Don't hardcode the jsvc URL
         jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
         webdir = xenrt.WebDirectory()

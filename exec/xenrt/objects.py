@@ -5085,7 +5085,14 @@ class GenericHost(GenericPlace):
                                  (method, arch, distro))
                                  
         mainDisk=self.getInstallDisk(ccissIfAvailable=False)
-        
+        if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
+                                        re.search(r"centos7", distro) or \
+                                        re.search(r"oel7", distro)):
+            # This is a hack to workaround the fact RHEL7 has different by-id entries
+            # It will break if certain USB disks etc are in use, but for now is a
+            # 'quick fix' (sorry!)
+            mainDisk = "sda"
+
         if re.search(r"oel5", distro) or re.search (r"rhel5", distro) or re.search(r"centos5", distro) or \
                 re.search(r"oel4", distro) or re.search (r"rhel4", distro) or re.search(r"centos4", distro):
             ethDevice = self.getDefaultInterface()

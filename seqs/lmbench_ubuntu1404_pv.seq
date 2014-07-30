@@ -1,0 +1,29 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="ubuntu1404x64">
+        <distro>ubuntu1404</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <arch>x86-64</arch>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="convertHVMtoPV"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="ubuntu1404x64" guest="ubuntu1404x64">
+      <testcase id="benchmarks.micro.TClmbench" tc="TC-9571">
+        <arg>quick</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

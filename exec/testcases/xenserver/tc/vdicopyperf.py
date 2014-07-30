@@ -19,7 +19,7 @@ class _VDICopyPerf(xenrt.TestCase):
     FROM_TYPE = None
     TO_TYPE = None
     SAME_HOST = True 
-    GUEST_NAME = "Windows81"
+    GUEST_NAME = "Windows7"
     ITERATIONS = 10
     INTERVAL = 60
 

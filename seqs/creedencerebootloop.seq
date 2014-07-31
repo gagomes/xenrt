@@ -4,10 +4,6 @@
     <PREPARE_WORKERS>8</PREPARE_WORKERS>
   </variables>
 
-  <scheduler>
-    <resources>memory&gt;=32G/disk1&gt;=300G</resources>
-  </scheduler>
-
   <prepare>
     <host id="0">
       <vm name="0">

@@ -1,5 +1,5 @@
 <xenrt>
-  <!-- CCP Primary Storage resiliency tests [Basic Mode] -->
+  <!-- CCP Primary Storage resiliency tests [Advanced Mode] -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
@@ -24,15 +24,35 @@
     </host>
     <cloud>
       { "zones": [
-        { "networktype": "Basic",
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
           "physical_networks": [
-            { "name": "BasicPhyNetwork" }
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 5,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 10 }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 10,
-              "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 10 }
-              ],
               "clusters": [
                 { "hypervisor": "${TESTED_HYPERVISOR}", "XRT_Hosts": ${CLUSTER_SIZE},
                   "primaryStorages": [ { "XRT_Guest_NFS": "PriStoreNFS" } ] }
@@ -73,10 +93,10 @@
   </prepare>
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCPriStoreSysVMs" name="SystemVMs" blocker="yes" tc="TC-21556" sku="${TESTED_HYPERVISOR}/Basic/${CLUSTER_SIZE}">
+      <testcase id="cloud.tc.resiliency.TCPriStoreSysVMs" name="SystemVMs" blocker="yes" tc="TC-21556" sku="${TESTED_HYPERVISOR}/Adv/${CLUSTER_SIZE}">
           <arg>storageVM=PriStoreNFS</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCPriStoreUserVMs" name="UserVMs" tc="TC-21557" sku="${TESTED_HYPERVISOR}/Basic/${CLUSTER_SIZE}">
+      <testcase id="cloud.tc.resiliency.TCPriStoreUserVMs" name="UserVMs" tc="TC-21557" sku="${TESTED_HYPERVISOR}/Adv/${CLUSTER_SIZE}">
           <arg>storageVM=PriStoreNFS</arg>
       </testcase>
   </testsequence>

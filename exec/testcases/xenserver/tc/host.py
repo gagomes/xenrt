@@ -5013,3 +5013,9 @@ class TC20920(xenrt.TestCase):
         except Exception, e:
             raise xenrt.XRTFailure("Exception occurred while checking host reachability : %s"%(e))
         xenrt.TEC().logverbose("XEN doesn't hang after applying update")
+
+class TCHostRebootLoop(xenrt.TestCase):
+    def run(self, arglist):
+        h = self.getDefaultHost()
+        for i in range(1000):
+            h.reboot()

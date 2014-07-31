@@ -123,7 +123,7 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20768" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win7x64</arg>
       </testcase>
     </serial>

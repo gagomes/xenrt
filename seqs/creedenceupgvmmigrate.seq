@@ -25,7 +25,6 @@
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="winxpsp3,2G" tc="TC-21208" sku="winxpsp3/x86-32/2G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws08r2sp1-x64,3G" tc="TC-21208" sku="ws08r2sp1-x64/x86-32/3G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12-x64,5G" tc="TC-21208" sku="ws12-x64/x86-64/5G" />
-      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win81-x64,11G" tc="TC-21208" sku="win81-x64/x86-64/11G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12r2core-x64,4G" tc="TC-21208" sku="ws12r2core-x64/x86-64/4G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="vistaeesp2,2G" tc="TC-21208" sku="vistaeesp2/x86-32/2G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian70x64,9G" tc="TC-21208" sku="debian70/x86-64/9G" />
@@ -59,9 +58,6 @@
       </testcase>
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12-x64,5G" tc="TC-21543" sku="ws12-x64/x86-64/5G">
         <arg>BalloonTo=2G</arg>
-      </testcase>
-      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win81-x64,11G" tc="TC-21543" sku="win81-x64/x86-64/11G">
-        <arg>BalloonTo=10G</arg>
       </testcase>
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="ws12r2core-x64,4G" tc="TC-21543" sku="ws12r2core-x64/x86-64/4G">
         <arg>BalloonTo=2G</arg>

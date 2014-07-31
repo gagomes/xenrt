@@ -1468,14 +1468,7 @@ if installpackages:
             config.setVariable(var, value)
 
     if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
-        marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
-        if marvinversion == "4.3":
-            xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
-        elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
-            f = xenrt.TEC().getFile(marvinversion)
-            xenrt.util.command("pip install %s" % f)
-        else:
-            xenrt.util.command("pip install /usr/share/xenrt/marvin-%s.tar.gz" % marvinversion)
+        xenrt.util.command("pip install %s" % xenrt.getMarvinFile())
     else:
         print "CLOUDINPUTDIR not specified, so marvin is not required"
     sys.exit(0)

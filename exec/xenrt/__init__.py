@@ -1650,7 +1650,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         g = self.tec.gec.registry.guestGet(name)
         if g:
             self.getLogsFrom(g)
-            if g.host:
+            if g.host and not g.host.getName() in xenrt.TEC().lookup("SHARED_HOSTS", {}).keys():
                 self.getLogsFrom(g.host)
         return g
 

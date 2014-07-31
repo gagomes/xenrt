@@ -1517,7 +1517,7 @@ class PrepareNode:
                 if v.has_key("host") and v["host"] == "SHARED":
                     if not xenrt.TEC().registry.hostGet("SHARED"):
                         xenrt.TEC().registry.hostPut("SHARED", xenrt.resources.SharedHost().getHost())
-                        sharedGuestQueue.add(v)
+                    sharedGuestQueue.add(v)
                 
             sharedGuestWorkers = []
             if len(sharedGuestQueue.items) > 0:

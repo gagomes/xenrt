@@ -438,6 +438,7 @@ def doDeploy(cloudSpec, manSvr=None):
     if not os.path.exists(deployLogDir):
         os.makedirs(deployLogDir)
     shutil.copy(fn, os.path.join(deployLogDir, 'marvin-deploy.cfg'))
+    toolstack.marvinCfg = marvinCfg.marvinCfg
 
     try:
         # Create deployment

@@ -2264,6 +2264,10 @@ Add-WindowsFeature as-net-framework"""
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudManagementServer()
 
+    def installMarvin(self):
+        import testcases.cloud.marvin
+        testcases.cloud.marvin.RemoteNoseInstaller(self).install()
+
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
         
@@ -3451,7 +3455,7 @@ DHCPServer = 1
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
     
-    def updateYumConfig(self, distro, arch):
+    def updateYumConfig(self, distro=None, arch=None):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
         for the base repo, all others get removed. This is a hack
@@ -3459,6 +3463,10 @@ DHCPServer = 1
         if arch == "x86-32p":
             arch = "x86-32"
         doUpdate = False
+        if not distro:
+            distro = self.distro
+        if not arch:
+            arch = self.arch
         # If we should update this to the lastest versino
         if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
             updateMap = xenrt.TEC().lookup("LINUX_UPDATE")

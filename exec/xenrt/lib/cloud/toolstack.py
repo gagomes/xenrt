@@ -40,6 +40,7 @@ class CloudStack(object):
             place.findPassword()
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
+        self.marvinCfg = {}
 
     @property
     def name(self):

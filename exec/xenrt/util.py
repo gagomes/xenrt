@@ -77,7 +77,8 @@ __all__ = ["timenow",
            "xrtAssert",
            "xrtCheck",
            "keepSetup",
-           "getADConfig"
+           "getADConfig",
+           "getMarvinFile"
            ]
 
 def sleep(secs, log=True):
@@ -1356,3 +1357,11 @@ def getADConfig():
 
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
 
+def getMarvinFile():
+    marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
+    if marvinversion == "4.3":
+        return "/usr/share/xenrt/marvin.tar.gz"
+    elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
+        return xenrt.TEC().getFile(marvinversion)
+    else:
+        return "/usr/share/xenrt/marvin-%s.tar.gz" % marvinversion

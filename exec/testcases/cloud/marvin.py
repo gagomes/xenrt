@@ -12,8 +12,11 @@ class RemoteNoseInstaller(object):
         # Install git, python, pip, paramiko, nose
         self.runner.execguest("apt-get install -y --force-yes git python python-dev python-setuptools python-dev python-pip")
         # Install marvin
-        sftp = self.runner.sftpClient()
-        sftp.copyTo(xenrt.getMarvinFile(), "/root/marvin.tar.gz")
+        if xenrt.TEC().lookup("MARVIN_URL", None):
+            self.runner.execguest("wget -O /root/marvin.tar.gz \"%s\"" % xenrt.TEC().lookup("MARVIN_URL"))
+        else:
+            sftp = self.runner.sftpClient()
+            sftp.copyTo(xenrt.getMarvinFile(), "/root/marvin.tar.gz")
         self.runner.execguest("pip install /root/marvin.tar.gz")
 
         self.git = xenrt.TEC().lookup("CLOUDSTACK_GIT", "http://git-ccp.citrix.com/cgit/internal-cloudstack.git")
@@ -49,7 +52,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             sftp.copyTo("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "/root/testdata.cfg")
             self.toolstack.marvinCfg['TestData'] = {'Path': "/root/testdata.cfg"}
 
-        with open("%s/marvin.cfg" % xent.TEC().getLogdir(), "w") as f:
+        with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(self.toolstack.marvinCfg))
 
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")

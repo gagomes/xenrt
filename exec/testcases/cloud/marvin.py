@@ -43,17 +43,16 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 nfspath = xenrt.ExternalNFSShare().getMount()
                 testData['nfs'] = {"url": "nfs://%s" % nfspath, "name": "Test NFS Storage"}
             
-            t = xenrt.TempDirectory()
-            with open("%s/testdata.cfg" % t.path(), "w") as f:
+            with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData))
     
-            sftp.copyTo("%s/testdata.cfg" % t.path(), "/root/testdata.cfg")
+            sftp.copyTo("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "/root/testdata.cfg")
             self.toolstack.marvinCfg['TestData'] = {'Path': "/root/testdata.cfg"}
 
-        with open("%s/marvin.cfg" % t.path(), "w") as f:
+        with open("%s/marvin.cfg" % xent.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(self.toolstack.marvinCfg))
 
-        sftp.copyTo("%s/marvin.cfg" % t.path(), "/root/marvin.cfg")
+        sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
 
 class TCRemoteNose(_TCRemoteNoseBase):
     def run(self, arglist):

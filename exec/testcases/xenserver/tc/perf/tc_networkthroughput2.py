@@ -305,6 +305,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint0,self.e0dev,"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = "host"
+            info["vm0arch"]  = "NULL"
             info["vm0ram"]   = "NULL"
             info["vm0vcpus"] = "NULL"
             info["vm0domid"] = "NULL"
@@ -317,6 +318,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint0.host,self.physicalDeviceOf(self.endpoint0, self.e0dev),"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = self.endpoint0.distro
+            info["vm0arch"]  = self.endpoint0.arch
             info["vm0ram"]   = self.endpoint0.memory
             info["vm0vcpus"] = self.endpoint0.vcpus
             info["vm0domid"] = self.endpoint0.getDomid()
@@ -329,6 +331,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint1,self.e1dev,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = "host"
+            info["vm1arch"]  = "NULL"
             info["vm1ram"]   = "NULL"
             info["vm1vcpus"] = "NULL"
             info["vm1domid"] = "NULL"
@@ -341,6 +344,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint1.host,self.physicalDeviceOf(self.endpoint1, self.e1dev),"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = self.endpoint1.distro
+            info["vm1arch"]  = self.endpoint1.arch
             info["vm1ram"]   = self.endpoint1.memory
             info["vm1vcpus"] = self.endpoint1.vcpus
             info["vm1domid"] = self.endpoint1.getDomid()

@@ -38,6 +38,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
         self.duration = libperf.getArgument(arglist, "duration", int, 60)
         self.vdi_size = libperf.getArgument(arglist, "vdi_size", str, "5GiB")
         self.distro = libperf.getArgument(arglist, "distro", str, "debian60")
+        self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
         self.arch = libperf.getArgument(arglist, "arch", str, "x86-32")
         self.dom0vcpus  = libperf.getArgument(arglist, "dom0vcpus", int, None)
         self.write_iterations = libperf.getArgument(arglist, "write_iterations", int, 1)
@@ -302,6 +303,8 @@ Version 1.1.0
         if not self.isNameinGuests(guests, "vm-template"):
             xenrt.TEC().progress("Installing VM template")
 
+            postinstall = [] if self.postinstall is None else self.postinstall.split(",")
+
             self.template = xenrt.productLib(host=self.host).guest.createVM(\
                     host=self.host,
                     guestname="vm-template",
@@ -309,6 +312,7 @@ Version 1.1.0
                     memory=self.vm_ram,
                     distro=self.distro,
                     arch=self.arch,
+                    postinstall=postinstall,
                     vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
 
             if self.template.windows:

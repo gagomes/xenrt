@@ -198,12 +198,12 @@
       <arg>10485</arg>
       <arg>postRun=true</arg>
      </testcase> 
-    <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10485" name="TC-10485" blocker="yes">
+    <!--<testcase id="testcases.xenserver.tc.gui.TestComplete" tc="TC-10485" name="TC-10485" blocker="yes">
       <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
       <arg>TC_10485</arg>
       <arg>TC10485</arg>
       <arg>10485</arg>
-     </testcase> 
+     </testcase> -->
      <testcase id="testcases.xenserver.tc.gui.TestComplete" name ="RBACSetup">
        <arg>http://hg.uk.xensource.com/closed/guitest/tampa.hg</arg>
        <arg>Setup</arg>

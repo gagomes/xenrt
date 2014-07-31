@@ -420,11 +420,11 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         if isinstance(self.endpoint0, xenrt.GenericHost):
             self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
         else:
-            self.e0dev = int(self.e0devstr)
+            self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
         if isinstance(self.endpoint1, xenrt.GenericHost):
             self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
         else:
-            self.e1dev = int(self.e1devstr)
+            self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

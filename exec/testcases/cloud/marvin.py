@@ -79,7 +79,7 @@ class TCRemoteNose(_TCRemoteNoseBase):
                 if t.getElementsByTagName("failure"):
                     result = xenrt.RESULT_FAIL
                 elif t.getElementsByTagName("error"):
-                    result = xenrt.RESULT_ERROR
+                    result = xenrt.RESULT_FAIL
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
                 self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result)

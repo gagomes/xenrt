@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 
 # Create a virtual environment
 virtualenv .env
@@ -9,7 +9,9 @@ set +u
 . .env/bin/activate
 set -u
 
-BUILDDIR=$(mktemp -d)
+tempfoo=`basename $0`
+BUILDDIR=`mktemp -d /tmp/${tempfoo}.XXXXXX`
+
 (
     cd $BUILDDIR
     wget ftp://xmlsoft.org/libxml2/libxml2-2.9.1.tar.gz

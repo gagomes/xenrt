@@ -78,7 +78,7 @@
   </prepare>
 
   <testsequence>
-    <parallel workers="8">
+    <parallel workers="8" group="TCRebootLoopNoDrivers">
       <testcase id="xenserver.guest.TCRebootLoopNoDrivers" name="0" sku="0" tc="TC-21640">
         <arg>guest=0</arg>
       </testcase>

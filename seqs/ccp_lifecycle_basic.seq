@@ -3,6 +3,9 @@
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
   </variables>
+
+  <default name="TESTED_HYPERVISOR" value="XenServer"/>
+
   <prepare>
     <cloud>
       { "zones": [
@@ -16,7 +19,7 @@
                 { "XRT_GuestIPRangeSize": 15 }
               ],
               "clusters": [
-                { "XRT_Hosts": 2 }
+                { "hypervisor": "${TESTED_HYPERVISOR}", "XRT_Hosts": 2 }
               ]
             }
           ]
@@ -30,7 +33,7 @@
         <arch>x86-64</arch>
         <memory>1024</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installCloudPlatformManagementServer" />
+        <postinstall action="installCloudManagementServer" />
         <network device="0" />
         <disk device="0" size="20" />
       </vm>
@@ -39,7 +42,7 @@
   <testsequence>
     <parallel tc="TC-21203" workers="3">
       <for iter="DISTRO" values="${DISTROS}">
-        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}">
+        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" sku="${TESTED_HYPERVISOR}/Basic/${DISTRO}">
           <arg>distro=${DISTRO}</arg>
         </testcase>
       </for>

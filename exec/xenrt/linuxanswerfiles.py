@@ -1516,6 +1516,7 @@ umount /tmp/xenrttmpmount
     <instsource/>
     <patterns config:type="list">
       <pattern>32bit</pattern>
+      <pattern>Basis-Devel</pattern>
       <pattern>Minimal</pattern>
       <pattern>base</pattern>
     </patterns>

@@ -3747,7 +3747,8 @@ exit /B 1
                     pass
                 else:
                     raise e
-            if reboot:
+            if reboot or ((self.distro.startswith("centos4") or self.distro.startswith("rhel4")) and updateKernel):
+                # RHEL/CentOS 4.x update the kernel, so need to be rebooted
                 self.reboot()
         else:
             # Copy the package to the guest.

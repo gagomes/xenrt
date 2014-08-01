@@ -194,7 +194,7 @@ class XenRTLogData(XenRTAPIPage):
             key = key[0:24]
         if len(value) > 255:
             value = value[0:255]
-        value = string.replace(value, "'", "\\'")
+        value = string.replace(value, "'", app.utils.sqlescape(value))
         cur.execute("INSERT INTO tblDetails (detailid, ts, key, value) "
                     "VALUES (%u, '%s', '%s', '%s');" %
                     (detailid, timenow, key, value))

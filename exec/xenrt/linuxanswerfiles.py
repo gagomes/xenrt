@@ -200,6 +200,7 @@ e2fsprogs
 nfs-utils
 stunnel
 net-tools
+wget
 %s
 %%end
 """ % (self._url(),

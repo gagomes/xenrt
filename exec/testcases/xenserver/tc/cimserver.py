@@ -465,7 +465,7 @@ class _WSMANProtocol(_CIMInterface):
             return vm
         except Exception, e:
             self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
  
     def createCIFSISO(self,targetHost,isoSRName,vdiName,vmuuid,sharename,cifsGuest,host):
       
@@ -769,7 +769,7 @@ class _WSMANProtocol(_CIMInterface):
             self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
         except Exception, e:
             self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
 
     def importVMSnapshotTree(self,transProtocol,ssl):
 
@@ -786,7 +786,7 @@ class _WSMANProtocol(_CIMInterface):
             self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
         except Exception, e:
             self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         
         return ret
         

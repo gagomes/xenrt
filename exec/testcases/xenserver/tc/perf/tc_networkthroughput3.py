@@ -192,9 +192,19 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         all_endpoints = [endpoint] + (dict(self.endpoint1s.items() + self.endpoint0s.items())[endpoint])
         return all_endpoints[:n]
 
+    def install_git(self, endpoint):
+        if endpoint.execcmd("git --version", retval="code"):
+            if endpoint.distro.startswith('centos') or endpoint.distro.startswith('rhel'):
+                endpoint.execcmd("yum install git")
+            elif endpoint.distro.startswith('sles'):
+                endpoint.execcmd("zypper -n install git-core")
+            else:
+                endpoint.execcmd("apt-get install --force-yes -y git")
+
     def install_synexec(self, endpoint):
+        self.install_git(endpoint)
         outfile = "/tmp/synexec_install.out"
-        script = "cd /root && if [ ! -d synexec ]; then apt-get install --force-yes -y git ctags && git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
+        script = "cd /root && if [ ! -d synexec ]; then git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
         endpoint.addExtraLogFile(outfile)
         return endpoint.execcmd(script)
 

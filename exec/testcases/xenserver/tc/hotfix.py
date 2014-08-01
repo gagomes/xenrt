@@ -2132,10 +2132,7 @@ class TCRollingPoolUpdate(xenrt.TestCase):
     def postCheckVMs(self,pool):
         postUpgradeRunningGuests = 0
         for h in pool.getHosts():
-            try:
-                h.verifyHostFunctional(migrateVMs=False)
-            except Exception, e:
-                xenrt.TEC().logverbose("Functional Host Verification of host: %s failed with Exception: %s" % (h.getName(), str(e)))
+            h.verifyHostFunctional(migrateVMs=False)
 
             runningGuests = h.listGuests(running=True)
             xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))

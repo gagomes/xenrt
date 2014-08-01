@@ -1,5 +1,5 @@
 <xenrt>
-  <!-- Single Host CCP-XS Primary Storage resiliency tests -->
+  <!-- Management Server resiliency tests [basic mode] -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
@@ -9,6 +9,8 @@
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
   </variables>
+
+  <default name="TESTED_HYPERVISOR" value="XenServer"/>
 
   <prepare>
     <cloud>
@@ -20,10 +22,10 @@
           "pods": [
             { "XRT_PodIPRangeSize": 10,
               "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 15 }
+                { "XRT_GuestIPRangeSize": 10 }
               ],
               "clusters": [
-                { "XRT_Hosts": 1 }
+                { "hypervisor": "${TESTED_HYPERVISOR}", "XRT_Hosts": 1 }
               ]
             }
           ]
@@ -61,19 +63,19 @@
   </prepare>
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCManServerVMReboot">
+      <testcase id="cloud.tc.resiliency.TCManServerVMReboot" tc="TC-21634" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerRestart">
+      <testcase id="cloud.tc.resiliency.TCManServerRestart" tc="TC-21635" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBRestart">
+      <testcase id="cloud.tc.resiliency.TCDBRestart" tc="TC-21636" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBOutage">
+      <testcase id="cloud.tc.resiliency.TCDBOutage" tc="TC-21637" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerStartAfterDB">
+      <testcase id="cloud.tc.resiliency.TCManServerStartAfterDB" tc="TC-21638" sku="${TESTED_HYPERVISOR}/Basic">
           <arg>distros=centos59_x86-32</arg>
       </testcase>
   </testsequence>

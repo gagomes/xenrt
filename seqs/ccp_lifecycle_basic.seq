@@ -40,9 +40,9 @@
     </sharedhost>
   </prepare>
   <testsequence>
-    <parallel tc="TC-21203" workers="3">
+    <parallel workers="3">
       <for iter="DISTRO" values="${DISTROS}">
-        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" sku="${TESTED_HYPERVISOR}/Basic/${DISTRO}">
+        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}/bm/${DISTRO}">
           <arg>distro=${DISTRO}</arg>
         </testcase>
       </for>

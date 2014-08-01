@@ -1,0 +1,27 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="debian60">
+        <distro>debian60</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="debian60" guest="debian60">
+      <testcase id="benchmarks.micro.TClmbench" tc="TC-9571">
+        <arg>quick</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

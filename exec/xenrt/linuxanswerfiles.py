@@ -242,6 +242,10 @@ wget
 
         out = out+ """
 %%post
+echo "# Assume 'trusted' zone for firewalld rules otherwise it will block things like iperf" >> /etc/rc.local
+echo "# (Running 'firewall-cmd --permanent' directly in the %%post environment doesn't have the expected effect, so we run these commands on each boot.)" >> /etc/rc.local
+echo "firewall-cmd --zone=trusted" >> /etc/rc.local
+echo "firewall-cmd --add-port=5001/tcp" >> /etc/rc.local
 echo "sleep 10" >> /etc/rc.local
 echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
 echo "sleep 10" >> /etc/rc.local

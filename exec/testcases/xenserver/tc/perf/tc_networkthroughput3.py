@@ -322,8 +322,8 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
             if g not in self.endpoints_of(self.endpoint0) and g not in self.endpoints_of(self.endpoint1):
                 self.shutdown_endpoint(g)
 
-        self.e0dev = int(self.e0devstr)
-        self.e1dev = int(self.e1devstr)
+        self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
+        self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

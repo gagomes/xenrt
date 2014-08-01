@@ -1038,6 +1038,7 @@ umount /tmp/xenrttmpmount
       <append>   resume=/dev/%s1 splash=silent quiet showopts</append>
       <append_failsafe>showopts apm=off noresume edd=off powersaved=off nohz=off highres=off processor.max_cstate=1 nomodeset x11failsafe</append_failsafe>
       <boot_boot>false</boot_boot>
+      <boot_custom/>
       <boot_extended>false</boot_extended>
       <boot_mbr>true</boot_mbr>
       <boot_root>true</boot_root>
@@ -1045,6 +1046,7 @@ umount /tmp/xenrttmpmount
       <distributor>SUSE Linux Enterprise Server 12 (Beta10)</distributor>
       <generic_mbr>true</generic_mbr>
       <gfxmode>auto</gfxmode>
+      <hiddenmenu>false</hiddenmenu>
       <os_prober>true</os_prober>
       <terminal>gfxterm</terminal>
       <timeout config:type="integer">8</timeout>
@@ -1439,8 +1441,9 @@ umount /tmp/xenrttmpmount
         <partition>
           <create config:type="boolean">true</create>
           <crypt_fs config:type="boolean">false</crypt_fs>
-          <filesystem config:type="symbol">btrfs</filesystem>
+          <filesystem config:type="symbol">ext4</filesystem>
           <format config:type="boolean">true</format>
+          <fstopt>acl,user_xattr</fstopt>
           <loop_fs config:type="boolean">false</loop_fs>
           <mount>/</mount>
           <mountby config:type="symbol">uuid</mountby>
@@ -1448,23 +1451,6 @@ umount /tmp/xenrttmpmount
           <partition_nr config:type="integer">1</partition_nr>
           <resize config:type="boolean">false</resize>
           <size>7542581760</size>
-          <subvolumes config:type="list">
-            <listentry>boot/grub2/i386-pc</listentry>
-            <listentry>boot/grub2/x86_64-efi</listentry>
-            <listentry>home</listentry>
-            <listentry>opt</listentry>
-            <listentry>srv</listentry>
-            <listentry>tmp</listentry>
-            <listentry>usr/local</listentry>
-            <listentry>var/crash</listentry>
-            <listentry>var/lib/mailman</listentry>
-            <listentry>var/lib/named</listentry>
-            <listentry>var/lib/pgsql</listentry>
-            <listentry>var/log</listentry>
-            <listentry>var/opt</listentry>
-            <listentry>var/spool</listentry>
-            <listentry>var/tmp</listentry>
-          </subvolumes>
         </partition>
       </partitions>
       <pesize/>

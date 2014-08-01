@@ -257,117 +257,117 @@ class TestCaseWrapper(xenrt.TestCase):
                 pass
             ssh = remote.sshSession()
 
-            # Process the test results.
-            xenrt.TEC().progress("Processing test results")
-            c = ssh.open_session()
-            c.settimeout(300)
-            c.exec_command(self.remoteCommandLine("process"))
-            c.sendall(config)
-            c.shutdown(1)
-            f = c.makefile()
-            result = ""
-            while True:
-                try:
-                    output = f.readline()
-                except socket.timeout:
-                    raise xenrt.XRTError("Process timed out")
-                # Either we have all the results or the channel closed
-                # unexpectedly.
-                if len(output) == 0:
-                    break
-                xenrt.TEC().log(output)
-                result += output
-            if exit_status == -1:
-                raise xenrt.XRTError("Process connection error")
-            elif not exit_status == 0:
-                raise xenrt.XRTError("Process failed")
-            c.close()
-            result = re.findall(".*:.*\n", result)
-            for res in result:#string.split(result, "\n"):
-                r = re.search(r"^(\w+):\s*(.+)", res)
-                if r:
-                    t = r.group(1)
-                    c = r.group(2)
-                    if t == "Comment":
-                        xenrt.TEC().comment(c)
-                    elif t == "Reason":
-                        xenrt.TEC().reason(c)
-                    elif t == "Result":
-                        xenrt.TEC().appresult(c)
-                    elif t == "Warning":
-                        xenrt.TEC().warning(c)
-                    elif t == "Value":
-                        r2 = re.search(r"(\S+)\s+(\S+)\s+(\S+)", c)
+        # Process the test results.
+        xenrt.TEC().progress("Processing test results")
+        c = ssh.open_session()
+        c.settimeout(300)
+        c.exec_command(self.remoteCommandLine("process"))
+        c.sendall(config)
+        c.shutdown(1)
+        f = c.makefile()
+        result = ""
+        while True:
+            try:
+                output = f.readline()
+            except socket.timeout:
+                raise xenrt.XRTError("Process timed out")
+            # Either we have all the results or the channel closed
+            # unexpectedly.
+            if len(output) == 0:
+                break
+            xenrt.TEC().log(output)
+            result += output
+        if exit_status == -1:
+            raise xenrt.XRTError("Process connection error")
+        elif not exit_status == 0:
+            raise xenrt.XRTError("Process failed")
+        c.close()
+        result = re.findall(".*:.*\n", result)
+        for res in result:#string.split(result, "\n"):
+            r = re.search(r"^(\w+):\s*(.+)", res)
+            if r:
+                t = r.group(1)
+                c = r.group(2)
+                if t == "Comment":
+                    xenrt.TEC().comment(c)
+                elif t == "Reason":
+                    xenrt.TEC().reason(c)
+                elif t == "Result":
+                    xenrt.TEC().appresult(c)
+                elif t == "Warning":
+                    xenrt.TEC().warning(c)
+                elif t == "Value":
+                    r2 = re.search(r"(\S+)\s+(\S+)\s+(\S+)", c)
+                    if r2:
+                        xenrt.TEC().value(r2.group(1), r2.group(2), r2.group(3))
+                    else:
+                        r2 = re.search(r"(\S+)\s+(\S+)", c)
                         if r2:
-                            xenrt.TEC().value(r2.group(1), r2.group(2), r2.group(3))
-                        else:
-                            r2 = re.search(r"(\S+)\s+(\S+)", c)
-                            if r2:
-                                xenrt.TEC().value(r2.group(1), r2.group(2))
-                    elif t == "Test":
-                        if c == "passed":
-                            self.setResult(xenrt.RESULT_PASS)
-                        elif c == "failed":
-                            self.setResult(xenrt.RESULT_FAIL)
-                        elif c == "skipped":
-                            self.setResult(xenrt.RESULT_SKIPPED)
-                        elif c == "partial":
-                            self.setResult(xenrt.RESULT_PARTIAL)
-                        elif c == "error":
-                            self.setResult(xenrt.RESULT_ERROR)
-                        else:
-                            self.setResult(xenrt.RESULT_UNKNOWN)
-                    elif t == "Variable":
-                        pass # TODO
+                            xenrt.TEC().value(r2.group(1), r2.group(2))
+                elif t == "Test":
+                    if c == "passed":
+                        self.setResult(xenrt.RESULT_PASS)
+                    elif c == "failed":
+                        self.setResult(xenrt.RESULT_FAIL)
+                    elif c == "skipped":
+                        self.setResult(xenrt.RESULT_SKIPPED)
+                    elif c == "partial":
+                        self.setResult(xenrt.RESULT_PARTIAL)
+                    elif c == "error":
+                        self.setResult(xenrt.RESULT_ERROR)
+                    else:
+                        self.setResult(xenrt.RESULT_UNKNOWN)
+                elif t == "Variable":
+                    pass # TODO
 
 
-            # Retrieve the logs from the test machine.
-            xenrt.TEC().progress("Fetching logs")
-            c = ssh.open_session()
-            c.settimeout(timeout)
-            c.exec_command(self.remoteCommandLine("getlogs"))
-            logs = xenrt.TEC().tempFile()
-            c.sendall(config)
-            c.shutdown(1)
-            f = c.makefile()
-            g = file(logs, "w")
-            while True:
-                try:
-                    output = f.read(4096)
-                except socket.timeout:
-                    raise xenrt.XRTError("Reason: Getlogs timed out.")
-                if len(output) == 0:
-                    break
-                g.write(output)
-            g.close()
-            c.close()
-            # Unpack the logs
-            ldir = "%s/logs" % (xenrt.TEC().getLogdir())
-            os.mkdir(ldir)
-            xenrt.util.command("tar -jxf %s -C %s" % (logs, ldir))
-            
-            # Clean up after the test on the test machine. 
-            # This is currently a noop for most tests. Need to 
-            # remember to read output for this.
-            c = ssh.open_session()
-            c.exec_command(self.remoteCommandLine("cleanup"))
-            c.sendall(config)
-            clean = xenrt.TEC().tempFile()
-            c.shutdown(1)
-            f = c.makefile()
-            g = file(clean, "w")
-            while True:
-                try:
-                    output = f.read(4096)
-                except socket.timeout:
-                    raise xenrt.XRTError("Reason: Cleanup timed out.")
-                if len(output) == 0:
-                    break
-                g.write(output)
-            g.close()
-            c.close()
+        # Retrieve the logs from the test machine.
+        xenrt.TEC().progress("Fetching logs")
+        c = ssh.open_session()
+        c.settimeout(timeout)
+        c.exec_command(self.remoteCommandLine("getlogs"))
+        logs = xenrt.TEC().tempFile()
+        c.sendall(config)
+        c.shutdown(1)
+        f = c.makefile()
+        g = file(logs, "w")
+        while True:
+            try:
+                output = f.read(4096)
+            except socket.timeout:
+                raise xenrt.XRTError("Reason: Getlogs timed out.")
+            if len(output) == 0:
+                break
+            g.write(output)
+        g.close()
+        c.close()
+        # Unpack the logs
+        ldir = "%s/logs" % (xenrt.TEC().getLogdir())
+        os.mkdir(ldir)
+        xenrt.util.command("tar -jxf %s -C %s" % (logs, ldir))
         
-            ssh.close()
+        # Clean up after the test on the test machine. 
+        # This is currently a noop for most tests. Need to 
+        # remember to read output for this.
+        c = ssh.open_session()
+        c.exec_command(self.remoteCommandLine("cleanup"))
+        c.sendall(config)
+        clean = xenrt.TEC().tempFile()
+        c.shutdown(1)
+        f = c.makefile()
+        g = file(clean, "w")
+        while True:
+            try:
+                output = f.read(4096)
+            except socket.timeout:
+                raise xenrt.XRTError("Reason: Cleanup timed out.")
+            if len(output) == 0:
+                break
+            g.write(output)
+        g.close()
+        c.close()
+    
+        ssh.close()
 
 class LoopingTestCase(xenrt.TestCase):
 

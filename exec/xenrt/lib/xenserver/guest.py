@@ -236,6 +236,9 @@ class Guest(xenrt.GenericGuest):
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
 
+    def wouldBootHVM(self):
+        return (self.paramGet("HVM-boot-policy") == "BIOS order")
+
     def isHVMLinux(self, distro=None):
         if not distro:
             distro=self.distro
@@ -4009,7 +4012,10 @@ exit /B 1
         return recs
 
     def vendorInstallDevicePrefix(self):
-        return "xvd"
+        if self.distro.startswith("sles12") and self.wouldBootHVM():
+            return "hd"
+        else:
+            return "xvd"
 
     def installXDVDABrokerLessConn(self):
 

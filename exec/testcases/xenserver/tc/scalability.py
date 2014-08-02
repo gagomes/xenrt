@@ -198,7 +198,7 @@ class _VMScalability(_Scalability):
         
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
-            host.reboot()
+            host.reboot(timeout=3600)
                     
         if self.HATEST:
             try:

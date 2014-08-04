@@ -1787,7 +1787,7 @@ if cleanuplocks:
         xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
 
 if releaselock:
-    if (releaselock.startswith("IP4ADDR-") and self.lookup("XENRT_DHCPD", False, boolean=True)) \
+    if (releaselock.startswith("IP4ADDR-") and xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True)) \
               or releaselock.startswith("EXT-IP4ADDR"):
         xenrt.resources.DhcpXmlRpc().releaseAddress(releaselock.split("-")[-1])
     else:

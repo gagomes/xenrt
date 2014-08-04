@@ -61,8 +61,9 @@ def createHost(id=0,
     host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []
     extrapackages.append("libvirt")
+    rhel7 = False
     if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
-        pass
+        rhel7 = True
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")
@@ -79,6 +80,13 @@ def createHost(id=0,
         host.execdom0("service firewalld stop")
     except:
         host.execdom0("service iptables stop")
+
+    if rhel7:
+        # NetworkManager doesn't support bridging and must be disabled
+        host.execdom0("chkconfig NetworkManager off")
+        host.execdom0("chkconfig network on")
+        host.execdom0("service NetworkManager stop")
+        host.execdom0("service network start")
 
     host.virConn = host._openVirConn()
 
@@ -167,14 +175,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
         return self.getBridge(self.getDefaultInterface())
 
     def createNetwork(self, name="bridge"):
-        try:
-            self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
-        except xenrt.XRTFailure, e:
-            if e.data and "Failed to start bridge interface" in e.data:
-                xenrt.TEC().logverbose("Working around RHEL7 issue")
-                self.execvirt("virsh iface-start %s" % name)
-            else:
-                raise
+        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:

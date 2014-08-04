@@ -167,7 +167,14 @@ class KVMHost(xenrt.lib.libvirt.Host):
         return self.getBridge(self.getDefaultInterface())
 
     def createNetwork(self, name="bridge"):
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
+        try:
+            self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
+        except xenrt.XRTFailure, e:
+            if e.data and "Failed to start bridge interface" in e.data:
+                xenrt.TEC().logverbose("Working around RHEL7 issue")
+                self.execvirt("virsh iface-start %s" % name)
+            else:
+                raise
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -182,12 +189,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
         mac = self.lookup("MAC_ADDRESS", None)
         if mac:
             try:
-                ifdata = self.execdom0("ifconfig -a | grep HWaddr")
+                ifdata = self.execdom0("for i in `ls /sys/class/net`; do echo -n \"${i} \"; cat /sys/class/net/${i}/address; done")
                 for l in ifdata.splitlines():
                     ls = l.split()
-                    if not ls[0].startswith("eth"):
+                    if not ls[0].startswith("eth"): # TODO: This may not work in general, as later Linux releases are stopping using eth prefixes!
                         continue # Ignore any existing bridge devices
-                    if ls[4].lower() == mac.lower():
+                    if ls[1].lower() == mac.lower():
                         return ls[0]
                 
                 raise xenrt.XRTFailure("Could not find an interface for %s" % (mac))

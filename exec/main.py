@@ -1787,44 +1787,48 @@ if cleanuplocks:
         xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
 
 if releaselock:
-    cr = xenrt.resources.CentralResource()
-    locks = cr.list()
-    for lock in locks:
-        if lock[1]:
-            # Check ID
-            if lock[0] == releaselock:
-                if lock[2]['jobid']:
-                    xrs = xenrt.ctrl.XenRTStatus(None)
-                    jobdict = xrs.run([lock[2]['jobid']])
-                    pid = jobdict['HARNESS_PID']
-                    # See if this PID is still running
-                    pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
-                else:
-                    # Doesn't have a job, must be manual run
-                    pid = "(N/A)"
-                    pr = "1"
-                if int(pr) == 1:
-                    # Release the lock
-                    path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                    path += "/%s" % (lock[2]['md5'])
-                    try:
-                        os.unlink("%s/jobid" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/id" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/timestamp" % (path))
-                    except:
-                        pass
+    if (releaselock.startswith("IP4ADDR-") and self.lookup("XENRT_DHCPD", False, boolean=True)) \
+              or releaselock.startswith("EXT-IP4ADDR"):
+        xenrt.resources.DhcpXmlRpc().releaseAddress(releaselock.split("-")[-1])
+    else:
+        cr = xenrt.resources.CentralResource()
+        locks = cr.list()
+        for lock in locks:
+            if lock[1]:
+                # Check ID
+                if lock[0] == releaselock:
+                    if lock[2]['jobid']:
+                        xrs = xenrt.ctrl.XenRTStatus(None)
+                        jobdict = xrs.run([lock[2]['jobid']])
+                        pid = jobdict['HARNESS_PID']
+                        # See if this PID is still running
+                        pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
+                    else:
+                        # Doesn't have a job, must be manual run
+                        pid = "(N/A)"
+                        pr = "1"
+                    if int(pr) == 1:
+                        # Release the lock
+                        path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                        path += "/%s" % (lock[2]['md5'])
+                        try:
+                            os.unlink("%s/jobid" % (path))
+                        except:
+                            pass
+                        try:
+                            os.unlink("%s/id" % (path))
+                        except:
+                            pass
+                        try:
+                            os.unlink("%s/timestamp" % (path))
+                        except:
+                            pass
 
-                    os.rmdir(path)
-                    print "Lock %s released" % (releaselock)
-                else:
-                    print "Harness process still running, not releasing lock"
-                break
+                        os.rmdir(path)
+                        print "Lock %s released" % (releaselock)
+                    else:
+                        print "Harness process still running, not releasing lock"
+                    break
 
 if setupsharedhost:
     # Setup logdir

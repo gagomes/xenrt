@@ -86,7 +86,6 @@ def createHost(id=0,
         host.execdom0("chkconfig NetworkManager off")
         host.execdom0("chkconfig network on")
         host.execdom0("service NetworkManager stop")
-        host.execdom0("service network start")
 
     host.virConn = host._openVirConn()
 

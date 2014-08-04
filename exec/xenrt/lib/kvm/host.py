@@ -64,6 +64,7 @@ def createHost(id=0,
     rhel7 = False
     if re.search(r"rhel7", distro) or re.search(r"centos7", distro) or re.search(r"oel7", distro):
         rhel7 = True
+        extrapackages.append("ntp")
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")

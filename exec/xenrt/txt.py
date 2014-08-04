@@ -222,7 +222,7 @@ class AttestationIdParser:
 
     def __init__(self, data):
         """
-        @type data: string 
+        @type data: string
         @param data: the xml data from the attestation id TPM call
         """
         self.__attestationData = data
@@ -342,7 +342,7 @@ class TpmQuoteParser(TpmParser):
         @type pcr: int
         @param pcr: the index of the pcr required
         @rtype: string
-        @return: hex value of the n^th PCR 
+        @return: hex value of the n^th PCR
         """
         numPcrs, data, pos = self.__calculatePcrs()
         # BUGBUG check that pcr is not greater than numPCrs
@@ -352,7 +352,7 @@ class TpmQuoteParser(TpmParser):
     def allPcrs(self):
         """
         @rtype: list
-        @return: collection hex strings containing all PCR values 
+        @return: collection hex strings containing all PCR values
         """
         pcrs = []
         numPcrs, data, pos = self.__calculatePcrs()
@@ -373,13 +373,13 @@ class TpmQuoteParser(TpmParser):
         @param aikPub: the AIK key of the TPM's attestation identity
         @type nonce: string
         @param nonce: the nonce value used for the quote
-        @rtype: boolean  
+        @rtype: boolean
         @returns: verification was successful
         """
         xenrt.TEC().logverbose("Verifying TPM Quote")
         data = bytearray((self.__quoteStr))
         pos = 0
-        # skip over the bitmask length and the bitmask itself 
+        # skip over the bitmask length and the bitmask itself
         mask_size = self.__readbufint(data, pos, self.__SHORT_SIZE)
         pos = pos + self.__SHORT_SIZE
         pos = pos + mask_size
@@ -454,7 +454,7 @@ class TpmChallengeParser(TpmParser):
         @type secret: string
         @secret: a secret to encrypt using stoed keys
         @rtype: string containing the encrypted challenge
-        @return: string 
+        @return: string
         """
 
         SHA1_DIGEST_SIZE = (hashlib.sha1()).digest_size
@@ -509,7 +509,7 @@ class TpmChallengeParser(TpmParser):
         challenge[4:len(asymEnc)] = asymEnc
         challenge[4+len(asymEnc):8+len(asymEnc)] = (pack("!i",len(symAttest)))
         challenge[8+len(asymEnc):len(challenge)] = (symAttest)
-        return "".join(map(chr, challenge)) 
+        return "".join(map(chr, challenge))
 
 
 class OAEP(object):
@@ -697,26 +697,33 @@ class TXTErrorParser(object):
 
 
 class TxtLogObfuscator(object):
+
     def __init__(self, listOfLines):
         self.__log = listOfLines
 
     def fuzzTimes(self, data=None):
-        #Match 11:43:34 i.e. a timestamp
+        # Match 11:43:34 i.e. a timestamp
         regex = re.compile("[0-9]{2}\:[0-9]{2}\:[0-9]{2}")
         sub = "XX:XX:XX"
         return self.__fuzzStrings(data, regex, sub)
 
     def fuzzDates(self, data=None):
-        #Match line starting with "Jul 23", "Aug 02", etc
-        regex = re.compile("^[A-Z]{1}[a-z]{2}[ ][0-9]{2}")
+        # Match line starting with "Jul 23", "Aug 2", etc
+        regex = re.compile("^[A-Z]{1}[a-z]{2}[ ][0-9]{1,2}")
         sub = "XXX XX"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def fuzzThreadMarker(self, data=None):
+        regex = re.compile("[\[]{1}[0-9]+[\]]{1}")
+        sub = "[XXXX]"
         return self.__fuzzStrings(data, regex, sub)
 
     def __fuzzStrings(self, data, regex, substitution):
         if not data:
             data = self.__log
-        return [regex.sub(substitution,l) for l in data]
+        return [regex.sub(substitution, l) for l in data]
 
     def fuzz(self):
-        return self.fuzzDates(self.fuzzTimes(self.__log))
+        return self.fuzzThreadMarker(self.fuzzDates(self.fuzzTimes(self.__log)))
+
 

@@ -17,11 +17,23 @@ class TestTxtLogObfuscator(XenRTUnitTestCase):
         self.assertEqual(["""XXX XX 11:43:25 localhost xentpm[8593]: The """
                           """TPM is not pwned"""], fuzz.fuzzDates())
 
-    def testDateAndTimeIsFuzzed(self):
+    def testThreadIsFuzzed(self):
         data = ["Jul 18 11:43:25 localhost xentpm[8593]: The TPM is not pwned"]
         fuzz = TxtLogObfuscator(data)
-        self.assertEqual(["""XXX XX XX:XX:XX localhost xentpm[8593]: The """
+        self.assertEqual(["""Jul 18 11:43:25 localhost xentpm[XXXX]: The """
+                          """TPM is not pwned"""], fuzz.fuzzThreadMarker())
+
+    def testAllDataIsFuzzed(self):
+        data = ["Jul 18 11:43:25 localhost xentpm[8593]: The TPM is not pwned"]
+        fuzz = TxtLogObfuscator(data)
+        self.assertEqual(["""XXX XX XX:XX:XX localhost xentpm[XXXX]: The """
                           """TPM is not pwned"""], fuzz.fuzz())
+
+    def testSingleDigitDateIsFuzzed(self):
+        data = ["Aug 2 11:43:25 localhost xentpm[8593]: The TPM is not pwned"]
+        fuzz = TxtLogObfuscator(data)
+        self.assertEqual(["""XXX XX 11:43:25 localhost xentpm[8593]: The """
+                          """TPM is not pwned"""], fuzz.fuzzDates())
 
 
 class TestTxtErrorParser(XenRTUnitTestCase):

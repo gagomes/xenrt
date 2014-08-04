@@ -1035,7 +1035,7 @@ umount /tmp/xenrttmpmount
     </device_map>
     <global>
       <activate>true</activate>
-      <append>   resume=/dev/%s1 splash=silent quiet showopts</append>
+      <append>   resume=/dev/%s2 splash=silent quiet showopts</append>
       <append_failsafe>showopts apm=off noresume edd=off powersaved=off nohz=off highres=off processor.max_cstate=1 nomodeset x11failsafe</append_failsafe>
       <boot_boot>false</boot_boot>
       <boot_custom/>
@@ -1043,11 +1043,11 @@ umount /tmp/xenrttmpmount
       <boot_mbr>true</boot_mbr>
       <boot_root>true</boot_root>
       <default>0</default>
-      <distributor>SUSE Linux Enterprise Server 12 (Beta10)</distributor>
+      <distributor>SUSE Linux Enterprise Server 12 (RC1)</distributor>
       <generic_mbr>true</generic_mbr>
       <gfxmode>auto</gfxmode>
       <hiddenmenu>false</hiddenmenu>
-      <os_prober>true</os_prober>
+      <os_prober>false</os_prober>
       <terminal>gfxterm</terminal>
       <timeout config:type="integer">8</timeout>
       <vgamode/>
@@ -1428,20 +1428,7 @@ umount /tmp/xenrttmpmount
         <partition>
           <create config:type="boolean">true</create>
           <crypt_fs config:type="boolean">false</crypt_fs>
-          <filesystem config:type="symbol">swap</filesystem>
-          <format config:type="boolean">true</format>
-          <loop_fs config:type="boolean">false</loop_fs>
-          <mount>swap</mount>
-          <mountby config:type="symbol">uuid</mountby>
-          <partition_id config:type="integer">130</partition_id>
-          <partition_nr config:type="integer">1</partition_nr>
-          <resize config:type="boolean">false</resize>
-          <size>1028160000</size>
-        </partition>
-        <partition>
-          <create config:type="boolean">true</create>
-          <crypt_fs config:type="boolean">false</crypt_fs>
-          <filesystem config:type="symbol">ext4</filesystem>
+          <filesystem config:type="symbol">ext3</filesystem>
           <format config:type="boolean">true</format>
           <fstopt>acl,user_xattr</fstopt>
           <loop_fs config:type="boolean">false</loop_fs>
@@ -1451,6 +1438,19 @@ umount /tmp/xenrttmpmount
           <partition_nr config:type="integer">1</partition_nr>
           <resize config:type="boolean">false</resize>
           <size>7542581760</size>
+        </partition>
+        <partition>
+          <create config:type="boolean">true</create>
+          <crypt_fs config:type="boolean">false</crypt_fs>
+          <filesystem config:type="symbol">swap</filesystem>
+          <format config:type="boolean">true</format>
+          <loop_fs config:type="boolean">false</loop_fs>
+          <mount>swap</mount>
+          <mountby config:type="symbol">uuid</mountby>
+          <partition_id config:type="integer">130</partition_id>
+          <partition_nr config:type="integer">2</partition_nr>
+          <resize config:type="boolean">false</resize>
+          <size>1028160000</size>
         </partition>
       </partitions>
       <pesize/>
@@ -1495,7 +1495,12 @@ umount /tmp/xenrttmpmount
   </runlevel>
   <services-manager>
     <default_target>multi-user</default_target>
-    <services config:type="list"/>
+    <services>
+      <disable config:type="list"/>
+      <enable config:type="list">
+        <service>sshd</service>
+      </enable>
+    </services>
   </services-manager>
   <software>
     <image/>

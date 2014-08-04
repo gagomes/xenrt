@@ -354,14 +354,19 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.installJSVC()
             self.execdom0("cd /tmp && mkdir cloudplatform && tar -xvzf cp.tar.gz -C /tmp/cloudplatform")
             installDir = os.path.dirname(self.execdom0('find /tmp/cloudplatform/ -type f -name install.sh'))
-            self.execdom0("cd %s && ./install.sh -a" % (installDir))
+            result = self.execdom0("cd %s && ./install.sh -a" % (installDir))
+            # CS-20675 - install.sh can exit with 0 even if the install fails!
+            if "You could try using --skip-broken to work around the problem" in result:
+                raise xenrt.XRTError("Dependency failure installing CloudPlatform")
 
             # NFS services
             self.execdom0("service rpcbind start")
             self.execdom0("service nfs start")
             self.execdom0("chkconfig rpcbind on")
-            self.execdom0("chkconfig nfs on")
-
+            try:
+                self.execdom0("chkconfig nfs on")
+            except:
+                self.execdom0("systemctl enable nfs-server.service") # RHEL7
         else:
             # Apache CloudStack specific operations
 

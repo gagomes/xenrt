@@ -12,6 +12,8 @@
     <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
   </variables>
 
+  <default name="GUEST_IP_RANGE_SIZE" value="15"/>
+
   <prepare>
     <cloud>
       { "zones": [
@@ -40,7 +42,7 @@
             }
           ],
           "ipranges": [
-            { "XRT_GuestIPRangeSize": 35 }
+            { "XRT_GuestIPRangeSize": ${GUEST_IP_RANGE_SIZE} }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 10,

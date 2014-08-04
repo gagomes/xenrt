@@ -115,8 +115,12 @@ def createHost(id=0,
 
     # SELinux support for NFS SRs on KVM (eg. for ISO files)
     # https://bugzilla.redhat.com/show_bug.cgi?id=589922
-    host.execdom0("getsebool virt_use_nfs")
-    host.execdom0("setsebool virt_use_nfs on")
+    try:
+        host.execdom0("getsebool virt_use_nfs")
+        host.execdom0("setsebool virt_use_nfs on")
+    except:
+        # In RHEL7 these commands throw an exception if SELinux is disabled.
+        pass
 
     if cpufreqgovernor:
         output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")

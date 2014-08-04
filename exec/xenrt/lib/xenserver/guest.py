@@ -1112,6 +1112,23 @@ at > c:\\xenrtatlog.txt
     def convertHVMtoPV(self):
         """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
 
+        # Handle guests that don't have a PV-compatible kernel installed by default
+        if self.distro.startswith("sles12"):
+            oldstate = self.getState()
+            self.setState("UP")
+
+            # Sorry, this is necessarily going to be ugly!
+            # When we update the grub config, it sees that we're running in HVM mode and skips xenkernels.
+            # So we need to hack grub to temporarily think that we're not in HVM mode.
+            self.execguest("sed -i 's/CONFIG_XEN/xxx/' /etc/grub.d/10_linux")
+
+            self.execguest("zypper -n install kernel-xen")
+
+            # Now revert the grub hack
+            self.execguest("sed -i 's/xxx/CONFIG_XEN/' /etc/grub.d/10_linux")
+
+            self.setState(oldstate)
+
         self.paramSet("HVM-boot-policy", "")
         self.paramRemove("HVM-boot-params", "order")
         self.paramSet("PV-bootloader", "pygrub")

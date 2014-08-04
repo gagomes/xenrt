@@ -195,6 +195,20 @@ class _VMScalability(_Scalability):
         if self.NET_BRIDGE:
             #Linux bridge on host side as Network backend
             host.execdom0("xe-switch-network-backend bridge")
+            
+        # Get the Existing Guests
+        for gname in host.listGuests():
+            if gname != self.vmtemplate and host.getGuest(gname): 
+                self.guests.append(host.getGuest(gname))
+                
+        if self.TRYMAX:
+            for g in self.guests:
+                host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g.uuid)
+                vbds = g.listVBDUUIDs("CD")
+                for vbd in vbds:
+                    host.execdom0("xe vbd-destroy uuid=%s" % vbd)
         
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
@@ -211,10 +225,6 @@ class _VMScalability(_Scalability):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to create HA enabled Pool.. %s" % (e))
                 
-        # Get the Existing Guests
-        for gname in host.listGuests():
-            if gname != self.vmtemplate and host.getGuest(gname): 
-                self.guests.append(host.getGuest(gname))
         
         if self.MAX == True:
             max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
@@ -228,6 +238,14 @@ class _VMScalability(_Scalability):
                 guest = self.getGuest(self.vmtemplate)
                 if guest.getState() != "DOWN":
                     guest.shutdown(force=True)
+                if self.TRYMAX:
+                    host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % guest.uuid)
+                    vbds = guest.listVBDUUIDs("CD")
+                    for vbd in vbds:
+                        host.execdom0("xe vbd-destroy uuid=%s" % vbd)
+        
                     
             # Create the initial VM
             else:

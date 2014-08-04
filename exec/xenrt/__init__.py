@@ -3011,31 +3011,30 @@ class GlobalExecutionContext:
                         xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
                                                pref='WARNING')
 
-                    try:
-                        jl = xenrt.jiralink.getJiraLink()
-                        if not jl.processTR(t.tec,t.ticket,jiratc,tcsku):
-                            # We didn't file a testrun entry
-                            if t.ticket:
-                                if t.getResult() == "fail":
-                                    t.ticketIsFailure = True
-                                else:
-                                    t.ticketIsFailure = False
-                    except Exception, e:
-                        xenrt.GEC().logverbose("TestRun Exception: %s" % (e),
-                                               pref='WARNING')
+                try:
+                    jl = xenrt.jiralink.getJiraLink()
+                    if not jl.processTR(t.tec,t.ticket,jiratc,tcsku):
+                        # We didn't file a testrun entry
+                        if t.ticket:
+                            if t.getResult() == "fail":
+                                t.ticketIsFailure = True
+                            else:
+                                t.ticketIsFailure = False
+                except Exception, e:
+                    xenrt.GEC().logverbose("TestRun Exception: %s" % (e),
+                                           pref='WARNING')
         else:
             t.tec.progress(str(blocked))
             if not isfinally:
                 self.dbconnect.jobSetResult(phase, t.basename, "blocked")
-            if t.tec.lookup("AUTO_BUG_FILE", False, boolean=True):
-                try:
-                    jl = xenrt.jiralink.getJiraLink()
-                    jl.processTR(t.tec,blockedticket,jiratc,tcsku)
-                except Exception, e:
-                    sys.stderr.write(str(e).rstrip()+'\n')
-                    traceback.print_exc(file=sys.stderr)
-                    xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
-                                           pref='WARNING')
+            try:
+                jl = xenrt.jiralink.getJiraLink()
+                jl.processTR(t.tec,blockedticket,jiratc,tcsku)
+            except Exception, e:
+                sys.stderr.write(str(e).rstrip()+'\n')
+                traceback.print_exc(file=sys.stderr)
+                xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
+                                       pref='WARNING')
         if t.runningtag and self.running.has_key(t.runningtag):
             del self.running[t.runningtag]
         t._cleanup()

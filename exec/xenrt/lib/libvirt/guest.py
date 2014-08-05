@@ -754,7 +754,7 @@ class Guest(xenrt.GenericGuest):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
-        sizebytes - size in bytes
+        sizebytes - size in bytes or a string such as 5000MiB or 5GiB
         sruuid - UUID of SR to create disk on
         userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc)
         bootable - currently unused. To ensure that this disk will be booted from,
@@ -786,6 +786,14 @@ class Guest(xenrt.GenericGuest):
 
         if not format:
             format = self.DEFAULT_DISK_FORMAT
+
+        if isinstance(sizebytes, str):
+            if sizebytes.endswith("GiB"):
+                sizebytes = int(sizebytes[:-3]) * 1024**3
+            elif sizebytes.endswith("MiB"):
+                sizebytes = int(sizebytes[:-3]) * 1024**2
+            else:
+                sizebytes = int(sizebytes)
 
         existingVDI = vdiname
         if not vdiname:

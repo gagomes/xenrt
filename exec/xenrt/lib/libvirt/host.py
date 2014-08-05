@@ -270,6 +270,8 @@ class Host(xenrt.GenericHost):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS08")
             elif distro.startswith("win7"):
                 template = self.chooseTemplate("TEMPLATE_NAME_WIN7")
+            elif distro.startswith("win8"):
+                template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
             elif distro.startswith("debian"):
                 v = re.search("debian(\d*)", distro).group(1)
                 if v != "": v = "_" + v

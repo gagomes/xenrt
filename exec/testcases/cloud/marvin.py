@@ -26,6 +26,11 @@ class RemoteNoseInstaller(object):
         self.runner.execguest("cd /root/cloudstack.git && git checkout %s" % self.gitBranch)
         self.runner.execguest("cd /root/cloudstack.git && git pull")
 
+        patch = xenrt.TEC().lookup("MARVIN_PATCH", None)
+        if patch:
+            self.runner.execguest("wget -O /root/cs.patch %s" % patch)
+            self.runner.execguest("cd /root/cloudstack.git && patch -p1 < /root/cs.patch")
+
 class _TCRemoteNoseBase(xenrt.TestCase):
     def prepare(self, arglist):
         self.args = self.parseArgsKeyValue(arglist)

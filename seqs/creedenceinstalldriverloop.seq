@@ -2,6 +2,7 @@
 
   <default name="GUESTMEMORY" value="1024" />
   <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTDISTRO" value="win7-x86" />
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -12,8 +13,8 @@
 
   <prepare>
     <host>
-      <vm name="win7-x86">
-        <distro>win7-x86</distro>
+      <vm name="${GUESTDISTRO}">
+        <distro>${GUESTDISTRO}</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0" />

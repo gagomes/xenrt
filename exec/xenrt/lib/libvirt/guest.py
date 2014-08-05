@@ -1147,7 +1147,7 @@ class Guest(xenrt.GenericGuest):
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")
         self.poll("UP")
 
-        xenrt.sleep(10)
+        xenrt.sleep(5)
 
         # get the mac address
         r = re.search(r"<mac address='([^']*)'/>", self._getXML())

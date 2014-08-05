@@ -46,10 +46,16 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         except:
             xenrt.TEC().logverbose("test_data not supported")
         else:
-
-            if "nfs" in self.args.get("resources", "").split(","):
+            if self.args.has_key("resources"):
+                resources = self.args['resources'].split(",")
+            else:   
+                resources = []
+            if "nfs" in resources:
                 nfspath = xenrt.ExternalNFSShare().getMount()
                 testData['nfs'] = {"url": "nfs://%s" % nfspath, "name": "Test NFS Storage"}
+            if "iscsi" in resources:
+                lun = xenrt.ISCSITemporaryLun(100)
+                testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
             
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData))

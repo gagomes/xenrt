@@ -200,7 +200,8 @@ class MarvinApi(object):
     def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
-        while((datetime.now() - startTime).seconds < 1800):
+        timeout = 1800
+        while((datetime.now() - startTime).seconds < timeout):
             templateList = self.cloudApi.listTemplates(templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
@@ -209,6 +210,9 @@ class MarvinApi(object):
                 templateReady = templateList[0].isready
                 if templateReady:
                     break
+                if templateList[0].hypervisor.lower() == "hyperv":
+                    # CS-20595 - Hyper-V downloads are very slow
+                    timeout = 7200
             else:
                 raise xenrt.XRTFailure('>1 template found with name %s' % (name))
 

@@ -56,7 +56,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
-            testData['hypervisor'] = self.args['hypervisor']            
+            testData['hypervisor'] = self.args['hypervisor']
+            testData['small']['hypervisor'] = self.args['hypervisor']
+            testData['medium']['hypervisor'] = self.args['hypervisor']
+            testData['server']['hypervisor'] = self.args['hypervisor']
+            testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     

@@ -25,13 +25,9 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         self.esxPaused = False
 
     def _getDiskDevicePrefix(self):
-        if self.enlightenedDrivers:
-            return "sd"
-        return "hd"
+        return "sd"
     def _getDiskDeviceBus(self):
-        if self.enlightenedDrivers:
-            return "scsi"
-        return "ide"
+        return "scsi"
     def _getNetworkDeviceModel(self):
         return "e1000"
 
@@ -208,6 +204,7 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         domain += "      <target dev='%sa' bus='%s'/>" % (self._getDiskDevicePrefix(), self._getDiskDeviceBus())
         domain += "      <address type='drive' controller='0' bus='0' target='0' unit='0'/>"
         domain += "    </disk>"
+        domain += "    <controller type='scsi' index='0' model='lsilogic'/>"
         domain += "    <controller type='ide' index='0'/>"
         domain += "    <input type='mouse' bus='ps2'/>"
         domain += "    <graphics type='vnc' autoport='yes'>"

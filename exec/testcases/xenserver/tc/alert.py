@@ -650,7 +650,7 @@ class MemoryAlerts(_AlertBase):
             raise xenrt.XRTError("Machine local SR not sufficient to run this test")
 
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.PRIORITY=5
 
         # Setup required to generate memory alerts

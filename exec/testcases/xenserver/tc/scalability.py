@@ -196,23 +196,25 @@ class _VMScalability(_Scalability):
             #Linux bridge on host side as Network backend
             host.execdom0("xe-switch-network-backend bridge")
             
-        # Get the Existing Guests
+        if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
+            #rebooting the host
+            host.reboot(timeout=3600)
+        
+        # Get the Existing Guest 
         for gname in host.listGuests():
             if gname != self.vmtemplate and host.getGuest(gname): 
                 self.guests.append(host.getGuest(gname))
                 
         if self.TRYMAX:
             for g in self.guests:
+                if g.getState() != "DOWN":
+                    g.shutdown()
                 host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g.uuid)
                 host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g.uuid)
                 host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g.uuid)
                 vbds = g.listVBDUUIDs("CD")
                 for vbd in vbds:
                     host.execdom0("xe vbd-destroy uuid=%s" % vbd)
-        
-        if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
-            #rebooting the host
-            host.reboot(timeout=3600)
                     
         if self.HATEST:
             try:

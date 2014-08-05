@@ -482,6 +482,14 @@ class TC7336(_VMScalability):
     CHECKREACHABLE = True
     CHECKHEALTH=True
 
+class TC21642(_VMScalability):
+    """Test for ability to run the supported maximum number of concurrent Ubuntu 14.04 VMs on a host"""
+    MAX = True
+    VIFS = True
+    DISTRO = "ubuntu1404"
+    CHECKREACHABLE = True
+    CHECKHEALTH=True
+
 class TC12610(_VMScalability):
     """Determine maximum number of Windows VMs that can run concurrently"""
     MAX = 0

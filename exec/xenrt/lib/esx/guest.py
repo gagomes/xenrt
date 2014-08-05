@@ -44,6 +44,10 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         # we put the "distro" in the "template" field
         try:
             self.template = self.host.execdom0("grep 'guestOS = .*' /vmfs/volumes/datastore1/%s/%s.vmx" % (self.name, self.name)).strip().replace("guestOS = ", "").strip("\"")
+            self.distro = self.template
+            if "win" in self.distro:
+                self.windows = True
+                self.hasSSH = False
         except:
             xenrt.TEC().warning("Could not get distro information for %s from config file" % self.name)
         # TODO: detect this

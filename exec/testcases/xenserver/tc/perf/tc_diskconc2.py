@@ -340,18 +340,6 @@ Version 1.1.0
 
         self.windows = self.template.windows
 
-    def destroyVMs(self, guests):
-        # Destroy all VMs other than vm-template
-        for vm in guests:
-            if vm.getName() != "vm-template":
-                try:
-                    vm.shutdown(force=True)
-                except Exception as e:
-                    # Ignore but log shutdown errors  
-                    xenrt.TEC().logverbose("Shutting down VM: exception %s" % e)
-
-                vm.uninstall(destroyDisks=True)
-
     def run(self, arglist=None):
         self.changeNrDom0vcpus(self.host, self.dom0vcpus)
 
@@ -359,7 +347,6 @@ Version 1.1.0
 
         guests = self.host.guests.values()
         self.installTemplate(guests)
-        self.destroyVMs(guests)
 
         # Save original SM backend type and set new one if necessary
         if self.backend == "xen-blkback":
@@ -419,8 +406,6 @@ Version 1.1.0
                 self.runPhaseWindows(i, 'r')
             else:
                 self.runPhase(i, 'r')
-
-        self.destroyVMs(self.vm)
 
         # Restore original backend type if necessary
         if self.backend == "xen-blkback":

@@ -58,13 +58,13 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
             testData['hypervisor'] = self.args['hypervisor']            
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
-                f.write(json.dumps(testData))
+                f.write(json.dumps(testData, indent=2))
     
             sftp.copyTo("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "/root/testdata.cfg")
             self.toolstack.marvinCfg['TestData'] = {'Path': "/root/testdata.cfg"}
 
         with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
-            f.write(json.dumps(self.toolstack.marvinCfg))
+            f.write(json.dumps(self.toolstack.marvinCfg, indent=2))
 
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
 

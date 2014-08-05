@@ -40,6 +40,7 @@ def createHost(id=0,
                suppackcds=None,
                addToLogCollectionList=False,
                disablefw=False,
+               cpufreqgovernor=None,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
@@ -66,6 +67,16 @@ def createHost(id=0,
 
     host = xenrt.lib.native.NativeLinuxHost(m, version)
     host.installLinuxVendor(distro, arch=arch)
+
+    if cpufreqgovernor:
+        output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
+
+        # For each CPU, set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        host.execcmd("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo %s > $cpu; done" % (cpufreqgovernor,))
+
+        output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)

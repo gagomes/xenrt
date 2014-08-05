@@ -465,7 +465,7 @@ class _WSMANProtocol(_CIMInterface):
             return vm
         except Exception, e:
             self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
  
     def createCIFSISO(self,targetHost,isoSRName,vdiName,vmuuid,sharename,cifsGuest,host):
       
@@ -521,7 +521,11 @@ class _WSMANProtocol(_CIMInterface):
         except:
             raise xenrt.XRTError("Exception caught while mapping the share directory")
 
-        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 3600)
         return ret
 
@@ -765,7 +769,7 @@ class _WSMANProtocol(_CIMInterface):
             self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
         except Exception, e:
             self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
 
     def importVMSnapshotTree(self,transProtocol,ssl):
 
@@ -782,7 +786,7 @@ class _WSMANProtocol(_CIMInterface):
             self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
         except Exception, e:
             self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts: %s" % str(e))
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         
         return ret
         

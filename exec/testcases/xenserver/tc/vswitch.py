@@ -159,7 +159,7 @@ class _VSwitch(xenrt.TestCase):
                 guest.shutdown()
         operation(*args, **kwargs)
         # let toolstack intialize
-        xenrt.sleep(10)
+        xenrt.sleep(30)
         xenrt.TEC().logverbose("Enabling host after operation.")
         host.enable()
         self._restore(host, resident)
@@ -2308,7 +2308,10 @@ class TC12550(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
+            try:
+                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
+            except(ValueError):
+                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
             if received == 0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 

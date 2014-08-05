@@ -20,18 +20,15 @@ class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
         xenrt.lib.xenserver.host.RollingPoolUpdate.postSlaveUpdate(self, slave)
 
     def doUpdateHost(self, host):
-        if self.upgradeHook.DO_UPDATE:
-            xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
-        else:
+        if self.upgradeHook.noUpdate:
             xenrt.TEC().logverbose('SKIPPING Update Host: %s' % (host.getName()))
+        else:
+            xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
 
 class TCCloudUpdate(xenrt.TestCase):
-    DO_UPDATE = False
-    USE_EXISTING_TEMPLATES = True
-#    DISTROS = ['debian70_x86-64', 'win7sp1-x86']
-    DISTROS = ['rhel64_x86-64']
 
     def tailorBuiltInTemplate(self, template):
+        """Make a built-in template look like a tempalte created by XenRT"""
         if 'password' not in xenrt.TEC().lookup('ROOT_PASSWORDS'):
             xenrt.TEC().config.setVariable('ROOT_PASSWORDS', 'password ' + xenrt.TEC().lookup('ROOT_PASSWORDS'))
             xenrt.TEC().logverbose('ROOT_PASSWORDS: %s' % (xenrt.TEC().lookup('ROOT_PASSWORDS')))
@@ -47,15 +44,15 @@ class TCCloudUpdate(xenrt.TestCase):
         # Ignore hotfix options when running the lib upgrade code
         xenrt.TEC().config.setVariable("OPTION_NO_AUTO_PATCH", True)
 
-        self.cloud = self.getDefaultToolstack()
-        # TODO - should get Zone from toolstack object
-        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
-        capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zone.id, type=8)[0]
-        instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.DISTROS)
-
+        self.distros = []
         self.templates = {}
+        self.instances = []
 
-        if self.USE_EXISTING_TEMPLATES:
+        self.cloud = self.getDefaultToolstack()
+
+        args = self.parseArgsKeyValue(arglist)
+        self.noUpdate = args.has_key('noupdate') and args['noupdate']=='true'
+        if not args.has_key('distros'):
             existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
             templatesToUse = filter(lambda x:x.templatetype != 'SYSTEM' and x.templatetype != 'BUILTIN', existingTemplates)
             if len(templatesToUse) == 0:
@@ -63,14 +60,15 @@ class TCCloudUpdate(xenrt.TestCase):
                 map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
 
             xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
-            self.DISTROS = []
             for template in templatesToUse:
                 distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
                 distroName = distro.replace('_','-')
                 self.templates[distroName] = template.name
+                self.distros.append(distro)
         else:
-            # Create templates
-            for distro in self.DISTROS:
+            # Create templates from list of specifed distros
+            self.distros = args['distros'].split(',')
+            for distro in self.distros:
                 distroName = distro.replace('_','-')
                 instance = self.cloud.createInstance(distro=distro, name='%s-template' % (distroName))
                 templateName = '%s-tplt' % (distroName)
@@ -82,7 +80,11 @@ class TCCloudUpdate(xenrt.TestCase):
             xenrt.TEC().logverbose('Distro: %s, Template: %s' % (distro, template))
 
         # Create instances
-        self.instances = []
+        # Determine how how many instances can be created based on capacity
+        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
+        capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zone.id, type=8)[0]
+        instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.distros)
+
         for distroName in self.templates.keys():
             self.instances += map(lambda x:self.cloud.createInstanceFromTemplate(templateName=self.templates[distroName], name='preUp-%s-%d' % (distroName, x)), range(instancesPerDistro))
 #            self.instances += map(lambda x:self.cloud.existingInstance(name='preUp-%s-%d' % (distroName, x)), range(10))
@@ -180,7 +182,7 @@ class TCCloudUpdate(xenrt.TestCase):
 
         # Select 1 original instance of each distro at random
         preUpdateInstances = []
-        for distro in self.DISTROS:
+        for distro in self.distros:
             randomInstance = random.choice(filter(lambda x:x.distro == distro and x.name.startswith('preUp-'), self.instances))
             preUpdateInstances.append(randomInstance)
 

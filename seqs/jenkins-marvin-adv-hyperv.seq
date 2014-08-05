@@ -8,6 +8,7 @@
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
     <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
+    <HYPERV_AGENT_FALLBACK>http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.4/CloudPlatform-4.4.0.0-15-hypervagent.msi</HYPERV_AGENT_FALLBACK>
   </variables>
 
   <prepare>

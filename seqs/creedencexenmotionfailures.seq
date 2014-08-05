@@ -6,8 +6,8 @@
   <prepare>
     <pool id="0">
       <host id="0">
-        <vm name="Red Hat Enterprise Linux 6.0">
-          <distro>rhel6</distro>
+        <vm name="Red Hat Enterprise Linux 6.5">
+          <distro>rhel65</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />

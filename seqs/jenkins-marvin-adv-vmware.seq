@@ -1,36 +1,55 @@
 <xenrt>
-  <!-- Single Host CCP-XS Primary Storage resiliency tests -->
+  <!-- This sequence is executed by Jenkins to deploy a cloud for Marvin Advanced networking mode testing on VMWare -->
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
     <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
     <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
   </variables>
 
   <prepare>
     <cloud>
       { "zones": [
-        { "networktype": "Basic",
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
           "physical_networks": [
-            { "name": "BasicPhyNetwork" }
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 2,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 15 }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 10,
-              "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 15 }
-              ],
               "clusters": [
-                { "XRT_Hosts": 1 }
+                { "hypervisor": "vmware", "XRT_Hosts": 2 }
               ]
             }
           ]
         }
         ],
         "globalConfig": [
-          { "name": "alert.wait", "value": "180" },
           { "name": "network.gc.wait", "value": "60" },
           { "name": "storage.cleanup.interval", "value": "300" },
           { "name": "vm.op.wait.interval", "value": "5" },
@@ -59,23 +78,5 @@
       </vm>
     </sharedhost>
   </prepare>
-
-  <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCManServerVMReboot">
-          <arg>distros=centos59_x86-32</arg>
-      </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerRestart">
-          <arg>distros=centos59_x86-32</arg>
-      </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBRestart">
-          <arg>distros=centos59_x86-32</arg>
-      </testcase>
-      <testcase id="cloud.tc.resiliency.TCDBOutage">
-          <arg>distros=centos59_x86-32</arg>
-      </testcase>
-      <testcase id="cloud.tc.resiliency.TCManServerStartAfterDB">
-          <arg>distros=centos59_x86-32</arg>
-      </testcase>
-  </testsequence>
 </xenrt>
 

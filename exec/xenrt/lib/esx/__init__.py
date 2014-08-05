@@ -14,3 +14,4 @@ from xenrt.lib.esx.host import *
 from xenrt.lib.esx.guest import *
 from xenrt.lib.esx.sr import *
 from xenrt.lib.esx.pool import *
+from xenrt.lib.esx.vcenter import *

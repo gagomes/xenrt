@@ -269,6 +269,7 @@ class _PoolUpgrade(xenrt.TestCase):
     def vmCheck1(self):
         for g in self.guests.values():
             xenrt.TEC().progress("Checking VM %s" % (g.getName()))
+            g.verifyGuestFunctional()
             if self.vmworkloads.has_key(g.getName()):
                 g.stopWorkloads(self.vmworkloads[g.getName()])
             g.check()
@@ -280,6 +281,7 @@ class _PoolUpgrade(xenrt.TestCase):
     def vmCheck2(self):
         for g in self.guests.values():
             xenrt.TEC().progress("Checking VM %s" % (g.getName()))
+            g.verifyGuestFunctional()
             g.check()
             g.suspend()
             g.resume()

@@ -235,6 +235,7 @@ setupstatichost = False
 setupstaticguest = False
 staticguest = None
 cleanupsharedhosts = False
+cleanupvcenter = False
 powercontrol = False
 powerhost = None
 poweroperation = None
@@ -348,6 +349,7 @@ try:
                                       'install-linux=',
                                       'install-guest=',
                                       'cleanup-shared-hosts',
+                                      'cleanup-vcenter',
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
@@ -699,6 +701,9 @@ try:
             remote = True
             installguest = value
             verbose = True
+            aux = True
+        elif flag == "--cleanup-vcenter":
+            cleanupvcenter = True
             aux = True
         elif flag == "--cleanup-shared-hosts":
             cleanupsharedhosts = True
@@ -1463,14 +1468,7 @@ if installpackages:
             config.setVariable(var, value)
 
     if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
-        marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
-        if marvinversion == "4.3":
-            xenrt.util.command("pip install /usr/share/xenrt/marvin.tar.gz")
-        elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
-            f = xenrt.TEC().getFile(marvinversion)
-            xenrt.util.command("pip install %s" % f)
-        else:
-            xenrt.util.command("pip install /usr/share/xenrt/marvin-%s.tar.gz" % marvinversion)
+        xenrt.util.command("pip install %s" % xenrt.getMarvinFile())
     else:
         print "CLOUDINPUTDIR not specified, so marvin is not required"
     sys.exit(0)
@@ -1789,44 +1787,48 @@ if cleanuplocks:
         xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
 
 if releaselock:
-    cr = xenrt.resources.CentralResource()
-    locks = cr.list()
-    for lock in locks:
-        if lock[1]:
-            # Check ID
-            if lock[0] == releaselock:
-                if lock[2]['jobid']:
-                    xrs = xenrt.ctrl.XenRTStatus(None)
-                    jobdict = xrs.run([lock[2]['jobid']])
-                    pid = jobdict['HARNESS_PID']
-                    # See if this PID is still running
-                    pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
-                else:
-                    # Doesn't have a job, must be manual run
-                    pid = "(N/A)"
-                    pr = "1"
-                if int(pr) == 1:
-                    # Release the lock
-                    path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                    path += "/%s" % (lock[2]['md5'])
-                    try:
-                        os.unlink("%s/jobid" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/id" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/timestamp" % (path))
-                    except:
-                        pass
+    if (releaselock.startswith("IP4ADDR-") and xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True)) \
+              or releaselock.startswith("EXT-IP4ADDR"):
+        xenrt.resources.DhcpXmlRpc().releaseAddress(releaselock.split("-")[-1])
+    else:
+        cr = xenrt.resources.CentralResource()
+        locks = cr.list()
+        for lock in locks:
+            if lock[1]:
+                # Check ID
+                if lock[0] == releaselock:
+                    if lock[2]['jobid']:
+                        xrs = xenrt.ctrl.XenRTStatus(None)
+                        jobdict = xrs.run([lock[2]['jobid']])
+                        pid = jobdict['HARNESS_PID']
+                        # See if this PID is still running
+                        pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
+                    else:
+                        # Doesn't have a job, must be manual run
+                        pid = "(N/A)"
+                        pr = "1"
+                    if int(pr) == 1:
+                        # Release the lock
+                        path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                        path += "/%s" % (lock[2]['md5'])
+                        try:
+                            os.unlink("%s/jobid" % (path))
+                        except:
+                            pass
+                        try:
+                            os.unlink("%s/id" % (path))
+                        except:
+                            pass
+                        try:
+                            os.unlink("%s/timestamp" % (path))
+                        except:
+                            pass
 
-                    os.rmdir(path)
-                    print "Lock %s released" % (releaselock)
-                else:
-                    print "Harness process still running, not releasing lock"
-                break
+                        os.rmdir(path)
+                        print "Lock %s released" % (releaselock)
+                    else:
+                        print "Harness process still running, not releasing lock"
+                    break
 
 if setupsharedhost:
     # Setup logdir
@@ -1924,6 +1926,29 @@ if installguest:
     place.populateSubclass(host)
     host.existing()
     host.createBasicGuest(distro, arch=arch)
+
+if cleanupvcenter:
+    if xenrt.TEC().lookup("VCENTER_MANAGED", False, boolean=True):
+        v = xenrt.lib.esx.getVCenter()
+        dcs = v.listDataCenters()
+        for d in dcs:
+            try:
+                m = re.match(".*-(\d+$)", d)
+                if m:
+                    xrs = xenrt.ctrl.XenRTStatus(None)                
+                    try:
+                        if xenrt.canCleanJobResources(m.group(1)):
+                            print "Cleaning up datacenter %s" % d
+                            v.removeDataCenter(d)
+                        else:
+                            print "Not cleaning up datacenter %s" % d
+                    except Exception, e:
+                        sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
+                        continue
+                else:
+                    print "Not cleaning up datacenter %s" % d
+            except Exception,e:
+                sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
 
 if cleanupsharedhosts:
     # Setup logdir

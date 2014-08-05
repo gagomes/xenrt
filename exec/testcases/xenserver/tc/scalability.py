@@ -151,6 +151,9 @@ class _VMScalability(_Scalability):
                                                   disks=disklist,
                                                   vcpus=self.VCPUCOUNT)
         
+        if g0.windows:
+            g0.installDrivers()
+        
         g0.shutdown()
         
         #If memory set
@@ -179,7 +182,7 @@ class _VMScalability(_Scalability):
             #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus 
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
-                host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=1000)
+                host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=3600)
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to xpin Dom0 : %s" % (e))
         
@@ -192,10 +195,24 @@ class _VMScalability(_Scalability):
         if self.NET_BRIDGE:
             #Linux bridge on host side as Network backend
             host.execdom0("xe-switch-network-backend bridge")
+            
+        # Get the Existing Guests
+        for gname in host.listGuests():
+            if gname != self.vmtemplate and host.getGuest(gname): 
+                self.guests.append(host.getGuest(gname))
+                
+        if self.TRYMAX:
+            for g in self.guests:
+                host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g.uuid)
+                vbds = g.listVBDUUIDs("CD")
+                for vbd in vbds:
+                    host.execdom0("xe vbd-destroy uuid=%s" % vbd)
         
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
-            host.reboot()
+            host.reboot(timeout=3600)
                     
         if self.HATEST:
             try:
@@ -208,10 +225,6 @@ class _VMScalability(_Scalability):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to create HA enabled Pool.. %s" % (e))
                 
-        # Get the Existing Guests
-        for gname in host.listGuests():
-            if gname != self.vmtemplate and host.getGuest(gname): 
-                self.guests.append(host.getGuest(gname))
         
         if self.MAX == True:
             max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
@@ -225,6 +238,14 @@ class _VMScalability(_Scalability):
                 guest = self.getGuest(self.vmtemplate)
                 if guest.getState() != "DOWN":
                     guest.shutdown(force=True)
+                if self.TRYMAX:
+                    host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % guest.uuid)
+                    vbds = guest.listVBDUUIDs("CD")
+                    for vbd in vbds:
+                        host.execdom0("xe vbd-destroy uuid=%s" % vbd)
+        
                     
             # Create the initial VM
             else:
@@ -341,7 +362,11 @@ class _VMScalability(_Scalability):
             try:
                 self.pool.disableHA(check=False)
             except:
-                pass    
+                pass
+        
+        if self.getResult(code=True) == xenrt.RESULT_FAIL or self.getResult(code=True) == xenrt.RESULT_ERROR:
+            self.POSTRUN = "forcecleanup"
+
         if self.POSTRUN != "nocleanup":
             xenrt.TEC().logverbose("Starting Host Cleanup")
             if self.POSTRUN == "forcecleanup":                

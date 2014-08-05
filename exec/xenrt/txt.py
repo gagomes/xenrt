@@ -1,16 +1,16 @@
-from xml.dom.minidom import parse, parseString
-import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subprocess, hashlib, binascii, traceback
+from xml.dom.minidom import parseString
+import random, string, base64, re, os, os.path, sys, hashlib, traceback
 import xenrt, xenrt.lib.xenserver
-from M2Crypto import BIO, RSA, EVP, m2
-import socket
+from M2Crypto import BIO, RSA, EVP
 from struct import pack
-from Crypto.Cipher import AES
 from math import ceil
 from hashlib import sha1
 from Crypto.Util.strxor import strxor
 from Crypto.Util.number import long_to_bytes
+from  xenrt.lazylog import log, step
 
-__all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller"]
+
+__all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller", "TXTErrorParser"]
 
 
 class TXTSuppPackInstaller:
@@ -152,17 +152,39 @@ class TXTCommand:
 
             xenrt.TEC().logverbose("HostRef: %s, Plugin: %s, Command: %s Args: %s" % (hostRef, self.__PLUGIN_NAME, command, str(args)))
             hostName = session.xenapi.host.get_record(hostRef)['hostname']
+            log("Host name %s" % hostName)
             hosts = xenrt.TEC().registry.hostFind(hostName)
-            if len(hosts) > 0:
-                host = hosts[0]
+
+            if len(hosts) < 1:
+                xenrt.TEC().logverbose("Hostname not found")
+                raise
+
+            host = hosts[0]
+            if host:
                 xenrt.TEC().logverbose(host.execdom0("find /etc/xapi.d/plugins -name tpm"))
                 xenrt.TEC().logverbose("Host is %s" % hostName)
                 m = re.search('xentpm\[[0-9]*\]', str(exc_value))
                 if m:
                     xenrt.TEC().logverbose(host.execdom0("grep -F '%s' /var/log/messages" % m.group(0)))
-            else:
-                xenrt.TEC().logverbose("Hostname not found")
+
+            errorMessage = self.__attemptLogParse(host)
+            if errorMessage:
+                raise xenrt.XRTFailure(errorMessage)
             raise
+
+    def __attemptLogParse(self, host):
+        logName = "/var/log/messages"
+        parser = TXTErrorParser.fromHostFile(host,logName)
+        step("Parsing logs from host: %s" % host)
+        self.__writeToNewLog("extractedTPMErrors.log", '\n'.join(parser.locateAllTpmData()))
+        keyErrs = parser.locateKeyErrors()
+        self.__writeToNewLog("keyTPMErrors.log", '\n'.join(keyErrs))
+        if len(keyErrs) > 0:
+            return TxtLogObfuscator(keyErrs).fuzz()[0]
+
+    def __writeToNewLog(self, fileName, data):
+        log("Writing relevant data into %s....." % fileName)
+        file("%s/%s" % (xenrt.TEC().getLogdir(), fileName), "w").write(data)
 
     def __logDebug(self, *message):
         if self.__DEBUG:
@@ -200,7 +222,7 @@ class AttestationIdParser:
 
     def __init__(self, data):
         """
-        @type data: string 
+        @type data: string
         @param data: the xml data from the attestation id TPM call
         """
         self.__attestationData = data
@@ -320,7 +342,7 @@ class TpmQuoteParser(TpmParser):
         @type pcr: int
         @param pcr: the index of the pcr required
         @rtype: string
-        @return: hex value of the n^th PCR 
+        @return: hex value of the n^th PCR
         """
         numPcrs, data, pos = self.__calculatePcrs()
         # BUGBUG check that pcr is not greater than numPCrs
@@ -330,7 +352,7 @@ class TpmQuoteParser(TpmParser):
     def allPcrs(self):
         """
         @rtype: list
-        @return: collection hex strings containing all PCR values 
+        @return: collection hex strings containing all PCR values
         """
         pcrs = []
         numPcrs, data, pos = self.__calculatePcrs()
@@ -351,13 +373,13 @@ class TpmQuoteParser(TpmParser):
         @param aikPub: the AIK key of the TPM's attestation identity
         @type nonce: string
         @param nonce: the nonce value used for the quote
-        @rtype: boolean  
+        @rtype: boolean
         @returns: verification was successful
         """
         xenrt.TEC().logverbose("Verifying TPM Quote")
         data = bytearray((self.__quoteStr))
         pos = 0
-        # skip over the bitmask length and the bitmask itself 
+        # skip over the bitmask length and the bitmask itself
         mask_size = self.__readbufint(data, pos, self.__SHORT_SIZE)
         pos = pos + self.__SHORT_SIZE
         pos = pos + mask_size
@@ -432,7 +454,7 @@ class TpmChallengeParser(TpmParser):
         @type secret: string
         @secret: a secret to encrypt using stoed keys
         @rtype: string containing the encrypted challenge
-        @return: string 
+        @return: string
         """
 
         SHA1_DIGEST_SIZE = (hashlib.sha1()).digest_size
@@ -487,7 +509,7 @@ class TpmChallengeParser(TpmParser):
         challenge[4:len(asymEnc)] = asymEnc
         challenge[4+len(asymEnc):8+len(asymEnc)] = (pack("!i",len(symAttest)))
         challenge[8+len(asymEnc):len(challenge)] = (symAttest)
-        return "".join(map(chr, challenge)) 
+        return "".join(map(chr, challenge))
 
 
 class OAEP(object):
@@ -610,3 +632,98 @@ class OAEP(object):
         if not valid:
             raise ValueError("Decryption error")
         return M
+
+
+class TXTErrorParser(object):
+    MARKERS = ["xentpm", "TCSD TDDL"]
+    __WARNINGS = ["failed", "error", "expired"]
+
+    def __init__(self, logFileAsList):
+        """
+        Needs the log file read in as an array
+        use readlines or equivalent to achieve this
+        """
+        self.__log = logFileAsList
+
+    @classmethod
+    def fromHostFile(cls, host, filename):
+        """
+        Alt. constructor. Read marker matches from the log
+        on the host and then construct this class
+        host: a host object
+        filename: the file name on the host to parse
+        """
+        data = []
+        for m in cls.MARKERS:
+            try:
+                data += host.execcmd("grep '%s' %s" % (m, filename)).split('\n')
+            except:
+                log("grep failed for %s - no data found" % m)
+        return cls(data)
+
+    def __locateKeyLines(self, marker):
+        return [l for l in self.__log if marker in l]
+
+    def locateAllTpmData(self):
+        """
+        Scan the log file array for data matching key identifiers
+        and filter them out
+        """
+        lines = []
+        for marker in self.MARKERS:
+            lines += self.__locateKeyLines(marker)
+        return lines
+
+    def __calculateWeight(self, line):
+        return sum([line.lower().count(w) for w in self.__WARNINGS])
+
+    def locateKeyErrors(self):
+        """
+        Weight lines found by filtering code and weight them with occurences of
+        error words to find the most likely issue
+
+        @return list of strings
+        """
+        weightedList = []
+        for l in self.locateAllTpmData():
+            weightedList.append((self.__calculateWeight(l),l))
+        weightedList.sort()
+
+        if len(weightedList) < 1:
+            return weightedList
+
+        maxweight = weightedList[-1][0]
+        return [i[1] for i in weightedList if i[0] == maxweight]
+
+
+class TxtLogObfuscator(object):
+
+    def __init__(self, listOfLines):
+        self.__log = listOfLines
+
+    def fuzzTimes(self, data=None):
+        # Match 11:43:34 i.e. a timestamp
+        regex = re.compile("[0-9]{2}\:[0-9]{2}\:[0-9]{2}")
+        sub = "XX:XX:XX"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def fuzzDates(self, data=None):
+        # Match line starting with "Jul 23", "Aug 2", etc
+        regex = re.compile("^[A-Z]{1}[a-z]{2}[ ][0-9]{1,2}")
+        sub = "XXX XX"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def fuzzThreadMarker(self, data=None):
+        regex = re.compile("[\[]{1}[0-9]+[\]]{1}")
+        sub = "[XXXX]"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def __fuzzStrings(self, data, regex, substitution):
+        if not data:
+            data = self.__log
+        return [regex.sub(substitution, l) for l in data]
+
+    def fuzz(self):
+        return self.fuzzThreadMarker(self.fuzzDates(self.fuzzTimes(self.__log)))
+
+

@@ -159,7 +159,7 @@ class ManagementServer(object):
             hvlist = hvlist.split(",")
         else:
             hvlist = []
-        if "kvm" in hvlist or "xenserver" in hvlist or "vmware" in hvlist:
+        if any(map(lambda hv: hv in hvlist, ["kvm", "xenserver", "vmware", "lxc"])):
             secondaryStorage = xenrt.ExternalNFSShare()
             storagePath = secondaryStorage.getMount()
             url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
@@ -184,7 +184,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if self.version in ['4.4', 'master']:
+            if self.version in ['4.4', '4.5', 'master']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java*1.7*')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
@@ -264,6 +264,9 @@ class ManagementServer(object):
             installVersionStr = xenrt.TEC().lookup("CLOUDINPUTDIR", xenrt.TEC().lookup('ACS_BRANCH', None))
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
+
+                if len(installVersionMatches) > 1 and "master" in installVersionMatches:
+                    installVersionMatches.remove("master")
 
             xenrt.TEC().logverbose('XenRT support MS versions matching DB version: %s' % (dbVersionMatches))
             xenrt.TEC().logverbose('XenRT support MS versions matching install version: %s' % (installVersionMatches))

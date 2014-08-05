@@ -17,8 +17,8 @@
   <prepare>
     <pool id="0">
       <host id="0">
-        <vm name="Windows81">
-          <distro>win81-x86</distro>
+        <vm name="Windows7">
+          <distro>win7sp1-x86</distro>
           <memory>1024</memory>
           <vcpus>2</vcpus>
           <postinstall action="installDrivers" />
@@ -26,7 +26,7 @@
           <disk device="0" size="24" />
         </vm>
       </host>
-      <host id="1" />
+      <host id="1" installsr="ext"/>
       <storage type="nfs" name="nfsSR" />
     </pool>
   </prepare>

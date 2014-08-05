@@ -19,7 +19,9 @@ class _VDICopyPerf(xenrt.TestCase):
     FROM_TYPE = None
     TO_TYPE = None
     SAME_HOST = True 
-    GUEST_NAME = "Windows81"
+    GUEST_NAME = "Windows7"
+    ITERATIONS = 10
+    INTERVAL = 60
 
     def prepare(self, arglist):
 
@@ -60,8 +62,8 @@ class _VDICopyPerf(xenrt.TestCase):
 
                 # Initial set of vdi performance parameters.
         self.vdiCopyPerfResults = {}
-        self.vdiCopyPerfResults = {"fromSR": self.FROM_TYPE}
-        self.vdiCopyPerfResults = {"toSR": self.TO_TYPE}
+        self.vdiCopyPerfResults["fromSR"] = self.FROM_TYPE
+        self.vdiCopyPerfResults["toSR"] = self.TO_TYPE
         self.vdiCopyPerfResults["scenario"] = self.SCENARIO
 
     def run(self, arglist):
@@ -86,24 +88,32 @@ class _VDICopyPerf(xenrt.TestCase):
         args.append("uuid=%s" % (self.guestVdiUuid))
         args.append("sr-uuid=%s" % (self.toSR))
 
-        timeNow = xenrt.util.timenow(True)
-        self.newVdiUuid = self.cli.execute("vdi-copy", string.join(args)).strip()
-        timeDiff =  xenrt.util.timenow(True)- timeNow
-        self.vdiCopyPerfResults["vdi-copy-time-in-seconds"] = timeDiff
+        timeRecords = []
 
-        xenrt.TEC().logverbose("Time taken to copy the populated VDI is %s seconds" % timeDiff)
+        # For normalization purpose, we run the copy at least 3 times)
+        assert(self.ITERATIONS >= 3)
+        for i in range(self.ITERATIONS): 
+            timeNow = xenrt.util.timenow(True)
+            newVdiUuid = self.cli.execute("vdi-copy", string.join(args)).strip()
+            self.srcHost.execdom0("sync")
+            if self.destHost != self.srcHost: self.destHost.execdom0("sync")
+            timeDiff =  xenrt.util.timenow(True)- timeNow
+            timeRecords.append(timeDiff)
+            self.cli.execute("vdi-destroy", "uuid=%s" % (newVdiUuid))
+            time.sleep(self.INTERVAL)
+
+        timeNorm = (sum(timeRecords) - max(timeRecords) - min(timeRecords)) / (self.ITERATIONS - 2)
+        self.vdiCopyPerfResults["vdi-copy-time-in-seconds"] = timeRecords
+        xenrt.TEC().logverbose("Time taken to copy the populated VDI (in seconds): %s " % timeRecords)
+        self.vdiCopyPerfResults["vdi-copy-time-in-seconds-normalized"] = timeNorm
+        xenrt.TEC().logverbose("Normalized time taken to copy the populated VDI (in seconds): %s" % timeNorm)
+
 
     def postRun(self):
         # Writing the measured vdi copy performance parameters.
         f = open("%s/vdicopytime.json" % (xenrt.TEC().getLogdir()), "w")
         f.write(json.dumps(self.vdiCopyPerfResults))
         f.close()
-
-        # Destroy the copied VDIs on target SR.
-        try:
-            self.cli.execute("vdi-destroy","uuid=%s" % (self.newVdiUuid))
-        except:
-            xenrt.TEC().warning("Exception attempting to destroy VDI %s" % (self.newVdiUuid))
 
 class TC21567(_VDICopyPerf):
     """Single host vdi copy performance test with no network storage involved"""
@@ -126,5 +136,5 @@ class TC21569(_VDICopyPerf):
 
     SAME_HOST = False
     FROM_TYPE = "lvm"
-    TO_TYPE = "lvm"
+    TO_TYPE = "ext"
     SCENARIO = "InterHost-LocalSR-To-LocalSR"

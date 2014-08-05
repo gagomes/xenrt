@@ -77,7 +77,8 @@ __all__ = ["timenow",
            "xrtAssert",
            "xrtCheck",
            "keepSetup",
-           "getADConfig"
+           "getADConfig",
+           "getMarvinFile"
            ]
 
 def sleep(secs, log=True):
@@ -695,9 +696,16 @@ def median(values):
 def randomSuffix():
     return "%08x" % random.randint(0, 0x7fffffff)
 
-def randomGuestName():
-    return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
-                              random.randint(0, 0x7fffffff))
+def randomGuestName(distro=None, arch=None):
+    if distro:
+        if not arch:
+            arch = ""
+        else:
+            arch = arch[-2:]
+        return "%s%s%08x" % (distro, arch, random.randint(0, 0x7fffffff))
+    else:
+        return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
+                                  random.randint(0, 0x7fffffff))
 
 def randomApplianceName():
     return "appl%08x%08x" % (random.randint(0, 0x7fffffff),
@@ -1349,3 +1357,11 @@ def getADConfig():
 
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
 
+def getMarvinFile():
+    marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
+    if marvinversion == "4.3":
+        return "/usr/share/xenrt/marvin.tar.gz"
+    elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
+        return xenrt.TEC().getFile(marvinversion)
+    else:
+        return "/usr/share/xenrt/marvin-%s.tar.gz" % marvinversion

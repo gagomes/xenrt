@@ -2264,6 +2264,10 @@ Add-WindowsFeature as-net-framework"""
         manSvr = xenrt.lib.cloud.ManagementServer(self)
         manSvr.installCloudManagementServer()
 
+    def installMarvin(self):
+        import testcases.cloud.marvin
+        testcases.cloud.marvin.RemoteNoseInstaller(self).install()
+
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
         
@@ -2519,7 +2523,7 @@ Add-WindowsFeature as-net-framework"""
                 self.execcmd("rm -rf %s" % (workdir))
 
     def installIperf(self, version=""):
-        """Install iperf into the guest"""
+        """Install iperf into the container (requires gcc/make already installed) """
 
         if version=="":
             sfx = "2.0.4"
@@ -2546,6 +2550,7 @@ Add-WindowsFeature as-net-framework"""
                 self.execcmd("cd %s/iperf-%s && make install" %
                              (workdir, sfx))
                 self.execcmd("rm -rf %s" % (workdir))
+                self.execcmd("mkdir ./iperf && cp /usr/local/bin/iperf ./iperf/iperf")
 
     def startIperf(self):
         """Starts iperf as server in the Guest"""
@@ -3450,7 +3455,7 @@ DHCPServer = 1
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
     
-    def updateYumConfig(self, distro, arch):
+    def updateYumConfig(self, distro=None, arch=None):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
         for the base repo, all others get removed. This is a hack
@@ -3458,6 +3463,10 @@ DHCPServer = 1
         if arch == "x86-32p":
             arch = "x86-32"
         doUpdate = False
+        if not distro:
+            distro = self.distro
+        if not arch:
+            arch = self.arch
         # If we should update this to the lastest versino
         if xenrt.TEC().lookup("AUTO_UPDATE_LINUX", False, boolean=True):
             updateMap = xenrt.TEC().lookup("LINUX_UPDATE")
@@ -3622,44 +3631,6 @@ gpgcheck=0
     
     def configureIPv6Router(self):
         pass
-
-    def xenDesktopTailor(self):
-        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
-
-        try:
-            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
-        except:
-            pass
-
-
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-
-        
 
     def preCloneTailor(self):
         # Tailor this guest to be clone-friendly - i.e. remove any MAC adddress
@@ -4709,7 +4680,7 @@ class GenericHost(GenericPlace):
         mac = self.getNICMACAddress(assumedid)
         mac = xenrt.util.normaliseMAC(mac)
         data = self.execdom0("ifconfig -a")
-        intfs = re.findall(r"(eth\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
+        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
         for intf in intfs:
             ieth, imac = intf
             if xenrt.util.normaliseMAC(imac) == mac:
@@ -5122,7 +5093,14 @@ class GenericHost(GenericPlace):
                                  (method, arch, distro))
                                  
         mainDisk=self.getInstallDisk(ccissIfAvailable=False)
-        
+        if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
+                                        re.search(r"centos7", distro) or \
+                                        re.search(r"oel7", distro)):
+            # This is a hack to workaround the fact RHEL7 has different by-id entries
+            # It will break if certain USB disks etc are in use, but for now is a
+            # 'quick fix' (sorry!)
+            mainDisk = "sda"
+
         if re.search(r"oel5", distro) or re.search (r"rhel5", distro) or re.search(r"centos5", distro) or \
                 re.search(r"oel4", distro) or re.search (r"rhel4", distro) or re.search(r"centos4", distro):
             ethDevice = self.getDefaultInterface()
@@ -5185,6 +5163,7 @@ class GenericHost(GenericPlace):
         pxecfg.linuxSetKernel("vmlinuz")
         pxecfg.linuxArgsKernelAdd("ks=nfs:%s:%s" % (h, p))
         pxecfg.linuxArgsKernelAdd("ksdevice=%s" % (ethDevice))
+        pxecfg.linuxArgsKernelAdd("nousb")
         pxecfg.linuxArgsKernelAdd("console=tty0")
         pxecfg.linuxArgsKernelAdd("console=ttyS%s,%sn8" %
                                   (serport, serbaud))
@@ -5223,6 +5202,28 @@ class GenericHost(GenericPlace):
             self.execdom0("ethtool -K %s tx off" % (ethDevice))
             self.execdom0("ethtool -K %s sg off" % (ethDevice))
             self.execdom0("ethtool -K %s tso off" % (ethDevice))
+
+        # Optionally install some RPMs
+        rpms = xenrt.TEC().lookupLeaves("RHEL_RPM_UPDATES")
+        if len(rpms) == 1:
+            rpms = string.split(rpms[0], ",")
+        remotenames = []
+        for rpm in [x for x in rpms if x != "None"]:
+            rpmfile = xenrt.TEC().getFile(rpm)
+            remotefn = "/tmp/%s" % os.path.basename(rpm)
+            sftp = self.sftpClient()
+            try:
+                sftp.copyTo(rpmfile, remotefn)
+            finally:
+                sftp.close()
+            remotenames.append(remotefn)
+        if len(remotenames) > 0:
+            force = xenrt.TEC().lookup("FORCE_RHEL_RPM_UPDATES", False,boolean=True)
+            if force:
+                self.execdom0("rpm --upgrade -v --force --nodeps %s" % (string.join(remotenames)))
+            else:
+                self.execdom0("rpm --upgrade -v %s" % (string.join(remotenames)))
+            self.reboot()
 
         self.tailor()
 
@@ -7698,8 +7699,12 @@ class GenericGuest(GenericPlace):
             # Pull boot files from HTTP repository.
             fk = xenrt.TEC().tempFile()
             fr = xenrt.TEC().tempFile()
-            xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
-            xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
+            if self.arch=="x86-64":
+                xenrt.getHTTP("%s/boot/x86_64/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/x86_64/loader/initrd" % (repository), fr)
+            else:
+                xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
+                xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
         
         if pxe:
             # HVM PXE install
@@ -7789,7 +7794,10 @@ class GenericGuest(GenericPlace):
 
         self.waitForSSH(1800, desc="Post installation reboot")
         xenrt.sleep(30)
-        self.execguest("/sbin/poweroff")
+        try:
+            self.execguest("/sbin/poweroff")
+        except:
+            pass
         self.poll("DOWN", timeout=240)
 
     def installRHEL(self,
@@ -8882,23 +8890,7 @@ class GenericGuest(GenericPlace):
 
             # Prepare AutoIt3 to approve unsigned driver installation.
             au3path = targetPath + "\\approve_driver.au3"
-
-            if "win81-x64" in self.distro:
-                au3scr = """If WinWait ("Windows Security", "") Then
-sleep (10000)
-SendKeepActive("Windows Security")
-sleep (10000)
-send ("{LEFT}")
-sleep(10000)
-send ("{ENTER}")
-sleep(10000)
-send ("{DOWN}")
-sleep (1000)
-send ("{ENTER}")
-EndIf
-"""
-            else:
-                au3scr = """If WinWait ("Windows Security", "") Then
+            au3scr = """If WinWait ("Windows Security", "") Then
 sleep (10000)
 SendKeepActive("Windows Security")
 sleep (1000)

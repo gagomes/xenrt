@@ -22,13 +22,15 @@ class CloudStack(object):
                      "VMware": xenrt.HypervisorType.vmware,
                      "Hyperv": xenrt.HypervisorType.hyperv,
                      "BareMetal": xenrt.HypervisorType.native,
-                     "Simulator": xenrt.HypervisorType.simulator}
+                     "Simulator": xenrt.HypervisorType.simulator,
+                     "LXC": xenrt.HypervisorType.lxc}
 
     # Mapping of hypervisors to template formats
     _templateFormats = {"XenServer": "VHD",
                         "KVM": "QCOW2",
                         "VMware": "OVA",
-                        "Hyperv": "VHD"}
+                        "Hyperv": "VHD",
+                        "LXC": "tar.gz"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -38,6 +40,7 @@ class CloudStack(object):
             place.findPassword()
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
+        self.marvinCfg = {}
 
     @property
     def name(self):
@@ -925,23 +928,24 @@ class NetworkProvider(object):
     def getSecurityGroupIds(self):
         # Do we need to sort out a security group?
         if self.cloudstack.cloudApi.listZones(id=self.zoneid)[0].securitygroupsenabled and self.hypervisor.lower() != "vmware":
-            secGroups = self.cloudstack.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
-            if not isinstance(secGroups, list):
-                domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
-                secGroup = self.cloudstack.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="admin", domainid=domainid)
-                self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
-                                                                       protocol="TCP",
-                                                                       startport=0,
-                                                                       endport=65535,
-                                                                       cidrlist = "0.0.0.0/0")
-                self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
-                                                                       protocol="ICMP",
-                                                                       icmptype=-1,
-                                                                       icmpcode=-1,
-                                                                       cidrlist = "0.0.0.0/0")
-                secGroupId = secGroup.id
-            else:
-                secGroupId = secGroups[0].id
+            with xenrt.GEC().getLock("CCP_SEC_GRP-%s" % self.zoneid):
+                secGroups = self.cloudstack.cloudApi.listSecurityGroups(securitygroupname="xenrt_default_sec_grp")
+                if not isinstance(secGroups, list):
+                    domainid = self.cloudstack.cloudApi.listDomains(name='ROOT')[0].id
+                    secGroup = self.cloudstack.cloudApi.createSecurityGroup(name= "xenrt_default_sec_grp", account="admin", domainid=domainid)
+                    self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                                                                           protocol="TCP",
+                                                                           startport=0,
+                                                                           endport=65535,
+                                                                           cidrlist = "0.0.0.0/0")
+                    self.cloudstack.cloudApi.authorizeSecurityGroupIngress(securitygroupid = secGroup.id,
+                                                                           protocol="ICMP",
+                                                                           icmptype=-1,
+                                                                           icmpcode=-1,
+                                                                           cidrlist = "0.0.0.0/0")
+                    secGroupId = secGroup.id
+                else:
+                    secGroupId = secGroups[0].id
             secGroupIds = [secGroupId]
         else:
             secGroupIds = []

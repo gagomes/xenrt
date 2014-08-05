@@ -913,6 +913,8 @@ class PrepareNode:
     def __init__(self, toplevel, node, params):
         self.toplevel = toplevel
         self.vms = []
+        self.templates = []
+        self.instances = []
         self.hosts = []
         self.pools = []
         self.bridges = []
@@ -948,6 +950,10 @@ class PrepareNode:
                     i = i + 1
             elif n.localName == "cloud":
                 self.handleCloudNode(n, params)
+            elif n.localName == "template":
+                self.handleInstanceNode(n, params, template=True)
+            elif n.localName == "instance":
+                self.handleInstanceNode(n, params, template=False)
 
     def handleCloudNode(self, node, params):
         # Load the JSON block from the sequence file
@@ -1040,6 +1046,20 @@ class PrepareNode:
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                             hostIdIndex += cluster['XRT_Hosts']
+                    elif cluster['hypervisor'].lower() == "lxc":
+                        if not cluster.has_key('XRT_LXCHostIds'):
+                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
+                            for hostId in hostIds:
+                                simpleHostNode = xml.dom.minidom.Element('host')
+                                simpleHostNode.setAttribute('id', str(hostId))
+                                simpleHostNode.setAttribute('productType', 'kvm')
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
+                                simpleHostNode.setAttribute('noisos', 'yes')
+                                simpleHostNode.setAttribute('installsr', 'no')
+                                self.handleHostNode(simpleHostNode, params)
+                            cluster['XRT_LXCHostIds'] = string.join(map(str, hostIds),',')
+
+                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'].lower() == "hyperv":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
@@ -1085,7 +1105,38 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
-                    
+
+    def handleInstanceNode(self, node, params, template=False):
+        instance = {}
+
+        instance["distro"] = expand(node.getAttribute("distro"), params)
+        if not template:
+            instance["name"] = expand(node.getAttribute("name"), params)
+        instance["zone"] = expand(node.getAttribute("zone"), params)
+        instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools") in ('y', 't', '1', 'Y', 'T')
+        instance["hypervisorType"] = expand(node.getAttribute("hypervisorType"), params)
+        
+        # TODO: vifs
+        for x in node.childNodes:
+            if x.nodeType == x.ELEMENT_NODE:
+                if x.localName == "vcpus":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["vcpus"] = int(expand(str(a.data), params))
+                elif x.localName == "memory":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["memory"] = int(expand(str(a.data), params))
+                elif x.localName == "rootdisk":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            instance["rootdisk"] = int(expand(str(a.data), params))
+
+        if template:
+            self.templates.append(instance)
+        else:
+            self.instances.append(instance)
+        return instance
 
     def handlePoolNode(self, node, params):
         pool = {}
@@ -1263,6 +1314,12 @@ class PrepareNode:
                 host["disablefw"] = False
         if not host["suppackcds"]:
             host["suppackcds"] = None
+        # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
+        cpufreqGovernor = expand(node.getAttribute("cpufreqgovernor"), params)
+        if cpufreqGovernor:
+            host["cpufreqgovernor"] = cpufreqGovernor
+        else:
+            host["cpufreqgovernor"] = xenrt.TEC().lookup("CPUFREQ_GOVERNOR", None)
         extraCfg = expand(node.getAttribute("extraConfig"), params)
         if not extraCfg:
             host['extraConfig'] = {}
@@ -1413,6 +1470,8 @@ class PrepareNode:
         xenrt.TEC().logverbose("Bridges:\n" + pprint.pformat(self.bridges))
         xenrt.TEC().logverbose("SRs:\n" + pprint.pformat(self.srs))
         xenrt.TEC().logverbose("Cloud Spec:\n" + pprint.pformat(self.cloudSpec))
+        xenrt.TEC().logverbose("Templates:\n" + pprint.pformat(self.templates))
+        xenrt.TEC().logverbose("Instances:\n" + pprint.pformat(self.instances))
 
     def runThis(self):
         self.preparecount = self.preparecount + 1
@@ -1458,7 +1517,7 @@ class PrepareNode:
                 if v.has_key("host") and v["host"] == "SHARED":
                     if not xenrt.TEC().registry.hostGet("SHARED"):
                         xenrt.TEC().registry.hostPut("SHARED", xenrt.resources.SharedHost().getHost())
-                        sharedGuestQueue.add(v)
+                    sharedGuestQueue.add(v)
                 
             sharedGuestWorkers = []
             if len(sharedGuestQueue.items) > 0:
@@ -1963,6 +2022,35 @@ class PrepareNode:
                 if self.cloudSpec:
                     xenrt.lib.cloud.doDeploy(self.cloudSpec)
 
+            if len(self.templates) > 0:
+                queue = InstallWorkQueue()
+                for t in self.templates:
+                    queue.add(t)
+                workers = []
+                for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
+                    w = TemplateInstallWorker(queue, name="TWorker%02u" % (i))
+                    workers.append(w)
+                    w.start()
+                for w in workers:
+                    w.join()
+                for w in workers:
+                    if w.exception:
+                        raise w.exception
+            if len(self.instances) > 0:
+                queue = InstallWorkQueue()
+                for i in self.instances:
+                    queue.add(i)
+                workers = []
+                for i in range(max(int(xenrt.TEC().lookup("PREPARE_WORKERS", "4")), 4)):
+                    w = InstanceInstallWorker(queue, name="IWorker%02u" % (i))
+                    workers.append(w)
+                    w.start()
+                for w in workers:
+                    w.join()
+                for w in workers:
+                    if w.exception:        
+                        raise w.exception
+
         except Exception, e:
             sys.stderr.write(str(e))
             traceback.print_exc(file=sys.stderr)
@@ -2136,4 +2224,15 @@ class SlaveManagementWorker(_InstallWorker):
                                    ignorestorage=True)
         slave.addIPConfigToNetworkTopology(t)
         slave.checkNetworkTopology(t)
-        
+
+class TemplateInstallWorker(_InstallWorker):
+    """Worker thread for parallel template installs"""
+    def doWork(self, work):
+        toolstack = xenrt.TEC().registry.toolstackGetDefault()
+        toolstack.createOSTemplate(**work)
+
+class InstanceInstallWorker(_InstallWorker):
+    """Worker thread for parallel instance installs"""
+    def doWork(self, work):
+        toolstack = xenrt.TEC().registry.toolstackGetDefault()
+        toolstack.createInstance(**work) 

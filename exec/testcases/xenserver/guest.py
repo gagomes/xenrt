@@ -263,7 +263,7 @@ class TCRebootLoopNoDrivers(xenrt.TestCase):
         g = self.getGuest(gname)
         g.enlightenedDrivers = False
 
-        for i in range(10000):
+        for i in range(100):
             g.reboot()
 
 class TCXenServerWindowsInstall(xenrt.TestCase):

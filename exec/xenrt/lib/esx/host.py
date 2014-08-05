@@ -32,6 +32,7 @@ def createHost(id=0,
                addToLogCollectionList=False,
                noAutoPatch=False,
                disablefw=False,
+               cpufreqgovernor=None,
                usev6testd=True,
                ipv6=None,
                noipv4=False,
@@ -424,48 +425,4 @@ reboot
         pass
 
     def addToVCenter(self, dc, cluster):
-        with xenrt.GEC().getLock("VCENTER"):
-            vc = xenrt.TEC().lookup("VCENTER")
-            s = xenrt.lib.generic.StaticOS(vc['DISTRO'], vc['ADDRESS'])
-            s.os.enablePowerShellUnrestricted()
-            s.os.ensurePackageInstalled("PowerShell 3.0")
-            s.os.sendRecursive("%s/data/tests/vmware" % xenrt.TEC().lookup("XENRT_BASE"), "c:\\vmware")
-            xenrt.TEC().logverbose(s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\addhost.ps1 %s %s %s %s %s %s %s %s" % (
-                                vc['ADDRESS'],
-                                vc['USERNAME'],
-                                vc['PASSWORD'],
-                                dc,
-                                cluster,
-                                self.getIP(),
-                                "root",
-                                self.password), returndata=True))
-
-            # Now get the list of licenses
-
-            s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\listlicenses.ps1 %s %s %s" % (
-                                vc['ADDRESS'],
-                                vc['USERNAME'],
-                                vc['PASSWORD']))
-
-
-            liclist =csv.DictReader(StringIO.StringIO(s.os.readFile("c:\\vmware\\licenses.csv")))
-
-            # Filter ESX licenses
-            liclist = [x for x in liclist if x['EditionKey'].startswith("esx")]
-
-            # Filter ones with remaining capacity
-            liclist = [x for x in liclist if int(x['Used']) < int(x['Total'])]
-
-            if liclist:
-                lic = random.choice(liclist)['LicenseKey']
-                xenrt.TEC().logverbose("Using license %s" % lic)
-                xenrt.TEC().logverbose(s.os.execCmd("powershell.exe -ExecutionPolicy ByPass -File c:\\vmware\\assignlicense.ps1 %s %s %s %s %s" % (
-                                    vc['ADDRESS'],
-                                    vc['USERNAME'],
-                                    vc['PASSWORD'],
-                                    self.getIP(),
-                                    lic), returndata=True))
-
-
-            else:
-                xenrt.TEC().logverbose("No VMWare Licenses available, continuing in evaluation mode")
+        xenrt.lib.esx.getVCenter().addHost(self, dc, cluster)

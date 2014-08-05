@@ -8,9 +8,9 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subprocess, hashlib, pprint
+import random, string, time, os, os.path, hashlib, pprint
 import xenrt, xenrt.lib.xenserver
-from xenrt.lazylog import step, comment, log, warning
+from xenrt.lazylog import step, log
 
 
 class TxtChangedInitrdBase(xenrt.TestCase):

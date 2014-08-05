@@ -26,6 +26,18 @@ __all__ = ["Guest",
 def getTemplate(host, distro, hvm=None, arch=None):
     return host.getTemplate(distro, hvm=hvm, arch=arch)
 
+
+def isBSODBlue(img):
+    pix = img.load()
+    blue = 0
+    for x in range (img.size[0]):
+        for y in range(img.size[1]):
+            if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
+                            blue += 1
+    pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
+    return pc > 50
+
+
 class Guest(xenrt.GenericGuest):
     """Encapsulates a single guest VM."""
 
@@ -325,7 +337,10 @@ class Guest(xenrt.GenericGuest):
         self.isoname = isoname
         if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
-            rootdisk=32000
+            
+            if not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
+                # this hack isn't required on Creedence as we've got the templates sorted
+                rootdisk=32000
         if distro:
             self.distro = distro
         host.addGuest(self)
@@ -764,7 +779,10 @@ class Guest(xenrt.GenericGuest):
                         if self.reservedIP:
                             self.mainip = self.reservedIP
                         else:
-                            if not self.windows and self.paramGet("HVM-boot-policy") == "BIOS order" and not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
+                            if not self.windows and \
+                                   self.paramGet("HVM-boot-policy") == "BIOS order" and \
+                                   'n' in self.paramGet("HVM-boot-params", "order") and \
+                                   not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
                                 # HVM Linux detected. ARP watch cannot be used as multiple IP addresses are present."
                                 xenrt.TEC().logverbose("Waiting 20 mins, then checking DHCP leases to get IP address.")
                                 xenrt.sleep(20 * 60)
@@ -795,7 +813,7 @@ class Guest(xenrt.GenericGuest):
                     
                     # sometimes SSH can be a little temperamental immediately after boot
                     # a small sleep should help this.
-                    xenrt.sleep(20)
+                    xenrt.sleep(10)
                     
                 except Exception, e:
                     # Check the VM is still running
@@ -1100,6 +1118,17 @@ at > c:\\xenrtatlog.txt
                        "SZ",
                        "c:\\runoncepvdrivers.bat")
     
+    def convertHVMtoPV(self):
+        """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
+
+        self.paramSet("HVM-boot-policy", "")
+        self.paramRemove("HVM-boot-params", "order")
+        self.paramSet("PV-bootloader", "pygrub")
+
+        # If VM is running, reboot it
+        if self.getState() in ['UP', 'PAUSED']:
+            self.reboot()
+
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
         
@@ -1374,11 +1403,10 @@ exit /B 1
                         xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
                         xenrt.sleep(extrawait)
 
-                        if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
-                            for i in range(24):
-                                if self.pvDriversUpToDate():
-                                    break
-                                xenrt.sleep(10)
+                        for i in range(48):
+                            if self.pvDriversUpToDate():
+                                break
+                            xenrt.sleep(10)
                     return xenrt.RC_OK
                 else:
                     xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)
@@ -3147,14 +3175,7 @@ exit /B 1
                                    (self.getName(), self.getHost().getName()))
 
     def checkBSOD(self,img):
-        pix = img.load()
-        blue = 0
-        for x in range (img.size[0]):
-                for y in range(img.size[1]):
-                        if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
-                                blue += 1
-        pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
-        if pc > 50:
+        if isBSODBlue(img):
                 # This is almost certainly a BSOD (> 50% of the screen is the BSOD blue...)
                 xenrt.TEC().tc._bluescreenGuests.append(self)
                 img.save("%s/bsod.jpg" % (xenrt.TEC().getLogdir()))
@@ -3601,7 +3622,7 @@ exit /B 1
         xenrt.TEC().logverbose("Guest health check for %s couldn't find anything wrong" % (self.getName()))
 
 
-    def installTools(self, source=None, reboot=True, updateKernel=True):
+    def installTools(self, source=None, reboot=False, updateKernel=True):
         """Install tools package into a guest"""
 
         if self.windows:
@@ -3693,13 +3714,13 @@ exit /B 1
                 xenrt.sleep(60)
             else:
                 toolscdname = self.insertToolsCD()
-                xenrt.sleep(60)
+                xenrt.sleep(10)
                 device = self.getHost().minimalList("vbd-list", 
                                                     "device", 
                                                     "type=CD vdi-name-label=%s vm-uuid=%s" %
                                                     (toolscdname, self.getUUID()))[0]
                 removeDevice=device
-                xenrt.sleep(60)
+                xenrt.sleep(10)
             for dev in [device, device, "cdrom"]:
                 try:
                     self.execguest("mount /dev/%s /mnt" % (dev))
@@ -3726,7 +3747,8 @@ exit /B 1
                     pass
                 else:
                     raise e
-            if reboot:
+            if reboot or ((self.distro.startswith("centos4") or self.distro.startswith("rhel4")) and updateKernel):
+                # RHEL/CentOS 4.x update the kernel, so need to be rebooted
                 self.reboot()
         else:
             # Copy the package to the guest.
@@ -4023,6 +4045,49 @@ exit /B 1
         self.xmlrpcExec("regEdit.exe /s c:\\XD.reg")
 
         self.reboot()
+
+    def xenDesktopTailor(self):
+        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
+
+        try:
+            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
+        except:
+            pass
+
+
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
 
 #############################################################################
 

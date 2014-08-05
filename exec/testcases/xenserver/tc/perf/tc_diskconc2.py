@@ -102,7 +102,7 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
     def runPrepopulate(self):
         for vm in self.vm:
             for i in range(self.vbds_per_vm):
-                vm.execguest("dd if=/dev/zero of=/dev/xvd%s bs=1M oflag=direct || true" % chr(ord('b') + i))
+                vm.execguest("dd if=/dev/zero of=$(echo /dev/*d%s) bs=1M oflag=direct || true" % chr(ord('b') + i))
 
     def runPrepopulateWindows(self):
         for vm in self.vm:
@@ -312,7 +312,8 @@ Version 1.1.0
                     vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
 
             if self.template.windows:
-                self.template.installDrivers(extrareboot=True)
+                if not isinstance(self.template, xenrt.lib.esx.Guest):
+                    self.template.installDrivers(extrareboot=True)
 
                 # Use pvsoptimize to reduce background tasks and IO
                 urlperf = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
@@ -328,6 +329,8 @@ Version 1.1.0
                 # Reboot once more to ensure everything is quiescent
                 self.template.reboot()
             else:
+                if isinstance(self.template, xenrt.lib.esx.Guest):
+                    self.template.installTools()
                 self.template.installLatency()
                 libsynexec.initialise_slave(self.template)
 
@@ -375,6 +378,36 @@ Version 1.1.0
                 sr = xenrt.lib.xenserver.host.LVMStorageRepository(self.host, 'SR-%s' % diskname)
                 sr.create(device)
                 sr = sr.uuid
+                self.sr_to_diskname[sr] = diskname
+            elif device.startswith("esx-device="):
+                device = sr = device.split('=')[1]
+
+                diskname = 'local' + device[-1]
+                disknum = ord(device[-1]) - ord('b')
+                devices = self.host.execdom0("ls -1F /vmfs/devices/disks | grep -v '@' | grep -v ':' | sort").strip().split("\n")
+
+                volumeinfo = self.host.execdom0("esxcli storage vmfs extent list").strip().split("\n")
+                volumeinfo = volumeinfo[2:]
+                rootdevice = ""
+                for line in volumeinfo:
+                    line = line.split()
+                    if line[0] == "datastore1":
+                        rootdevice = line[3]
+                devices = sorted(filter(lambda dev: dev != rootdevice, devices))
+                esxdev = devices[disknum]
+
+                # Create the partition and format it
+                size = self.host.execdom0('partedUtil get "/vmfs/devices/disks/%s" | head -n 1' % esxdev).strip().split(' ')[3]
+                size = int(size) - 10240 # It doesn't seem to like using all the way up to the last sector
+                self.host.execdom0('partedUtil setptbl "/vmfs/devices/disks/%s" gpt "1 2048 %d AA31E02A400F11DB9590000C2911D1B8 0"' % (esxdev, size))
+                self.host.execdom0('vmkfstools -C vmfs5 -b 1m -S %s "/vmfs/devices/disks/%s:1"' % (diskname, esxdev))
+
+                # Reload the host information until the new SR appears
+                while diskname not in self.host.srs:
+                    time.sleep(1)
+                    self.host.existing()
+
+                sr = self.host.getSRUUID(diskname)
                 self.sr_to_diskname[sr] = diskname
 
             # Set the SR scheduler

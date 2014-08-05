@@ -107,7 +107,7 @@ class Host(xenrt.GenericHost):
             guest.existing(self)
             xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
         for sruuid in self.getSRs():
-            isESX = (self.productVersion == "ESXi" or self.productVersion == "ESX")
+            isESX = ("esx" in self.productVersion.lower() or "esx" in self.productType.lower())
             srname = self.getSRName(sruuid)
             if isESX and srname == "datastore1":
                 srclass = xenrt.lib.esx.EXTStorageRepository

@@ -115,6 +115,8 @@ class Host(xenrt.GenericHost):
                 srclass = xenrt.lib.esx.ISOStorageRepository
             elif isESX and srname == "XenRT static ISOs":
                 srclass = xenrt.lib.esx.ISOStorageRepository
+            elif isESX and srname.startswith("local"):
+                srclass = xenrt.lib.esx.EXTStorageRepository
             else:
                 xenrt.TEC().logverbose("Warning: No way of identifying type of SR %s" % (srname))
                 srclass = xenrt.lib.libvirt.sr.StorageRepository

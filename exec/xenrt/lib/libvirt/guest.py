@@ -777,7 +777,8 @@ class Guest(xenrt.GenericGuest):
 #            sruuid = self.getHost().getLocalSR()
 #        elif sruuid == "DEFAULT":
 #            sruuid = self.getHost().lookupDefaultSR()
-        sruuid = self.getHost().lookupDefaultSR()
+        if not sruuid:
+            sruuid = self.getHost().lookupDefaultSR()
 
         if userdevice is None:
             userdevicename = self._getNextBlockDevice()

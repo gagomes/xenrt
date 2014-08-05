@@ -643,12 +643,22 @@ class Guest(xenrt.GenericGuest):
                 arptime = 10800
             else:
                 arptime = 7200
-            ifaces = self.host.getBridgeInterfaces(bridge)
-            if ifaces:
-                iface = ifaces[0]
-            else:
-                iface = self.host.getDefaultInterface()
-            self.mainip = self.host.arpwatch(iface, mac, timeout=arptime)
+
+            xenrt.sleep(5)
+
+            # get the mac address
+            r = re.search(r"<mac address='([^']*)'/>", self._getXML())
+            if r:
+                mac = r.group(1)
+                r2 = re.search(r"<source bridge='([^']*)'/>", self._getXML())
+                if r2:
+                    bridge = r2.group(1)
+                    xenrt.TEC().logverbose("Guest's VIF is on '%s'" % bridge)
+                else:
+                    bridge = self.host.getDefaultInterface()
+                    xenrt.TEC().logverbose("Could not find bridge name in XML; arpwatching on host's default interface")
+                xenrt.TEC().progress("Looking for VM IP address on %s using arpwatch." % (bridge))
+                self.mainip = self.host.arpwatch(bridge, mac, timeout=arptime)
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
         xenrt.TEC().progress("Found IP address %s" % (self.mainip))

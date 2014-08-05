@@ -13,11 +13,12 @@ import xenrt
 import libvirt
 
 __all__ = ["createVM",
-           "ESXGuest"]
+           "Guest"]
 
 createVM = xenrt.lib.libvirt.createVM
 
-class ESXGuest(xenrt.lib.libvirt.Guest):
+class Guest(xenrt.lib.libvirt.Guest):
+    DEFAULT = -10
     DEFAULT_DISK_FORMAT = "vmdk"
 
     def __init__(self, *args, **kwargs):

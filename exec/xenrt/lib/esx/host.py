@@ -91,7 +91,7 @@ class ESXHost(xenrt.lib.libvirt.Host):
         return "esx://%s/?no_verify=1" % self.getIP()
 
     def guestFactory(self):
-        return xenrt.lib.esx.guest.ESXGuest
+        return xenrt.lib.esx.guest.Guest
 
     def lookupDefaultSR(self):
         # TODO

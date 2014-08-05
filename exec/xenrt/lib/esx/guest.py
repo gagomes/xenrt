@@ -13,11 +13,12 @@ import xenrt
 import libvirt
 
 __all__ = ["createVM",
-           "ESXGuest"]
+           "Guest"]
 
 createVM = xenrt.lib.libvirt.createVM
 
-class ESXGuest(xenrt.lib.libvirt.Guest):
+class Guest(xenrt.lib.libvirt.Guest):
+    DEFAULT = -10
     DEFAULT_DISK_FORMAT = "vmdk"
 
     def __init__(self, *args, **kwargs):
@@ -25,13 +26,9 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         self.esxPaused = False
 
     def _getDiskDevicePrefix(self):
-        if self.enlightenedDrivers:
-            return "sd"
-        return "hd"
+        return "sd"
     def _getDiskDeviceBus(self):
-        if self.enlightenedDrivers:
-            return "scsi"
-        return "ide"
+        return "scsi"
     def _getNetworkDeviceModel(self):
         return "e1000"
 
@@ -48,6 +45,10 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         # we put the "distro" in the "template" field
         try:
             self.template = self.host.execdom0("grep 'guestOS = .*' /vmfs/volumes/datastore1/%s/%s.vmx" % (self.name, self.name)).strip().replace("guestOS = ", "").strip("\"")
+            self.distro = self.template
+            if "win" in self.distro:
+                self.windows = True
+                self.hasSSH = False
         except:
             xenrt.TEC().warning("Could not get distro information for %s from config file" % self.name)
         # TODO: detect this
@@ -208,6 +209,7 @@ class ESXGuest(xenrt.lib.libvirt.Guest):
         domain += "      <target dev='%sa' bus='%s'/>" % (self._getDiskDevicePrefix(), self._getDiskDeviceBus())
         domain += "      <address type='drive' controller='0' bus='0' target='0' unit='0'/>"
         domain += "    </disk>"
+        domain += "    <controller type='scsi' index='0' model='lsilogic'/>"
         domain += "    <controller type='ide' index='0'/>"
         domain += "    <input type='mouse' bus='ps2'/>"
         domain += "    <graphics type='vnc' autoport='yes'>"

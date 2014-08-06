@@ -181,11 +181,11 @@ class _VSwitch(xenrt.TestCase):
 
     def enablevswitch(self, host):
         xenrt.TEC().logverbose("Enabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.enablevswitch, reboot=True)
+        self._hostOperation(host, host.enablevswitch, reboot=False)
 
     def disablevswitch(self, host):
         xenrt.TEC().logverbose("Disabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.disablevswitch, reboot=True)
+        self._hostOperation(host, host.disablevswitch, reboot=False)
 
     def getGuestFromName(self, name):
         for guest in self.guests:
@@ -231,11 +231,15 @@ class TC11398(_VSwitch):
         self.checkNetwork(self.guests, "vswitch-before")
         for host in self.hosts:
             self.disablevswitch(host)
+        for host in self.hosts:
+            self.reboot(host)
         self.checkNetwork(self.guests, "bridge")
 
     def postRun(self):
         for host in self.hosts:
             self.enablevswitch(host)
+        for host in self.hosts:
+            self.reboot(host)
 
 class TC11399(TC11398):
     """
@@ -463,7 +467,7 @@ class TC11585(_VSwitch):
         xenrt.TEC().logverbose(result)
         vSwitchPerformance = result[1]
 
-        self.disablevswitch(self.host)
+        self.host.disablevswitch()
         self.prepareGuests([self.testVM])
 
         result = self._externalNetperf("TCP_STREAM", self.testVM)
@@ -476,7 +480,7 @@ class TC11585(_VSwitch):
         xenrt.TEC().logverbose("PASS: vSwitch external network performance is %d%% of bridge performance" % percentage)
 
     def postRun(self):
-        self.enablevswitch(self.host)
+        self.host.enablevswitch()
 
 class TC11586(_VSwitch):
 
@@ -502,7 +506,7 @@ class TC11586(_VSwitch):
         xenrt.TEC().logverbose(result)
         vSwitchPerformance = result
 
-        self.disablevswitch(self.host)
+        self.host.disablevswitch()
         self.prepareGuests(self.guests)
 
         result = self.guests[0].execguest("netperf -t TCP_STREAM -H %s -p %s -l %s -i 10,3 -I 95,2 -v 0 -P 0 -f k" %
@@ -517,7 +521,7 @@ class TC11586(_VSwitch):
         xenrt.TEC().logverbose("PASS: vSwitch internal network performance is %d%% of bridge performance" % percentage)
 
     def postRun(self):
-        self.enablevswitch(self.host)
+        self.host.enablevswitch()
 
 class TC11539(_VSwitch):
     """
@@ -670,6 +674,8 @@ class TC11515(_VSwitch):
         # disable the vswitches
         for host in self.pool_map:
             self.disablevswitch(host)
+        for host in self.pool_map:
+            self.reboot(host)
         self.exitMaintenanceMode()
 
     def poolwideVswitchEnable(self):
@@ -677,6 +683,8 @@ class TC11515(_VSwitch):
         # configure the hosts back to vswitch
         for host in self.pool_map:
             self.enablevswitch(host)
+        for host in self.pool_map:
+            self.reboot(host)
         self.exitMaintenanceMode()
 
     def prepare(self, arglist):

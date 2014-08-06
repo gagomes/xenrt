@@ -61,6 +61,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
+            testData['host_password'] = "xenroot"
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     

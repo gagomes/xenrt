@@ -186,4 +186,26 @@ class JTDeadLetter(xenrt.JobTest):
                 pass
             return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
 
-__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter"]
+class JTCoresPerSocket(xenrt.JobTest):
+    TCID = "TC-21643"
+    FAIL_MSG = "Host reported incorrect guest CPU count"
+
+    def postJob(self):
+        for g in self.host.guests.values():
+            try:
+                cps = int(g.paramGet("platform", "cores-per-socket"))
+                vcpus = self.host.getGuestVCPUs(g)
+                socketsFromGuest = g.xmlrpcGetSockets()
+            except Exception, ex: 
+                xenrt.TEC().logverbose(str(ex))
+                return
+
+            xenrt.TEC().logverbose("sockets reported by guest: %d" % socketsFromGuest)
+            xenrt.TEC().logverbose("cores-per-socket reported by host: %d" % cps)
+            xenrt.TEC().logverbose("vCPUs reported by host: %d" % vcpus)
+
+            if cps > 0 and vcpus > 0 and (vcpus % cps) == 0 and socketsFromGuest != (vcpus / cps):
+                return "guest reported %d sockets, host reported %d vcpus and %d cores-per-socket" % (socketsFromGuest, vcpus, cps)
+
+
+__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter", "JTCoresPerSocket"]

@@ -2806,6 +2806,13 @@ exit /B 1
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):
+        
+        # yuk. kill me now.
+        if live == True:
+            live = "true"
+        elif live == False:
+            live = "false"
+        
         cli = self.getCLIInstance()
         if live == "true" and not self.windows:
             self.startLiveMigrateLogger()

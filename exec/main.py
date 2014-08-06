@@ -1327,7 +1327,7 @@ if shownetwork:
             allip.append(addr)
     sharedhosts = config.lookup(["SHARED_HOSTS"], {})
     for h in sharedhosts.keys():
-        managed = config.lookup(["SHARED_HOSTS", h, addrfield], False, boolean=True)
+        managed = config.lookup("SHARED_HOSTS_MANAGED", False, boolean=True)
         if managed:
             addr = config.lookup(["SHARED_HOSTS", h, addrfield], None)
             if not addr:
@@ -1835,7 +1835,7 @@ if setupsharedhost:
     xenrt.TEC().logdir = xenrt.resources.LogDirectory()
     # Get the info for this peer
     sh = config.lookup(["SHARED_HOSTS",sharedhost])
-    if not config.lookup(["SHARED_HOSTS",sharedhost,"MANAGED"], False,boolean=True):
+    if not config.lookup("SHARED_HOSTS_MANAGED", False,boolean=True):
         print "Shared host %s is not managed by this controller" % sharedhost
     else:
         mac = sh["MAC"]
@@ -1956,7 +1956,7 @@ if cleanupsharedhosts:
     # Get the info for this peer
     sharedhosts = config.lookup(["SHARED_HOSTS"])
     for sharedhost in sharedhosts.keys():
-        if config.lookup(["SHARED_HOSTS",sharedhost,"MANAGED"], False,boolean=True):
+        if config.lookup("SHARED_HOSTS_MANAGED", False,boolean=True):
             sh = xenrt.resources.SharedHost(sharedhost, doguests=True)
             vms = sh.getHost().listGuests()
             for v in vms:

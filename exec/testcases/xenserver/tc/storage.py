@@ -1379,7 +1379,7 @@ class TC10860(TC6723):
 
     def doListWithSecret(self, index):
 
-        if isinstance(self.host, xenrt.lib.xenserver.BostonHost):
+        if isinstance(self.host, xenrt.lib.xenserver.TampaHost):
             # As a result of the fix for CA-113392, SR's secret is duplicated and 
             # a unique secret uuid is used for each pbd creation.
             # Hence, find the secret having the same value as that of sr

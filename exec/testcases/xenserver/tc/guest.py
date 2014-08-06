@@ -659,6 +659,31 @@ class TCCauseBsod(xenrt.TestCase):
                         g.shutdown(force=True)
                 
                 g.revert(snap)
+                
+                
+class TCDriverInstallLoop(xenrt.TestCase):
+    
+    def run(self, args=None):
+        gname = ""
+        for arg in args:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+                break
+
+        if len(gname) == 0:
+            raise xenrt.XRTFailure("No guest")
+        
+        g = self.getGuest(gname)
+        g.shutdown()
+        snap = g.snapshot()
+        
+        for i in range(1000):
+            g.start()
+            g.installDrivers()
+            g.shutdown()
+            g.revert(snap)
+            g.enlightenedDrivers = False
                     
 class _TCToolstackRestart(xenrt.TestCase):
     XAPI_RESTART_DELAY_SECONDS = 60

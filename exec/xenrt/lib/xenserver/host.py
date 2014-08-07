@@ -2195,14 +2195,36 @@ fi
         applyGuidanceAfterEachPatch = applyGuidance and applyGuidanceAfterEachPatch
         existingGuidanceList = self.minimalList("patch-list params=after-apply-guidance hosts:contains=%s" % self.uuid)
         
+        xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
         if xenrt.TEC().lookup("APPLY_ALL_RELEASED_HFXS", False, boolean=True):
             if xenrt.TEC().isReleasedBuild():
                 xenrt.TEC().logverbose("This is a release build. Adding released hotfixes to config.")
                 xenrt.TEC().config.addAllHotfixes()
             else:
                 xenrt.TEC().logverbose("This is not a release build. Not adding released hotfixes to config.")
-        
-        xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
+        else:
+            targetHotfix = xenrt.TEC().lookup("TARGET_HOTFIX", None)
+            if targetHotfix:
+                """Build a list of hotfixes that need to be installed to patch the host upto the targetHotfix"""
+
+                # Look up for available hotfixes from XenRT's hotfix list.
+                hfxDict = xenrt.TEC().lookup(["HOTFIXES", self.productVersion])
+                xenrt.TEC().logverbose("HFX dictionary for %s: %s" % (self.productVersion, hfxDict))
+
+                branch = None
+                for b in hfxDict.keys():
+                    if targetHotfix in hfxDict[b].keys():
+                        branch = b
+                if not branch:
+                    raise xenrt.XRTFailure("Could not find hotfix '%s' in hotfix dict: '%s'" % (targetHotfix, hfxDict))
+
+                hotfixPaths = []
+                for hotfixKey, hotfixPath in sorted(hfxDict[branch].iteritems()):
+                    if hotfixKey <= targetHotfix:
+                        hotfixPaths.append(hotfixPath)
+
+                for hf in hotfixPaths:
+                    self.applyPatch(xenrt.TEC().getFile(hf))
 
         # CARBON_PATCHES contains any patches to be applied regardless of the
         # product version being installed. It is either a comma separated

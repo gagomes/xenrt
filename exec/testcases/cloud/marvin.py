@@ -3,7 +3,7 @@ import json, os, xml.dom.minidom
 import xenrt
 
 class RemoteNoseInstaller(object):
-    GIT_LOCATION = "https://git-wip-us.apache.org/repos/asf/cloudstack.git"
+    GIT_LOCATION = "https://git-wip-us.apache.org/repos/asf/cloudstack"
 
     def __init__(self, runner):
         self.runner = runner
@@ -19,17 +19,23 @@ class RemoteNoseInstaller(object):
             sftp.copyTo(xenrt.getMarvinFile(), "/root/marvin.tar.gz")
         self.runner.execguest("pip install /root/marvin.tar.gz")
 
-        self.git = xenrt.TEC().lookup("CLOUDSTACK_GIT", "http://git-ccp.citrix.com/cgit/internal-cloudstack.git")
-        self.gitBranch = xenrt.TEC().lookup("CLOUDSTACK_GIT_BRANCH", "master")
+        testurl = xenrt.TEC().lookup("MARVIN_TEST_URL", None)
+        if testurl:
+            self.runner.execguest("mkdir /root/cloudstack")
+            self.runner.execguest("wget -O /root/marvintests.tar.gz %s" % testurl)
+            self.runner.execguest("cd /root/cloudstack && tar -xvzf /root/marvintests.tar.gz")
+        else:
+            self.git = xenrt.TEC().lookup("CLOUDSTACK_GIT", "http://git-ccp.citrix.com/cgit/internal-cloudstack.git")
+            self.gitBranch = xenrt.TEC().lookup("CLOUDSTACK_GIT_BRANCH", "master")
 
-        self.runner.execguest("git clone %s /root/cloudstack.git" % self.git, timeout=3600)
-        self.runner.execguest("cd /root/cloudstack.git && git checkout %s" % self.gitBranch)
-        self.runner.execguest("cd /root/cloudstack.git && git pull")
+            self.runner.execguest("git clone %s /root/cloudstack" % self.git, timeout=3600)
+            self.runner.execguest("cd /root/cloudstack && git checkout %s" % self.gitBranch)
+            self.runner.execguest("cd /root/cloudstack && git pull")
 
         patch = xenrt.TEC().lookup("MARVIN_PATCH", None)
         if patch:
             self.runner.execguest("wget -O /root/cs.patch %s" % patch)
-            self.runner.execguest("cd /root/cloudstack.git && patch -p1 < /root/cs.patch")
+            self.runner.execguest("cd /root/cloudstack && patch -p1 < /root/cs.patch")
 
 class _TCRemoteNoseBase(xenrt.TestCase):
     def prepare(self, arglist):
@@ -77,7 +83,7 @@ class TCRemoteNose(_TCRemoteNoseBase):
     def run(self, arglist):
         self.workdir = self.runner.execguest("mktemp -d /root/marvinXXXXXXXX").strip()
         
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s -a tags=%s /root/cloudstack.git/%s" %
+        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s -a tags=%s /root/cloudstack/%s" %
                    (self.workdir,
                     self.workdir,
                     self.args['hypervisor'],

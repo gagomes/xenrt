@@ -1,6 +1,6 @@
 import xenrt
 import logging
-import os, urllib
+import os, os.path, urllib
 from datetime import datetime
 
 import xenrt.lib.cloud
@@ -28,6 +28,13 @@ class ManagementServer(object):
         manSvrLogsLoc = self.place.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
         sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
         sftp.close()
+
+    def getDatabaseDump(self, destDir):
+        self.place.execcmd("mysqldump -u cloud --password=cloud cloud > /tmp/cloud.sql")
+        sftp = self.place.sftpClient()
+        sftp.copyFrom("/tmp/cloud.sql", os.path.join(destDir, "cloud.sql"))
+        sftp.close()
+        self.place.execcmd("rm -f /tmp/cloud.sql")
 
     def lookup(self, key, default=None):
         """Perform a version based lookup on cloud config data"""

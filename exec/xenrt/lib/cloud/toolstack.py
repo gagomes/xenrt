@@ -607,6 +607,11 @@ class CloudStack(object):
     def getLogs(self, path):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
+        sftp.close()
+        if xenrt.TEC() == xenrt.GEC().anontec:
+            # CP-9393 We're the anonymous TEC, which means we are collecting job
+            # logs, so get a database dump in addition to other logs
+            self.mgtsvr.getDatabaseDump(path)
 
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
 

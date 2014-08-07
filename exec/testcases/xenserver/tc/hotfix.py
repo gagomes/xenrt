@@ -772,7 +772,6 @@ class TC18394(_SanibelCCRTM):
 
 class TC18162(_TampaRTM):
     """Apply hotfix to XenServer 6.1 RTM"""
-    INITIAL_HOTFIXES = ["XS61E009"]
     pass
 
 class TC19911(_ClearwaterRTM):

@@ -158,8 +158,6 @@ class _VSwitch(xenrt.TestCase):
             for guest in self.guests:
                 guest.shutdown()
         operation(*args, **kwargs)
-        # let toolstack intialize
-        xenrt.sleep(30)
         xenrt.TEC().logverbose("Enabling host after operation.")
         host.enable()
         self._restore(host, resident)
@@ -181,11 +179,11 @@ class _VSwitch(xenrt.TestCase):
 
     def enablevswitch(self, host):
         xenrt.TEC().logverbose("Enabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.enablevswitch, reboot=False)
+        self._hostOperation(host, host.enablevswitch, reboot=True)
 
     def disablevswitch(self, host):
         xenrt.TEC().logverbose("Disabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.disablevswitch, reboot=False)
+        self._hostOperation(host, host.disablevswitch, reboot=True)
 
     def getGuestFromName(self, name):
         for guest in self.guests:
@@ -231,15 +229,11 @@ class TC11398(_VSwitch):
         self.checkNetwork(self.guests, "vswitch-before")
         for host in self.hosts:
             self.disablevswitch(host)
-        for host in self.hosts:
-            self.reboot(host)
         self.checkNetwork(self.guests, "bridge")
 
     def postRun(self):
         for host in self.hosts:
             self.enablevswitch(host)
-        for host in self.hosts:
-            self.reboot(host)
 
 class TC11399(TC11398):
     """
@@ -673,18 +667,16 @@ class TC11515(_VSwitch):
         # so now the pool is in maintenance mode
         # disable the vswitches
         for host in self.pool_map:
-            self.disablevswitch(host)
-        for host in self.pool_map:
-            self.reboot(host)
+            host.disablevswitch()
+            host.reboot()
         self.exitMaintenanceMode()
 
     def poolwideVswitchEnable(self):
         self.enterMaintenanceMode()
         # configure the hosts back to vswitch
         for host in self.pool_map:
-            self.enablevswitch(host)
-        for host in self.pool_map:
-            self.reboot(host)
+            host.enablevswitch()
+            host.reboot()
         self.exitMaintenanceMode()
 
     def prepare(self, arglist):

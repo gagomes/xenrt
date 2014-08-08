@@ -2885,7 +2885,7 @@ class Tahi(xenrt.TestCase):
         g.uuid = uuid
         g.existing(host)
         g.name = g.paramGet('name-label')
-        g.noguestagent = True
+		g.enlightenedDrivers = True
 
         host.execdom0("umount %s" % (dfMount))
         return g

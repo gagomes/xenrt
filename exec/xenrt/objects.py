@@ -5635,7 +5635,6 @@ exit 0
         g.memset(memory)
         mac = xenrt.randomMAC()
         g.createVIF(bridge=self.getPrimaryBridge(),mac=mac)
-        g.enlightenedDrivers = False
         pxe = xenrt.PXEBoot(abspath=True,removeOnExit=True)
 
         pxecfg = pxe.addEntry("cleanrd", default=1, boot="linux")
@@ -5678,7 +5677,6 @@ exit 0
         g.memset(memory)
         mac = xenrt.randomMAC()
         g.createVIF(bridge=self.getPrimaryBridge(),mac=mac)
-        g.enlightenedDrivers = False
 
         pxe = xenrt.PXEBoot(abspath=True,removeOnExit=True)
 
@@ -5733,7 +5731,6 @@ exit 0
             g.createVIF(bridge=bridge, mac=mac)
         else:
             create_vif_fn(g, primaryMAC=mac)
-        g.enlightenedDrivers = False
         
         pxe = xenrt.PXEBoot(removeOnExit=True)
 
@@ -6486,7 +6483,7 @@ class GenericGuest(GenericPlace):
         self.mainip = None
         self.reservedIP = reservedIP
         self.tailored = False
-        self.enlightenedDrivers = True
+        self.enlightenedDrivers = False
         self.distro = None
         self.managenetwork = False
         self.managebridge = False

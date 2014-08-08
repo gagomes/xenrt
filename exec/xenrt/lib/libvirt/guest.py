@@ -373,9 +373,6 @@ class Guest(xenrt.GenericGuest):
         if not self.virConn:
             self.virConn = host.virConn
 
-        if distro and distro.startswith("solaris"):
-            self.enlightenedPlatform = False
-
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
             if distro.startswith("rhel6"):
@@ -437,7 +434,6 @@ class Guest(xenrt.GenericGuest):
         if pxe:
             self.vifstem = self.VIFSTEMHVM
             self.enlightenedDrivers = False
-            self.enlightenedPlatform = False
 
         # Prepare VIFs
         if type(vifs) == type(self.DEFAULT):
@@ -622,8 +618,6 @@ class Guest(xenrt.GenericGuest):
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.enlightenedDrivers = False
-        self.enlightenedPlatform = False
         self.changeCD(isoname)
 
         self.hasSSH = not xenrt.TEC().lookup("NOSFU", True, boolean=True)

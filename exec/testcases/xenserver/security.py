@@ -362,10 +362,8 @@ class _TCXSA2x(_TCXSA):
             xenrt.TEC().logverbose("Importing file %s..." % (os.path.basename(xsaXVA)))
 
             self.guest = self.host.guestFactory()("XSA%d" % self.VULN, host=self.host, password="xensource")
-            self.guest.enlightenedDrivers = False
             self.guest.windows = False
             self.guest.importVM(self.host, xsaXVA, sr=self.host.lookupDefaultSR(), imageIsOnHost=True)
-            self.guest.enlightenedDrivers = False
             self.guest.windows = False
         finally:
             self.host.execdom0("umount %s" % (dfMount))

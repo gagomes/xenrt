@@ -261,7 +261,6 @@ class TCRebootLoopNoDrivers(xenrt.TestCase):
             raise xenrt.XRTFailure("No guest")
 
         g = self.getGuest(gname)
-        g.enlightenedDrivers = False
 
         for i in range(100):
             g.reboot()

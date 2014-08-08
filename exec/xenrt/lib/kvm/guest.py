@@ -40,13 +40,11 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         if not self.windows:
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True
-            self.enlightenedPlatform = True
 
     def _preInstall(self):
         if not self.windows:
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True
-            self.enlightenedPlatform = True
 
     def _createVBD(self, sruuid, vdiname, format, userdevicename):
         srobj = self.host.srs[self.host.getSRName(sruuid)]

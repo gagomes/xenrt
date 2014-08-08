@@ -1176,7 +1176,7 @@ def setupRouter(config):
     g.execguest("echo net.ipv6.conf.all.forwarding=1 >> /etc/sysctl.conf")
     g.execguest("echo 8021q >> /etc/modules")
     g.mainip = config.lookup(["ROUTER", "VM_ADDRESS"])
-    g.noguestagent = True
+    g.enlightenedDrivers = True
     g.reboot(skipsniff= True)
 
 def setupStaticHost():

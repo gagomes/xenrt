@@ -53,7 +53,6 @@ class Guest(xenrt.lib.libvirt.Guest):
             xenrt.TEC().warning("Could not get distro information for %s from config file" % self.name)
         # TODO: detect this
         self.enlightenedDrivers = False
-        self.enlightenedPlatform = False
 
     def _attachDevice(self, devicexmlstr, hotplug=False):
         oldxmlstr = self._getXML()
@@ -240,8 +239,6 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.start()
         
         self.enlightenedDrivers = True
-        if self.enlightenedDriversProvideEnlightenedPlatform:
-            self.enlightenedPlatform = True
 
     def changeToVMXNet3(self, force=False):
         self.shutdown(force=force)

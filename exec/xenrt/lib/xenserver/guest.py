@@ -67,7 +67,6 @@ class Guest(xenrt.GenericGuest):
             self.vifstem = self.VIFSTEMPV
         if password:
             self.password = password
-        self.noguestagent = False
         if host and template:
             # Check the template exists
             tuuid = host.parseListForUUID("template-list",
@@ -108,6 +107,10 @@ class Guest(xenrt.GenericGuest):
 
     DEFAULT = -10
 
+    def builtInGuestAgent(self):
+        distro = getattr(self, 'distro', None)
+        return distro and distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ",")
+        
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
@@ -196,9 +199,6 @@ class Guest(xenrt.GenericGuest):
         # If we've still not got it, try some heuristics
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
-
-        if self.distro and not self.distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),","):
-            self.noguestagent = True
 
         if not self.windows:
             if self.password is None or self.password.strip() == "":
@@ -291,13 +291,6 @@ class Guest(xenrt.GenericGuest):
         if distro and (distro in ["etch", "sarge"] or "debian" in distro):
             isoname = None
 
-        if distro and distro.startswith("solaris"):
-            self.enlightenedDrivers = False
-
-        if distro and not distro in \
-               string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ","):
-            self.noguestagent = True
-
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
             if distro.startswith("rhel6"):
@@ -359,7 +352,6 @@ class Guest(xenrt.GenericGuest):
 
         if pxe:
             self.vifstem = self.VIFSTEMHVM
-            self.enlightenedDrivers = False
 
         # Prepare VIFs
         if type(vifs) == type(self.DEFAULT):
@@ -470,10 +462,6 @@ class Guest(xenrt.GenericGuest):
                     self.createDisk(sizebytes=int(size)*xenrt.MEGA)
 
         # Windows needs to install from a CD
-        if not self.windows:
-            if not distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),
-                                      ","):
-                self.noguestagent = True
         if self.windows:
             if xenrt.TEC().lookup("WORKAROUND_CA28908", False, boolean=True) \
                    and ("win7" in distro or "ws08r2" in distro):
@@ -562,12 +550,11 @@ class Guest(xenrt.GenericGuest):
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
-            if self.noguestagent and not notools and self.getState() == "UP":
+            if not notools and self.getState() == "UP":
                 self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.enlightenedDrivers = False
         self.changeCD(isoname)
 
         # Start the VM to install from CD
@@ -722,7 +709,7 @@ class Guest(xenrt.GenericGuest):
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
-            if self.enlightenedDrivers and not self.noguestagent:
+            if self.enlightenedDrivers or self.builtInGuestAgent():
                 xenrt.sleep(30)
                 xenrt.TEC().progress("Looking for VM IP address using CLI")
                 tries = 0
@@ -878,7 +865,7 @@ class Guest(xenrt.GenericGuest):
             self.waitForShutdownReady()
         # If this is a Linux guest without a guest agent we'll not sniff
         # if we already know the IP
-        if skipsniff == None and self.noguestagent:
+        if skipsniff == None and self.builtInGuestAgent():
             skipsniff = True
         self.start(reboot=True, forcedReboot=force, skipsniff=skipsniff)
 
@@ -3778,8 +3765,6 @@ exit /B 1
             else:
                 self.execguest("dpkg -i %s" % (rempkg))
     
-        self.noguestagent = False
-
         # RHEL/CentOS 4.7/5.2 have a other-config key set in the
         # template to work around the >64GB bug (EXT-30). Once we have
         # upgraded to a Citrix kernel we can remove this restriction

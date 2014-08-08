@@ -1020,6 +1020,14 @@ class TC20002(_CheckpointConsistency):
     """Checkpoint and rollback consistency on Windows 81 x64"""
     DISTRO = "win81-x64"
     
+class TC21644(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows server 2012 """
+    DISTRO = "win81-x64"
+    
+class TC21645(_CheckpointConsistency):
+    """Checkpoint and rollback consistency on Windows 81 x64"""
+    DISTRO = "win81-x64"
+    
 class TC9234(_SnappointTrees):
     """Check snapshot trees are preserved across pool join."""
 
@@ -1265,5 +1273,22 @@ class TC11211(_CheckpointSmoketest):
     """VM checkpoint and rollback smoketest of a SLES 10 SP2 x64 VM"""
 
     DISTRO = "sles102"
+    ARCH = "x86-64"
+    
+class TC21646(_CheckpointSmoketest):
+    """VM checkpoint and rollback smoketest of a Debian 7 x86 VM"""
+
+    DISTRO = "debian70"
+    
+class TC21647(_CheckpointSmoketest):
+    """VM checkpoint and rollback smoketest of a Ubuntu 14.04 x64 VM"""
+
+    DISTRO = "ubuntu1404"
+    ARCH = "x86-64"
+    
+class TC21648(_CheckpointSmoketest):
+    """VM checkpoint and rollback smoketest of a RHEL 7 x64 VM"""
+
+    DISTRO = "rhel7"
     ARCH = "x86-64"
 

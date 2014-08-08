@@ -300,17 +300,13 @@ class _XSStorageCertKit(xenrt.TestCase):
         if srType == "nfs":
             self.SR_PARAM = []
             self.SR_PARAM.append("-b nfs")
-            nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
             
-            if not nfsConfig:
-                raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
-            servers = nfsConfig.keys()
-            if len(servers) == 0:
-                raise xenrt.XRTError("No EXTERNAL_NFS_SERVERS defined")
-                
-            n=nfsConfig.keys()[0]
-            self.SR_PARAM.append("-n %s" %xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]))
-            self.SR_PARAM.append("-e %s" %xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"]))
+            nfs = xenrt.resources.NFSDirectory()
+            nfsdir = xenrt.command("mktemp -d %s/nfsXXXX" % (nfs.path()), strip = True)
+            server, path = nfs.getHostAndPath(os.path.basename(nfsdir))
+            
+            self.SR_PARAM.append("-n %s" % server)
+            self.SR_PARAM.append("-e %s" % path)
             
         if srType == "lvmoiscsi":
             self.SR_PARAM = []

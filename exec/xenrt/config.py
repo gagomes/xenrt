@@ -1710,6 +1710,7 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["4.1.0"] = "Rio"
         self.config["PRODUCT_CODENAMES"]["5.0.0"] = "Orlando"
         self.config["PRODUCT_CODENAMES"]["5.5.0"] = "George"
+        self.config["PRODUCT_CODENAMES"]["5.5.0-Update2"] = "George"
         self.config["PRODUCT_CODENAMES"]["5.6.0"] = "MNR"
         self.config["PRODUCT_CODENAMES"]["5.6.100"] = "Cowley"
         self.config["PRODUCT_CODENAMES"]["5.9.950"] = "Boston"

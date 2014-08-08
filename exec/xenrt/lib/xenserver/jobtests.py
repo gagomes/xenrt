@@ -201,12 +201,18 @@ class JTCoresPerSocket(xenrt.JobTest):
                     xenrt.TEC().logverbose(str(ex))
                     return
 
-                xenrt.TEC().logverbose("sockets reported by guest: %d" % socketsFromGuest)
-                xenrt.TEC().logverbose("cores-per-socket reported by host: %d" % cps)
-                xenrt.TEC().logverbose("vCPUs reported by host: %d" % vcpus)
+                maxVCpus = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", g.distro, "MAXSOCKETS"], 0))
+                xenrt.TEC().logverbose("max sockets for guest distro: %d" % maxVCpus)
+                
+                if maxVCpus > 0: 
+                    vcpus = min(vcpus, maxVCpus)
+                    
+                    xenrt.TEC().logverbose("sockets reported by guest: %d" % socketsFromGuest)
+                    xenrt.TEC().logverbose("cores-per-socket reported by host: %d" % cps)
+                    xenrt.TEC().logverbose("vCPUs reported by host: %d" % vcpus)
 
-                if cps > 0 and vcpus > 0 and (vcpus % cps) == 0 and socketsFromGuest != (vcpus / cps):
-                    return "guest reported %d sockets, host reported %d vcpus and %d cores-per-socket" % (socketsFromGuest, vcpus, cps)
+                    if cps > 0 and vcpus > 0 and (vcpus % cps) == 0 and socketsFromGuest != (vcpus / cps):
+                        return "guest reported %d sockets, host reported %d vcpus and %d cores-per-socket" % (socketsFromGuest, vcpus, cps)
 
 
 __all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter", "JTCoresPerSocket"]

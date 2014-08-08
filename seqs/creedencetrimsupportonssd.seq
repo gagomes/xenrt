@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Creedence TRIM Support on NetApp FC lun -->
+  <!-- Creedence TRIM Support on local SR created by SSD -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -11,13 +11,11 @@
   </prepare>
 
   <testsequence>
-    <serial group="FuncTRIMHBA">
+    <serial group="FuncTRIMSSD">
 
-      <testcase id="xenserver.tc.lunspace.TrimFunctionalTestHBA" tc="TC-21546"/>
+      <testcase id="xenserver.tc.lunspace.TrimFunctionalTestSSD" tc="TC-21649"/>
 
     </serial>
   </testsequence>
 
 </xenrt>
-
-

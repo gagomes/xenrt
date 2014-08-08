@@ -12,6 +12,72 @@ import socket, re, string, time, traceback, sys, random, copy, math
 import xenrt, xenrt.lib.xenserver
 from xenrt.lazylog import *
 
+class TC21547(xenrt.TestCase):
+    """Verify that HBA SR size is updated after resizing the mapped NetApp lun"""
+
+    OLDSIZE = 50 #in GB
+    NEWSIZE = 80 #
+    RESIZEFACTOR =10
+    def prepare(self, arglist=[]):
+
+        # Lock storage resource and access storage manager library functions.
+        self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        xenrt.StorageArrayType.FibreChannel)
+                                                                        
+        self.host = self.getDefaultHost()
+        self.host.scanFibreChannelBus()        
+        self.host.enableMultipathing()
+        self.getLogsFrom(self.host)        
+        
+        # Setup initial storage configuration, 1 LUNs of given size
+        self.netAppFiler.provisionLuns(1, self.OLDSIZE,{self.host : self.host.getFCWWPNInfo()})
+       
+        self.lun = self.netAppFiler.getLuns()[0]
+        step("The lun is %s" %self.lun)
+        self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR")
+        self.fcSR.create(self.lun.getId())
+        
+    def run(self, arglist=[]):        
+
+        self.guests =[]
+        self.guests.append(self.host.createBasicGuest(name="ws08r2-x64",distro="ws08r2-x64",sr=self.fcSR.uuid))
+        self.guests.append(self.host.createBasicGuest(name="centos64", distro="centos64", sr=self.fcSR.uuid))
+        
+        newSize = self.OLDSIZE        
+        while newSize <= self.NEWSIZE :
+            newSize = newSize + self.RESIZEFACTOR
+            newSizeBytes = newSize * xenrt.GIGA 
+            step("Resizing the LUN with serial number: %s to %d GB" %
+                        (self.lun.getNetAppSerialNumber(),newSize))
+            
+            step("Currently the lun size is %s "%self.lun.size())           
+            self.lun.resize(newSizeBytes/xenrt.MEGA,False)
+            self.fcSR.scan()
+            step("After resizing the lun size is %s "%self.lun.size())
+            currentsize=self.fcSR.physicalSizeMB()
+            expectednewsize = newSizeBytes/xenrt.MEGA - 12
+            
+            if currentsize == expectednewsize:
+                step("SR physical size is equal to new size.Check that VM are functioning well after resizing the lun..")
+                # Verify that VM can go through the life cycle operations                
+                for guest in self.guests:
+                    self.getLogsFrom(guest)
+                    guest.shutdown()
+                    guest.start()
+                    guest.reboot()
+                    guest.suspend()
+                    guest.resume()
+            else :
+                raise xenrt.XRTFailure("SR didnt resize to the expected new size %s MB.Its Current size is %s MB" %
+                                                                                            (expectednewsize,currentsize))
+                
+    def postRun(self, arglist=None):
+        for guest in self.guests:
+           guest.shutdown(force=True)
+           guest.uninstall()
+        self.host.destroySR(self.fcSR.uuid)
+        self.netAppFiler.release()
+
 class NetappFCTrimSupport(xenrt.TestCase):
     """ Defines the base class for XenServer TRIM Support On NetApp FC lun"""
     
@@ -55,14 +121,15 @@ class NetappFCTrimSupport(xenrt.TestCase):
         # Releasing the fibre channel storage array
         self.netAppFiler.release()
     
-class StorageTrimTestcase(NetappFCTrimSupport):
+class TrimFunctionalTestHBA(NetappFCTrimSupport):
     """ Verify available size on lvmohba lun is updated when VDIs on lun are deleted """
 
     def run(self, arglist=[]):
         
         spaceUsedByGuests = {}
         spaceFreedByGuests = {}
-        delta = 2 # Keep delta as 2% space on lun which is not freed after deleting a VM: Workaround for CA-139518
+        delta = 2 # Keep delta as 2% space on lun which is not freed after deleting a VM
+                  # Workaround for CA-139518
         
         # Creating 1 windows and 4 linux guests on Hardware HBA SR
         for i in range(5):
@@ -78,7 +145,8 @@ class StorageTrimTestcase(NetappFCTrimSupport):
             usedSpaceAfter = self.lun.sizeUsed()
             diff = usedSpaceAfter - initialUsedSpace
             spaceUsedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
-            log("Space used: Before creating guest %s, After creating guest %s, Difference in space used %s" % (initialUsedSpace,usedSpaceAfter,diff))
+            log("Space used in bytes: Before creating guest %s, After creating guest %s, Difference %s" %
+                                                                        (initialUsedSpace,usedSpaceAfter,diff))
         
         # Deleting Guests
         for guest in spaceUsedByGuests.keys():
@@ -86,29 +154,88 @@ class StorageTrimTestcase(NetappFCTrimSupport):
             step("Uninstalling Guest %s" % guest.getName())
             initialUsedSpace = self.lun.sizeUsed()
             guest.uninstall()
-            step("Triggering TRIM on Host")
-            self.cli.execute("host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" % (self.host.getMyHostUUID(),self.sruuid))
+            step("Triggering TRIM on Hardware HBA SR")
+            self.cli.execute("host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %
+                                                                    (self.host.getMyHostUUID(),self.sruuid))
             xenrt.sleep(240)
             usedSpaceAfter = self.lun.sizeUsed()
             diff = initialUsedSpace - usedSpaceAfter
             spaceFreedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
-            log("Space freed: Before deleting guest %s, After deleting guest %s, Difference in space used %s" % (initialUsedSpace,usedSpaceAfter,diff))
+            log("Space freed in bytes: Before deleting guest %s, After deleting guest %s, Difference %s" %
+                                                                        (initialUsedSpace,usedSpaceAfter,diff))
         
-        # Match the space is freed on LUN
-        step("Match the space used while creating and deleting guest on lun")
+        # Check the space is freed on LUN
+        step("Check the space used while creating and deleting guest on lun")
         for guest in spaceUsedByGuests.keys():
             if not ((spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]) < ((delta * spaceUsedByGuests[guest][2]) / 100)):
-                log("Print matrix for used space in Format : {guestInstance : [spaceUsedBeforeGuestCreation, spaceUsedAfterGuestCreation, DifferenceInSpaceUsed]}")
+                log("Print in Format : {guestInstance : [spaceUsedBeforeGuestCreation, spaceUsedAfterGuestCreation, Difference]}")
                 log("%s" % str(spaceUsedByGuests))
-                log("Print matrix for used space in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, DifferenceInSpaceUsed]}")
+                log("Print in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, Difference]}")
                 log("%s" % str(spaceFreedByGuests))
-                raise xenrt.XRTFailure("TRIM failed : %s bytes is not freed on lun after deleting guest" % str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
-        
-    
+                raise xenrt.XRTFailure("TRIM failed : %s bytes is not freed on lun after deleting guest" %
+                                                str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
+
     def postRun(self, arglist=[]):
         # Destroy the lvmoHBA SR on the pool.
         self.destroySR()
-    
+
+class TrimFunctionalTestSSD(xenrt.TestCase):
+    """Verify trim support on a local SR created using solid state disk"""
+
+    def prepare(self, arglist=[]):
+        self.host = self.getDefaultHost()
+        self.sruuid = self.host.lookupDefaultSR()
+
+    def run(self, arglist=[]):
+        
+        spaceUsedByGuests = {}
+        spaceFreedByGuests = {}
+        delta = 2 # 2% of space on SR is not freed after deleting a VM.
+        
+        # Creating 1 windows and 4 linux guests on Local SSD SR.
+        for i in range(1,3):
+            xenrt.sleep(60)
+            step("Creating Guest %s on local SSD SR" % i)
+            initialUsedSpace = int(self.host.genParamGet("sr", self.sruuid, "virtual-allocation"))
+            if i == 0:
+                guest = self.host.createGenericWindowsGuest(name="Windows Guest %s" % i)
+            else:
+                guest = self.host.createGenericLinuxGuest(name="Linux Guest %s" % i)
+            guest.shutdown()
+            xenrt.sleep(120)
+            usedSpaceAfter = int(self.host.genParamGet("sr", self.sruuid, "virtual-allocation"))
+            diff = usedSpaceAfter - initialUsedSpace
+            spaceUsedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
+            log("Space used in bytes: Before creating guest %s, After creating guest %s, Difference %s" %
+                                                                        (initialUsedSpace,usedSpaceAfter,diff))
+        
+        # Deleting Guests
+        for guest in spaceUsedByGuests.keys():
+            xenrt.sleep(60)
+            step("Uninstalling Guest %s" % guest.getName())
+            initialUsedSpace = int(self.host.genParamGet("sr", self.sruuid, "virtual-allocation"))
+            guest.uninstall()
+            step("Triggering TRIM on Local SSD SR")
+            self.host.execdom0("xe host-call-plugin host-uuid=%s plugin=trim fn=do_trim args:sr_uuid=%s" %
+                                                                    (self.host.getMyHostUUID(),self.sruuid))
+            xenrt.sleep(240)
+            usedSpaceAfter = int(self.host.genParamGet("sr", self.sruuid, "virtual-allocation"))
+            diff = initialUsedSpace - usedSpaceAfter
+            spaceFreedByGuests.update({guest:[initialUsedSpace,usedSpaceAfter,diff]})
+            log("Space freed in bytes: Before deleting guest %s, After deleting guest %s, Difference %s" %
+                                                                        (initialUsedSpace,usedSpaceAfter,diff))
+        
+        # Check the space is freed on Local SSD SR.
+        step("Check the space used while creating and deleting guest on local SR.")
+        for guest in spaceUsedByGuests.keys():
+            if not ((spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]) < ((delta * spaceUsedByGuests[guest][2]) / 100)):
+                log("Print in Format : {guestInstance : [spaceUsedBeforeGuestCreation, spaceUsedAfterGuestCreation, Difference]}")
+                log("%s" % str(spaceUsedByGuests))
+                log("Print in Format : {guestInstance : [spaceUsedBeforeGuestDeletion, spaceUsedAfterGuestDeletion, Difference]}")
+                log("%s" % str(spaceFreedByGuests))
+                raise xenrt.XRTFailure("TRIM failed : %s bytes is not freed on lun after deleting guest" %
+                                                        str(spaceUsedByGuests[guest][2] - spaceFreedByGuests[guest][2]))
+
 class VerifyTrimTrigger(xenrt.TestCase):
     """Verify whether TRIM can be triggered on storage repositories"""
 
@@ -172,70 +299,3 @@ class TC21553(VerifyTrimTrigger):
 class TC21555(VerifyTrimTrigger):
     """Verify whether TRIM can be triggered on EXT SR"""
     SR_TYPE = "ext"
-
-class TC21547(xenrt.TestCase):
-    """Verify that HBA SR size is updated after resizing the mapped NetApp lun"""
-
-    OLDSIZE = 50 #in GB
-    NEWSIZE = 80 #
-    RESIZEFACTOR =10
-    def prepare(self, arglist=[]):
-
-        # Lock storage resource and access storage manager library functions.
-        self.netAppFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
-                                                                        xenrt.StorageArrayType.FibreChannel)
-                                                                        
-        self.host = self.getDefaultHost()
-        self.host.scanFibreChannelBus()        
-        self.host.enableMultipathing()
-        self.getLogsFrom(self.host)        
-        
-        # Setup initial storage configuration, 1 LUNs of given size
-        self.netAppFiler.provisionLuns(1, self.OLDSIZE,{self.host : self.host.getFCWWPNInfo()})
-       
-        self.lun = self.netAppFiler.getLuns()[0]
-        step("The lun is %s" %self.lun)
-        self.fcSR = xenrt.lib.xenserver.FCStorageRepository(self.host,"lvmoHBASR")
-        self.fcSR.create(self.lun.getId())
-        
-        
-    def run(self, arglist=[]):        
-
-        self.guests =[]
-        self.guests.append(self.host.createBasicGuest(name="ws08r2-x64",distro="ws08r2-x64",sr=self.fcSR.uuid))
-        self.guests.append(self.host.createBasicGuest(name="centos64", distro="centos64", sr=self.fcSR.uuid))
-        
-        newSize = self.OLDSIZE        
-        while newSize <= self.NEWSIZE :
-            newSize = newSize + self.RESIZEFACTOR
-            newSizeBytes = newSize * xenrt.GIGA 
-            step("Resizing the LUN with serial number: %s to %d GB" %
-                        (self.lun.getNetAppSerialNumber(),newSize))
-            
-            step("Currently the lun size is %s "%self.lun.size())           
-            self.lun.resize(newSizeBytes/xenrt.MEGA,False)
-            self.fcSR.scan()
-            step("After resizing the lun size is %s "%self.lun.size())
-            currentsize=self.fcSR.physicalSizeMB()
-            expectednewsize = newSizeBytes/xenrt.MEGA - 12
-            
-            if currentsize == expectednewsize:
-                step("SR physical size is equal to new size.Check that VM are functioning well after resizing the lun..")
-                # Verify that VM can go through the life cycle operations                
-                for guest in self.guests:
-                    self.getLogsFrom(guest)
-                    guest.shutdown()
-                    guest.start()
-                    guest.reboot()
-                    guest.suspend()
-                    guest.resume()
-            else :
-                raise xenrt.XRTFailure("SR didnt resize to the expected new size %s MB.Its Current size is %s MB" %(expectednewsize,currentsize))
-                
-    def postRun(self, arglist=None):
-        for guest in self.guests:
-           guest.shutdown(force=True)
-           guest.uninstall()
-        self.host.destroySR(self.fcSR.uuid)
-        self.netAppFiler.release()
-        

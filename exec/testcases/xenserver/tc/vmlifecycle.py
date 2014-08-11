@@ -1281,8 +1281,11 @@ class TC10054(xenrt.TestCase):
         self.guest.shutdown()
         self.host.execdom0("/etc/init.d/ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
-        self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
-                           
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            self.host.execdom0('hwclock --set --date "%s"' % (time.strftime("%b %d %H:%M:%S UTC %Y", ftime)))
+            self.host.execdom0('hwclock --hctosys')
+        else:
+            self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
         # Reboot the host to cause the hardware clock to be set to the
         # future value
         self.host.reboot()

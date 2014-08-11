@@ -825,6 +825,7 @@ def processMatrixTests(release=None):
                   ('sles111','SLES11 SP1'),
                   ('sles112','SLES11 SP2'),
                   ('sles113','SLES11 SP3'),
+                  ('sles12','SLES12'),
                   ('ubuntu1004','Ubuntu 10.04'),
                   ('ubuntu1204','Ubuntu 12.04'),
                   ('ubuntu1404','Ubuntu 14.04'),
@@ -1081,7 +1082,7 @@ def processMatrixTests(release=None):
     #  (Creedence)
     distrosToRels['Creedence'] = {}
     distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel7','oel7','centos7',
-                                          'sles104','sles113',
+                                          'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',

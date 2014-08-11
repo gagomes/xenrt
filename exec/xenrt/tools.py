@@ -765,6 +765,12 @@ def processMatrixTests(release=None):
                          ('etch','Debian Etch'),
                          ('debian50','Debian Lenny 5.0')]
 
+    # All known linux distros that only have 32-bit versions
+    linDistros_64only = [('rhel7','RHEL 7.0'),
+                         ('centos7','CentOS 7.0'),
+                         ('oel7','OEL 7.0'),
+                         ('sles12','SLES12')]
+
     # All known linux distros that have both 32 and 64-bit versions
     linDistros = [('rhel5','RHEL 5.0'),
                   ('rhel51','RHEL 5.1'),
@@ -783,7 +789,6 @@ def processMatrixTests(release=None):
                   ('rhel63','RHEL 6.3'),
                   ('rhel64','RHEL 6.4'),
                   ('rhel65','RHEL 6.5'),
-                  ('rhel7','RHEL 7.0'),
                   ('centos5','CentOS 5.0'),
                   ('centos51','CentOS 5.1'),
                   ('centos52','CentOS 5.2'),
@@ -801,7 +806,6 @@ def processMatrixTests(release=None):
                   ('centos63','CentOS 6.3'),
                   ('centos64','CentOS 6.4'),
                   ('centos65','CentOS 6.5'),
-                  ('centos7','CentOS 7.0'),
                   ('oel53','Oracle Enterprise Linux 5.3'),
                   ('oel54','Oracle Enterprise Linux 5.4'),
                   ('oel55','Oracle Enterprise Linux 5.5'),
@@ -816,7 +820,6 @@ def processMatrixTests(release=None):
                   ('oel63','Oracle Enterprise Linux 6.3'),
                   ('oel64','Oracle Enterprise Linux 6.4'),
                   ('oel65','Oracle Enterprise Linux 6.5'),
-                  ('oel7','Oracle Enterprise Linux 7.0'),
                   ('sles101','SLES10 SP1'),
                   ('sles102','SLES10 SP2'),
                   ('sles103','SLES10 SP3'),
@@ -825,7 +828,6 @@ def processMatrixTests(release=None):
                   ('sles111','SLES11 SP1'),
                   ('sles112','SLES11 SP2'),
                   ('sles113','SLES11 SP3'),
-                  ('sles12','SLES12'),
                   ('ubuntu1004','Ubuntu 10.04'),
                   ('ubuntu1204','Ubuntu 12.04'),
                   ('ubuntu1404','Ubuntu 14.04'),
@@ -1208,6 +1210,22 @@ def processMatrixTests(release=None):
                 level0.append(d)
             if d[0] in distrosToRels[r]['experimental']:
                 experimentall32.append(d)
+
+        for d in linDistros_64only:
+            if d[0] in distrosToRels[r]['primary']:
+                # Primary
+                primaryl64.append((d[0],"%s 64 bit" % d[1],"x86-64"))
+            if d[0] in distrosToRels[r]['secondary']:
+                # Secondary
+                secondary.append(d)
+            if d[0] in distrosToRels[r]['tertiary']:
+                # Tertiary
+                tertiary.append(d)
+            if d[0] in distrosToRels[r]['level0']:
+                level0.append(d)
+            if d[0] in distrosToRels[r]['experimental']:
+                experimentalnl32.append((d[0],"%s 64 bit" % d[1],"x86-64"))
+
         for d in linDistros:
             if d[0] in distrosToRels[r]['primary']:
                 # Primary

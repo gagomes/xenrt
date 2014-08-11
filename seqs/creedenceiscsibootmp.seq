@@ -3,12 +3,11 @@
   <!-- Multipathed iSCSI Boot From SAN testcases -->
 
   <variables>
-    <PREPARE_WORKERS>1</PREPARE_WORKERS>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
   <prepare>
-  
+    <host id="0"/>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
     

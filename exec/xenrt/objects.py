@@ -5956,7 +5956,7 @@ exit 0
                 reply = map(lambda x:(int(f(x, "ID")), f(x, "SUBNET"), f(x, "SUBNETMASK")), valid)
         return reply
 
-    def _controlNetPort(self, mac, action):
+    def _controlNetPort(self, mac, action, startup=False):
         cmd = None
         netport = None
         mac = xenrt.normaliseMAC(mac)
@@ -6010,6 +6010,9 @@ exit 0
                                     "Should be switchname-digit, found: '%s'"
                                     % (switchName))
 
+            if startup and xenrt.TEC().lookup(["NETSWITCHES", switchName, 'STARTUP_ENABLE'], False, boolean=True):
+                return
+
             addr = xenrt.TEC().lookup(["NETSWITCHES", switchName, 'ADDRESS'])
             if not addr:
                 raise xenrt.XRTError("No ADDRESS for NETSWITCH %s" % (switchName))
@@ -6053,13 +6056,13 @@ exit 0
         nics.extend(self.listSecondaryNICs())
         for n in nics:
             mac = self.getNICMACAddress(n)
-            try: self.enableNetPort(mac)
+            try: self.enableNetPort(mac, startup=True)
             except: pass
 
-    def enableNetPort(self, mac):
+    def enableNetPort(self, mac, startup=False):
         """Enable the switch port to which the NIC with the specified MAC
         is connected."""
-        self._controlNetPort(mac, "CMD_PORT_ENABLE")
+        self._controlNetPort(mac, "CMD_PORT_ENABLE", startup=startup)
         
     def disableNetPort(self, mac):
         """Disable the switch port to which the NIC with the specified MAC

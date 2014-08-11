@@ -334,6 +334,9 @@ class Guest(xenrt.GenericGuest):
             if not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
                 # this hack isn't required on Creedence as we've got the templates sorted
                 rootdisk=32000
+            else:
+                xenrt.TEC().logverbose("rootdisk = 20000 + %s"%(self.memory))
+                rootdisk = 20000 + self.memory
         if distro:
             self.distro = distro
         host.addGuest(self)

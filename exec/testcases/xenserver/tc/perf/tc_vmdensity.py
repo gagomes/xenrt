@@ -2413,54 +2413,51 @@ MachinePassword=%s
             self.measurement_vmstarttime.start(coord)
             self.measurement_vmreadytime.start(coord)
 
-            #guest.start() #vm-start + automatic login
-            #guest.check()
+            def vmstart_thread(self, guest, coord):
+                #cli = guest.host.getCLIInstance()
+                #do not use guest.start(), it contains several time.sleep that we don't want
+                #Should the vm-start on a specific host ?
+                if get_vm_host_name(value):
+                    guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
+                                        timeout=900+30*self.tc.THRESHOLD)
+                else:
+                    guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
 
-            #cli = guest.host.getCLIInstance()
-            #do not use guest.start(), it contains several time.sleep that we don't want
-            #Should the vm-start on a specific host ?
-            if get_vm_host_name(value):
-                guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
-                                    timeout=900+30*self.tc.THRESHOLD)
+                self.xapi_event.waitFor(guest.uuid,"power_state","Running")
+
+                #vmstart finished
+                result = self.measurement_vmstarttime.stop(coord,guest)
+
+            vmstart_t = xenrt.XRTThread(target=vmstart_thread, args=(self,guest,coord),name=("Thread-vmstart-%s"%value))
+            vmstart_t.start()
+
+            #we are not waiting for vmstart to finish, continue until vmlogin finished
+
+            vifname, bridge, mac, c = guest.vifs[0]
+            if not self.measurement_1.base_measurement:
+                timeout = 600
             else:
-                guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+                timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
+            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
+            self.ip_to_guest[guest.mainip] = guest
+            #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
 
-            self.xapi_event.waitFor(guest.uuid,"power_state","Running")
-
-            #vmstart finished
-            result = self.measurement_vmstarttime.stop(coord,guest)
-
-            if True: #"waitvmstart" not in self.vmcron:
-                #we are not waiting for vmstart to finish, continue until vmlogin finished
- 
-                vifname, bridge, mac, c = guest.vifs[0]
-                if not self.measurement_1.base_measurement:
-                    timeout = 600
+            if (self.measurement_loginvsi):
+                received_event = self.guest_events[GuestEvent_VMReady.EVENT].receive(guest,timeout)
+                #vm is ready to log in
+                if not received_event:
+                    msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMReady.EVENT,guest,guest.mainip)
+                    raise xenrt.XRTFailure(msg)
                 else:
-                    timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-                guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
-                self.ip_to_guest[guest.mainip] = guest
-                #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
-
-                if (self.measurement_loginvsi):
-                    received_event = self.guest_events[GuestEvent_VMReady.EVENT].receive(guest,timeout)
-                    #vm is ready to log in
-                    if not received_event:
-                        msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMReady.EVENT,guest,guest.mainip)
-                        raise xenrt.XRTFailure(msg)
-                    else: 
-                        result = self.measurement_vmreadytime.stop(coord,guest)
+                    result = self.measurement_vmreadytime.stop(coord,guest)
+            else:
+                received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest,timeout)
+                #vm has finished logging in
+                if not received_event:
+                    msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMLogin.EVENT,guest,guest.mainip)
+                    raise xenrt.XRTFailure(msg)
                 else:
-                    received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest,timeout)
-                    #vm has finished logging in
-                    if not received_event:
-                        msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMLogin.EVENT,guest,guest.mainip)
-                        raise xenrt.XRTFailure(msg)
-                    else: 
-                        result = self.measurement_1.stop(coord,guest)
-
-            else: #waitvmstart was in vmcron
-                xenrt.TEC().logverbose("VM=%s: waitvmstart was in self.vmcron: not waiting for further events such as vmlogin" % value)
+                    result = self.measurement_1.stop(coord,guest)
 
             #run vm load on vm $value without stopping, eg. cpu loop
             try:
@@ -2471,7 +2468,9 @@ MachinePassword=%s
                 self.do_VMS_ERR_load_failed = True
                 xenrt.TEC().logverbose("======> VM load failed to start for VM %s! Aborting this sequence of VMs!" % value)
                 raise #re-raise the exception
-        
+
+            #vmstart_t.join(3600)
+
             #store the initial base measurement value to compare against later
             #when detecting if latest measurement is too different
             if value == self.tc.VMS[:1][0]:

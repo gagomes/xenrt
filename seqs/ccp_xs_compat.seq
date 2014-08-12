@@ -3,6 +3,10 @@
   <default name="PRODUCT_VERSION" value="Clearwater"/>
   <default name="PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
+  <variables>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+
   <prepare>
     <cloud>
       { "zones": [

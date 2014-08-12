@@ -331,12 +331,13 @@ class Guest(xenrt.GenericGuest):
         if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
             
-            if not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
-                # this hack isn't required on Creedence as we've got the templates sorted
-                rootdisk=32000
-            else:
+            if isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest) and self.memory:
                 xenrt.TEC().logverbose("rootdisk = 20000 + %s"%(self.memory))
                 rootdisk = 20000 + self.memory
+            else:
+                # this hack isn't required on Creedence as we've got the templates sorted
+                rootdisk=32000
+
         if distro:
             self.distro = distro
         host.addGuest(self)

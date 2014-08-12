@@ -1,0 +1,41 @@
+<xenrt>
+  <!-- CCP XS Compatibility tests -->
+  <default name="PRODUCT_VERSION" value="Clearwater"/>
+  <default name="PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <prepare>
+    <cloud>
+      { "zones": [
+        { "networktype": "Basic",
+          "physical_networks": [
+            { "name": "BasicPhyNetwork" }
+          ],
+          "pods": [
+            { "XRT_PodIPRangeSize": 5,
+              "guestIpRanges": [
+                { "XRT_GuestIPRangeSize": 5 }
+              ],
+              "clusters": [
+                { "hypervisor": "XenServer", "XRT_MasterHostId": 0 }
+              ]
+            }
+          ]
+        }
+        ]
+      }
+    </cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="20" />
+      </vm>
+    </sharedhost>
+    <host id="0" productVersion="${PRODUCT_VERSION}" version="${PRODUCT_INPUTDIR}" />
+  </prepare>
+
+</xenrt>

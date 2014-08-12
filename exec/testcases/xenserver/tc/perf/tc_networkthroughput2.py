@@ -204,16 +204,18 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_P = kvs2dict("ethtool-P:", map2kvs(endpoint.execcmd("ethtool -P %s" % (dev,)).replace(": ","=").split("\n")))
-        g = map2kvs(endpoint.execcmd("ethtool -g %s" % (dev,)).replace("\t","").replace(":","=").split("\n"))
-        ethtool_g = {}
-        ethtool_g["ethtool-g:ringmaxRX"]         = g[2][1]
-        ethtool_g["ethtool-g:ringmaxRXMini"]     = g[3][1]
-        ethtool_g["ethtool-g:ringmaxRXJumbo"]    = g[4][1]
-        ethtool_g["ethtool-g:ringmaxTX"]         = g[5][1]
-        ethtool_g["ethtool-g:ringcurRX"]     = g[7][1]
-        ethtool_g["ethtool-g:ringcurRXMini"] = g[8][1]
-        ethtool_g["ethtool-g:ringcurRXJumbo"]= g[9][1]
-        ethtool_g["ethtool-g:ringcurTX"]     = g[10][1]
+        ethtool_g_unsupp = endpoint.execcmd("ethtool -g %s" % (dev,), retval="code")
+        if not ethtool_g_unsupp:
+            g = map2kvs(endpoint.execcmd("ethtool -g %s" % (dev,)).replace("\t","").replace(":","=").split("\n"))
+            ethtool_g = {}
+            ethtool_g["ethtool-g:ringmaxRX"]         = g[2][1]
+            ethtool_g["ethtool-g:ringmaxRXMini"]     = g[3][1]
+            ethtool_g["ethtool-g:ringmaxRXJumbo"]    = g[4][1]
+            ethtool_g["ethtool-g:ringmaxTX"]         = g[5][1]
+            ethtool_g["ethtool-g:ringcurRX"]     = g[7][1]
+            ethtool_g["ethtool-g:ringcurRXMini"] = g[8][1]
+            ethtool_g["ethtool-g:ringcurRXJumbo"]= g[9][1]
+            ethtool_g["ethtool-g:ringcurTX"]     = g[10][1]
         if "ethtool-P:Permanent address" in ethtool_P:
             pa = ethtool_P["ethtool-P:Permanent address"].strip().upper()
             m  = mac.strip().upper()
@@ -263,7 +265,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info.update(ethtool_i)
         info.update(ethtool_k)
         info.update(ethtool_P)
-        info.update(ethtool_g)
+        if not ethtool_g_unsupp:
+            info.update(ethtool_g)
         info.update(proc_sys_net)
         info.update(sys_class_net)
         info.update(sys_devices)

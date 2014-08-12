@@ -38,4 +38,8 @@
     <host id="0" productVersion="${PRODUCT_VERSION}" version="${PRODUCT_INPUTDIR}" />
   </prepare>
 
+  <testsequence>
+    <testcase id="cloud.tc.basic.TCGuestDeploy" />
+  </testsequence>
+
 </xenrt>

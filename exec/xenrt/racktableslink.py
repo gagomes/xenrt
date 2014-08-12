@@ -2,7 +2,7 @@ import re,socket
 import xenrt
 from racktables import RackTables
 
-__all__ = ["getRackTablesInstance", "readMachineFromRackTables"]
+__all__ = ["getRackTablesInstance", "readMachineFromRackTables", "closeRackTablesInstance"]
 
 _rackTablesInstance = None
 
@@ -17,6 +17,13 @@ def getRackTablesInstance():
         rtPassword = xenrt.GEC().config.lookup("RACKTABLES_DB_PASSWORD", None)
         _rackTablesInstance = RackTables(rtHost, rtDB, rtUser, rtPassword)
     return _rackTablesInstance
+
+def closeRackTablesInstance():
+    global _rackTablesInstance
+    if _rackTablesInstance:
+        _rackTablesInstance.close()
+        _rackTablesInstance = None
+    
 
 def readMachineFromRackTables(machine,kvm=False):
     global BMC_ADDRESSES

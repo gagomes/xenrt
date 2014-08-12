@@ -207,8 +207,8 @@ while (i < msgcount):
     i = i+1
 
     # (These numbers will need tweaking depending on speed of test-machine.)
-    if i % 90 == 0:
-        t = t + 2.91
+    if i % 40 == 0:
+        t = t + 5.91
         nap = t - time.time()
         if nap > 0:
             time.sleep(nap)
@@ -298,12 +298,9 @@ class TC19175(xenrt.TestCase):
         #start thread to generate logs using syslog by writing log messages to files in /var/log/
         t = _GenerateLogs(self.host)
         t.start()
-        ExpDirectories = ['/var/log/blktap/', '/var/log/installer/', '/var/log/sa/', '/var/log/samba/', '/var/log/xen/']
+        ExpDirectories = ['/var/log/blktap/', '/var/log/installer/', '/var/log/sa/', '/var/log/samba/', '/var/log/xen/', '/var/log/openvswitch/']
         OptDirectories = ['/var/log/ntpstats/', '/var/log/audit/', '/var/log/pm/']
-        DirectoriesToCheck = '/var/log /var/log/blktap /var/log/xen'
-        if self.host.special['Network subsystem type'] == "vswitch":
-            ExpDirectories.append('/var/log/openvswitch/')
-            DirectoriesToCheck += ' /var/log/openvswitch'
+        DirectoriesToCheck = '/var/log /var/log/blktap /var/log/xen /var/log/openvswitch'
 
         ActDirectories = self.host.execdom0("ls -d /var/log/*/").split("\n")[:-1]
         xenrt.TEC().logverbose("Expected Directories in /var/log %s" %(ExpDirectories))

@@ -960,7 +960,7 @@ class NSBVT(xenrt.TestCase):
         vm_name = host.genParamGet('vm', vm_uuid, 'name-label')
         guest = host.guestFactory()(vm_name, None)
         guest.distro = "debian60"
-        
+        guest.enlightenedDrivers = False
         guest.windows = False
         guest.tailored = True
         guest.existing(host)

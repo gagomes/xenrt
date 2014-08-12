@@ -11010,7 +11010,7 @@ done
             return True
 
     def installNVIDIAHostDrivers(self, reboot=True):
-        rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
+        rpmDefault="NVIDIA-vgx-xenserver-6.2-340.33.i386.rpm"
         inputDir = xenrt.TEC().lookup("INPUTDIR", default=None)
         rel = xenrt.TEC().lookup("RELEASE", default=None)
 

@@ -8778,7 +8778,7 @@ class GenericGuest(GenericPlace):
 
     def __nvidiaX64GuestDriverName(self, driverType):
         X64_SIGNED_FILENAME = "332.83_grid_win8_win7_64bit_english.exe"
-        X64_UNSIGNED_FILENAME = "WDDM_x64_332.83.zip"
+        X64_UNSIGNED_FILENAME = "WDDM_x64_340.68.zip"
 
         defaultFilename = X64_UNSIGNED_FILENAME
         if driverType == 0:
@@ -8789,7 +8789,7 @@ class GenericGuest(GenericPlace):
 
     def __nvidiaX86GuestDriverName(self, driverType):
         X86_SIGNED_FILENAME = "332.83_grid_win8_win7_english.exe"
-        X86_UNSIGNED_FILENAME = "WDDM_x86_332.83.zip"
+        X86_UNSIGNED_FILENAME = "WDDM_x86_340.68.zip"
 
         defaultFilename = X86_UNSIGNED_FILENAME
         if driverType == 0:

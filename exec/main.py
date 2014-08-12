@@ -946,7 +946,8 @@ elif config.lookup("XENRT_SITE", None) and not noloadmachines:
                 machines.append(m)
             except:
                 pass
-            
+
+xenrt.closeRackTablesInstance()
 
 # Populate the knownissues list with any issues specified in config files
 for var, varval in config.getWithPrefix("KNOWN_"):

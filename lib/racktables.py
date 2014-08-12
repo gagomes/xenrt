@@ -29,6 +29,9 @@ class RackTables:
             return None
         return res[0][0]
 
+    def close(self):
+        self.db.close()
+
 class RackTablesObject:
     def __init__(self, parent, objid, name):
         self.parent = parent

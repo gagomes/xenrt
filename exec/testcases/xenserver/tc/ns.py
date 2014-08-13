@@ -1054,6 +1054,7 @@ class NSBVT(xenrt.TestCase):
         self.configureAtsController()
         if start_vm:
             ats = self.cfg["ats"]
+            ats.enlightenedDrivers = False
             ats.start()
             time.sleep(180)
             ats.waitForSSH(300, level=xenrt.RC_ERROR, desc="Waiting for ATS vm to boot")

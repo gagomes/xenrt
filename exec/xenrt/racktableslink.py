@@ -241,22 +241,25 @@ def readMachineFromRackTables(machine,kvm=False):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
 
     # KVM (useful for DNS)
-    if kvm:
-        kvmports = [p for p in o.getPorts() if p[0] == "kvm" and p[4]]
-        if len(kvmports) > 0:
-            kvmport = kvmports[0]
-            uplinkports = [p for p in kvmport[4].getPorts() if p[4] and p[4].getType() == "KVM switch" and (kvmport[4].getType() != "KVM switch" or len(kvmport[4].getPorts()) < len(p[4].getPorts()))]
-            if len(uplinkports) > 0:
-                kvm = uplinkports[0][4]
-            else:
-                kvm = kvmport[4]
-            ips = kvm.getIPAddrs().keys()
-            if len(ips) > 0:
-                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ips[0])
-            else:
-                if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
-                    ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
-                    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+    try:
+        if kvm:
+            kvmports = [p for p in o.getPorts() if p[0] == "kvm" and p[4]]
+            if len(kvmports) > 0:
+                kvmport = kvmports[0]
+                uplinkports = [p for p in kvmport[4].getPorts() if p[4] and p[4].getType() == "KVM switch" and (kvmport[4].getType() != "KVM switch" or len(kvmport[4].getPorts()) < len(p[4].getPorts()))]
+                if len(uplinkports) > 0:
+                    kvm = uplinkports[0][4]
+                else:
+                    kvm = kvmport[4]
+                ips = kvm.getIPAddrs().keys()
+                if len(ips) > 0:
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ips[0])
+                else:
+                    if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
+                        ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
+                        xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+    except:
+        pass
                 
 
 

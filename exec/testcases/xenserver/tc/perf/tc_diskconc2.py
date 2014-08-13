@@ -338,6 +338,10 @@ Version 1.1.0
                 self.template.installLatency()
                 libsynexec.initialise_slave(self.template)
 
+            if self.distro.startswith("rhel") or self.distro.startswith("centos") or self.distro.startswith("oel"):
+                # When we clone this guest, we don't want it to remember its MAC address
+                self.template.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
             # Shutdown VM for cloning
             self.shutdown_vm(self.template)
         else:

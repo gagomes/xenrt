@@ -141,6 +141,8 @@ def usage(fd):
 
     --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
+    --make-machines                       Make all machine config files for this site
+    --make-machine <machine>              Make a single machine config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
     --shell-logs                          Open an interactive shell with logs
@@ -204,6 +206,8 @@ existing = False
 aux = False
 sanitycheck = False
 makeconfigs = False
+makemachines = False
+makemachine = None
 switchconfig = False
 doshell = False
 shelllogging = False
@@ -317,6 +321,8 @@ try:
                                       'email=',
                                       'sanity-check',
                                       'make-configs',
+                                      'make-machines',
+                                      'make-machine=',
                                       'switch-config',
                                       'shell',
                                       'shell-logs',
@@ -581,10 +587,17 @@ try:
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
+        elif flag == "--make-machines":
+            makemachines = True
+            noloadmachines = True
+            aux = True
+        elif flag == "--make-machine":
+            makemachine = value
+            noloadmachines = True
+            aux = True
         elif flag == "--switch-config":
             switchconfig = True
             aux = True
-            setvars.append(("RACKTABLES_IGNORE_MISSING_MACS", "yes"))
         elif flag == "--shell":
             doshell = True
             aux = True
@@ -894,60 +907,25 @@ for f in perfcheck:
 
 machines = []
 for machine in config.lookup("HOST_CONFIGS", {}).keys():
-    if loadmachines and machine not in loadmachines:
-        continue
     machines.append(machine)
-    if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
-        try:
-            xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-        except Exception, e:
-            xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
 
-        
-
-# Read in all machine config files
-hcfbase = config.lookup("MACHINE_CONFIGS", None)
-if not hcfbase:
-    sys.stderr.write("Could not find machine config directory.\n")
-    sys.exit(1)
-files = glob.glob("%s/*.xml" % (hcfbase))
-files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
-for filename in files:
-    r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
-    if r:
-        machine = r.group(1)
-        if loadmachines and machine not in loadmachines:
-            continue
-        machines.append(machine)
-        try:
-            config.readFromFile(filename, path=["HOST_CONFIGS", machine])
-        except:
-            sys.stderr.write("Warning: Could not read from %s\n" % filename)
-        if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+if not noloadmachines:
+    # Read in all machine config files
+    hcfbase = config.lookup("MACHINE_CONFIGS", None)
+    if not hcfbase:
+        sys.stderr.write("Could not find machine config directory.\n")
+        sys.exit(1)
+    files = glob.glob("%s/*.xml" % (hcfbase))
+    files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
+    for filename in files:
+        r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
+        if r:
+            machine = r.group(1)
+            machines.append(machine)
             try:
-                xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-            except Exception, e:
-                xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
-                
-
-if loadmachines:
-    for m in loadmachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m)
+                config.readFromFile(filename, path=["HOST_CONFIGS", machine])
             except:
-                pass
-elif config.lookup("XENRT_SITE", None) and not noloadmachines:
-    sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
-    for m in sitemachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m, kvm=shownetwork)
-                machines.append(m)
-            except:
-                pass
-
-xenrt.closeRackTablesInstance()
+                sys.stderr.write("Warning: Could not read from %s\n" % filename)
 
 # Populate the knownissues list with any issues specified in config files
 for var, varval in config.getWithPrefix("KNOWN_"):
@@ -1230,6 +1208,13 @@ if sanitycheck:
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)
     sys.exit(ret)
+
+if makemachines:
+    xenrt.infrastructuresetup.makeMachineFiles(config)
+    sys.exit(0)
+elif makemachine:
+    xenrt.infrastructuresetup.makeMachineFiles(config, makemachine)
+    sys.exit(0)
 
 if shownetwork:
     if shownetwork6:

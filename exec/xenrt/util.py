@@ -13,6 +13,7 @@ import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
 import calendar, types, fcntl, resource
 import xenrt, xenrt.ssh
 import IPy
+import xml.sax.saxutils
 from collections import namedtuple
 
 # Symbols we want to export from the package.
@@ -78,7 +79,8 @@ __all__ = ["timenow",
            "xrtCheck",
            "keepSetup",
            "getADConfig",
-           "getMarvinFile"
+           "getMarvinFile",
+           "dictToXML"
            ]
 
 def sleep(secs, log=True):
@@ -1365,3 +1367,13 @@ def getMarvinFile():
         return xenrt.TEC().getFile(marvinversion)
     else:
         return "/usr/share/xenrt/marvin-%s.tar.gz" % marvinversion
+
+def dictToXML(d, indent):
+    out = ""
+    for k in sorted(d.keys()):
+        if isinstance(d[k], dict):
+            out += "%s<%s>\n%s%s</%s>\n" % (indent, k, dictToXML(d[k], indent + "  "),indent, k)
+        else:
+            out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(d[k]), k)
+    return out
+

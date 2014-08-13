@@ -112,6 +112,7 @@ class Config:
         self.config["SITE_CONFIG_DIR"] = "${XENRT_CONF}/conf.d"
         self.config["XENRT_VERSION_CONFIG"] = "${XENRT_BASE}/VERSION"
         self.config["MACHINE_CONFIGS"] = "${XENRT_CONF}/machines"
+        self.config["MACHINE_CONFIGS_INPUT"] = "${XENRT_CONF}/machinesinput"
         self.config["SUITE_CONFIGS"] = "${XENRT_CONF}/suites"
         self.config["STARTUP_DIR"] = os.getcwd()
         self.config["LOG_DIR_BASE"] = "${STARTUP_DIR}/logs"

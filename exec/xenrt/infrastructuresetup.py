@@ -831,9 +831,72 @@ def buildCentOSNetworkConfigFiles(config):
                 f.write("VLAN=yes\n")
                 f.close()
 
+def makeMachineFiles(config, specifyMachine=None):
+    for machine in config.lookup("HOST_CONFIGS", {}).keys():
+        if specifyMachine and machine != specifyMachine:
+            continue
+        if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+            print "Loading %s from racktables" % machine
+            try:
+                xenrt.readMachineFromRackTables(machine,kvm=True)
+            except UserWarning, e:
+                xenrt.TEC().logverbose(str(e))
+    # Read in all machine config files
+    hcfbase = config.lookup("MACHINE_CONFIGS_INPUT", None)
+    if not hcfbase:
+        sys.stderr.write("Could not find machine config directory.\n")
+        sys.exit(1)
+    files = glob.glob("%s/*.xml" % (hcfbase))
+    files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
+    for filename in files:
+        r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
+        if r:
+            machine = r.group(1)
+            if specifyMachine and machine != specifyMachine:
+                continue
+            try:
+                config.readFromFile(filename, path=["HOST_CONFIGS", machine])
+            except:
+                sys.stderr.write("Warning: Could not read from %s\n" % filename)
+            if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+                print "Loading %s from racktables" % machine
+                try:
+                    xenrt.readMachineFromRackTables(machine,kvm=True)
+                except UserWarning, e:
+                    xenrt.TEC().logverbose(str(e))
+                    
+
+    if config.lookup("XENRT_SITE", None):
+        sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
+        for m in sitemachines:
+            if specifyMachine and m != specifyMachine:
+                continue
+            if m not in config.lookup("HOST_CONFIGS", {}).keys():
+                print "Loading %s from racktables" % m
+                try:
+                    xenrt.readMachineFromRackTables(m, kvm=True)
+                except UserWarning, e:
+                    xenrt.TEC().logverbose(str(e))
+
+    xenrt.closeRackTablesInstance()
+
+    hcfout = config.lookup("MACHINE_CONFIGS")
+    if specifyMachine:
+        with open("%s/%s.xml" % (hcfout, specifyMachine), "w") as f:
+            f.write(machineXML(specifyMachine))
+    else:
+        for machine in config.lookup("HOST_CONFIGS", {}).keys():
+            with open("%s/%s.xml" % (hcfout, machine), "w") as f:
+                f.write(machineXML(machine))
+
+def machineXML(machine):
+    if machine:
+        cfg = xenrt.TEC().lookup(["HOST_CONFIGS",machine],{})
+        xml = "<xenrt>\n%s</xenrt>" % xenrt.dictToXML(cfg, "  ")
+    return xml
+
 def makeConfigFiles(config, debian):
     # Read in all machine config files
-    hcfbase = config.lookup("MACHINE_CONFIGS", None)
     machines = config.lookup("HOST_CONFIGS").keys()
 
     testpeers = config.lookup("TTCP_PEERS", None)

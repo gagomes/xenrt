@@ -187,6 +187,17 @@ ifeq ($(DOWINPE),yes)
 	rm -rf $(TMP)
 endif
 
+.PHONY: machines
+machines:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machines
+endif
+
+.PHONY: machine-%
+machine-%:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machine $(patsubst machine-%,%,$@)
+endif
 
 .PHONY: files
 files:

@@ -112,6 +112,40 @@ class _VSwitch(xenrt.TestCase):
         self.peer.runCommand("netserver -p %s" % (self.PORT))
         xenrt.TEC().logverbose("Initialised netperf on peer.")
 
+    def enterMaintenanceMode(self):
+        for host in self.pool.getHosts():
+            self.pool_map.append(host)
+            host.disable()
+            # power off VMs
+            host.running_vms = []
+            for vm_name in host.listGuests(True):
+                host.running_vms.append(vm_name)
+                guest = self.getGuestFromName(vm_name)
+                guest.shutdown()
+
+    def exitMaintenanceMode(self):
+        for host in self.pool_map:
+            host.enable()
+        # bring the vms back up
+        for host in self.pool_map:
+            for vm_name in host.running_vms:
+                guest = self.getGuestFromName(vm_name)
+                guest.start()
+            host.running_vms = []
+        self.pool_map = []
+
+    def poolwideVswitchDisable(self):
+        self.enterMaintenanceMode()
+        for host in self.pool_map:
+            host.disablevswitch()
+        self.exitMaintenanceMode()
+
+    def poolwideVswitchEnable(self):
+        self.enterMaintenanceMode()
+        for host in self.pool_map:
+            host.enablevswitch()
+        self.exitMaintenanceMode()
+
     def checkNetwork(self, guests, tag):
         try:
             self.prepareGuests(guests)
@@ -177,14 +211,6 @@ class _VSwitch(xenrt.TestCase):
         xenrt.TEC().logverbose("Rebooting %s." % (host.getName()))
         self._hostOperation(host, host.reboot)
 
-    def enablevswitch(self, host):
-        xenrt.TEC().logverbose("Enabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.enablevswitch, reboot=True)
-
-    def disablevswitch(self, host):
-        xenrt.TEC().logverbose("Disabling vswitch on %s." % (host.getName()))
-        self._hostOperation(host, host.disablevswitch, reboot=True)
-
     def getGuestFromName(self, name):
         for guest in self.guests:
             if guest.getName() == name:
@@ -208,6 +234,7 @@ class _VSwitch(xenrt.TestCase):
         self.host = self.pool.master
         self.hosts = self.pool.getHosts()
         self.guests = []
+        self.pool_map=[]
         for host in self.hosts:
             self.guests = self.guests + host.guests.values()
 
@@ -227,13 +254,11 @@ class TC11398(_VSwitch):
 
     def run(self, arglist):
         self.checkNetwork(self.guests, "vswitch-before")
-        for host in self.hosts:
-            self.disablevswitch(host)
+        self.poolwideVswitchDisable()
         self.checkNetwork(self.guests, "bridge")
 
     def postRun(self):
-        for host in self.hosts:
-            self.enablevswitch(host)
+        self.poolwideVswitchEnable()
 
 class TC11399(TC11398):
     """
@@ -627,57 +652,6 @@ class TC11515(_VSwitch):
     Perform basic networking tests to ensure that the bridges are working
     """
     # storage for the state of the pool before entering maintenance mode
-    pool_map=[]
-
-    def enterMaintenanceMode(self):
-        # Put pool into maintence mode
-        # - equivalent to Maintence Mode in UI (according to Ring 3)
-        # this means that we cannot use the vSwitch en-/dis-able vSwitch interfaces
-        for host in self.pool.getHosts():
-            self.pool_map.append(host)
-            # disbale the host
-            host.disable()
-            # power off VMs
-            host.running_vms = []
-            for vm_name in host.listGuests(True):
-                # store vm in pool map
-                host.running_vms.append(vm_name)
-                # stop the running vm
-                guest = self.getGuestFromName(vm_name)
-                guest.shutdown()
-
-    def exitMaintenanceMode(self):
-        # Now bring the pool back out of maintenance mode
-        for host in self.pool_map:
-            host.enable()
-        # bring the vms back up
-        for host in self.pool_map:
-            # restart the orignal running vms
-            for vm_name in host.running_vms:
-                # start the running vm
-                guest = self.getGuestFromName(vm_name)
-                guest.start()
-            host.running_vms = []
-        # otherwise where pool is enabled and diasbled
-        # the poll map grows with each enter maintenence mode
-        self.pool_map = []
-
-    def poolwideVswitchDisable(self):
-        self.enterMaintenanceMode()
-        # so now the pool is in maintenance mode
-        # disable the vswitches
-        for host in self.pool_map:
-            host.disablevswitch()
-            #host.reboot()
-        self.exitMaintenanceMode()
-
-    def poolwideVswitchEnable(self):
-        self.enterMaintenanceMode()
-        # configure the hosts back to vswitch
-        for host in self.pool_map:
-            host.enablevswitch()
-            #host.reboot()
-        self.exitMaintenanceMode()
 
     def prepare(self, arglist):
         _VSwitch.prepare(self, arglist)

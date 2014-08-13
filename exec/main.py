@@ -921,7 +921,8 @@ if not noloadmachines:
         r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
         if r:
             machine = r.group(1)
-            machines.append(machine)
+            if not machine in machines:
+                machines.append(machine)
             try:
                 config.readFromFile(filename, path=["HOST_CONFIGS", machine])
             except:

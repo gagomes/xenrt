@@ -174,6 +174,11 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 endpoints[endpoint].append(g)
 
         self.log(None, "self.nr_vm_pairs=%s, endpoint=%s, endpoints=%s, self.endpoints_of(endpoint)=%s" % (self.nr_vm_pairs, endpoint, endpoints, self.endpoints_of(endpoint)))
+
+        if endpoint.distro.startswith("rhel") or endpoint.distro.startswith("centos") or endpoint.distro.startswith("oel"):
+            # When we clone this guest, we don't want it to remember its MAC address
+            endpoint.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
         # clone as needed
         if self.nr_vm_pairs > len(self.endpoints_of(endpoint)):
             self.shutdown_endpoint(endpoint) #required state for cloning

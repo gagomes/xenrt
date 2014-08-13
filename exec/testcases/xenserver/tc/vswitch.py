@@ -668,7 +668,7 @@ class TC11515(_VSwitch):
         # disable the vswitches
         for host in self.pool_map:
             host.disablevswitch()
-            host.reboot()
+            #host.reboot()
         self.exitMaintenanceMode()
 
     def poolwideVswitchEnable(self):
@@ -676,7 +676,7 @@ class TC11515(_VSwitch):
         # configure the hosts back to vswitch
         for host in self.pool_map:
             host.enablevswitch()
-            host.reboot()
+            #host.reboot()
         self.exitMaintenanceMode()
 
     def prepare(self, arglist):

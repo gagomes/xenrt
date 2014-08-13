@@ -239,7 +239,7 @@ time
 
     echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
     echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
-"""
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
 
         out = out+ """
 %%post
@@ -355,7 +355,7 @@ stunnel
 
     echo "# CP-8436: Load mlx4_en whenever we try to load mlx4_core" > /etc/modprobe.d/mlx4.conf
     echo "install mlx4_core /sbin/modprobe --ignore-install mlx4_core && /sbin/modprobe mlx4_en" >> /etc/modprobe.d/mlx4.conf
-"""
+""" % (self.ethdev, self.ethmac, self.ethdev, self.ethmac)
 
         out = out+ """
 %%post

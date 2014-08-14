@@ -888,11 +888,18 @@ def makeMachineFiles(config, specifyMachine=None):
         for machine in config.lookup("HOST_CONFIGS", {}).keys():
             with open("%s/%s.xml" % (hcfout, machine), "w") as f:
                 f.write(machineXML(machine))
+            files = glob.glob("%s/*.xml" % hcfout)
+        for filename in files:
+            r = re.search(r"%s/(.*)\.xml" % (hcfout), filename)
+            if r:
+                machine = r.group(1)
+                if machine not in config.lookup("HOST_CONFIGS", {}).keys():
+                    os.remove(filename)
 
 def machineXML(machine):
     if machine:
         cfg = xenrt.TEC().lookup(["HOST_CONFIGS",machine],{})
-        xml = "<xenrt>\n%s</xenrt>" % xenrt.dictToXML(cfg, "  ")
+        xml = "<xenrt>\n%s</xenrt>\n" % xenrt.dictToXML(cfg, "  ")
     return xml
 
 def makeConfigFiles(config, debian):

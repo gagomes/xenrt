@@ -4201,6 +4201,7 @@ class TCUpgradeVMMigrate(xenrt.TestCase):
             g.setDynamicMemRange(balloonMemory, balloonMemory)
 
         g.migrateVM(remote_host=newHost, remote_user="root", remote_passwd=newHost.password)
+        g.verifyGuestFunctional()
         g.uninstall()
 
     def __getMemorySize(self, memory):

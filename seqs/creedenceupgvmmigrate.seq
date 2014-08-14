@@ -18,6 +18,7 @@
   <testsequence>
     <parallel group="UpgradeVM" workers="3">
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win7sp1-x86,2G" tc="TC-21208" sku="win7sp1-x86/x86-32/2G" />
+      <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian70x64,2G" tc="TC-21208" sku="debian70/x86-64/2G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="debian60x86,2G" tc="TC-21208" sku="debian60/x86-32/2G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win8-x64,7G" tc="TC-21208" sku="win8-x64/x86-64/7G" />
       <testcase id="xenserver.tc.upgrade.TCUpgradeVMMigrate" name="win81-x64,11G" tc="TC-21208" sku="win81-x64/x86-64/11G" />

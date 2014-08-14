@@ -2242,19 +2242,34 @@ logdata call."""
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFile(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f)
+            if ret:
+                break
+        return ret
         
     def getFiles(self, *filename):
         """Look up a selection of names with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFiles(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f, multiple=True)
+            if ret:
+                break
+        return ret
 
     def fileExists(self, *filename):
         """Determine if a file exists with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.fileExists(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.fileExists(f)
+            if ret:
+                break
+        return ret
 
     def getDir(self, dirname):
         """Look up a name with the file manager."""
@@ -2262,12 +2277,16 @@ logdata call."""
 
     def setInputDir(self, dirname):
         """Set (or clear if dirname is None) a temporary INPUTDIR override."""
-        if not self.gec.filemanager:
-            raise XRTError("No filemanager object")
-        self.gec.filemanager.setInputDir(dirname)
+        if not dirname:
+            dirname = None
+        xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR", dirname, fallbackToGlobal=True)
+
+    def getInputDir(self):
+        return xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", xenrt.TEC().lookup("INPUTDIR"))
 
     def isReleasedBuild(self):
-        return self.gec.filemanager.isReleasedBuild()
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", xenrt.TEC().lookup("INPUTDIR"))
+        return "/release/" in inputDir
     
     def __str__(self):
         if self.tc:

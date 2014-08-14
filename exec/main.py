@@ -1998,6 +1998,9 @@ if powercontrol:
         powerctltype = "APCPDU"
     else:
         powerctltype = None
+    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS").keys():
+        print "Loading %s from Racktables" % powerhost
+        xenrt.readMachineFromRackTables(powerhost)
     machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
     h = xenrt.GenericHost(machine)
     machine.powerctl.setVerbose()

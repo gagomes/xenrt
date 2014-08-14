@@ -1982,6 +1982,7 @@ if bootdiskless:
 
 if bootwinpe:
     machine = xenrt.PhysicalHost(bootwinpe)
+    h = xenrt.GenericHost(machine) 
     pxe = xenrt.PXEBoot()
     winpe = pxe.addEntry("winpe", default=True, boot="memdisk")
     winpe.setInitrd("winpe/winpe.iso")

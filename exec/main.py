@@ -167,6 +167,7 @@ def usage(fd):
     --nmi <machine>                       Sent NMI to a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
+    --bootwinpe <machine>                 Boot a machine into WinPE
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
     --show-network6                       Display site IPv6 network details
@@ -245,6 +246,7 @@ powerhost = None
 poweroperation = None
 bootdiskless = False
 boothost = None
+bootwinpe = None
 ro = None
 dumpsuite = None
 listsuitetcs = None
@@ -263,7 +265,6 @@ knownissuelist = None
 knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
-loadmachines = None
 noloadmachines = False
 mconfig = None
 installguest = None
@@ -362,6 +363,7 @@ try:
                                       'nmi=',
                                       'mconfig=',
                                       'bootdiskless=',
+                                      'bootwinpe=',
                                       'perf-data=',
                                       'runon=',
                                       'check-suite=',
@@ -725,29 +727,24 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "off"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--poweron":
             powercontrol = True
             powerhost = value
             poweroperation = "on"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--powercycle":
             powercontrol = True
             powerhost = value
             poweroperation = "cycle"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--nmi":
             powercontrol = True
             powerhost = value
             poweroperation = "nmi"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--mconfig":
             mconfig = value
-            loadmachines = [value]
             aux = True
         elif flag == "--pdu":
             forcepdu = True
@@ -756,7 +753,10 @@ try:
             boothost = value
             aux = True
             verbose = True
-            loadmachines = [boothost]
+        elif flag == "--bootwinpe":
+            bootwinpe = value
+            aux = True
+            verbose = True
         elif flag == "--dump-suite":
             dumpsuite = value
             aux = True
@@ -1979,6 +1979,17 @@ if bootdiskless:
     machine = xenrt.PhysicalHost(boothost)
     h = xenrt.GenericHost(machine) 
     h.bootRamdiskLinux() 
+
+if bootwinpe:
+    machine = xenrt.PhysicalHost(bootwinpe)
+    pxe = xenrt.PXEBoot()
+    winpe = pxe.addEntry("winpe", default=True, boot="memdisk")
+    winpe.setInitrd("winpe/winpe.iso")
+    winpe.setArgs("iso raw")
+    pxe.writeOut(machine)
+    machine.powerctl.cycle()
+    xenrt.TEC().logverbose("Machine will reboot into WinPE")
+    
 
 if powercontrol:
     # Setup logdir

@@ -392,6 +392,7 @@ tftp:
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
+	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 
 .PHONY: tftp-uninstall

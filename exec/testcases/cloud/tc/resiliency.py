@@ -355,3 +355,149 @@ class TCManServerStartAfterDB(_TCManServerResiliencyBase):
 
     def recover(self):
         self.waitForCCP()
+
+class _TCHostResiliencyBase(_TCCloudResiliencyBase):
+
+    def _populateParam(self):
+
+        self._cloud = self.getDefaultToolstack()
+        self._cloudApi = self._cloud.cloudApi
+        self._hypervisors = self._cloud.getAllHypervisors()
+        self._systemVMs = self._cloudApi.listSystemVms()
+        self._clusters = self._cloudApi.listClusters()
+        self._pods = self._cloudApi.listPods()
+        xenrt.xrtAssert(len(self._pods) == 1, 'There must be 1 and only 1 pod configured for this test-case')
+
+        self._hostsInClusters = []
+        for cluster in self._clusters:
+            self._hostsInClusters.append(self._cloud.getAllHostInClusterByClusterId(cluster.id))
+
+    def _rearrangeCloud(self,hostForSystemVm,hostForInstance):
+
+        #moving all the system VMs to the given host
+        systemVMsNotOnThisHost = filter(lambda x:x.hostname != hostForSystemVm.name, self._systemVMs)
+        xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsNotOnThisHost), hostForSystemVm.name))
+        map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsNotOnThisHost)
+        self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
+
+        #creating vm instance on the other host
+        self._instance = self._cloud.createInstance(distro="debian70_x86-64",startOn = hostForInstance.name)
+
+    def outage(self,host):
+
+        raise xenrt.XRTError("Unimplemented")
+
+    def recover(self,host):
+
+        raise xenrt.XRTError("Unimplemented")
+
+    def postOutageCheck(self,host):
+
+        xenrt.sleep(900)
+        if host.state != 'Down':
+            raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % host.name)
+
+        self._cloud.healthCheck(ignoreHosts=[host])
+
+    def postRecoverCheck(self):
+
+        xenrt.sleep(900)
+        self._cloud.healthCheck()    
+
+    def _getMultipleHostCluster(self):
+
+        multipleHost = []
+        for host in self._hostsInClusters:
+            if len(host) > 1:
+                multipleHost = host
+                break
+        return multipleHost
+
+    def prepare(self,arglist):
+
+        self._populateParam()
+ 
+    def _resilliencyTest(self,xrtHost,csHost):
+
+        self.runSubcase('outage', (xrtHost), 'Outage', 'Host-%s' % (csHost.name))
+        self.runSubcase('postOutageCheck',(csHost),'PostOutageCheck','Host-%s' % (csHost.name))
+        self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
+        self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
+ 
+    def run(self,arglist):
+
+        multipleHost = []
+        multipleHost = self._getMultipleHostCluster()
+
+        h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)
+        h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)
+
+        self._rearrangeCloud(multipleHost[0],multipleHost[1])
+        self._resilliencyTest(h1,multipleHost[0]) 
+
+        self._rearrangeCloud(multipleHost[1],multipleHost[1])
+        self._resilliencyTest(h1,multipleHost[0])
+
+        self._rearrangeCloud(multipleHost[0],multipleHost[0])
+        self._resilliencyTest(h2,multipleHost[1])
+
+        self._rearrangeCloud(multipleHost[1],multipleHost[0])
+        self._resilliencyTest(h2,multipleHost[1])
+
+def TCRebootHost(_TCHostResiliencyBase):
+
+    def outage(self,host):
+
+        host.reboot()
+
+    def recover(self,host):
+
+        xenrt.TEC().logverbose("Not Required")
+        pass
+
+    def postOutageCheck(self,host):
+
+        xenrt.TEC().logverbose("Not Required")
+        pass
+ 
+def TCBlockTrafficHost(_TCHostResiliencyBase): 
+
+    def outage(self,host):
+
+        nic = host.getdefaultinterface()
+        macAddress = host.getNICMACAddress(nic)
+        host.disableNetPort(macAddress)
+
+    def recover(self,host):
+
+        nic = host.getdefaultinterface()
+        macAddress = host.getNICMACAddress(nic)
+        host.enableNetPort(macAddress)
+
+def TCShutdownHost(_TCHostResiliencyBase):
+
+    def outage(self,host):
+
+        host.poweroff()
+
+    def recover(self,host):
+
+        host.poweron()
+
+def TCXapiStopped(_TCHostResiliencyBase):
+
+    def outage(self,host):
+
+        if host.hypervisor != "XenServer":
+            msg = "This testcase is only valid for Xenserver and not for any other Hypervisor"
+            xenrt.TEC().logverbose(msg)
+            raise xenrt.XRTError(msg)
+  
+        host.execdom0("service xapi stop")
+
+    def recover(self,host):
+
+        host.execdom0("service xapi start")
+                
+
+

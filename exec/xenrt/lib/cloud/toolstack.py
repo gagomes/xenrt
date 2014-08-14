@@ -714,6 +714,16 @@ class CloudStack(object):
 
         return self.marvin.cloudApi.listHosts(type="routing")
 
+    def getAllHostInClusterByClusterId(self,clusterId):
+
+        hostsInClusters = []
+        hosts = self.getAllHypervisors()
+        for h in hosts:
+            if h.clusterid == clusterId:
+                hostsInClusters.append(h)
+
+        return hostsInClusters
+
     def _createDestroyInstance(self,host,distro=None):
 
         if not distro:
@@ -751,7 +761,7 @@ class CloudStack(object):
             xenrt.TEC().reason(reason)
             raise xenrt.XRTFailure(reason)
 
-    def _level1HealthCheck(self):
+    def _level1HealthCheck(self,ignoreHosts=None):
 
         errors = []
 
@@ -760,6 +770,10 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Checking all the host in the cloud")
         hosts = self.getAllHypervisors()
         for host in hosts:
+            if ignoreHosts:
+                for h in ignoreHosts:
+                    if host.name == h.name:
+                        continue
             if host.state != 'Up':
                 msg = 'Host %s is DOWN as per CLOUD' % host.name
                 errors.append(msg)
@@ -867,11 +881,11 @@ class CloudStack(object):
 
         return errors
 
-    def healthCheck(self):
+    def healthCheck(self,listDownHost=None):
 
         errors = []
 
-        errors = self._level1HealthCheck()
+        errors = self._level1HealthCheck(listDownHost)
         if len(errors) > 0:
             xenrt.TEC().logverbose("Level 1 Health check of Cloud has failed")
             xenrt.TEC().logverbose(errors)

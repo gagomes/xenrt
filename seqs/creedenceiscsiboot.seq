@@ -7,7 +7,6 @@
   </variables>
 
   <prepare>
-    <host id="0"/>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
     
@@ -17,7 +16,7 @@
     <serial group="iSCSIBoot">
 
       <!-- iSCSI boot disk on a SAN via Native Linux -->
-      <testcase id="testcases.xenserver.tc.install.TCISCSIBoot" name="TC20845" tc="TC-20845"/>
+      <testcase id="testcases.xenserver.tc.install.TCISCSIBoot" name="TC20845" tc="TC-20845" blocker="yes"/>
 
       <!--NFS SR tests -->
       <testcase id="testcases.xenserver.tc.install.TC20849"/>

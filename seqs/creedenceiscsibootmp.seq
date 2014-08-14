@@ -7,7 +7,6 @@
   </variables>
 
   <prepare>
-    <host id="0"/>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
     
@@ -17,7 +16,7 @@
     <serial group="iSCSIBootMP">
 
       <!-- Multipathed iSCSI boot disk on a SAN via Native Linux -->
-      <testcase id="testcases.xenserver.tc.install.TCISCSIMultipathBoot" name="TC20851" tc="TC-20851"/>
+      <testcase id="testcases.xenserver.tc.install.TCISCSIMultipathBoot" name="TC20851" tc="TC-20851" blocker="yes"/>
 
       <!-- Multipathed iSCSI SR test -->
       <testcase id="testcases.xenserver.tc.install.TC20852"/>

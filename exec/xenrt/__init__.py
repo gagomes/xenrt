@@ -1884,7 +1884,7 @@ rm -f %s
         kv = {}
         if arglist:
             for a in arglist:
-                aa = a.split("=", 2)
+                aa = a.split("=", 1)
                 if len(aa) == 1:
                     kv[aa[0]] = None
                 else:

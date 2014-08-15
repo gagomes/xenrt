@@ -1,6 +1,7 @@
 import json, os, xml.dom.minidom
 
 import xenrt
+from xenrt.lib.netscaler import NetScaler
 
 class RemoteNoseInstaller(object):
     GIT_LOCATION = "https://git-wip-us.apache.org/repos/asf/cloudstack"
@@ -62,6 +63,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+            if "netscaler" in resources:
+                netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
+                netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+                testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
+
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']
             testData['medium']['hypervisor'] = self.args['hypervisor']

@@ -88,12 +88,19 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 class TCRemoteNose(_TCRemoteNoseBase):
     def run(self, arglist):
         self.workdir = self.runner.execguest("mktemp -d /root/marvinXXXXXXXX").strip()
-        
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s -a tags=%s /root/cloudstack/%s" %
+
+        noseargs = ""
+
+        if self.args.has_key("tags"):
+            noseargs = "-a tags=%s" % self.args['tags']
+        elif self.args.has_key("args"):
+            noseargs = self.args['args']
+
+        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s %s /root/cloudstack/%s" %
                    (self.workdir,
                     self.workdir,
                     self.args['hypervisor'],
-                    self.args['tags'],
+                    noseargs,
                     self.args['file']), timeout=14400, retval="code")
 
         sftp = self.runner.sftpClient()

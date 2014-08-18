@@ -3,9 +3,11 @@
   <!-- Long Haul test sequence -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
-
+  <scheduler>
+    <resources>memory&gt;=12G</resources>
+  </scheduler>
   <prepare>
     <host>
       <vm name="VM">

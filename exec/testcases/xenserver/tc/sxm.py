@@ -1689,6 +1689,19 @@ class DestSesDownDuringMig(MidMigrateFailure):
     def hook(self):
 
         self.observers[0].closeDestHostSession() 
+        
+class InsuffMemoryForLiveVDI(LiveMigrate):
+
+    def preHook(self):
+        LiveMigrate.preHook(self)
+        host = self.test_config['host_A']
+        
+        xenrt.TEC().logverbose("Configuring %s so that it has memory left in host is almost equal to the ram of the VM ,which I want to migrate" % (host.getName()))        
+        freemem = host.getFreeMemory()
+        freemem = freemem - 256        
+        g = host.createGenericLinuxGuest(start=False , memory=freemem)
+        self.uninstallOnCleanup(g)
+        g.start()
        
 class InsuffSpaceDestSR(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated

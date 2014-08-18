@@ -2621,9 +2621,6 @@ class VMRevertedToSnapshot(LiveMigrate):
         vm = self.guests[0]
         snapUUID = vm.snapshot()
         vm.revert(snapUUID)
-        if vm.windows:
-            vm.waitForDaemon(180, desc="Guest boot after revert to snapshot")
-        else:
-            vm.waitForSSH(180, desc="Guest boot after revert to snapshot")
+        vm.start()
         self.vm_config[vm.getName()]['snapshot'] = snapUUID
 

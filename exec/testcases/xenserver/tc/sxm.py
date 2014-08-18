@@ -2612,3 +2612,18 @@ class ConcurrentVMMigrate2(LiveMigrate):
 
         return
 
+class VMRevertedToSnapshot(LiveMigrate):
+    """Verifying Cross Pool Storage Migration with a VM that has been reverted to a snapshot"""
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+        vm = self.guests[0]
+        snapUUID = vm.snapshot()
+        vm.revert(snapUUID)
+        if vm.windows:
+            vm.waitForDaemon(180, desc="Guest boot after revert to snapshot")
+        else:
+            vm.waitForSSH(180, desc="Guest boot after revert to snapshot")
+        self.vm_config[vm.getName()]['snapshot'] = snapUUID
+

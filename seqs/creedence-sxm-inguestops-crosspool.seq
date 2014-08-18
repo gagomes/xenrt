@@ -53,6 +53,7 @@
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvm</arg>
       </testcase>
+      <testcase id="xenserver.tc.sxm.VMRevertedToSnapshot" name="TC21673" tc="TC-21673" />
       <testcase id="xenserver.tc.sxm.VMWithSnapshotUsingXE" name="TC20838" tc="TC-20838">
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvm</arg>

@@ -5,7 +5,9 @@
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
   </variables>
-
+  <scheduler>
+    <resources>memory&gt;=12G/memory&lt;=16G</resources>
+  </scheduler>
   <prepare>
     <host>
       <vm name="VM">

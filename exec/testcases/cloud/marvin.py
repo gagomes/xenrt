@@ -67,6 +67,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
                 testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
+                testData['netscaler_VPX']['privateinterface'] = '1/1'
 
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']

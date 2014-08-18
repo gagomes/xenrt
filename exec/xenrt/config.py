@@ -52,7 +52,7 @@ class Config:
         self.config["GUESTFILE_BASE_PATH"] = "/local/scratch/guestfiles"
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
-        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache"
+        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache2"
         self.config["CLEANUP_FLAGS_PATH"] = "/local/scratch/cleanup"
         self.config["RESOURCE_LOCK_DIR"] = "${NFS_BASE_PATH}/locks"
         self.config["DB_BUFFER_DIR"] = "${NFS_BASE_PATH}/dbconnect"

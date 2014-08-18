@@ -955,7 +955,7 @@ if not remote:
         remote = True
 
 # Select a suitable file manager
-gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+gec.filemanager = xenrt.filemanager.getFileManager()
 
 #############################################################################
 def existingHost(hostname):
@@ -1564,7 +1564,7 @@ if replaydb:
 if cleanupfilecache:
     xenrt.TEC().logverbose("Cleaning shared file cache...")
     days = xenrt.TEC().lookup("FILECACHE_EXPIRY_DAYS", None)
-    rfm = xenrt.filemanager.RemoteFileManager()
+    rfm = xenrt.getFileManager()
     if days:
         rfm.cleanup(days=int(days))
     else:
@@ -2461,7 +2461,7 @@ else:
     # one then recreate the filemanager
     inputdir2 = xenrt.TEC().lookup("INPUTDIR", None)
     if inputdir1 != inputdir2 and not inputdir1:
-        gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+        gec.filemanager = xenrt.filemanager.getFileManager()
     if seqdump:
         if seq.prepare:
             seq.prepare.debugDisplay()

@@ -966,8 +966,10 @@ class PrepareNode:
                 return i
             i += 1
 
-    def __minAvailableHost(self):
-        return str(self.__minAvailable([int(x['id']) for x in self.hosts]))
+    def __minAvailableHost(self, additionalHosts=[]):
+        hosts = [int(x['id']) for x in self.hosts]
+        hosts.extend(additionalHosts)
+        return str(self.__minAvailable(hosts))
 
     def __minAvailablePool(self):
         return str(self.__minAvailable([int(x['id']) for x in self.pools]))
@@ -1020,9 +1022,12 @@ class PrepareNode:
                             simplePoolNode = xml.dom.minidom.Element('pool')
                             poolId = self.__minAvailablePool()
                             simplePoolNode.setAttribute('id', poolId)
+                            poolHosts = []
                             for h in xrange(cluster['XRT_Hosts']):
                                 simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', self.__minAvailableHost())
+                                hostId = self.__minAvailableHost(poolHosts)
+                                poolHosts.append(hostId)
+                                simpleHostNode.setAttribute('id', hostId)
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simplePoolNode.appendChild(simpleHostNode)
 

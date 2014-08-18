@@ -1026,7 +1026,7 @@ class PrepareNode:
                             for h in xrange(cluster['XRT_Hosts']):
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 hostId = self.__minAvailableHost(poolHosts)
-                                poolHosts.append(hostId)
+                                poolHosts.append(int(hostId))
                                 simpleHostNode.setAttribute('id', hostId)
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simplePoolNode.appendChild(simpleHostNode)

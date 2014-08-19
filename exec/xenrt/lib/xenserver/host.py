@@ -11106,7 +11106,11 @@ done
 
         if xenrt.TEC().lookup("FORCE_NON_DEBUG_XEN", None):
             self.assertNotRunningDebugXen()
-     
+
+        if self.getName() == "capelin":
+            xenrt.TEC().logverbose("Machine is capelin")
+            self.execdom0('echo "options bnx2x debug=0x100032" > /etc/modprobe.d/bnx2x')
+
     def postInstall(self):
         TampaHost.postInstall(self)
         #CP-6193: Verify check for XenRT installation cookie

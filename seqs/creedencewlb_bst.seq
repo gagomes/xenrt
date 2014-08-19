@@ -44,6 +44,7 @@
       <testcase id="xenserver.tc.kirkwood.TC13484"/>
       <testcase id="xenserver.tc.kirkwood.TC18154"/>
       <testcase id="xenserver.tc.kirkwood.TC18157"/>
+      <testcase id="xenserver.tc.kirkwood.TC22156"/>
     </serial>
   </testsequence>
 

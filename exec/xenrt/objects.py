@@ -23,7 +23,7 @@ from xenrt.linuxanswerfiles import *
 #Dummy import of _strptime module
 #This is done to import this module before the threads do this - which causes CA-137801 - because _strptime is not threadsafe
 time.strptime('2014-06-12','%Y-%m-%d')
-#End dummy import 
+#End dummy import
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
@@ -31,7 +31,7 @@ __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "produc
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
-    
+
     # Borrowed from python 2.6 library
     def connect(self):
         """Connect to the host and port specified in __init__."""
@@ -99,7 +99,7 @@ class MyImpatientTrans(xmlrpclib.Transport):
     @xenrt.irregularName
     def make_connection(self, host):
         # create a HTTP connection object from a host descriptor
-        host, extra_headers, x509 = self.get_host_info(host) 
+        host, extra_headers, x509 = self.get_host_info(host)
         if transportCompatMode():
             return MyImpatientHTTP(host)
         else:
@@ -111,7 +111,7 @@ class MyPatientTrans(xmlrpclib.Transport):
     @xenrt.irregularName
     def make_connection(self, host):
         # create a HTTP connection object from a host descriptor
-        host, extra_headers, x509 = self.get_host_info(host) 
+        host, extra_headers, x509 = self.get_host_info(host)
         if transportCompatMode():
             return MyPatientHTTP(host)
         else:
@@ -137,7 +137,7 @@ def productLib(productType=None, host=None, hostname=None):
 class GenericPlace:
 
     LINUX_INTERFACE_PREFIX = "eth"
-    
+
     def __init__(self):
         self.password = None
         self.guestconsolelogs = None
@@ -155,7 +155,7 @@ class GenericPlace:
         self.host = None
         self.memory = None
         self.vcpus = None
-        
+
     def populateSubclass(self, x):
         x.password = self.password
         x.guestconsolelogs = self.guestconsolelogs
@@ -303,12 +303,12 @@ class GenericPlace:
                 return int(self.execcmd("date -d "
                                         "\"`last reboot -n 1 -R | "
                                         "head -n 1 | "
-                                        "cut -d \" \" -f 7-10`\" +%s").strip()) 
+                                        "cut -d \" \" -f 7-10`\" +%s").strip())
         except Exception, e:
             self.checkHealth()
             raise
 
-        
+
     def getLastShutdownTime(self):
         try:
             if self.windows:
@@ -327,10 +327,10 @@ class GenericPlace:
                     withyear = [ x + " %s" % (year) for x in stimes ]
                     # Convert to times.
                     dformat = "%b %d %H:%M:%S %Y"
-                    times = [ time.strptime(x, dformat) for x in withyear ] 
+                    times = [ time.strptime(x, dformat) for x in withyear ]
                     times = [ time.mktime(x) for x in times ]
                     # Return most recent shutdown.
-                    return max(times) 
+                    return max(times)
                 except:
                     return None
         except Exception, e:
@@ -432,7 +432,7 @@ class GenericPlace:
                             return
                         except:
                             pass
-        
+
     def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
                    username="root", cmd="true"):
         now = xenrt.util.timenow()
@@ -521,7 +521,7 @@ class GenericPlace:
             trans = MyPatientTrans()
         else:
             trans = MyTrans()
-            
+
         ip = IPy.IP(self.getIP())
         url = ""
         if ip.version() == 6:
@@ -529,7 +529,7 @@ class GenericPlace:
         else:
             url = 'http://%s:8936'
         return xmlrpclib.ServerProxy(url % (self.getIP()),
-                                     transport=trans, 
+                                     transport=trans,
                                      allow_none=True)
 
     def xmlrpcUpdate(self):
@@ -557,7 +557,7 @@ class GenericPlace:
         """Use the test execution daemon to shutdown the guest"""
         xenrt.TEC().logverbose("Shutting down %s" % (self.getIP()))
         self._xmlrpc().shutdown()
-        
+
     def xmlrpcReboot(self):
         """Use the test execution daemon to reboot the guest"""
         xenrt.TEC().logverbose("Rebooting %s" % (self.getIP()))
@@ -611,7 +611,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-        
+
 
     def xmlrpcPoll(self, ref, retries=1):
         """Returns True if the command has completed."""
@@ -671,7 +671,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-        
+
     def xmlrpcExec(self, command, level=xenrt.RC_FAIL, desc="Remote command",
                    returndata=False, returnerror=True, returnrc=False,
                    timeout=300, ignoredata=False, powershell=False,ignoreHealthCheck=False):
@@ -780,7 +780,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcGetTime(self):
         xenrt.TEC().logverbose("GetTime on %s" % (self.getIP()))
         try:
@@ -791,7 +791,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcGetEnvVar(self, var):
         xenrt.TEC().logverbose("GetEnvVar %s on %s" % (var, self.getIP()))
         try:
@@ -799,7 +799,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
- 
+
     def xmlrpcUnpackTarball(self, tarball, dest, patient=False):
         xenrt.TEC().logverbose("UnpackTarball %s to %s on %s" %
                                (tarball, dest, self.getIP()))
@@ -808,7 +808,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcTempDir(self, suffix="", prefix="", path=None, patient=False):
         xenrt.TEC().logverbose("TempDir on %s" % (self.getIP()))
         try:
@@ -857,7 +857,7 @@ class GenericPlace:
                 else:
                     self.checkHealth()
                     raise
-    
+
     def xmlrpcBigdump(self, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("Bugdump on %s" % (self.getIP()))
         try:
@@ -870,7 +870,7 @@ class GenericPlace:
             if not ignoreHealthCheck:
                 self.checkHealth()
             raise
-    
+
     def xmlrpcSha1Sum(self, filename, patient=False):
         xenrt.TEC().logverbose("Sha1Sum on %s" % (self.getIP()))
         try:
@@ -912,7 +912,7 @@ class GenericPlace:
             if not ignoreHealthCheck:
                 self.checkHealth()
             raise
-        
+
     def xmlrpcReadFile(self, filename, patient=False, ignoreHealthCheck=False):
         try:
             xenrt.TEC().logverbose("Fetching file %s from %s via daemon" %
@@ -993,10 +993,10 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcGetCPUs(self):
         xenrt.TEC().logverbose("GetCPUs on %s" % (self.getIP()))
-        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
         try:
             return self._xmlrpc(patient=patient).getCPUs()
         except Exception, e:
@@ -1020,7 +1020,7 @@ class GenericPlace:
         if float(self.xmlrpcWindowsVersion()) < 6.0:
             raise xenrt.XRTError("N/A for NT kernel < 6.0")
         xenrt.TEC().logverbose("GetCPUCores on %s" % (self.getIP()))
-        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
         try:
             return self._xmlrpc(patient=patient).getCPUCores()
         except Exception, e:
@@ -1032,13 +1032,13 @@ class GenericPlace:
         if float(self.xmlrpcWindowsVersion()) < 6.0:
             raise xenrt.XRTError("N/A for NT kernel < 6.0")
         xenrt.TEC().logverbose("GetCPUVCPUs on %s" % (self.getIP()))
-        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True) 
+        patient = xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True)
         try:
             return self._xmlrpc(patient=patient).getCPUVCPUs()
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcPartition(self, disk):
         xenrt.TEC().logverbose("Partition %s on %s" % (disk, self.getIP()))
         try:
@@ -1055,7 +1055,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-   
+
     def xmlrpcAssign(self, disk):
         xenrt.TEC().logverbose("Assign %s on %s" % (disk, self.getIP()))
         try:
@@ -1092,15 +1092,15 @@ class GenericPlace:
                                  "attributes disk clear readonly\n"
                                  "online disk noerr" % (o))
             self.xmlrpcExec("diskpart /s c:\\online.txt")
-    
-        
+
+
     def xmlrpcFormat(self, letter, fstype="ntfs", timeout=1200, quick=False):
         cmd = self.xmlrpcWindowsVersion() == "5.0" \
               and "echo y | format %s: /fs:%s" \
               or "format %s: /fs:%s /y"
         cmd = quick and cmd + " /q" or cmd
         self.xmlrpcExec(cmd % (letter, fstype), timeout=timeout)
-   
+
     def xmlrpcSendFile(self, localfilename, remotefilename, usehttp=None, ignoreHealthCheck=False):
         if usehttp == None:
             # If the file is larger than 4MB default to using HTTP fetch,
@@ -1258,7 +1258,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcDoSysprep(self):
         xenrt.TEC().logverbose("Sysprep on %s" % (self.getIP()))
         try:
@@ -1274,7 +1274,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcCreateFile(self, filename, data):
         xenrt.TEC().logverbose("CreateFile %s on %s" % (filename, self.getIP()))
         try:
@@ -1282,7 +1282,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-        
+
     def xmlrpcRemoveFile(self, filename, patient=False, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("RemoveFile %s on %s" % (filename, self.getIP()))
         try:
@@ -1300,7 +1300,7 @@ class GenericPlace:
         except Exception, e:
             self.checkHealth()
             raise
-    
+
     def xmlrpcAddBootFlag(self, flag):
         xenrt.TEC().logverbose("AddBootFlag %s on %s" % (flag, self.getIP()))
         try:
@@ -1360,7 +1360,7 @@ class GenericPlace:
 
     def winRegLookup(self, hive, key, name, healthCheckOnFailure=True, suppressLogging=False):
         """Look up a Windows registry value."""
-        
+
         if not suppressLogging:
             xenrt.TEC().logverbose("Registry lookup: %s %s %s" % (hive, key, name))
         try:
@@ -1400,20 +1400,20 @@ class GenericPlace:
             raise
 
     def disableReceiverMaxProto(self):
-        
+
         try:
             self.winRegDel("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters", "ReceiverMaximumProtocol")
         except:
             xenrt.TEC().logverbose("winRegDel fails post Clearwater")
-            
+
         self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters", "ReceiverMaximumProtocol", "DWORD", 0)
-        
+
     def getReceiverMaxProtocol(self):
-        
+
         return self.winRegLookup('HKLM', 'SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters', 'ReceiverMaximumProtocol')
 
     def joinDomain(self, adserver):
-        primarynic = filter(lambda (a,(b,c,d)):d == self.host.getPrimaryBridge(), 
+        primarynic = filter(lambda (a,(b,c,d)):d == self.host.getPrimaryBridge(),
                             self.getVIFs().items())[0]
         self.configureDNS(primarynic[0], adserver.place.getIP())
         self.reboot()
@@ -1445,7 +1445,7 @@ JOIN_DOMAIN)
         self.xmlrpcDelTree(t)
         self.reboot()
 
-    def leaveDomain(self, adserver): 
+    def leaveDomain(self, adserver):
         script = r"""
 strPassword = "%s"
 strUser = "%s"
@@ -1473,27 +1473,27 @@ strDomain & "\" & strUser, NULL)
         self.xmlrpcExec("cacls c:\\execdaemon.py /E /G %s:F" % (user.name))
         # Give everyone read-write permissions for the auto-logon keys.
         t = self.xmlrpcTempDir()
-        self.xmlrpcWriteFile("%s\\regperm.txt" % (t), 
+        self.xmlrpcWriteFile("%s\\regperm.txt" % (t),
                              "\\Registry\\Machine\\software\\microsoft\\windows nt\\"
                              "currentversion\\winlogon [1 5 9]")
         self.xmlrpcExec("regini %s\\regperm.txt" % (t))
         self.xmlrpcDelTree(t)
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "software\\microsoft\\windows nt\\currentversion\\winlogon",
                        "DefaultUserName",
                        "SZ",
                         user.name)
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "software\\microsoft\\windows nt\\currentversion\\winlogon",
                        "DefaultPassword",
                        "SZ",
                         user.password)
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "software\\microsoft\\windows nt\\currentversion\\winlogon",
                        "AutoAdminLogon",
                        "SZ",
                        "1")
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "software\\microsoft\\windows nt\\currentversion\\winlogon",
                        "DefaultDomainName",
                        "SZ",
@@ -1512,10 +1512,10 @@ strDomain & "\" & strUser, NULL)
                             (string.join(netshargs)))
             data = self.getWindowsIPConfigData()
             if not data[device]["DNS Servers"] == server:
-                raise xenrt.XRTFailure("DNS server not set. (%s != %s)" % 
+                raise xenrt.XRTFailure("DNS server not set. (%s != %s)" %
                                        (server, data[device]["DNS Servers"]))
 
-    def configureNetwork(self, device, 
+    def configureNetwork(self, device,
                          ip=None, netmask=None, gateway=None, metric=None):
         device = str(device).strip(self.vifstem)
         device = "%s%s" % (self.vifstem, device)
@@ -1523,7 +1523,7 @@ strDomain & "\" & strUser, NULL)
             device = self.getWindowsInterface(device)
             netshargs = []
             netshargs.append('name="%s"' % (device))
-            if not ip: 
+            if not ip:
                 netshargs.append("source=dhcp")
             else:
                 netshargs.append("source=static")
@@ -1568,7 +1568,7 @@ strDomain & "\" & strUser, NULL)
                     raise xenrt.XRTError("Gateway not set correctly on %s. (%s, %s)" %
                                          (device, data[device]["Default Gateway"], gateway))
             default, routes = self.getWindowsRouteData()
-            if gateway:            
+            if gateway:
                 gwroutes = filter(lambda x:x["destination"] == "0.0.0.0", routes)
                 gwrecord = filter(lambda x:x["interface"] == ip, gwroutes)
                 if not gwrecord:
@@ -1592,10 +1592,10 @@ strDomain & "\" & strUser, NULL)
                 raise xenrt.XRTError("Setting IP failed: No such device.")
             data = self.getLinuxIFConfigData()
             if not data[device]["IP"] == ip:
-                raise xenrt.XRTError("Failed to set IP on %s. (%s, %s)" % 
+                raise xenrt.XRTError("Failed to set IP on %s. (%s, %s)" %
                                      (device, data[device]["IP"], ip))
             if not data[device]["netmask"] == netmask:
-                raise xenrt.XRTError("Failed to set netmask on %s. (%s, %s)" % 
+                raise xenrt.XRTError("Failed to set netmask on %s. (%s, %s)" %
                                      (device, data[device]["netmask"], netmask))
 
     def getSectionedConfig(self, cmd, secpatt, fieldpatt):
@@ -1608,13 +1608,13 @@ strDomain & "\" & strUser, NULL)
         xenrt.TEC().logverbose("""Get configuration by command "%s":
 %s""" % (cmd, config))
         return config
-            
+
     def getWindowsRouteData(self):
         ROUTE = r"\s+(?P<destination>[0-9\.]+)" + \
                  "\s+(?P<netmask>[0-9\.]+)" + \
                  "\s+(?P<gateway>[0-9\.]+)" + \
                  "\s+(?P<interface>[0-9\.]+)" + \
-                 "\s+(?P<metric>[0-9\.]+)" 
+                 "\s+(?P<metric>[0-9\.]+)"
         DEFAULT = r"Default Gateway:\s+(?P<default>[0-9\.]+)"
 
         routes = []
@@ -1623,7 +1623,7 @@ strDomain & "\" & strUser, NULL)
         if default: default = default.group("default")
         for m in re.finditer(ROUTE, data):
             groups = re.compile(ROUTE).groupindex.keys()
-            routes.append(dict([ (x, m.group(x)) for x in groups ]))    
+            routes.append(dict([ (x, m.group(x)) for x in groups ]))
         return (default, routes)
 
     def getInterfaceForDestination(self, address):
@@ -1677,13 +1677,13 @@ strDomain & "\" & strUser, NULL)
         FIELDPATT = '\s+([^\.:]+)(?:\.\ )+:(.*\n(?:(?:[^:]+\n)*))'
         result = self.xmlrpcExec("ipconfig /all", returndata=True)
         config = xenrt.util.parseSectionedConfig(result, SECPATT, FIELDPATT)
-        
+
         output = {}
         for net in config.keys():
             k = re.sub('.*adapter ', '', net)
             xenrt.TEC().logverbose("%s=%s" % (k, str(config[net])))
             output[k] = config[net]
-        
+
         return output
 
     def getWindowsNetshConfig(self, cmd):
@@ -1691,7 +1691,7 @@ strDomain & "\" & strUser, NULL)
         FIELDPATT = '\s*([^:\n]+)(?:\n|:\s*(.*\n?(?:\s*\d[^:]+\n)*)?)'
         result = self.xmlrpcExec(cmd, returndata=True)
         return xenrt.util.parseSectionedConfig(result, SECPATT, FIELDPATT)
-    
+
     def getWindowsInterface(self, device):
         device = str(device).strip(self.vifstem)
         vifs = self.getVIFs()
@@ -1702,9 +1702,9 @@ strDomain & "\" & strUser, NULL)
             if data[key].has_key("Physical Address"):
                 physical = re.sub("-", ":", data[key]["Physical Address"])
                 if xenrt.normaliseMAC(physical) == mac: return key
-        raise xenrt.XRTError("Couldn't find %s%s in ipconfig output." % 
+        raise xenrt.XRTError("Couldn't find %s%s in ipconfig output." %
                              (self.vifstem, device))
-           
+
     def buildProgram(self, prog):
         """Build a program in the guest"""
         if self.windows:
@@ -1765,7 +1765,7 @@ strDomain & "\" & strUser, NULL)
         self.xmlrpcExtractTarball("c:\\%s.tgz" % (cd), destination)
         try:
             self.xmlrpcRemoveFile("c:\\%s.tgz" % (cd))
-        except: 
+        except:
             pass
 
     def getCDLocal(self, testspath, destination):
@@ -1795,7 +1795,7 @@ strDomain & "\" & strUser, NULL)
             mountpoint = iso.getMount()
             f = xenrt.TEC().tempFile()
             xenrt.util.command("tar -zcf %s -C %s ." % (f, mountpoint))
-            self.xmlrpcSendFile(f, remotetemp, usehttp=True)            
+            self.xmlrpcSendFile(f, remotetemp, usehttp=True)
         finally:
             try:
                 iso.unmount()
@@ -1807,7 +1807,7 @@ strDomain & "\" & strUser, NULL)
             try:
                 self.xmlrpcRemoveFile(remotetemp)
             except:
-                pass        
+                pass
     def installCVSM2230Workaround(self):
         """Install the work-around for CVSM-2230: redist not installed via silent install"""
         vcredist_loc = xenrt.TEC().lookup("CVSM_INPUTDIR", None)
@@ -1825,10 +1825,10 @@ strDomain & "\" & strUser, NULL)
         """Install the CVSM service on a Windows VM."""
         cvsmiso = None
         cvsmver = xenrt.TEC().lookup("CVSM_VERSION", None)
-        
+
         # Using Workaround CVSM2230
         self.installCVSM2230Workaround()
-        
+
         if cvsmver:
             cvsmiso = xenrt.TEC().getFile("%s/storagelink-retail-%s.iso" %
                                           (xenrt.TEC().lookup("CVSM_INPUTDIR"),
@@ -1837,7 +1837,7 @@ strDomain & "\" & strUser, NULL)
                 cvsmiso = xenrt.TEC().getFile("%s/storagelink-%s.iso" %
                                               (xenrt.TEC().lookup("CVSM_INPUTDIR"),
                                                cvsmver))
-                
+
         if not cvsmiso:
             cvsmiso = xenrt.TEC().getFile("%s/storagelink.iso" %
                                           (xenrt.TEC().lookup("CVSM_INPUTDIR")))
@@ -1868,7 +1868,7 @@ strDomain & "\" & strUser, NULL)
                     raise xenrt.XRTError(\
                         "File not found on StorageLink CD: %s" % (relpath))
                 self.xmlrpcSendFile("%s/%s" % (mountpoint, relpath), rempath)
-            
+
                 try:
                     self.xmlrpcExec("%s /S" % (rempath))
                 except Exception, e:
@@ -1879,10 +1879,10 @@ strDomain & "\" & strUser, NULL)
                 ls = self.getV6LicenseServer()
                 ls.addLicense("CVSM2")
                 xenrt.sleep(60)
-                
+
             # need to install additional certs as of 19/01/2012
             # http://support.citrix.com/article/CTX131994
-            
+
             if service:
                 self.xmlrpcUnpackTarball("%s/cvsm.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
                 self.xmlrpcExec('copy /Y c:\\cvsm\\* "C:\\Program Files\\Citrix\\StorageLink\\Server\\"')
@@ -1891,10 +1891,10 @@ strDomain & "\" & strUser, NULL)
             elif cli:
                 self.xmlrpcUnpackTarball("%s/cvsm.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
                 self.xmlrpcExec('copy /Y c:\\cvsm\\* "C:\\Program Files\\Citrix\\StorageLink\\Client\\"')
-            
+
         finally:
             mount.unmount()
-    
+
     def installCVSMCLI(self):
         """Install the CVSM CLI on a Windows VM."""
         self.installCVSM(service=False, cli=True)
@@ -1906,13 +1906,13 @@ strDomain & "\" & strUser, NULL)
         if self.xmlrpcGetArch() == "amd64":
             installer = "WorkloadBalancingx64.msi"
         else:
-            installer = "WorkloadBalancing.msi"        
+            installer = "WorkloadBalancing.msi"
         kirkwood = xenrt.TEC().getFile(\
             "%s/%s/%s" % (xenrt.TEC().lookup("WLB_INPUTDIR"),
                           xenrt.TEC().lookup("WLB_VERSION"),
                           installer))
-            
-        self.xmlrpcSendFile(kirkwood, "c:\\%s" % (installer))       
+
+        self.xmlrpcSendFile(kirkwood, "c:\\%s" % (installer))
 
         try:
             self.xmlrpcExec('msiexec /package c:\\%s '
@@ -1934,32 +1934,32 @@ strDomain & "\" & strUser, NULL)
                             'TARGETDIR="C:\\" '
                             'INSTALLDIR="C:\\Program Files\\Citrix\\WLB" '
                             'ADDLOCAL="All"' %
-                            (installer, 
-                             self.xmlrpcGetEnvVar("COMPUTERNAME"), 
+                            (installer,
+                             self.xmlrpcGetEnvVar("COMPUTERNAME"),
                              self.xmlrpcGetEnvVar("COMPUTERNAME")))
         finally:
             self.xmlrpcGetFile2("c:\\wlb.txt", "%s/wlb-install.txt" % (xenrt.TEC().getLogdir()))
-        self.xmlrpcExec("netsh firewall set portopening TCP 8012 WLB")       
+        self.xmlrpcExec("netsh firewall set portopening TCP 8012 WLB")
 
     def installSQLServer2005CompatibilityPack(self):
         """Install SQL Server 2005 compatibility pack."""
-        self.xmlrpcUnpackTarball("%s/sqlcomp.tgz" % 
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+        self.xmlrpcUnpackTarball("%s/sqlcomp.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
-        if self.xmlrpcGetArch() == "amd64":  
+        if self.xmlrpcGetArch() == "amd64":
             self.xmlrpcExec("c:\\sqlcomp\\SQLServer2005_BC_x64.msi /quiet /norestart",
                              timeout=3600)
         else:
             self.xmlrpcExec("c:\\sqlcomp\\SQLServer2005_BC.msi /quiet /norestart",
                              timeout=3600)
-        self.reboot()    
+        self.reboot()
 
     def installSQLServer2005(self, extraArgs=""):
         """Install SQL Server 2005 Express."""
         self.installDotNet2()
         self.installWindowsInstaller()
-        self.xmlrpcUnpackTarball("%s/sqlserver.tgz" % 
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+        self.xmlrpcUnpackTarball("%s/sqlserver.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
         exe = self.xmlrpcGetArch() ==  "amd64" and "sqlexpr.exe" or "sqlexpr32.exe"
         self.xmlrpcExec(("c:\\sqlserver\\%s -q /norebootchk "
@@ -1997,12 +1997,12 @@ strDomain & "\" & strUser, NULL)
 
     def installWindowsNFSClient(self):
         """Installs a Windows NFS client. Requires Win2008R2 or Win7 Ultimate"""
-        
+
         self.xmlrpcExec("start /w ocsetup ServicesForNFS-ClientOnly")
         self.xmlrpcExec("start /w ocsetup ClientForNFS-Infrastructure")
-    
+
     def installPVSServer(self):
-        """Install PVS server program."""        
+        """Install PVS server program."""
         self._installPVS("Server", "PVS_Server")
 
     def installPVSClient(self):
@@ -2014,13 +2014,13 @@ strDomain & "\" & strUser, NULL)
 
     def installKB932532(self):
         """Install Windows update KB932532."""
-        self.xmlrpcUnpackTarball("%s/kb932532.tgz" % 
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+        self.xmlrpcUnpackTarball("%s/kb932532.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
         if not self.xmlrpcWindowsVersion() == "5.2":
             xenrt.TEC().logverbose("This update only applies to Windows 2003.")
             return
-        if self.xmlrpcGetArch() == "amd64":  
+        if self.xmlrpcGetArch() == "amd64":
             self.xmlrpcExec("c:\\kb932532\\WindowsServer2003.WindowsXP-KB932532-x64-ENU.exe "
                             "/quiet /norestart",
                              timeout=3600, returnerror=False)
@@ -2032,11 +2032,11 @@ strDomain & "\" & strUser, NULL)
 
     def installWindowsInstaller(self):
         """Install Windows Installer 4.5."""
-        self.xmlrpcUnpackTarball("%s/wininstaller.tgz" % 
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+        self.xmlrpcUnpackTarball("%s/wininstaller.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
         if self.xmlrpcWindowsVersion() == "6.0":
-            if self.xmlrpcGetArch() == "amd64":  
+            if self.xmlrpcGetArch() == "amd64":
                 self.xmlrpcExec("c:\\wininstaller\\Windows6.0-KB942288-v2-x64.msu /quiet /norestart",
                                  timeout=3600, returnerror=False)
             else:
@@ -2048,7 +2048,7 @@ strDomain & "\" & strUser, NULL)
             self.xmlrpcExec("c:\\wininstaller\\WindowsXP-KB942288-v3-x86.exe /quiet /norestart",
                             timeout=3600, returnerror=False)
         else:
-            if self.xmlrpcGetArch() == "amd64":  
+            if self.xmlrpcGetArch() == "amd64":
                 self.xmlrpcExec("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x64.exe /quiet /norestart",
                                  timeout=3600, returnerror=False)
             else:
@@ -2062,7 +2062,7 @@ strDomain & "\" & strUser, NULL)
         self.getCD("w2k3eesp1_ddk.iso", "c:\\ddk")
         self.xmlrpcExec("c:\\ddk\\x86\\kitsetup.exe /d%s "
                         "/g\"Build Environment\" "
-                        "/g\"Network Samples\"" % (ddkLocation), 
+                        "/g\"Network Samples\"" % (ddkLocation),
                          timeout=7200)
 
     def compileWindowsProgram(self, source):
@@ -2074,9 +2074,9 @@ strDomain & "\" & strUser, NULL)
 call %s\\bin\\setenv.bat %s fre WNET
 cd %s
 build -nmake "/f %s\\bin\\makefile.new"
-""" % (ddkpath, ddkpath, build, ddkpath)    
+""" % (ddkpath, ddkpath, build, ddkpath)
         self.xmlrpcExec(script)
-        return "%s\\i386" % (build) 
+        return "%s\\i386" % (build)
 
     def installJava(self):
         """Install Java into a Windows XML-RPC guest"""
@@ -2094,14 +2094,14 @@ build -nmake "/f %s\\bin\\makefile.new"
                             usehttp=True)
         self.xmlrpcExec("c:\\%s /s /v\"/qn\"" % (os.path.basename(exe)), timeout=3600)
 
-        if self.xmlrpcGetArch() == "amd64":  
+        if self.xmlrpcGetArch() == "amd64":
             jpath = self.xmlrpcGlobpath("c:\\program files*\\java\\*\\bin")[0]
             self.xmlrpcExec("dir \"%s\"" % (jpath))
             self.xmlrpcExec("setx /M PATH \"%%PATH%%;%s\"" % (jpath))
             self.xmlrpcReboot()
-            xenrt.sleep(60) 
+            xenrt.sleep(60)
             self.waitforxmlrpc(600)
-            xenrt.TEC().logverbose("Path after reboot: %s" % 
+            xenrt.TEC().logverbose("Path after reboot: %s" %
                                    (self.xmlrpcGetEnvVar("PATH")))
 
     def installVCRedist(self):
@@ -2114,7 +2114,7 @@ build -nmake "/f %s\\bin\\makefile.new"
         exe = self.xmlrpcGetArch() == "amd64" and "vcredist_x64.exe" or "vcredist_x86.exe"
         self.xmlrpcExec("c:\\vcredist\\%s /q /norestart" % exe,
                         timeout=3600, returnerror=False)
-   
+
     def installDirectX(self):
         if not self.xmlrpcFileExists("c:\\directx\\directx_Jun2010_redist.exe"):
             self.xmlrpcUnpackTarball("%s/directx.tgz" %
@@ -2163,14 +2163,14 @@ build -nmake "/f %s\\bin\\makefile.new"
             val = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v3.5', 'Install', healthCheckOnFailure=False)
         except:
             val = 0
-            
+
         if val == 1:
             xenrt.TEC().logverbose(".NET 3.5 already installed.")
         else:
             xenrt.TEC().logverbose(".NET 3.5 not installed.")
-        
+
         return val == 1
-    
+
     def installDotNet35(self):
         """Install .NET 3.5 into a Windows XML-RPC guest"""
         if self.isDotNet35Installed():
@@ -2202,19 +2202,19 @@ Add-WindowsFeature as-net-framework"""
             val = self.winRegLookup('HKLM', 'SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Client', 'Install', healthCheckOnFailure=False)
         except:
             val = 0
-            
+
         if val ==  1:
             xenrt.TEC().logverbose(".NET 4 already installed.")
         else:
             xenrt.TEC().logverbose(".NET 4 not installed.")
-        
+
         return val ==  1
 
     def installDotNet4(self):
         """Install .NET 4 into a Windows XML-RPC guest"""
         if self.isDotNet4Installed():
             return
-        
+
         xenrt.TEC().logverbose("Installing .NET 4.0.")
         self.xmlrpcCreateDir("c:\\dotnet40logs")
         self.xmlrpcUnpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
@@ -2270,16 +2270,16 @@ Add-WindowsFeature as-net-framework"""
 
     def installTestComplete(self):
         """Install TestComplete into a Windows XML-RPM guest"""
-        
+
         if self.xmlrpcGlobPattern("C:\\Program Files\\Automated QA\\TestComplete 7\\Bin\\TestComplete.exe"):
             xenrt.TEC().logverbose("TestComplete already installed")
             return
-            
+
         xenrt.TEC().logverbose("Installing TestComplete")
         self.xmlrpcUnpackTarball("%s/testcomplete.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
         self.xmlrpcStart("c:\\testcomplete\\NagKill.exe")
         self.xmlrpcExec("c:\\testcomplete\\setup.exe /s", timeout=3600, returnerror=False)
-    
+
     def installWIC(self):
         self.xmlrpcUnpackTarball("%s/wic.tgz" %
                              (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
@@ -2287,14 +2287,14 @@ Add-WindowsFeature as-net-framework"""
         exe = self.xmlrpcGetArch() == "amd64" and "wic_x64_enu.exe" or "wic_x86_enu.exe"
         self.xmlrpcExec("c:\\wic\\%s /quiet /norestart" % exe,
                         timeout=3600, returnerror=False)
-        
+
         # CA-114127 - sleep to stop this interfering with .net installation later??
         xenrt.sleep(120)
 
     def installAutoIt(self, withAutoItX=False):
         """
         Install AutoIt3 interpreter and compiler into a Windows XML-RPC guest.
-        The path to the autoit interpreter is returned.    
+        The path to the autoit interpreter is returned.
         """
         is_x64 = self.xmlrpcGetArch() == "amd64"
         autoit = "c:\\Program Files" + (is_x64 and " (x86)" or "") + \
@@ -2333,7 +2333,7 @@ Add-WindowsFeature as-net-framework"""
         self.installDotNet2()
         exe = ""
         if self.xmlrpcWindowsVersion() == "6.0":
-            try: 
+            try:
                 self.xmlrpcExec("servermanagercmd -install PowerShell")
                 return
             except xenrt.XRTFailure, e:
@@ -2342,7 +2342,7 @@ Add-WindowsFeature as-net-framework"""
                                            "servermanagercmd. Guessing "
                                            "this is Vista. (%s)" % (e.data))
                     exe = "powershell.msu"
-                else: 
+                else:
                     xenrt.TEC().logverbose("Exception: %s" % (e.data))
                     raise
         # XP needs a different installer
@@ -2354,24 +2354,24 @@ Add-WindowsFeature as-net-framework"""
         self.xmlrpcUnpackTarball("%s/powershell.tgz" %
                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  t)
-        self.xmlrpcExec("%s\\powershell\\%s\\%s /quiet" % 
-                        (t, self.xmlrpcGetArch(), exe))         
+        self.xmlrpcExec("%s\\powershell\\%s\\%s /quiet" %
+                        (t, self.xmlrpcGetArch(), exe))
 
     def installPowerShell20(self, reboot=True):
-        """Install PowerShell 2.0 into a Windows XML-RPC guest. Note this 
+        """Install PowerShell 2.0 into a Windows XML-RPC guest. Note this
         op requires a reboot to finish install using Win Update"""
         if self.getPowershellVersion() >= 2.0:
             xenrt.TEC().logverbose("PowerShell 2.0 or above installed.")
             return
 
         if self.xmlrpcWindowsVersion() == "6.0":
-            if self.xmlrpcGetArch() == "amd64": 
+            if self.xmlrpcGetArch() == "amd64":
                 exe = "Windows6.0-KB968930-x64.msu"
             else:
-                exe = "Windows6.0-KB968930-x86.msu"   
+                exe = "Windows6.0-KB968930-x86.msu"
         elif self.xmlrpcWindowsVersion() == "5.2":
             self.installDotNet2()
-            if self.xmlrpcGetArch() == "amd64": 
+            if self.xmlrpcGetArch() == "amd64":
                 exe = "WindowsServer2003-KB968930-x64-ENG.exe"
             else:
                 exe = "WindowsServer2003-KB968930-x86-ENG.exe"
@@ -2461,7 +2461,7 @@ Add-WindowsFeature as-net-framework"""
         if configString:
             # Convert the contents of a video controller output file (passed as configString) into a dictionary of key value pairs.
             lines = configString.splitlines()
-            # Remove all empty lines 
+            # Remove all empty lines
             #lines = filter(lambda x:not x.startswith(' '), lines) # Not required as the following command does it.
             # Find out lines with key / value pairs
             lines = filter(lambda x:len(x.split(':')) == 2, lines)
@@ -2475,7 +2475,7 @@ Add-WindowsFeature as-net-framework"""
 
     def installNetperf(self, config_params = ""):
         """Install netperf client into the guest"""
-        if self.windows:      
+        if self.windows:
             if not self.xmlrpcFileExists("c:\\netperf.exe"):
                 d = xenrt.TEC().tempDir()
                 xenrt.getTestTarball("netperf",
@@ -2655,7 +2655,7 @@ Add-WindowsFeature as-net-framework"""
             return
         # Miami onwards packages xe.exe with the GUI
         if not ((isinstance(self, GenericGuest) and self.host and
-                 self.host.productVersion == "Rio") or 
+                 self.host.productVersion == "Rio") or
                 xenrt.TEC().lookup("PRODUCT_VERSION", "unknown") == "Rio"):
             self.installCarbonWindowsGUI()
             xeorigdir = None
@@ -2803,7 +2803,7 @@ Add-WindowsFeature as-net-framework"""
                 self.installDotNet35()
             else:
                 self.installDotNet2()
-            
+
         # Get the UI binaries to the VM
         msi = None
         if not forceFromCD:
@@ -2817,7 +2817,7 @@ Add-WindowsFeature as-net-framework"""
                     msifile = "/opt/xensource/www/XenCenter.msi"
                     tmpdir = xenrt.resources.TempDirectory()
                     sftp = self.host.sftpClient()
-                        
+
                     # If XenCenter.msi doesn't exists we need to extract it from XenCenterSetup.exe
                     if not self.host.execdom0("test -e %s" % (msifile),
                                               retval="code") == 0:
@@ -2830,14 +2830,14 @@ Add-WindowsFeature as-net-framework"""
                             msi = "%s/XenCenter.msi" % tmpdir.path()
                             if not os.path.exists(msi):
                                 raise xenrt.XRTFailure("XenCenter.msi not extracted")
-                        
+
                     elif self.host.execdom0("test -e %s" % (msifile),
                                             retval="code") == 0:
                         msi = "%s/XenCenter.msi" % tmpdir.path()
                         sftp.copyFrom(msifile, msi)
-                    
+
                     sftp.close()
-            
+
         if not msi:
             # Get the installer from the CD.
             mount = None
@@ -2867,14 +2867,14 @@ Add-WindowsFeature as-net-framework"""
                         msi = "%s/XenCenter.msi" % tmpdir.path()
                         if not os.path.exists(msi):
                             raise xenrt.XRTFailure("XenCenter.msi not extracted")
-                        
+
                     elif os.path.exists(pospath):
                         xenrt.TEC().logverbose("Using XenCenter.msi from ISO %s" %
                                                cd)
                         tmpdir.copyIn(pospath)
                         msi = "%s/%s" % (tmpdir.path(),
                                          os.path.basename(pospath))
-                        
+
                 finally:
                     mount.unmount()
                     mount = None
@@ -2894,7 +2894,7 @@ Add-WindowsFeature as-net-framework"""
         if msi:
             # Perform the install
             xenrt.TEC().logverbose("Installing GUI using MSI installer")
-            
+
             # CA-120006....sometimes large files like this can fail to copy
             count=5
             for i in range(count):
@@ -2903,12 +2903,12 @@ Add-WindowsFeature as-net-framework"""
                     break
                 except Exception, ex:
                     xenrt.TEC().logverbose("Exception: %s" % str(ex))
-                    
+
                     if i == count-1:
                         raise
                     else:
                         xenrt.TEC().logverbose("retrying...")
-            
+
             try:
                 self.xmlrpcExec("msiexec.exe /I c:\\XenCenter.msi /Q /L*v "
                                 "c:\\xencenter-install.log", timeout=3600)
@@ -2930,7 +2930,7 @@ Add-WindowsFeature as-net-framework"""
                 raise xenrt.XRTError("No XenAdmin zip file found")
             d = xenrt.TEC().tempDir()
             xenrt.util.command("unzip %s -d %s" % (testtar, d))
-        
+
             self.xmlrpcSendRecursive(d, "c:\\")
             try:
                 self.xmlrpcExec("COPY "
@@ -2940,7 +2940,7 @@ Add-WindowsFeature as-net-framework"""
                 pass
         for lf in string.split(xenrt.TEC().lookup("XENCENTER_LOG_FILE"), ";"):
             self.addExtraLogFile(lf)
-        
+
         if xenrt.TEC().lookup("XENCENTER_EXE", None):
             xcexe = xenrt.TEC().lookup("XENCENTER_EXE")
             exe = xenrt.TEC().getFile(xcexe)
@@ -2953,7 +2953,7 @@ Add-WindowsFeature as-net-framework"""
         # If this build has it, unpack XenCenterTestResources.tar to
         # c:\XenCenterTestResources
         self.xmlrpcDelTree("c:\\XenCenterTestResources")
-        
+
         xctrtar = None
         if xenrt.TEC().lookup("INPUTDIR", None):
             xctrtar = xenrt.TEC().getFile("XenCenterTestResources.tar",
@@ -2979,7 +2979,7 @@ Add-WindowsFeature as-net-framework"""
             host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
         ip = host.getIP()
         password = host.password
-        
+
         (path, exe) = self.findCarbonWindowsGUI()
         self.xmlrpcExec("\"%s\\%s\" connect %s root %s" % (path, exe, ip, password))
         # Send enter to get past the check for updates box
@@ -2995,12 +2995,12 @@ Add-WindowsFeature as-net-framework"""
             return
         if float(self.xmlrpcWindowsVersion()) <= 5.2:
             self.installDotNet2()
-        
+
         self.installDotNet35()
-        
+
         if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
             self.installDotNet4()
-        
+
         self.xmlrpcUnpackTarball("%s/nunit.tgz" %
                                  (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
@@ -3015,9 +3015,9 @@ Add-WindowsFeature as-net-framework"""
         if not verToUse in vers.keys():
             raise xenrt.XRTError("Can't find NUnit version %s installer" % verToUse)
 
-        self.xmlrpcExec("msiexec /i %s /qn /lv* c:\\nunitinstall.log" % 
+        self.xmlrpcExec("msiexec /i %s /qn /lv* c:\\nunitinstall.log" %
                         (vers[verToUse]))
-        
+
     def disableWindowsPasswordComplexityCheck(self):
         self.xmlrpcExec("secedit /export /cfg c:\\password.inf /areas SECURITYPOLICY")
         data = self.xmlrpcReadFile("c:\\password.inf").decode("utf-16LE")
@@ -3047,10 +3047,10 @@ DHCPServer = 0
         else:
             self.xmlrpcExec("start /w ocsetup DHCPServer /uninstall /passive /quiet /norestart")
 
-    def installWindowsDHCPServer(self, 
-                                 interface, 
+    def installWindowsDHCPServer(self,
+                                 interface,
                                  network="192.168.0.0",
-                                 server="192.168.0.1", 
+                                 server="192.168.0.1",
                                  netmask="255.255.255.0",
                                  start="192.168.0.2",
                                  end="192.168.0.254"):
@@ -3083,8 +3083,8 @@ DHCPServer = 1
                         "add iprange %s %s" % (network, start, end))
         self.xmlrpcExec("netsh dhcp server scope %s "
                         "set state 1" % (network))
-        
-        # Let DHCP through the firewall. 
+
+        # Let DHCP through the firewall.
         try: self.xmlrpcExec('netsh firewall set portopening '
                              'UDP 67 "DHCP Server" ENABLE')
         except: pass
@@ -3092,7 +3092,7 @@ DHCPServer = 1
         try: self.xmlrpcExec("netsh dhcp server show bindings")
         except: pass
 
-    def installWindowsTFTPServer(self, 
+    def installWindowsTFTPServer(self,
                                  network="192.168.0.0",
                                  server="192.168.0.1",
                                  tftproot="c:\\tftproot",
@@ -3100,21 +3100,21 @@ DHCPServer = 1
         # Install the TFTP Server.
         self.xmlrpcUnpackTarball("%s/pxeserver.tgz" %
                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                 tftproot)                         
+                                 tftproot)
         self.xmlrpcExec("move %s\\pxeserver\\*.* "
-                        "%s\\" % 
+                        "%s\\" %
                         (tftproot, tftproot))
         self.xmlrpcExec("move %s\\tftpd.exe "
-                        "%%systemroot%%\\system32\\tftpd.exe" % 
+                        "%%systemroot%%\\system32\\tftpd.exe" %
                         (tftproot))
         self.xmlrpcExec("sc create tftpd "
                         "binPath= %%systemroot%%\\system32\\tftpd.exe")
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "system\\currentcontrolset\\services\\tftpd",
                        "DisplayName",
                        "SZ",
                        "TFTP Server")
-        self.winRegAdd("HKLM", 
+        self.winRegAdd("HKLM",
                        "system\\currentcontrolset\\services\\tftpd\\Parameters",
                        "Directory",
                        "SZ",
@@ -3143,20 +3143,20 @@ DHCPServer = 1
         self.tftproot = tftproot
         self.xmlrpcExec("sc config tftpd start= auto")
 
-    def installWindowsNATServer(self, public, private, 
+    def installWindowsNATServer(self, public, private,
                                 network="192.168.0.0", server="192.168.0.1"):
 
         public = self.getWindowsInterface(public)
         private = self.getWindowsInterface(private)
- 
+
         try:
             self.xmlrpcExec("net stop SharedAccess")
             self.xmlrpcExec("sc config SharedAccess start= disabled")
         except:
             pass
 
-        # Enable routing. 
-        self.winRegAdd("HKLM", 
+        # Enable routing.
+        self.winRegAdd("HKLM",
                        "system\\currentcontrolset\\services\\tcpip\\parameters",
                        "IPEnableRouter",
                        "DWORD",
@@ -3189,7 +3189,7 @@ DHCPServer = 1
                         "set optionvalue 006 IPADDRESS %s" % (network, nameserver))
         # Need to reboot to make sure NAT will work. (CA-16162)
         self.xmlrpcReboot()
-        xenrt.sleep(60) 
+        xenrt.sleep(60)
         self.waitforxmlrpc(600)
 
     def disableFirewall(self):
@@ -3208,13 +3208,13 @@ DHCPServer = 1
         if not iqn:
             iqn = "iqn.2008-01.xenrt.test:iscsi%08x" % \
                   (random.randint(0, 0x7fffffff))
-       
+
         isLegacy = True
         try:
             debversion = float(self.execcmd("cat /etc/debian_version").strip())
         except:
             debversion = None
-        
+
         if debversion >= 6.0:
             isLegacy = False
 
@@ -3239,11 +3239,11 @@ DHCPServer = 1
             self.execcmd("cd /root && tar -xzf iscsitarget-1.4.20.2.tgz")
             self.execcmd("cd /root/iscsitarget-1.4.20.2 && make")
             self.execcmd("cd /root/iscsitarget-1.4.20.2 && make install")
-            
+
             self.execcmd("rm /etc/iet/ietd.conf")
             self.execcmd("ln -s /etc/ietd.conf /etc/iet/ietd.conf")
         else: # Legacy installation for etch
-        
+
             # Prerequisites
             self.execcmd("apt-get install libssl-dev --force-yes -y")
 
@@ -3273,7 +3273,7 @@ DHCPServer = 1
         self.execcmd("echo 'Target %s' > /etc/ietd.conf" % (iqn))
         if user and password:
             self.execcmd("echo '        IncomingUser %s %s' >> /etc/ietd.conf" % (user, password))
-            
+
         if outgoingUser and outgoingPassword:
             self.execcmd("echo '        OutgoingUser %s %s' >> /etc/ietd.conf" % (outgoingUser, outgoingPassword))
 
@@ -3301,11 +3301,11 @@ DHCPServer = 1
         else:
             self.execcmd("dd if=/dev/zero of=%s bs=1M count=0 seek=%u" %
                          (filename, sizemb),timeout=timeout)
-            
+
         scsiid = random.randint(0, 0x7fffffff)
         self.execcmd("echo '        Lun %u Path=%s,Type=fileio,ScsiId=%08x' >> "
                      "/etc/ietd.conf" % (lunid, filename, scsiid))
-        
+
         # Stop the daemon if it's running
         try:
             self.execcmd("/etc/init.d/iscsi-target stop")
@@ -3454,7 +3454,7 @@ DHCPServer = 1
         self.xmlrpcReboot()
         xenrt.sleep(60)
         self.waitForDaemon(300,desc="Guest reboot after updating Windows")
-    
+
     def updateYumConfig(self, distro=None, arch=None):
         """If we have a local HTTP mirror of a yum repo then create
         a yum repo config for it on this guest/host. This is only for
@@ -3614,7 +3614,7 @@ gpgcheck=0
                 workload = eval("testcases.benchmarks.workloads.%s(self)" % (w))
             except:
                 workload = None
-            
+
             if workload:
                 workload.stop()
                 stoppedWorkloads.append(workload)
@@ -3626,9 +3626,9 @@ gpgcheck=0
                 except Exception, e:
                     message = "%s failed to stop: %s" % (w, str(e))
                     xenrt.TEC().warning(message)
-            
+
         return stoppedWorkloads
-    
+
     def configureIPv6Router(self):
         pass
 
@@ -3728,16 +3728,16 @@ bootlocal.close()
                        "DWORD",
                        0)
 
-        # Disable the shutdown even tracker.    
+        # Disable the shutdown even tracker.
         self.winRegAdd("HKLM",
                        "Software\\Policies\\Microsoft\\"
                        "Windows NT\\Reliability",
                        "ShutdownReasonOn",
                        "DWORD",
                         0)
-   
+
         # Disable autoplay.
-        if float(self.xmlrpcWindowsVersion()) > 5.99: 
+        if float(self.xmlrpcWindowsVersion()) > 5.99:
             self.winRegAdd("HKLM",
                            "Software\\Microsoft\\"
                            "Windows\\CurrentVersion\\"
@@ -3750,7 +3750,7 @@ bootlocal.close()
                 self.xmlrpcExec("bcdedit /set {default} nocrashautoreboot true", ignoreHealthCheck=True)
             except:
                 pass
-    
+
         if self.xmlrpcGetArch() == "amd64":
             try:
                 self.xmlrpcExec("copy c:\\windows\\system32\\diskpart.exe c:\\windows\\SysWOW64\\diskpart.exe", ignoreHealthCheck=True)
@@ -3759,7 +3759,7 @@ bootlocal.close()
 
         try:
             if self.xmlrpcWindowsVersion() == "5.0":
-                self.xmlrpcSendFile("%s/distutils/devcon.exe" % 
+                self.xmlrpcSendFile("%s/distutils/devcon.exe" %
                                     (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
                                     "c:\\devcon.exe", ignoreHealthCheck=True)
                 self.xmlrpcUnpackTarball("%s/powercfg.tgz" %
@@ -3773,9 +3773,9 @@ bootlocal.close()
         if xenrt.TEC().lookup("OPTION_USE_EMS", False, boolean=True):
             try:
                 if float(self.xmlrpcWindowsVersion()) > 5.99:
-                    self.xmlrpcExec("bcdedit /bootems {default} ON", ignoreHealthCheck=True)  
-                    self.xmlrpcExec("bcdedit /ems {default} ON", ignoreHealthCheck=True)  
-                    self.xmlrpcExec("bcdedit /emssettings EMSPORT:1 EMSBAUDRATE:115200", ignoreHealthCheck=True)  
+                    self.xmlrpcExec("bcdedit /bootems {default} ON", ignoreHealthCheck=True)
+                    self.xmlrpcExec("bcdedit /ems {default} ON", ignoreHealthCheck=True)
+                    self.xmlrpcExec("bcdedit /emssettings EMSPORT:1 EMSBAUDRATE:115200", ignoreHealthCheck=True)
                 else:
                     self.xmlrpcExec("bootcfg /ems ON /port COM1 /id 1", ignoreHealthCheck=True)
             except:
@@ -3785,16 +3785,16 @@ bootlocal.close()
         # Add the /PAE flag to boot.ini if we're using more than
         # 4GB of memory
         if isinstance(self, GenericGuest) and not "pae" in self.distro and self.memory > 4096 and \
-                not float(self.xmlrpcWindowsVersion()) > 5.99: 
+                not float(self.xmlrpcWindowsVersion()) > 5.99:
             xenrt.TEC().logverbose("Adding /PAE flag")
             self.xmlrpcAddBootFlag("/PAE")
             self.xmlrpcExec("type c:\\boot.ini")
 
         # Enable remote desktop.
-        self.winRegAdd("HKLM", 
-                       "SYSTEM\\CurrentControlSet\\Control\\Terminal Server", 
-                       "fDenyTSConnections", 
-                       "DWORD", 
+        self.winRegAdd("HKLM",
+                       "SYSTEM\\CurrentControlSet\\Control\\Terminal Server",
+                       "fDenyTSConnections",
+                       "DWORD",
                         0)
 
         # Optionally forcably disable NX (DEP) support
@@ -3817,7 +3817,7 @@ bootlocal.close()
                 self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x64.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
             else:
                 self.xmlrpcStart('wusa "c:\\bluewaterupdate\\Windows8.1-KB2887595-v2-x86.msu" /quiet /log:C:\\bluewaterUpdateInstall.txt')
-                       
+
             deadline = xenrt.util.timenow() + 3600
             while True:
                 try:
@@ -3836,12 +3836,12 @@ bootlocal.close()
                         l=[x for x in r[y] if 0<=ord(x)<128 and re.search(s,str(x))]
                         f1.write("".join(l)+"\n")
                     f1.close()
-                    self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")                
+                    self.xmlrpcSendFile(logFile,"c:\\Windows\\Logs\\bluewaterUpdateInstallLogs.txt")
                     raise xenrt.XRTFailure("Timed out waiting for bluewaterupdate initiated reboot")
                 xenrt.sleep(60)
 
             self.waitforxmlrpc(20 * 60)
-            
+
             if not xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True) and not xenrt.TEC().lookup("DISABLE_USB", False, boolean=True):
                 xenrt.TEC().logverbose("Re-enabling USB on Windows Blue")
                 self.xmlrpcShutdown()
@@ -3871,7 +3871,7 @@ bootlocal.close()
                 self.xmlrpcExec("bootcfg /raw \"/noexecute=alwayson\" /A")
             else:
                 self.xmlrpcExec("bootcfg /raw \"/noexecute=alwaysoff\" /A")
-        self.reboot()            
+        self.reboot()
 
     def sendSysRq(self, key):
         raise xenrt.XRTError("Unimplemented")
@@ -3961,7 +3961,7 @@ bootlocal.close()
                 if ntp_run:self.execcmd("/etc/init.d/ntpd stop")
         xenrt.TEC().logverbose("Clock is set to %s status"
                                % (enable and "sync" or "unsync"))
-                    
+
 
     def setTime(self, secondsSinceEpoch):
         """Set the time on this place."""
@@ -4016,7 +4016,7 @@ bootlocal.close()
 
         dvsc = DVSCWebServices(self)
         self.special["DVSCWebServices"] = dvsc
-        
+
         # Patches the DVSC if defined in SKU
         patchfile = xenrt.TEC().lookup("DVSC_PATCH", None)
         if patchfile != None:
@@ -4032,7 +4032,7 @@ bootlocal.close()
         self.execguest("touch /opt/virtex/etc/disable_csrf_check")
         self.reboot()
         xenrt.sleep(120) # Allow time for the DVSC API to start
-                
+
         return dvsc
 
     def installV6LicenseServer(self):
@@ -4130,10 +4130,10 @@ class GenericHost(GenericPlace):
         self.controller = None
         self.containerHost = None
         self.jobTests = []
-        
+
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
-        
+
     def __str__(self):
         return self.getName()
 
@@ -4155,6 +4155,74 @@ class GenericHost(GenericPlace):
         except:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().logverbose("Exception instantiating job test %s" % str(jt))
+
+    def rebuildInitrd(self):
+        """
+        Rebuild the initrd of the host in-place
+        This is virtually akin to applying a kernel hotfix
+        The MD5 sums of the files should be different before and after
+
+        Fingers crossed no reboot happens until the following 2 steps complete
+        successfully or the machine will be trashed. There is away to avoid
+        the below in clearwater and newer, but we'll need to do this for Tampa
+        too. For clearwater and greater just need to do
+        "sh initrd*.xen.img.cmd -f" without removing the original image file
+        but the old-style way should work regardless of age
+        """
+
+        xenrt.TEC().logverbose("Rebuilding initrd for host %s..." % str(self))
+        kernel = self.execdom0("uname -r").strip()
+        imgFile = "initrd-{0}.img".format(kernel)
+        xenrt.TEC().logverbose("Original md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose(
+            "Removing boot image %s and rebuilding" % imgFile)
+        self.execdom0("cd /boot")
+        self.execdom0("rm -rf %s" % imgFile)
+        self.execdom0(
+            """new-kernel-pkg.py --install --package=kernel-xen --mkinitrd "$@" %s""" % kernel)
+
+        xenrt.TEC().logverbose("New md5sum = %s" %
+                               self.execdom0("md5sum /boot/%s" % imgFile))
+        xenrt.TEC().logverbose("initrd has been rebuilt")
+
+    def disableMultipathingInKernel(self, reboot=True):
+        """
+        Disable multipathing if the root disk of Dom0 has it switched on already
+
+        Add a line to the latches file and rebuild the initrd
+        The host should then reboot in order that the changes
+        are enacted.
+
+        @param reboot: reboot the machine after kernel rebuild
+        @type reboot: boolean
+        @rtype: void
+        """
+        latchesFile = "/etc/sysconfig/mkinitrd.latches"
+        option = "--without-multipath"
+
+        if self._stringIsInFile(option, latchesFile):
+            xenrt.TEC().logverbose("Option already found in file, skipping addition...")
+            return
+
+        self.execdom0("echo {0}>>{1}".format(option, latchesFile))
+        self.rebuildInitrd()
+        if reboot:
+            self.reboot()
+
+    def _stringIsInFile(self, stringToFind, fileName):
+        """
+        Look for a string in the given file in the dom0 file system
+
+        @param stringToFind: pattern to look for in a file
+        @type stringToFind: string
+        @param fileName: file in the Dom0 filesysten
+        @type fileName: string
+        @return: the string is found in the file
+        @rtype: boolean
+        """
+        res = self.execdom0("grep -e'{0}' {1} || true".format(stringToFind, fileName))
+        return len(res) > 0
 
     def getIP(self):
         if self.machine and self.use_ipv6:
@@ -4266,7 +4334,7 @@ class GenericHost(GenericPlace):
                  getreply=True,
                  password=None):
         """Execute a command on the dom0 of the specified machine.
-    
+
         @param retval:  Whether to return the result code or stdout as a string
             "C{string}" (default), "C{code}"
             if "C{string}" is used then a failure results in an exception
@@ -4377,40 +4445,40 @@ class GenericHost(GenericPlace):
             data = xenrt.util.command("grep -C 20 %s %s" % (mac, leasefile))
         except:
             xenrt.TEC().logverbose("Couldn't find %s in dhcpd.leases." % (mac))
-            
+
             try:
                 leases = xenrt.command("sudo zgrep '%s' /var/log/syslog*" % mac)
                 xenrt.TEC().logverbose("DHCP activity from controller: " + leases)
             except Exception, ex:
                 xenrt.TEC().logverbose("Error getting DHCP activity from controller: " + str(ex))
-            
+
             return None
         # matches is a list of tuples of (ip,start,end)
         matches = re.findall("lease (?P<ip>[0-9\.]+)[^}]+"
                           "starts [0-9] (?P<start>[0-9/: ]+)[^}]+"
                           "ends [0-9] (?P<end>[0-9/: ]+)[^}]+"
                           "hardware ethernet %s" % (mac),
-                           data)       
+                           data)
         if len(matches) > 0:
             now = time.time()
             valid = []
             for match in matches:
-                start = time.mktime(time.strptime(match[1], 
+                start = time.mktime(time.strptime(match[1],
                                               "%Y/%m/%d %H:%M:%S"))
-                end = time.mktime(time.strptime(match[2], 
+                end = time.mktime(time.strptime(match[2],
                                             "%Y/%m/%d %H:%M:%S"))
                 if start < now and now < end:
                     xenrt.TEC().logverbose("Found IP %s for MAC %s in "
                                            "/var/lib/dhcp/dhcpd.leases. "
-                                           "(%s < %s < %s)" % 
+                                           "(%s < %s < %s)" %
                                            (match[0],
                                             mac,
                                             match[1],
-                                            time.strftime("%Y/%m/%d %H:%M:%S", 
+                                            time.strftime("%Y/%m/%d %H:%M:%S",
                                                           time.gmtime(now)),
                                             match[2]))
                     valid.append(match)
-                else:           
+                else:
                     xenrt.TEC().logverbose("Found IP %s but it was out of date. "
                                            "(%s %s %s)" % (match[0],match[1],
                                             time.strftime("%Y/%m/%d %H:%M:%S",
@@ -4418,32 +4486,32 @@ class GenericHost(GenericPlace):
                                             match[2]))
             if valid:
                 # Return the most recent valid IP.
-                valid.sort(lambda x,y:cmp(time.mktime(time.strptime(x[1], 
-                                              "%Y/%m/%d %H:%M:%S")), 
+                valid.sort(lambda x,y:cmp(time.mktime(time.strptime(x[1],
+                                              "%Y/%m/%d %H:%M:%S")),
                                           time.mktime(time.strptime(y[1],
                                               "%Y/%m/%d %H:%M:%S"))))
                 valid.reverse()
-                
+
                 for a in valid:
                     if checkWithPing and xenrt.command("ping -c 3 -w 10 %s" % a[0], retval="code", level=xenrt.RC_OK) == 0:
                         return a[0]
-                
-                
+
+
                 return valid[0][0]
         else:
             xenrt.TEC().logverbose("Couldn't find MAC %s in %s" %
                                    (mac, leasefile))
-            return None 
+            return None
 
     TCPDUMP = "tcpdump"
 
     def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
         """Monitor an interface (or bridge) for an ARP reply"""
-        
+
         xenrt.TEC().logverbose("Sniffing ARPs on %s for %s" % (iface, mac))
-        
+
         deadline = xenrt.util.timenow() + timeout
-        
+
         myres = []
         myres.append(re.compile(r"(?P<ip>[0-9.]+) is-at (?P<mac>[0-9a-f:]+)"))
         myres.append(re.compile(r"> (?P<mac>[0-9a-f:]+).*> (?P<ip>[0-9.]+).bootpc: BOOTP/DHCP, Reply"))
@@ -4476,7 +4544,7 @@ class GenericHost(GenericPlace):
                             break
                         self.checkHealth(unreachable=True)
                         xenrt.XRT("Timed out monitoring for guest ARP/DHCP", level, data=mac)
-                    
+
                     output = s.fh.readline()
                     if len(output) == 0:
                         break
@@ -4508,7 +4576,7 @@ class GenericHost(GenericPlace):
             raise xenrt.XRTFailure("VM gave itself a link-local address.")
 
         return ip
-        
+
     def checkVersion(self, versionNumber=False):
         # Figure out the product version and revision of the host
         data = ""
@@ -4562,23 +4630,23 @@ class GenericHost(GenericPlace):
             r = re.search(r"BUILD_NUMBER=.*?(\w+).*", data)
             if not r:
                 raise xenrt.XRTFailure("Failed to get build number")
-        
+
             buildNumber = r.group(1)
-        
+
         if "47101" in buildNumber:
             name = "Oxford"
         elif "58523" in buildNumber:
             name = "SanibelCC"
-        
+
         xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
         xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
-        
+
         self.productVersion = name
         self.productRevision = "%s-%s" % (version, buildNumber)
-        
+
         if versionNumber:
             return version
-            
+
     def tailor(self):
         """Tailor to allow other tests to be run"""
         ip = self.getIP()
@@ -4588,10 +4656,10 @@ class GenericHost(GenericPlace):
 
         if not self.windows:
             self.findPassword()
-        
+
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
                 self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && service iptables save")
-            
+
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = self.lookup("REMOTE_SCRIPTDIR")
@@ -4600,7 +4668,7 @@ class GenericHost(GenericPlace):
             sftp = self.sftpClient()
             sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
             sftp.close()
-            
+
             # Save more log files.
             try:
                 self.execdom0("cat /etc/logrotate.conf | "
@@ -4672,8 +4740,8 @@ class GenericHost(GenericPlace):
     def getSecondaryNIC(self, assumedid):
         """ Compatibility function - see getNIC """
         return self.getNIC(assumedid)
-        
-    
+
+
     def getNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "eth2") for the
         assumed enumeration ID (integer)"""
@@ -4749,8 +4817,8 @@ class GenericHost(GenericPlace):
                                        "VLANS", "IPRI",
                                        "GATEWAY"])
                 if also_ipv6:
-                    gateway6 = self.lookup(["NETWORK_CONFIG", 
-                                            "VLANS", 
+                    gateway6 = self.lookup(["NETWORK_CONFIG",
+                                            "VLANS",
                                             "IPRI",
                                             "GATEWAY6"])
             else:
@@ -4958,7 +5026,7 @@ class GenericHost(GenericPlace):
     def hostTempDir(self, prefix=""):
         return string.strip(self.execdom0("mktemp -d %s/tmp/distXXXXXX" %
                                           (prefix)))
-    
+
     def hostTempFile(self, prefix=""):
         return string.strip(self.execdom0("mktemp %s/tmp/distXXXXXX" %
                                           (prefix)))
@@ -4992,7 +5060,7 @@ class GenericHost(GenericPlace):
                 rebootTime = xenrt.util.timenow()
                 self.waitForSSH(timeout, desc="Host reboot of !" + self.getName())
             # Check what we can SSH to is the rebooted host
-            
+
             try:
                 uptime = self.execdom0("uptime")
             except Exception, e:
@@ -5046,7 +5114,7 @@ class GenericHost(GenericPlace):
     def poweroff(self):
         """Power off a host"""
         self.machine.powerctl.off()
-        
+
     def installLinuxVendor(self,
                            distro,
                            kickstart=None,
@@ -5074,7 +5142,7 @@ class GenericHost(GenericPlace):
                                         method=method,
                                         extrapackages=extrapackages,
                                         options=options)
-        
+
     def installLinuxVendorRHEL(self,
                                distro,
                                kickstart=None,
@@ -5091,7 +5159,7 @@ class GenericHost(GenericPlace):
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
-                                 
+
         mainDisk=self.getInstallDisk(ccissIfAvailable=False)
         if "scsi-SATA" in mainDisk and (re.search(r"rhel7", distro) or \
                                         re.search(r"centos7", distro) or \
@@ -5106,13 +5174,13 @@ class GenericHost(GenericPlace):
             ethDevice = self.getDefaultInterface()
         else:
             ethDevice = self.getNICMACAddress(0)
-        
+
         bootDiskSize = self.lookup("BOOTDISKSIZE",100)
         bootDiskFS = self.lookup("BOOTDISKFS","ext4")
         ethdev = self.getDefaultInterface()
-        ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()    
-        nfsdir = xenrt.NFSDirectory()        
-        
+        ethmac = xenrt.normaliseMAC(self.getNICMACAddress(0)).upper()
+        nfsdir = xenrt.NFSDirectory()
+
         ksf=RHELKickStartFile(distro,
                              mainDisk,
                              nfsdir.getMountURL(""),
@@ -5130,7 +5198,7 @@ class GenericHost(GenericPlace):
                              ethDevice=ethDevice,
                              extraPackages=extrapackages,
                              ossVG=False,
-                            )    
+                            )
         ks=ksf.generate()
 
         filename = "%s/kickstart.cfg" % (xenrt.TEC().getLogdir())
@@ -5147,7 +5215,7 @@ class GenericHost(GenericPlace):
         fk = xenrt.TEC().tempFile()
         fr = xenrt.TEC().tempFile()
         xenrt.getHTTP("%s/isolinux/vmlinuz" % (repository),fk)
-        xenrt.getHTTP("%s/isolinux/initrd.img" % (repository),fr)        
+        xenrt.getHTTP("%s/isolinux/initrd.img" % (repository),fr)
 
         # Construct a PXE target
         pxe = xenrt.PXEBoot()
@@ -5254,20 +5322,20 @@ class GenericHost(GenericPlace):
         bootDiskSize = self.lookup("BOOTDISKSIZE", "100")
         ay=SLESAutoyastFile( distro,
                              nfsdir.getMountURL(""),
-                             mainDisk,                             
+                             mainDisk,
                              method,
                              ethDevice,
                              isntallOn="native",
                              password=self.password,
-                             extraPackages=extrapackages,                            
-                             bootDiskSize=bootDiskSize,                             
-                            )        
+                             extraPackages=extrapackages,
+                             bootDiskSize=bootDiskSize,
+                            )
 
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f = file(filename, "w")
         f.write(ay)
         f.close()
-        
+
         # Make autoyast file available over HTTP.
         webdir = xenrt.WebDirectory()
         webdir.copyIn(filename)
@@ -5282,10 +5350,10 @@ class GenericHost(GenericPlace):
         else:
             xenrt.getHTTP("%s/boot/loader/linux" % (repository), fk)
             xenrt.getHTTP("%s/boot/loader/initrd" % (repository), fr)
-        
+
         if method != "HTTP":
             raise xenrt.XRTError("%s PXE install not supported" % (method))
-               
+
         # Construct a PXE target.
         pxe = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
@@ -5302,7 +5370,7 @@ class GenericHost(GenericPlace):
         pxecfg.linuxSetKernel("vmlinuz")
         pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                   (pxe.makeBootPath("initrd.img")))
-        pxecfg.linuxArgsKernelAdd("ramdisk_size=65536") 
+        pxecfg.linuxArgsKernelAdd("ramdisk_size=65536")
         pxecfg.linuxArgsKernelAdd("autoyast=%s" % (url))
         #pxecfg.linuxArgsKernelAdd("showopts")
         pxecfg.linuxArgsKernelAdd("netdevice=%s" % (ethDevice))
@@ -5315,14 +5383,14 @@ class GenericHost(GenericPlace):
 
         # Reboot to start the install
         self.machine.powerctl.cycle()
-                
+
         # Next time we boot normally
         xenrt.sleep(300)
         xenrt.TEC().logverbose("Switching PXE config to local boot")
         pxe.setDefault("local")
         pxe.writeOut(self.machine)
 
-        # Wait for notification that the install has finished 
+        # Wait for notification that the install has finished
         # (This happens after the installer has booted into
         # the newly installed guest)
         xenrt.waitForFile("%s/.xenrtsuccess" % (nfsdir.path()),
@@ -5350,7 +5418,7 @@ class GenericHost(GenericPlace):
         except:
             raise xenrt.XRTError("No %s repository for %s %s" %
                                  (method, arch, distro))
-        
+
         mainDisk=self.getInstallDisk(ccissIfAvailable=False)
 
         ethdev = self.getDefaultInterface()
@@ -5495,7 +5563,7 @@ exit 0
         self.execdom0("%s %s %s" % (sendvnc,
                                     display,
                                     string.join(map(str, keycodes))))
-        
+
     def getVncSnapshot(self,domid,filename):
         """Get a VNC snapshot of domain domid and write it to filename"""
         vncsnapshot = None
@@ -5516,7 +5584,7 @@ exit 0
                 # Send a shift key to wake up any screensaver
                 self.sendVncKeys(display, [0xffe1])
                 xenrt.sleep(1)
-                
+
                 # Send WindowsKey+R to show desktop on Win8+
                 self.sendVncKeys(display, ["0x72/0xffeb"])
                 xenrt.sleep(8)
@@ -5531,7 +5599,7 @@ exit 0
                 sftp.copyFrom("%s/vnc.jpg" % (workdir), filename)
                 sftp.close()
                 self.execdom0("rm -fr %s" % (workdir))
-                    
+
                 return True
             except:
                 # Probably no display for the domid
@@ -5559,11 +5627,11 @@ exit 0
         """Boot a Linux ramdisk image from the network"""
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-                             
+
         cr_extra_args = self.lookup("CLEANROOT_EXTRA_ARGS", None)
-                                   
+
         self.password = "xenroot"
-        
+
         # Set the boot files and options for PXE
         pxe = xenrt.PXEBoot(abspath=True)
         pxe.setSerial(serport, serbaud)
@@ -5577,7 +5645,7 @@ exit 0
         pxecfg.linuxArgsKernelAdd("initrd=tinycorelinux/core-xenrt.gz")
         if cr_extra_args:
             pxecfg.linuxArgsKernelAdd(cr_extra_args)
-        
+
         # Set up PXE for ramdisk boot
         pxefile = pxe.writeOut(self.machine)
         pfname = os.path.basename(pxefile)
@@ -5587,13 +5655,13 @@ exit 0
         while True:
             try:
                 # Try to reboot the host by SSH to whatever is there. This may
-                # fail if the previous installation is broken, not ours, 
+                # fail if the previous installation is broken, not ours,
                 # different password etc...
                 xenrt.TEC().progress("Rebooting into ramdisk image (%u)" % \
                                      (tries))
                 self.machine.powerctl.cycle()
 
-                # Wait a bit so our post-boot check doesn't pick up the 
+                # Wait a bit so our post-boot check doesn't pick up the
                 # existing installation
                 xenrt.sleep(120)
 
@@ -5733,7 +5801,7 @@ exit 0
             g.createVIF(bridge=bridge, mac=mac)
         else:
             create_vif_fn(g, primaryMAC=mac)
-        
+
         pxe = xenrt.PXEBoot(removeOnExit=True)
 
         if use_64_bit:
@@ -5743,11 +5811,11 @@ exit 0
 
         pxe.copyIn("%s/sysrescue/%s" % (xenrt.TEC().lookup("TEST_TARBALL_ROOT"), kernel))
         pxe.copyIn("%s/sysrescue/%s" % (xenrt.TEC().lookup("TEST_TARBALL_ROOT"), 'initram.igz'))
-        
+
         pxecfg = pxe.addEntry("sysrescue", default=1, boot="linux")
         barch = self.getBasicArch()
         pxecfg.linuxSetKernel(kernel)
-        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" % 
+        pxecfg.linuxArgsKernelAdd("dodhcp rootpass=%s setkmap=uk netboot=%ssysrescue/sysrcd.dat" %
                                   (g.password, xenrt.TEC().lookup("TEST_TARBALL_BASE")))
         pxecfg.linuxArgsKernelAdd("initrd=%s" % pxe.makeBootPath("initram.igz"))
         if ramdisk_size:
@@ -5783,7 +5851,7 @@ exit 0
                 if line.startswith("MII Status:"):
                     slaves[intf]['status'] = line.split(":",1)[1].strip()
                 elif line.startswith("Link Failure Count:"):
-                    pass # unused                
+                    pass # unused
                     #slaves[intf]['failcount'] = line.split(":",1)[1].strip()
                 elif line.startswith("Permanent HW addr:"):
                     slaves[intf]['hwaddr'] = line.split(":",1)[1].strip()
@@ -5856,13 +5924,13 @@ exit 0
     def getIPv6NetworkParams(self, nw=None):
         """Returns a tuple of (router_prefix, dhcp_pool_begin, dhcp_pool_end).
 
-        If nw is None, NPRI is assumed. Acceptable values of nw are NPRI, NSEC and 
+        If nw is None, NPRI is assumed. Acceptable values of nw are NPRI, NSEC and
         VLAN names.
         """
         router_prefix = None
         dhcp6_begin = None
         dhcp6_end = None
-        
+
         if nw == "NPRI" or nw is None:
             router_prefix = self.lookup(["NETWORK_CONFIG",
                                          "DEFAULT",
@@ -5898,22 +5966,22 @@ exit 0
                                          nw,
                                          "SUBNET6"],
                                         None)
-            
+
             dhcp6_begin = self.lookup(["NETWORK_CONFIG",
                                        "VLANS",
                                        nw,
                                        "POOLSTART6"],
                                       None)
-            
+
             dhcp6_end = self.lookup(["NETWORK_CONFIG",
                                      "VLANS",
                                      nw,
                                      "POOLEND6"],
                                     None)
-            
+
         return (router_prefix, dhcp6_begin, dhcp6_end)
-        
-        
+
+
     def getVLAN(self, vlanname):
         """Return a tuple of (vlan, subnet, netmask), where vlan is an
         integer, for the VLAN defined by the symbolic name given."""
@@ -5942,11 +6010,11 @@ exit 0
         return (vlan, subnet, netmask)
 
     def availableVLANs(self):
-        """Return a list of available routed VLANs for the network(s) this host is connected to. 
+        """Return a list of available routed VLANs for the network(s) this host is connected to.
            The list is of tuples of (vlan, subnet, netmask) where vlan is an integer."""
         reply = []
         vlannames = self.lookup(["NETWORK_CONFIG", "VLANS"], None)
-        if vlannames:            
+        if vlannames:
             # Remove:
             #   * Unrouted VLANs with a "VU" prefix.
             #   * Special VLANs for storage traffic (IPRI/ISEC).
@@ -5975,7 +6043,7 @@ exit 0
                         "No %s or NETPORT specified for %s default interface"
                         % (action, self.getName()))
         else:
-            # Check the secondary interfaces            
+            # Check the secondary interfaces
             i = 1
             while True:
                 macn = xenrt.normaliseMAC(self.lookup(["NICS",
@@ -6018,7 +6086,7 @@ exit 0
             addr = xenrt.TEC().lookup(["NETSWITCHES", switchName, 'ADDRESS'])
             if not addr:
                 raise xenrt.XRTError("No ADDRESS for NETSWITCH %s" % (switchName))
-                 
+
             comm = xenrt.TEC().lookup(["NETSWITCHES", switchName, 'SNMPPRIVATE'])
             if not comm:
                 raise xenrt.XRTError("No SNMPPRIVATE for NETSWITCH %s" %(switchName))
@@ -6027,7 +6095,7 @@ exit 0
 
             oidBase = xenrt.TEC().lookup(["NETSWITCHES", unit, "OID_BASE"],
                                     ".1.3.6.1.2.1.2.2.1.7")
-                                    
+
             if action == "CMD_PORT_ENABLE":
                 icmd = "1"
             elif action == "CMD_PORT_DISABLE":
@@ -6036,7 +6104,7 @@ exit 0
                 raise xenrt.XRTError("Unknown port action: %s" % (action))
             cmd = "snmpset -c %s -v1 -t 10 -r 10 %s %s.%u i %s" % \
                   (comm, addr, oidBase, int(portNumber) + portOffset, icmd)
-            
+
         # Run the command
         if cmd:
             xenrt.TEC().logverbose("Controlling switch port for %s %s (%s)" %
@@ -6065,7 +6133,7 @@ exit 0
         """Enable the switch port to which the NIC with the specified MAC
         is connected."""
         self._controlNetPort(mac, "CMD_PORT_ENABLE", startup=startup)
-        
+
     def disableNetPort(self, mac):
         """Disable the switch port to which the NIC with the specified MAC
         is connected."""
@@ -6220,7 +6288,7 @@ exit 0
         pif_uuids = self.minimalList("network-list", "PIF-uuids", "bridge=%s" % bridge)
         if len(pif_uuids) == 0:
             return None
-        
+
         network = None
         my_pifs = self.minimalList('pif-list', 'uuid', 'host-uuid=%s' % self.getMyHostUUID())
         try:
@@ -6262,7 +6330,7 @@ exit 0
 
         configpath[-1] = "GATEWAY6"
         gateway = xenrt.TEC().lookup(configpath, None)
- 
+
         return subnetMask,gateway
 
     def _getMainDisks(self, count=1, ccissIfAvailable=False):
@@ -6314,7 +6382,7 @@ exit 0
             guest = self.containerHost.guestFactory()(self.machine.name)
             guest.existing(self.containerHost)
         return self.containerHost
-        
+
 
     def resetDisk(self):
         """Reset the disk before installation if this is a Xen-On-Xen host, to stop thin provisioned VDIs fattening"""
@@ -6363,7 +6431,7 @@ exit 0
             if not speed:
                 speed = None # Needed as we'll get the empty string rather than
                              # None if the attribute isn't specified, and that
-                             # confuses listSecondaryNICs 
+                             # confuses listSecondaryNICs
 
             bondMode = phys.getAttribute("bond-mode")
             if bondMode == "":
@@ -6375,14 +6443,14 @@ exit 0
             if primaryNICSpeed == "1G":
                 primaryNICSpeed = None
             if network == "NPRI" and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
-                # The primary NIC is also on this network 
+                # The primary NIC is also on this network
                 avail = [0] + avail
             nicnodes = phys.getElementsByTagName("NIC")
             nicList = []
             for nic in nicnodes:
                 enum = nic.getAttribute("enum")
                 if not enum and str(enum) != "0":
-                    # Find the first unused NIC 
+                    # Find the first unused NIC
                     nicaid = None
                     for n in avail:
                         if n in nicsUsed:
@@ -6401,8 +6469,8 @@ exit 0
                     nicaid = avail[int(enum)]
                 nicsUsed.append(nicaid)
                 nicList.append(nicaid)
-            # See if we've configured management, storage or VM access on 
-            # this physical device 
+            # See if we've configured management, storage or VM access on
+            # this physical device
             mgmt = False
             storage = False
             vms = False
@@ -6425,7 +6493,7 @@ exit 0
                             storage = "dhcp"
                     elif n.localName == "VMS":
                         vms = True
-            # Look for VLANs on this physical device 
+            # Look for VLANs on this physical device
             vlannodes = phys.getElementsByTagName("VLAN")
             vlanList = []
             for vlan in vlannodes:
@@ -6436,7 +6504,7 @@ exit 0
                 vfriendlynetname = vlan.getAttribute("name")
                 if not vfriendlynetname:
                     vfriendlynetname = vnetwork
-                # Look for management, storage or VM use on this VLAN 
+                # Look for management, storage or VM use on this VLAN
                 vmgmt = False
                 vstorage = False
                 vvms = False
@@ -6473,7 +6541,7 @@ class NetPeerHost(GenericHost):
 
     def checkVersion(self):
         pass
-        
+
 class GenericGuest(GenericPlace):
     """Encapsulates a single guest VM."""
 
@@ -6553,7 +6621,7 @@ class GenericGuest(GenericPlace):
                                                         str(self.vifs),
                                                         other.getName(),
                                                         str(other.vifs)))
-            for i in range(len(self.vifs)):                
+            for i in range(len(self.vifs)):
                 nic0, vbridge0, mac0, ip0 = self.vifs[i]
                 nic1, vbridge1, mac1, ip1 = other.vifs[i]
                 # Strip the nic prefix ("eth" or "nic") to compare only
@@ -6580,7 +6648,7 @@ class GenericGuest(GenericPlace):
                                                           str(mac0),
                                                           other.getName(),
                                                           str(mac1)))
-        
+
     def __copy__(self):
         cp = self.__class__(self.name)
         cp.__dict__.update(self.__dict__)
@@ -6601,7 +6669,7 @@ class GenericGuest(GenericPlace):
 
     def getName(self):
         return self.name
-    
+
     def __str__(self):
         return self.getName()
 
@@ -6639,14 +6707,14 @@ class GenericGuest(GenericPlace):
 
     def getGuestVIFs(self):
         return self.getMyVIFs()
- 
+
     def check(self):
         """Check the installed guest resources match the specification."""
         ok = 1
         reasons = []
-    
+
         xenrt.TEC().logverbose("Checking guest: %s" % (self.name))
-    
+
         # Memory
         if self.memory:
             try:
@@ -6660,10 +6728,10 @@ class GenericGuest(GenericPlace):
                 if self.distro:
                     if self.arch and "64" in self.arch:
                         memcap = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY64"], None)
-                    
+
                     if not memcap:
                         memcap = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], None)
-                
+
                 if memcap and self.memory > int(memcap):
                     xenrt.TEC().logverbose("%s will not use more than %sMB memory." % (self.distro, memcap))
                     m = int(memcap)
@@ -6675,22 +6743,22 @@ class GenericGuest(GenericPlace):
                     if delta <= 16 or delta <= (m/20):
                         pass
                     elif delta <= (m/10):
-                        xenrt.TEC().warning("Guest memory %uMB does not match config %uMB." % 
+                        xenrt.TEC().warning("Guest memory %uMB does not match config %uMB." %
                                             (guest_reported, m))
                     else:
                         ok = 0
-                        reasons.append("Guest memory %uMB does not match config %uMB." % 
+                        reasons.append("Guest memory %uMB does not match config %uMB." %
                                        (guest_reported, m))
-                
+
                 delta = abs(dom0_reported - m)
                 if delta <= 16 or delta <= (m/20):
                     pass
                 elif delta <= (m/10):
-                    xenrt.TEC().warning("Domain memory %uMB does not match config %uMB." % 
+                    xenrt.TEC().warning("Domain memory %uMB does not match config %uMB." %
                                        (dom0_reported, m))
                 else:
                     ok = 0
-                    reasons.append("Domain memory %uMB does not match config %uMB." % 
+                    reasons.append("Domain memory %uMB does not match config %uMB." %
                                   (dom0_reported, m))
             except Exception, e:
                 sys.stderr.write(str(e))
@@ -6769,7 +6837,7 @@ class GenericGuest(GenericPlace):
                     else:
                         ok = 0
                         reasons.append(msg)
-            
+
             if not len(dom0_reported) == len(self.vifs):
                 msg = "Domain-0 VIFs %u do not match config VIFs %u." % \
                       (len(dom0_reported), len(self.vifs))
@@ -6870,7 +6938,7 @@ class GenericGuest(GenericPlace):
             self.checkNetworkSSH()
         else:
             self.checkNetworkNoSSH()
-        
+
     def execguest(self,
                   command,
                   username=None,
@@ -6885,7 +6953,7 @@ class GenericGuest(GenericPlace):
                   outfile=None,
                   password=None):
         """Execute a command on the guest.
-    
+
         @param retval:  Whether to return the result code or stdout as a string
             "C{string}" (default), "C{code}"
             if "C{string}" is used then a failure results in an exception
@@ -6924,7 +6992,7 @@ class GenericGuest(GenericPlace):
     def reboot(self, force=False, skipsniff=False):
         # Per-product guest subclasses will override this. Define a fallback
         # method for guests used directly (e.g. with xrt --guest)
-        
+
         # Initiate a reboot from within the VM
         if self.windows:
             self.xmlrpcReboot()
@@ -6969,7 +7037,7 @@ class GenericGuest(GenericPlace):
         self.findPassword()
 
         if not self.windows:
-            # Copy the test scripts to the guest        
+            # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
             sdir = xenrt.TEC().lookup("REMOTE_SCRIPTDIR")
             self.execguest("rm -rf %s" % sdir)
@@ -6996,11 +7064,11 @@ class GenericGuest(GenericPlace):
                     isUbuntu = True
 
             isDebian = isDebian and not isUbuntu
-            
+
             if isUbuntu:
-                # change the TMPTIME so /tmp doesn't get cleared away on 
+                # change the TMPTIME so /tmp doesn't get cleared away on
                 # every reboot
-                
+
                 self.execguest("sed -i 's/TMPTIME=0/TMPTIME=-1/g' /etc/default/rcS")
 
                 # Remove the repositories we don't mirror from the apt list
@@ -7012,7 +7080,7 @@ class GenericGuest(GenericPlace):
                 self.execguest("cat /etc/apt/sources.list")
                 self.execguest("apt-get update")
 
-                
+
             # If Debian then apt-get some stuff
             if isDebian:
                 apt_cacher = None
@@ -7056,7 +7124,7 @@ class GenericGuest(GenericPlace):
                         f.write(data)
                         f.close()
                         sftp.copyTo(fn, filebase)
-                    
+
                 # Rewrite /etc/apt/sources.list.d/xensource.list
                 # or similar (if present)
                 for filebase, hname in \
@@ -7125,7 +7193,7 @@ class GenericGuest(GenericPlace):
                         f.write(data)
                         f.close()
                         sftp.copyTo(fn, filebase)
-                        
+
                 try:
                     # The apt-cacher bzip2 files seem to be broken, so force use the gzip packages
                     self.execguest("apt-get remove -y bzip2")
@@ -7224,7 +7292,7 @@ class GenericGuest(GenericPlace):
                         if haskernel and not self.getDomainType() == "hvm":
                             needreboot = True
                             oldkernel = self.execguest("uname -r").strip()
-                
+
                 # These are RPMs given as inputs to the test
                 rpmupg = xenrt.TEC().lookup("RPMUPG_%s-%s" %
                                             (self.distro, self.arch), None)
@@ -7270,7 +7338,7 @@ class GenericGuest(GenericPlace):
                         (self.getName()))
                     needreboot = True
 
-                if needreboot:    
+                if needreboot:
                     # Mark that we're finished tailoring so reboot doesn't
                     # recursively call us
                     self.tailored = True
@@ -7286,7 +7354,7 @@ class GenericGuest(GenericPlace):
                         xenrt.TEC().logverbose(\
                             "Upgraded VM kernel from %s to %s" %
                             (oldkernel, newkernel))
-                        
+
             # Enable sysrq if possible
             try:
                 self.execguest("if [ -e /etc/sysctl.conf ]; then "
@@ -7299,7 +7367,7 @@ class GenericGuest(GenericPlace):
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))
             try:
-                isSLES = (self.execguest("test -e /etc/SuSE-release", retval="code") == 0)       
+                isSLES = (self.execguest("test -e /etc/SuSE-release", retval="code") == 0)
                 if isSLES:
                     # SLES enables sysrq in a different way to other VMs
                     self.execguest("if [ -e /etc/sysconfig/sysctl ]; then "
@@ -7310,7 +7378,7 @@ class GenericGuest(GenericPlace):
                                    "fi")
             except:
                 xenrt.TEC().warning("Error performing SLES specific syslog "
-                                    "enable in %s" % (self.getName()))                
+                                    "enable in %s" % (self.getName()))
 
             # Disable some stuff (XRT-759)
             for s in ["makewhatis", "locate"]:
@@ -7390,7 +7458,7 @@ class GenericGuest(GenericPlace):
                        "ServicesPipeTimeout",
                        "DWORD",
                        600000)
-    
+
     def getDomid(self):
         return self.host.getDomid(self)
 
@@ -7485,17 +7553,17 @@ class GenericGuest(GenericPlace):
         grubfile=None
         pxeb=None
         vifname, bridge, mac, c = self.vifs[0]
-        
+
         if pxe:
             self.enablePXE(True)
             self.paramSet("HVM-boot-params-order", "ndc")
-            
+
             #build new Solaris jumpstart files for unattended installation
             webdir = xenrt.WebDirectory()
             datadir = "%s/data/jumpstart" % (xenrt.TEC().lookup("XENRT_BASE"))
             nfsdir = xenrt.NFSDirectory()
             configdir = nfsdir.getMountURL("")
-            
+
             amd64_infix = ""
             # TODO: there's a tftpd/grub error when transmitting the large >130MB miniroot
             # of solaris-64 during first boot over network. Disabling it for now until the
@@ -7511,7 +7579,7 @@ class GenericGuest(GenericPlace):
             publishToNfs("rules.ok")
             publishToNfs("sysidcfg")
             publishToNfs("preinstall.sh")
-            
+
             if method == "CDROM" or method == "NFS":
                 # use installation from scratch
                 publishToNfs("any_machine")
@@ -7530,7 +7598,7 @@ class GenericGuest(GenericPlace):
                 f_logdir_profile.close()
                 nfsdir.copyIn(filename_log_profile)
                 url_profile = nfsdir.getMountURL(os.path.basename(filename_log_profile))
-            
+
             filename_postinstall = "postinstall.sh"
             f_postinstall = file("%s/%s-%s" % (datadir, filename_postinstall, self.arch), "r")
             ay = f_postinstall.read()
@@ -7539,10 +7607,10 @@ class GenericGuest(GenericPlace):
             signaldir = nfsdir.getMountURL("")
             vars["SIGNALDIR"] = signaldir
             vars["EXTRAPOSTINSTALL"] = ""
-            
+
             if installXenToolsInPostInstall:
                 vars["EXTRAPOSTINSTALL"] = "mkdir /xs && mount /dev/xvdd /xs && /xs/Linux/install.sh -n && reboot"
-            
+
             for v in vars.keys():
                 ay = string.replace(ay, "%%%s%%" % (v), vars[v])
             filename_log_postinstall = "%s/%s" % (xenrt.TEC().getLogdir(),filename_postinstall)
@@ -7551,7 +7619,7 @@ class GenericGuest(GenericPlace):
             f_logdir_postinstall.close()
             nfsdir.copyIn(filename_log_postinstall)
             url_postinstall = nfsdir.getMountURL(os.path.basename(filename_log_postinstall))
-        
+
             # build jumpstart config files
             self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
             if method == "CDROM":
@@ -7561,7 +7629,7 @@ class GenericGuest(GenericPlace):
                 pxecfg = pxeb.addEntry("install", default=1, boot="linux")
                 pxecfg.linuxSetKernel("mboot.c32")
                 pxecfg.linuxArgsKernelAdd("%sboot/multiboot" % pxebootdir)
-                pxecfg.linuxArgsKernelAdd("kernel/%sunix" % amd64_infix) 
+                pxecfg.linuxArgsKernelAdd("kernel/%sunix" % amd64_infix)
                 pxecfg.linuxArgsKernelAdd("- install nowin dhcp")
                 pxecfg.linuxArgsKernelAdd("-B install_config=%s,sysid_config=%s,install_media=cdrom" % (configdir,configdir))
                 pxecfg.linuxArgsKernelAdd("---")
@@ -7585,7 +7653,7 @@ class GenericGuest(GenericPlace):
                 pxebootdir_template = "%s/boot.tar.bz2" % repository_http
                 # installation from a repo only available in Solaris via NFS
                 if method != "NFS": installdir = configdir
-            
+
                 # Construct a PXE target.
                 pxeb = xenrt.PXEGrubBoot(boottar=pxebootdir_template)
                 pxebootdir = pxeb.makeBootPath("")
@@ -7593,10 +7661,10 @@ class GenericGuest(GenericPlace):
                 pxecfg.grubSetKernel("%sboot/multiboot kernel/%sunix - install nowin dhcp -B install_config=%s,sysid_config=%s,install_media=%s" % (pxebootdir,amd64_infix,configdir,configdir,installdir))
                 pxecfg.grubArgsKernelAdd("%sboot/%sx86.miniroot" % (pxebootdir,amd64_infix))
                 (pxefile,grubfile) = pxeb.writeOut(None, mac)
-        
+
         if not start:
             return
-        
+
         self.lifecycleOperation("vm-start")
 
         # Next time we boot normally
@@ -7615,7 +7683,7 @@ class GenericGuest(GenericPlace):
         if pxe:
             # When using pxe, we are able to send a signal to the VM indicating
             # where it should write back indicating a successful install.
-            # Wait for notification that the install has finished 
+            # Wait for notification that the install has finished
             # (This happens after the installer has booted into
             # the newly installed guest)
             if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
@@ -7656,8 +7724,8 @@ class GenericGuest(GenericPlace):
         except:
             pass
         self.poll("DOWN", timeout=240)
-                                                                   
-            
+
+
     def installSLES(self,
                     distro,
                     repository,
@@ -7673,7 +7741,7 @@ class GenericGuest(GenericPlace):
         vifname, bridge, mac, c = self.vifs[0]
         # Build an autoyast file.
         ks=SLESAutoyastFile(distro,
-                            nfsdir.getMountURL(""),                            
+                            nfsdir.getMountURL(""),
                             maindisk="hda",
                             installOn=xenrt.HypervisorType.xen,
                             password=self.password,
@@ -7688,10 +7756,10 @@ class GenericGuest(GenericPlace):
         filename = "%s/autoyast.xml" % (xenrt.TEC().getLogdir())
         f=file(filename,"w")
         for line in ay.splitlines():
-            f.write("%s\n" % (line))           
+            f.write("%s\n" % (line))
         f.close()
 
-        
+
         # Make autoyast file available over HTTP.
         webdir = xenrt.WebDirectory()
         webdir.copyIn(filename)
@@ -7707,14 +7775,14 @@ class GenericGuest(GenericPlace):
             else:
                 xenrt.getHTTP("%s/boot/i386/loader/linux" % (repository), fk)
                 xenrt.getHTTP("%s/boot/i386/loader/initrd" % (repository), fr)
-        
+
         if pxe:
             # HVM PXE install
             self.enablePXE()
             if method != "HTTP":
                 raise xenrt.XRTError("%s PXE install not supported" %
                                      (method))
-               
+
             # Construct a PXE target.
             pxe = xenrt.PXEBoot()
             pxe.copyIn(fk, target="vmlinuz")
@@ -7723,7 +7791,7 @@ class GenericGuest(GenericPlace):
             pxecfg.linuxSetKernel("vmlinuz")
             pxecfg.linuxArgsKernelAdd("initrd=%s" %
                                       (pxe.makeBootPath("initrd.img")))
-            pxecfg.linuxArgsKernelAdd("ramdisk_size=65536") 
+            pxecfg.linuxArgsKernelAdd("ramdisk_size=65536")
             pxecfg.linuxArgsKernelAdd("autoyast=%s" % (url))
             lh = xenrt.TEC().lookup("SLES_LOGHOST", None)
             if lh:
@@ -7755,7 +7823,7 @@ class GenericGuest(GenericPlace):
 
         if not start:
             return
-        
+
         self.lifecycleOperation("vm-start")
 
         # Get the guest address during installation
@@ -7765,14 +7833,14 @@ class GenericGuest(GenericPlace):
             self.mainip = self.host.arpwatch(bridge, mac, timeout=1800)
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
-                
+
         # Next time we boot normally
         if pxe:
             self.enablePXE(False)
             xenrt.sleep(120)
             os.unlink(pxefile)
 
-        # Wait for notification that the install has finished 
+        # Wait for notification that the install has finished
         # (This happens after the installer has booted into
         # the newly installed guest)
         if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
@@ -7816,7 +7884,7 @@ class GenericGuest(GenericPlace):
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
         vifname, bridge, mac, c = self.vifs[0]
-        
+
         if pxe:
             ethDevice = string.replace(vifname, "nic", "eth")
             if self.host.productType == "esx":
@@ -7837,12 +7905,12 @@ class GenericGuest(GenericPlace):
         bootDiskFS = xenrt.TEC().lookup("BOOTDISKFS", "ext4")
                       
         # Build a kickstart file.
-        ksf=RHELKickStartFile(distro,                              
+        ksf=RHELKickStartFile(distro,
                               maindisk,
                               nfsdir.getMountURL(""),
                               vifs=self.vifs,
                               password=self.password,
-                              host=self.host,                              
+                              host=self.host,
                               installOn=xenrt.HypervisorType.xen,
                               method=method,
                               repository=repository,
@@ -7855,7 +7923,7 @@ class GenericGuest(GenericPlace):
                               ossVG=False,
                               installXenToolsInPostInstall=installXenToolsInPostInstall)
         ks=ksf.generate()
-        vifname, bridge, mac, c = self.vifs[0]        
+        vifname, bridge, mac, c = self.vifs[0]
         filename = "%s/kickstart.cfg" % (xenrt.TEC().getLogdir())
         f = file(filename, "w")
         for line in ks.splitlines():
@@ -7955,7 +8023,7 @@ class GenericGuest(GenericPlace):
 
         if not start:
             return;
-        
+
         # Start the VM to install from CD
         xenrt.TEC().progress("Starting VM %s for kickstart install" %
                              (self.name))
@@ -7997,7 +8065,7 @@ class GenericGuest(GenericPlace):
         if pxe:
             # Cancel PXE booting for the new guest
             self.enablePXE(False)
-            pxe.remove() 
+            pxe.remove()
         if options.has_key("OSS_PV_INSTALL"):
             # Revert to pygrub booting
             self.kernel = None
@@ -8027,7 +8095,7 @@ class GenericGuest(GenericPlace):
         else:
             xenrt.sleep(60)
             self.lifecycleOperation("vm-reboot")
-        
+
         if xenrt.TEC().lookup("ARPWATCH_PRIMARY", False, boolean=True):
             mac, ip, bridge = self.getVIF(bridge=self.host.getPrimaryBridge())
         goes = 1
@@ -8047,7 +8115,7 @@ class GenericGuest(GenericPlace):
                 xenrt.TEC().warning("Retrying boot after failed arpwatch")
                 self.lifecycleOperation("vm-reboot", force=True)
         self.waitForSSH(1800, desc="Post installation reboot")
-                
+
         # Shutdown the VM. This is to match Linux behaviour where
         # install does not necessarily mean start.
         if pxe:
@@ -8060,7 +8128,7 @@ class GenericGuest(GenericPlace):
         else:
             self.lifecycleOperation("vm-shutdown")
         self.poll("DOWN", timeout=240)
-        
+
     def installDebian(self,
                       distro,
                       repository,
@@ -8092,8 +8160,8 @@ class GenericGuest(GenericPlace):
                              ossVG=False,
                              arch=arch,
                              installXenToolsInPostInstall=installXenToolsInPostInstall)
-                        
-        
+
+
         ps.generate()
         # Make config file available over HTTP.
         webdir = xenrt.WebDirectory()
@@ -8173,15 +8241,15 @@ class GenericGuest(GenericPlace):
                 else:
                     self.paramSet("other-config-install-repository", repository)
 
-        # A valid hostname may contain only the numbers 0-9, the lowercase  
+        # A valid hostname may contain only the numbers 0-9, the lowercase
         # letters a-z, and the minus sign. It must be between 2 and 63
         # characters long, and may not begin or end with a minus sign.
-        
+
         hostname = self.getName().lower()
         hostname = re.sub("[^a-z0-9\-]", "", hostname)
         hostname = re.sub("^-", "", hostname)
         hostname = re.sub("-$", "", hostname)
-        
+
         if len(hostname) < 2:
             hostname = hostname + "xx"
 
@@ -8190,7 +8258,7 @@ class GenericGuest(GenericPlace):
                      "auto-install/enable=true " \
                      "netcfg/choose_interface=eth0 " \
                      "hostname=%s domain=localdomain url=%s" % (hostname, url)
-        
+
         if self.host.productType == "kvm" and method != "CDROM":
             self._setPVBoot(self.kernel, self.initrd, bootparams)
         elif self.host.productType == "esx":
@@ -8200,7 +8268,7 @@ class GenericGuest(GenericPlace):
 
         if not start:
             return
-        
+
         # Start the install
         self.lifecycleOperation("vm-start")
 
@@ -8211,7 +8279,7 @@ class GenericGuest(GenericPlace):
             self.mainip = self.host.arpwatch(bridge, mac, timeout=1800)
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
-        
+
         # Wait for the VM to power down - this means the install has finished
         if xenrt.TEC().lookup("EXTRA_TIME", False, boolean=True):
             installtime = 10800
@@ -8263,12 +8331,12 @@ class GenericGuest(GenericPlace):
             # Start a ping in dom0 to check for VM downtime
             ip = IPy.IP(self.mainip)
             if ip.version() == 6:
-                self.host.execdom0("ping6 -q %s > /tmp/%s_ping.log 2>&1 & echo $! > /tmp/%s_ping.pid" % 
+                self.host.execdom0("ping6 -q %s > /tmp/%s_ping.log 2>&1 & echo $! > /tmp/%s_ping.pid" %
                                (self.mainip,self.name,self.name))
             else:
-                self.host.execdom0("ping -q %s > /tmp/%s_ping.log 2>&1 & echo $! > /tmp/%s_ping.pid" % 
+                self.host.execdom0("ping -q %s > /tmp/%s_ping.log 2>&1 & echo $! > /tmp/%s_ping.pid" %
                                (self.mainip,self.name,self.name))
-            # Start the live migrate logger process 
+            # Start the live migrate logger process
             # (scripts/remote/migratecheck.py)
             if self.windows:
                 # Use XML-RPC
@@ -8285,7 +8353,7 @@ class GenericGuest(GenericPlace):
                 self.execguest("%s/remote/migratecheck.py /migrate.log "
                                "/migrate.pid > /dev/null 2>&1 &" % (rsd))
         except Exception, e:
-            xenrt.TEC().warning("Exception in startLiveMigrateLogger: " + 
+            xenrt.TEC().warning("Exception in startLiveMigrateLogger: " +
                                 str(e))
 
     def stopLiveMigrateLogger(self, isReturn=None):
@@ -8307,7 +8375,7 @@ class GenericGuest(GenericPlace):
                     else:
                         xenrt.TEC().logverbose("Lost %u pings during live migrate" % (lost))
                     break
-            # Stop the live migrate logger process, and see if it was actually 
+            # Stop the live migrate logger process, and see if it was actually
             # live
             if self.windows:
                 # Use XML-RPC
@@ -8329,7 +8397,7 @@ class GenericGuest(GenericPlace):
                 # Cleanup
                 self.execguest("rm /migrate.log")
                 self.execguest("rm /migrate.pid")
-                
+
             # Look at each entry, if the entry after it is more than 200ms away,
             # then this is most probably our migrate gap
             lines = log.split("\n")
@@ -8339,12 +8407,12 @@ class GenericGuest(GenericPlace):
                 if (count+2) == len(lines):
                     break
                 count += 1
-                secs = float(line.strip())                
+                secs = float(line.strip())
                 next_secs = float(lines[count].strip())
                 if (next_secs - secs) > 0.2:
                     found = True
                     downtime = next_secs - secs
-                    xenrt.TEC().logverbose("Live migrate downtime ~%dms" % 
+                    xenrt.TEC().logverbose("Live migrate downtime ~%dms" %
                                            (int(downtime*1000)))
                     if downtime > 1:
                         xenrt.TEC().warning("Live migrate downtime > 1s!")
@@ -8423,9 +8491,9 @@ class GenericGuest(GenericPlace):
         self.shutdown()
         self.cpuset(1)
         self.start()
-        if not re.search("Multiprocessor", 
+        if not re.search("Multiprocessor",
                           self.xmlrpcExec("systeminfo",
-                          returndata=True)): 
+                          returndata=True)):
             raise xenrt.XRTError("We don't seem to be using the "
                                  "SMP HAL.")
 
@@ -8435,10 +8503,10 @@ class GenericGuest(GenericPlace):
             self.xmlrpcAddBootFlag("/PAE")
             self.xmlrpcExec("type c:\\boot.ini")
             self.reboot()
-        paeval = self.winRegLookup("HKLM", 
+        paeval = self.winRegLookup("HKLM",
                                    "SYSTEM\\CurrentControlSet\\"
                                    "Control\\Session Manager\\"
-                                   "Memory Management", 
+                                   "Memory Management",
                                    "PhysicalAddressExtension")
         if not paeval == 1:
             raise xenrt.XRTError("Tried to enable PAE but registry flag "
@@ -8503,7 +8571,7 @@ class GenericGuest(GenericPlace):
     def getVncSnapshot(self, filename):
         """Get a VNC display snapshot of this VM."""
         return self.host.getVncSnapshot(self.getDomid(), filename)
-    
+
     def sendVncKeys(self, keycodes):
         """Send the list of X11 keycodes to the VNC interface for this VM"""
         self.host.sendVncKeys(self.getDomid(), keycodes)
@@ -8539,12 +8607,12 @@ class GenericGuest(GenericPlace):
                                    (self.getDomid(),self.getDomid()))
 
     def deviceToNetworkName(self,device):
- 
+
         nics = self.getVIFs()
         bridge = nics[device][2]
         network = self.host.bridgeToNetworkName(bridge)
 
-        return network 
+        return network
 
     def disableRandomizeIdentifiers(self):
 
@@ -8564,7 +8632,7 @@ class GenericGuest(GenericPlace):
             network = self.deviceToNetworkName(device)
             (routerPrefix, dhcp6Begin, dhcp6End) = self.host.getIPv6NetworkParams(nw=network)
             routerPrefix = routerPrefix.replace('::',':')
-        
+
         autoConfAddr = routerPrefix + interfaceIdentifier
         return autoConfAddr
 
@@ -8572,7 +8640,7 @@ class GenericGuest(GenericPlace):
 
         if ipv6Addr.rfind('%') > 0:
             ipv6Addr = ipv6Addr.split('%')[0]
-            
+
         ipv6 = IPy.IP(ipv6Addr)
 
         network = self.deviceToNetworkName(device)
@@ -8589,14 +8657,14 @@ class GenericGuest(GenericPlace):
 
         if self.windows:
             try:
-                self.xmlrpcExec("netsh interface ipv4 uninstall",ignoreHealthCheck=True)  
+                self.xmlrpcExec("netsh interface ipv4 uninstall",ignoreHealthCheck=True)
             except:
                 #Expects exception and it has to be ignored
                 pass
             self.ipv4_disabled = True
             if restart: # Only applicable to Windows
                 self.shutdown()
-                self.start() 
+                self.start()
         else:
             #CHECKME: Disabling IPv4 for linux is broken (not persisted over reboot)
             for device in self.getVIFs().keys():
@@ -8612,7 +8680,7 @@ class GenericGuest(GenericPlace):
                 pass
 
     def enableIPv4(self,deviceList=None):
- 
+
         if self.windows:
             try:
                 self.xmlrpcExec("netsh interface ipv4 install")
@@ -8642,21 +8710,21 @@ class GenericGuest(GenericPlace):
     def specifyStaticIPv6(self,device="eth0"):
 
         network = self.deviceToNetworkName(device)
-        staticIpObj = xenrt.StaticIP6Addr(network)  
-        ipv6Addr = staticIpObj.getAddr() 
+        staticIpObj = xenrt.StaticIP6Addr(network)
+        ipv6Addr = staticIpObj.getAddr()
         netmask,gateway = self.host.getIPv6SubnetMaskGateway(network)
- 
+
         if self.windows:
             interfaces = self.xmlrpcExec("netsh interface show interface", returndata=True)
-            
+
             res = re.findall("((Local Area Connection|Ethernet) *\d*)", interfaces, re.MULTILINE|re.DOTALL)
-            
+
             if len(res) > 0:
-                self.xmlrpcExec('netsh interface ipv6 set address "%s" %s' % (res[0][0], ipv6Addr)) 
+                self.xmlrpcExec('netsh interface ipv6 set address "%s" %s' % (res[0][0], ipv6Addr))
             else:
-                raise xenrt.XRTFailure("No Local Area connection was found, check network settings on VM") 
-         
-            xenrt.sleep(10) 
+                raise xenrt.XRTFailure("No Local Area connection was found, check network settings on VM")
+
+            xenrt.sleep(10)
             try:
                 self.xmlrpcExec("ping %s" % ipv6Addr)
             except:
@@ -8674,12 +8742,12 @@ class GenericGuest(GenericPlace):
                 raise xenrt.XRTFailure("IPV6 address %s is not pingable" % ipv6Addr)
 
         return staticIpObj
-        
+
     def enableIPv6Dhcp(self):
-    
+
         if not self.windows:
             raise xenrt.XRTError("Funcion not implemented for non-Windows guests")
-        
+
         try:
             self._xmlrpc().enableDHCP6()
         except:
@@ -8703,7 +8771,7 @@ class GenericGuest(GenericPlace):
         log('DHCP IPv6 address found: "%s"' % ip6 )
         # set up the new IPv6 address, so xmlrpc can work again
         self.mainip = ip6
-        
+
         return
 
     def getDhcpIP6(self):
@@ -8719,15 +8787,15 @@ class GenericGuest(GenericPlace):
         else:
             ip6 = match.group(1)
             return ip6
-            
+
     def setUseIPv6(self):
         if not self.use_ipv6:
             self.mainip = self.getIPv6AutoConfAddress()
             self.use_ipv6 = True
-            
+
     def getUseIPv6(self):
         return self.use_ipv6
-        
+
     def setUseIPv4(self, address):
         if self.use_ipv6:
             self.mainip = address
@@ -8763,20 +8831,20 @@ class GenericGuest(GenericPlace):
             raise xenrt.XRTFailure("GPU not detected for vm %s" % (self.getName()))
         if gpuDetected > 1:
             raise xenrt.XRTFailure("More than 1 GPU detected for vm %s" % (self.getName()))
- 
+
         return gpuMake
 
     def installGPUDriver(self):
 
         xenrt.TEC().logverbose("Installing GPU driver on vm %s" % self.getName())
 
-        if self.xmlrpcGetArch() == "amd64":  
+        if self.xmlrpcGetArch() == "amd64":
             driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7_64\\International\\setup.exe /passive /n"
         else:
             driver="c:\\gpudriver\\DisplayDriver\\310.90\\Win8_WinVista_Win7\\International\\setup.exe /passive /n"
         xenrt.TEC().logverbose("Installing GPU driver %s" % (driver))
-        self.xmlrpcUnpackTarball("%s/gpudriver.tgz" % 
-                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")), 
+        self.xmlrpcUnpackTarball("%s/gpudriver.tgz" %
+                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                  "c:\\")
         self.xmlrpcExec(driver, returnerror=False,timeout=1800,ignoreHealthCheck=True)
         self.reboot()
@@ -8970,19 +9038,19 @@ while True:
 """ % (FileNameToBeWritten,FileNameForTimeDiff,int(timeInsecs),vmName)
 
             return writeScriptOnVM
-       
+
         if self.windows:
-           
+
             if not FileNameForTimeDiff:
                 FileNameForTimeDiff = 'c:\\\\writetime.txt'
             FileNameToBeWritten = 'c:\\\\test'
-            script = getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,self.getName())   
+            script = getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,self.getName())
             try:
                 self.xmlrpcWriteFile("c:\\writeScript.py",script)
                 self.xmlrpcExec("python c:\\writeScript.py",ignoreHealthCheck=True)
             except xenrt.XRTFailure, e:
                 xenrt.TEC().logverbose("Failed to execute read script on VM %s and failed with error : %s" % (self.getName(),e))
- 
+
         else:
 
            if not FileNameForTimeDiff:
@@ -9044,10 +9112,10 @@ while True:
             workdir = "c:\\"
         try:
             self.xmlrpcUnpackTarball("%s/specjbb.tgz" %
-                              (xenrt.TEC().lookup("TEST_TARBALL_BASE")),                    
-                              workdir)   
+                              (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
+                              workdir)
         except Exception, e:
-            xenrt.TEC().logverbose("installation of specjbb failed with error: %s" % (str(e))) 
+            xenrt.TEC().logverbose("installation of specjbb failed with error: %s" % (str(e)))
             raise xenrt.XRTFailure("Installation of specjbb failed with error: %s" % (str(e)))
 
     def specjbbCPUWorkload(self,workdir=None):
@@ -9182,9 +9250,9 @@ class EventObserver(xenrt.XRTThread):
         self.totalTime = 0
         self.eventStatus = "NOT_RUNNING"
         xenrt.XRTThread.__init__(self)
-        
+
     def run(self):
-        self.threadSession = self.host.getAPISession(secure=False) 
+        self.threadSession = self.host.getAPISession(secure=False)
 
         if self.eventStatus == "NOT_RUNNING":
             self.eventStatus = "RUNNING"
@@ -9210,10 +9278,10 @@ class EventObserver(xenrt.XRTThread):
                         self.eventStatus = "COMPLETED"
                         break
                     elif (time.time() - startTime > self.timeout):
-                        self.eventStatus = "TIMEOUT"               
+                        self.eventStatus = "TIMEOUT"
                         break
                     failCount = 0
- 
+
                 except Exception, e:
 
                     xenrt.TEC().logverbose("** Exception occurred: e = [%s]" % str(e))
@@ -9222,18 +9290,18 @@ class EventObserver(xenrt.XRTThread):
                     if failCount > 30:
                         self.eventStatus = "ERROR_MONITORING"
                         break
-    
+
                     try:
-                        xenrt.TEC().logverbose("** re-registering anyway") 
+                        xenrt.TEC().logverbose("** re-registering anyway")
                         self.threadSession.xenapi.event.unregister(self.eventClass)
                         self.threadSession.xenapi.event.register(self.eventClass)
                     except:
                         self.eventStatus = "ERROR_MONITORING"
                         xenrt.TEC().logverbose("Unable to re-register Event")
-                        break            
+                        break
 
     def getSession(self):
- 
+
         return self.session
 
     def getTaskID(self):
@@ -9251,7 +9319,7 @@ class EventObserver(xenrt.XRTThread):
                 taskResult = self.session.xenapi.task.get_status(self.taskId)
                 result = {'eventStatus': self.eventStatus,
                           'taskResult': taskResult,
-                          'totalTime': self.totalTime} 
+                          'totalTime': self.totalTime}
                 return result
             except Exception, e:
                 xenrt.TEC().logverbose("Exception occurred while trying to get task status: e = %s" % str(e))
@@ -9316,7 +9384,7 @@ class EventObserver(xenrt.XRTThread):
             raise xenrt.XRTError("Session is already closed")
 
     def getTaskOtherConfig(self):
- 
+
         if self.session <> None:
             otherConfig = self.session.xenapi.task.get_other_config(self.taskId)
             return otherConfig
@@ -9324,7 +9392,7 @@ class EventObserver(xenrt.XRTThread):
             raise xenrt.XRTError("Session is already closed")
 
 class PAMServer:
-   
+
     def createSubjectGraph(self, subjects):
         def parseUser(x, group=None):
             name = x.getAttribute("name")
@@ -9340,7 +9408,7 @@ class PAMServer:
                 subject = self.addGroup(name)
             for y in x.childNodes:
                 if y.localName == "user": parseUser(y, subject)
-        try: 
+        try:
             xs = xml.dom.minidom.parseString(subjects)
             for x in xs.getElementsByTagName("subjects"):
                 for y in x.childNodes:
@@ -9353,10 +9421,10 @@ class PAMServer:
             traceback.print_exc(sys.stdout)
             xenrt.TEC().logverbose("Caught exception %s trying to create "
                                    "the subject graph: %s" % (str(e), subjects))
- 
+
     class Subject:
 
-        def __repr__(self): return self.name 
+        def __repr__(self): return self.name
 
         def __hash__(self): return hash(str(self) + "_" + self.name)
 
@@ -9369,12 +9437,12 @@ class PAMServer:
             self.server = server
             self.roles = sets.Set()
             self.domain = None
-    
+
         def _getAllGroupMembers(self):
             data = self.server.place.execdom0("cat /etc/group").strip().split("\n")
             data = [ x.split(":") for x in data ]
             return dict(map(lambda (a,b,c,d):(a, d.split(",")), data))
-        
+
         def getSID(self):
             pass
 
@@ -9384,7 +9452,7 @@ class PAMServer:
         def cliName(self, usedomainname=False):
             return self.name
 
-    class User(Subject): 
+    class User(Subject):
 
         def __str__(self): return "user"
 
@@ -9400,15 +9468,15 @@ class PAMServer:
             for group in self.groups: group.members.remove(self)
             self.server.users.remove(self)
 
-        def setPassword(self, password): 
+        def setPassword(self, password):
             self.password = password
-            self.server.place.execdom0("echo %s | passwd --stdin %s" % 
+            self.server.place.execdom0("echo %s | passwd --stdin %s" %
                                        (self.password, self.name))
 
-        def enable(self): 
+        def enable(self):
             self.server.place.execdom0("usermod -U %s" % (self.name))
 
-        def disable(self): 
+        def disable(self):
             self.server.place.execdom0("usermod -L %s" % (self.name))
 
         def getGroups(self):
@@ -9421,7 +9489,7 @@ class PAMServer:
                     subject.members.add(self)
                     self.groups.add(subject)
 
-    class Group(Subject): 
+    class Group(Subject):
 
         def __str__(self): return "group"
 
@@ -9429,7 +9497,7 @@ class PAMServer:
             self.members = sets.Set()
             PAMServer.Subject.__init__(self, server, name)
 
-        def getSID(self):        
+        def getSID(self):
             return "g%s" % (self.server.place.execdom0("cat /etc/group | grep %s | cut -d ':' -f 3" % (self.name)).strip())
 
         def remove(self):
@@ -9437,18 +9505,18 @@ class PAMServer:
             for m in self.members: m.groups.remove(self)
             self.server.groups.remove(self)
 
-        def addSubject(self, subject): 
-            self.server.place.execdom0("usermod -a -G %s,%s %s" % 
-                                       (self.name, 
+        def addSubject(self, subject):
+            self.server.place.execdom0("usermod -a -G %s,%s %s" %
+                                       (self.name,
                                         string.join([x.name for x in subject.groups], ","),
                                         subject.name))
             self.members.add(subject)
             subject.groups.add(self)
 
-        def delSubject(self, subject): 
+        def delSubject(self, subject):
             subject.groups.remove(self)
-            self.server.place.execdom0("usermod -G %s %s" % 
-                                       (string.join([x.name for x in subject.groups], ","), 
+            self.server.place.execdom0("usermod -G %s %s" %
+                                       (string.join([x.name for x in subject.groups], ","),
                                         subject.name))
             self.members.remove(subject)
 
@@ -9456,11 +9524,11 @@ class PAMServer:
             data = self._getAllGroupMembers()
             members = [ x for x in data if self.name in data[x] ]
             for member in members:
-                subject = self.server.getUser(member) 
-                if subject:            
+                subject = self.server.getUser(member)
+                if subject:
                     self.members.add(subject)
                     subject.groups.add(self)
-    
+
     def getSubject(self, name=None):
         for subject in self.users + self.groups:
             if subject.name == name: return subject
@@ -9485,7 +9553,7 @@ class PAMServer:
         self.place.execdom0("adduser -g %s %s" % (group.name, user.name))
         user.setPassword(password)
         self.users.append(user)
-        return user 
+        return user
 
     def addGroup(self, name):
         group = self.Group(self, name)
@@ -9494,7 +9562,7 @@ class PAMServer:
         return group
 
     def _getAllSubjects(self, type):
-        return self.place.execdom0("cat /etc/%s | cut -d ':' -f 1" % 
+        return self.place.execdom0("cat /etc/%s | cut -d ':' -f 1" %
                                    (type)).strip().split("\n")
 
     def getAllUsers(self):
@@ -9502,18 +9570,18 @@ class PAMServer:
 
     def getAllGroups(self):
         return [ self.Group(self, name) for name in self._getAllSubjects("group") ]
-  
+
     def __init__(self, place):
         self.users = []
-        self.groups = [] 
+        self.groups = []
         self.type = "PAM"
         self.place = place
-        self.domainname = None 
+        self.domainname = None
         if self.place.windows:
             raise xenrt.XRTError("XenRT only supports PAM on Linux.")
 
         self.groups = self.getAllGroups()
-        self.users = self.getAllUsers() 
+        self.users = self.getAllUsers()
         for subject in self.users:
             subject.getGroups()
         for subject in self.groups:
@@ -9539,7 +9607,7 @@ class ActiveDirectoryServer:
             for y in x.childNodes:
                 if y.localName == "group": parseGroup(y, subject)
                 if y.localName == "user": parseUser(y, subject)
-        try: 
+        try:
             xs = xml.dom.minidom.parseString(subjects)
             for x in xs.getElementsByTagName("subjects"):
                 for y in x.childNodes:
@@ -9550,17 +9618,17 @@ class ActiveDirectoryServer:
             return users, groups
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
-            xenrt.TEC().logverbose("Caught exception %s trying to create the AD graph: %s" % 
+            xenrt.TEC().logverbose("Caught exception %s trying to create the AD graph: %s" %
                                    (str(e), subjects))
             raise
- 
+
     class Local:
 
         def __repr__(self): return self.name
 
         def __hash__(self): return hash(self.name)
 
-        def __eq__(self, other): 
+        def __eq__(self, other):
             return self.name == other.name
 
         def apiName(self, usedomainname=False):
@@ -9576,7 +9644,7 @@ class ActiveDirectoryServer:
 
     class Subject:
 
-        def __repr__(self): return self.name.encode("utf-8") 
+        def __repr__(self): return self.name.encode("utf-8")
 
         def __hash__(self): return hash(self.dn)
 
@@ -9635,14 +9703,14 @@ $subject.objectSID
             subauths = []
             for i in range(subcount):
                 subauths.append(wordtoint(bytesid[4*i+8:4*i+12]))
-            return "S-%s-%s-%s" % (revision, authority, string.join(map(str, subauths), "-")) 
+            return "S-%s-%s-%s" % (revision, authority, string.join(map(str, subauths), "-"))
 
-    class User(Subject): 
+    class User(Subject):
 
         def __str__(self): return "user"
 
         def __init__(self, server, dn):
-            self.password = u"" 
+            self.password = u""
             ActiveDirectoryServer.Subject.__init__(self, server, dn)
 
         def getUserAccountControl(self):
@@ -9697,15 +9765,15 @@ $subject.setInfo()
             self.server.place.xmlrpcExec(script, powershell=True)
             self.password = password
 
-    class Group(Subject): 
+    class Group(Subject):
 
-        def __str__(self): return "group" 
+        def __str__(self): return "group"
 
         def __init__(self, server, dn):
             self.members = sets.Set()
             ActiveDirectoryServer.Subject.__init__(self, server, dn)
 
-        def addSubject(self, subject): 
+        def addSubject(self, subject):
             script = u"""
 $group = [ADSI]"LDAP://%s"
 $subject = [ADSI]"LDAP://%s"
@@ -9716,7 +9784,7 @@ $group.setInfo()
             self.members.add(subject)
             subject.memberof.add(self)
 
-        def removeSubject(self, subject): 
+        def removeSubject(self, subject):
             script = u"""
 $group = [ADSI]"LDAP://%s"
 $subject = [ADSI]"LDAP://%s"
@@ -9738,7 +9806,7 @@ $group.setInfo()
         for subject in self.users + self.groups:
             if dn:
                 if subject.dn == dn:
-                    return subject 
+                    return subject
             if name:
                 if subject.name == name:
                     return subject
@@ -9756,7 +9824,7 @@ $subject.SetInfo()
         return subject
 
     def addUser(self, username, password=u"", parent=None, enable=True, dontPreauthenticate=False):
-        if not password: 
+        if not password:
             password = unicode(xenrt.randomGuestName()[-8:])
         user = self._addSubject(self.User, username)
         script = u"""
@@ -9774,7 +9842,7 @@ $user.SetInfo()
         user.setDontPreauthenticate(dontPreauthenticate)
         if enable:
             user.enable()
-        return user 
+        return user
 
     def addGroup(self, groupname, parent=None):
         group = self._addSubject(self.Group, groupname)
@@ -9814,7 +9882,7 @@ $subject.psbase.DeleteTree()
 function children {
   param($entity)
   foreach ($child in $entity.psbase.get_children()) {
-    if ($child.objectClass -eq "user") { 
+    if ($child.objectClass -eq "user") {
       write ">>" $child.distinguishedName $child.memberOf >> c:\\users.txt
     }
     if ($child.objectClass -eq "group") {
@@ -9828,10 +9896,10 @@ children($domain)
 """ % (tuple(self.domainname.split(".")))
         self.place.xmlrpcExec(script, powershell=True)
         data = self.place.xmlrpcReadFile("c:\\users.txt").decode("utf-16")
-        users = [ x.strip().splitlines() for x in re.findall(">>([^>]+)", data) ] 
+        users = [ x.strip().splitlines() for x in re.findall(">>([^>]+)", data) ]
         users = [ (x[0], x[1:]) for x in users ]
         data = self.place.xmlrpcReadFile("c:\\groups.txt").decode("utf-16")
-        groups = [ x.strip().splitlines() for x in re.findall(">>([^>]+)", data) ] 
+        groups = [ x.strip().splitlines() for x in re.findall(">>([^>]+)", data) ]
         groups = [ (x[0], x[1:]) for x in groups ]
 
         self.users = [ xenrt.ActiveDirectoryServer.User(self, user) for user,parents in users ]
@@ -9851,10 +9919,10 @@ write $computers.psbase.get_Children()
 """ % (tuple(self.domainname.split(".")))
         data = self.place.xmlrpcExec(script, powershell=True, returndata=True)
         return re.findall("{CN=([^,]+)", data)
-                    
+
     def __init__(self, place, username="Administrator", password=None, domainname=None):
         self.users = []
-        self.groups = [] 
+        self.groups = []
         self.type = "AD"
         self.place = place
 
@@ -9862,11 +9930,11 @@ write $computers.psbase.get_Children()
             raise xenrt.XRTError("XenRT only supports Active Directory on "
                                  "Vista and higher.")
 
-        self.place.superuser = username 
+        self.place.superuser = username
         if password:
             self.place.password = password
         if not self.place.password:
-            self.place.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", 
+            self.place.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                       "ADMINISTRATOR_PASSWORD"])
 
         if self.place.logFetchExclude:
@@ -9891,7 +9959,7 @@ write $computers.psbase.get_Children()
 
         if activeDirectoryConfigured:
             xenrt.TEC().logverbose("Active Directory server already installed. "
-                                   "(Domain: %s)" % (self.domainname))    
+                                   "(Domain: %s)" % (self.domainname))
         else:
             extension = str(random.randint(0, 0x7fff))
             if domainname == None:
@@ -9934,7 +10002,7 @@ RebootOnSuccess=No
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
         self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt\n"
                               "netsh advfirewall set domainprofile "
-                              "firewallpolicy allowinbound,allowoutbound", 
+                              "firewallpolicy allowinbound,allowoutbound",
                                timeout=1800, returnerror=False)
         self.place.xmlrpcRemoveFile("c:\\ad.txt")
         current = self.place.winRegLookup("HKLM",
@@ -9962,7 +10030,7 @@ IsLastDCInDomain=Yes
 RebootOnSuccess=Yes
 """ % (self.place.superuser, self.place.password, self.place.password)
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
-        self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt", 
+        self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
                                timeout=1800, returnerror=False)
         self.place.xmlrpcRemoveFile("c:\\ad.txt")
         xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
@@ -9980,7 +10048,7 @@ class CVSMServer:
 
     def __init__(self, place):
         self.place = place
-        try: 
+        try:
             self.place.xmlrpcExec("sc query StorageLink")
         except:
             self.place.installCVSM()
@@ -9990,18 +10058,18 @@ class CVSMServer:
             self.enableDebugTracing()
 
     def cli(self, command):
-        commands = []    
+        commands = []
         commands.append(self.CLIPATH)
         commands.append(command)
         commands.append("xml")
-        reply = self.place.xmlrpcExec(string.join(commands), 
-                                      returndata=True, 
+        reply = self.place.xmlrpcExec(string.join(commands),
+                                      returndata=True,
                                       returnerror=False)
         xmltext = re.search("<.*>", reply, re.DOTALL)
-        if xmltext: 
+        if xmltext:
             return xmltext.group()
-        else: 
-            return xmltext 
+        else:
+            return xmltext
 
     def xpath(self, expression, xmltext):
         xmltree = libxml2.parseDoc(xmltext)
@@ -10024,7 +10092,7 @@ class CVSMServer:
             target = "ipaddress=%s" % (ipparts[0])
         if resource.getNamespace():
             target += " namespace=%s" % resource.getNamespace()
-        reply = self.cli('sc-add name="%s" ' 
+        reply = self.cli('sc-add name="%s" '
                                 'adapter-id=%s '
                                 '%s '
                                 'username=%s '
@@ -10035,23 +10103,23 @@ class CVSMServer:
                                  resource.getUsername(),
                                  resource.getPassword()))
         try:
-            return self.xpath("//ssid", reply).pop() 
+            return self.xpath("//ssid", reply).pop()
         except:
             return xenrt.XRTFailure("Invalid XML returned")
 
-           
+
     def removeStorageSystem(self, resource):
         self.cli("sc-remove name=%s" % (resource.getName()))
 
     def getStorageSystemId(self, resource):
-        return self.xpath("//ssid[../../friendlyName='%s']" % 
+        return self.xpath("//ssid[../../friendlyName='%s']" %
                           (resource.getName()), self.cli("sc-list")).pop()
 
     def getStoragePoolId(self, resource, key, value):
         ssid = self.getStorageSystemId(resource)
         return self.xpath("//storagePoolId[preceding-sibling::%s='%s']" %
                           (key, value), self.cli("sp-list ssid=%s" % (ssid))).pop()
-            
+
     def addXenServerHost(self, host, username=None, password=None):
         if not username:
             username = "root"
@@ -10128,7 +10196,7 @@ class WlbApplianceServer:
             #send "y"
             self.place.writeToConsole("y\\n")
             xenrt.sleep(5)
-        # screen 1 
+        # screen 1
         # choose root passwd: 'xensource'
         self.place.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(5)
@@ -10237,7 +10305,7 @@ class V6LicenseServer:
         if self.place.windows:
             # Install a Windows V6 License Server
             rtmp = self.place.xmlrpcTempDir()
-            self.place.xmlrpcUnpackTarball("%s/v6.tgz" % 
+            self.place.xmlrpcUnpackTarball("%s/v6.tgz" %
                                       (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
                                            rtmp)
             if install:
@@ -10283,7 +10351,7 @@ class V6LicenseServer:
             self.place.writeToConsole("y\\n")
             # Wait for DHCP
             xenrt.sleep(60)
-            
+
             # Username
             self.place.writeToConsole("root\\n")
             xenrt.sleep(5)
@@ -10303,7 +10371,7 @@ class V6LicenseServer:
             f = open("%s/v6/conf" % v6dir)
             p = f.read()
             f.close()
-            
+
              # Press enter to start
             self.place.writeToConsole("\\n")
             xenrt.sleep(5)
@@ -10323,15 +10391,15 @@ class V6LicenseServer:
             xenrt.sleep(5)
             self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
             xenrt.sleep(5)
-            
+
             #Add the root to lmadmin group so the root has priviledges to lmreread
             self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
-           
+
             # Install SSH and SCP
             self.place.writeToConsole("yum clean all\\n")
             xenrt.sleep(5)
-            
+
             self.place.writeToConsole("yum install -y --disablerepo=* --enablerepo=base openssh-server openssh openssh-clients\\n")
             # Wait for installation complete
             xenrt.sleep(60)
@@ -10426,7 +10494,7 @@ class V6LicenseServer:
             xenrt.sleep(20)
             #A bit of hack for a successful lmreread i.e stop and start again
             self.place.writeToConsole("/etc/init.d/citrixlicensing stop\\n")
-            xenrt.sleep(30)            
+            xenrt.sleep(30)
             self.place.writeToConsole("/etc/init.d/citrixlicensing start\\n")
             xenrt.sleep(30)
 
@@ -10439,7 +10507,7 @@ class V6LicenseServer:
                 xenrt.sleep(30) # Allow a bit longer for the license server to start
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             self.port = None
-            
+
         xenrt.TEC().logverbose("Removed license %s from license server" % (license))
         self.licenses.remove(license)
 
@@ -10518,10 +10586,10 @@ class V6LicenseServer:
             data = self.place.execcmd("cd %s && LS/lmutil lmstat -f" % self.workdir)
 
         totalLicenses = 0  #Total number of licenses present on license server
-        licenseInuse = 0   # Total number of licenses inuse 
+        licenseInuse = 0   # Total number of licenses inuse
         for l in data.splitlines():
             if licenseType in l:
-                totalLicenses = int(l.split("  ")[1].split(" ")[2]) 
+                totalLicenses = int(l.split("  ")[1].split(" ")[2])
                 licenseInuse = int(l.split("  ")[2].split(" ")[2])
                 break
 
@@ -10539,8 +10607,8 @@ class DVSCWebServices:
         self.h1 = 0
         self.rsp = ''
         self.root = ''
-        password = xenrt.TEC().lookup("DEV_ADMIN", None) 
-        if password != None: 
+        password = xenrt.TEC().lookup("DEV_ADMIN", None)
+        if password != None:
             self.admin_pw = password
         else:
             self.admin_pw = 'admin'
@@ -10587,8 +10655,8 @@ class DVSCWebServices:
                     self.rsp = self.h1.getresponse()
                     xenrt.TEC().logverbose("read response: %d, %s" % (self.rsp.status, self.rsp.reason))
                     self.read= self.rsp.read()
-                    
-                except: 
+
+                except:
                     xenrt.sleep(0.2)
                     slow_rsp_counter += 1
                     if slow_rsp_counter == 20:
@@ -10604,16 +10672,16 @@ class DVSCWebServices:
 
 
     # The following sectiom is included to keep the https seesion alive
-    # it is optional as some tests require that the connection is not kept 
+    # it is optional as some tests require that the connection is not kept
     # alive. The connection times out at 3 seconds, hence the 2 second time
     # out is optimal
     def keepAliveMethod(self):
         xenrt.TEC().logverbose("keepAliveMethod")
-        
+
 
         while self.keepAlive == True:
             self.lock.acquire()
-            try: 
+            try:
                 if self.cookie != '':
                     self.headers["Cookie"] = self.cookie
                 xenrt.TEC().logverbose("Keep alive request: GET /ws.v1/nox/up")
@@ -10627,7 +10695,7 @@ class DVSCWebServices:
                         me = self.rsp.read()
                         #xenrt.TEC().logverbose("me = %s" % (me))
 
-                    except: 
+                    except:
                         xenrt.sleep(0.2)
                         slow_rsp_counter += 1
                         if slow_rsp_counter == 20:
@@ -10639,19 +10707,19 @@ class DVSCWebServices:
             finally:
                 self.lock.release()
             xenrt.sleep(2)
-        
+
 
     def keepDVSAlive(self):
         xenrt.TEC().logverbose("keepDVSAlive")
         self.login("admin", self.admin_pw)
         xenrt.TEC().logverbose("Logged In")
-        
+
         self.keepAlive = True
-   
+
         xenrt.pfarm([xenrt.PTask(self.keepAliveMethod)], wait=False)
 
     def stopKeepAlive(self):
-        self.keepAlive = False 
+        self.keepAlive = False
 
     # Generic HTTP(S) Methods
     def post(self, command, params, headers=None):
@@ -10695,7 +10763,7 @@ class DVSCWebServices:
                     self.cookie = self.rsp.getheader("Set-Cookie")
                     xenrt.TEC().logverbose("cookie: %s" % (self.cookie))
                     #xenrt.TEC().logverbose("got cookie %s" % self.cookie)
-                except: 
+                except:
                     #xenrt.TEC().logverbose("rsp %s" % (self.rsp))
                     xenrt.sleep(0.2)
                     slow_rsp_counter += 1
@@ -10707,7 +10775,7 @@ class DVSCWebServices:
             self.lock.release()
         if url != "/logout" and self.rsp.reason != "OK":
             raise xenrt.XRTFailure("Failed to login to controller with admin, %s reason %s" % (self.admin_pw, self.rsp.reason))
-        
+
 
     def login(self, user, passw):
         xenrt.TEC().logverbose("Logging in with %s/%s" % (user, passw))
@@ -10728,7 +10796,7 @@ class DVSCWebServices:
         self.keepAlive = False
         res = self.loginRequest('POST', '/logout', params, headers)
         return res
-        
+
 
 
     def listNtpServers(self):
@@ -10880,7 +10948,7 @@ class DVSCWebServices:
     def getProtocols(self):
         self.get('protocol')
         return simplejson.loads(self.read)
-        
+
 
     def findProtocol(self, name):
         protocols = self.getProtocols()
@@ -11009,9 +11077,9 @@ class DVSCWebServices:
         self.putAsJson("role/global;0", rules)
 
     def getPoolRules(self, master_ip):
-        rc = self.getFromTree("tree/node/", 'name', master_ip, "uid") 
+        rc = self.getFromTree("tree/node/", 'name', master_ip, "uid")
         if type(rc) == type(None):
-            # XXX: Perhaps once we discover the nature of this issue, we can 
+            # XXX: Perhaps once we discover the nature of this issue, we can
             #      add a more descriptive message here
             raise xenrt.XRTFailure("getFromTree didn't return any branches")
 
@@ -11069,7 +11137,7 @@ class DVSCWebServices:
 
         # get the entire node
         vm_node = self.getTreeNode(vm_node_id)
- 
+
         rules = ({"qos_limit_kbps": 0,
                    "acl_split_before": 1, "xen_type": "vm", "uid": "vm;14",
                    "qos_burst_kbps": 0,
@@ -11111,13 +11179,13 @@ class DVSCWebServices:
             rules["qos"] = "inherit"
         else:
             rules["qos"] = "set"
- 
+
         if burst == 0:
             rules["qos_burst"] = "inherit"
         else:
             rules["qos_burst"] = "set"
 
-        
+
 
 
     # note this is set in Kbps and Kb
@@ -11153,10 +11221,10 @@ class DVSCWebServices:
         except: pass
         path = "xen_directory/vlan/%d" % vlan
         self.postAsJson(path, "")
-    
+
     def removeRSPANTargetVLAN(self, vlan):
         path="xen_directory/vlan/%d" % vlan
-        self.deleteAsJson(path, "")    
+        self.deleteAsJson(path, "")
 
     # Mode: 0 = Fail open, 1 = fail closed
     def setPoolFailMode(self, pool_name, mode):
@@ -11171,7 +11239,7 @@ class DVSCWebServices:
         pool_node, pool_branch = self.getPool(pool_name)
         xenrt.TEC().logverbose("pool_node" % str(pool_node))
         return pool_node['fail_mode']
-        
+
 
 
     # Simplified code based upon function from
@@ -11195,10 +11263,10 @@ class DVSCWebServices:
         content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
         content_length = len(CRLF.join(data))
         body = CRLF.join(data)
-        return content_type, content_length, body      
+        return content_type, content_length, body
 
     def patchFromFile(self, path):
-        
+
         self.login("admin", self.admin_pw)
         data_name="update_file"
         content_type, content_length, body = self.encodeMultipartFormdata(data_name, path)
@@ -11246,7 +11314,7 @@ class ConversionApplianceServer:
         self.conv_port = "8012" # default port
 
     # To increase the Conversion VM uptime (in seconds) after being idle.
-    # The conversion VM automatically shuts down after 300 seconds, 
+    # The conversion VM automatically shuts down after 300 seconds,
     #           if the conversion console is not connected to the VM.
     def increaseConversionVMUptime(self, value):
         xenrt.TEC().logverbose("ConversionVM::VPX Increase Uptime Started")
@@ -11265,11 +11333,11 @@ class ConversionApplianceServer:
         xenrt.TEC().logverbose("ConversionVM::VPX Increase Uptime Completed")
 
     def doFirstbootUnattendedSetup(self):
-    
+
         # Retry decorator with exponential backoff
         def retry(tries, delay=3, backoff=2):
             """Retries a function or method until it returns True.
-            
+
             delay sets the initial delay in seconds, and backoff sets the factor by which
             the delay should lengthen after each failure. backoff must be greater than 1,
             or else it isn't really a backoff. tries must be at least 0, and delay
@@ -11309,7 +11377,7 @@ class ConversionApplianceServer:
 
                 return fRetry # true decorator -> decorated function
             return decoRetry    # @retry(arg[, ...]) -> true decorator
-        
+
         @retry(tries=10)
         def retryWriteToConsole(str):
             try:
@@ -11317,7 +11385,7 @@ class ConversionApplianceServer:
                 return True
             except Exception, e:
                 return False
-        
+
         # Send some suitable keystrokes to go through the initial setup
         # configuration during the appliance firstboot
         # Accept EULA
@@ -11391,7 +11459,7 @@ class ConversionApplianceServer:
         xenrt.TEC().logverbose("ConversionVM::VPX IP = %s" % vpx_ip)
         vpx_url = "https://%s" % vpx_ip
         return XenAPI.xmlrpclib.ServerProxy(vpx_url)
-        
+
     def createJob(self, session, vpx, xen_servicecred, vmware_serverinfo, vm, uuid, this_pif, host_ip):
         importInfo = {'SRuuid': ""}
         jobInfo = {'JobName': "test name", 'JobDesc': "test description", 'UserField1': ""}
@@ -11428,7 +11496,7 @@ class ConversionApplianceServer:
     def unattendedSetup(self):
         # Send some suitable keystrokes to go through the initial setup
         # configuration during the appliance firstboot
-        # screen 1 
+        # screen 1
         # choose root passwd: 'xensource'
         self.place.writeToConsole("%s\\n" % self.password)
         xenrt.sleep(5)
@@ -11512,7 +11580,7 @@ class ConversionApplianceServer:
         return mgmt
 
 class VifOffloadSettings:
-    
+
     # The {4D36E972-E325-11CE-BFC1-08002BE10318} subkey represents the class of network adapter devices that the system supports. This will never change.
     REG_KEY_STEM = 'SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\'
     LSO1_KEY = '*LSOv1IPv4'
@@ -11521,20 +11589,20 @@ class VifOffloadSettings:
     IPCHECKSUM_KEY = '*IPChecksumOffloadIPv4'
     TCPCHECKSUM_KEY = '*TCPChecksumOffloadIPv4'
     UDPCHECKSUM_KEY = '*UDPChecksumOffloadIPv4'
-    
+
     def __init__(self, guest, device):
-        
+
         self.guest = guest
         self.device = device
         self.xenVifRegistryId = -1
-        
+
         if not guest.windows:
             raise xenrt.XRTError("getWindowsVifSettings() only supports Windows guests")
         if not isinstance(device, int) or device < 0 or device > 99:
             raise xenrt.XRTError("device must be an integer: 0 >= device > 99")
-            
+
         xenrt.TEC().logverbose("Looking for reg key for xenvif: %d" % device)
-        
+
         i = 0
         regValue = None
         for registryIndex in range(100):
@@ -11552,80 +11620,80 @@ class VifOffloadSettings:
                 if registryIndex == 99:
                     xenrt.TEC().logverbose("Couldn't find xenvif in registry for device %d to collect settings" % device)
                     raise
-                
+
     def getRegistryId(self):
         return self.xenVifRegistryId
-    
+
     def __str__(self):
         """Returns a string representation of the offload settings"""
-        
+
         return "device: %d, LRO: %d, LSO: %d, IPChecksumOffload: %d, TCPChecksumOffload: %d, UDPChecksumOffload: %d" % (
-            self.device, 
+            self.device,
             self.getLargeReceiveOffload(),
             self.getLargeSendOffload(),
             self.getIPChecksumOffload(),
             self.getTcpChecksumOffload(),
             self.getUdpChecksumOffload())
-        
+
     def verifyEqualTo(self, settings):
         """Raises an exception if the current Windows VIF settings are different from the specified settings"""
-        
+
         lso = settings.getLargeSendOffload()
         lro = settings.getLargeReceiveOffload()
         ipc = settings.getIPChecksumOffload()
         tcp = settings.getTcpChecksumOffload()
         udp = settings.getUdpChecksumOffload()
-        
+
         if lso != -1 and self.getLargeSendOffload() != settings.getLargeSendOffload():
             raise xenrt.XRTFailure("LSO value changed. Was: %d, Now: %d" % (settings.getLargeSendOffload(), self.getLargeSendOffload()))
-            
+
         if lro != -1 and self.getLargeReceiveOffload() != settings.getLargeReceiveOffload():
             raise xenrt.XRTFailure("LRO value changed. Was: %d, Now: %d" % (settings.getLargeReceiveOffload(), self.getLargeReceiveOffload()))
-        
+
         if ipc != -1 and self.getIPChecksumOffload() != settings.getIPChecksumOffload():
             raise xenrt.XRTFailure("IP Checksum value changed. Was: %d, Now: %d" % (settings.getIPChecksumOffload(), self.getIPChecksumOffload()))
-        
+
         if tcp != -1 and self.getTcpChecksumOffload() != settings.getTcpChecksumOffload():
             raise xenrt.XRTFailure("TCP Checksum value changed. Was: %d, Now: %d" % (settings.getTcpChecksumOffload(), self.getTcpChecksumOffload()))
-        
+
         if udp != -1 and self.getUdpChecksumOffload() != settings.getUdpChecksumOffload():
             raise xenrt.XRTFailure("UDP Checksum value changed. Was: %d, Now: %d" % (settings.getUdpChecksumOffload(), self.getUdpChecksumOffload()))
 
     def _setValue(self, key, value):
-        
+
         # First try and get the value to check the key exists. We do not want to go adding keys (just setting them).
         try:
             self._getValue(key)
         except:
             raise xenrt.XRTFailure("Tried to set value for " + key + ". This key does not exist")
-        
+
         self.guest.winRegAdd("HKLM", self.REG_KEY_STEM + ('%04d' % self.xenVifRegistryId), key, "SZ", str(value))
-    
+
     def _getValue(self, key):
         return int(self.guest.winRegLookup('HKLM', self.REG_KEY_STEM + ('%04d' % self.xenVifRegistryId), key, healthCheckOnFailure=False))
-    
+
     def _verifyEnabledDisabledParameterValue(self, value):
         if not isinstance(value, int) or value < 0 or value > 1:
             raise xenrt.XRTError("value must be 0 or 1 (0=disabled, 1=enabled)")
-        
+
     def _verifyRxTxParameterValue(self, value):
         if not isinstance(value, int) or value < 0 or value > 3:
             raise xenrt.XRTError("value must be 0, 1, 2 or 3 (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)")
-    
+
     def setLargeSendOffload(self, value):
         """Sets the Large Send Offload (LSO) value (0=disabled, 1=enabled)"""
-        
+
         self._verifyEnabledDisabledParameterValue(value)
-        
+
         # There are two versions of LSO which vary across Windows Versions. Set the one which exists.
         try:
             self._setValue(self.LSO1_KEY, value)
         except:
             self._setValue(self.LSO2_KEY, value)
-        
+
     def getLargeSendOffload(self):
         """Gets the Large Send Offload (LSO) value (0=disabled, 1=enabled)"""
-        
+
         # There are two versions of LSO which vary across Windows Versions. Get the one which exists.
         try:
             return self._getValue(self.LSO1_KEY)
@@ -11635,61 +11703,61 @@ class VifOffloadSettings:
             except:
                 # This isn't available for all Windows/XenServer versions.
                 return -1
-        
+
     def setLargeReceiveOffload(self, value):
         """Sets the Large Receive Offload (LRO) value (0=disabled, 1=enabled)"""
-        
+
         self._verifyEnabledDisabledParameterValue(value)
         return self._setValue(self.LRO_KEY, value)
-        
+
     def getLargeReceiveOffload(self):
         """Gets the Large Receive Offload (LRO) value (-1=notfound, 0=disabled, 1=enabled)"""
-        
+
         try:
             return self._getValue(self.LRO_KEY)
         except:
             # This isn't available for all Windows/XenServer versions.
             return -1
-        
+
     def setIPChecksumOffload(self, value):
         """Sets the IP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         self._verifyRxTxParameterValue(value)
         return self._setValue(self.IPCHECKSUM_KEY, value)
-    
+
     def getIPChecksumOffload(self):
         """Gets the IP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         try:
             return self._getValue(self.IPCHECKSUM_KEY)
         except:
             # This isn't available for all Windows/XenServer versions.
             return -1
-        
+
     def setTcpChecksumOffload(self, value):
         """Sets the TCP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         self._verifyRxTxParameterValue(value)
         return self._setValue(self.TCPCHECKSUM_KEY, value)
-    
+
     def getTcpChecksumOffload(self):
         """Gets the TCP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         try:
             return self._getValue(self.TCPCHECKSUM_KEY)
         except:
             # This isn't available for all Windows/XenServer versions.
             return -1
-        
+
     def setUdpChecksumOffload(self, value):
         """Sets the UDP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         self._verifyRxTxParameterValue(value)
         return self._setValue(self.UDPCHECKSUM_KEY, value)
-        
+
     def getUdpChecksumOffload(self):
         """Gets the UDP Checksum Offload value (0=disabled, 1=Tx Enabled, 2=Rx Enabled, 3=Tx and Rx Enabled)"""
-        
+
         try:
             return self._getValue(self.UDPCHECKSUM_KEY)
         except:

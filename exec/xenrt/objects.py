@@ -8300,6 +8300,7 @@ class GenericGuest(GenericPlace):
             # Cancel PXE booting for the new guest
             self.enablePXE(False)
             pxe.remove()
+    
 
     def waitToReboot(self,timeout=3600):
         deadline = xenrt.util.timenow() + timeout

@@ -201,6 +201,7 @@ nfs-utils
 stunnel
 net-tools
 wget
+time
 %s
 %%end
 """ % (self._url(),

@@ -385,7 +385,7 @@ class DeployerPlugin(object):
             xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
             self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
         if not self.hyperVMsi:
-            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.4/CloudPlatform-4.4.0.0-15-hypervagent.msi"))
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.5/CloudPlatform-4.5.0.0-19-hypervagent.msi"))
         if not self.hyperVMsi:
             raise xenrt.XRTError("Could not find Hyper-V agent in build")
 

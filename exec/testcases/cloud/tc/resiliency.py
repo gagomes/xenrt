@@ -444,7 +444,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         self._rearrangeCloud(multipleHost[1],multipleHost[0])
         self._resilliencyTest(h2,multipleHost[1])
 
-def TCRebootHost(_TCHostResiliencyBase):
+class TCRebootHost(_TCHostResiliencyBase):
 
     def outage(self,host):
 
@@ -460,7 +460,7 @@ def TCRebootHost(_TCHostResiliencyBase):
         xenrt.TEC().logverbose("Not Required")
         pass
  
-def TCBlockTrafficHost(_TCHostResiliencyBase): 
+class TCBlockTrafficHost(_TCHostResiliencyBase): 
 
     def outage(self,host):
 
@@ -474,7 +474,7 @@ def TCBlockTrafficHost(_TCHostResiliencyBase):
         macAddress = host.getNICMACAddress(nic)
         host.enableNetPort(macAddress)
 
-def TCShutdownHost(_TCHostResiliencyBase):
+class TCShutdownHost(_TCHostResiliencyBase):
 
     def outage(self,host):
 
@@ -484,7 +484,7 @@ def TCShutdownHost(_TCHostResiliencyBase):
 
         host.poweron()
 
-def TCXapiStopped(_TCHostResiliencyBase):
+class TCXapiStopped(_TCHostResiliencyBase):
 
     def outage(self,host):
 
@@ -498,6 +498,3 @@ def TCXapiStopped(_TCHostResiliencyBase):
     def recover(self,host):
 
         host.execdom0("service xapi start")
-                
-
-

@@ -90,7 +90,6 @@
 
   <testsequence group="Resiliency">
       <testcase id="cloud.tc.resiliency.TCXapiStopped" name="XapiStopped" >
-      <arg>distros=centos59_x86-32</arg>
       </testcase>
 
   </testsequence>

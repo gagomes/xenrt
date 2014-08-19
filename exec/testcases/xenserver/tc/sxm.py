@@ -1372,6 +1372,11 @@ class LiveMigrate(xenrt.TestCase):
         
         if totalFailures > 0:
             xenrt.TEC().logverbose("%d out of %d migration Failed." %(totalFailures,len(self.observers)))
+            if self.test_config['iterations'] > 1:
+                hostlist = xenrt.TEC().registry.hostList()
+                for h in hostlist:
+                    host = xenrt.TEC().registry.hostGet(h)
+                    host.execdom0("netstat -na")
             raise xenrt.XRTFailure(firstFailureMsg)
 
     def migrateVDIsWithXe(self):
@@ -1459,6 +1464,7 @@ class LiveMigrate(xenrt.TestCase):
             self.test_config['iterations'] = 1
             
         for i in range(self.test_config['iterations']):
+            xenrt.TEC().logverbose("Iteration %s"%i)
             self.preHook()
 
             if self.test_config.has_key('use_xe') and self.test_config['use_xe']:

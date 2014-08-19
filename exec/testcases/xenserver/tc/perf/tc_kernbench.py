@@ -21,6 +21,7 @@ class TCKernBench(libperf.PerfTestCase):
         self.distro = libperf.getArgument(arglist, "distro", str, "debian70")
         self.arch = libperf.getArgument(arglist, "arch", str, "x86-64")
         self.vcpus = libperf.getArgument(arglist, "vcpus", int, 2)
+        self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
 
         self.dom0vcpus  = libperf.getArgument(arglist, "dom0vcpus", int, None)
 
@@ -32,6 +33,8 @@ class TCKernBench(libperf.PerfTestCase):
         if not self.isNameinGuests(guests, "vm-worker"):
             xenrt.TEC().progress("Installing VM worker")
 
+            postinstall = [] if self.postinstall is None else self.postinstall.split(",")
+
             self.guest = xenrt.productLib(host=self.host).guest.createVM(\
                     host=self.host,
                     guestname="vm-worker",
@@ -39,6 +42,7 @@ class TCKernBench(libperf.PerfTestCase):
                     memory=self.vm_ram,
                     distro=self.distro,
                     arch=self.arch,
+                    postinstall=postinstall,
                     vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
         else:
             for vm in guests:

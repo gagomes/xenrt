@@ -26,8 +26,13 @@ minsetup: sudoers extrapackages install test-tarballs infrastructure
 	$(info XenRT setup completed.)
 
 .PHONY: newmachines
-newmachines: update files dhcpd dhcpd6 hosts conserver
+newmachines: update machines files dhcpd dhcpd6 hosts conserver
 	$(info XenRT new machines setup completed.)
+
+.PHONY: newmachine-%
+newmachine-%:
+	make update machine-$(patsubst newmachine-%,%,$@) files dhcpd dhcpd6 hosts conserver
+	$(info XenRT new machine setup completed.)
 
 .PHONY: remove
 remove: uninstall clean infrastructure-uninstall

@@ -90,6 +90,12 @@ class OSParent(Interface):
     def getIP(trafficType, timeout, level):
         """Get the IP for the OS"""
 
+    def getIPAndPort(trafficType, timeout, level):
+        """Get the IP and Port for the OS"""
+
+    def getPort(trafficType):
+        """Get the port for the traffic type"""
+
     def setIP(ip):
         """Set the IP for the OS"""
 
@@ -141,6 +147,9 @@ class OS(Interface):
 
     def assertHealthy():
         """Quickly verify that the OS is in a healthy state"""
+
+    def preCloneTailor():
+        """Perform any necessary steps to make it possible to clone this VM"""
 
 class InstallMethodPV(Interface):
     installURL = Attribute("HTTP installation URL")

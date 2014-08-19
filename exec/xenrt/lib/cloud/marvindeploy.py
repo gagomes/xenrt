@@ -11,9 +11,6 @@ import os
 import inspect
 import re
 
-from marvin import deployDataCenter
-from marvin import jsonHelper
-
 class MarvinDeployException(Exception):
     def __init__(self, value):
         self.value = value
@@ -31,7 +28,7 @@ class MarvinDeployer(object):
           'required': { 'name': None, 'value': None } },
         'zones': {
           'abstractName': 'Zone',
-          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None, 'domain': 'getDomain' },
+          'required': { 'name': 'getName', 'networktype': None, 'dns1': 'getDNS', 'internaldns1': 'getInternalDNS', 'secondaryStorages': 'getSecondaryStorages', 'physical_networks': None, 'domain': 'getDomain' },
           'defaults': { 'physical_networks': [ { } ]},
           'notify'  : { 'name': 'notifyNewElement' } },
         'secondaryStorages': {
@@ -52,6 +49,9 @@ class MarvinDeployer(object):
         'providers': {
           'abstractName': 'NetworkProviders',
           'required': { 'name': None, 'broadcastdomainrange': None } },
+        'vmwaredc': {
+          'abstractName': 'VMWareDC',
+          'required': { 'name': None, 'vcenter': None, 'username': None, 'password': None } },
         'ipranges': {
           'abstractName': 'IPRange',
           'required': { 'startip': 'getGuestIPRangeStartAddr', 'endip': 'getGuestIPRangeEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
@@ -62,12 +62,14 @@ class MarvinDeployer(object):
         'pods': {
           'abstractName': 'Pod',
           'required': { 'name': 'getName', 'startip': 'getPodIPStartAddr', 'endip': 'getPodIPEndAddr', 'gateway': 'getGateway', 'netmask': 'getNetmask' },
-          'notify'  : { 'name': 'notifyNewElement' } },
+          'notify'  : { 'name': 'notifyNewElement' },
+          'optional': { 'vmwaredc': 'getVmWareDc' } },
         'clusters': {
           'abstractName': 'Cluster',
-          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': None, 'primaryStorages': 'getPrimaryStorages', 'hosts': 'getHostsForCluster' },
-          'defaults': { 'primaryStorages': [ { } ], 'clustertype': 'CloudManaged' },
-          'notify'  : { 'clustername': 'notifyNewElement' } },
+          'required': { 'clustername': 'getName', 'hypervisor': 'getHypervisorType', 'clustertype': 'getClusterType', 'primaryStorages': 'getPrimaryStorages', 'hosts': 'getHostsForCluster' },
+          'defaults': { 'primaryStorages': [ { } ] },
+          'notify'  : { 'clustername': 'notifyNewElement' },
+          'optional' : { 'url': 'getClusterUrl' } },
         'primaryStorages': {
           'abstractName': 'PrimaryStorage',
           'required': { 'name': 'getPrimaryStorageName', 'url': 'getPrimaryStorageUrl'},
@@ -177,6 +179,9 @@ class MarvinDeployer(object):
                                 p['name'] = re.sub("\d+$", "", p['name'])
 
     def deployMarvinConfig(self):
+        from marvin import deployDataCenter
+        from marvin import jsonHelper
+
         cfg = jsonHelper.jsonLoader(self.marvinCfg)
 
         if hasattr(deployDataCenter, 'deployDataCenters'):

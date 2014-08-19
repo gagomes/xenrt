@@ -28,6 +28,7 @@ class XenRTMList(XenRTMachinePage):
             verbose = False
             iscontroller = False
             leasefilter = None
+            broken = False
             if form.has_key("site"):
                 site = form["site"]
             if form.has_key("cluster"):
@@ -64,6 +65,8 @@ class XenRTMList(XenRTMachinePage):
                 leasefilter = True 
             if form.has_key("verbose") and form["verbose"] == "yes":
                 verbose = True
+            if form.has_key("broken") and form["broken"] == "yes":
+                broken = True
             machines = self.scm_machine_list(site, cluster, pool=pool, leasecheck=leasefilter)
             if showprops or pfilter:
                 machineprops = {}
@@ -79,6 +82,20 @@ class XenRTMList(XenRTMachinePage):
                         machineprops[string.strip(rc[0])] = string.strip(rc[1])
                 cur.close()
                 siteprops = dict([(x[0], x[2]) for x in self.scm_site_list()])
+            cur = self.getDB().cursor()
+            cur.execute("SELECT machine, value FROM tblMachineData "
+                        "WHERE key IN ('BROKEN_TICKET', 'BROKEN_INFO');")
+            machinebrokeninfo = {}
+            while 1:
+                rc = cur.fetchone()
+                if not rc:
+                    break
+                if rc[0] and rc[1] and string.strip(rc[0]) != "" and \
+                       string.strip(rc[1]) != "":
+                    if not machinebrokeninfo.has_key(rc[0].strip()):
+                        machinebrokeninfo[string.strip(rc[0])] = "Broken -"
+                    machinebrokeninfo[string.strip(rc[0])] += " %s" % string.strip(rc[1])
+            cur.close()
             fmt = "%-12s %-7s %-8s %-9s %-8s %s\n"
             if not quiet:
                 outfh.write(fmt %
@@ -108,6 +125,14 @@ class XenRTMList(XenRTMachinePage):
                 if rfilter:
                     if not app.utils.check_resources(m[5], rfilter):
                         continue
+
+                if m[3].endswith("x"):
+                    mbroken = True
+                else:
+                    mbroken = False
+                    
+                if broken and not mbroken:
+                    continue
                 if pfilter:
                     if machineprops.has_key(m[0]):
                         avail = machineprops[m[0]]
@@ -142,31 +167,37 @@ class XenRTMList(XenRTMachinePage):
                         else:
                             comment = ""
                     else:
-                        if m[8]:
-                            c = string.strip(m[8])
-                            if m[12]:
-                                c += " - %s" % m[12]
-                        else:
-                            c = None
-                        if m[9]:
-                            ts = string.strip(str(m[9]))
-                        else:
-                            ts = None
-                        if ts:
-                            if c:
-                                comment = "%s (%s)" % (ts, c)
+                        if mbroken:
+                            if machinebrokeninfo.has_key(m[0]):
+                                comment = machinebrokeninfo[m[0]]
                             else:
-                                comment = "%s" % (ts)
-                        elif c:
-                            comment = c
-                        elif m[10] and descs.has_key(int(m[10])) and \
-                                 status != "idle" and status != "offline":
-                            comment = descs[int(m[10])]
-                        elif m[10] and deps.has_key(int(m[10])) and users.has_key(int(m[10])) and \
-                                 status != "idle" and status != "offline":
-                            comment = "%s - %s" % (deps[int(m[10])], users[int(m[10])])
+                                comment = "Broken"
                         else:
-                            comment = ""
+                            if m[8]:
+                                c = string.strip(m[8])
+                                if m[12]:
+                                    c += " - %s" % m[12]
+                            else:
+                                c = None
+                            if m[9]:
+                                ts = string.strip(str(m[9]))
+                            else:
+                                ts = None
+                            if ts:
+                                if c:
+                                    comment = "%s (%s)" % (ts, c)
+                                else:
+                                    comment = "%s" % (ts)
+                            elif c:
+                                comment = c
+                            elif m[10] and descs.has_key(int(m[10])) and \
+                                     status != "idle" and status != "offline":
+                                comment = descs[int(m[10])]
+                            elif m[10] and deps.has_key(int(m[10])) and users.has_key(int(m[10])) and \
+                                     status != "idle" and status != "offline":
+                                comment = "%s - %s" % (deps[int(m[10])], users[int(m[10])])
+                            else:
+                                comment = ""
                     if m[2]:
                         cluster = string.strip(m[2])
                     else:
@@ -287,7 +318,10 @@ class XenRTBorrow(XenRTMachinePage):
             rc = cur.fetchone()
             cur.close()
             if rc[2] and hours > rc[2]:
-                return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
+                if rc[2] > 48:
+                    return "ERROR: The policy for this manchine only allows leasing for %d days, please contact QA if you need a longer lease" % (rc[2]/24)
+                else:
+                    return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
             if rc[0] and rc[0].strip() != userid and not force:
                 return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
             if rc[1] and time.strptime(rc[1], "%Y-%m-%d %H:%M:%S") > leaseToTime and not force:

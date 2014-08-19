@@ -314,7 +314,7 @@ class TC17438(_TC6860):
     """ Suspend/Resume of a sles 11.1 with "VCPUs-max > VCPU """
     xenrt.TEC().config.setVariable("VMLIFECYCLE_ITERS", "1")
     def installVM(self, host):
-        self.guest = host.createBasicGuest(distro="sles111")
+        self.guest = host.createBasicGuest(distro="sles112")
         _setVCPUMax(self.guest)
 
 class TC6861(_TC6860):
@@ -1281,8 +1281,11 @@ class TC10054(xenrt.TestCase):
         self.guest.shutdown()
         self.host.execdom0("/etc/init.d/ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
-        self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
-                           
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            self.host.execdom0('hwclock --set --date "%s"' % (time.strftime("%b %d %H:%M:%S UTC %Y", ftime)))
+            self.host.execdom0('hwclock --hctosys')
+        else:
+            self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
         # Reboot the host to cause the hardware clock to be set to the
         # future value
         self.host.reboot()

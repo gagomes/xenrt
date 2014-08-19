@@ -373,9 +373,6 @@ class Guest(xenrt.GenericGuest):
         if not self.virConn:
             self.virConn = host.virConn
 
-        if distro and distro.startswith("solaris"):
-            self.enlightenedPlatform = False
-
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
             if distro.startswith("rhel6"):
@@ -437,7 +434,6 @@ class Guest(xenrt.GenericGuest):
         if pxe:
             self.vifstem = self.VIFSTEMHVM
             self.enlightenedDrivers = False
-            self.enlightenedPlatform = False
 
         # Prepare VIFs
         if type(vifs) == type(self.DEFAULT):
@@ -622,8 +618,6 @@ class Guest(xenrt.GenericGuest):
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.enlightenedDrivers = False
-        self.enlightenedPlatform = False
         self.changeCD(isoname)
 
         self.hasSSH = not xenrt.TEC().lookup("NOSFU", True, boolean=True)
@@ -643,12 +637,22 @@ class Guest(xenrt.GenericGuest):
                 arptime = 10800
             else:
                 arptime = 7200
-            ifaces = self.host.getBridgeInterfaces(bridge)
-            if ifaces:
-                iface = ifaces[0]
-            else:
-                iface = self.host.getDefaultInterface()
-            self.mainip = self.host.arpwatch(iface, mac, timeout=arptime)
+
+            xenrt.sleep(5)
+
+            # get the mac address
+            r = re.search(r"<mac address='([^']*)'/>", self._getXML())
+            if r:
+                mac = r.group(1)
+                r2 = re.search(r"<source bridge='([^']*)'/>", self._getXML())
+                if r2:
+                    bridge = r2.group(1)
+                    xenrt.TEC().logverbose("Guest's VIF is on '%s'" % bridge)
+                else:
+                    bridge = self.host.getDefaultInterface()
+                    xenrt.TEC().logverbose("Could not find bridge name in XML; arpwatching on host's default interface")
+                xenrt.TEC().progress("Looking for VM IP address on %s using arpwatch." % (bridge))
+                self.mainip = self.host.arpwatch(bridge, mac, timeout=arptime)
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
         xenrt.TEC().progress("Found IP address %s" % (self.mainip))
@@ -744,7 +748,7 @@ class Guest(xenrt.GenericGuest):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
-        sizebytes - size in bytes
+        sizebytes - size in bytes or a string such as 5000MiB or 5GiB
         sruuid - UUID of SR to create disk on
         userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc)
         bootable - currently unused. To ensure that this disk will be booted from,
@@ -767,7 +771,8 @@ class Guest(xenrt.GenericGuest):
 #            sruuid = self.getHost().getLocalSR()
 #        elif sruuid == "DEFAULT":
 #            sruuid = self.getHost().lookupDefaultSR()
-        sruuid = self.getHost().lookupDefaultSR()
+        if not sruuid:
+            sruuid = self.getHost().lookupDefaultSR()
 
         if userdevice is None:
             userdevicename = self._getNextBlockDevice()
@@ -776,6 +781,14 @@ class Guest(xenrt.GenericGuest):
 
         if not format:
             format = self.DEFAULT_DISK_FORMAT
+
+        if isinstance(sizebytes, str):
+            if sizebytes.endswith("GiB"):
+                sizebytes = int(sizebytes[:-3]) * 1024**3
+            elif sizebytes.endswith("MiB"):
+                sizebytes = int(sizebytes[:-3]) * 1024**2
+            else:
+                sizebytes = int(sizebytes)
 
         existingVDI = vdiname
         if not vdiname:
@@ -1129,7 +1142,7 @@ class Guest(xenrt.GenericGuest):
         xenrt.TEC().progress("Waiting for the VM to enter the UP state")
         self.poll("UP")
 
-        xenrt.sleep(10)
+        xenrt.sleep(5)
 
         # get the mac address
         r = re.search(r"<mac address='([^']*)'/>", self._getXML())

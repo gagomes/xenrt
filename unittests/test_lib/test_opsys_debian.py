@@ -64,8 +64,7 @@ class TestUbuntuLinuxOverrides(XenRTUnitTestCase):
         data={("ubuntu1004_x86-32", "ubuntu1004_x86-32.iso"), 
               ("ubuntu1204_x86-64", "ubuntu1204_x86-64.iso"),
               ("ubuntu1004", "ubuntu1004_x86-64.iso"), 
-              ("ubuntu1404", None),
-              ("bobbins", None)}
+              ("ubuntu1404", "ubuntu1404_x86-64.iso")}
         self.run_for_many(data, self.__testIsoNameImplementation)
 
     def __testIsoNameImplementation(self, data):
@@ -76,7 +75,7 @@ class TestUbuntuLinuxOverrides(XenRTUnitTestCase):
     def testUbuntuNameConversion(self):
         """Given a ubuntu distro, When the release name is requested, Then expect the a string representing the release"""
         data = {("ubuntu1004", "lucid"), ("ubuntu1204", "precise"), ("ScoobyDoo", None),
-                ("Ubuntu1004", None), ("ubuntu", None), ("ubuntu1404", None)}
+                ("Ubuntu1004", None), ("ubuntu", None), ("ubuntu1404", "trusty")}
         self.run_for_many(data, self.__testUbuntuNameConversion)
     
     def __testUbuntuNameConversion(self, data):

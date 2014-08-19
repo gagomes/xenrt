@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="BSOD">
+      <testcase id="xenserver.tc.bsod_and_gpupt.Windows81GPUPTCrashtest"
+          tc="TC-21631" />
+    </serial>
+  </testsequence>
+</xenrt>

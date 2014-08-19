@@ -103,6 +103,9 @@ class DebianBasedLinux(LinuxOS):
         # TODO: handle native where console is different, and handle other interfaces
         return ["vga=normal", "auto=true priority=critical", "console=hvc0", "interface=eth0", "url=%s" % url]
 
+    def preCloneTailor(self):
+        return
+
     def generateIsoAnswerfile(self):
         preseedfile = "preseed-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
@@ -181,7 +184,8 @@ class UbuntuLinux(DebianBasedLinux):
     @property
     def _mappings(self):
         return { "ubuntu1004": "lucid",
-                 "ubuntu1204": "precise"}
+                 "ubuntu1204": "precise",
+                 "ubuntu1404": "trusty"}
 
     @staticmethod
     def knownDistro(distro):
@@ -193,10 +197,7 @@ class UbuntuLinux(DebianBasedLinux):
 
     @property
     def isoName(self):
-        if self.distro == "ubuntu1004":
-            return "ubuntu1004_%s.iso" % self.arch
-        elif self.distro == "ubuntu1204":
-            return "ubuntu1204_%s.iso" % self.arch
+        return "%s_%s.iso" % (self.distro, self.arch)
 
 
 registerOS(DebianLinux)

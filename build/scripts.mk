@@ -138,11 +138,15 @@ $(CONFDIR):
 	$(SUDO) mkdir -p $@
 ifeq ($(PRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
+	$(SUDO) mkdir -p $@/machines
+	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
+	$(SUDO) mkdir -p $@/machines
+	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
 endif
 	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
 	$(SUDO) mkdir -p $@/conf.d
@@ -169,7 +173,7 @@ $(EXECDIR)/xenrt/ctrl.py:
 
 control/xrt:
 	$(info Creating link to $@...)
-	rm $(SHAREDIR)/$@
+	-rm $(SHAREDIR)/$@
 	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
 

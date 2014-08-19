@@ -1,6 +1,8 @@
 <xenrt>
 
-  <!-- Clearwater PV Guests scalability test sequence -->
+  <!-- PV Guests scalability test sequence -->
+  
+  <default name="POSTRUN_CLEANUP" value="cleanup"/>    <!-- nocleanup|cleanup|forcecleanup -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -22,12 +24,13 @@
 
   <testsequence group="VMScale">
     <testcase id="xenserver.tc.scalability.TC6848">
-        <arg>noPostrun=true</arg>
+        <arg>postrun=nocleanup</arg>
     </testcase>    
     <!--  Keep the below test to the last of any test sequence, as it update the host, which is not reverted in PostRun action-->
     <testcase id="xenserver.tc.scalability.TC19270">
         <arg>max=650</arg>
         <arg>dom0mem=8192</arg>
+        <arg>postrun=${POSTRUN_CLEANUP}</arg>
     </testcase>
   </testsequence>
 </xenrt>

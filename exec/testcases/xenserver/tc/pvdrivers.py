@@ -101,7 +101,7 @@ class _LinuxKernelUpdate(xenrt.TestCase):
         xenrt.TEC().comment("Old kernel version %s" % (oldkver))
 
         # Install the tools
-        self.guest.installTools()
+        self.guest.installTools(reboot=True)
 
         # Check the kernel version again and verified it has changed
         newkver = self.guest.execguest("uname -r").strip()

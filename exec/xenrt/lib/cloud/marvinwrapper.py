@@ -172,6 +172,27 @@ class MarvinApi(object):
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
+    def waitForSystemVmsReady(self):
+        deadline = xenrt.timenow() + 1200
+
+        while True:
+            systemvms = self.cloudApi.listSystemVms() or []
+            systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
+            if systemvms and systemvmhosts:
+                downhosts = [x for x in systemvmhosts if x.state != "Up"]
+                if not downhosts:
+                    # All up, complete
+                    xenrt.TEC().logverbose("All System VMs ready")
+                    return
+                else:
+                    xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+            else:
+                xenrt.TEC().logverbose("No system VMs present yet")
+            
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Waiting for system VMs timed out")
+            xenrt.sleep(15)
+
     def waitForBuiltInTemplatesReady(self):
         templateList = [x for x in self.cloudApi.listTemplates(templatefilter='all') if x.templatetype == "BUILTIN"]
         map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
@@ -179,7 +200,8 @@ class MarvinApi(object):
     def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
-        while((datetime.now() - startTime).seconds < 1800):
+        timeout = 1800
+        while((datetime.now() - startTime).seconds < timeout):
             templateList = self.cloudApi.listTemplates(templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
@@ -188,6 +210,9 @@ class MarvinApi(object):
                 templateReady = templateList[0].isready
                 if templateReady:
                     break
+                if templateList[0].hypervisor.lower() == "hyperv":
+                    # CS-20595 - Hyper-V downloads are very slow
+                    timeout = 7200
             else:
                 raise xenrt.XRTFailure('>1 template found with name %s' % (name))
 

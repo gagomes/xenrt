@@ -9,6 +9,7 @@
 #
 
 import xenrt, re, time, os, os.path, string, random, math, operator
+from xenrt.lazylog import step
 
 class _BalloonPerfBase(xenrt.TestCase):
     """Base class for balloon driver performance tests"""
@@ -2844,3 +2845,54 @@ class TC18537(_OverrideBallooning):
 class TC18538(_OverrideBallooning):
     """Verify the balloon overriding works well with Windows 2008 SP2 x64 boot load options"""
     GUEST = "ws08r2-64"
+
+class TCMemoryActual(xenrt.TestCase):
+    """Verify memory actual value after VM migration"""
+    #Jira TC-21565
+    
+    def run(self, arglist=None):
+    
+        self.host0 = self.getHost("RESOURCE_HOST_0")
+        self.host1 = self.getHost("RESOURCE_HOST_1")
+
+        step("Fetch list of guests")
+        guests = []
+        for gname in self.host0.listGuests():
+            guests.append(self.host0.getGuest(gname))
+
+        step("set memory of guests")
+        cli = self.host0.getCLIInstance()
+        for g in guests:
+            #Assign 4GiB memory to VM. Static min =  dynamic min = dynamic max = static max = 4096MiB
+            mem = 4096
+            g.shutdown()
+            g.setMemoryProperties(mem, mem, mem, mem)
+            cli.execute("vm-start", "uuid=%s on=%s" % (g.uuid, self.host0))
+
+        for g in guests:
+            r = self.runSubcase("memoryTest", (g), g.distro, "test")
+    
+
+    def memoryTest(self, g):
+        for i in range(5):
+            step("Perform vm migration to slave")
+            g.migrateVM(self.host1, live="true")
+            xenrt.sleep(60)
+            step("Verify memory actual and memory Target are equal to 4096MiB")
+            memoryActual = g.getMemoryActual() / xenrt.MEGA
+            memoryTarget = g.getMemoryTarget() / xenrt.MEGA
+            xenrt.TEC().logverbose("Memory Actual after Migration= %s" % memoryActual)
+            xenrt.TEC().logverbose("Memory Target after Migration= %s" % memoryTarget)
+            if abs(memoryActual - 4096) > 2:
+                raise xenrt.XRTFailure("Unexpected memory actual. memoryActual=%s. dynamicMin=4096" % memoryActual)
+     
+            step("Perform vm migration to master")
+            g.migrateVM(self.host0, live="true")
+            xenrt.sleep(60)
+            step("Verify memory actual and memory target are equal to 4096MiB")
+            memoryActual = g.getMemoryActual() / xenrt.MEGA
+            memoryTarget = g.getMemoryTarget() / xenrt.MEGA
+            xenrt.TEC().logverbose("Memory Actual after Migration= %s" % memoryActual)
+            xenrt.TEC().logverbose("Memory Target after Migration= %s" % memoryTarget)
+            if abs(memoryActual - 4096) > 2:
+                raise xenrt.XRTFailure("Unexpected memory actual. memoryActual=%s. dynamicMin=4096" % memoryActual)

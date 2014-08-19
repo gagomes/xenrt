@@ -52,7 +52,7 @@ class Config:
         self.config["GUESTFILE_BASE_PATH"] = "/local/scratch/guestfiles"
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
-        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache"
+        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache2"
         self.config["CLEANUP_FLAGS_PATH"] = "/local/scratch/cleanup"
         self.config["RESOURCE_LOCK_DIR"] = "${NFS_BASE_PATH}/locks"
         self.config["DB_BUFFER_DIR"] = "${NFS_BASE_PATH}/dbconnect"
@@ -112,6 +112,7 @@ class Config:
         self.config["SITE_CONFIG_DIR"] = "${XENRT_CONF}/conf.d"
         self.config["XENRT_VERSION_CONFIG"] = "${XENRT_BASE}/VERSION"
         self.config["MACHINE_CONFIGS"] = "${XENRT_CONF}/machines"
+        self.config["MACHINE_CONFIGS_INPUT"] = "${XENRT_CONF}/machinesinput"
         self.config["SUITE_CONFIGS"] = "${XENRT_CONF}/suites"
         self.config["STARTUP_DIR"] = os.getcwd()
         self.config["LOG_DIR_BASE"] = "${STARTUP_DIR}/logs"
@@ -955,6 +956,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_6_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_65_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_RHEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.3 (32-bit),Oracle Enterprise Linux 5.3"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_53_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.3 (64-bit),Oracle Enterprise Linux 5.3 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_54"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.4 (32-bit),Oracle Enterprise Linux 5.4"
@@ -975,6 +977,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_OEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_47"] = "CentOS 4.7 (32-bit),CentOS 4.7"
@@ -1001,6 +1004,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_65_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CENTOS_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_UBUNTU_1204"] = "Ubuntu Precise Pangolin 12.04 (32-bit),Ubuntu Precise Pangolin 12.04"
@@ -1022,8 +1026,9 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_111_64"] = "SUSE Linux Enterprise Server 11 SP1 (64-bit),SUSE Linux Enterprise Server 11 SP1 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_112"] = "SUSE Linux Enterprise Server 11 SP2 (32-bit),SUSE Linux Enterprise Server 11 SP2"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_112_64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit),SUSE Linux Enterprise Server 11 SP2 x64"
-        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP2 (32-bit),SUSE Linux Enterprise Server 11 SP2"
-        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit),SUSE Linux Enterprise Server 11 SP2 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit),SUSE Linux Enterprise Server 11 SP3"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_12_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9_32"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_WINDOWS_2003_64"] = "Windows Server 2003 (64-bit),Windows Server 2003 x64"
@@ -1046,6 +1051,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008"] = "Citrix XenApp on Windows Server 2008 (32-bit),Citrix XenApp on Windows Server 2008"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
+        self.config["VERSION_CONFIG"]["Sarasota"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
         self.config["VERSION_CONFIG"]["Sarasota"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Sarasota"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Sarasota"]["DOM0_DISTRO"] = "centos51"
@@ -1344,144 +1350,144 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8"] = "windows8"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
 
-        # ESX
-        self.config["VERSION_CONFIG"]["esx"] = {}
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN"] = "debian6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_ETCH"] = "debian4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_50"] = "debian5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_50_64"] = "debian5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60"] = "debian6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60_64"] = "debian6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_44"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_44_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_45"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_45_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_46"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_46_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_47"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_47_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_48"] = "rhel4"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_48_64"] = "rhel4_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_5"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_5_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_51"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_51_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_52"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_52_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_53"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_53_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_54"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_54_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_55"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_55_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_56"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_56_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_57"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_57_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_58"] = "rhel5"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_58_64"] = "rhel5_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_6"] = "rhel6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_6_64"] = "rhel6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_61"] = "rhel6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_61_64"] = "rhel6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_62"] = "rhel6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_62_64"] = "rhel6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_63"] = "rhel6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_63_64"] = "rhel6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_64"] = "rhel6"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_64_64"] = "rhel6_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_53"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_53_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_54"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_54_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_55"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_55_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_56"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_56_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_57"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_57_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_58"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_58_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_6"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_6_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_61"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_61_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_62"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_62_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_63"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_63_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_64"] = "oracleLinux"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_OEL_64_64"] = "oracleLinux64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_43"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_43_64"] = "centos_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_45"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_45_64"] = "centos_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_46"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_46_64"] = "centos_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_47"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_47_64"] = "centos_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_48"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_48_64"] = "centos_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_5"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_5_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_51"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_51_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_52"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_52_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_53"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_53_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_54"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_54_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_55"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_55_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_56"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_56_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_57"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_57_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_58"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_58_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_6"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_6_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_61"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_61_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_62"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_62_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_63"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_63_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_64"] = "centos"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_CENTOS_64_64"] = "centos64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_UBUNTU_1004"] = "ubuntu"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "ubuntu64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_UBUNTU_1204"] = "ubuntu"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_UBUNTU_1204_64"] = "ubuntu64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_OTHER_MEDIA"] = "other"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_101"] = "sles10"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_101_64"] = "sles10_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_102"] = "sles10"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_102_64"] = "sles10_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_103"] = "sles10"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_103_64"] = "sles10_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_104"] = "sles10"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_104_64"] = "sles10_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_11"] = "sles11"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_11_64"] = "sles11_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_111"] = "sles11"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SLES_111_64"] = "sles11_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SOLARIS_10U9_32"] = "solaris10"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_SOLARIS_10U9"] = "solaris10_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WINDOWS_2003_64"] = "winNetEnterprise64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WINDOWS_2003"] = "winNetEnterprise"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WINDOWS_2000"] = "win2000Pro"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WINDOWS_XP"] = "winXPPro"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WINDOWS_XP_SP3"] = "winXPPro"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_VISTA"] = "winLonghorn"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WS08R2_64"] = "windows7Server64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN7"] = "windows7"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8"] = "windows8"
-        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
+        # ESXi
+        self.config["VERSION_CONFIG"]["ESXi"] = {}
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN"] = "debian6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN_ETCH"] = "debian4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN_50"] = "debian5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN_50_64"] = "debian5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN_60"] = "debian6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_DEBIAN_60_64"] = "debian6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_41"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_41_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_44"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_44_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_45"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_45_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_46"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_46_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_47"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_47_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_48"] = "rhel4"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_48_64"] = "rhel4_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_5"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_5_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_51"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_51_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_52"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_52_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_53"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_53_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_54"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_54_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_55"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_55_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_56"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_56_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_57"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_57_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_58"] = "rhel5"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_58_64"] = "rhel5_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_6"] = "rhel6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_6_64"] = "rhel6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_61"] = "rhel6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_61_64"] = "rhel6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_62"] = "rhel6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_62_64"] = "rhel6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_63"] = "rhel6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_63_64"] = "rhel6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_64"] = "rhel6"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_RHEL_64_64"] = "rhel6_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_53"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_53_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_54"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_54_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_55"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_55_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_56"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_56_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_57"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_57_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_58"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_58_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_6"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_6_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_61"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_61_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_62"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_62_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_63"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_63_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_64"] = "oracleLinux"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_OEL_64_64"] = "oracleLinux64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_43"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_43_64"] = "centos_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_45"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_45_64"] = "centos_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_46"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_46_64"] = "centos_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_47"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_47_64"] = "centos_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_48"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_48_64"] = "centos_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_5"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_5_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_51"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_51_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_52"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_52_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_53"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_53_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_54"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_54_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_55"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_55_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_56"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_56_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_57"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_57_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_58"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_58_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_6"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_6_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_61"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_61_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_62"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_62_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_63"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_63_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_64"] = "centos"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_CENTOS_64_64"] = "centos64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_UBUNTU_1004"] = "ubuntu"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "ubuntu64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_UBUNTU_1204"] = "ubuntu"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_UBUNTU_1204_64"] = "ubuntu64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_OTHER_MEDIA"] = "other"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_101"] = "sles10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_101_64"] = "sles10_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_102"] = "sles10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_102_64"] = "sles10_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_103"] = "sles10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_103_64"] = "sles10_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_104"] = "sles10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_104_64"] = "sles10_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_11"] = "sles11"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_11_64"] = "sles11_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_111"] = "sles11"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SLES_111_64"] = "sles11_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SOLARIS_10U9_32"] = "solaris10"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_SOLARIS_10U9"] = "solaris10_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WINDOWS_2003_64"] = "winNetEnterprise64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WINDOWS_2003"] = "winNetEnterprise"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WINDOWS_2000"] = "win2000Pro"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WINDOWS_XP"] = "winXPPro"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WINDOWS_XP_SP3"] = "winXPPro"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_VISTA"] = "winLonghorn"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WS08R2_64"] = "windows7Server64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN7"] = "windows7"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN7_64"] = "windows7_64"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8"] = "windows8"
+        self.config["VERSION_CONFIG"]["ESXi"]["TEMPLATE_NAME_WIN8_64"] = "windows8_64"
 
         # Config for CCP / ACS
         self.config["CLOUD_CONFIG"] = {}
@@ -1502,6 +1508,8 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1004_x86-64"] = "Ubuntu 10.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-32"] = "Ubuntu 12.04 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1204_x86-64"] = "Ubuntu 12.04 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1404_x86-32"] = "Other (32-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Other (64-bit)"
 
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel2_x86-32"] = "Red Hat Enterprise Linux 2" # assuming 32-bit
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel3_x86-32"] = "Red Hat Enterprise Linux 3(32-bit)"
@@ -1548,6 +1556,9 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel64_x86-64"] = "Red Hat Enterprise Linux 6.4 (64-bit)"
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-32"] = "Red Hat Enterprise Linux 6.5 (32-bit)"
         #self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel65_x86-64"] = "Red Hat Enterprise Linux 6.5 (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["rhel7_x86-64"] = "Other (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos7_x86-64"] = "Other (64-bit)"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["oel7_x86-64"] = "Other (64-bit)"
 
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-32"] = "CentOS 4.3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["centos43_x86-64"] = "CentOS 4.3 (64-bit)"
@@ -1650,12 +1661,19 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2013-12-23-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-02-13-master-vmware.ova"
 
         self.config["CLOUD_CONFIG"]["4.4"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.3"])
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-master-kvm.qcow2.bz2"
 
-        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
+        self.config["CLOUD_CONFIG"]["4.5"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-4.5-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-4.5-vmware.ova"
+        # LXC currently uses KVM for System VMs, so use the KVM template
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
+
+        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
 
 
         self.config["GUEST_VIFS_centos41"] = "3"
@@ -1693,6 +1711,7 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["4.1.0"] = "Rio"
         self.config["PRODUCT_CODENAMES"]["5.0.0"] = "Orlando"
         self.config["PRODUCT_CODENAMES"]["5.5.0"] = "George"
+        self.config["PRODUCT_CODENAMES"]["5.5.0-Update2"] = "George"
         self.config["PRODUCT_CODENAMES"]["5.6.0"] = "MNR"
         self.config["PRODUCT_CODENAMES"]["5.6.100"] = "Cowley"
         self.config["PRODUCT_CODENAMES"]["5.9.950"] = "Boston"
@@ -1732,6 +1751,9 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.97"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.98"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.99"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -1992,6 +2014,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos45"] = {}
         self.config["GUEST_LIMITATIONS"]["centos45"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["centos45"]["MAXMEMORY"] = "16384"
@@ -2072,6 +2098,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos7"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["oel53"] = {}
         self.config["GUEST_LIMITATIONS"]["oel53"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel53"]["MAXMEMORY"] = "65536"
@@ -2128,6 +2158,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel65"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel7"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["sles92"] = {}
         self.config["GUEST_LIMITATIONS"]["sles92"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["sles92"]["MAXMEMORY"] = "16384"
@@ -2170,6 +2204,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["sles113"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
+        self.config["GUEST_LIMITATIONS"]["sles12"] = {}
+        self.config["GUEST_LIMITATIONS"]["sles12"]["MINMEMORY"] = "4096"
+        self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY64"] = "524288"
         self.config["GUEST_LIMITATIONS"]["solaris10u9"] = {}
         self.config["GUEST_LIMITATIONS"]["solaris10u9"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["solaris10u9"]["MAXMEMORY"] = "131072"
@@ -2339,6 +2377,9 @@ class Config:
         
         #  Carabosse:openssl, xenstored , qla2xxx-modules-kdump, qla2xxx-modules-xen, qla4xxx-modules-kdump, qla4xxx-modules-xen, xen-bugtool , vncterm, xen-device-model, xen-hypervisor xen-tools... Rolls up XS55EU2001, XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018, XS55EU2019
         self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2020"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2020/77604/hotfix-XS55EU2020/XS55EU2020.xsupdate"
+        
+        #  AliBaba:openssl, xen-hyp , qemu. Rolls up XS55EU2001,XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018, XS55EU2019, XS55EU2020
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2021/86503/hotfix-XS55EU2021/XS55EU2021.xsupdate"
         
         
         
@@ -2726,7 +2767,10 @@ class Config:
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E037/77408/hotfix-XS60E037/XS60E037.xsupdate"
        
        # Burglarbill: sm. Rolls up XS60E003, XS60E004, XS60E016, XS60E017, XS60E022, XS60E027, XS60E030
-        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"] = "/usr/groups/build/boston-lcm/86305/hotfix-XS60E038/XS60E038.xsupdate"
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E038/86305/hotfix-XS60E038/XS60E038.xsupdate"
+        
+        # AliBaba: xenhyp, qemu, openSSL. Rolls up XXS60E014,XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035, XS60E037
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E039/86675/hotfix-XS60E039/XS60E039.xsupdate"
        
        
        
@@ -2823,7 +2867,10 @@ class Config:
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E033"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E033/84969/hotfix-XS602E033/XS602E033.xsupdate"
         
         #Burglarbill : sm. Rolls up XS602E001, XS602E003, XS602E004, XS602E005, XS602E007, XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E0030, XS602E032, XS602E033
-        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/build/sanibel-lcm/86306/hotfix-XS602E034/XS602E034.xsupdate"
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E034/86306/hotfix-XS602E034/XS602E034.xsupdate"
+        
+        #AliBaba : qemu, xen-hyp, openSSL. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E030, XS602E032, XS602E033, XS602E034
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E035/86670/hotfix-XS602E035/XS602E035.xsupdate"
         
       
       
@@ -2943,7 +2990,10 @@ class Config:
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E039/84261/hotfix-XS61E039/XS61E039.xsupdate"
         
         # Burglarbill: sm. Rolls up XS61E001, XS61E007, XS61E015, XS61E034
-        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"] = "/usr/groups/build/tampa-lcm/86307/hotfix-XS61E040/XS61E040.xsupdate"
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E040/86307/hotfix-XS61E040/XS61E040.xsupdate"
+        
+        # AliBaba: xen-hyp, qemu, openSSL. Rolls up XS61E003,XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E041/86672/hotfix-XS61E041/XS61E041.xsupdate"
       
       
       
@@ -2977,7 +3027,10 @@ class Config:
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC009/84353/hotfix-XS602ECC009/XS602ECC009.xsupdate"
         
         # Burglarbill - sm, blktap . Rolls up nothing. 
-        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/build/sweeney-lcm/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC010/85745/hotfix-XS602ECC010/XS602ECC010.xsupdate"
+        
+        # AliBaba - qemu, xen-hyp, openSSL . Rolls up XS602ECC001,XS602ECC002, XS602ECC003,XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008 
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC011/86671/hotfix-XS602ECC011/XS602ECC011.xsupdate"
       
       
       
@@ -3024,7 +3077,10 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E015/83715/hotfix-XS62E015/XS62E015.xsupdate"
         
         # Burglarbill: sm, blktap . Rools up XS62E011
-        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/build/clearwater-lcm/85780/hotfix-XS62E016/XS62E016.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E016/85780/hotfix-XS62E016/XS62E016.xsupdate"
+        
+        # AliBaba: xen-hyp, openSSL, qemu . Rools up XS62E002,XS62E007, XS62E009, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E017/86676/hotfix-XS62E017/XS62E017.xsupdate"
 
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
@@ -3046,7 +3102,11 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1006"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1006/85395/hotfix-XS62ESP1006/XS62ESP1006.xsupdate"
         
         # Burglarbill - sm, blktap. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62E014
-        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/build/clearwater-sp1-lcm/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1007/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
+        
+        # AliBaba - qemu, xen-hyp, openSSL, xapi. Rolls up XS62ESP1002,XS62ESP1004, XS62ESP1006,XS62ESP1007, XS62E014
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1008/86714/hotfix-XS62ESP1008/XS62ESP1008.xsupdate"
+
 
 
 
@@ -3089,7 +3149,7 @@ class Config:
         self.config["CARBON_PATCHES_GEORGE"]["HF08"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2008"]
         self.config["CARBON_PATCHES_GEORGE"]["HF09"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2009"]
         self.config["CARBON_PATCHES_GEORGE"]["HF10"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2010"]
-        self.config["CARBON_PATCHES_GEORGE"]["HF20"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2020"]
+        self.config["CARBON_PATCHES_GEORGE"]["HF21"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"]
         
         if not self.config.has_key("CARBON_PATCHES_MNR"):
             self.config["CARBON_PATCHES_MNR"] = {}
@@ -3135,8 +3195,8 @@ class Config:
         self.config["CARBON_PATCHES_BOSTON"]["HF31"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E031"]
         self.config["CARBON_PATCHES_BOSTON"]["HF32"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E032"]
         self.config["CARBON_PATCHES_BOSTON"]["HF36"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF37"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E037"]
         self.config["CARBON_PATCHES_BOSTON"]["HF38"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF39"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
             self.config["CARBON_PATCHES_SANIBEL"] = {}
@@ -3145,24 +3205,24 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF34"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E034"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF35"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
         self.config["CARBON_PATCHES_SANIBELCC"]["HF04"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC004"]
-        self.config["CARBON_PATCHES_SANIBELCC"]["HF08"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC008"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF09"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF11"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
         self.config["CARBON_PATCHES_TAMPA"]["HF01"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E001"]
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF37"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E037"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
         self.config["CARBON_PATCHES_TAMPA"]["HF39"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF41"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -3170,18 +3230,17 @@ class Config:
         branch = self.lookup("HFX_BRANCH_CLEARWATER", self.lookup(["DEFAULT_HOTFIX_BRANCH", "Clearwater"]))
         if branch == "RTM":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E005"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E007"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF10"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E010"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E012"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF07"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF08"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

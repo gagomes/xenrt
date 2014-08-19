@@ -1069,6 +1069,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         else:
             component = xenrt.TEC().lookup("JIRA_TICKET_COMPONENT_ID", self.TRIAGE)
 
+        jiraTicketLabel = xenrt.TEC().lookup("JIRA_TICKET_LABEL", None)
         if createNew:
             xenrt.GEC().logverbose("Decided to create new issue")
             if not assignee:
@@ -1097,6 +1098,9 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                                 environment=environment,description=unicode(description, errors='ignore'),
                                 components=[{'id':component}],assignee={'name':assignee})
             xenrt.GEC().logverbose("Created JIRA issue %s" % (issue.key))
+            if jiraTicketLabel is not None:
+                issue.update(labels=[jiraTicketLabel])
+                xenrt.GEC().logverbose("Added label to JIRA issue - %s" % (jiraTicketLabel))
             try:
                 self.setCustomField(issue,self.TRACK_FIELD,track)
             except Exception, e:
@@ -1118,6 +1122,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 xenrt.GEC().logverbose("Decided to comment on existing issue")
                 j.add_comment(issueToComment.key, seenagain)
                 xenrt.GEC().logverbose("Commented on JIRA issue %s" % (issueToComment.key))
+                if jiraTicketLabel is not None:
+                    issueToComment.fields.labels.append(jiraTicketLabel)
+                    issueToComment.update(fields={"labels": issueToComment.fields.labels})
+                    xenrt.GEC().logverbose("Added label to JIRA issue - %s" % (jiraTicketLabel))
 
             comps = [x.id for x in issueToComment.fields.components]
             if component not in comps:

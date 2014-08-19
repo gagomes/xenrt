@@ -149,6 +149,7 @@ def createHost(id=0,
                suppackcds=None,
                addToLogCollectionList=False,
                disablefw=False,
+               cpufreqgovernor=None,
                usev6testd=True,
                ipv6=None,
                enableAllPorts=True,
@@ -189,7 +190,7 @@ def createHost(id=0,
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"enabled")
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"yes")
         else:
-            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],None)
+            xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"OPTION_ROOT_MPATH"],"")
             xenrt.TEC().config.setVariable(["HOST_CONFIGS",host.getName(),"LOCAL_SR_POST_INSTALL"],"no")
 
     if enableAllPorts:
@@ -303,6 +304,16 @@ def createHost(id=0,
         xenrt.TEC().warning("Disabling host firewall")
         host.execdom0("service iptables stop")
         host.execdom0("chkconfig iptables off")
+
+    if cpufreqgovernor:
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
+
+        # Set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        host.execdom0("xenpm set-scaling-governor performance")
+
+        output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
     xenrt.TEC().registry.hostPut(name, host)
@@ -571,6 +582,8 @@ class Host(xenrt.GenericHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTSlab)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTPasswords)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoverage)
+        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
+        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoresPerSocket)
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
 
@@ -1934,13 +1947,13 @@ fi
             self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
         except xenrt.XRTFailure, e:
             if not self.checkForHardwareBootProblem(True):
-                raise e
+                raise
             # checkForHardwareBootProblem power cycled the machine, check again
             try:
                 self.waitForSSH(900, desc="Host boot (!%s)" % (self.getName()))
             except xenrt.XRTFailure, e:
                 self.checkForHardwareBootProblem(False)
-                raise e
+                raise
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 
@@ -2182,14 +2195,36 @@ fi
         applyGuidanceAfterEachPatch = applyGuidance and applyGuidanceAfterEachPatch
         existingGuidanceList = self.minimalList("patch-list params=after-apply-guidance hosts:contains=%s" % self.uuid)
         
+        xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
         if xenrt.TEC().lookup("APPLY_ALL_RELEASED_HFXS", False, boolean=True):
             if xenrt.TEC().isReleasedBuild():
                 xenrt.TEC().logverbose("This is a release build. Adding released hotfixes to config.")
                 xenrt.TEC().config.addAllHotfixes()
             else:
                 xenrt.TEC().logverbose("This is not a release build. Not adding released hotfixes to config.")
-        
-        xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
+        else:
+            targetHotfix = xenrt.TEC().lookup("TARGET_HOTFIX", None)
+            if targetHotfix:
+                """Build a list of hotfixes that need to be installed to patch the host upto the targetHotfix"""
+
+                # Look up for available hotfixes from XenRT's hotfix list.
+                hfxDict = xenrt.TEC().lookup(["HOTFIXES", self.productVersion])
+                xenrt.TEC().logverbose("HFX dictionary for %s: %s" % (self.productVersion, hfxDict))
+
+                branch = None
+                for b in hfxDict.keys():
+                    if targetHotfix in hfxDict[b].keys():
+                        branch = b
+                if not branch:
+                    raise xenrt.XRTFailure("Could not find hotfix '%s' in hotfix dict: '%s'" % (targetHotfix, hfxDict))
+
+                hotfixPaths = []
+                for hotfixKey, hotfixPath in sorted(hfxDict[branch].iteritems()):
+                    if hotfixKey <= targetHotfix:
+                        hotfixPaths.append(hotfixPath)
+
+                for hf in hotfixPaths:
+                    self.applyPatch(xenrt.TEC().getFile(hf))
 
         # CARBON_PATCHES contains any patches to be applied regardless of the
         # product version being installed. It is either a comma separated
@@ -2602,9 +2637,9 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
-            self.execdom0("wget %s/iperf%s.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE"), version))
-            self.execdom0("tar -zxf iperf%s.tgz" % (version,))
-            self.execdom0("ln -s ~/iperf%s/iperf /usr/bin" % (version,))
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
+            self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")
+            xenrt.objects.GenericPlace.installIperf(self, version)
 
     def createVBridge(self, name, vlan=None, autoadd=False, nic="eth0",
                       desc=None):
@@ -2766,7 +2801,7 @@ fi
         """Installs a generic Linux VM for non-OS-specific tests."""
 
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro="genericlin", arch=arch)
 
         if arch != None and arch.endswith("64"):
             distro = self.lookup("GENERIC_LINUX_OS_64", "centos53")
@@ -2850,7 +2885,7 @@ fi
         """Installs a Windows VM and PV drivers for general test use"""
         
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro="genericwin", arch=arch)
         
         if not distro:
             if arch is not None and arch.endswith("64"):
@@ -2940,7 +2975,7 @@ fi
         else:
             password = None
         if not name:
-            name = xenrt.randomGuestName()
+            name = xenrt.randomGuestName(distro=distro, arch=arch)
         guest = self.guestFactory()(name, template, password=password)
         guest.primaryMAC=primaryMAC
         guest.reservedIP=reservedIP
@@ -3062,6 +3097,12 @@ fi
         """Returns a list of supplemental CDs to be installed."""
 
         supp_cds = self.lookup("SUPPLEMENTAL_PACK_CDS", None)
+        
+        if not supp_cds:
+            # Look for a release specific Supp Packs, if provided.
+            supp_cds = xenrt.TEC().lookup("SUPP_PACK_CDS_%s" %
+                                        (self.productVersion.upper()), None)
+        
         return supp_cds
 
     def getVdiMD5Sum(self, vdi):
@@ -5519,6 +5560,7 @@ fi
         args.append("physical-size=1")
         args.append("type=file")
         args.append("content-type=\"XenRT Content\"")
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
         if createVDI:
             args.append("device-config-location=%s/SRs/%s/sr" % 
                        (xenrt.TEC().lookup("LOCAL_BASE"),name))
@@ -6407,6 +6449,8 @@ fi
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6_64")
                 else:
                     template = self.chooseTemplate("TEMPLATE_NAME_RHEL_6")
+            elif re.search(r"rhel7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_RHEL_7_64")
             elif re.search(r"rhel4", distro):
                 v = re.search(r"rhel(\d+)", distro).group(1)
                 template = self.chooseTemplate("TEMPLATE_NAME_RHEL_%s" % (v))
@@ -6419,6 +6463,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_OEL_%s_64" % (v))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_OEL_%s" % (v))
+            elif re.search(r"oel7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_OEL_7_64")
             elif re.search(r"oel6", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6435,6 +6481,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_%s_64" % (v))
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_%s" % (v))
+            elif re.search(r"centos7", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_CENTOS_7_64")
             elif re.search(r"centos6", distro):
                 if hvm:
                     template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
@@ -6478,13 +6526,7 @@ fi
                     else:
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
-                if hvm:
-                    template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
-                else:
-                    if arch and arch == "x86-64":
-                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404_64")
-                    else:
-                        template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+                template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:
@@ -7203,6 +7245,16 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
 
+        # Run arbitrary command in dom0 or a script from REMOTE_SCRIPTDIR
+        dom0cmd = xenrt.TEC().lookup("DOM0_COMMAND", None)
+        if dom0cmd:
+            self.execdom0(dom0cmd)
+
+        # Run a script from REMOTE_SCRIPTDIR
+        dom0script = xenrt.TEC().lookup("DOM0_SCRIPT", None)
+        if dom0script:
+            self.execdom0("%s/%s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dom0script))
+
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""
 
@@ -7699,6 +7751,7 @@ rm -f /etc/xensource/xhad.conf || true
                 xenrt.sleep(300) # Allow 5 minutes for all logs to sync
                 
                 # poke Xen to give us a crash-dump
+                xenrt.TEC().warning("Poking Xen from job %s to give us a crashdump on %s" % (str(xenrt.GEC().jobid()), self.machine.name))
                 try:
                     xenrt.command("/bin/echo -e \"\\x01\\x01\\x01C\\x05c.\" | console %s -f" % self.machine.name, timeout=120)
                 except Exception, e:
@@ -10967,31 +11020,56 @@ done
             return True
 
     def installNVIDIAHostDrivers(self, reboot=True):
-        rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm"
-        rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
-        xenrt.TEC().logverbose("Installing in-guest driver: %s" % rpm)
+        rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.00.i386.rpm"
+        inputDir = xenrt.TEC().lookup("INPUTDIR", default=None)
+        rel = xenrt.TEC().lookup("RELEASE", default=None)
+
+        getItFromDist = False
+
+        if inputDir and rel:
+            branch = inputDir.split("/")[-2]
+            build = inputDir.split("/")[-1]
+            url = "http://vgpubuilder.uk.xensource.com/%s/%s/vgpuhost.rpm" % (branch,build)
+            try:
+                self.execdom0("wget --directory-prefix=/tmp %s" % url)
+                data=self.execdom0("rpm -qpil /tmp/vgpuhost.rpm")
+                m=re.match(r"Name *[^:]*: (\S+)", data)
+                rpm = m.group(1)
+                self.execdom0("mv /tmp/vgpuhost.rpm /tmp/%s.rpm" % rpm)
+                rpm = rpm + '.rpm'
+            except Exception, e:
+                xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
+                getItFromDist = True
+                                 
+        else:
+            getItFromDist = True
+
+        if getItFromDist:
+            rpm = xenrt.TEC().lookup("VGPU_HOST_DRIVER_RPM", default=rpmDefault)
+
+            url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            hostRPMURL = "%s/vgpudriver/hostdriver/%s" %(url,rpm)
+            hostRPM = xenrt.TEC().getFile(hostRPMURL,hostRPMURL)
+
+            try:
+                xenrt.checkFileExists(hostRPM)
+            except:
+                raise xenrt.XRTError("Host RPM not found")
+
+            hostPath = "/tmp/%s" % (rpm)
+
+            sh = self.sftpClient()
+
+            try:
+                sh.copyTo(hostRPM,hostPath)
+            finally:
+                sh.close()
+
+        xenrt.TEC().logverbose("Installing Host driver: %s" % rpm)
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
             return
-
-        url = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-        hostRPMURL = "%s/vgpudriver/hostdriver/%s" %(url,rpm)
-        hostRPM = xenrt.TEC().getFile(hostRPMURL,hostRPMURL)
-
-        try:
-            xenrt.checkFileExists(hostRPM)
-        except:
-            raise xenrt.XRTError("Host RPM not found")
-
-        hostPath = "/tmp/%s" % (rpm)
-
-        sh = self.sftpClient()
-
-        try:
-            sh.copyTo(hostRPM,hostPath)
-        finally:
-            sh.close()
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
         if reboot:
@@ -11067,11 +11145,14 @@ done
 #############################################################################
 
 class CreedenceHost(ClearwaterHost):
-    
+
     V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
-    
+
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
+
+    def guestFactory(self):
+        return xenrt.lib.xenserver.guest.CreedenceGuest
 
     def enableReadCaching(self, sruuid=None):
         if sruuid:
@@ -11106,9 +11187,8 @@ class CreedenceHost(ClearwaterHost):
         self.vswitchAppCtl("coverage/show")
 
 #############################################################################
-class SarasotaHost(ClearwaterHost):
+class SarasotaHost(CreedenceHost):
     USE_CCISS = False
-    V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
         ClearwaterHost.__init__(self,
@@ -11120,10 +11200,7 @@ class SarasotaHost(ClearwaterHost):
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest
-        
-    def getTestHotfix(self, hotfixNumber):
-        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
-        
+
     def postInstall(self):
         ClearwaterHost.postInstall(self)
 
@@ -11160,10 +11237,7 @@ class SarasotaHost(ClearwaterHost):
         
     def getQemuDMWrapper(self):
         return "/usr/libexec/xenopsd/qemu-dm-wrapper"
-    
-    def vSwitchCoverageLog(self):
-        self.vswitchAppCtl("coverage/show")
-    
+
     def getBridgeInterfaces(self, bridge):
         """Return a list of interfaces on the bridge, or None if that bridge
         does not exist."""
@@ -11659,6 +11733,7 @@ class CIFSStorageRepository(StorageRepository):
         args.append("name-label=%s" % (self.name))
         args.append("type=%s" % (type))
         args.append("content-type=%s" % (content_type))
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
         self.uuid = cli.execute("sr-create", string.join(args), strip=True)
         
     def check(self):

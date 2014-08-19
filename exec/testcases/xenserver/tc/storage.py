@@ -1379,7 +1379,7 @@ class TC10860(TC6723):
 
     def doListWithSecret(self, index):
 
-        if isinstance(self.host, xenrt.lib.xenserver.BostonHost):
+        if isinstance(self.host, xenrt.lib.xenserver.TampaHost):
             # As a result of the fix for CA-113392, SR's secret is duplicated and 
             # a unique secret uuid is used for each pbd creation.
             # Hence, find the secret having the same value as that of sr
@@ -1469,13 +1469,12 @@ class TC10615(TC6723):
     SR_COUNT = 2
 
 class _VDICopy(xenrt.TestCase):
-    """Base class for testcases that verify vdi-copy works between different SR
-       types"""
+    """Base class for testcases that verify vdi-copy works between different SR types"""
+
     FROM_TYPE = None
     TO_TYPE = None
     SAME_HOSTS = True   
     HOST_TYPE = None 
-    SPECIAL_NFS_SR_TYPE = False
     FIND_SR_BY_NAME = False
 
     def prepare(self, arglist):
@@ -1530,7 +1529,6 @@ class _VDICopy(xenrt.TestCase):
         self.toSR = toSRs[0]
         self.copies = {}
         self.vdisToDestroy = []
-        self.vdiPerfResults = {}
 
         # Create a VDI on the fromSR
         args = []
@@ -1572,48 +1570,13 @@ class _VDICopy(xenrt.TestCase):
         if "The device is not currently attached" in self.md5sum:
             raise xenrt.XRTError("Device not attached when trying to md5sum")
 
-        # Initial set of vdi performance parameters.
-        self.vdiPerfResults["vdi-virtual-size-in-bytes"] = self.vdi_size
-        self.vdiPerfResults["vdi-has-filesystem"] = "yes"
-        self.vdiPerfResults["vdi-has-written-data"] = "no"
-        if self.HOST_TYPE:
-            self.vdiPerfResults["multiple-hosts"] = self.HOST_TYPE
-        if self.SPECIAL_NFS_SR_TYPE:
-            self.vdiPerfResults["special-nfs-sr"] = "with no sub directory"
-
     def doCopy(self, sourcetag, targetsruuid, targettag):
         vdiuuid = self.copies[sourcetag]
         xenrt.TEC().logverbose("Attempting to copy to SR %s" % (targetsruuid))
         args = []
         args.append("uuid=%s" % (vdiuuid))
         args.append("sr-uuid=%s" % (targetsruuid))
-        
-        # Measuring vdi copy time for performance evaluation.
-        timeNow = xenrt.util.timenow(True)
         newVDI = self.cli.execute("vdi-copy", string.join(args)).strip()
-        timeDiff =  xenrt.util.timenow(True)- timeNow
-
-        if targettag == "intra":
-            self.vdiPerfResults["sameSR"] = {"description": "Copy VDI within the SR",
-                                      "from_sr_type": self.FROM_TYPE, 
-                                      "to_sr_type": self.FROM_TYPE, 
-                                      "vdi-copy-time-in-seconds": timeDiff
-                                     }
-        elif targettag == "other":
-            self.vdiPerfResults["otherSR"] = {"description": "Copy VDI to other SR",
-                                       "from_sr_type": self.FROM_TYPE, 
-                                       "to_sr_type": self.TO_TYPE, 
-                                       "vdi-copy-time-in-seconds": timeDiff
-                                      }
-        elif targettag == "back":
-            self.vdiPerfResults["originalSR"] = {"description": "Copy VDI back to original SR",
-                                          "from_sr_type": self.TO_TYPE, 
-                                          "to_sr_type": self.FROM_TYPE, 
-                                          "vdi-copy-time-in-seconds": timeDiff
-                                         }
-        else:
-            raise xenrt.XRTFailure("Target SR not specified")
-
         self.vdisToDestroy.append(newVDI)
         self.copies[targettag] = newVDI
 
@@ -1681,11 +1644,8 @@ class _VDICopy(xenrt.TestCase):
                     self.runSubcase("doCheck", ("back"), "Check", "OriginalSR")
 
     def postRun(self):
-        # Writing the measured vdi copy performance parameters.
-        f = open("%s/vdicopytime.json" % (xenrt.TEC().getLogdir()), "w")
-        f.write(json.dumps(self.vdiPerfResults))
-        f.close()
-        
+
+        # destroying target vdis created during vdicopy.
         for vdi in self.vdisToDestroy:
             try:
                 self.cli.execute("vdi-destroy","uuid=%s" % (vdi))
@@ -1754,13 +1714,11 @@ class TC20953(_VDICopy):
     """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
     FROM_TYPE = "lvmoiscsi"
     TO_TYPE = "nfs"
-    SPECIAL_NFS_SR_TYPE = True
     
 class TC20954(_VDICopy):
     """Verify vdi-copy between an ext SR and a NFS SR with no sub directory"""
     FROM_TYPE = "ext"
     TO_TYPE = "nfs"
-    SPECIAL_NFS_SR_TYPE = True
     
 class TC20955(_VDICopy):
     """Verify vdi-copy between an NFS SR with no sub directory and a netapp SR"""            
@@ -1773,14 +1731,12 @@ class TC20956(_VDICopy):
     FIND_SR_BY_NAME = True
     FROM_TYPE = "nfssr_nosubdir" # options="nosubdir"
     TO_TYPE   = "nfssr_filesr" # options="filesr" 
-    SPECIAL_NFS_SR_TYPE = True
 
 class TC20957(_VDICopy):
     """Verify vdi-copy between an NFS SR and a NFS SR with no sub directory"""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
-    SPECIAL_NFS_SR_TYPE = True
 
 #############################################################################
 # VDI resize testcases

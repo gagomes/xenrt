@@ -56,8 +56,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
         # Optionally, the sequence file can specify which eth device to use in each endpoint
-        self.e0dev = libperf.getArgument(arglist, "endpoint0dev", int, None)
-        self.e1dev = libperf.getArgument(arglist, "endpoint1dev", int, None)
+        self.e0devstr = libperf.getArgument(arglist, "endpoint0dev", str, None)
+        self.e1devstr = libperf.getArgument(arglist, "endpoint1dev", str, None)
+        self.e0dev = None
+        self.e1dev = None
 
         # Optionally, the sequence file can specify IP addresses to use in each endpoint
         self.e0ip = libperf.getArgument(arglist, "endpoint0ip", str, None)
@@ -129,10 +131,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else:
             raise xenrt.XRTError("unrecognised endpoint %s with type %s" % (endpoint, type(endpoint)))
 
-    def ethOfDev(self, endpoint, endpointdev):
-        assert isinstance(endpoint, xenrt.GenericHost)
-        return endpoint.getNIC(endpointdev)
-
     def setIPAddress(self, endpoint, endpointdev, ip):
         if isinstance(endpoint, xenrt.GenericGuest):
             (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
@@ -142,7 +140,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         elif isinstance(endpoint, xenrt.lib.xenserver.Host):
             raise xenrt.XRTError("setting IP on XenServer PIF is not yet implemented")
         elif isinstance(endpoint, xenrt.GenericHost):
-            endpoint.execcmd("ifconfig %s %s netmask 255.255.255.0" % (self.ethOfDev(endpoint, endpointdev), ip))
+            endpoint.execcmd("ifconfig %s %s netmask 255.255.255.0" % (endpoint.getNIC(endpointdev), ip))
 
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
@@ -152,14 +150,15 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             elif isinstance(endpoint, xenrt.lib.xenserver.Host):
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)
             elif isinstance(endpoint, xenrt.GenericHost):
-                ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (self.ethOfDev(endpoint, endpointdev))).strip()
+                ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (endpoint.getNIC(endpointdev))).strip()
         else:
             ip = endpoint.getIP()
         return ip
 
+    # endpointdev is the (integer) assumedid of the device
     def nicdevOfEndpointDev(self, endpoint, endpointdev):
         assert isinstance(endpoint, xenrt.GenericHost)
-        ethdev = self.ethOfDev(endpoint, endpointdev)
+        ethdev = endpoint.getNIC(endpointdev)
         mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (ethdev)).strip()
         return ethdev, mac
 
@@ -191,6 +190,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         return dev, mac
 
     # endpoint is always a xenrt.GenericHost
+    # endpointdev is the (integer) assumedid of the device, or None to use the default device
     def nicinfo(self, endpoint, endpointdev=None, key_prefix=""):
         assert isinstance(endpoint, xenrt.GenericHost)
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
@@ -204,21 +204,23 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s" % (dev,)).replace(": ","=").split("\n")))
         ethtool_P = kvs2dict("ethtool-P:", map2kvs(endpoint.execcmd("ethtool -P %s" % (dev,)).replace(": ","=").split("\n")))
-        g = map2kvs(endpoint.execcmd("ethtool -g %s" % (dev,)).replace("\t","").replace(":","=").split("\n"))
-        ethtool_g = {}
-        ethtool_g["ethtool-g:ringmaxRX"]         = g[2][1]
-        ethtool_g["ethtool-g:ringmaxRXMini"]     = g[3][1]
-        ethtool_g["ethtool-g:ringmaxRXJumbo"]    = g[4][1]
-        ethtool_g["ethtool-g:ringmaxTX"]         = g[5][1]
-        ethtool_g["ethtool-g:ringcurRX"]     = g[7][1]
-        ethtool_g["ethtool-g:ringcurRXMini"] = g[8][1]
-        ethtool_g["ethtool-g:ringcurRXJumbo"]= g[9][1]
-        ethtool_g["ethtool-g:ringcurTX"]     = g[10][1]
+        ethtool_g_unsupp = endpoint.execcmd("ethtool -g %s" % (dev,), retval="code")
+        if not ethtool_g_unsupp:
+            g = map2kvs(endpoint.execcmd("ethtool -g %s" % (dev,)).replace("\t","").replace(":","=").split("\n"))
+            ethtool_g = {}
+            ethtool_g["ethtool-g:ringmaxRX"]         = g[2][1]
+            ethtool_g["ethtool-g:ringmaxRXMini"]     = g[3][1]
+            ethtool_g["ethtool-g:ringmaxRXJumbo"]    = g[4][1]
+            ethtool_g["ethtool-g:ringmaxTX"]         = g[5][1]
+            ethtool_g["ethtool-g:ringcurRX"]     = g[7][1]
+            ethtool_g["ethtool-g:ringcurRXMini"] = g[8][1]
+            ethtool_g["ethtool-g:ringcurRXJumbo"]= g[9][1]
+            ethtool_g["ethtool-g:ringcurTX"]     = g[10][1]
         if "ethtool-P:Permanent address" in ethtool_P:
             pa = ethtool_P["ethtool-P:Permanent address"].strip().upper()
             m  = mac.strip().upper()
             xenrt.TEC().logverbose("ethtool -i output is: %s" % (ethtool_i))
-            if ethtool_i["ethtool-i:driver"] == "mlx4_en" and pa == "00:00:00:00:00:00":
+            if ethtool_i["ethtool-i:driver"] in ["mlx4_en", "enic"] and pa == "00:00:00:00:00:00":
                 # This has been observed on CentOS 6.5, despite it working fine on XenServer with the same driver version and firmware version
                 xenrt.TEC().logverbose("Permanent address of %s is zero. Not sure why, but it's not a problem." % (dev,))
             elif pa != m:
@@ -263,7 +265,8 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info.update(ethtool_i)
         info.update(ethtool_k)
         info.update(ethtool_P)
-        info.update(ethtool_g)
+        if not ethtool_g_unsupp:
+            info.update(ethtool_g)
         info.update(proc_sys_net)
         info.update(sys_class_net)
         info.update(sys_devices)
@@ -291,6 +294,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         return endpoint.execcmd("hostname").strip()
 
     def physicalDeviceOf(self, guest, endpointdev):
+        assert isinstance(guest, xenrt.GenericGuest)
         if endpointdev is None:
             return None
         else:
@@ -304,6 +308,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint0,self.e0dev,"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = "host"
+            info["vm0arch"]  = "NULL"
             info["vm0ram"]   = "NULL"
             info["vm0vcpus"] = "NULL"
             info["vm0domid"] = "NULL"
@@ -313,10 +318,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host0issue"]   = self.getIssue(self.endpoint0)
             info["host0hostname"]= self.getHostname(self.endpoint0)
         elif isinstance(self.endpoint0, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint0,self.e0dev,"guest0:"))
             info.update(self.nicinfo(self.endpoint0.host,self.physicalDeviceOf(self.endpoint0, self.e0dev),"host0:"))
             info.update(self.iperfinfo(self.endpoint0,"host0:"))
             info["vm0type"]  = self.endpoint0.distro
+            info["vm0arch"]  = self.endpoint0.arch
             info["vm0ram"]   = self.endpoint0.memory
             info["vm0vcpus"] = self.endpoint0.vcpus
             info["vm0domid"] = self.endpoint0.getDomid()
@@ -329,6 +334,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info.update(self.nicinfo(self.endpoint1,self.e1dev,"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = "host"
+            info["vm1arch"]  = "NULL"
             info["vm1ram"]   = "NULL"
             info["vm1vcpus"] = "NULL"
             info["vm1domid"] = "NULL"
@@ -338,10 +344,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             info["host1issue"]   = self.getIssue(self.endpoint1)
             info["host1hostname"]= self.getHostname(self.endpoint1)
         elif isinstance(self.endpoint1, xenrt.GenericGuest):
-            #info.update(self.nicinfo(self.endpoint1,self.e1dev,"guest1:"))
             info.update(self.nicinfo(self.endpoint1.host,self.physicalDeviceOf(self.endpoint1, self.e1dev),"host1:"))
             info.update(self.iperfinfo(self.endpoint1,"host1:"))
             info["vm1type"]  = self.endpoint1.distro
+            info["vm1arch"]  = self.endpoint1.arch
             info["vm1ram"]   = self.endpoint1.memory
             info["vm1vcpus"] = self.endpoint1.vcpus
             info["vm1domid"] = self.endpoint1.getDomid()
@@ -394,8 +400,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             except Exception, e:
                 self.log(None, "error while breathing: %s" % (e,))
 
-    def run(self, arglist=None):
+    def convertNetworkToAssumedid(self, endpoint, network):
+        if isinstance(endpoint, xenrt.GenericHost):
+            nics = endpoint.listSecondaryNICs(network=network)
+            assert len(nics) > 0
+            # Use the first device on this network
+            return nics[0]
 
+    def run(self, arglist=None):
         # unpause endpoints if paused
         self.vmunpause()
         # set up gro if required
@@ -408,6 +420,18 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         if 'iperf_installed' not in self.endpoint1.__dict__.keys():
             self.endpoint1.installIperf(version="2.0.5")
             self.endpoint1.iperf_installed = True
+
+        # Get the device position (assumedid) for the devices to use:
+        #  - For hosts, endpointdev is a network name, so convert this.
+        #  - For guests, endpointdev is a number. Just use this.
+        if isinstance(self.endpoint0, xenrt.GenericHost):
+            self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+        else:
+            self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
+        if isinstance(self.endpoint1, xenrt.GenericHost):
+            self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+        else:
+            self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

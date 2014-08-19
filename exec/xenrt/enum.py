@@ -36,6 +36,7 @@ class HypervisorType(Enum):
     hyperv = "hyperv"
     simulator = "simulator"
     other = "other"
+    lxc = "lxc"
 
 class InstallMethod(Enum):
     PV = "PV"

@@ -24,8 +24,5 @@
     <serial group="HFX952">
       <testcase id="xenserver.tc.host.TC20917" />
     </serial>
-    <serial group="HFX-982">
-      <testcase id="xenserver.tc.guest.TCSetComputername" tc="TC-21020"/>
-    </serial>
   </testsequence>
 </xenrt>

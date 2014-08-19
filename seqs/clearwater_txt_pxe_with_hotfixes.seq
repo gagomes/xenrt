@@ -21,7 +21,6 @@
       <testcase id="xenserver.tc.txt.TCTxtSuppPackQuoteVerify" tc="TC-19918"/>
       <testcase id="xenserver.tc.txt.TCTxtChangedInitrd" tc="TC-19919"/>
       <testcase id="xenserver.tc.txt.TCTxtSuppPackChallenge" tc="TC-19927"/>
-      <testcase id="xenserver.tc.txt.TCTxtSuppPackAssetTagVerify" tc="TC-20685"/>
     </serial>
   </testsequence>
 

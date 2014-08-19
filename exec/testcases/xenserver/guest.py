@@ -246,6 +246,25 @@ class TCXGTInstall(xenrt.TestCase):
                 except:
                     pass
 
+
+class TCRebootLoopNoDrivers(xenrt.TestCase):
+
+    def run(self, args):
+        gname = ""
+        for arg in args:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+                break
+
+        if len(gname) == 0:
+            raise xenrt.XRTFailure("No guest")
+
+        g = self.getGuest(gname)
+
+        for i in range(100):
+            g.reboot()
+
 class TCXenServerWindowsInstall(xenrt.TestCase):
 
     def __init__(self):
@@ -527,7 +546,6 @@ class TCXenServerVendorInstall(xenrt.TestCase):
                 preCloneTailor = True
             elif l[0] == "shutdown":
                 self.post_shutdown = True
-        
         if not guestname:
             if not config:
                 raise xenrt.XRTError("Must specify at least one of guest name and config string.")
@@ -602,7 +620,6 @@ class TCXenServerVendorInstall(xenrt.TestCase):
         if memory != None:
             g.setMemory(memory)
         g.arch = arch
-
         if xenrt.TEC().lookup(["CLIOPTIONS", "NOINSTALL"],
                               False,
                               boolean=True):
@@ -3010,4 +3027,5 @@ class TCPVHVMIInstall(xenrt.TestCase):
                                                   disksize=rootdisk)
         xenrt.sleep(30)
         guest.setState("DOWN")
+
 

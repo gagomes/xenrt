@@ -15,3 +15,10 @@ class TCGuestDeploy(xenrt.TestCase):
         instance = cloud.createInstance(distro=DISTRO, name=GUEST_NAME )
 
         # MarvinApi is cloud.marvin
+
+class TCCreateTemplate(xenrt.TestCase):
+    def run(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+
+        cloud = self.getDefaultToolstack()
+        cloud.createOSTemplate(args['distro'], hypervisorType=args.get("hypervisor"))

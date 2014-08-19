@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <SR_ISCSI_MINSIZE>100</SR_ISCSI_MINSIZE>
   </variables>
   <default name="PARALLEL" value="6" />
   <prepare>

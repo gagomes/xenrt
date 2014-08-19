@@ -3802,6 +3802,7 @@ class TC15464(xenrt.TestCase):
     def testMultipathSanity(self):
         self.disableRandomFCPorts()
         self.waitUntilDevicesAreInaccessible()
+        time.sleep(3) # handling CA-124429
         self.checkWhetherMultipathTopologyHasChanged()
         self.enableFCPorts()
         time.sleep(120) # wait till devices are accessible
@@ -4099,7 +4100,7 @@ class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest, _Hardware
         testcases.xenserver.tc.ha._HASmoketest.postRun(self)
         
         xenrt.TEC().logverbose("Enabling FC Port %u" % self.FAILURE_PATH)
-        _HardwareMultipath.enableFCPort(self.FAILURE_PATH)
+        _HardwareMultipath.enableFCPort(self, self.FAILURE_PATH)
         xenrt.TEC().logverbose("Successfully enabled FC Port %u" % self.FAILURE_PATH)
 
 

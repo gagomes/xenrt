@@ -88,8 +88,8 @@ class TCHibernate(xenrt.TestCase):
 
     WORKLOADS = ["w_find",
                  "w_forktest2",
-                 "w_memtest",
-                 "w_spamcons"]
+                 #"w_spamcons",
+                 "w_memtest"]
     WINDOWS_WORKLOADS = ["Prime95",
                          "Ping",
                          "SQLIOSim",
@@ -282,7 +282,7 @@ class TCMigrate(xenrt.TestCase):
     
     WORKLOADS = ["w_find",
                  "w_memtest",
-                 "w_spamcons",
+                 #"w_spamcons",
                  "w_forktest2"]
 
     WINDOWS_WORKLOADS = ["Prime95",

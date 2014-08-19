@@ -22,7 +22,6 @@
           <testcase id="xenserver.tc.vmlifecycle.TC6860" prio="3"/>
           <testcase id="xenserver.tc.vmlifecycle.TC6861" prio="3"/>
           <testcase id="xenserver.tc.vmlifecycle.TC6862" prio="3"/>
-          <testcase id="xenserver.tc.vmlifecycle.TC17438" prio="3"/>
         </serial>
         <serial group="VBD">
           <testcase id="xenserver.tc.storage.TC7804" prio="3"/>

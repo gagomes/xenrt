@@ -25,7 +25,7 @@
         <arg>benchmark=UnigineTropics</arg>
       </testcase>
     </serial>
-    <serial group="Win7-x86-K140">
+    <serial group="Win7-x86-K100">
       <testcase tc="TC-20788" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K100</arg>
@@ -39,8 +39,8 @@
         <arg>guest=win7</arg>
         <arg>clones=96</arg>
         <arg>vgpuconfig=K100</arg>
-        <arg>benchmark=UnigineSanctuary</arg>
-<!--       <arg>benchmark=UnigineTropics</arg>  -->
+<!--        <arg>benchmark=UnigineSanctuary</arg> -->
+        <arg>benchmark=UnigineTropics</arg>  
         <arg>time=172800</arg>
       </testcase>
 

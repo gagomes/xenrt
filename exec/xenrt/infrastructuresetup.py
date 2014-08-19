@@ -266,6 +266,9 @@ def buildDHCPFile(config,machines,testpeers,sharedhosts):
     globalcfg['trueleasetime'] = 14400
     globalcfg['staticleasetime'] = 7200
     globalcfg['ipxe'] = xenrt.TEC().lookup("USE_IPXE", False, boolean=True)
+    blockedmacs = xenrt.TEC().lookup("BLOCKED_MACS",None)
+    if blockedmacs:
+        globalcfg['blockedmacs'] = blockedmacs.split(",")
 
     domainname = config.lookup(["NETWORK_CONFIG", "DEFAULT", "DOMAIN"], "xenrtcloud")
     if domainname:
@@ -828,9 +831,79 @@ def buildCentOSNetworkConfigFiles(config):
                 f.write("VLAN=yes\n")
                 f.close()
 
+def makeMachineFiles(config, specifyMachine=None):
+    for machine in config.lookup("HOST_CONFIGS", {}).keys():
+        if specifyMachine and machine != specifyMachine:
+            continue
+        if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+            print "Loading %s from racktables" % machine
+            try:
+                xenrt.readMachineFromRackTables(machine,kvm=True)
+            except UserWarning, e:
+                xenrt.TEC().logverbose(str(e))
+    # Read in all machine config files
+    hcfbase = config.lookup("MACHINE_CONFIGS_INPUT", None)
+    if not hcfbase:
+        sys.stderr.write("Could not find machine config directory.\n")
+        sys.exit(1)
+    files = glob.glob("%s/*.xml" % (hcfbase))
+    files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
+    for filename in files:
+        r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
+        if r:
+            machine = r.group(1)
+            if specifyMachine and machine != specifyMachine:
+                continue
+            try:
+                config.readFromFile(filename, path=["HOST_CONFIGS", machine])
+            except:
+                sys.stderr.write("Warning: Could not read from %s\n" % filename)
+            if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+                print "Loading %s from racktables" % machine
+                try:
+                    xenrt.readMachineFromRackTables(machine,kvm=True)
+                except UserWarning, e:
+                    xenrt.TEC().logverbose(str(e))
+                    
+
+    if config.lookup("XENRT_SITE", None):
+        sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
+        for m in sitemachines:
+            if specifyMachine and m != specifyMachine:
+                continue
+            if m not in config.lookup("HOST_CONFIGS", {}).keys():
+                print "Loading %s from racktables" % m
+                try:
+                    xenrt.readMachineFromRackTables(m, kvm=True)
+                except UserWarning, e:
+                    xenrt.TEC().logverbose(str(e))
+
+    xenrt.closeRackTablesInstance()
+
+    hcfout = config.lookup("MACHINE_CONFIGS")
+    if specifyMachine:
+        with open("%s/%s.xml" % (hcfout, specifyMachine), "w") as f:
+            f.write(machineXML(specifyMachine))
+    else:
+        for machine in config.lookup("HOST_CONFIGS", {}).keys():
+            with open("%s/%s.xml" % (hcfout, machine), "w") as f:
+                f.write(machineXML(machine))
+            files = glob.glob("%s/*.xml" % hcfout)
+        for filename in files:
+            r = re.search(r"%s/(.*)\.xml" % (hcfout), filename)
+            if r:
+                machine = r.group(1)
+                if machine not in config.lookup("HOST_CONFIGS", {}).keys():
+                    os.remove(filename)
+
+def machineXML(machine):
+    if machine:
+        cfg = xenrt.TEC().lookup(["HOST_CONFIGS",machine],{})
+        xml = "<xenrt>\n%s</xenrt>\n" % xenrt.dictToXML(cfg, "  ")
+    return xml
+
 def makeConfigFiles(config, debian):
     # Read in all machine config files
-    hcfbase = config.lookup("MACHINE_CONFIGS", None)
     machines = config.lookup("HOST_CONFIGS").keys()
 
     testpeers = config.lookup("TTCP_PEERS", None)
@@ -904,11 +977,11 @@ def portConfig(config,switch,port,network):
     allvlans.append(config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]))
     allvlans.append("1")
     mainvlans = {"NPRI": config.lookup(["NETWORK_CONFIG","DEFAULT", "VLAN"]),
-                 "NSEC": config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"]),
-                 "IPRI": config.lookup(["NETWORK_CONFIG","VLANS", "IPRI", "ID"]),
-                 "ISEC": config.lookup(["NETWORK_CONFIG","VLANS", "ISEC", "ID"])}
+                 "NSEC": config.lookup(["NETWORK_CONFIG","SECONDARY", "VLAN"], None),
+                 "IPRI": config.lookup(["NETWORK_CONFIG","VLANS", "IPRI", "ID"], None),
+                 "ISEC": config.lookup(["NETWORK_CONFIG","VLANS", "ISEC", "ID"], None)}
     nativevlan = mainvlans[network]
-    extravlanstoadd = [mainvlans[x] for x in mainvlans.keys() if x != network]
+    extravlanstoadd = [mainvlans[x] for x in mainvlans.keys() if x != network and mainvlans[x]]
     vlanstoadd = [config.lookup(["NETWORK_CONFIG","VLANS", x, "ID"]) for x in
         allvlannames if x not in ("NPRI", "NSEC", "IPRI", "ISEC") and x in config.lookup(["NETWORK_CONFIG","VLANS"], {}).keys()
         ]
@@ -926,7 +999,7 @@ def portConfig(config,switch,port,network):
         for v in vlanstoremove:
             print "no vlan %s untagged %s" % (v, port)
         for v in extravlanstoadd:
-            print "vlan %d tagged %s" % (v, port)
+            print "vlan %s tagged %s" % (v, port)
     elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5"):
         print "interface %s" % port
         print "switchport mode general"
@@ -988,8 +1061,33 @@ def portConfig(config,switch,port,network):
         for v in extravlanstoadd:
             print "switchport allowed vlan add tagged %s" % v
         print "exit"
-    
-    
+
+    if swtype == "GBe2c":
+        for v in vlanstoadd:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "add %s" % port
+        if privvlans:
+            for v in range(privvlanstart, privvlanend+1):
+                print "/c/l2/vlan %s" % v
+                print "ena"
+                print "add %s" % port
+        for v in vlanstoremove:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "rem %s" % port
+        for v in extravlanstoadd:
+            print "/c/l2/vlan %s" % v
+            print "ena"
+            print "add %s" % port
+        print "/c/l2/vlan %s" % nativevlan
+        print "ena"
+        print "add %s" % port
+        print "/c/port %s" % port
+        print "tag ena"
+        print "pvid %s" % nativevlan
+        print "tagpvid dis"
+
 
 def portName(config, switch, unit, port):
     swtype = config.lookup(["NETSWITCHES", switch, "TYPE"], None)
@@ -1009,6 +1107,8 @@ def portName(config, switch, unit, port):
         return "0/%s" % (port)
     elif swtype == "FujitsuBX900":
         return "%s/0/%s" % (config.lookup(["NETSWITCHES", switch, "PORTPREFIX"]), port)
+    elif swtype == "GBe2c":
+        return port
 
 def routerInterfaceConfig(config):
     ifs = []
@@ -1146,7 +1246,7 @@ def setupRouter(config):
     g.execguest("echo net.ipv6.conf.all.forwarding=1 >> /etc/sysctl.conf")
     g.execguest("echo 8021q >> /etc/modules")
     g.mainip = config.lookup(["ROUTER", "VM_ADDRESS"])
-    g.noguestagent = True
+    g.enlightenedDrivers = True
     g.reboot(skipsniff= True)
 
 def setupStaticHost():

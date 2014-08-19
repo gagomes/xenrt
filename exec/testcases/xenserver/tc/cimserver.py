@@ -388,10 +388,14 @@ class _WSMANProtocol(_CIMInterface):
     def exportVM(self,vmuuid,transProtocol,ssl):
 
         self.createSharedDirectory()
-        #Export vm
-        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Export vm
+        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
         self.psExecution(psScript,timeout = 40000)
-        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))         
+        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
         
@@ -431,7 +435,12 @@ class _WSMANProtocol(_CIMInterface):
  
     def importVM(self,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam):
 
-        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # import VM
+        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 20000)
         vm = ret.splitlines()[2]
         xenrt.TEC().logverbose("VM %s imported" % (vm))
@@ -448,10 +457,15 @@ class _WSMANProtocol(_CIMInterface):
     def copyVM(self,origVMName,copyVMName):
 
         psScript =  xenrt.lib.xenserver.copyWSMANVM(self.hostPassword,self.hostIPAddr,origVMName,copyVMName)
-        ret = self.psExecution(psScript,timeout = 3600)
-        vm = ret.splitlines()[2]
-        xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
-        return vm
+        try:
+            ret = self.psExecution(psScript,timeout = 3600)
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            vm = ret.splitlines()[2]
+            xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
+            return vm
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
  
     def createCIFSISO(self,targetHost,isoSRName,vdiName,vmuuid,sharename,cifsGuest,host):
       
@@ -507,7 +521,11 @@ class _WSMANProtocol(_CIMInterface):
         except:
             raise xenrt.XRTError("Exception caught while mapping the share directory")
 
-        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 3600)
         return ret
 
@@ -727,6 +745,12 @@ class _WSMANProtocol(_CIMInterface):
         psScript = xenrt.lib.xenserver.convertWSMANVMToTemplate(self.hostPassword,self.hostIPAddr,vmuuid)
         ret = self.psExecution(psScript,timeout = 3600)
 
+    def getTheWsmanScriptsLogs(self, filename):
+        
+        base = xenrt.TEC().getLogdir()
+        self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
+        self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
+    
     def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
@@ -739,14 +763,33 @@ class _WSMANProtocol(_CIMInterface):
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
-        ret = self.psExecution(psScript,timeout = 30000)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
 
     def importVMSnapshotTree(self,transProtocol,ssl):
 
         driveName = "Q:\\"
-        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl)
-        ret = self.psExecution(psScript,timeout = 30000)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Import VMSnapshotTree
+        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl,static_ip,mask,gateway)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
+        
         return ret
+        
 
     def createInternalNetwork(self,networkName):
 

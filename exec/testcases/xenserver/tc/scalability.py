@@ -80,7 +80,8 @@ class _VMScalability(_Scalability):
     DOM0MEM = False #Dom 0 Memory in MB
     NET_BRIDGE=False # Use Linux Bridge for Network Backend
     FLOW_EVT_THRESHOLD = False # set flow-eviction-threshold value (e.g.: 8192)
-    NOPOSTRUN = False #For post run VM cleanup
+    POSTRUN = "cleanup" # nocleanup|cleanup|forcecleanup 
+    
     
     #Pin additional vCPUs for dom0. Will use this if TRYMAX is set to True
     DOM0CPUS = False 
@@ -107,8 +108,9 @@ class _VMScalability(_Scalability):
             self.DOM0MEM=int(value)
         elif param=="max":  #No.of VMs
             self.MAX=int(value)
-        elif param=="noPostrun": #Post Run Cleanup
-            self.NOPOSTRUN=value
+        elif param=="postrun": #Post Run Cleanup
+            self.POSTRUN=value
+        
     
     #Base class for cloning VMs with worker threads
     def prepare(self, arglist=None):
@@ -149,6 +151,9 @@ class _VMScalability(_Scalability):
                                                   disks=disklist,
                                                   vcpus=self.VCPUCOUNT)
         
+        if g0.windows:
+            g0.installDrivers()
+        
         g0.shutdown()
         
         #If memory set
@@ -172,28 +177,44 @@ class _VMScalability(_Scalability):
         return g0
 
     def runTC(self,host,tailor_guest=None):
-    
-        #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus 
+      
         if self.DOM0CPUS:
+            #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus 
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
-                out=host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus))
-                xenrt.TEC().logverbose(out)
-            except Exception, ex:
-                xenrt.TEC().warning("Error while pinning vcpus to Dom0: " + str(ex))
+                host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=3600)
+            except xenrt.XRTFailure, e:
+                raise xenrt.XRTFailure("Failed to xpin Dom0 : %s" % (e))
         
         if self.DOM0MEM:
             #editing the extlinux.conf file to change the dom0 mem values
+            xenrt.TEC().logverbose("Update the DOM0 Memory")
             host.execdom0("sed -i 's/dom0_mem=[0-9]*M/dom0_mem=%sM/g' /boot/extlinux.conf" %str(self.DOM0MEM))
             host.execdom0("sed -i 's/dom0_mem=\([0-9]*\)M,max:[0-9]*M/dom0_mem=\\1M,max:%sM/g' /boot/extlinux.conf" %str(self.DOM0MEM))
 
         if self.NET_BRIDGE:
             #Linux bridge on host side as Network backend
             host.execdom0("xe-switch-network-backend bridge")
-        
+            
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
-            host.reboot()
+            host.reboot(timeout=3600)
+        
+        # Get the Existing Guest 
+        for gname in host.listGuests():
+            if gname != self.vmtemplate and host.getGuest(gname): 
+                self.guests.append(host.getGuest(gname))
+                
+        if self.TRYMAX:
+            for g in self.guests:
+                if g.getState() != "DOWN":
+                    g.shutdown()
+                host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g.uuid)
+                host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g.uuid)
+                vbds = g.listVBDUUIDs("CD")
+                for vbd in vbds:
+                    host.execdom0("xe vbd-destroy uuid=%s" % vbd)
                     
         if self.HATEST:
             try:
@@ -206,34 +227,39 @@ class _VMScalability(_Scalability):
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to create HA enabled Pool.. %s" % (e))
                 
-        # Get the Existing Guests
-        existingGuests = host.listGuests()
-        for gname in existingGuests:
-                self.guests.append(host.getGuest(gname))
         
         if self.MAX == True:
             max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
         else:
             max = self.MAX
-
+ 
         #VM Master Copy
         guest = None
         if max == 0 or len(self.guests) < max:
             if self.getGuest(self.vmtemplate):
                 guest = self.getGuest(self.vmtemplate)
                 if guest.getState() != "DOWN":
-                    guest.shutdown(force=True)                
+                    guest.shutdown(force=True)
+                if self.TRYMAX:
+                    host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % guest.uuid)
+                    host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % guest.uuid)
+                    vbds = guest.listVBDUUIDs("CD")
+                    for vbd in vbds:
+                        host.execdom0("xe vbd-destroy uuid=%s" % vbd)
+        
+                    
             # Create the initial VM
             else:
                 guest = self.installVM(host)
                 guest.preCloneTailor()
                 guest.shutdown()
-            if not self.NOPOSTRUN:
+            if self.POSTRUN != "nocleanup":
                 self.uninstallOnCleanup(guest)
         
         if self.pri_bridge == False:
             self.pri_bridge = host.getPrimaryBridge()
-        if self.FLOW_EVT_THRESHOLD:
+        if self.FLOW_EVT_THRESHOLD and xenrt.TEC().lookup("NETWORK_BACKEND", None) != "bridge":
             host.execdom0("ovs-vsctl set bridge %s other-config:flow-eviction-threshold=%u" % (self.pri_bridge,self.FLOW_EVT_THRESHOLD))
         
         if not self.VIFS and not self.CHECKREACHABLE:
@@ -245,6 +271,7 @@ class _VMScalability(_Scalability):
         while max == 0 or count < max:
             g = guest.cloneVM(name=str(len(self.guests)+1)+"-" + self.DISTRO)
             self.guests.append(g)
+            host.addGuest(g)
             if tailor_guest:
                 tailor_guest(g)
             if max == 0:
@@ -253,7 +280,7 @@ class _VMScalability(_Scalability):
                     if self.HATEST:
                         g.setHAPriority(order=2, protect=True, restart=False)
                         if not g.paramGet("ha-restart-priority") == "best-effort":
-                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))                 
+                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
                 except xenrt.XRTFailure, e:
                     xenrt.TEC().warning("Failed to start VM %u: %s" % (count+1,e))
                     break
@@ -338,19 +365,22 @@ class _VMScalability(_Scalability):
                 self.pool.disableHA(check=False)
             except:
                 pass
-        if not self.NOPOSTRUN:
+        
+        if self.getResult(code=True) == xenrt.RESULT_FAIL or self.getResult(code=True) == xenrt.RESULT_ERROR:
+            self.POSTRUN = "forcecleanup"
+
+        if self.POSTRUN != "nocleanup":
+            xenrt.TEC().logverbose("Starting Host Cleanup")
+            if self.POSTRUN == "forcecleanup":                
+                self.host.reboot(forced=True)
             for g in self.guests:
                 try:
-                    try:
-                        g.shutdown(force=True)
-                    except:
-                        pass
-                    g.poll("DOWN", 120, level=xenrt.RC_ERROR)
                     g.uninstall()
-                except Exception, e:
-                    xenrt.TEC().warning("Exception while uninstalling guest:%s %s" % (g.getName(), str(e)))
-           
-           
+                except xenrt.XRTFailure, e:
+                    raise xenrt.XRTFailure("Error while uninstalling guest %s: %s" % (g.getName(),e))
+                    break
+        else:
+            xenrt.TEC().logverbose("Skipping Host Cleanup")
 
 class _VIFScalability(_Scalability):
     MAX = None
@@ -476,6 +506,14 @@ class TC7336(_VMScalability):
     MAX = True
     VIFS = True
     DISTRO = "winxpsp3"
+    CHECKREACHABLE = True
+    CHECKHEALTH=True
+
+class TC21642(_VMScalability):
+    """Test for ability to run the supported maximum number of concurrent Ubuntu 14.04 VMs on a host"""
+    MAX = True
+    VIFS = True
+    DISTRO = "ubuntu1404"
     CHECKREACHABLE = True
     CHECKHEALTH=True
 
@@ -1621,7 +1659,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
             self.addTiming("TIME_VM_DISKPREPARE_%s:N/A" % (vm.getName()))
 
         # Start the VM
-        vm.lifecycleOperation("vm-start", specifyOn=True, timeout=600)
+        vm.lifecycleOperation("vm-start", specifyOn=False, timeout=6000)
         
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot

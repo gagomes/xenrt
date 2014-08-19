@@ -1,21 +1,24 @@
 <xenrt>
 
+<!-- Triggering TRIM on various type of SRs -->
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
 
   <prepare>
     <pool>
-      <storage type="lvmoiscsi" name="iscsisr"/>
-      <storage type="fc" name="fcsr"/>
-      <host id="0"/>
+      <storage type="lvmoiscsi" name="iscsiSR"/>
+      <storage type="fc" name="fcSR"/>
+      <host id="0" installsr="lvm" />
     </pool>
   </prepare>
 
   <testsequence>
-    <serial group="EnableTRIM">
+    <serial group="PositiveTRIM">
       <testcase id="xenserver.tc.lunspace.TC21549"/>
       <testcase id="xenserver.tc.lunspace.TC21550"/>
+      <testcase id="xenserver.tc.lunspace.TC21554"/>
     </serial>
   </testsequence>
 

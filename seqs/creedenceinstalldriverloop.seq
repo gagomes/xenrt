@@ -1,0 +1,41 @@
+<xenrt>
+
+  <default name="GUESTMEMORY" value="1024" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTDISTRO" value="win7-x64" />
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=16G/disk1&gt;=300G</resources>
+  </scheduler>
+
+  <prepare>
+    <host>
+      <vm name="0"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="1"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="2"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="3"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="4"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="5"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="6"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+      <vm name="7"><distro>${GUESTDISTRO}</distro><memory>${GUESTMEMORY}</memory><vcpus>${GUESTVCPUS}</vcpus><network device="0" /></vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="8" group="TCDriverInstallLoop">
+      <testcase name="0" sku="0" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=0</arg></testcase>
+      <testcase name="1" sku="1" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=1</arg></testcase>
+      <testcase name="2" sku="2" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=2</arg></testcase>
+      <testcase name="3" sku="3" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=3</arg></testcase>
+      <testcase name="4" sku="4" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=4</arg></testcase>
+      <testcase name="5" sku="5" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=5</arg></testcase>
+      <testcase name="6" sku="6" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=6</arg></testcase>
+      <testcase name="7" sku="7" id="testcases.xenserver.tc.guest.TCDriverInstallLoop"><arg>guest=7</arg></testcase>
+    </parallel>
+  </testsequence>
+
+</xenrt>

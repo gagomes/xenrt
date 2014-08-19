@@ -25,18 +25,26 @@ def getSCSIID(host, iscsi_params):
             'device-config:chappassword=%(password)s' % iscsi_params]
     
     cli = host.getCLIInstance()
-    try:
-        uuid = cli.execute('sr-create',' '.join(args), strip=True)
-        xenrt.TEC().warning("SR was created without a SCSI ID")
-        cli.execute("sr-forget", "uuid=%s" % (uuid))
-    except xenrt.XRTFailure, e:
-        # If this was a CLI timeout then raise that
-        if "timed out" in e.reason:
-            raise e.__class__, e, sys.exc_info()[2]
-        else:
-            res = e.data
+    out=[]
+    for i in range(3):
+        try:
+            uuid = cli.execute('sr-create',' '.join(args), strip=True)
+            xenrt.TEC().warning("SR was created without a SCSI ID")
+            cli.execute("sr-forget", "uuid=%s" % (uuid))
+        except xenrt.XRTFailure, e:
+            # If this was a CLI timeout then raise that
+            if "timed out" in e.reason:
+                raise e.__class__, e, sys.exc_info()[2]
+            else:
+                res = e.data
 
-    out = res.split('<?')
+        out = res.split('<?')
+        if len(out) != 2:
+            xenrt.sleep(30)
+            xenrt.TEC().logverbose("sr-create didn't create xml output...Retrying...")
+        else:
+            break;
+            
     if len(out) != 2:
         raise xenrt.XRTFailure("sr-create didn't create xml output (need this for SCSIid)")
         
@@ -1531,6 +1539,51 @@ class DRUtils:
         host.reboot()
         
         return    
+        
+    def ejectCDs(self, site_name):
+        assert self.sites.has_key(site_name)
+        site = self.sites[site_name]
+        site.has_key('pool_master')
+        host = site['pool_master']
+
+        if site.has_key('vms') or site.has_key('stationary_vms'):
+            pass
+        else:
+            return
+        
+        vms = site['vms'].values()
+        for g in vms:
+            xenrt.TEC().progress("Ejecting CD from VM %s" % (g['guest'].getName()))
+            g['guest'].changeCD(None)
+            
+    def upgradeVMs(self, site_name):
+        
+        # upgrade guest objects
+        assert self.sites.has_key(site_name)
+        site = self.sites[site_name]
+        site.has_key('pool_master')
+        host = site['pool_master']
+
+        if site.has_key('vms') or site.has_key('stationary_vms'):
+            pass
+        else:
+            return
+        
+        vms = site['vms'].values()
+        
+        for g in vms:
+            xenrt.TEC().progress("Upgrading VM %s" % (g['guest'].getName()))
+            if g['guest'].windows:
+                g['guest'].installDrivers()
+            else:
+                # Workaround for CA-78632
+                xenrt.TEC().logverbose("CA-78632 class %s template: %s" % (host.__class__, g['guest'].template))
+                if re.search("Lenny", g['guest'].template) and isinstance(host, xenrt.lib.xenserver.TampaHost):
+                    xenrt.TEC().logverbose("Skipping tools upgrade on %s" % (g['guest'].getName()))
+                else:
+                    g['guest'].installTools()
+        for g in vms:
+            g['guest'].checkHealth()
 	
 		
 class _DRBase(xenrt.TestCase):
@@ -1601,11 +1654,13 @@ class _DRBase(xenrt.TestCase):
 
         if self.UPGRADE_POOL:
             self.dr_utils.shutdownVMs('site_A', handle_stationary_vms=True)
+            self.dr_utils.ejectCDs('site_A')
             self.primary_pool = upgradePool(self.primary_pool)
             self.primary_master = self.primary_pool.master
             self.dr_utils.updatePoolMaster('site_A', self.primary_pool)
             self.dr_utils.plugAllSRs('site_A')
             self.dr_utils.startVMs('site_A', handle_stationary_vms=True)
+            self.dr_utils.upgradeVMs('site_A')
             if self.SUSPEND_VMS:
                 self.dr_utils.setVMSuspendSR('site_A')
                 self.dr_utils.suspendVMs('site_A')
@@ -1642,11 +1697,13 @@ class _DRBase(xenrt.TestCase):
         
         if self.UPGRADE_POOL:
             self.dr_utils.shutdownVMs('site_B', handle_stationary_vms=True)
+            self.dr_utils.ejectCDs('site_B')
             self.secondary_pool = upgradePool(self.secondary_pool)
             self.secondary_master = self.secondary_pool.master
             self.dr_utils.updatePoolMaster('site_B', self.secondary_pool)
             self.dr_utils.plugAllSRs('site_B')
             self.dr_utils.startVMs('site_B', handle_stationary_vms=True)
+            self.dr_utils.upgradeVMs('site_B')
 
         self.dr_utils.createMetadataSRs(site_name='site_B', no_of_srs=site_params['no_of_metadata_srs'])
 

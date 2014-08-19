@@ -26,6 +26,18 @@ __all__ = ["Guest",
 def getTemplate(host, distro, hvm=None, arch=None):
     return host.getTemplate(distro, hvm=hvm, arch=arch)
 
+
+def isBSODBlue(img):
+    pix = img.load()
+    blue = 0
+    for x in range (img.size[0]):
+        for y in range(img.size[1]):
+            if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
+                            blue += 1
+    pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
+    return pc > 50
+
+
 class Guest(xenrt.GenericGuest):
     """Encapsulates a single guest VM."""
 
@@ -55,7 +67,6 @@ class Guest(xenrt.GenericGuest):
             self.vifstem = self.VIFSTEMPV
         if password:
             self.password = password
-        self.noguestagent = False
         if host and template:
             # Check the template exists
             tuuid = host.parseListForUUID("template-list",
@@ -96,6 +107,10 @@ class Guest(xenrt.GenericGuest):
 
     DEFAULT = -10
 
+    def builtInGuestAgent(self):
+        distro = getattr(self, 'distro', None)
+        return distro and distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ",")
+        
     def getCLIInstance(self):
         return self.getHost().getCLIInstance()
 
@@ -185,9 +200,6 @@ class Guest(xenrt.GenericGuest):
         if not self.distro and string.lower(self.getName()[0]) == "w":
             self.windows = True
 
-        if self.distro and not self.distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),","):
-            self.noguestagent = True
-
         if not self.windows:
             if self.password is None or self.password.strip() == "":
                 self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
@@ -224,6 +236,13 @@ class Guest(xenrt.GenericGuest):
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
 
+    def wouldBootHVM(self):
+        return (self.paramGet("HVM-boot-policy") == "BIOS order")
+
+    def isHVMLinux(self, distro=None):
+        if not distro:
+            distro=self.distro
+        return distro in string.split(self.getHost().lookup("HVM_LINUX", ""), ",")
     
     def install(self,
                 host,
@@ -248,6 +267,12 @@ class Guest(xenrt.GenericGuest):
                 rawHBAVDIs=None):
         self.setHost(host)
         
+        #If guest is HVM Linux PXE has to be true
+        if self.isHVMLinux(distro):
+            pxe = True
+            xenrt.TEC().logverbose("distro is %s, hence setting pxe to %s"%(distro,pxe))
+
+
         # Workaround NOV-1 - SLES 11SP2 installer needs at least 2GB RAM
         if distro and distro=="sles112" and ((self.memory and self.memory<4096) or not self.memory):
             self.memory=4096
@@ -268,13 +293,6 @@ class Guest(xenrt.GenericGuest):
         # etc.
         if distro and (distro in ["etch", "sarge"] or "debian" in distro):
             isoname = None
-
-        if distro and distro.startswith("solaris"):
-            self.enlightenedDrivers = False
-
-        if distro and not distro in \
-               string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""), ","):
-            self.noguestagent = True
 
         # Hack to use correct kickstart for rhel6
         if distro and kickstart == "standard":
@@ -315,7 +333,14 @@ class Guest(xenrt.GenericGuest):
         self.isoname = isoname
         if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
-            rootdisk=32000
+            
+            if isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest) and self.memory:
+                xenrt.TEC().logverbose("rootdisk = 20000 + %s"%(self.memory))
+                rootdisk = 20000 + self.memory
+            else:
+                # this hack isn't required on Creedence as we've got the templates sorted
+                rootdisk=32000
+
         if distro:
             self.distro = distro
         host.addGuest(self)
@@ -334,7 +359,6 @@ class Guest(xenrt.GenericGuest):
 
         if pxe:
             self.vifstem = self.VIFSTEMHVM
-            self.enlightenedDrivers = False
 
         # Prepare VIFs
         if type(vifs) == type(self.DEFAULT):
@@ -445,10 +469,6 @@ class Guest(xenrt.GenericGuest):
                     self.createDisk(sizebytes=int(size)*xenrt.MEGA)
 
         # Windows needs to install from a CD
-        if not self.windows:
-            if not distro in string.split(self.getHost().lookup("BUILTIN_XS_GUEST_AGENT", ""),
-                                      ","):
-                self.noguestagent = True
         if self.windows:
             if xenrt.TEC().lookup("WORKAROUND_CA28908", False, boolean=True) \
                    and ("win7" in distro or "ws08r2" in distro):
@@ -537,12 +557,11 @@ class Guest(xenrt.GenericGuest):
             if ip:
                 xenrt.TEC().logverbose("Guest address is %s" % (ip))
 
-            if self.noguestagent and not notools and self.getState() == "UP":
+            if not notools and self.getState() == "UP":
                 self.installTools()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
-        self.enlightenedDrivers = False
         self.changeCD(isoname)
 
         # Start the VM to install from CD
@@ -697,7 +716,7 @@ class Guest(xenrt.GenericGuest):
 
         # Look for an IP address on the first interface (if we have any)
         if len(vifs) > 0:
-            if self.enlightenedDrivers and not self.noguestagent:
+            if self.enlightenedDrivers or self.builtInGuestAgent():
                 xenrt.sleep(30)
                 xenrt.TEC().progress("Looking for VM IP address using CLI")
                 tries = 0
@@ -754,7 +773,10 @@ class Guest(xenrt.GenericGuest):
                         if self.reservedIP:
                             self.mainip = self.reservedIP
                         else:
-                            if not self.windows and self.paramGet("HVM-boot-policy") == "BIOS order" and not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
+                            if not self.windows and \
+                                   self.paramGet("HVM-boot-policy") == "BIOS order" and \
+                                   'n' in self.paramGet("HVM-boot-params", "order") and \
+                                   not xenrt.TEC().lookup("DHCP_IGNORE_UIDS", False, boolean=True):
                                 # HVM Linux detected. ARP watch cannot be used as multiple IP addresses are present."
                                 xenrt.TEC().logverbose("Waiting 20 mins, then checking DHCP leases to get IP address.")
                                 xenrt.sleep(20 * 60)
@@ -785,7 +807,7 @@ class Guest(xenrt.GenericGuest):
                     
                     # sometimes SSH can be a little temperamental immediately after boot
                     # a small sleep should help this.
-                    xenrt.sleep(20)
+                    xenrt.sleep(10)
                     
                 except Exception, e:
                     # Check the VM is still running
@@ -829,7 +851,10 @@ class Guest(xenrt.GenericGuest):
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/poweroff >/tmp/poweroff.out 2>/tmp/poweroff.err </dev/null &")
         else:
-            self.execguest("/sbin/poweroff")
+            try:
+                self.execguest("/sbin/poweroff")
+            except:
+                pass
 
     def unenlightenedReboot(self):
         if self.windows:
@@ -837,14 +862,17 @@ class Guest(xenrt.GenericGuest):
         elif self.distro and re.search("solaris", self.distro):
             self.execguest("nohup /usr/sbin/reboot >/tmp/reboot.out 2>/tmp/reboot.err </dev/null &")
         else:
-            self.execguest("/sbin/reboot")
+            try:
+                self.execguest("/sbin/reboot")
+            except:
+                pass
 
     def reboot(self, force=False, skipsniff=None):
         if not force:
             self.waitForShutdownReady()
         # If this is a Linux guest without a guest agent we'll not sniff
         # if we already know the IP
-        if skipsniff == None and self.noguestagent:
+        if skipsniff == None and self.builtInGuestAgent():
             skipsniff = True
         self.start(reboot=True, forcedReboot=force, skipsniff=skipsniff)
 
@@ -1084,6 +1112,34 @@ at > c:\\xenrtatlog.txt
                        "SZ",
                        "c:\\runoncepvdrivers.bat")
     
+    def convertHVMtoPV(self):
+        """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
+
+        # Handle guests that don't have a PV-compatible kernel installed by default
+        if self.distro.startswith("sles12"):
+            oldstate = self.getState()
+            self.setState("UP")
+
+            # Sorry, this is necessarily going to be ugly!
+            # When we update the grub config, it sees that we're running in HVM mode and skips xenkernels.
+            # So we need to hack grub to temporarily think that we're not in HVM mode.
+            self.execguest("sed -i 's/CONFIG_XEN/xxx/' /etc/grub.d/10_linux")
+
+            self.execguest("zypper -n install kernel-xen")
+
+            # Now revert the grub hack
+            self.execguest("sed -i 's/xxx/CONFIG_XEN/' /etc/grub.d/10_linux")
+
+            self.setState(oldstate)
+
+        self.paramSet("HVM-boot-policy", "")
+        self.paramRemove("HVM-boot-params", "order")
+        self.paramSet("PV-bootloader", "pygrub")
+
+        # If VM is running, reboot it
+        if self.getState() in ['UP', 'PAUSED']:
+            self.reboot()
+
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
         
@@ -1358,11 +1414,10 @@ exit /B 1
                         xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
                         xenrt.sleep(extrawait)
 
-                        if xenrt.TEC().lookup("WORKAROUND_CA136433", True, boolean=True):
-                            for i in range(24):
-                                if self.pvDriversUpToDate():
-                                    break
-                                xenrt.sleep(10)
+                        for i in range(48):
+                            if self.pvDriversUpToDate():
+                                break
+                            xenrt.sleep(10)
                     return xenrt.RC_OK
                 else:
                     xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)
@@ -2762,6 +2817,13 @@ exit /B 1
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):
+        
+        # yuk. kill me now.
+        if live == True:
+            live = "true"
+        elif live == False:
+            live = "false"
+        
         cli = self.getCLIInstance()
         if live == "true" and not self.windows:
             self.startLiveMigrateLogger()
@@ -3131,14 +3193,7 @@ exit /B 1
                                    (self.getName(), self.getHost().getName()))
 
     def checkBSOD(self,img):
-        pix = img.load()
-        blue = 0
-        for x in range (img.size[0]):
-                for y in range(img.size[1]):
-                        if pix[x,y] == (0,0,128) or pix[x,y] == (32,104,180):
-                                blue += 1
-        pc = int((float(blue) / float(img.size[0] * img.size[1])) * 100)
-        if pc > 50:
+        if isBSODBlue(img):
                 # This is almost certainly a BSOD (> 50% of the screen is the BSOD blue...)
                 xenrt.TEC().tc._bluescreenGuests.append(self)
                 img.save("%s/bsod.jpg" % (xenrt.TEC().getLogdir()))
@@ -3585,7 +3640,7 @@ exit /B 1
         xenrt.TEC().logverbose("Guest health check for %s couldn't find anything wrong" % (self.getName()))
 
 
-    def installTools(self, source=None, reboot=True, updateKernel=True):
+    def installTools(self, source=None, reboot=False, updateKernel=True):
         """Install tools package into a guest"""
 
         if self.windows:
@@ -3670,13 +3725,20 @@ exit /B 1
             raise xenrt.XRTError("Given up trying to find the ISO.")
 
         if installsh:
-            toolscdname = self.insertToolsCD()
-            xenrt.sleep(60)
-            device = self.getHost().minimalList("vbd-list", 
-                                                "device", 
-                                                "type=CD vdi-name-label=%s vm-uuid=%s" %
-                                                (toolscdname, self.getUUID()))[0]
-            xenrt.sleep(60)
+            if self.isHVMLinux():
+                device="sr0"
+                removeDevice=None
+                toolscdname = self.insertToolsCD()
+                xenrt.sleep(60)
+            else:
+                toolscdname = self.insertToolsCD()
+                xenrt.sleep(10)
+                device = self.getHost().minimalList("vbd-list", 
+                                                    "device", 
+                                                    "type=CD vdi-name-label=%s vm-uuid=%s" %
+                                                    (toolscdname, self.getUUID()))[0]
+                removeDevice=device
+                xenrt.sleep(10)
             for dev in [device, device, "cdrom"]:
                 try:
                     self.execguest("mount /dev/%s /mnt" % (dev))
@@ -3692,17 +3754,19 @@ exit /B 1
             if not updateKernel:
                 args += " -k"
             self.execguest("/mnt/Linux/install.sh %s" % (args))
+            self.enlightenedDrivers=True
             self.execguest("umount /mnt")
             xenrt.sleep(10)
             try:
-                self.removeCD(device=device)
+                self.removeCD(device=removeDevice)
             except xenrt.XRTFailure as e:
                 # In case of Linux on HVM, vbd-destroy on CD may fail.
                 if "vbd-destroy" in e.reason:
                     pass
                 else:
                     raise e
-            if reboot:
+            if reboot or ((self.distro.startswith("centos4") or self.distro.startswith("rhel4")) and updateKernel):
+                # RHEL/CentOS 4.x update the kernel, so need to be rebooted
                 self.reboot()
         else:
             # Copy the package to the guest.
@@ -3725,8 +3789,6 @@ exit /B 1
             else:
                 self.execguest("dpkg -i %s" % (rempkg))
     
-        self.noguestagent = False
-
         # RHEL/CentOS 4.7/5.2 have a other-config key set in the
         # template to work around the >64GB bug (EXT-30). Once we have
         # upgraded to a Citrix kernel we can remove this restriction
@@ -3950,7 +4012,10 @@ exit /B 1
         return recs
 
     def vendorInstallDevicePrefix(self):
-        return "xvd"
+        if self.distro.startswith("sles12") and self.wouldBootHVM():
+            return "hd"
+        else:
+            return "xvd"
 
     def installXDVDABrokerLessConn(self):
 
@@ -3999,6 +4064,49 @@ exit /B 1
         self.xmlrpcExec("regEdit.exe /s c:\\XD.reg")
 
         self.reboot()
+
+    def xenDesktopTailor(self):
+        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
+
+        try:
+            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
+        except:
+            pass
+
+
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
 
 #############################################################################
 
@@ -4882,7 +4990,7 @@ class TampaGuest(BostonGuest):
                     raise xenrt.XRTError('Windows guest agent HostTime=UTC functional only availalbe in Clearwater or later')
                 hostTimeString = 'HOSTTIME=utc'
 
-            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ", None)
+            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
@@ -5322,8 +5430,10 @@ class TampaGuest(BostonGuest):
         ***** Method deprecated *****
         Setting hostname via XenStore was disabled in Tampa
         Use setHostname method for setting the hostname
+        In Creedence a similar method has been added as a new implementation
+        has been added
         """
-        xenrt.TEC().logverbose("setHostnameViaXenstore no longer supported from Tampa onwards")
+        xenrt.TEC().logverbose("setHostnameViaXenstore not supported in this release")
 
     def waitForShutdownReady(self):
         # Best effort function to wait for feature-shutdown xenstore key to be set if VM is windows.
@@ -5436,7 +5546,7 @@ class ClearwaterGuest(TampaGuest):
 
 ##############################################################################
 
-class SarasotaGuest(ClearwaterGuest):
+class CreedenceGuest(ClearwaterGuest):
     def crash(self):
         xenrt.TEC().logverbose("Sleeping for 180 seconds to let the VM run for atleast 2 minutes before crashing")
         time.sleep(180)
@@ -5467,6 +5577,30 @@ default:
             self.execguest("make")
             try: self.execguest("insmod panic.ko", timeout=1)
             except: pass
+
+    def setNameViaXenstore(self, name, reboot=True):
+        """
+        This is a second version of the mechanism to set the guest name
+        via. xenstore. It was added in Creedence and the original for deprecated
+        in Tampa
+        NETBIOS name should be up 15 chars, the rest will be trucated
+        """
+        domid = self.getDomid()
+        host = self.getHost()
+        featurePresent = host.xenstoreRead("/local/domain/%u/control/feature-setcomputername" % domid).strip()
+        if not featurePresent == "1":
+            raise xenrt.XRTFailure("Cannot set the host name via. xenstore as the feature is not present")
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/name" % domid, name)
+        host.xenstoreWrite("/local/domain/%u/control/setcomputername/action" % domid, "set")
+
+        # A reboot is required to make these changes appear in the guest
+        if reboot:
+            self.reboot()
+
+
+class SarasotaGuest(CreedenceGuest):
+    pass
+
 
 class StorageMotionObserver(xenrt.EventObserver):
 

@@ -381,6 +381,9 @@ class TCVGPUSetup(_VGPUTest):
         if not xenrt.TEC().lookup("OPTION_ENABLE_VGPU_VNC", False, boolean=True):
             self.guest.setVGPUVNCActive(False)
         self.host.installNVIDIAHostDrivers()
+        #setting up dom0 mem 
+        self.host.execdom0("/opt/xensource/libexec/xen-cmdline --set-xen dom0_mem=4096M,max:6144M") 
+        self.host.reboot()
         cfg = [x for x in self._CONFIGURATION.keys() if self._CONFIGURATION[x]==self.args['vgpuconfig']][0]
         installer = VGPUInstaller(self.host, cfg)
         installer.createOnGuest(self.guest)
@@ -864,24 +867,30 @@ class _VGPUOwnedVMsTest(_VGPUTest):
 
             self._requiredEnvironments = self.randomGuestFromSelection(capacity)
 
+        step("Create Master guests")
+        guest = self._createGuests(self.host, self._requiredEnvironments[0])
+        #guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
+        step("Set VNC enabled to %s" % str(self.__vncEnabled))
+        guest.setVGPUVNCActive(self.__vncEnabled)
+        #guest.snapshot(self.SNAPSHOT_PREVGPU)
+        step("Configure vGPU")
+        self.configureVGPU(guest)
+        xenrt.sleep(10) # Give some time to settle vGPU down.
+        if (guest.getState() != "UP"):
+            guest.start()
+        #guest.snapshot(self.SNAPSHOT_PRE_GUEST_DRIVERS)   
+        step("Install guest drivers for %s" % str(guest))
+        self.installGuestDrivers(guest)
+        #guest.snapshot(self.SNAPSHOT_POST_GUEST_DRIVERS) 
+        self._guestsAndTypes.append((guest, self._requiredEnvironments[0]))
+
         step("Create %d required guests" % len(self._requiredEnvironments))
-        for requiredEnv in self._requiredEnvironments:
-            step("Create a %s guest" % self.getOSType(requiredEnv))
+        for i, requiredEnv in enumerate(self._requiredEnvironments):
+            if i == 0 :
+                continue
             guest = self._createGuests(self.host, requiredEnv)
-            guest.snapshot(self.SNAPSHOT_PRE_VNC_DISABLED)
-            step("Set VNC enabled to %s" % str(self.__vncEnabled))
-            guest.setVGPUVNCActive(self.__vncEnabled)
-            guest.snapshot(self.SNAPSHOT_PREVGPU)
-            step("Configure vGPU")
-            self.configureVGPU(guest)
-            xenrt.sleep(10) # Give some time to settle vGPU down.
-            if (guest.getState() != "UP"):
-                guest.start()
-            guest.snapshot(self.SNAPSHOT_PRE_GUEST_DRIVERS)   
-            step("Install guest drivers for %s" % str(guest))
-            self.installGuestDrivers(guest)
-            guest.snapshot(self.SNAPSHOT_POST_GUEST_DRIVERS) 
             self._guestsAndTypes.append((guest, requiredEnv))
+
 
         log("Created guests: %s" % str(self._guestsAndTypes))
 
@@ -1042,7 +1051,7 @@ class _VGPUStressTest(_VGPUBenchmarkTest):
         super(_VGPUStressTest, self).run(arglist)
 
 class _VGPUScalabilityTest(_VGPUBenchmarkTest):
-    __ONE_DAY_SECS = 60 * 60 * 24
+    __ONE_DAY_SECS = 60 * 60
     __PAUSE_BETWEEN_REBOOTS_SECS = 60
     CAPACITY_THROTTLE = 0
       
@@ -2124,7 +2133,7 @@ class TCRevertvGPUSnapshot(FunctionalBase):
 
 class TCvGPUBalloon(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86]
+    REQUIRED_DISTROS = [VGPUOS.Win7x64]
     VGPU_CONFIG = [VGPUConfig.K240]
 
     def prepare(self,arglist):
@@ -2334,7 +2343,7 @@ class TCChangeK1vGPUType(TCChangeK2vGPUType):
 
 class TCBasicVerifOfAllK2config(FunctionalBase):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win81x64,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
+    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.Win81x64,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
     VGPU_CONFIG = [VGPUConfig.K200,VGPUConfig.K220,VGPUConfig.K240,VGPUConfig.K260,VGPUConfig.K2PassThrough]
 
     def prepare(self,arglist):
@@ -2408,7 +2417,7 @@ class TCBasicVerifOfAllK2config(FunctionalBase):
 
 class TCBasicVerifOfAllK1config(TCBasicVerifOfAllK2config):
 
-    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win81x64,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
+    REQUIRED_DISTROS = [VGPUOS.Win7x86,VGPUOS.Win7x64,VGPUOS.WS2008R2,VGPUOS.Win8x86,VGPUOS.Win8x64,VGPUOS.Win81x86,VGPUOS.Win81x64,VGPUOS.WS12x64,VGPUOS.WS12R2x64]
     VGPU_CONFIG = [VGPUConfig.K100, VGPUConfig.K120,VGPUConfig.K140,VGPUConfig.K1PassThrough]
 
 class TCAssignK2vGPUToVMhasGotvGPU(TCBasicVerifOfAllK2config):

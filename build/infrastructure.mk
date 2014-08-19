@@ -187,6 +187,17 @@ ifeq ($(DOWINPE),yes)
 	rm -rf $(TMP)
 endif
 
+.PHONY: machines
+machines:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machines
+endif
+
+.PHONY: machine-%
+machine-%:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machine $(patsubst machine-%,%,$@)
+endif
 
 .PHONY: files
 files:
@@ -381,6 +392,7 @@ tftp:
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
+	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 
 .PHONY: tftp-uninstall

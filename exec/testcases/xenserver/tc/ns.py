@@ -960,7 +960,7 @@ class NSBVT(xenrt.TestCase):
         vm_name = host.genParamGet('vm', vm_uuid, 'name-label')
         guest = host.guestFactory()(vm_name, None)
         guest.distro = "debian60"
-        
+        guest.enlightenedDrivers = False
         guest.windows = False
         guest.tailored = True
         guest.existing(host)
@@ -1054,6 +1054,7 @@ class NSBVT(xenrt.TestCase):
         self.configureAtsController()
         if start_vm:
             ats = self.cfg["ats"]
+            ats.enlightenedDrivers = False
             ats.start()
             time.sleep(180)
             ats.waitForSSH(300, level=xenrt.RC_ERROR, desc="Waiting for ATS vm to boot")
@@ -1341,7 +1342,11 @@ class TC14935(xenrt.TestCase):
         # cannot easily check this is enforced but the main threat here
         # is losing the patch which makes the timeslice tunable.
         self.host.reboot()
-        self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+        if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            self.host.execdom0("xl debug-keys r")
+        else:
+            self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+            
         dmesg = self.host.execdom0("xe host-dmesg uuid=%s" % (self.host.getMyHostUUID()))
         r = re.search(r"\stslice\s+=\s+(\d+)ms", dmesg)
         if not r:

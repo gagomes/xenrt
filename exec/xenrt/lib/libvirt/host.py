@@ -107,7 +107,7 @@ class Host(xenrt.GenericHost):
             guest.existing(self)
             xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
         for sruuid in self.getSRs():
-            isESX = (self.productVersion == "ESXi" or self.productVersion == "ESX")
+            isESX = ("esx" in self.productVersion.lower() or "esx" in self.productType.lower())
             srname = self.getSRName(sruuid)
             if isESX and srname == "datastore1":
                 srclass = xenrt.lib.esx.EXTStorageRepository
@@ -115,6 +115,8 @@ class Host(xenrt.GenericHost):
                 srclass = xenrt.lib.esx.ISOStorageRepository
             elif isESX and srname == "XenRT static ISOs":
                 srclass = xenrt.lib.esx.ISOStorageRepository
+            elif isESX and srname.startswith("local"):
+                srclass = xenrt.lib.esx.EXTStorageRepository
             else:
                 xenrt.TEC().logverbose("Warning: No way of identifying type of SR %s" % (srname))
                 srclass = xenrt.lib.libvirt.sr.StorageRepository
@@ -270,6 +272,8 @@ class Host(xenrt.GenericHost):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS08")
             elif distro.startswith("win7"):
                 template = self.chooseTemplate("TEMPLATE_NAME_WIN7")
+            elif distro.startswith("win8"):
+                template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
             elif distro.startswith("debian"):
                 v = re.search("debian(\d*)", distro).group(1)
                 if v != "": v = "_" + v

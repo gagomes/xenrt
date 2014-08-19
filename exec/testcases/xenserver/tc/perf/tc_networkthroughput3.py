@@ -174,6 +174,11 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 endpoints[endpoint].append(g)
 
         self.log(None, "self.nr_vm_pairs=%s, endpoint=%s, endpoints=%s, self.endpoints_of(endpoint)=%s" % (self.nr_vm_pairs, endpoint, endpoints, self.endpoints_of(endpoint)))
+
+        if endpoint.distro.startswith("rhel") or endpoint.distro.startswith("centos") or endpoint.distro.startswith("oel"):
+            # When we clone this guest, we don't want it to remember its MAC address
+            endpoint.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
         # clone as needed
         if self.nr_vm_pairs > len(self.endpoints_of(endpoint)):
             self.shutdown_endpoint(endpoint) #required state for cloning
@@ -192,9 +197,19 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         all_endpoints = [endpoint] + (dict(self.endpoint1s.items() + self.endpoint0s.items())[endpoint])
         return all_endpoints[:n]
 
+    def install_git(self, endpoint):
+        if endpoint.execcmd("git --version", retval="code"):
+            if endpoint.distro.startswith('centos') or endpoint.distro.startswith('rhel'):
+                endpoint.execcmd("yum install git")
+            elif endpoint.distro.startswith('sles'):
+                endpoint.execcmd("zypper -n install git-core")
+            else:
+                endpoint.execcmd("apt-get install --force-yes -y git")
+
     def install_synexec(self, endpoint):
+        self.install_git(endpoint)
         outfile = "/tmp/synexec_install.out"
-        script = "cd /root && if [ ! -d synexec ]; then apt-get install --force-yes -y git ctags && git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
+        script = "cd /root && if [ ! -d synexec ]; then git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
         endpoint.addExtraLogFile(outfile)
         return endpoint.execcmd(script)
 
@@ -311,6 +326,9 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
             self.log(None, "g=%s, self.endpoint0=%s, self.endpoint1=%s, self.endpoints_of(self.endpoint0)=%s, self.endpoints_of(self.endpoint1)=%s" % (g, self.endpoint0, self.endpoint1, self.endpoints_of(self.endpoint0), self.endpoints_of(self.endpoint1)))
             if g not in self.endpoints_of(self.endpoint0) and g not in self.endpoints_of(self.endpoint1):
                 self.shutdown_endpoint(g)
+
+        self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
+        self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

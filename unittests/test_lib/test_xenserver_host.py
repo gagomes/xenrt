@@ -18,8 +18,9 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         host.getNoOfSockets = Mock(return_value=2)
         return host
 
+    @patch("xenrt.TEC")
     @patch("random.choice")
-    def testTampaDoesNotGetRandomCores(self, rand):
+    def testTampaDoesNotGetRandomCores(self, rand, _tec):
         """Tampa hosts don't get random called when setting sockets"""
         host = xenrt.lib.xenserver.host.TampaHost(None, None)
         host.setRandomCoresPerSocket(self.__guest, 23)
@@ -63,7 +64,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertFalse(self.__sockets.called)
 
-    def testClearwaterPVGuestDoesNotGetSocketsSet(self):
+    @patch('xenrt.TEC')
+    def testClearwaterPVGuestDoesNotGetSocketsSet(self, _tec):
         """For a CLR host given a PV guest expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
         self.__win.return_value = False
@@ -74,7 +76,8 @@ class TestCoresPerSocket(XenRTUnitTestCase):
 
 class TestCheckRpmInstalled(XenRTUnitTestCase):
 
-    def setUp(self):
+    @patch('xenrt.TEC')
+    def setUp(self, _tec):
         self.__cut = xenrt.lib.xenserver.host.ClearwaterHost(None, None)
         self.__exec = Mock(return_value="I am installed, honest")
         self.__cut.execdom0 = self.__exec
@@ -112,3 +115,79 @@ class TestCheckRpmInstalled(XenRTUnitTestCase):
         squashed and false returned"""
         self.__exec.side_effect = Exception
         self.assertFalse(self.__cut.checkRPMInstalled("Polymorph"))
+
+
+class TestSarasotaHost(XenRTUnitTestCase):
+    @patch('xenrt.TEC')
+    def testGetTestHotfix(self, tec):
+        tec_instance = tec.return_value = Mock()
+
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        host.getTestHotfix(1)
+
+        tec_instance.getFile.assert_called_once_with(
+            'xe-phase-1/test-hotfix-1-*.unsigned')
+
+    @patch('xenrt.TEC')
+    def testvSwitchCoverageLog(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host.vswitchAppCtl = Mock()
+
+        host.vSwitchCoverageLog()
+
+        host.vswitchAppCtl.assert_called_once_with('coverage/show')
+
+    @patch('xenrt.TEC')
+    def testMockLocation(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        self.assertEquals(
+            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
+            host.V6MOCKD_LOCATION)
+
+    @patch('xenrt.TEC')
+    def testguestFactory(self, tec):
+        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+
+        guestFactory = host.guestFactory()
+
+        self.assertEquals('SarasotaGuest', guestFactory.__name__)
+
+
+class TestCreedenceHost(XenRTUnitTestCase):
+    @patch('xenrt.TEC')
+    def testGetTestHotfix(self, tec):
+        tec_instance = tec.return_value = Mock()
+
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        host.getTestHotfix(1)
+
+        tec_instance.getFile.assert_called_once_with(
+            'xe-phase-1/test-hotfix-1-*.unsigned')
+
+    @patch('xenrt.TEC')
+    def testvSwitchCoverageLog(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+        host.vswitchAppCtl = Mock()
+
+        host.vSwitchCoverageLog()
+
+        host.vswitchAppCtl.assert_called_once_with('coverage/show')
+
+    @patch('xenrt.TEC')
+    def testMockLocation(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        self.assertEquals(
+            'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
+            host.V6MOCKD_LOCATION)
+
+    @patch('xenrt.TEC')
+    def testguestFactory(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+        guestFactory = host.guestFactory()
+
+        self.assertEquals('CreedenceGuest', guestFactory.__name__)

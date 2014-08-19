@@ -659,6 +659,31 @@ class TCCauseBsod(xenrt.TestCase):
                         g.shutdown(force=True)
                 
                 g.revert(snap)
+                
+                
+class TCDriverInstallLoop(xenrt.TestCase):
+    
+    def run(self, args=None):
+        gname = ""
+        for arg in args:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+                break
+
+        if len(gname) == 0:
+            raise xenrt.XRTFailure("No guest")
+        
+        g = self.getGuest(gname)
+        g.shutdown()
+        snap = g.snapshot()
+        
+        for i in range(1000):
+            g.start()
+            g.installDrivers()
+            g.shutdown()
+            g.revert(snap)
+            g.enlightenedDrivers = False
                     
 class _TCToolstackRestart(xenrt.TestCase):
     XAPI_RESTART_DELAY_SECONDS = 60
@@ -1667,96 +1692,13 @@ $a[0].log("THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S  %s")
         
         xenrt.sleep(20)
         
-        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -d " " -f1| rev').strip('\n')
+        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -c -3| rev').strip('\n')
         
         if "%s" in data:
             xenrt.TEC().logverbose("Found '%s' in /var/log/daemon.log as expected" % data )
         else:
             raise xenrt.XRTFailure("Found '%s' in /var/log/daemon.log but '%%s' was expected" % data)
 
-
-class TCSetComputername(xenrt.TestCase):
-
-    def assertSetComputernameSupported(self, guestName):
-        cmdListXenstore = "xenstore-ls {domPath}".format(
-            domPath=self.getDomPath(guestName))
-
-        xenstoreListing = self.getDefaultHost().execdom0(cmdListXenstore)
-        expectedString = 'feature-setcomputername = "1"'
-
-        if expectedString not in xenstoreListing:
-            raise xenrt.XRTFailure('setcomputername not supported')
-
-    def getComputername(self, guestName):
-        guest = self.getGuest(guestName)
-        return guest.xmlrpcGetEnvVar('COMPUTERNAME')
-
-    def assertComputername(self, expectedName, guestName):
-        actualComputername = self.getComputername(guestName)
-
-        if expectedName.lower() != actualComputername.lower():
-            raise xenrt.XRTFailure(
-                'Computername mismatch. Expected: {expectedName}'.format(
-                    expectedName=expectedName)
-                + ' Actual: {actualComputername}'.format(
-                    actualComputername=actualComputername)
-            )
-
-    def getDomPath(self, guestName):
-        domId = self.getGuest(guestName).getDomid()
-        return '/local/domain/{domId}'.format(domId=domId)
-
-    def setComputername(self, guestName, computername):
-        commands = textwrap.dedent("""
-        xenstore-write {domPath}/control/setcomputername/name {computername}
-        xenstore-write {domPath}/control/setcomputername/action set
-        """).format(
-            domPath=self.getDomPath(guestName), computername=computername)
-
-        self.getDefaultHost().execdom0(commands)
-
-    def getSetComputernameState(self, guestName):
-        cmdGetSetComputernameState = (
-            "xenstore-read {domPath}/control/setcomputername/state"
-        ).format(domPath=self.getDomPath(guestName))
-
-        return self.getDefaultHost().execdom0(cmdGetSetComputernameState)
-
-    def assertStateIsSucceedNeedsReboot(self, guestName):
-        expectedState = "SucceededNeedsReboot"
-        actualState = self.getSetComputernameState(guestName)
-        if expectedState not in actualState:
-            raise xenrt.XRTFailure(
-                'Unexpected setcomputername state: {actualState}'.format(
-                    actualState=actualState)
-                + ' expected: {expectedState}'.format(
-                    expectedState=expectedState)
-            )
-
-    def waitTillStateIsNotInProgress(self, guestName):
-        attempts = 5
-        secondsToSleep = 5
-
-        for i in range(attempts):
-            if "InProgress" not in self.getSetComputernameState(guestName):
-                return
-            time.sleep(secondsToSleep)
-
-        raise xenrt.XRTFailure('SetComputername timed out')
-
-    def run(self, arglist=None):
-        guestName = "Windows 7"
-
-        self.assertSetComputernameSupported(guestName)
-
-        self.setComputername(guestName, "aaaa")
-        self.waitTillStateIsNotInProgress(guestName)
-        self.assertStateIsSucceedNeedsReboot(guestName)
-        self.rebootGuest(guestName)
-        self.assertComputername("aaaa", guestName)
-
-    def rebootGuest(self, guestName):
-        self.getGuest(guestName).reboot()
 
 class TCVerifyVMCorruption(xenrt.TestCase):
     """Verify Xapi fix to avoid VM Corruption during Migration"""  
@@ -1826,3 +1768,32 @@ class TCCentosUpgrade(xenrt.TestCase):
         g.resume()
         g.migrateVM(self.getDefaultHost(), live=False)
         g.migrateVM(self.getDefaultHost(), live=True)
+
+
+class TCSettingGuestNameViaXenstore(xenrt.TestCase):
+    """
+    This addresses SCTX-1476 which is a reinstate of the setting a host
+    name via XenStore. This was removed previously and reinstated for 
+    Creedence but in a recast form
+    """
+    def prepare(self, arglist):
+        for arg in arglist:
+            if arg.startswith("distro"):
+                distro = arg.split("=")[-1]
+
+        self.__host = self.getDefaultHost()
+        self.__guest = self.__host.createBasicGuest(distro=distro)
+        self.__distro = distro
+
+    def run(self, arglist):
+        step("Running XenStore rename for %s" % self.__distro)
+        initialName = self.__guest.xmlrpcExec("hostname", returndata=True).strip()
+        newName = ''.join(random.choice(string.ascii_uppercase) for _ in range(14))
+
+        step("Setting name to %s" % newName)
+        self.__guest.setNameViaXenstore(newName)
+        finalName = self.__guest.xmlrpcExec("hostname", returndata=True).strip()
+
+        step("Check name has been set")
+        if newName == finalName:
+            raise xenrt.XRTFailure("Initial name: %s and final name: %s do not match" % (initialName, finalName))

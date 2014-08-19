@@ -11,9 +11,9 @@
   </prepare>
 
   <testsequence>
-    <serial group="TRIMSupport">
+    <serial group="FuncTRIMHBA">
 
-      <testcase id="xenserver.tc.lunspace.StorageTrimTestcase" tc="TC-21546"/>
+      <testcase id="xenserver.tc.lunspace.TrimFunctionalTestHBA" tc="TC-21546"/>
 
     </serial>
   </testsequence>

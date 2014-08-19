@@ -1558,7 +1558,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         d = xenrt.TEC().getLogdir()
         xenrt.command("/bin/ps wwwaxf -eo pid,tty,stat,time,nice,psr,pcpu,pmem,nwchan,wchan:25,args > %s/xenrt-process-tree.txt" % (d))
         xenrt.command("TERM=linux /usr/bin/top -b -n 1 > %s/xenrt-top.txt" % (d))
-        xenrt.command("/usr/sbin/arp > %s/xenrt-arp.txt" % (d))
+        xenrt.command("/usr/sbin/arp -n > %s/xenrt-arp.txt" % (d))
 
     def getLogsFrom(self, obj, paths=None):
         """Register a host or guest for log collection.
@@ -1650,7 +1650,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         g = self.tec.gec.registry.guestGet(name)
         if g:
             self.getLogsFrom(g)
-            if g.host:
+            if g.host and not g.host.getName() in xenrt.TEC().lookup("SHARED_HOSTS", {}).keys():
                 self.getLogsFrom(g.host)
         return g
 
@@ -1884,7 +1884,7 @@ rm -f %s
         kv = {}
         if arglist:
             for a in arglist:
-                aa = a.split("=", 2)
+                aa = a.split("=", 1)
                 if len(aa) == 1:
                     kv[aa[0]] = None
                 else:
@@ -2242,19 +2242,34 @@ logdata call."""
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFile(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f)
+            if ret:
+                break
+        return ret
         
     def getFiles(self, *filename):
         """Look up a selection of names with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFiles(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f, multiple=True)
+            if ret:
+                break
+        return ret
 
     def fileExists(self, *filename):
         """Determine if a file exists with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.fileExists(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.fileExists(f)
+            if ret:
+                break
+        return ret
 
     def getDir(self, dirname):
         """Look up a name with the file manager."""
@@ -2262,12 +2277,19 @@ logdata call."""
 
     def setInputDir(self, dirname):
         """Set (or clear if dirname is None) a temporary INPUTDIR override."""
-        if not self.gec.filemanager:
-            raise XRTError("No filemanager object")
-        self.gec.filemanager.setInputDir(dirname)
+        if not dirname:
+            dirname = ""
+        xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR", dirname, fallbackToGlobal=True)
+
+    def getInputDir(self):
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", None)
+        if not inputDir:
+            inputDir = xenrt.TEC().lookup("INPUTDIR")
+        return inputDir
 
     def isReleasedBuild(self):
-        return self.gec.filemanager.isReleasedBuild()
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", xenrt.TEC().lookup("INPUTDIR"))
+        return "/release/" in inputDir
     
     def __str__(self):
         if self.tc:
@@ -3011,6 +3033,7 @@ class GlobalExecutionContext:
                         xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
                                                pref='WARNING')
 
+                if t.tec.lookup("TESTRUN_SR", None):
                     try:
                         jl = xenrt.jiralink.getJiraLink()
                         if not jl.processTR(t.tec,t.ticket,jiratc,tcsku):
@@ -3027,7 +3050,7 @@ class GlobalExecutionContext:
             t.tec.progress(str(blocked))
             if not isfinally:
                 self.dbconnect.jobSetResult(phase, t.basename, "blocked")
-            if t.tec.lookup("AUTO_BUG_FILE", False, boolean=True):
+            if t.tec.lookup("TESTRUN_SR", None):
                 try:
                     jl = xenrt.jiralink.getJiraLink()
                     jl.processTR(t.tec,blockedticket,jiratc,tcsku)

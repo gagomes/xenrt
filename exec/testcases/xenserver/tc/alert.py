@@ -512,20 +512,17 @@ class _AlertBase(xenrt.TestCase):
 
     def verifyAlertIntervals(self, host, alarmAutoInhibitPeriod, mesages=MESSAGES):
         if len(self.MESSAGES)<2:
-            # Last attempt to get the **** alert generated
-            xenrt.sleep(60)
+            # Fail if alerts generated is less than 2
+            raise xenrt.XRTFailure("Alerts not getting generated at the configured interval, only one present so far")
         cli = host.getCLIInstance()
         xenrt.log("Alerts available for the specified perfmon, verifying repeat interval %s sec" % 
                     alarmAutoInhibitPeriod)
                     
         t1=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
                             self.MESSAGES[0]).strip()
-        try:
-            t2=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
+        t2=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
                             self.MESSAGES[1]).strip()
-        except:
-            raise xenrt.XRTFailure("Alerts not getting generated at the configured interval, only one present so far")
-
+            
         xenrt.TEC().logverbose("Timestamps for the first and second alert are %s and %s " % (t1,t2))
         # Get the relevant substring out of the timestamps for minutes passed
         interval=int(t1[t1.find("T")+1:t1.find("Z")].split(":")[1])-int(t2[t2.find("T")+1:t2.find("Z")].split(":")[1])
@@ -650,7 +647,7 @@ class MemoryAlerts(_AlertBase):
             raise xenrt.XRTError("Machine local SR not sufficient to run this test")
 
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.PRIORITY=5
 
         # Setup required to generate memory alerts
@@ -831,21 +828,21 @@ class StorageAlerts(_AlertBase):
                                 "are generated for the SR under test")
         xenrt.log(msglist)
         perfmon1=host.execdom0('xe message-param-get param-name=body uuid=%s | grep "configured_on" | cut -d\'"\' -f4' % 
-                                msglist[-1]).strip()
+                                msglist[0]).strip()
         xenrt.log("Perfmon name retrieved %s" %
                                 perfmon1)
         perfmon2=host.execdom0('xe message-param-get param-name=body uuid=%s | grep "configured_on" | cut -d\'"\' -f4' % 
-                                msglist[-2]).strip()
+                                msglist[1]).strip()
         xenrt.TEC().logverbose("Perfmon name retrieved %s" %
                                 perfmon2)
         # Verify uuid of sr in the perfmon
         if not re.search(perfmon1, self.uuid, re.IGNORECASE):
             xenrt.log(host.execdom0("xe message-list uuid=%s" % 
-                                    msglist[-1]))
+                                    msglist[0]))
             raise xenrt.XRTFailure("Generated alerts are not for the configured SR")
         if not re.search(perfmon2, self.uuid, re.IGNORECASE):
             xenrt.log(host.execdom0("xe message-list uuid=%s" % 
-                                    msglist[-2]))
+                                    msglist[1]))
             raise xenrt.XRTFailure("Generated alerts are not for the configured SR")
 
     def run(self, arglist=None):

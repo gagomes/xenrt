@@ -168,4 +168,51 @@ class JTGro(xenrt.JobTest):
         else:
             return "GRO is off for NICs : %s" % string.join(nics,", ")
 
-__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro"]
+class JTDeadLetter(xenrt.JobTest):
+    TCID = "TC-21564"
+    FAIL_MSG = "/root/dead.letter file found"
+
+    def postJob(self):
+        # Verify we don't have a /root/dead.letter file
+        if self.host.execdom0("ls -l /root/dead.letter", retval="code") == 0:
+            # Put it in the logdir
+            try:
+                sftp = self.host.sftpClient()
+                try:
+                    sftp.copyFrom("/root/dead.letter", "%s/%s_dead.letter" % (xenrt.TEC().getLogdir(), self.host.getName()))
+                finally:
+                    sftp.close()
+            except:
+                pass
+            return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
+
+class JTCoresPerSocket(xenrt.JobTest):
+    TCID = "TC-21643"
+    FAIL_MSG = "Host reported incorrect guest CPU count"
+
+    def postJob(self):
+        for g in self.host.guests.values():
+            if g.windows:
+                try:
+                    cps = int(g.paramGet("platform", "cores-per-socket"))
+                    vcpus = self.host.getGuestVCPUs(g)
+                    socketsFromGuest = g.xmlrpcGetSockets()
+                except Exception, ex: 
+                    xenrt.TEC().logverbose(str(ex))
+                    return
+
+                maxVCpus = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", g.distro, "MAXSOCKETS"], 0))
+                xenrt.TEC().logverbose("max sockets for guest distro: %d" % maxVCpus)
+                
+                if maxVCpus > 0: 
+                    vcpus = min(vcpus, maxVCpus)
+                    
+                    xenrt.TEC().logverbose("sockets reported by guest: %d" % socketsFromGuest)
+                    xenrt.TEC().logverbose("cores-per-socket reported by host: %d" % cps)
+                    xenrt.TEC().logverbose("vCPUs reported by host: %d" % vcpus)
+
+                    if cps > 0 and vcpus > 0 and (vcpus % cps) == 0 and socketsFromGuest != (vcpus / cps):
+                        return "guest reported %d sockets, host reported %d vcpus and %d cores-per-socket" % (socketsFromGuest, vcpus, cps)
+
+
+__all__ = ["JTDom0Xen", "JTSUnreclaim", "JTSlab", "JTPasswords", "JTCoverage", "JTGro", "JTDeadLetter", "JTCoresPerSocket"]

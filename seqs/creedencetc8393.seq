@@ -16,7 +16,7 @@
   <prepare>
     <host>
       <vm name="mixvm">
-        <distro>rhel54</distro>
+        <distro>rhel65</distro>
         <network device="0"/>
       </vm>
     </host>

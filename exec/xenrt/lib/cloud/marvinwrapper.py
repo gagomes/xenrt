@@ -179,7 +179,7 @@ class MarvinApi(object):
             systemvms = self.cloudApi.listSystemVms() or []
             systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
             if systemvms and systemvmhosts:
-                downhosts = [x for x in systemvmhosts if x.state != "Up" and x.state != "Running"]
+                downhosts = [x for x in systemvmhosts if x.state != "Up"]
                 if not downhosts:
                     # All up, complete
                     xenrt.TEC().logverbose("All System VMs ready")

@@ -429,8 +429,8 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         multipleHost = []
         multipleHost = self._getMultipleHostCluster()
 
-        h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)
-        h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)
+        h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)[0]
+        h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)[0]
 
         self._rearrangeCloud(multipleHost[0],multipleHost[1])
         self._resilliencyTest(h1,multipleHost[0]) 

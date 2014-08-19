@@ -284,12 +284,6 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         info["iperf_version"] = "%s %s %s" % (ivs[0], ivs[2], ivs[6])
         return dict( [ (("%s%s" % (key_prefix, k)), v) for k,v in info.iteritems() ] )
 
-    def getIssue(self, endpoint):
-        issue = endpoint.execcmd("head -n 1 /etc/issue || true").strip()
-        if issue == "":
-            issue = "no-issue"
-        return issue
-
     def getHostname(self, endpoint):
         return endpoint.execcmd("hostname").strip()
 
@@ -302,6 +296,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
             if bridge.startswith("xenbr"):
                 return int(bridge[5:])
+
+    def getIssue(self, endpoint):
+        issue = endpoint.execcmd("head -n 1 /etc/issue || true").strip()
+        if issue == "":
+            issue = "no-issue"
+        return issue
 
     def rageinfo(self, info = {}):
         if isinstance(self.endpoint0, xenrt.GenericHost):

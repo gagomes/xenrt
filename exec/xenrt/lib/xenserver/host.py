@@ -2239,7 +2239,7 @@ fi
                 xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
                 tdir = xenrt.TEC().tempDir()
                 xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir))
-                iso = glob.glob("%s/*.iso")[0]
+                iso = glob.glob("%s/*.iso" % tdir)[0]
                 isoname = os.path.basename(iso)
                 sftp = self.sftpClient()
                 sftp.copyTo(iso, "/tmp/%s" % isoname)

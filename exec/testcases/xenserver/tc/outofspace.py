@@ -48,8 +48,6 @@ class SnapshotTest(xenrt.TestCase):
         host.execdom0('rm -f /fillup', retval='code')
 
     def createLogDriveSetupScript(self, host, setupScriptPath):
-        sftpClient = host.sftpClient()
-
         script = textwrap.dedent("""
         set -eux
 
@@ -67,6 +65,8 @@ class SnapshotTest(xenrt.TestCase):
         sed -ie '/logdrive/d' /etc/fstab
         echo "/logdrive /var/log ext3 loop,rw 0 0" >> /etc/fstab
         """)
+
+        sftpClient = host.sftpClient()
 
         remoteFile = sftpClient.client.file(setupScriptPath, 'w')
         remoteFile.write(script)

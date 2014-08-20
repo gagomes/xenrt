@@ -1226,14 +1226,21 @@ class GenericPlace:
 
     def xmlrpcFileExists(self, filename, patient=False, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("FileExists %s on %s" % (filename, self.getIP()))
-        try:
-            ret = self._xmlrpc(patient=patient).fileExists(filename)
-            xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
-            return ret
-        except Exception, e:
-            if not ignoreHealthCheck:
-                self.checkHealth()
-            raise
+        counter = 0
+        while(counter<3):
+            try:
+                ret = self._xmlrpc(patient=patient).fileExists(filename)
+                xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
+                return ret
+            except Exception, e:
+                if counter == 3:
+                    ignoreHealthCheck
+                    self.checkHealth()
+                    raise
+                else:
+                    xenrt.sleep(30)
+                    counter = counter + 1
+ 
 
     def xmlrpcDirExists(self, filename, patient=False):
         xenrt.TEC().logverbose("DirExists %s on %s" % (filename, self.getIP()))

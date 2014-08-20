@@ -48,7 +48,8 @@ class MarvinDeployer(object):
           'required': { 'typ': None } },
         'providers': {
           'abstractName': 'NetworkProviders',
-          'required': { 'name': None, 'broadcastdomainrange': None } },
+          'required': { 'name': None, 'broadcastdomainrange': None },
+          'optional': { 'devices': 'getNetworkDevices' } },
         'vmwaredc': {
           'abstractName': 'VMWareDC',
           'required': { 'name': None, 'vcenter': None, 'username': None, 'password': None } },
@@ -80,6 +81,8 @@ class MarvinDeployer(object):
           'notify'  : { 'url': 'notifyNewElement' } },
         'details': {
           'abstractName': 'StorageDetails' },
+        'devices': {
+          'abstractName': 'NetworkDevices' }
       }
 
     def __init__(self, mgmtServerIp, logger, username, passwd, marvinTestClient):
@@ -169,14 +172,7 @@ class MarvinDeployer(object):
         self.logger.debug("Full Marvin Config:\n" + pprint.pformat(self.marvinCfg))
 
     def fixUpConfig(self, cfg):
-        # TODO: Remove this when XenRTCenter fixed
-        if "zones" in cfg:
-            for z in cfg['zones']:
-                if z.has_key("physical_networks"):
-                    for n in z["physical_networks"]:
-                        if n.has_key("providers"):
-                            for p in n['providers']:
-                                p['name'] = re.sub("\d+$", "", p['name'])
+        pass
 
     def deployMarvinConfig(self):
         from marvin import deployDataCenter

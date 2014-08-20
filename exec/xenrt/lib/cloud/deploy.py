@@ -8,6 +8,7 @@ import string
 import random
 
 import xenrt.lib.cloud
+from xenrt.lib.netscaler import NetScaler
 
 __all__ = ["doDeploy"]
 
@@ -49,6 +50,25 @@ class DeployerPlugin(object):
             nameValue = '%s-Cluster-%d' % (self.currentPodName, self.currentClusterIx)
         xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
         return nameValue
+
+    def getNetworkDevices(self, key, ref):
+        ret = None
+        if ref.has_key('XRT_NetscalerVMs'):   
+            ret = []
+            for i in ref['XRT_NetscalerVMs']:
+                netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i)
+                netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+                ret.append({"username": "nsroot",
+                            "publicinterface": "1/1",
+                            "hostname": netscaler.managementIp,
+                            "privateinterface": "1/1",
+                            "lbdevicecapacity": "50",
+                            "networkdevicetype": "NetscalerVPXLoadBalancer",
+                            "lbdevicededicated": "false",
+                            "password": "nsroot",
+                            "numretries": "2"})
+
+        return ret
 
     def getDNS(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":

@@ -47,7 +47,7 @@ class _TCRemoteNoseBase(xenrt.TestCase):
                               "http://xenrt.hq.xensource.com/control/queue.cgi")
         jobid = xenrt.GEC().dbconnect.jobid()
         if self.group:
-            phase = tec.tc.group.replace(" ","%20")
+            phase = self.group.replace(" ","%20")
         else:
             phase = "Phase%2099"
         test = self.basename.replace(" ","%20")

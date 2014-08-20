@@ -139,6 +139,9 @@ class TCRemoteNose(_TCRemoteNoseBase):
         elif self.args.has_key("args"):
             noseargs = self.args['args']
 
+        if self.tec.lookup("POF_ALL", False, boolean=True):
+            noseargs += " --stop"
+
         self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s %s /root/cloudstack/%s" %
                    (self.workdir,
                     self.workdir,

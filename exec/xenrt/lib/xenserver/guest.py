@@ -559,6 +559,18 @@ class Guest(xenrt.GenericGuest):
 
             if not notools and self.getState() == "UP":
                 self.installTools()
+        if 'ubuntu1404' in distro:
+            _new_kernel = repository + "/pool/main/l/linux/"
+            if '64' in self.arch:
+                _new_kernel_path =  "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb"%(_new_kernel)
+            else:
+                _new_kernel_path = "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"%(_new_kernel)
+            ko = xenrt.TEC().tempFile()
+            xenrt.getHTTP(_new_kernel_path,ko)
+            guestSftp = self.sftpClient()
+            guestSftp.copyTo(ko,"/root/updated_kernel.deb")
+            self.execcmd("dpkg -i updated_kernel.deb")
+
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

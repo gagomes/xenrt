@@ -4,6 +4,7 @@
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
   </variables>
 
   <prepare>
@@ -90,7 +91,6 @@
 
   <testsequence group="Resiliency">
       <testcase id="cloud.tc.resiliency.TCXapiStopped" name="XapiStopped" >
-      <arg>distros=centos59_x86-32</arg>
       </testcase>
 
   </testsequence>

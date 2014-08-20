@@ -12,6 +12,7 @@ import socket, re, string, time, traceback, sys, random, copy, os, shutil
 import os.path
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.call, xenrt.lib.xenserver.context
 import IPy
+from xenrt.lazylog import log, step
 
 class TC6854(xenrt.TestCase):
     """Windows live migrate between XenServer v4.1 and v4"""
@@ -48,19 +49,19 @@ class TC6854(xenrt.TestCase):
                    primarydisk=primarydisk,
                    guestdisks=disks)
 
-    def run(self, arglist=None): 
+    def run(self, arglist=None):
         loops = 100
 
         h0 = self.getHost("RESOURCE_HOST_0")
         h1 = self.getHost("RESOURCE_HOST_1")
-        
-        g = xenrt.TEC().registry.guestGet("guest-0")       
- 
-        xenrt.TEC().progress("Migrating VM off master.") 
-        g.migrateVM(h1, live=True, fast=True) 
+
+        g = xenrt.TEC().registry.guestGet("guest-0")
+
+        xenrt.TEC().progress("Migrating VM off master.")
+        g.migrateVM(h1, live=True, fast=True)
 
         xenrt.TEC().progress("Upgrading master.")
-        self.upgrade(h0) 
+        self.upgrade(h0)
 
         for i in range(loops):
             if g.windows:
@@ -168,7 +169,7 @@ class _PoolUpgrade(xenrt.TestCase):
         self.affinity.append(af0)
         self.affinity.append(af1)
         self.vmworkloads = {}
-        
+
     def randomOps(self):
         for g in self.guests.values():
             xenrt.TEC().progress("Adding devices to VM %s" % (g.getName()))
@@ -178,7 +179,7 @@ class _PoolUpgrade(xenrt.TestCase):
             g.createDisk(sizebytes=20000000,
                          sruuid="DEFAULT",
                          userdevice=device)
-            device = "%s%d" % (g.vifstem, 
+            device = "%s%d" % (g.vifstem,
                                int(g.host.genParamGet(\
                 "vm", g.getUUID(), "allowed-VIF-devices").split("; ")[0]))
             mac = xenrt.randomMAC()
@@ -190,14 +191,14 @@ class _PoolUpgrade(xenrt.TestCase):
             g.plugVIF(device)
             time.sleep(10)
             g.updateVIFDriver()
-            
+
         for g in self.guests.values():
             xenrt.TEC().progress("Performing some random ops VM %s" %
                                  (g.getName()))
             for i in range(5):
                 op = self.ops[random.randint(0, len(self.ops) - 1)]
                 eval("self.%s('%s')" % (op, g.getName()))
-                
+
             self.setState(g.getName(), "UP")
 
         self.checkVMs()
@@ -295,15 +296,15 @@ class _PoolUpgrade(xenrt.TestCase):
             g.checkHealth()
 
     def upgradeVMs(self):
-        
+
         # upgrade guest objects
         newGuests = {}
         for n,g in self.guests.iteritems():
             newGuests[n] = self.hosts[0].guestFactory()(g.getName())
             g.populateSubclass(newGuests[n])
-            
+
         self.guests = newGuests
-        
+
         for g in self.guests.values():
             xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
             if g.windows:
@@ -316,12 +317,12 @@ class _PoolUpgrade(xenrt.TestCase):
                 else:
                     g.installTools()
         self.checkVMs()
-            
+
     def shutdown(self):
         for g in self.guests.values():
             xenrt.TEC().progress("Shutting down VM %s" % (g.getName()))
             g.shutdown()
-            
+
     def start(self):
         for g in self.guests.values():
             xenrt.TEC().progress("Starting VM %s" % (g.getName()))
@@ -344,9 +345,9 @@ class _PoolUpgrade(xenrt.TestCase):
                   'SUSPENDED' :  { 'DOWN'      : 'resume',
                                    'UP'        : 'resume'}}
         while not self.guests[guestname].getState() == state:
-            eval("self.guests[guestname].%s()" % 
+            eval("self.guests[guestname].%s()" %
                 (action[self.guests[guestname].getState()][state]))
-        
+
     def randStartVM(self, guestname):
         self.setState(guestname, "DOWN")
         self.guests[guestname].start()
@@ -412,7 +413,7 @@ class _RollingPoolUpgrade(_PoolUpgrade):
             return
 
         # Perform some random operations including the addition of virtual
-        # devices 
+        # devices
         if self.runSubcase("randomOps", (), "PrevGA", "VMOps") != \
                 xenrt.RESULT_PASS:
             return
@@ -444,7 +445,7 @@ class _RollingPoolUpgrade(_PoolUpgrade):
             if self.runSubcase("migrate", (0, 1, True), "Step1", "XenMotion") != \
                     xenrt.RESULT_PASS:
                 return
- 
+
         # Upgrade the master
         if self.runSubcase("upgrade", (0), "Step1", "Upgrade") != \
                 xenrt.RESULT_PASS:
@@ -543,7 +544,7 @@ class _NonRollingPoolUpgrade(_PoolUpgrade):
             return
 
         # Perform some random operations including the addition of virtual
-        # devices 
+        # devices
         if self.runSubcase("randomOps", (), "PrevGA", "VMOps") != \
                 xenrt.RESULT_PASS:
             return
@@ -653,7 +654,7 @@ class TC7984(_RollingPoolUpgrade):
                                        "device",
                                        secNIC,
                                        "host-uuid=%s" % (host.getMyHostUUID()))
-        
+
         return [managementPIF, secPIF]
 
     def xxxprepare(self, arglist):
@@ -685,7 +686,7 @@ class TC7984(_RollingPoolUpgrade):
             return
         vlan, subnet, netmask = vlans[0]
         vlanvm, subnetvm, netmaskvm = vlans[1]
-        
+
         # Set up a bonded interface on NPRI
         for host in self.hosts:
             newpifs = self.findPIFToBondWithManagementNIC(host)
@@ -699,7 +700,7 @@ class TC7984(_RollingPoolUpgrade):
             # Check the bond status
             (info,slaves) = host.getBondInfo(device)
             if len(info['slaves']) != 2:
-                raise xenrt.XRTFailure("Bond has %u slave devices, expected 2" % 
+                raise xenrt.XRTFailure("Bond has %u slave devices, expected 2" %
                                        (len(info['slaves'])))
 
             # Check we can still see the host etc...
@@ -781,11 +782,11 @@ class TC7984(_RollingPoolUpgrade):
         time.sleep(120)
 
     def hostsCheck(self):
-    
-        # TODO implement the check below correctly in the near future 
-        
+
+        # TODO implement the check below correctly in the near future
+
         xenrt.TEC().warning("Host check not implemented")
-        
+
         # Check the bond
 
         # Check the VLANs
@@ -859,7 +860,7 @@ class RpuAdvancedNetwork(_RollingPoolUpgrade):
                 raise xenrt.XRTFailure("Bond has %u slave devices, expected %u" %
                                        (len(info['slaves']),self.NUMBER_OF_NICS))
 
-            # Check we can still see the host etc...     
+            # Check we can still see the host etc...
             host.check(interfaces=[(bridge, "yes", "dhcp", None, None, None, None, None, None)])
             # Update i_interfaces so a post upgrade check will work
             host.i_interfaces = [(bridge, "yes", "dhcp", None, None, None, None, None, None)]
@@ -908,7 +909,7 @@ class TCRpuBlockedOperations(xenrt.TestCase):
     def prepare(self, arglist):
         # may need to add code here to create the pool
         self.pool = self.getDefaultPool()
-        
+
         self.upgrader = BlockedOperationsPoolUpgrade(self.pool)
 
         # code here to create SRs of differnet types
@@ -922,7 +923,7 @@ class TCRpuBlockedOperations(xenrt.TestCase):
             g = host.getGuest('local')
             g.suspend()
 
-            guestName = 'startresume'+host.getName() 
+            guestName = 'startresume'+host.getName()
             if isinstance(host, xenrt.lib.xenserver.MNRHost) and not isinstance(host, xenrt.lib.xenserver.TampaHost):
                 host.addGuest(host.createBasicGuest(\
                             distro="debian50", sr=self.sharedSR, name=guestName))
@@ -930,7 +931,7 @@ class TCRpuBlockedOperations(xenrt.TestCase):
                 host.addGuest(host.createGenericLinuxGuest(\
                             sr=self.sharedSR, name=guestName))
 
-            guestName = 'migrate'+host.getName() 
+            guestName = 'migrate'+host.getName()
             if isinstance(host, xenrt.lib.xenserver.MNRHost) and not isinstance(host, xenrt.lib.xenserver.TampaHost):
                 host.addGuest(host.createBasicGuest(\
                             distro="debian50", sr=self.sharedSR, name=guestName))
@@ -953,13 +954,13 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
 
         # Attempt blocked operations
         upgradedHosts = []
-        nonUpgradedHosts = [] 
+        nonUpgradedHosts = []
         for s in self.newPool.getSlaves():
             if s.productRevision == self.newPool.master.productRevision:
                 upgradedHosts.append(s)
             else:
                 nonUpgradedHosts.append(s)
-        upgradedHosts.append(self.newPool.master) 
+        upgradedHosts.append(self.newPool.master)
 
         xenrt.TEC().logverbose("Upgraded Hosts: %s"\
                              % (map(lambda(x):x.getName(), upgradedHosts)))
@@ -974,8 +975,8 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
                                    ", VM : %s" % (slave.getName(), g.getName()))
         except Exception, e:
             xenrt.TEC().logverbose("VM.resume disallowed with reason: %s" %\
-                                   (str(e))) 
-         
+                                   (str(e)))
+
         g.shutdown(force=True)
         try:
             g.start()
@@ -983,7 +984,7 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
                                    ", VM : %s" % (slave.getName(), g.getName()))
         except Exception, e:
             xenrt.TEC().logverbose("VM.start disallowed with reason: %s" %\
-                                   (str(e))) 
+                                   (str(e)))
 
 
         #  Suspend / Resume, Shutdown / Start on shared storage VM
@@ -1008,9 +1009,9 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
             except Exception, e:
                 raise xenrt.XRTFailure("%s disallowed on upgraded host "\
                                        "%s with reason: %s" %\
-                                 (operation, upgradedHost.getName(), str(e))) 
+                                 (operation, upgradedHost.getName(), str(e)))
 
-                         
+
         if g.getState() != "SUSPENDED":
             raise xenrt.XRTFailure("VM not in suspended state.  Slave: %s"\
                                    ", VM : %s" % (slave.getName(), g.getName()))
@@ -1025,7 +1026,7 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
                                        % (slave.getName(), g.getName()))
             except Exception, e:
                 xenrt.TEC().logverbose("VM.resume disallowed with reason: %s" %\
-                                       (str(e))) 
+                                       (str(e)))
 
         g.shutdown(force=True)
         for nonUpgradedHost in nonUpgradedHosts:
@@ -1040,7 +1041,7 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
                                        % (slave.getName(), g.getName()))
             except Exception, e:
                 xenrt.TEC().logverbose("VM.start disallowed with reason: %s" %\
-                                       (str(e))) 
+                                       (str(e)))
 
 
         #  Migrate on shared storage VM
@@ -1059,7 +1060,7 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
             xenrt.TEC().logverbose("VM.migrate %s from non-Upgraded Host: %s"\
                                 % (g.getName(), nonUpgradedHosts[0].getName()))
             try:
-                g.migrateVM(slave, live="true") 
+                g.migrateVM(slave, live="true")
             except Exception, e:
                 raise xenrt.XRTFailure("VM.migrate from non-upgraded host "\
                                        "failed with reason %s" % (str(e)))
@@ -1095,7 +1096,7 @@ class BlockedOperationsPoolUpgrade(xenrt.lib.xenserver.host.RollingPoolUpdate):
                                    (str(e)))
 
 class _RPUBasic(xenrt.TestCase):
-    
+
     TEST_SRS = []
 
     def prepare(self, arglist):
@@ -1119,16 +1120,16 @@ class _RPUBasic(xenrt.TestCase):
 
 
     def run(self, arglist):
-        # perform the upgrade 
-        self.newPool = self.pool.upgrade(poolUpgrade=self.upgrader) 
+        # perform the upgrade
+        self.newPool = self.pool.upgrade(poolUpgrade=self.upgrader)
         self.newPool.verifyRollingPoolUpgradeInProgress(expected=False)
 
         # Check all VMs are up and running
         for testSR in self.TEST_SRS:
             for host in self.newPool.getHosts():
                 guestName = testSR+host.getName()
-                vmUUID = self.newPool.master.parseListForUUID("vm-list", 
-                                                              "name-label", 
+                vmUUID = self.newPool.master.parseListForUUID("vm-list",
+                                                              "name-label",
                                                               guestName)
                 state = self.pool.master.minimalList("vm-param-get uuid=%s "\
                         "param-name=power-state" % vmUUID)[0]
@@ -1142,7 +1143,7 @@ class TCRpuEql(_RPUBasic):
 
 class TCRpuNetApp(_RPUBasic):
     TEST_SRS = ['pooliScsi', 'poolNetApp']
-    
+
 class TCAutoInstaller(xenrt.TestCase):
 
     def prepare(self, arglist):
@@ -1156,7 +1157,7 @@ class TCAutoInstaller(xenrt.TestCase):
         xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
         cd = xenrt.TEC().getFile("xe-phase-1/%s" % (imageName), imageName)
         xenrt.checkFileExists(cd)
-        
+
         # Create a temp directory for the image
         protocol = xenrt.TEC().lookup(["INSTALLER_PATCH", "PROTOCOL"])
         xenrt.TEC().logverbose("Installer protocol: %s" % (protocol))
@@ -1235,7 +1236,6 @@ class TCAutoInstaller(xenrt.TestCase):
 
 class TC8231(_NonRollingPoolUpgrade):
     """Pool non-rolling upgrade from previous GA version using Equallogic SR."""
-
     pass
 
 class _SingleHostUpgrade(xenrt.TestCase):
@@ -1251,7 +1251,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
             g = self.host.createGenericLinuxGuest()
         g.shutdown()
         self.guests.append(g)
-        
+
     def upgrade(self, newVersion):
         self.host.tailored = False
         xenrt.lib.xenserver.cli.clearCacheFor(self.host.machine)
@@ -1260,7 +1260,7 @@ class _SingleHostUpgrade(xenrt.TestCase):
         self.host.check()
         if len(self.host.listGuests()) == 0 and not self.NO_VMS:
             raise xenrt.XRTFailure("VMs missing after host upgrade")
-        
+
     def upgradeVMs(self):
         for g in self.guests:
             xenrt.TEC().progress("Upgrading VM %s" % (g.getName()))
@@ -1352,6 +1352,48 @@ class _SingleHostUpgrade(xenrt.TestCase):
         for e in self.EXTRASUBCASES:
             if self.runSubcase(e[0], e[1], e[2], e[3]) != xenrt.RESULT_PASS:
                 return
+
+
+class TCUpgradeMultipathedRootDisk(_SingleHostUpgrade):
+
+    """
+    Upgrade a machine with a multipathed root disk after switching this feature off
+    Apply a kernel hotfix and check what happens to the multipathing config
+    See SCTX-1822
+    """
+
+    NO_VMS = True
+    EXTRASUBCASES = [("fakeKernelHotfix", (), "Fake", "Kernel Hotfix"),
+                     ("checkMPIsOn", (), "Check", "Multipath status")]
+
+    def installOld(self):
+        old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
+        oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
+        self.host = xenrt.lib.xenserver.createHost(id=0,
+                                                   version=oldversion,
+                                                   productVersion=old,
+                                                   installSRType="lvm")
+        self.checkMPIsOn()
+        step("Disabling root disk multipathing...")
+        self.host.disableMultipathingInKernel()
+
+        #MP should be off here
+        self.checkMPIsOn(False)
+
+    def fakeKernelHotfix(self):
+        step("Faking a kernel hotifx by rebuilding initrd...")
+        self.host.rebuildInitrd()
+        self.host.reboot()
+
+    def checkMPIsOn(self, expectedOn=True):
+        step("Checking the state of multipathing...")
+        log(self.host.getMultipathInfo())
+        mpOn = len(self.host.getMultipathInfo()) >= 1
+
+        if mpOn != expectedOn:
+            raise xenrt.XRTError(
+                "Multipathing fail actual={0} and exepcted={1}".format(mpOn,expectedOn))
+
 
 class TC6929(_SingleHostUpgrade):
     """Single host upgrade from previous release using static IP addressing and a local LVM SR"""
@@ -1447,7 +1489,7 @@ class _XenCert:
             # obtain the resulting XenCert logs
             xclogs = host.execdom0("ls -t1 /tmp/XenCert-*").splitlines()
             if len(xclogs) > 0:
-                host.addExtraLogFile(xclogs[0]) #grab the most recent log in dom0 
+                host.addExtraLogFile(xclogs[0]) #grab the most recent log in dom0
             raise xenrt.XRTFailure("XenCert SR Test Suite FAILED -- see /var/log/SMlog")
 
 class TCXenCert(_XenCert,xenrt.TestCase):
@@ -1461,7 +1503,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
         self.createsr = False
         self.sr = None
 
-        self.adapterid = "NETAPP" 
+        self.adapterid = "NETAPP"
         self.srtype = "icslg"
         self.createsr = True
 
@@ -1522,9 +1564,9 @@ class TCXenCert(_XenCert,xenrt.TestCase):
             else:
                 raise xenrt.XRTError("unimplemented adapterid %s" % self.adapterid)
         else:
-            raise xenrt.XRTError("unimplemented srtype %s" % self.srtype) 
+            raise xenrt.XRTError("unimplemented srtype %s" % self.srtype)
 
-    def prepare(self, arglist=None): 
+    def prepare(self, arglist=None):
         machine = "RESOURCE_HOST_0"
         for arg in arglist[1:]:
             l = string.split(arg, "=", 1)
@@ -1568,7 +1610,7 @@ class TCXenCert(_XenCert,xenrt.TestCase):
                 self.sr.remove()
         except: pass
 
-class _ICSLGNetAppHostUpgrade(_XenCert):  
+class _ICSLGNetAppHostUpgrade(_XenCert):
     """Host upgrade from previous release using CVSM NetApp to a release using integrated CVSM NetApp SR"""
 
     USE_EXISTING_HOST = True
@@ -1648,7 +1690,7 @@ class _ICSLGNetAppHostUpgrade(_XenCert):
         old_pbd_adapterid = old_pbd_ssid
         if not re.search(self.CSLG_ADAPTERID, old_pbd_adapterid):
             raise xenrt.XRTFailure("Expecting [%s] in cslg adapterid=[%s]" % (self.CSLG_ADAPTERID,old_pbd_adapterid))
- 
+
         cli = self.host.getCLIInstance()
         cli.execute("pbd-unplug","uuid=%s" % old_pbd)
         cli.execute("pbd-destroy","uuid=%s" % old_pbd)
@@ -1674,39 +1716,39 @@ class _ICSLGNetAppHostUpgrade(_XenCert):
             if self.runSubcase(e[0], e[1], e[2], e[3]) != xenrt.RESULT_PASS:
                 return
 
-class TC12698(_ICSLGNetAppHostUpgrade,_SingleHostUpgrade):  
+class TC12698(_ICSLGNetAppHostUpgrade,_SingleHostUpgrade):
     """Single host upgrade from previous release using dynamic IP addressing and CVSM NetApp SR"""
-    
+
     def __init__(self, tcid=None):
         _ICSLGNetAppHostUpgrade.__init__(self)
         _SingleHostUpgrade.__init__(self, tcid)
-    
+
     def _upgrade(self, newVersion):
         _SingleHostUpgrade.upgrade(self, newVersion)
 
 class TC12699(_ICSLGNetAppHostUpgrade,_RollingPoolUpgrade):
     """Pool rolling upgrade from previous GA version using CVSM NetApp SR."""
-    
+
     def __init__(self, tcid=None):
         _ICSLGNetAppHostUpgrade.__init__(self)
         _SingleHostUpgrade.__init__(self, tcid)
-    
+
     def _upgrade(self, newVersion):
         _RollingPoolUpgrade.upgrade(self, newVersion)
 
 class TCCSLGNetAppNoUpgrade(_XenCert,_RollingPoolUpgrade):
     """Equivalent to TC-12699 without actually doing rolling upgrade"""
-    
+
     CSLG_ADAPTERID = None
-    
+
     def __init__(self, tcid=None):
         _RollingPoolUpgrade.__init__(self, tcid)
         self.host = None
-    
+
     def run(self, arglist):
         self.hosts = []
         self.hosts.append(self.getHost("RESOURCE_HOST_0"))
-        self.hosts.append(self.getHost("RESOURCE_HOST_1"))        
+        self.hosts.append(self.getHost("RESOURCE_HOST_1"))
         self.hostNames = self.hosts[0].minimalList("host-list", "name-label")
         self.hostNames.sort()
         self.vmbridge = None
@@ -1718,7 +1760,7 @@ class TCCSLGNetAppNoUpgrade(_XenCert,_RollingPoolUpgrade):
             return
 
         # Perform some random operations including the addition of virtual
-        # devices 
+        # devices
         if self.runSubcase("randomOps", (), "PrevGA", "VMOps") != \
                 xenrt.RESULT_PASS:
             return
@@ -1798,20 +1840,20 @@ class TCCSLGNetAppNoUpgrade(_XenCert,_RollingPoolUpgrade):
 
 class TC12700(_ICSLGNetAppHostUpgrade,_NonRollingPoolUpgrade):
     """Pool non-rolling upgrade from previous GA version, using CVSM NetApp SR."""
-    
+
     def __init__(self, tcid=None):
         _ICSLGNetAppHostUpgrade.__init__(self)
         _NonRollingPoolUpgrade.__init__(self, tcid)
-    
+
     def _upgrade(self, newVersion):
         _NonRollingPoolUpgrade.upgrade(self, newVersion)
 
 
-class _ICSLGEqualLogicHostUpgrade(_ICSLGNetAppHostUpgrade):  
+class _ICSLGEqualLogicHostUpgrade(_ICSLGNetAppHostUpgrade):
     """Host upgrade from previous release using CVSM EqualLogic to a release using integrated CVSM EqualLogic SR"""
     CSLG_ADAPTERID = "DELL_EQUALLOGIC"
 
-class TC13998(_ICSLGEqualLogicHostUpgrade,_SingleHostUpgrade):  
+class TC13998(_ICSLGEqualLogicHostUpgrade,_SingleHostUpgrade):
     """Single host upgrade from previous release using dynamic IP addressing and CVSM EqualLogic SR"""
     def _upgrade(self, newVersion):
         _SingleHostUpgrade.upgrade(self, newVersion)
@@ -1827,11 +1869,11 @@ class TC14000(_ICSLGEqualLogicHostUpgrade,_NonRollingPoolUpgrade):
         _NonRollingPoolUpgrade.upgrade(self, newVersion)
 
 
-class _ICSLGSMISHostUpgrade(_ICSLGNetAppHostUpgrade):  
+class _ICSLGSMISHostUpgrade(_ICSLGNetAppHostUpgrade):
     """Host upgrade from previous release using CVSM SMI-S to a release using integrated CVSM SMI-S SR"""
     CSLG_ADAPTERID = "EMC_CLARIION"
 
-class TC14925(_ICSLGSMISHostUpgrade,_SingleHostUpgrade):  
+class TC14925(_ICSLGSMISHostUpgrade,_SingleHostUpgrade):
     """Single host upgrade from previous release using dynamic IP addressing and CVSM SMI-S SR"""
     def _upgrade(self, newVersion):
         _SingleHostUpgrade.upgrade(self, newVersion)
@@ -1881,14 +1923,14 @@ class TC9353(_SingleHostUpgrade):
 
 class TC12701(_SingleHostUpgrade):
     """Test to check RHEL3.8 guests from P2V George upgrade OK to MNR - SCTX-533, CA-48772"""
-    
+
     EXTRASUBCASES = [("checkGuest", (), "Check", "Guest")]
-    
+
     def installOld(self):
         old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
         oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
         self.host = xenrt.lib.xenserver.createHost(id=1, version=oldversion, productVersion=old)
-        
+
         # Install native Linux on the P2V host
         mname = xenrt.TEC().lookup("RESOURCE_HOST_0")
         m = xenrt.PhysicalHost(mname)
@@ -1899,30 +1941,30 @@ class TC12701(_SingleHostUpgrade):
 
         imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
         xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-        cd = xenrt.TEC().getFile(oldversion + "/" + imageName, imageName) 
+        cd = xenrt.TEC().getFile(oldversion + "/" + imageName, imageName)
         self.guest = self.host.p2v(xenrt.randomGuestName(), "rhel38", self.p2vhost, cd)
-        
+
     def checkGuest(self):
         # need to check that the guest is responsive.
         self.guest.checkHealth()
         self.host.checkHealth()
-        
+
         if self.guest.getState() != "UP":
             self.guest.start()
 
         # need to check that netback cpu usage is below 10%
-        
+
         for i in range(100):
             time.sleep(1)
             top = self.host.execdom0("top -b -n 1|grep netback")
-        
+
             procs = re.findall("(\d+.\d+)  \d+.\d+   \d+:\d+.\d+ netback", top)
-        
+
             if not procs or len(procs) == 0:
                 raise xenrt.XRTError("Could not find netback in top")
-         
+
             for proc in procs:
-            
+
                 if float(proc) > 10:
                     raise xenrt.XRTError("netback using %s%% CPU" % proc)
 
@@ -1936,7 +1978,7 @@ class TC12058(_SingleHostUpgrade):
 
     def prepare(self, arglist):
         _SingleHostUpgrade.prepare(self, arglist)
-                                           
+
         old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
         oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
         self.host = xenrt.lib.xenserver.createHost(id=0,
@@ -1952,7 +1994,7 @@ class TC12058(_SingleHostUpgrade):
             raise xenrt.XRTError("Could not find a NSEC interface on host %s" %
                                  (self.host.getName()))
         self.host.setIPAddressOnSecondaryInterface(h0nsecaids[0])
-        
+
         # Setup to use MPP RDAC or dm_multipath
         f = self.host.execdom0('cat /etc/mpp.conf')
         mppconf = dict(x.split('=') for x in f.strip().split('\n'))
@@ -1969,7 +2011,7 @@ class TC12058(_SingleHostUpgrade):
                                        self.targetiqn,
                                        self.targetip))
         self.sr.create(lun, subtype="lvm", findSCSIID=True, multipathing=True)
-        
+
     def checkSR(self):
         # Confirm that the same driver is used as before
         try:
@@ -1980,7 +2022,7 @@ class TC12058(_SingleHostUpgrade):
                 mpp = True
         except:
             mpp = False
-            
+
         if self.MPP_RDAC and not mpp:
             raise xenrt.XRTFailure('Incorrect multipath driver',
                                    'Expected MPP RDAC driver to be enabled after upgrade')
@@ -2006,7 +2048,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # Install the previous GA version on host 0
         old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
         oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
-        
+
         self.host0 = xenrt.lib.xenserver.createHost(id=0,
                                                     version=oldversion,
                                                     productVersion=old,
@@ -2052,10 +2094,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # and OLD_PRODUCT_VERSION is set to the same as the version under test.
         # This will result in self.host0 not having hotfixes applied, and
         # self.host1 will. That way we can test the hotfix(es).
-        
+
         if xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
             self.host1.applyRequiredPatches()
-        
+
         # If the old host is Rio then rename the networks on the new host
         # to match the naming on the Rio host. This is so that
         # imports to later versions work correctly (CA-19382).
@@ -2092,10 +2134,10 @@ class _TCCrossVersionImport(xenrt.TestCase):
             ud = self.cliguest.createDisk(sizebytes=32212254720, sruuid=sr.uuid)
         else:
             ud = self.cliguest.createDisk(sizebytes=32212254720) # 30GB
-        d = self.host1.parseListForOtherParam("vbd-list", 
-                                              "vm-uuid", 
-                                              self.cliguest.getUUID(), 
-                                              "device", 
+        d = self.host1.parseListForOtherParam("vbd-list",
+                                              "vm-uuid",
+                                              self.cliguest.getUUID(),
+                                              "device",
                                               "userdevice=%s" % (ud))
         time.sleep(30)
         self.cliguest.execguest("mkdir -p /mnt/export")
@@ -2167,7 +2209,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
             c = xenrt.lib.xenserver.buildCommandLine(self.host1,
                                                      "vm-import",
                                                      string.join(args))
-            newuuid = string.strip(self.cliguest.execcmd("xe %s" % (c), 
+            newuuid = string.strip(self.cliguest.execcmd("xe %s" % (c),
                                                          timeout=7200))
             newguest.uuid = newuuid
             newguest.windows = guest.windows
@@ -2231,7 +2273,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         xenrt.TEC().progress("Uninstalling %s" % (distro))
         try:
             xenrt.TEC().setInputDir(xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR"))
-            guest.uninstall()            
+            guest.uninstall()
         finally:
             xenrt.TEC().setInputDir(None)
         newguest.uninstall()
@@ -2241,7 +2283,7 @@ class _TCCrossVersionImport(xenrt.TestCase):
         # For each OS version perform the subtest
         for distro in self.DISTROS:
             self.runSubcase("testOS", (distro), "ImpExp", distro)
-    
+
 class TC10536(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 3.2 GA."""
 
@@ -2256,13 +2298,13 @@ class TC7952(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 4.0 GA."""
     WORKAROUND_CA32958 = True
     WORKAROUND_CA87290 = True
-    
+
     DISTROS = ["rhel44", "w2k3eesp2"]
-    
+
     def prepare(self, arglist):
         xenrt.TEC().config.setVariable("CARBON_EXTRA_CDS", "DEFAULT")
         _TCCrossVersionImport.prepare(self, arglist)
-    
+
 
 class TC9046(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 5.0 GA."""
@@ -2291,22 +2333,22 @@ class TC12548(_TCCrossVersionImport):
 
 class TC12545(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 5.6 GA (MNR)"""
-    
+
     DISTROS = ["rhel53", "rhel47", "ws08sp2-x86"]
 
 class TC17440(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 6.0 GA (Boston)"""
-    
+
     DISTROS = ["debian60", "rhel56", "rhel6", "ws08sp2-x86"]
-    
+
 class TC17441(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 6.0.2 GA (Sanibel)"""
-    
+
     DISTROS = ["debian60", "rhel57", "rhel61", "ws08sp2-x86"]
 
 class TC18551(_TCCrossVersionImport):
     """Import of VMs exported from XenServer 6.1 GA (Tampa)"""
-    
+
     DISTROS = ["debian60", "rhel61","ws08sp2-x86", "win7sp1-x86"]
 
 
@@ -2319,12 +2361,12 @@ class TC8420(xenrt.TestCase):
         if not r:
             raise xenrt.XRTError("Could not parse dmesg for Xen version")
         return r.group(1)
-        
+
     def run(self, arglist):
         if not arglist or len(arglist) == 0:
             raise xenrt.XRTError("No hotfix specified")
         hotfix = arglist[0]
-        
+
         host = self.getDefaultHost()
 
         # Get current Xen hypervisor version
@@ -2367,7 +2409,7 @@ class _VMToolsUpgrade(xenrt.TestCase):
         self.guest = self.getGuest(self.VMNAME)
         self.guest.changeCD(None)
         self.guest.start()
-        
+
         # DL: temporarily removing check for Gucci
         #existingversion = self.guest.getPVDriverVersion(micro=True)
         #if not existingversion:
@@ -2392,12 +2434,12 @@ class _VMToolsUpgrade(xenrt.TestCase):
         if not guest:
             guest = self.guest
         if guest.windows:
-            
+
             if guest.pvDriversUpToDate():
                 raise xenrt.XRTFailure("PV drivers should not be reported as up-to-date before driver upgrade")
-            
+
             guest.installDrivers()
-            
+
             if not guest.pvDriversUpToDate():
                 raise xenrt.XRTFailure("PV drivers should be reported as up-to-date after driver upgrade")
         else:
@@ -2410,7 +2452,7 @@ class _VMToolsUpgrade(xenrt.TestCase):
         v = v.split("-")[0] # major.minor.micro
         if v != self.hostversion:
             raise xenrt.XRTFailure("Upgraded tools version %s does not match host version %s" % (v, self.hostversion))
-            
+
     def uninstallTools(self):
         self.guest.uninstallDrivers()
 
@@ -2419,7 +2461,7 @@ class _VMToolsUpgrade(xenrt.TestCase):
         if self.runSubcase("lifecycle", (False), "OldTools", "Lifecycle") != \
                 xenrt.RESULT_PASS:
             return
-        
+
         # Upgrade the tools/drivers/kernel
         if self.runSubcase("upgradeTools", (), "Tools", "Upgrade") != \
                 xenrt.RESULT_PASS:
@@ -2437,7 +2479,7 @@ class UpgradeAllVMTools(_VMToolsUpgrade):
         self.host = self.getDefaultHost()
         self.hostversion = self.host.productRevision.split("-")[0]
         self.guestNames = xenrt.TEC().registry.guestList()
-        
+
     def run(self,arglist = None):
 
         for arg in arglist:
@@ -2462,12 +2504,12 @@ class TC11414(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2003 EE VM installed on the previous GA version"""
 
     VMNAME = "w2k3ee"
-    
+
 class TC9153(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2000 SP4 VM installed on the previous GA version"""
 
     VMNAME = "w2kassp4"
-    
+
 class TC9154(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2003 EE SP2 x64 VM installed on the previous GA version"""
 
@@ -2482,7 +2524,7 @@ class TC11416(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2008 SP2 VM installed on the previous GA version"""
 
     VMNAME = "ws08sp2-x86"
-    
+
 class TC9155(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2008 VM installed on the previous GA version"""
 
@@ -2492,12 +2534,12 @@ class TC11417(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2008 SP2 x64 VM installed on the previous GA version"""
 
     VMNAME = "ws08sp2-x64"
-    
+
 class TC9156(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 2008 x64 VM installed on the previous GA version"""
 
     VMNAME = "ws08-x64"
-    
+
 class TC11418(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows 7 VM installed on the previous GA version"""
 
@@ -2522,12 +2564,12 @@ class TC11421(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows Vista EE SP2 VM installed on the previous GA version"""
 
     VMNAME = "vistaeesp2"
-    
+
 class TC9158(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows Vista EE SP1 VM installed on the previous GA version"""
 
     VMNAME = "vistaeesp1"
-    
+
 class TC11422(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows Vista EE SP2 x64 VM installed on the previous GA version"""
 
@@ -2537,7 +2579,7 @@ class TC9159(_VMToolsUpgrade):
     """Upgrade PV drivers and tools in a Windows Vista EE SP1 x64 VM installed on the previous GA version"""
 
     VMNAME = "vistaeesp1-x64"
-    
+
 class TC9160(_VMToolsUpgrade):
     """Upgrade kernel (if available) and tools in a RHEL 4.7 VM installed on the previous GA version"""
 
@@ -2614,7 +2656,7 @@ class TC12530(_VMToolsUpgradeNotOutOfDate):
 class _FeatureOperationAfterUpgrade(xenrt.TestCase):
     """Template testcase for verifying that a feature set up before an update
     or upgrade still functions after the update/upgrade"""
-    
+
     def __init__(self):
         xenrt.TestCase.__init__(self)
         self.host = None
@@ -2688,7 +2730,7 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
         # Check the hosts/pools have the expected version based on
         # INITIAL_VERSION_PATH. If INITIAL_VERSION_PATH specifies updates
         # to that version make sure the patch-list is not empty. (This is
-        # not bullet proof but should protect against this test being 
+        # not bullet proof but should protect against this test being
         # accidentally run on already upgraded (but not necessarilty updated)
         # hosts.)
         for h in self.hostsToUpgrade:
@@ -2744,7 +2786,7 @@ class _FeatureOperationAfterUpgrade(xenrt.TestCase):
         if self.runSubcase("featureTest", (), "Check", "Before") != \
                xenrt.RESULT_PASS:
             return
-        
+
         # Perform the upgrade/update
         if self.runSubcase("featureOpUpgrade", (), "Do", "Upgrade") != \
                xenrt.RESULT_PASS:
@@ -2775,9 +2817,9 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 
 
     def run(self, arglist):
-        
+
         self.guest.getWindowsIPConfigData()
-        
+
         # Upgrade the tools
         if self.runSubcase("upgradeTools", (), "Tools", "Upgrade") != xenrt.RESULT_PASS:
             return
@@ -2785,19 +2827,19 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
         if not "r2" in self.guest.distro and ("vista" in self.guest.distro or "ws08" in self.guest.distro):
             for i in range(2):
                 self.guest.reboot()
-        
+
         self.guest.getWindowsIPConfigData()
 
-        # Check the VM kept it's static IP after the tools upgrade 
+        # Check the VM kept it's static IP after the tools upgrade
         self.testpeer.execguest("ping -c 10 192.168.1.2")
 
         # Uninstall tools
         if self.runSubcase("uninstallTools", (), "Tools", "Uninstall") != xenrt.RESULT_PASS:
             return
-        
+
         self.guest.getWindowsIPConfigData()
-        
-        # Check the VM kept it's static IP after the tools uninstallation 
+
+        # Check the VM kept it's static IP after the tools uninstallation
         if isinstance(self.guest, xenrt.lib.xenserver.guest.TampaGuest) and self.guest.host.productVersion != "Tampa" and not self.guest.usesLegacyDrivers():
             self.testpeer.execguest("ping -c 10 192.168.1.2")
 
@@ -2806,21 +2848,21 @@ class _WindowsPVUpgradeWithStaticIP(_VMToolsUpgrade):
 class _WindowsPVUpgradeWithStaticIPv6(_VMToolsUpgrade):
     def prepare(self, arglist):
         _VMToolsUpgrade.prepare(self, arglist)
-        
+
         staticIpObj = self.guest.specifyStaticIPv6()
         self.ipv6Add = staticIpObj.getAddr()
         self.guest.mainip =  self.ipv6Add
         self.guest.getWindowsIPConfigData()
 
     def run(self, arglist):
-        
+
         # Upgrade the tools
         if self.runSubcase("upgradeTools", (), "Tools", "Upgrade") != xenrt.RESULT_PASS:
             return
 
         # just to be sure
         self.guest.mainip =  self.ipv6Add
-        
+
         # test the connection
         self.guest.getWindowsIPConfigData()
         self.guest.shutdown()
@@ -3140,7 +3182,7 @@ class TC20669(_WindowsPVUpgradeWithStaticIP):
     """ Upgrade Windows Server 2012 R2 x64 PV tools with static IP Address from tools ISO hotfix"""
 
     VMNAME = "ws12r2-x64"
-    
+
 class TC20670(_WindowsPVUpgradeWithStaticIP):
     """ Upgrade Windows Server 2012 R2 core x64 PV tools with static IP Address from tools ISO hotfix"""
 
@@ -3227,17 +3269,17 @@ class TC20659(_WindowsPVUpgradeWithStaticIP):
     """ Install Windows Server 2012 x64 PV tools with static IP Address from tools ISO hotfix"""
 
     VMNAME = "ws12-x64"
-    
+
 class TC20660(_WindowsPVUpgradeWithStaticIP):
     """ Install Windows Server 2012 Core x64 PV tools with static IP Address from tools ISO hotfix"""
 
     VMNAME = "ws12core-x64"
-    
+
 class TC20661(_WindowsPVUpgradeWithStaticIP):
     """ Install Windows Server 2012 R2 x64 PV tools with static IP Address from tools ISO hotfix"""
 
     VMNAME = "ws12r2-x64"
-    
+
 class TC20662(_WindowsPVUpgradeWithStaticIP):
     """ Install Windows Server 2012 R2 core x64 PV tools with static IP Address from tools ISO hotfix"""
 
@@ -3306,7 +3348,7 @@ class TC20651(_WindowsPVUpgradeWithStaticIPv6):
     """ Upgrade Windows Server 2012 x64 PV tools with static IPv6 Address from tools ISO hotfix"""
 
     VMNAME = "ws12-x64"
-    
+
 class TC20652(_WindowsPVUpgradeWithStaticIPv6):
     """ Upgrade Windows Server 2012 Core x64 PV tools with static IPv6 Address from tools ISO hotfix"""
 
@@ -3371,22 +3413,22 @@ class TC10718(_FeatureOperationAfterUpgrade):
      #           pass
             # Set the install time parameter so the upgrade doesn't complain
         #    host.i_interfaces = [(None, "yes", "static", ip, netmask, gateway, None, None, None)]
-        
-        
+
+
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
-        
+
         self.poolsToUpgrade[0].enableAuthentication(self.authserver, setDNS=False)
         self.authserver.createSubjectGraph(self.SUBJECTGRAPH)
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="TC10718userA"), "pool-admin")
         self.poolsToUpgrade[0].allow(\
             self.authserver.getSubject(name="TC10718group2"), "pool-admin")
-        
+
     def featureTest(self):
         for host in self.poolsToUpgrade[0].getHosts():
             host.setDNSServer(self.authserver.place.getIP())
-        
+
         # Add extra user(s) to the subject-list
         for user in self.ADDREMOVEUSERS:
             self.poolsToUpgrade[0].allow(\
@@ -3404,7 +3446,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
                     username="root",password=self.poolsToUpgrade[0].master.password)
                 xenrt.TEC().logverbose("adding role to the queue thingy")
                 self.authserver.getSubject(name=user).roles.add("pool-admin")
-                
+
             except:
                 xenrt.TEC().logverbose("Role seems to be added already")
 
@@ -3427,7 +3469,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
                     else:
                         username = subject.name
                     host.execdom0("true",
-                                  username=username, 
+                                  username=username,
                                   password=subject.password)
                 except xenrt.XRTException, e:
                     if e.reason == "SSH authentication failed":
@@ -3463,7 +3505,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
                     else:
                         username = subject.name
                     host.execdom0("true",
-                                  username=username, 
+                                  username=username,
                                   password=subject.password)
                     ok = False
                 except xenrt.XRTException, e:
@@ -3483,7 +3525,7 @@ class TC10718(_FeatureOperationAfterUpgrade):
         cli.execute("vm-list",
                     username=subject.name,
                     password=subject.password)
-        
+
 class TC12611(TC10718):
     """Continued operation of RBAC following host/pool update/upgrade."""
 
@@ -3512,10 +3554,10 @@ class TC12611(TC10718):
                 try:
                     op.call(self.poolsToUpgrade[0].master, subject)
                 except:
-                    if op.operation in self.VALID: 
+                    if op.operation in self.VALID:
                         raise xenrt.XRTFailure("Valid operation failed.")
                 else:
-                    if not op.operation in self.VALID: 
+                    if not op.operation in self.VALID:
                         raise xenrt.XRTFailure("Invalid operation suceeded.")
 
 class TC10721(_FeatureOperationAfterUpgrade):
@@ -3534,7 +3576,7 @@ class TC10721(_FeatureOperationAfterUpgrade):
         self.guest.start()
         self.guest.installTools()
         self.guest.shutdown()
-        
+
     def featureTest(self):
         self.hostsToUpgrade[0].check()
         self.guest.start()
@@ -3623,13 +3665,13 @@ class _MultipathSingleHostUpgrade(_SingleHostUpgrade):
     ROOT_DISK_MULTIPATHED_NEW = True
 
     def installOld(self):
-        
+
         old = xenrt.TEC().lookup("OLD_PRODUCT_VERSION")
         oldversion = xenrt.TEC().lookup("OLD_PRODUCT_INPUTDIR")
         self.host = xenrt.lib.xenserver.createHost(id=0,
                                                    version=oldversion,
                                                    productVersion=old)
-                                                   
+
         # Create an iSCSI SR
         self.iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.host, "iscsi")
         self.iscsiSR.create(subtype="lvm", multipathing=self.SR_MULTIPATHED)
@@ -3639,44 +3681,44 @@ class _MultipathSingleHostUpgrade(_SingleHostUpgrade):
                             "sr-uuid",
                             self.iscsiSR.uuid,
                             "host-uuid=%s" % (self.host.getMyHostUUID()))
-        
+
         self.scsiid = string.split(self.host.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
         self.iscsiSRScsiid = self.host.genParamGet("pbd", pbd, "device-config", "SCSIid")
-        
+
         mp = self.host.getMultipathInfo(onlyActive=True, useLL=True)
-        
+
         if not self.SR_MULTIPATHED and mp.has_key(self.iscsiSRScsiid) and len(mp[self.iscsiSRScsiid]) > 1:
             raise xenrt.XRTFailure("Expecting 1/4 paths active for ISCSI SR, found %u" % (len(mp[self.iscsiSRScsiid])))
-        
+
         if self.SR_MULTIPATHED and ((not mp.has_key(self.iscsiSRScsiid)) or len(mp[self.iscsiSRScsiid]) < 2):
             raise xenrt.XRTFailure("Expecting 4/4 paths active for ISCSI SR, found %u" % (len(mp[self.iscsiSRScsiid])))
-            
+
         # on cowley and later you need to explicitly enable multipath root disk
         if self.ROOT_DISK_MULTIPATHED_NEW:
             xenrt.TEC().config.setVariable("OPTION_ROOT_MPATH", "enabled")
         else:
             xenrt.TEC().config.setVariable("OPTION_ROOT_MPATH", "")
-        
+
     def checkSR(self):
-        
+
         mp = self.host.getMultipathInfo(onlyActive=True, useLL=True)
-        
+
         if not self.ROOT_DISK_MULTIPATHED_NEW and mp.has_key(self.scsiid) and len(mp[self.scsiid]) > 1:
             raise xenrt.XRTFailure("Expecting 1/2 paths active for root disk, found %u" % (len(mp[self.scsiid])))
-            
+
         if self.ROOT_DISK_MULTIPATHED_NEW and ((not mp.has_key(self.scsiid)) or len(mp[self.scsiid]) < 2):
             raise xenrt.XRTFailure("Expecting 2/2 paths active for root disk, found 1")
 
         if not self.SR_MULTIPATHED and mp.has_key(self.iscsiSRScsiid) and len(mp[self.iscsiSRScsiid]) > 1:
             raise xenrt.XRTFailure("Expecting 1/4 paths active for ISCSI SR, found %u" % (len(mp[self.iscsiSRScsiid])))
-        
+
         if self.SR_MULTIPATHED and ((not mp.has_key(self.iscsiSRScsiid)) or len(mp[self.iscsiSRScsiid]) < 2):
             raise xenrt.XRTFailure("Expecting 4/4 paths active for ISCSI SR, found 1")
 
     def postRun(self):
         if self.iscsiSR:
             self.iscsiSR.release()
-            
+
 class TC12210(_MultipathSingleHostUpgrade):
     """Test upgrade from single path iSCSI SR to single path root disk"""
     SR_MULTIPATHED = False
@@ -3714,7 +3756,7 @@ class TC14930(_FeatureOperationAfterUpgrade):
 
     def getvm(self,pool,state):
 
-        name = "copiedVM" 
+        name = "copiedVM"
         pool.linux = xenrt.TEC().gec.registry.guestGet('linux')
         pool.linux.goState('DOWN')
         vm = pool.linux.cloneVM(name=name) or pool.linux
@@ -3725,7 +3767,7 @@ class TC14930(_FeatureOperationAfterUpgrade):
         return vm
 
     def cloneToNew(self, vm):
-        return vm.cloneVM()        
+        return vm.cloneVM()
 
     def noVMPP(self, vm, op):
 
@@ -3937,7 +3979,7 @@ class TC14932(_FeatureOperationAfterUpgrade):
 
 class TC18591(_FeatureOperationAfterUpgrade):
     """Continued operation of NS VPXs 9.3 and 10.0"""
-    
+
     allocatedIPAddrs = []
 
     def importNsXva(self, host, xva):
@@ -3959,9 +4001,9 @@ class TC18591(_FeatureOperationAfterUpgrade):
         vpx = host.guestFactory()(gName, host=host)
         vpx.uuid = vm_uuid
         vpx.mainip = ip
-        vpx.password = 'nsroot' 
+        vpx.password = 'nsroot'
         return vpx
-    
+
     def getLicenseFile(self):
         lic = "CNS_V1000_SERVER_PLT_Retail.lic"
         working = xenrt.TEC().getWorkdir()
@@ -3990,7 +4032,7 @@ class TC18591(_FeatureOperationAfterUpgrade):
         vpx = self.importNsXva(host, xva)
         self.installLicense(vpx)
         return vpx
-        
+
     def prepare(self, arglist):
         vpx_xvas = ["NSVPX-XEN-10.0-72.5_nc.xva", "NSVPX-XEN-9.3-60.3_nc.xva"]
         self.license_file = None
@@ -3998,7 +4040,7 @@ class TC18591(_FeatureOperationAfterUpgrade):
         self.hostsToUpgrade.append(self.host)
         self.VPXs = [self.installNSVPX(self.host, xva) for xva in vpx_xvas]
         return
-    
+
     def featureTest(self):
 
         for vpx in self.VPXs:
@@ -4017,7 +4059,7 @@ class TC18591(_FeatureOperationAfterUpgrade):
 
         _FeatureOperationAfterUpgrade.postRun(self)
         return
-    
+
 
 class TC15194(_FeatureOperationAfterUpgrade):
     """Continued operation of hidden Management interface"""
@@ -4146,23 +4188,23 @@ class TC15194(_FeatureOperationAfterUpgrade):
         self.checkIfXapiIsReachableFromExternalWorld()
 
         self.guest.shutdown()
- 
+
     def postRun(self):
         self.hostsToUpgrade[0].execcmd("xe host-management-reconfigure pif-uuid=%s" % self.mng_pif_uuid)
- 
+
 
 class TC15290(xenrt.TestCase):
     """Check that host evacuate is prevented when there are started HVM guests without PV drivers installed."""
 
-    def run(self, arglist=None): 
+    def run(self, arglist=None):
         h0 = self.getHost("RESOURCE_HOST_0")
         h1 = self.getHost("RESOURCE_HOST_1")
-        
+
         # start an HVM guest on the master and don't install PV drivers
         guestUuid = h0.execdom0('xe vm-install new-name-label="winguest" template-name="Windows 7 (32-bit)"').strip()
         h0.execdom0('xe vm-cd-add uuid=%s cd-name="win7-x86.iso" device=hdd' % guestUuid)
         h0.execdom0('xe vm-start uuid=%s on=%s' % (guestUuid, h0.getName()))
-        
+
         # check we can't evacuate
         if not guestUuid in h0.execdom0('xe host-get-vms-which-prevent-evacuation uuid=%s' % h0.uuid).strip():
             raise xenrt.XRTFailure("Shouldn't be allowed to evacuate with HVM guest and no PV drivers")

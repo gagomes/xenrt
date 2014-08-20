@@ -4408,8 +4408,13 @@ class TC18782(xenrt.TestCase):
         multipathDebuginfoRpmFileName = self.host.execdom0(commandInput).strip()
 
         if multipathDebuginfoRpmFileName: # e.g. device-mapper-multipath-debuginfo-0.4.7-46.xs1033
-            multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
-                                                                                        multipathDebuginfoRpmFileName)
+        
+            if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
+                                                                                                multipathDebuginfoRpmFileName)
+            else:
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.9.0-xs.10649.2569..x86_64.rpm")
+
             if not multipathDebuginfoRpmFilePath:
                 xenrt.TEC().logverbose("Device-mapper-multipath-debuginfo file path does not exist. "
                                         "A different version of device-mapper-multipath-debuginfo may exist. "
@@ -4439,8 +4444,23 @@ class TC18782(xenrt.TestCase):
 
     def run(self, arglist=None):
 
-        # Install Memcheck, a memory error detector using Valgrind-3.5.0
-        self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind")
+        # Install Memcheck, a memory error detector using Valgrind
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind") # Valgrind v3.5.0
+        else:
+            # Valgrind v3.9.0 for Creedence.
+            script = """#!/usr/bin/expect
+    set timeout 180
+    spawn yum --disablerepo=citrix --enablerepo=base install gdb
+    expect -exact "Is this ok"
+    sleep 5
+    send -- "y\r"
+    expect -exact "Complete"
+    expect eof
+    """
+            self.host.execdom0("echo '%s' > script.sh; exit 0" % script)
+            self.host.execdom0("chmod a+x script.sh; exit 0")
+            self.host.execdom0("/root/script.sh")
 
         # Clean existing multipathd deamon, if any
         commandOutput = self.host.execdom0("killall multipathd; exit 0").strip()

@@ -869,7 +869,7 @@ class Measurement_loginvsi(Measurement):
 
         #wait until the last thread has finished first loginvsi loop at least
         xenrt.TEC().logverbose("waiting for last rdplogon thread to finish first loginvsi loop")
-        time.sleep(3600) #TODO: instead of waiting an ad-hoc time, smbget vm's share every minute or so and probe for the vsimax file
+        time.sleep(600) #TODO: instead of waiting an ad-hoc time, smbget vm's share every minute or so and probe for the vsimax file
 
 class Measurement_loginvsi_rds(Measurement_loginvsi):
 
@@ -1531,8 +1531,8 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
-            if self.defaultsr in ["lvm","ext"]:
-                localsr = self.defaultsr
+            if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
+                localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
                 sharedsr = ""
             else:
                 localsr = "ext"
@@ -1576,6 +1576,23 @@ class Experiment_vmrun(Experiment):
             host = self.tc.getDefaultHost()
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
+
+            # If given a defaultsr like ext:/dev/sdb, create and ext SR on
+            # /dev/sdb and make it the default SR
+            if self.defaultsr.startswith("ext:"):
+                device = self.defaultsr[4:]
+
+                # Remove any existing SRs on the device
+                uuids = host.minimalList("pbd-list",
+                                         args="params=sr-uuid "
+                                              "device-config:device=%s" % device)
+                for uuid in uuids:
+                    host.forgetSR(uuids[0])
+
+                diskname = host.execdom0("basename `readlink -f %s`" % device).strip()
+                sr = xenrt.lib.xenserver.host.EXTStorageRepository(host, 'SR-%s' % diskname)
+                sr.create(device)
+                host.pool.setPoolParam("default-SR", sr.uuid)
 
             # 1. reinstall pool with $value version of xenserver
             # for each h in self.hosts: self.pool.install_host(...)
@@ -2332,15 +2349,15 @@ MachinePassword=%s
     def do_DOM0RAM(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0RAM value=[%s]" % value)
         # change dom0 ram and reboot host
-        xenrt.TEC().config.setVariable("OPTION_DOM0_MEM", value)
+        xenrt.TEC().config.setVariable("DOM0_MEM", value)
         self.dom0ram=value
 
     def do_DOM0PARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: DOM0PARAMS value=[%s]" % value)
         self.dom0params=value
-        d0memsettarget = 'nod0memtarget' not in self.dom0params
-        xenrt.TEC().logverbose("OPT_DOM0MEM_SET_TARGET=%s" % d0memsettarget)
-        xenrt.TEC().config.setVariable("OPT_DOM0MEM_SET_TARGET", d0memsettarget)
+        #d0memsettarget = 'nod0memtarget' not in self.dom0params
+        #xenrt.TEC().logverbose("OPT_DOM0MEM_SET_TARGET=%s" % d0memsettarget)
+        #xenrt.TEC().config.setVariable("OPT_DOM0MEM_SET_TARGET", d0memsettarget)
 
     def do_XENOPSPARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: XENOPSPARAMS value=[%s]" % value)
@@ -2396,54 +2413,51 @@ MachinePassword=%s
             self.measurement_vmstarttime.start(coord)
             self.measurement_vmreadytime.start(coord)
 
-            #guest.start() #vm-start + automatic login
-            #guest.check()
+            def vmstart_thread(self, guest, coord):
+                #cli = guest.host.getCLIInstance()
+                #do not use guest.start(), it contains several time.sleep that we don't want
+                #Should the vm-start on a specific host ?
+                if get_vm_host_name(value):
+                    guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
+                                        timeout=900+30*self.tc.THRESHOLD)
+                else:
+                    guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
 
-            #cli = guest.host.getCLIInstance()
-            #do not use guest.start(), it contains several time.sleep that we don't want
-            #Should the vm-start on a specific host ?
-            if get_vm_host_name(value):
-                guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
-                                    timeout=900+30*self.tc.THRESHOLD)
+                self.xapi_event.waitFor(guest.uuid,"power_state","Running")
+
+                #vmstart finished
+                result = self.measurement_vmstarttime.stop(coord,guest)
+
+            vmstart_t = xenrt.XRTThread(target=vmstart_thread, args=(self,guest,coord),name=("Thread-vmstart-%s"%value))
+            vmstart_t.start()
+
+            #we are not waiting for vmstart to finish, continue until vmlogin finished
+
+            vifname, bridge, mac, c = guest.vifs[0]
+            if not self.measurement_1.base_measurement:
+                timeout = 600
             else:
-                guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+                timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
+            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
+            self.ip_to_guest[guest.mainip] = guest
+            #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
 
-            self.xapi_event.waitFor(guest.uuid,"power_state","Running")
-
-            #vmstart finished
-            result = self.measurement_vmstarttime.stop(coord,guest)
-
-            if True: #"waitvmstart" not in self.vmcron:
-                #we are not waiting for vmstart to finish, continue until vmlogin finished
- 
-                vifname, bridge, mac, c = guest.vifs[0]
-                if not self.measurement_1.base_measurement:
-                    timeout = 600
+            if (self.measurement_loginvsi):
+                received_event = self.guest_events[GuestEvent_VMReady.EVENT].receive(guest,timeout)
+                #vm is ready to log in
+                if not received_event:
+                    msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMReady.EVENT,guest,guest.mainip)
+                    raise xenrt.XRTFailure(msg)
                 else:
-                    timeout = 600 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-                guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
-                self.ip_to_guest[guest.mainip] = guest
-                #guest.waitforxmlrpc(300, desc="Daemon", sleeptime=1, reallyImpatient=False)
-
-                if (self.measurement_loginvsi):
-                    received_event = self.guest_events[GuestEvent_VMReady.EVENT].receive(guest,timeout)
-                    #vm is ready to log in
-                    if not received_event:
-                        msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMReady.EVENT,guest,guest.mainip)
-                        raise xenrt.XRTFailure(msg)
-                    else: 
-                        result = self.measurement_vmreadytime.stop(coord,guest)
+                    result = self.measurement_vmreadytime.stop(coord,guest)
+            else:
+                received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest,timeout)
+                #vm has finished logging in
+                if not received_event:
+                    msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMLogin.EVENT,guest,guest.mainip)
+                    raise xenrt.XRTFailure(msg)
                 else:
-                    received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest,timeout)
-                    #vm has finished logging in
-                    if not received_event:
-                        msg = "DEBUG: =======> did not receive %s for vm %s (ip %s)" % (GuestEvent_VMLogin.EVENT,guest,guest.mainip)
-                        raise xenrt.XRTFailure(msg)
-                    else: 
-                        result = self.measurement_1.stop(coord,guest)
-
-            else: #waitvmstart was in vmcron
-                xenrt.TEC().logverbose("VM=%s: waitvmstart was in self.vmcron: not waiting for further events such as vmlogin" % value)
+                    result = self.measurement_1.stop(coord,guest)
 
             #run vm load on vm $value without stopping, eg. cpu loop
             try:
@@ -2454,7 +2468,9 @@ MachinePassword=%s
                 self.do_VMS_ERR_load_failed = True
                 xenrt.TEC().logverbose("======> VM load failed to start for VM %s! Aborting this sequence of VMs!" % value)
                 raise #re-raise the exception
-        
+
+            #vmstart_t.join(3600)
+
             #store the initial base measurement value to compare against later
             #when detecting if latest measurement is too different
             if value == self.tc.VMS[:1][0]:

@@ -2226,6 +2226,28 @@ fi
                 for hf in hotfixPaths:
                     self.applyPatch(xenrt.TEC().getFile(hf))
 
+        supptarballs = xenrt.TEC().lookup("POST_HFX_SUPP_PACK_TGZS", None)
+        if supptarballs:
+            for supptar in supptarballs.split(","):
+                tarball = xenrt.TEC().getFile(supptar)
+                if not tarball:
+                    tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
+                if not tarball:
+                    tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
+                if not tarball:
+                    raise xenrt.XRTError("Couldn't find %s." % (supptar))
+                xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
+                tdir = xenrt.TEC().tempDir()
+                xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir))
+                iso = glob.glob("%s/*.iso")[0]
+                isoname = os.path.basename(iso)
+                sftp = self.sftpClient()
+                sftp.copyTo(iso, "/tmp/%s" % isoname)
+                sftp.close()
+                self.execdom0("cd /tmp; xe-install-supplemental-pack %s" % isoname)
+                self.execdom0("rm -f /tmp/%s" % isoname)
+            self.reboot()
+
         # CARBON_PATCHES contains any patches to be applied regardless of the
         # product version being installed. It is either a comma separated
         # list of patch paths or a tree of variables of patch paths.

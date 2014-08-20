@@ -144,7 +144,7 @@ class TCRemoteNose(_TCRemoteNoseBase):
                     self.workdir,
                     self.args['hypervisor'],
                     noseargs,
-                    self.args['file']), timeout=14400, retval="code")
+                    self.args['file']), timeout=28800, retval="code")
 
         sftp = self.runner.sftpClient()
         logdir = xenrt.TEC().getLogdir()

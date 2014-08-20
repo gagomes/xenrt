@@ -372,12 +372,16 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         for cluster in self._clusters:
             self._hostsInClusters.append(self.cloud.getAllHostInClusterByClusterId(cluster.id))
 
-    def _rearrangeCloud(self,hostForSystemVm,hostForInstance):
+    def _rearrangeCloud(self,hostWhereSystemVm,hostForSystemVm,hostForInstance):
 
         #moving all the system VMs to the given host
-        systemVMsNotOnThisHost = filter(lambda x:x.hostname != hostForSystemVm.name, self._systemVMs)
-        xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsNotOnThisHost), hostForSystemVm.name))
-        map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsNotOnThisHost)
+        systemVMsOnThisHost = []
+        systemVMsOnThisHost = filter(lambda x:x.hostname == hostWhereSystemVm.name, self._systemVMs)
+        
+        if not systemVMsOnThisHost:
+            return
+        xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsOnThisHost), hostForSystemVm.name))
+        map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsOnThisHost)
         self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
 
         #creating vm instance on the other host
@@ -432,16 +436,16 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)[0]
         h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)[0]
 
-        self._rearrangeCloud(multipleHost[0],multipleHost[1])
+        self._rearrangeCloud(multipleHost[0],multipleHost[0],multipleHost[1])
         self._resilliencyTest(h1,multipleHost[0]) 
 
-        self._rearrangeCloud(multipleHost[1],multipleHost[1])
+        self._rearrangeCloud(multipleHost[0],multipleHost[1],multipleHost[1])
         self._resilliencyTest(h1,multipleHost[0])
 
-        self._rearrangeCloud(multipleHost[0],multipleHost[0])
+        self._rearrangeCloud(multipleHost[1],multipleHost[0],multipleHost[0])
         self._resilliencyTest(h2,multipleHost[1])
 
-        self._rearrangeCloud(multipleHost[1],multipleHost[0])
+        self._rearrangeCloud(multipleHost[1],multipleHost[1],multipleHost[0])
         self._resilliencyTest(h2,multipleHost[1])
 
 class TCRebootHost(_TCHostResiliencyBase):

@@ -215,11 +215,19 @@ class LongHaulTestVmOperations(xenrt.TestCase):
             
     def pauseandResume(self):
         now =  xenrt.timenow()
-        xenrt.TEC().logverbose("Stoppage Time = %s"%(self.host.execdom0("date")))
+        try:
+            xenrt.TEC().logverbose("Stoppage Time = %s"%(self.host.execdom0("date")))
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error getting stoppage time from host " + str(ex))
+
         self.pause("Execution PAUSED to debug the issue ."
                    "Before you RESUME the Testcase execution ,please ENSURE that the VM is in running state " , indefinite="True")
         resume = xenrt.timenow()
         elapsed = resume - now
         self.endTime = self.endTime + elapsed #update the execution time by the time taken to debug the issue
-        xenrt.TEC().logverbose("Resuming the VM operations %s"%(self.host.execdom0("date")))
+
+        try:
+            xenrt.TEC().logverbose("Resuming the VM operations %s"%(self.host.execdom0("date")))
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error getting resume time from host " + str(ex))
 

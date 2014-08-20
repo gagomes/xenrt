@@ -66,6 +66,9 @@ class SnapshotTest(xenrt.TestCase):
         echo "/logdrive /var/log ext3 loop,rw 0 0" >> /etc/fstab
         """)
 
+        self.setContents(host, setupScriptPath, script)
+
+    def setContents(self, host, setupScriptPath, script):
         sftpClient = host.sftpClient()
 
         remoteFile = sftpClient.client.file(setupScriptPath, 'w')

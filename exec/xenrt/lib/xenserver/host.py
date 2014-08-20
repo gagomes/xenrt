@@ -11077,6 +11077,13 @@ class SarasotaHost(CreedenceHost):
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
+        
+        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
+            self.execdom0("service xenopsd-xc stop")
+            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
+            self.execdom0("chkconfig --del xenopsd-xc")
+            self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.restartToolstack()
 
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():

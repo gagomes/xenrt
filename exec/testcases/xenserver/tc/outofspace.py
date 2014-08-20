@@ -47,7 +47,7 @@ class SnapshotTest(xenrt.TestCase):
     def unfillDomZeroFileSystem(self, host):
         host.execdom0('rm -f /fillup', retval='code')
 
-    def configureLogDrive(self, host):
+    def createLogDriveSetupScript(self, host):
         sftpClient = host.sftpClient()
 
         script = textwrap.dedent("""
@@ -73,5 +73,8 @@ class SnapshotTest(xenrt.TestCase):
         remoteFile.close()
 
         sftpClient.close()
+
+    def configureLogDrive(self, host):
+        self.createLogDriveSetupScript(host)
 
         host.execdom0('bash /root/logdrive_setup.sh')

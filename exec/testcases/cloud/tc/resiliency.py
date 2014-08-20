@@ -375,14 +375,16 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
     def _rearrangeCloud(self,hostWhereSystemVm,hostForSystemVm,hostForInstance):
 
         #moving all the system VMs to the given host
-        systemVMsOnThisHost = []
-        systemVMsOnThisHost = filter(lambda x:x.hostname == hostWhereSystemVm.name, self._systemVMs)
-        
-        if not systemVMsOnThisHost:
-            return
-        xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsOnThisHost), hostForSystemVm.name))
-        map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsOnThisHost)
-        self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
+        if hostWhereSystemVm.name != hostForSystemVm.name:
+            systemVMsOnThisHost = []
+            systemVMsOnThisHost = filter(lambda x:x.hostname == hostWhereSystemVm.name, self._systemVMs)
+            map(lambda x:xenrt.TEC().logverbose("VM name %s, host name %s" % (x.name,x.hostname)),self._systemVMs)
+            xenrt.TEC().logverbose("host System VM %s, VMs on this host %s, to be migrated on %s " % (hostWhereSystemVm,systemVMsOnThisHost,hostForSystemVm))
+            if not systemVMsOnThisHost:
+                return
+            xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsOnThisHost), hostForSystemVm.name))
+            map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsOnThisHost)
+            self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
 
         #creating vm instance on the other host
         self._instance = self.cloud.createInstance(distro="debian70_x86-64",startOn = hostForInstance.name)

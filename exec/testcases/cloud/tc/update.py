@@ -63,6 +63,7 @@ class TCCloudUpdate(xenrt.TestCase):
                 map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
 
             xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
+            xenrt.TEC().logverbose(str(templatesToUse))
             for template in templatesToUse:
                 distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
                 distroName = distro.replace('_','-')

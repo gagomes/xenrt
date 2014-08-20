@@ -950,8 +950,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             project = self.ERR_PROJ
 
         # Remove varying things like UUIDs,IPs,hostnames etc. from the track
-        track2 = re.sub(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-"
-                        "[0-9a-f]{12}",
+        track2 = re.sub(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                        "[0-9a-fA-F]{12}",
                         "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                         track[2])
         track2 = re.sub(r"ovs-vswitchd\.\d+\.ctl", "ovs-vswitchd.xxxx.ctl", track2)

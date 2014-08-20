@@ -1,4 +1,4 @@
-import json, os, xml.dom.minidom
+import json, os, xml.dom.minidom, re, glob
 
 import xenrt
 from xenrt.lib.netscaler import NetScaler
@@ -43,6 +43,46 @@ class _TCRemoteNoseBase(xenrt.TestCase):
         self.args = self.parseArgsKeyValue(arglist)
         self.runner = self.getGuest(self.args.get("runner", "CS-Marvin"))
         self.toolstack = self.getDefaultToolstack()
+        xenrturl = xenrt.TEC().lookup("JIRA_XENRT_WEB", 
+                              "http://xenrt.hq.xensource.com/control/queue.cgi")
+        jobid = xenrt.GEC().dbconnect.jobid()
+        if self.group:
+            phase = tec.tc.group.replace(" ","%20")
+        else:
+            phase = "Phase%2099"
+        test = self.basename.replace(" ","%20")
+        self.logurl = "%s?action=testlogs&id=%s&phase=%s&test=%s" % (xenrturl, jobid, phase, test) 
+
+    def ticketAssignee(self):
+        return self.args.get("ticketassignee", None)
+
+    def getReason(self, failure):
+        if not failure:
+            return None
+        failure = failure.split("-------------------- >>")[0]
+        cmd = None
+        # See if this is a JSON error with a command
+        m = re.search("cmd : u'\S+\.(\S+?)'", failure)
+        if m:
+            cmd = m.group(1)
+        error = None
+        # And see if we've got some errortext
+        m = re.search("errortext : u'(.+?)'", failure)
+        if m:
+            error = m.group(1)
+        if error:
+            if cmd:
+                reason = "%s failed: %s" % (cmd, error)
+            else:
+                reason = error
+        else:
+            reason = failure
+        
+        reason = re.sub("\d+-\d+-VM", "xx-xx-VM", reason)
+        reason = re.sub("\d+-VM", "xx-VM", reason)
+        reason = re.sub("\[\S+\|\S+\|\S+\]", "[xx|xx|xx]", reason)
+        
+        return reason
 
 class TCRemoteNoseSetup(_TCRemoteNoseBase):
     def run(self, arglist):
@@ -87,9 +127,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
 
 class TCRemoteNose(_TCRemoteNoseBase):
+    SUBCASE_TICKETS = True
+
     def run(self, arglist):
         self.workdir = self.runner.execguest("mktemp -d /root/marvinXXXXXXXX").strip()
-
+        self.failures = {}
         noseargs = ""
 
         if self.args.has_key("tags"):
@@ -107,21 +149,80 @@ class TCRemoteNose(_TCRemoteNoseBase):
         sftp = self.runner.sftpClient()
         logdir = xenrt.TEC().getLogdir()
         sftp.copyTreeFrom(self.workdir, logdir + '/marvin')
-        d = xml.dom.minidom.parse("%s/marvin/results.xml" % logdir)
+        self.parseResultsXML("%s/marvin/results.xml" % logdir)
 
+    def truncateText(self, text):
+        ret = text.split("--------")[0]
+        ret += "\n\nLogs available at %s" % self.logurl
+        return ret
+
+    def truncateTCText(self, tc, suite, doc):
+        t = doc.createElement("testcase")
+        for a in tc.attributes.keys():
+            t.setAttribute(a, tc.getAttribute(a))
+
+        for n in tc.childNodes:
+            if n.nodeName in ("system-out", "system-err"):
+                continue
+            
+            newNode = doc.createElement(n.nodeName)
+            for a in n.attributes.keys():
+                if a == "message":
+                    newNode.setAttribute("message", self.truncateText(n.getAttribute("message")))
+                else:
+                    newNode.setAttribute(a, n.getAttribute(a))
+            for m in n.childNodes:
+                if m.nodeType == m.CDATA_SECTION_NODE:
+                    cdata = doc.createCDATASection(self.truncateText(m.data))
+                    newNode.appendChild(cdata) 
+                else:
+                    newNode.appendChild(m)
+            t.appendChild(newNode)
+
+        suite.appendChild(t)
+
+    def parseResultsXML(self, fname):
+        d = xml.dom.minidom.parse(fname)
+        newdoc = xml.dom.minidom.Document()
         suites = d.getElementsByTagName("testsuite")
         for s in suites:
             tcs = s.getElementsByTagName("testcase")
             for t in tcs:
                 result = xenrt.RESULT_PASS
+                msg = None
                 if t.getElementsByTagName("failure"):
                     result = xenrt.RESULT_FAIL
+                    msg = t.getElementsByTagName("failure")[0].getAttribute("message")
                 elif t.getElementsByTagName("error"):
                     result = xenrt.RESULT_FAIL
+                    msg = t.getElementsByTagName("error")[0].getAttribute("message")
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
-                self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result)
+                self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result, self.getReason(msg))
+                self.failures["%s/%s" % (t.getAttribute("classname"), t.getAttribute("name"))] = msg
 
+            newsuite = newdoc.createElement("testsuite")
+            for a in s.attributes.keys():
+                newsuite.setAttribute(a, s.getAttribute(a))
+
+            for t in s.getElementsByTagName("testcase"):
+                self.truncateTCText(t, newsuite, newdoc)
+
+            newdoc.appendChild(newsuite)
+
+        with open("%s-truncated.xml" % fname[:-4], "w") as f:
+            f.write(newdoc.toprettyxml())
+
+    def getSubCaseTicketDescription(self, group, test):
+        msg = self.failures.get("%s/%s" % (group, test), None)
+        if msg:
+            return "{noformat}\n%s\n{noformat}\n\n" % msg
+        else:
+            return None
+
+    def ticketAttachments(self):
+        logdir = xenrt.TEC().getLogdir()
+        return glob.glob("%s/marvin/MarvinLogs/*/results.txt" % logdir)
 
 class TCCombineResults(_TCRemoteNoseBase):
     def run(self, arglist):

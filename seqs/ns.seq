@@ -1,0 +1,25 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <CLOUD_WAIT_FOR_TPLTS>yes</CLOUD_WAIT_FOR_TPLTS>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+    <OPTION_KEEP_VLANS>yes</OPTION_KEEP_VLANS>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <CLOUDSTACK_GIT>__GIT_URL__</CLOUDSTACK_GIT>
+    <CLOUDSTACK_GIT_BRANCH>__GIT_BRANCH__</CLOUDSTACK_GIT_BRANCH>
+    <MARVIN_BUILTIN_TEMPLATES>yes</MARVIN_BUILTIN_TEMPLATES>
+    <AUTO_BUG_INPUTDIR>CLOUDINPUTDIR</AUTO_BUG_INPUTDIR>
+  </variables>
+
+  <prepare>
+    <host productVersion="Clearwater" version="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446">
+      <vm name="NetScaler-VPX">
+        <file>%EXPORT_DISTFILES_HTTP%/tallahassee/NSVPX-XEN-10.0-72.5_nc.xva</file>
+      </vm>
+    </host>
+  </prepare>
+</xenrt>
+

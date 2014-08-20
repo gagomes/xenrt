@@ -78,4 +78,4 @@ class SnapshotTest(xenrt.TestCase):
         setupScriptPath = '/root/logdrive_setup.sh'
         self.createLogDriveSetupScript(host, setupScriptPath)
 
-        host.execdom0('bash /root/logdrive_setup.sh')
+        host.execdom0('bash ' + setupScriptPath)

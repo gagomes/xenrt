@@ -68,10 +68,10 @@ class SnapshotTest(xenrt.TestCase):
 
         self.setContents(host, setupScriptPath, script)
 
-    def setContents(self, host, setupScriptPath, script):
+    def setContents(self, host, path, script):
         sftpClient = host.sftpClient()
 
-        remoteFile = sftpClient.client.file(setupScriptPath, 'w')
+        remoteFile = sftpClient.client.file(path, 'w')
         remoteFile.write(script)
         remoteFile.close()
 

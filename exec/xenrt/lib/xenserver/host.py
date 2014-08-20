@@ -349,6 +349,16 @@ def createHost(id=0,
     if xenrt.TEC().lookup("OPTION_AD_ENABLE", False, boolean=True):
         host.enableDefaultADAuth()
 
+    # Run arbitrary command in dom0 or a script from REMOTE_SCRIPTDIR
+    dom0cmd = xenrt.TEC().lookup("DOM0_COMMAND", None)
+    if dom0cmd:
+        host.execdom0(dom0cmd)
+
+    # Run a script from REMOTE_SCRIPTDIR
+    dom0script = xenrt.TEC().lookup("DOM0_SCRIPT", None)
+    if dom0script:
+        host.execdom0("%s/%s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dom0script))
+
     xenrt.TEC().setInputDir(None)
 
     return host
@@ -7150,16 +7160,6 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 xenrt.TEC().logverbose("Multi vcpu enablement complete")
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
-
-        # Run arbitrary command in dom0 or a script from REMOTE_SCRIPTDIR
-        dom0cmd = xenrt.TEC().lookup("DOM0_COMMAND", None)
-        if dom0cmd:
-            self.execdom0(dom0cmd)
-
-        # Run a script from REMOTE_SCRIPTDIR
-        dom0script = xenrt.TEC().lookup("DOM0_SCRIPT", None)
-        if dom0script:
-            self.execdom0("%s/%s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dom0script))
 
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""

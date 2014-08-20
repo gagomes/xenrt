@@ -18,6 +18,7 @@
     <NTHREADS>50</NTHREADS>
     <!--<OPTION_ENABLE_REDO_LOG>yes</OPTION_ENABLE_REDO_LOG>-->
     <USE_INTELLICACHE>yes</USE_INTELLICACHE>
+    <FLAT_VM_DIST>no</FLAT_VM_DIST>
   </variables>
   
   <scheduler>

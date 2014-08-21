@@ -38,7 +38,7 @@ class TestEchoRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         args = req1.serialize()
 
-        req2 = echoplugin.parse_request(args)
+        req2 = echoplugin.parseRequest(args)
 
         self.assertTrue(req1 == req2)
 
@@ -46,7 +46,7 @@ class TestEchoRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         args = req1.serialize()
 
-        req2 = echoplugin.parse_request(args)
+        req2 = echoplugin.parseRequest(args)
 
         self.assertEquals(None, req2.exitCode)
 
@@ -55,7 +55,7 @@ class TestEchoRequest(unittest.TestCase):
         req1.exitCode = 1
         args = req1.serialize()
 
-        req2 = echoplugin.parse_request(args)
+        req2 = echoplugin.parseRequest(args)
 
         self.assertEquals(1, req2.exitCode)
 
@@ -65,7 +65,7 @@ class TestParseRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         req1.data = 'HELLO'
 
-        req2 = echoplugin.parse_request(req1.serialize())
+        req2 = echoplugin.parseRequest(req1.serialize())
 
         self.assertEquals('HELLO', req2.data)
 
@@ -73,7 +73,7 @@ class TestParseRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         req1.stdout = True
 
-        req2 = echoplugin.parse_request(req1.serialize())
+        req2 = echoplugin.parseRequest(req1.serialize())
 
         self.assertEquals(True, req2.stdout)
 
@@ -81,7 +81,7 @@ class TestParseRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         req1.stderr = True
 
-        req2 = echoplugin.parse_request(req1.serialize())
+        req2 = echoplugin.parseRequest(req1.serialize())
 
         self.assertEquals(True, req2.stderr)
 
@@ -89,13 +89,13 @@ class TestParseRequest(unittest.TestCase):
         req1 = echoplugin.EchoRequest()
         req1.path = '/something'
 
-        req2 = echoplugin.parse_request(req1.serialize())
+        req2 = echoplugin.parseRequest(req1.serialize())
 
         self.assertEquals('/something', req2.path)
 
     def test_default_values(self):
         null_req = echoplugin.EchoRequest()
-        req = echoplugin.parse_request({})
+        req = echoplugin.parseRequest({})
 
         self.assertTrue(null_req == req)
 

@@ -52,7 +52,7 @@ def _parseBool(data):
     return False
 
 
-def parse_request(args):
+def parseRequest(args):
     echoRequest = EchoRequest()
 
     exitCode = args.get('exitCode')
@@ -78,7 +78,7 @@ def write_to_path(data, path):
 
 def echo_main(session, args):
     import sys
-    echoRequest = parse_request(args)
+    echoRequest = parseRequest(args)
     data = echoRequest.data
 
     if echoRequest.path:

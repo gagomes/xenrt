@@ -144,7 +144,7 @@ class PluginTestWithoutSpace(xenrt.TestCase):
 
         if not filesystemFiller.logDriveIsUsed():
             filesystemFiller.configureLogDrive()
-            reboot(host, 'g1')
+            host.reboot()
 
         filesystemFiller.fillFileSystem()
 
@@ -205,32 +205,34 @@ class DomZeroFilesystemFiller(object):
 class SnapshotTest(xenrt.TestCase):
     def run(self, arglist=None):
         host = self.getHost('RESOURCE_HOST_0')
+        guest = host.createGenericWindowsGuest(
+            distro='win7sp1-x86', name='MONKEY')
         filesystemFiller = DomZeroFilesystemFiller(host)
 
         if not filesystemFiller.logDriveIsUsed():
             filesystemFiller.configureLogDrive()
-            reboot(host, 'g1')
+            rebootGuestAndHost(guest)
 
         filesystemFiller.fillFileSystem()
-        self.snapshot(host, 'g1')
+        self.snapshot(guest)
         filesystemFiller.unfillFileSystem()
-        snapshotAfterSpaceFreedUp = self.snapshot(host, 'g1')
+        snapshotAfterSpaceFreedUp = self.snapshot(guest)
 
         if not snapshotAfterSpaceFreedUp.succeeded:
             raise xenrt.XRTFailure(
                 'Snapshot failed even after freeing up some space')
 
-    def snapshot(self, host, guestName):
+    def snapshot(self, guest):
+        host = guest.getHost()
         result = host.execdom0(
-            'xe vm-snapshot vm=%s new-name-label=out-of-space-test' %
-            guestName,
+            'xe vm-snapshot vm=MONKEY new-name-label=out-of-space-test',
             retval='code')
 
         return SnapshotResult(succeeded=result == 0)
 
 
-def reboot(host, guestName):
-    guest = host.getGuest(guestName)
+def rebootGuestAndHost(guest):
+    host = guest.getHost()
     if guest.getState() == 'UP':
         guest.shutdown()
     host.reboot()

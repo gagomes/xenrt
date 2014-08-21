@@ -23,7 +23,7 @@ class XenRTMatrix(XenRTPage):
             jobs = [str(self.lookup_jobid(self.request.params["detailid"]))]
         out += "<table border=0><tr>"
         for job in jobs:
-            out += "<td>"
+            out += "<td valign=\"top\">"
             querystr = "SELECT uploaded FROM tblJobs WHERE jobid=%s" % job
             cur.execute(querystr)
             rc = cur.fetchone()

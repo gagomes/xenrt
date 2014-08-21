@@ -1,9 +1,130 @@
+import os
 import xenrt
 import textwrap
 from collections import namedtuple
+from testcases.xenserver.tc import echoplugin
 
 
 SnapshotResult = namedtuple('SnapshotResult', ['succeeded'])
+
+
+class EchoPlugin(object):
+    def installTo(self, filesystem):
+        targetPath = '/etc/xapi.d/plugins/%s' % echoplugin.ECHO_PLUGIN_NAME
+
+        filesystem.setContents(targetPath, echoplugin.getSource())
+        filesystem.makePathExecutable(targetPath)
+
+    def cmdLineToCallEchoFunction(self, echoRequest):
+        args = [
+            'plugin=%s' % echoplugin.ECHO_PLUGIN_NAME,
+            'fn=%s' % echoplugin.ECHO_FN_NAME
+        ] + echoplugin.to_xapi_args(echoRequest.serialize())
+
+        return ' '.join(args)
+
+
+class DomZeroFilesystem(object):
+    def __init__(self, host):
+        self.host = host
+
+    def setContents(self, path, data):
+        sftpClient = self.host.sftpClient()
+
+        remoteFile = sftpClient.client.file(path, 'w')
+        remoteFile.write(data)
+        remoteFile.close()
+
+        sftpClient.close()
+
+    def getContents(self, path):
+        sftpClient = self.host.sftpClient()
+
+        remoteFile = sftpClient.client.file(path, 'r')
+        contents = remoteFile.read()
+        remoteFile.close()
+
+        sftpClient.close()
+
+        return contents
+
+    def makePathExecutable(self, path):
+        self.host.execdom0('chmod +x %s' % path)
+
+
+class PluginTest(xenrt.TestCase):
+    def getHostUnderTest(self):
+        return self.getHost('RESOURCE_HOST_0')
+
+    def callEchoPlugin(self, request):
+        echoPlugin = EchoPlugin()
+        return self.getHostUnderTest().execdom0(
+            'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
+            + echoPlugin.cmdLineToCallEchoFunction(request)
+            + ' || true'
+        )
+
+    def run(self, arglist=None):
+        domZerosFilesystem = DomZeroFilesystem(self.getHostUnderTest())
+
+        echoPlugin = EchoPlugin()
+        echoPlugin.installTo(domZerosFilesystem)
+
+        self.assertNormalPluginCallWorks()
+        self.assertStdErrCaptured()
+        self.assertStdOutCaptured()
+        self.assertFileWritten()
+
+    def assertNormalPluginCallWorks(self):
+        sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
+        result = self.callEchoPlugin(sayHelloThere)
+
+        self.assertEquals('HELLO THERE', result.strip())
+
+    def assertEquals(self, expectedValue, actualValue):
+        if expectedValue != actualValue:
+            raise xenrt.XRTFailure(
+                '%s != %s' % (repr(expectedValue), repr(actualValue)))
+
+    def assertNonZeroStatus(self, response):
+        if 'status: non-zero exit' not in response:
+            raise xenrt.XRTFailure('Non Zero status not reported')
+
+    def assertStdErrCaptured(self):
+        sayHelloOnError = echoplugin.EchoRequest(data='HELLO', exitCode=1)
+        result = self.callEchoPlugin(sayHelloOnError)
+
+        self.assertNonZeroStatus(result)
+
+        self.assertIn('stderr: HELLO', result)
+
+    def assertStdOutCaptured(self):
+        sayHelloOnOut = echoplugin.EchoRequest(data='HELLO', exitCode=1)
+        result = self.callEchoPlugin(sayHelloOnOut)
+
+        self.assertNonZeroStatus(result)
+
+        self.assertIn('stdout: HELLO', result)
+
+    def assertFileWritten(self):
+        sayHelloToFile = echoplugin.EchoRequest(data='HELLO',
+                                                path='/var/log/echo')
+        result = self.callEchoPlugin(sayHelloToFile)
+
+        self.assertDomZeroPathContents('/var/log/echo', 'HELLO')
+
+    def assertDomZeroPathContents(self, path, expectedContents):
+        domZerosFilesystem = DomZeroFilesystem(self.getHostUnderTest())
+
+        actualContents = domZerosFilesystem.getContents(path)
+
+        if actualContents != expectedContents:
+            raise xenrt.XRTFailure('File contents do not match')
+
+    def assertIn(self, expectedFragment, actualData):
+        if expectedFragment not in actualData:
+            raise xenrt.XRTFailure(
+                '%s was not found in %s' % (expectedFragment, actualData))
 
 
 class SnapshotTest(xenrt.TestCase):

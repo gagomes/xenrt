@@ -190,13 +190,8 @@ class SnapshotTest(xenrt.TestCase):
         self.setContents(host, setupScriptPath, script)
 
     def setContents(self, host, path, script):
-        sftpClient = host.sftpClient()
-
-        remoteFile = sftpClient.client.file(path, 'w')
-        remoteFile.write(script)
-        remoteFile.close()
-
-        sftpClient.close()
+        domZerosFilesystem = DomZeroFilesystem(host)
+        domZerosFilesystem.setContents(path, script)
 
     def configureLogDrive(self, host):
         setupScriptPath = '/root/logdrive_setup.sh'

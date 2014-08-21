@@ -17,9 +17,9 @@
 
   <testsequence>
     <serial group="OutOfSpaceTests">
-      <testcase id="xenserver.tc.outofspace.SnapshotTest">
-      </testcase>
       <testcase id="xenserver.tc.outofspace.PluginTest">
+      </testcase>
+      <testcase id="xenserver.tc.outofspace.SnapshotTest">
       </testcase>
     </serial>
   </testsequence>

@@ -126,7 +126,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
 
-class TCRemoteNoseSimSetup(_TCRemoteNoseSetup):
+class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
         mgmtSvrIp = self.getGuest("CS-MS").getIP()
         cfg = json.loads(self.runner.execugest("cat /root/cloudstack/%s" % self.args['deploy']))

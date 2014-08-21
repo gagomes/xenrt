@@ -127,17 +127,64 @@ class PluginTest(xenrt.TestCase):
                 '%s was not found in %s' % (expectedFragment, actualData))
 
 
+class DomZeroFilesystemFiller(object):
+    def __init__(self, host):
+        self.host = host
+
+    def logDriveIsUsed(self):
+        return self.host.execdom0(
+            'mount | grep -q logdrive', retval='code') == 0
+
+    def fillFileSystem(self):
+        self.host.execdom0('dd if=/dev/zero of=/fillup', retval='code')
+
+    def unfillFileSystem(self):
+        self.host.execdom0('rm -f /fillup', retval='code')
+
+    def createLogDriveSetupScript(self, setupScriptPath):
+        script = textwrap.dedent("""
+        set -eux
+
+        df /dev/sda1
+        dd if=/dev/zero of=/logdrive bs=1M count=512
+        df /dev/sda1
+
+        FIRST_FREE_LOPPBACK_DEVICE=$(losetup -f)
+        losetup "$FIRST_FREE_LOPPBACK_DEVICE" /logdrive
+
+        mkfs.ext3 -q "$FIRST_FREE_LOPPBACK_DEVICE"
+
+        losetup -d "$FIRST_FREE_LOPPBACK_DEVICE"
+
+        sed -ie '/logdrive/d' /etc/fstab
+        echo "/logdrive /var/log ext3 loop,rw 0 0" >> /etc/fstab
+        """)
+
+        self.setContents(setupScriptPath, script)
+
+    def setContents(self, path, script):
+        domZerosFilesystem = DomZeroFilesystem(self.host)
+        domZerosFilesystem.setContents(path, script)
+
+    def configureLogDrive(self):
+        setupScriptPath = '/root/logdrive_setup.sh'
+        self.createLogDriveSetupScript(setupScriptPath)
+
+        self.host.execdom0('bash ' + setupScriptPath)
+
+
 class SnapshotTest(xenrt.TestCase):
     def run(self, arglist=None):
         host = self.getHost('RESOURCE_HOST_0')
+        filesystemFiller = DomZeroFilesystemFiller(host)
 
-        if not self.logDriveIsUsed(host):
-            self.configureLogDrive(host)
+        if not filesystemFiller.logDriveIsUsed():
+            filesystemFiller.configureLogDrive()
             self.reboot(host, 'g1')
 
-        self.fillDomZeroFileSystem(host)
+        filesystemFiller.fillFileSystem()
         self.snapshot(host, 'g1')
-        self.unfillDomZeroFileSystem(host)
+        filesystemFiller.unfillFileSystem()
         snapshotAfterSpaceFreedUp = self.snapshot(host, 'g1')
 
         if not snapshotAfterSpaceFreedUp.succeeded:
@@ -158,43 +205,3 @@ class SnapshotTest(xenrt.TestCase):
             guest.shutdown()
         host.reboot()
         guest.start()
-
-    def logDriveIsUsed(self, host):
-        return host.execdom0('mount | grep -q logdrive', retval='code') == 0
-
-    def fillDomZeroFileSystem(self, host):
-        host.execdom0('dd if=/dev/zero of=/fillup', retval='code')
-
-    def unfillDomZeroFileSystem(self, host):
-        host.execdom0('rm -f /fillup', retval='code')
-
-    def createLogDriveSetupScript(self, host, setupScriptPath):
-        script = textwrap.dedent("""
-        set -eux
-
-        df /dev/sda1
-        dd if=/dev/zero of=/logdrive bs=1M count=512
-        df /dev/sda1
-
-        FIRST_FREE_LOPPBACK_DEVICE=$(losetup -f)
-        losetup "$FIRST_FREE_LOPPBACK_DEVICE" /logdrive
-
-        mkfs.ext3 -q "$FIRST_FREE_LOPPBACK_DEVICE"
-
-        losetup -d "$FIRST_FREE_LOPPBACK_DEVICE"
-
-        sed -ie '/logdrive/d' /etc/fstab
-        echo "/logdrive /var/log ext3 loop,rw 0 0" >> /etc/fstab
-        """)
-
-        self.setContents(host, setupScriptPath, script)
-
-    def setContents(self, host, path, script):
-        domZerosFilesystem = DomZeroFilesystem(host)
-        domZerosFilesystem.setContents(path, script)
-
-    def configureLogDrive(self, host):
-        setupScriptPath = '/root/logdrive_setup.sh'
-        self.createLogDriveSetupScript(host, setupScriptPath)
-
-        host.execdom0('bash ' + setupScriptPath)

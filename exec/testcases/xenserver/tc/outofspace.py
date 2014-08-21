@@ -52,9 +52,12 @@ class DomZeroFilesystem(object):
         self.host.execdom0('chmod +x %s' % path)
 
 
-class PluginTest(xenrt.TestCase):
+class PluginTester(object):
+    def __init__(self, host):
+        self.host = host
+
     def getHostUnderTest(self):
-        return self.getHost('RESOURCE_HOST_0')
+        return self.host
 
     def callEchoPlugin(self, request):
         echoPlugin = EchoPlugin()
@@ -63,17 +66,6 @@ class PluginTest(xenrt.TestCase):
             + echoPlugin.cmdLineToCallEchoFunction(request)
             + ' || true'
         )
-
-    def run(self, arglist=None):
-        domZerosFilesystem = DomZeroFilesystem(self.getHostUnderTest())
-
-        echoPlugin = EchoPlugin()
-        echoPlugin.installTo(domZerosFilesystem)
-
-        self.assertNormalPluginCallWorks()
-        self.assertStdErrCaptured()
-        self.assertStdOutCaptured()
-        self.assertFileWritten()
 
     def assertNormalPluginCallWorks(self):
         sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
@@ -125,6 +117,22 @@ class PluginTest(xenrt.TestCase):
         if expectedFragment not in actualData:
             raise xenrt.XRTFailure(
                 '%s was not found in %s' % (expectedFragment, actualData))
+
+
+class PluginTest(xenrt.TestCase):
+    def run(self, arglist=None):
+        host = self.getHost('RESOURCE_HOST_0')
+        domZerosFilesystem = DomZeroFilesystem(host)
+
+        echoPlugin = EchoPlugin()
+        echoPlugin.installTo(domZerosFilesystem)
+
+        pluginTester = PluginTester(host)
+
+        pluginTester.assertNormalPluginCallWorks()
+        pluginTester.assertStdErrCaptured()
+        pluginTester.assertStdOutCaptured()
+        pluginTester.assertFileWritten()
 
 
 class DomZeroFilesystemFiller(object):

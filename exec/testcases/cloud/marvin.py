@@ -142,10 +142,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
         if self.tec.lookup("POF_ALL", False, boolean=True):
             noseargs += " --stop"
 
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s %s /root/cloudstack/%s" %
+        if self.args.has_key("hypervisor"):
+            noseargs += " --hypervisor=%s" % self.args['hypervisor']
+
+        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
                    (self.workdir,
                     self.workdir,
-                    self.args['hypervisor'],
                     noseargs,
                     self.args['file']), timeout=28800, retval="code")
 

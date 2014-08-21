@@ -139,7 +139,7 @@ class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
         sftp = self.runner.sftpClient()
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
         
-        self.runner.execguest("/root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
+        self.runner.execguest("python /root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
 
 class TCRemoteNose(_TCRemoteNoseBase):
     SUBCASE_TICKETS = True

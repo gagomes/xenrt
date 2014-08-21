@@ -56,12 +56,9 @@ class PluginTester(object):
     def __init__(self, host):
         self.host = host
 
-    def getHostUnderTest(self):
-        return self.host
-
     def callEchoPlugin(self, request):
         echoPlugin = EchoPlugin()
-        return self.getHostUnderTest().execdom0(
+        return self.host.execdom0(
             'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
             + echoPlugin.cmdLineToCallEchoFunction(request)
             + ' || true'
@@ -106,7 +103,7 @@ class PluginTester(object):
         self.assertDomZeroPathContents('/var/log/echo', 'HELLO')
 
     def assertDomZeroPathContents(self, path, expectedContents):
-        domZerosFilesystem = DomZeroFilesystem(self.getHostUnderTest())
+        domZerosFilesystem = DomZeroFilesystem(self.host)
 
         actualContents = domZerosFilesystem.getContents(path)
 
@@ -126,6 +123,30 @@ class PluginTest(xenrt.TestCase):
 
         echoPlugin = EchoPlugin()
         echoPlugin.installTo(domZerosFilesystem)
+
+        pluginTester = PluginTester(host)
+
+        pluginTester.assertNormalPluginCallWorks()
+        pluginTester.assertStdErrCaptured()
+        pluginTester.assertStdOutCaptured()
+        pluginTester.assertFileWritten()
+
+
+class PluginTestWithoutSpace(xenrt.TestCase):
+    def run(self, arglist=None):
+        host = self.getHost('RESOURCE_HOST_0')
+        domZerosFilesystem = DomZeroFilesystem(host)
+
+        echoPlugin = EchoPlugin()
+        echoPlugin.installTo(domZerosFilesystem)
+
+        filesystemFiller = DomZeroFilesystemFiller(host)
+
+        if not filesystemFiller.logDriveIsUsed():
+            filesystemFiller.configureLogDrive()
+            reboot(host, 'g1')
+
+        filesystemFiller.fillFileSystem()
 
         pluginTester = PluginTester(host)
 
@@ -188,7 +209,7 @@ class SnapshotTest(xenrt.TestCase):
 
         if not filesystemFiller.logDriveIsUsed():
             filesystemFiller.configureLogDrive()
-            self.reboot(host, 'g1')
+            reboot(host, 'g1')
 
         filesystemFiller.fillFileSystem()
         self.snapshot(host, 'g1')
@@ -207,9 +228,10 @@ class SnapshotTest(xenrt.TestCase):
 
         return SnapshotResult(succeeded=result == 0)
 
-    def reboot(self, host, guestName):
-        guest = host.getGuest(guestName)
-        if guest.getState() == 'UP':
-            guest.shutdown()
-        host.reboot()
-        guest.start()
+
+def reboot(host, guestName):
+    guest = host.getGuest(guestName)
+    if guest.getState() == 'UP':
+        guest.shutdown()
+    host.reboot()
+    guest.start()

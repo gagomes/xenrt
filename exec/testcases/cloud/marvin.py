@@ -129,7 +129,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
         mgmtSvrIp = self.getGuest("CS-MS").getIP()
-        cfg = json.loads(self.runner.execugest("cat /root/cloudstack/%s" % self.args['deploy']))
+        cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s" % self.args['deploy']))
         cfg['dbSvr']['dbSvr'] = mgmtSvrIp
         cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
 

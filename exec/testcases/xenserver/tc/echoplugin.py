@@ -17,7 +17,7 @@ class EchoRequest(object):
         self.stderr = stderr
         self.path = path
         self.exitCode = exitCode
-        self.data = ''
+        self.data = data
 
     def __eq__(self, other):
         for attrName in dir(self):

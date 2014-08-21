@@ -5,6 +5,21 @@ from testcases.xenserver.tc import echoplugin
 
 
 class TestEchoRequest(unittest.TestCase):
+    def test_init(self):
+        req = echoplugin.EchoRequest(
+            stdout='stdout',
+            stderr='stderr',
+            path='path',
+            data='data',
+            exitCode='exitCode'
+        )
+
+        self.assertEquals('stdout', req.stdout)
+        self.assertEquals('stderr', req.stderr)
+        self.assertEquals('path', req.path)
+        self.assertEquals('data', req.data)
+        self.assertEquals('exitCode', req.exitCode)
+
     def test_fresh_objects_are_equal(self):
         req1 = echoplugin.EchoRequest()
         req2 = echoplugin.EchoRequest()

@@ -19,7 +19,7 @@ import testcases.xenserver.tc.security
 import testcases.xenserver.tc.ns
 from xenrt.lib.xenserver.call import *
 from testcases.xenserver.tc.ns import SRIOVTests
-
+from testcases.benchmarks import graphics
 
 class GPUHelper():
     """Helper for GPU related operations"""
@@ -259,6 +259,15 @@ class GPUHelper():
 
         # check that reboot succeeds for this VM
         vm.reboot()
+
+    def runWorkload(self,vm):
+
+        unigine = graphics.UnigineTropics(vm)
+        unigine.install()
+        unigine.runAsWorkload()
+
+        return unigine
+
 
 
 class _GPU(xenrt.TestCase, GPUHelper):
@@ -841,7 +850,7 @@ class GPUBasic(_GPU):
         vm.setHost(self.getDefaultHost())
         self.getDefaultHost().addGuest(vm)
         xenrt.TEC().registry.guestPut(vmname, vm)
-
+ 
     def run(self, arglist=None):
         args = self.parseArgsKeyValue(arglist)
         vendor = args['vendor']
@@ -887,13 +896,12 @@ class GPUBasic(_GPU):
             vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
             vm.start()
             self.assertGPURunningInVM(vm, vendor)
-            workloads.append(vm.startGPUWorkloads())
+            workloads.append(self.runWorkload(vm))
         # Let the GPU workloads run for a bit
         xenrt.sleep(300)
         # Check the workloads are happy
         for i in range(gpucount):
-            vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
-            vm.checkGPUWorkloads(workloads[i])
+            workloads[i].checkWorkload()
         for i in range(vmcount):
             vm = xenrt.TEC().registry.guestGet("%s-clone%d" % (gold, i))
             vm.shutdown()
@@ -923,10 +931,9 @@ class StartAllGPU(_GPU):
     def startVM(self, vm):
         vm.start()
         self.assertGPURunningInVM(vm, self.vendor)
-        w = vm.startGPUWorkloads()
+        w = self.runWorkload(vm)
         time.sleep(300)
-        vm.checkGPUWorkloads(w)
-
+        w.checkWorkload()
 
 class TCGPUSetup(_GPU):
     def parseArgs(self, arglist):

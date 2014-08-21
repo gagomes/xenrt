@@ -340,6 +340,7 @@ class TestCase:
 
     This is the parent class for all testcases."""
     iamtc = True
+    SUBCASE_TICKETS = False
     
     def __init__(self, tcid=None, anon=False):
         """Constructor.
@@ -1890,6 +1891,15 @@ rm -f %s
                 else:
                     kv[aa[0]] = aa[1]
         return kv
+
+    def ticketAttachments(self):
+        return []
+
+    def getSubCaseTicketDescription(self):
+        return None
+
+    def ticketAssignee(self):
+        return None
 
 class TCAnon(TestCase):
     """The "anonymous testcase".

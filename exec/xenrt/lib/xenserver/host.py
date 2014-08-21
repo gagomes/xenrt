@@ -2269,6 +2269,28 @@ fi
             guidance = [guide for guide in set(guidanceList) if guide and guidanceList.count(guide)>existingGuidanceList.count(guide) ]
             self.applyGuidance( guidance)
 
+        supptarballs = xenrt.TEC().lookup("POST_HFX_SUPP_PACK_TGZS", None)
+        if supptarballs:
+            for supptar in supptarballs.split(","):
+                tarball = xenrt.TEC().getFile(supptar)
+                if not tarball:
+                    tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
+                if not tarball:
+                    tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
+                if not tarball:
+                    raise xenrt.XRTError("Couldn't find %s." % (supptar))
+                xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
+                tdir = xenrt.TEC().tempDir()
+                xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir))
+                iso = glob.glob("%s/*.iso" % tdir)[0]
+                isoname = os.path.basename(iso)
+                sftp = self.sftpClient()
+                sftp.copyTo(iso, "/tmp/%s" % isoname)
+                sftp.close()
+                self.execdom0("cd /tmp; xe-install-supplemental-pack %s" % isoname)
+                self.execdom0("rm -f /tmp/%s" % isoname)
+            self.reboot()
+
         # Before we upgrade any RPMs, record the last-modified-time of /boot/xen.gz
         # We'll use this to check whether any of the RPMs touched it.
         xenLastModified = self.execdom0("stat /boot/xen.gz | grep ^Modify")
@@ -4491,139 +4513,6 @@ fi
             if xenrt.util.normaliseMAC(pifmac) == mac:
                 return pif
         raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
-
-    def _parseNetworkTopology(self, topology):
-        """Parse a network topology specification. Takes either a string
-        containing XML or a XML DOM node."""
-        if type(topology) == type(""):
-            # Parse the topology XML
-            xmlm = xml.dom.minidom.parseString(topology)
-        else:
-            xmlm = topology
-        netnode = xmlm.getElementsByTagName("NETWORK")[0]
-        physnodes = netnode.getElementsByTagName("PHYSICAL")
-        nicsUsed = []
-        physList = []
-        for phys in physnodes:
-            # Which network to use
-            network = phys.getAttribute("network")
-            if not network:
-                network = "NPRI"
-            network = str(network)
-
-            enable_jumbo = phys.getAttribute("jumbo")
-            if enable_jumbo:
-                if type(enable_jumbo) is str or type(enable_jumbo) is unicode:
-                    if str(enable_jumbo) == "yes":
-                        jumbo = True
-                    else:
-                        jumbo = False
-                else:
-                    jumbo = enable_jumbo
-            else: 
-                jumbo = False
-
-            speed = phys.getAttribute("speed")
-            if not speed:
-                speed = None # Needed as we'll get the empty string rather than
-                             # None if the attribute isn't specified, and that
-                             # confuses listSecondaryNICs
-
-            bondMode = phys.getAttribute("bond-mode")
-            if bondMode == "":
-                bondMode = None
-
-            # Find NICs by assumed ID on this network
-            avail = self.listSecondaryNICs(network, speed=speed)
-            primaryNICSpeed = self.lookup("NIC_SPEED", None)
-            if primaryNICSpeed == "1G":
-                primaryNICSpeed = None
-            if (network == "NPRI" or network == "ANY") and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
-                # The primary NIC is also on this network
-                avail = [0] + avail
-            nicnodes = phys.getElementsByTagName("NIC")
-            nicList = []
-            for nic in nicnodes:
-                enum = nic.getAttribute("enum")
-                if not enum and str(enum) != "0":
-                    # Find the first unused NIC
-                    nicaid = None
-                    for n in avail:
-                        if n in nicsUsed:
-                            continue
-                        nicaid = n
-                        break
-                    if nicaid == None:
-                        raise xenrt.XRTError("Run out of %s NICs" % (network))
-                else:
-                    if int(enum) >= len(avail):
-                        raise xenrt.XRTError("NIC %u of %s not found" %
-                                             (int(enum), network))
-                    if avail[int(enum)] in nicsUsed:
-                        raise xenrt.XRTError("NIC %u of %s already used" %
-                                             (int(enum), network))
-                    nicaid = avail[int(enum)]
-                nicsUsed.append(nicaid)
-                nicList.append(nicaid)
-            # See if we've configured management, storage or VM access on
-            # this physical device
-            mgmt = False
-            storage = False
-            vms = False
-            friendlynetname = phys.getAttribute("name")
-            if not friendlynetname:
-                friendlynetname = network
-            for n in phys.childNodes:
-                if n.nodeType == n.ELEMENT_NODE:
-                    if n.localName == "MANAGEMENT":
-                        m = n.getAttribute("mode")
-                        if m:
-                            mgmt = str(m).lower()
-                        else:
-                            mgmt = "dhcp"
-                    elif n.localName == "STORAGE":
-                        m = n.getAttribute("mode")
-                        if m:
-                            storage = str(m).lower()
-                        else:
-                            storage = "dhcp"
-                    elif n.localName == "VMS":
-                        vms = True
-            # Look for VLANs on this physical device
-            vlannodes = phys.getElementsByTagName("VLAN")
-            vlanList = []
-            for vlan in vlannodes:
-                vnetwork = vlan.getAttribute("network")
-                if not vnetwork:
-                    vnetwork = "VR01"
-                vnetwork = str(vnetwork)
-                vfriendlynetname = vlan.getAttribute("name")
-                if not vfriendlynetname:
-                    vfriendlynetname = vnetwork
-                # Look for management, storage or VM use on this VLAN
-                vmgmt = False
-                vstorage = False
-                vvms = False
-                for n in vlan.childNodes:
-                    if n.nodeType == n.ELEMENT_NODE:
-                        if n.localName == "MANAGEMENT":
-                            m = n.getAttribute("mode")
-                            if m:
-                                vmgmt = str(m).lower()
-                            else:
-                                vmgmt = "dhcp"
-                        elif n.localName == "STORAGE":
-                            m = n.getAttribute("mode")
-                            if m:
-                                vstorage = str(m).lower()
-                            else:
-                                vstorage = "dhcp"
-                        elif n.localName == "VMS":
-                            vvms = True
-                vlanList.append((vnetwork, vmgmt, vstorage, vvms, vfriendlynetname))
-            physList.append((network, nicList, mgmt, storage, vms, friendlynetname, jumbo, vlanList, bondMode))
-        xenrt.TEC().logverbose("Parsed topology: %s" % (str(physList)))
-        return physList
 
     def createNetworkTopology(self, topology):
         """Create the topology specified by XML on this host. Takes either
@@ -11210,6 +11099,13 @@ class SarasotaHost(CreedenceHost):
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
+        
+        if xenrt.TEC().lookup("LIBXL_XENOPSD", False, boolean=True):
+            self.execdom0("service xenopsd-xc stop")
+            self.execdom0("sed -i s/vbd3/vbd/ /etc/xenopsd.conf")
+            self.execdom0("chkconfig --del xenopsd-xc")
+            self.execdom0("chkconfig --add xenopsd-xenlight")
+            self.restartToolstack()
 
     def _checkForFailedFirstBootScripts(self):
         for f in self.execdom0("(cd /etc/firstboot.d/state && ls)").strip().splitlines():

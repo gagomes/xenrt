@@ -38,6 +38,7 @@ class TCCloudUpdate(xenrt.TestCase):
                 self.cloud.marvin.cloudApi.createTags(resourceids=[template.id],
                                                 resourcetype="Template",
                                                 tags=[{"key":"distro", "value":'centos56_x86-64'}])
+                xenrt.sleep(300)
             else:
                 raise xenrt.XRTError('Unknown built in template type')
 
@@ -62,6 +63,7 @@ class TCCloudUpdate(xenrt.TestCase):
                 map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
 
             xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
+            xenrt.TEC().logverbose(str(templatesToUse))
             for template in templatesToUse:
                 distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
                 distroName = distro.replace('_','-')

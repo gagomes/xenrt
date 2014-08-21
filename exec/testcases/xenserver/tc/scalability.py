@@ -1659,7 +1659,8 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
             self.addTiming("TIME_VM_DISKPREPARE_%s:N/A" % (vm.getName()))
 
         # Start the VM
-        vm.lifecycleOperation("vm-start", specifyOn=False, timeout=6000)
+        flatVMDist = xenrt.TEC().lookup("FLAT_VM_DIST", True, boolean=True)
+        vm.lifecycleOperation("vm-start", specifyOn=flatVMDist, timeout=6000)
         
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot

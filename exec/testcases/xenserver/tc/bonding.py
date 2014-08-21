@@ -1641,15 +1641,15 @@ class _FailoverBondTest(_AggregateBondTest):
         # failure, and 2 minutes later.
         
         self.disablePath(host, mac)
-        time.sleep(2)
-        self.check(total_paths - 1)
+        #time.sleep(2)
+        #self.check(total_paths - 1)
         time.sleep(120)
         self.check(total_paths - 1)
         
         # Restore the NIC, verify reachability immediately after the 
         # failure, and 2 minutes later.
         self.enablePath(host, mac)
-        self.check(total_paths - 1)
+        #self.check(total_paths - 1)
         time.sleep(60)
         try:
             self.check(total_paths)
@@ -1695,7 +1695,7 @@ class _FailoverBondTest(_AggregateBondTest):
                     self.check(expected_paths)
                 if mac in macs_disabled:
                     self.enablePath(host, mac)
-                    time.sleep(35)
+                    time.sleep(60)
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
@@ -1703,9 +1703,9 @@ class _FailoverBondTest(_AggregateBondTest):
                     self.disablePath(host, mac)
                     expected_paths -= 1
                     if expected_paths != 0:
-                        time.sleep(2)
+                        time.sleep(60)
                         self.check(expected_paths)
-                    time.sleep(5)
+                    time.sleep(60)
                     macs_disabled.add(mac)
                     
         return

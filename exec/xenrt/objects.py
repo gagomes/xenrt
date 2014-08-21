@@ -1226,14 +1226,21 @@ class GenericPlace:
 
     def xmlrpcFileExists(self, filename, patient=False, ignoreHealthCheck=False):
         xenrt.TEC().logverbose("FileExists %s on %s" % (filename, self.getIP()))
-        try:
-            ret = self._xmlrpc(patient=patient).fileExists(filename)
-            xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
-            return ret
-        except Exception, e:
-            if not ignoreHealthCheck:
-                self.checkHealth()
-            raise
+        counter = 0
+        while(counter<3):
+            try:
+                ret = self._xmlrpc(patient=patient).fileExists(filename)
+                xenrt.TEC().logverbose("FileExists returned %s" % str(ret))
+                return ret
+            except Exception, e:
+                if counter == 3:
+                    ignoreHealthCheck
+                    self.checkHealth()
+                    raise
+                else:
+                    xenrt.sleep(30)
+                    counter = counter + 1
+ 
 
     def xmlrpcDirExists(self, filename, patient=False):
         xenrt.TEC().logverbose("DirExists %s on %s" % (filename, self.getIP()))
@@ -6442,7 +6449,7 @@ exit 0
             primaryNICSpeed = self.lookup("NIC_SPEED", None)
             if primaryNICSpeed == "1G":
                 primaryNICSpeed = None
-            if network == "NPRI" and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
+            if (network == "NPRI" or network == "ANY") and (not speed or primaryNICSpeed == speed or (not primaryNICSpeed and speed == "1G")):
                 # The primary NIC is also on this network
                 avail = [0] + avail
             nicnodes = phys.getElementsByTagName("NIC")
@@ -8300,6 +8307,7 @@ class GenericGuest(GenericPlace):
             # Cancel PXE booting for the new guest
             self.enablePXE(False)
             pxe.remove()
+    
 
     def waitToReboot(self,timeout=3600):
         deadline = xenrt.util.timenow() + timeout

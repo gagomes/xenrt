@@ -8,6 +8,7 @@ import string
 import random
 
 import xenrt.lib.cloud
+from xenrt.lib.netscaler import NetScaler
 
 __all__ = ["doDeploy"]
 
@@ -50,6 +51,25 @@ class DeployerPlugin(object):
         xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
         return nameValue
 
+    def getNetworkDevices(self, key, ref):
+        ret = None
+        if ref.has_key('XRT_NetscalerVMs'):   
+            ret = []
+            for i in ref['XRT_NetscalerVMs']:
+                netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i)
+                netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+                ret.append({"username": "nsroot",
+                            "publicinterface": "1/1",
+                            "hostname": netscaler.managementIp,
+                            "privateinterface": "1/1",
+                            "lbdevicecapacity": "50",
+                            "networkdevicetype": "NetscalerVPXLoadBalancer",
+                            "lbdevicededicated": "false",
+                            "password": "nsroot",
+                            "numretries": "2"})
+
+        return ret
+
     def getDNS(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             if ref['XRT_ZoneNetwork'] == "NSEC":
@@ -64,6 +84,8 @@ class DeployerPlugin(object):
         return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getDomain(self, key, ref):
+        if xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
+            return None
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
         return "xenrtcloud"
@@ -385,7 +407,7 @@ class DeployerPlugin(object):
             xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
             self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
         if not self.hyperVMsi:
-            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.4/CloudPlatform-4.4.0.0-15-hypervagent.msi"))
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.5/CloudPlatform-4.5.0.0-19-hypervagent.msi"))
         if not self.hyperVMsi:
             raise xenrt.XRTError("Could not find Hyper-V agent in build")
 

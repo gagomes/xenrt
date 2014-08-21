@@ -160,92 +160,74 @@ class LongHaulTestVmOperations(xenrt.TestCase):
             
         
     def vmopShutdownStart(self) :
-        try:
-            self.guest1.shutdown()
-            self.guest1.start()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while shutting and starting the VM :%s"%(e))
+        self.guest1.shutdown()
+        self.guest1.start()
             
     
     def vmopReboot(self):
-        try:
-            self.guest1.reboot()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while rebooting the VM : %s"%(e))
+        self.guest1.reboot()
            
-    
     def vmopSuspendResume(self):
-        try:
-            self.guest1.suspend()
-            self.guest1.resume()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while suspending/resuming the VM : %s"%(e))
+        self.guest1.suspend()
+        self.guest1.resume()
     
     def vmopSnapshotRevert(self):
-        try:
-            self.snapshot= self.guest1.snapshot("snapshot_revert")
-            self.guest1.waitForAgent(180)
-            self.guest1.revert(self.snapshot)
-            self.guest1.removeSnapshot(self.snapshot)
-            self.guest1.start()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while taking snapshot and reverting the VM back to its snapshot : %s"%(e))
+        self.guest1.shutdown()
+        self.snapshot= self.guest1.snapshot("snapshot_revert")
+        self.guest1.start()
+        self.guest1.shutdown()
+        self.guest1.revert(self.snapshot)
+        self.guest1.removeSnapshot(self.snapshot)
+        self.guest1.start()
     
     def vmopCheckpointRevert(self):
-        try:
-            self.checkpoint= self.guest1.checkpoint("checkpoint1")
-            self.guest1.waitForAgent(180)
-            self.guest1.revert(self.checkpoint)        
-            self.guest1.lifecycleOperation("vm-resume")
-            self.guest1.removeSnapshot(self.checkpoint)            
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while taking checkpoint and reverting the VM back to its checkpoint : %s"%(e))
-    
+        self.checkpoint= self.guest1.checkpoint("checkpoint1")
+        self.guest1.waitForAgent(180)
+        self.guest1.revert(self.checkpoint)
+        self.guest1.lifecycleOperation("vm-resume")
+        self.guest1.removeSnapshot(self.checkpoint)
+
     def vmopClone(self):
-        try:
-            self.guest1.shutdown()
-            self.clone_guest = self.guest1.cloneVM(self.guest1.getName() + "_clone")
-            self.uninstallOnCleanup(self.clone_guest)
-            self.guest1.start()
-            self.clone_guest.start()
-            self.clone_guest.reboot()
-            self.clone_guest.shutdown()
-            self.clone_guest.uninstall()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while cloning VM : %s"%(e))
+        self.guest1.shutdown()
+        self.clone_guest = self.guest1.cloneVM(self.guest1.getName() + "_clone")
+        self.uninstallOnCleanup(self.clone_guest)
+        self.guest1.start()
+        self.clone_guest.start()
+        self.clone_guest.reboot()
+        self.clone_guest.shutdown()
+        self.clone_guest.uninstall()
             
     def vmopCopy(self) :
-        try:
-            self.guest1.shutdown()
-            self.copy_guest = self.guest1.copyVM(name= self.guest1.getName() + "_copy", sruuid=self.defaultSR)
-            self.uninstallOnCleanup(self.copy_guest)
-            self.guest1.start()
-            self.copy_guest.start()
-            self.copy_guest.reboot()
-            self.copy_guest.shutdown()
-            self.copy_guest.uninstall()
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while copying VM : %s"%(e))
+        self.guest1.shutdown()
+        self.copy_guest = self.guest1.copyVM(name= self.guest1.getName() + "_copy", sruuid=self.defaultSR)
+        self.uninstallOnCleanup(self.copy_guest)
+        self.guest1.start()
+        self.copy_guest.start()
+        self.copy_guest.reboot()
+        self.copy_guest.shutdown()
+        self.copy_guest.uninstall()
     
     def vmopLocalHostLiveMigrate(self) :
-        try:
-            self.guest1.migrateVM(host=self.host,live="true")
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while localhost live migration of  VM : %s"%(e))
+        self.guest1.migrateVM(host=self.host,live="true")
             
     def vmopLocalHostNonLiveMigrate(self) :
-        try:
-            self.guest1.migrateVM(host=self.host)
-        except Exception, e:
-            raise xenrt.XRTFailure("Exception occurred while localhost non-live migration of  VM : %s"%(e))
+        self.guest1.migrateVM(host=self.host)
             
     def pauseandResume(self):
         now =  xenrt.timenow()
-        xenrt.TEC().logverbose("Stoppage Time = %s"%(self.host.execdom0("date")))
+        try:
+            xenrt.TEC().logverbose("Stoppage Time = %s"%(self.host.execdom0("date")))
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error getting stoppage time from host " + str(ex))
+
         self.pause("Execution PAUSED to debug the issue ."
                    "Before you RESUME the Testcase execution ,please ENSURE that the VM is in running state " , indefinite="True")
         resume = xenrt.timenow()
         elapsed = resume - now
         self.endTime = self.endTime + elapsed #update the execution time by the time taken to debug the issue
-        xenrt.TEC().logverbose("Resuming the VM operations %s"%(self.host.execdom0("date")))
+
+        try:
+            xenrt.TEC().logverbose("Resuming the VM operations %s"%(self.host.execdom0("date")))
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error getting resume time from host " + str(ex))
 

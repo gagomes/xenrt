@@ -348,6 +348,7 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         total_nr_vifs_per_host  = vifs_per_vm * (self.nr_vm_pairs * 2) / total_nr_hosts
         info["total_nr_vifs_per_host"]  = total_nr_vifs_per_host
         info["vifs_per_dom0vcpu"] = total_nr_vifs_per_host / self.dom0vcpus
+        info["dom0vcpus"] = self.dom0vcpus
         vif_pairs = vifs_per_vm * self.nr_vm_pairs
         info["vif_pairs"] = vif_pairs
         # sanity checks

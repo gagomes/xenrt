@@ -80,7 +80,8 @@ class PluginTester(object):
             raise xenrt.XRTFailure('Non Zero status not reported')
 
     def assertStdErrCaptured(self):
-        sayHelloOnError = echoplugin.EchoRequest(data='HELLO', exitCode=1)
+        sayHelloOnError = echoplugin.EchoRequest(
+            data='HELLO', stderr=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnError)
 
         self.assertNonZeroStatus(result)
@@ -88,7 +89,8 @@ class PluginTester(object):
         self.assertIn('stderr: HELLO', result)
 
     def assertStdOutCaptured(self):
-        sayHelloOnOut = echoplugin.EchoRequest(data='HELLO', exitCode=1)
+        sayHelloOnOut = echoplugin.EchoRequest(
+            data='HELLO', stdout=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnOut)
 
         self.assertNonZeroStatus(result)

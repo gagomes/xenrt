@@ -1,4 +1,3 @@
-import os
 import xenrt
 import textwrap
 from collections import namedtuple

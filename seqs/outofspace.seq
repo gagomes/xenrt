@@ -10,11 +10,14 @@
 
   <testsequence>
     <serial group="OutOfSpaceTests">
-      <testcase id="xenserver.tc.outofspace.PluginTest">
+      <testcase id="xenserver.tc.outofspace.PluginTest"
+                tc="Plugin">
       </testcase>
-      <testcase id="xenserver.tc.outofspace.PluginTestWithoutSpace">
+      <testcase id="xenserver.tc.outofspace.PluginTestWithoutSpace"
+                tc="PluginNoSpace">
       </testcase>
-      <testcase id="xenserver.tc.outofspace.SnapshotTest">
+      <testcase id="xenserver.tc.outofspace.SnapshotTest"
+                tc="SnapshoNoSpace">
       </testcase>
     </serial>
   </testsequence>

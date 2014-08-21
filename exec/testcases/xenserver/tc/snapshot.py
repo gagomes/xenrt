@@ -1154,8 +1154,6 @@ class _VMSnapshotPerOS(xenrt.TestCase):
         vmnamebydistro = "snapshot-test-VM-%s" % (self.DISTRO)
         if self.DISTRO and not self.guest:
             self.guest = self.getGuest(vmnamebydistro)
-            if self.guest:
-                self.host = self.guest.host
 
         # Check the TC args to see if a guest name has been specified
         if not self.guest:
@@ -1168,6 +1166,8 @@ class _VMSnapshotPerOS(xenrt.TestCase):
             self.guest = self.createGuest(vmnamebydistro)
             xenrt.TEC().registry.guestPut(vmnamebydistro, self.guest)
 
+        if self.guest:
+            self.host = self.guest.host
         # Check the guest is healthy and reboot if it is already up
         try:
             if self.guest.getState() == "DOWN":

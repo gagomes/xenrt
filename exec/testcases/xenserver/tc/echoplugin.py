@@ -96,7 +96,7 @@ def echo_main(session, args):
     return echoRequest.data
 
 
-def to_xapi_args(args):
+def toXapiArgs(args):
     result = []
     for k, v in args.iteritems():
         if v is not None:

@@ -102,16 +102,16 @@ class TestParseRequest(unittest.TestCase):
 
 class TestToXapiArgs(unittest.TestCase):
     def test_args_empty(self):
-        self.assertEquals([], echoplugin.to_xapi_args({}))
+        self.assertEquals([], echoplugin.toXapiArgs({}))
 
     def test_none_ignored(self):
         args = {'key': None}
 
-        self.assertEquals([], echoplugin.to_xapi_args(args))
+        self.assertEquals([], echoplugin.toXapiArgs(args))
 
     def test_args_conversion(self):
         self.assertEquals(
-            ['args:key="value"'], echoplugin.to_xapi_args({'key': 'value'}))
+            ['args:key="value"'], echoplugin.toXapiArgs({'key': 'value'}))
 
 
 class TestGetSource(unittest.TestCase):

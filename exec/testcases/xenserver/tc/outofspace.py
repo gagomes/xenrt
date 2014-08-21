@@ -19,7 +19,7 @@ class EchoPlugin(object):
         args = [
             'plugin=%s' % echoplugin.ECHO_PLUGIN_NAME,
             'fn=%s' % echoplugin.ECHO_FN_NAME
-        ] + echoplugin.to_xapi_args(echoRequest.serialize())
+        ] + echoplugin.toXapiArgs(echoRequest.serialize())
 
         return ' '.join(args)
 

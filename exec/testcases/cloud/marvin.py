@@ -129,13 +129,14 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
         mgmtSvrIp = self.getGuest("CS-MS").getIP()
-        cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s" % self.args['deploy']))
+        cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s | grep -v \"^#\"" % self.args['deploy']))
         cfg['dbSvr']['dbSvr'] = mgmtSvrIp
         cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
 
         with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(cfg, indent=2))
 
+        sftp = self.runner.sftpClient()
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
         
         self.runner.execguest("/root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")

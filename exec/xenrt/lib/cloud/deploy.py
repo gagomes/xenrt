@@ -84,6 +84,8 @@ class DeployerPlugin(object):
         return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getDomain(self, key, ref):
+        if xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
+            return None
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
         return "xenrtcloud"

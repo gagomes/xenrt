@@ -2201,6 +2201,11 @@ class HostInstallWorker(_InstallWorker):
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
             work["noisos"] = True
             xenrt.lib.native.createHost(**work)
+        elif specProductType == "nativewindows":
+            if specProductType is None:
+                raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
+            work["noisos"] = True
+            xenrt.lib.nativewindows.createHost(**work)
         elif specProductType == "kvm":
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
@@ -2208,6 +2213,7 @@ class HostInstallWorker(_InstallWorker):
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
             xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
+            work["noisos"] = True
             xenrt.lib.hyperv.createHost(**work)
         elif specProductType == "oss":
             work["noisos"] = True

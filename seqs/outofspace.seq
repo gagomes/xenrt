@@ -14,7 +14,7 @@
                 tc="Plugin">
       </testcase>
       <testcase id="xenserver.tc.outofspace.PluginTestWithoutSpace"
-                tc="PluginNoSpace">
+                tc="TC-21676">
       </testcase>
       <testcase id="xenserver.tc.outofspace.SnapshotTest"
                 tc="SnapshoNoSpace">

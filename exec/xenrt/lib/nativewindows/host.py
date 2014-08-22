@@ -83,7 +83,7 @@ class WindowsHost(xenrt.GenericHost):
             pxe1.addEntry("local", boot="local")
 
         pxe1.addEntry("ipxe", boot="ipxe")
-        pxe1.setDefault("local")
+        pxe1.setDefault("ipxe")
         pxe1.writeOut(self.machine)
 
         wipe = pxe2.addEntry("wipe", boot="memdisk")
@@ -107,7 +107,7 @@ chain tftp://${next-server}/pxelinux.0
         pxe1.waitForIPXEStamp(self.machine)
         xenrt.sleep(30) # 30s to allow PXELINUX to load
         pxe2.setDefault("wininstall")
-        pxe2.writeOut(self.machine)
+        pxe2.writeOut(self.machine, suffix="_ipxe")
         pxe2.writeIPXEConfig(self.machine, ipxescript)
         
         # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot

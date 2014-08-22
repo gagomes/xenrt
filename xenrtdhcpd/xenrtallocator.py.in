@@ -194,14 +194,14 @@ class XenRTDHCPAllocator(object):
 
     def _populatePXEInfo(self, packet, intf):
         server = self.getInterfaceInfo(intf)['addr']
-        if self.config['interfaces'][intf]['ipxe']:
-            userClass = packet.getOption("user_class")
-            if userClass and listToStr(userClass) == "iPXE":
-                packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
-            else:
-                packet.setOption("file", strToPaddedList("/undionly.kpxe", 128))
+        userClass = packet.getOption("user_class")
+        if userClass and listToStr(userClass) == "iPXE":
+            packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
         else:
-            packet.setOption("file", strToPaddedList("/pxelinux.0", 128))
+            if self.config['interfaces'][intf]['ipxe']:
+                packet.setOption("file", strToPaddedList("/undionly.kpxe", 128))
+            else:
+                packet.setOption("file", strToPaddedList("/pxelinux.0", 128))
         packet.setOption("siaddr", ipToList(server))
    
     def getInterfaceInfo(self, intf):

@@ -7922,7 +7922,7 @@ class GenericGuest(GenericPlace):
                               method=method,
                               repository=repository,
                               arch=self.arch,
-                              bootDiskSize=100,
+                              bootDiskSize=500,
                               bootDiskFS=bootDiskFS,
                               ethDevice=ethDevice,
                               pxe=pxe,

@@ -151,6 +151,10 @@ class ManagementServer(object):
             for t in templateSubsts.keys():
                 self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            # For some reason the cloud user doesn't seem to have access to the simulator DB
+            self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
+            self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
         self.restart()
         marvinApi = xenrt.lib.cloud.MarvinApi(self)
 

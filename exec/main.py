@@ -980,6 +980,8 @@ def existingHost(hostname):
     place.checkVersion()
     if place.productType == "hyperv":
         host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+    elif place.productType == "nativewindows":
+        host = xenrt.lib.nativewindows.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":

@@ -74,6 +74,9 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
         self.installWindows()
         self.installHyperV()
 
+    def existing(self):
+        return
+
     def createBasicNetwork(self):
         self.joinDefaultDomain()
         self.setupDomainUserPermissions()

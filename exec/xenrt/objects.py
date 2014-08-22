@@ -438,7 +438,7 @@ class GenericPlace:
         for i in ipList:
             try:
                 xenrt.ssh.SSH(i, "true", username="root",
-                              password=password, level=xenrt.RC_FAIL, timeout=5)
+                              password=password, level=xenrt.RC_FAIL, timeout=2)
                 return
             except:
                 if self.xmlrpcIsAlive(i):
@@ -4605,8 +4605,13 @@ class GenericHost(GenericPlace):
     def checkVersion(self, versionNumber=False):
         # Figure out the product version and revision of the host
         if self.windows:
-            self.productType = "hyperv"
-            self.produvtVersion = None
+            self.productType = "nativewindows"
+            self.productVersion = None
+            try:
+                if "[X]" in self.xmlrpcExec("Get-WindowsFeature -Name Hyper-V", powershell=True, returndata=True):
+                    self.productType = "hyperv"
+            except:
+                pass
         else:
             data = ""
             if self.execdom0("test -e /etc/xensource-inventory", retval="code") == 0:

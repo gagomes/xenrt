@@ -14,7 +14,8 @@ import xenrt
 
 
 __all__ = ["createHost",
-           "WindowsHost"]
+           "WindowsHost",
+           "hostFactory"]
 
 def createHost(id=0,
                version=None,
@@ -58,6 +59,9 @@ def createHost(id=0,
 
     return host
 
+def hostFactory(productVersion):
+    return WindowsHost
+
 class WindowsHost(xenrt.GenericHost):
 
     def install(self):
@@ -65,6 +69,9 @@ class WindowsHost(xenrt.GenericHost):
         if xenrt.TEC().lookup("EXISTING_WINDOWS", False, boolean=True):
             return
         self.installWindows()
+
+    def existing(self):
+        return
 
     def installWindows(self):
         # Construct a PXE target

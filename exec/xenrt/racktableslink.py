@@ -196,6 +196,8 @@ def readMachineFromRackTables(machine,kvm=False):
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split("/")
             network = nicinfo[0]
+            if network.endswith("x"):
+                continue
             if "RSPAN" in nicinfo[1:]:
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"RSPAN"],"yes")
             mac = p[2]

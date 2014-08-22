@@ -126,6 +126,21 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
 
+class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
+    def run(self, arglist):
+        mgmtSvrIp = self.getGuest("CS-MS").getIP()
+        cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s | grep -v \"^#\"" % self.args['deploy']))
+        cfg['dbSvr']['dbSvr'] = mgmtSvrIp
+        cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
+
+        with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
+            f.write(json.dumps(cfg, indent=2))
+
+        sftp = self.runner.sftpClient()
+        sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
+        
+        self.runner.execguest("python /root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
+
 class TCRemoteNose(_TCRemoteNoseBase):
     SUBCASE_TICKETS = True
 
@@ -142,10 +157,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
         if self.tec.lookup("POF_ALL", False, boolean=True):
             noseargs += " --stop"
 
-        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml --hypervisor=%s %s /root/cloudstack/%s" %
+        if self.args.has_key("hypervisor"):
+            noseargs += " --hypervisor=%s" % self.args['hypervisor']
+
+        self.runner.execguest("nosetests -v --logging-level=DEBUG --log-folder-path=%s --with-marvin --marvin-config=/root/marvin.cfg --with-xunit --xunit-file=%s/results.xml %s /root/cloudstack/%s" %
                    (self.workdir,
                     self.workdir,
-                    self.args['hypervisor'],
                     noseargs,
                     self.args['file']), timeout=28800, retval="code")
 

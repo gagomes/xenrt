@@ -1663,8 +1663,8 @@ strDomain & "\" & strUser, NULL)
     def getLinuxIFConfigData(self):
         SECTION = r"(?m)(?P<key>^\S+)(?P<value>.*(?:\n^\s+\S+[^\n]+)+)"
         VALUES = {"MAC":r"HWaddr (?P<MAC>[A-Fa-f0-9:]+)",
-                  "IP":r"inet addr:(?P<IP>[0-9\.]+)",
-                  "netmask":r"Mask:(?P<netmask>[0-9\.]+)"}
+                      "IP":r"inet addr:(?P<IP>[0-9\.]+)",
+                      "netmask":r"Mask:(?P<netmask>[0-9\.]+)"}
 
         data = self.execcmd("ifconfig -a").strip()
         # Remove empty lines.

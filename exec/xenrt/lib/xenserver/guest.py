@@ -559,29 +559,27 @@ class Guest(xenrt.GenericGuest):
 
             if not notools and self.getState() == "UP":
                 self.installTools()
-        kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-        if 'ubuntu1404' in distro:
-            _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
-            _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
-                                "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
-            if '64' in self.arch:
-                self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
-                self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
-            else:
-                self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
-                self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-        elif 'rhel7' in distro or 'oel7' in distro or 'centos7' in distro:
-            _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
-            _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
-            for kernelFix in _new_kernel_path:
-                xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
-                self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
-                self.execcmd("rpm -ivh --force %s"%(kernelFix))
-                
-                                
-
+        if xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+            kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
+            if 'ubuntu1404' in distro:
+                _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
+                _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
+                                    "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
+                if '64' in self.arch:
+                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
+                    self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
+                else:
+                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
+                    self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
+            elif 'rhel7' in distro or 'oel7' in distro or 'centos7' in distro:
+                _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

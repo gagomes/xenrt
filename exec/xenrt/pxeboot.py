@@ -15,6 +15,7 @@ import xenrt, xenrt.resources
 __all__ = ["PXEBootEntry",
            "PXEBootEntryLocal",
            "PXEBootEntryLinux",
+           "PXEBootEntryIPXE",
            "PXEBootEntryMboot",
            "PXEBootEntryMbootImg",
            "PXEBoot",
@@ -57,6 +58,17 @@ LABEL %s
     KERNEL chain.c32
     APPEND %s
 """ % (self.label, self.device)
+
+class PXEBootEntryIPXE(PXEBootEntry):
+    """An individual boot entry in a PXE config to boot iPXE."""
+    def __init__(self, cfg, label):
+        PXEBootEntry.__init__(self, cfg, label)
+
+    def generate(self):
+        return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, xenrt.TEC().lookup("IPXE_KERNEL", "ipxe.0"))
 
 class PXEBootEntryLinux(PXEBootEntry):
     """An individual boot entry in a PXE config for Linux kernel booting."""
@@ -239,6 +251,8 @@ class PXEBoot(xenrt.resources.DirectoryResource):
             e = PXEBootEntryMbootImg(self, label)
         elif boot == "linux":
             e = PXEBootEntryLinux(self, label)
+        elif boot == "ipxe":
+            e = PXEBootEntryIPXE(self, label)
         elif boot == "local":
             e = PXEBootEntryLocal(self, label)
         elif boot == "chainlocal":

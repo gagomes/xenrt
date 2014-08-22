@@ -81,7 +81,11 @@ class WindowsHost(xenrt.GenericHost):
             pxe1.addEntry("local", boot="chainlocal", options=chain)
         else:
             pxe1.addEntry("local", boot="local")
-       
+
+        pxe1.addEntry("ipxe", boot="ipxe")
+        pxe1.setDefault("local")
+        pxe1.writeOut(self.machine)
+
         wipe = pxe2.addEntry("wipe", boot="memdisk")
         wipe.setInitrd("%s/wininstall/netinstall/wipe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
         wipe.setArgs("iso raw")
@@ -95,7 +99,7 @@ class WindowsHost(xenrt.GenericHost):
         filename = pxe2.writeOut(self.machine, suffix="_ipxe")
         ipxescript = """set 209:string pxelinux.cfg/%s
 chain tftp://${next-server}/pxelinux.0
-goto end""" % os.path.basename(filename)
+""" % os.path.basename(filename)
         pxe2.writeIPXEConfig(self.machine, ipxescript)
 
         self.machine.powerctl.cycle()

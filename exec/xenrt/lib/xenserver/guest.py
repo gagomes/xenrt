@@ -570,7 +570,7 @@ class Guest(xenrt.GenericGuest):
             else:
                 self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
                 self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-        elif 'rhel7' or 'oel7' or 'centos7' in distro:
+        elif 'rhel7' in distro or 'oel7' in distro or 'centos7' in distro:
             _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
             _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                 "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",

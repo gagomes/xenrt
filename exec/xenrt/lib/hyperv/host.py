@@ -14,6 +14,7 @@ import xenrt
 
 
 __all__ = ["createHost",
+           "hostFactory",
            "HyperVHost"]
 
 def createHost(id=0,
@@ -60,6 +61,9 @@ def createHost(id=0,
         host.createBasicNetwork()
 
     return host
+
+def hostFactory(productVersion):
+    return HyperVHost
 
 class HyperVHost(xenrt.GenericHost):
 

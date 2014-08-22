@@ -975,9 +975,12 @@ def existingHost(hostname):
             ips.append(place.getNICAllocatedIPAddress(n)[0])
         except:
             pass
+    place.checkWindows(ipList = ips)
     place.findPassword(ipList = ips)
     place.checkVersion()
-    if place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
+    if place.productType == "hyperv":
+        host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+    elif place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":
         host = xenrt.lib.native.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)

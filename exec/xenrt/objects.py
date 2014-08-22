@@ -423,7 +423,7 @@ class GenericPlace:
                         xenrt.TEC().logverbose("Trying %s on %s" % (p, i))
                         try:
                             xenrt.ssh.SSH(i, "true", username="root",
-                                          password=p, level=xenrt.RC_FAIL, timeout=10)
+                                          password=p, level=xenrt.RC_FAIL, timeout=t)
                             xenrt.TEC().logverbose("Setting my password to %s" % (p))
                             self.password = p
                             if i != self.getIP():
@@ -432,6 +432,22 @@ class GenericPlace:
                             return
                         except:
                             pass
+
+    def checkWindows(self, ipList = []):
+        password = string.split(xenrt.TEC().lookup("ROOT_PASSWORDS", ""))[0]
+        for i in ipList:
+            try:
+                xenrt.ssh.SSH(i, "true", username="root",
+                              password=password, level=xenrt.RC_FAIL, timeout=5)
+                return
+            except:
+                if self.xmlrpcIsAlive(i):
+                    xenrt.TEC().logverbose("Detected Windows")
+                    if i != self.getIP():
+                        xenrt.TEC().logverbose("Setting my IP to %s" % (i))
+                        self.setIP(i)
+                    self.windows=True
+                    return
 
     def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
                    username="root", cmd="true"):
@@ -489,10 +505,10 @@ class GenericPlace:
     def waitForDaemon(self, timeout, level=xenrt.RC_FAIL, desc="Daemon"):
         return self.waitforxmlrpc(timeout, level=level, desc=desc)
 
-    def xmlrpcIsAlive(self):
+    def xmlrpcIsAlive(self, ip=None):
         """Return True if this place has a reachable XML-RPC test daemon"""
         try:
-            if self._xmlrpc().isAlive():
+            if self._xmlrpc(ipoverride=ip).isAlive():
                 return True
         except:
             pass
@@ -512,7 +528,7 @@ class GenericPlace:
                                       level=level,
                                       desc="Reachability check")
 
-    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False):
+    def _xmlrpc(self, impatient=False, patient=False, reallyImpatient=False, ipoverride=None):
         if reallyImpatient:
             trans = MyReallyImpatientTrans()
         elif impatient:
@@ -521,8 +537,10 @@ class GenericPlace:
             trans = MyPatientTrans()
         else:
             trans = MyTrans()
-
-        ip = IPy.IP(self.getIP())
+        if ipoverride:
+            ip = IPy.IP(ipoverride)
+        else:
+            ip = IPy.IP(self.getIP())
         url = ""
         if ip.version() == 6:
             url = 'http://[%s]:8936'
@@ -4586,70 +4604,74 @@ class GenericHost(GenericPlace):
 
     def checkVersion(self, versionNumber=False):
         # Figure out the product version and revision of the host
-        data = ""
-        if self.execdom0("test -e /etc/xensource-inventory", retval="code") == 0:
-            data = self.execdom0("cat /etc/xensource-inventory")
-            r = re.search("PRODUCT_VERSION='([\d+\.]+)'", data)
-            if r:
-                version = r.group(1)
-                name = xenrt.TEC().lookup(["PRODUCT_CODENAMES", version], None)
-            else:
-                r = re.search("PLATFORM_VERSION='([\d+\.]+)'", data)
+        if self.windows:
+            self.productType = "hyperv"
+            self.produvtVersion = None
+        else:
+            data = ""
+            if self.execdom0("test -e /etc/xensource-inventory", retval="code") == 0:
+                data = self.execdom0("cat /etc/xensource-inventory")
+                r = re.search("PRODUCT_VERSION='([\d+\.]+)'", data)
                 if r:
                     version = r.group(1)
-                    name = xenrt.TEC().lookup(["PLATFORM_CODENAMES", version], None)
+                    name = xenrt.TEC().lookup(["PRODUCT_CODENAMES", version], None)
                 else:
-                    raise xenrt.XRTFailure("Failed to determine XenServer / XCP Version")
-        elif self.execdom0("test -e /etc/xcp/inventory", retval="code") == 0:
-            data = self.execdom0("cat /etc/xcp/inventory")
-            r = re.search("PRODUCT_VERSION='([\d+\.]+)'", data)
-            if r:
-                version = r.group(1)
-                name = xenrt.TEC().lookup(["KRONOS_CODENAMES", version], None)
+                    r = re.search("PLATFORM_VERSION='([\d+\.]+)'", data)
+                    if r:
+                        version = r.group(1)
+                        name = xenrt.TEC().lookup(["PLATFORM_CODENAMES", version], None)
+                    else:
+                        raise xenrt.XRTFailure("Failed to determine XenServer / XCP Version")
+            elif self.execdom0("test -e /etc/xcp/inventory", retval="code") == 0:
+                data = self.execdom0("cat /etc/xcp/inventory")
+                r = re.search("PRODUCT_VERSION='([\d+\.]+)'", data)
+                if r:
+                    version = r.group(1)
+                    name = xenrt.TEC().lookup(["KRONOS_CODENAMES", version], None)
+                else:
+                    raise xenrt.XRTFailure("Failed to determine KRONOS Version")
+            elif self.execdom0("test -e /etc/vmware", retval="code") == 0:
+                # e.g. "ESXi"
+                name        = self.execdom0("grep ^product /etc/slp.reg").strip().split("\"")[1].split(" ")[1]
+                # e.g. "5.0.0"
+                version     = self.execdom0("grep ^product-version /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
+                # e.g. "623860"
+                buildNumber = self.execdom0("grep ^build /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
+            elif self.execdom0("test -e /etc/redhat-release", retval="code") == 0:
+                name = "Linux"
+                version = "RedHat"
+                buildNumber = ""
+            elif self.execdom0("test -e /etc/xen", retval="code") == 0:
+                name = "OSS"
+                version = ""
+                buildNumber = ""
+            elif self.execdom0("test -e /etc/debian_version", retval="code") == 0:
+                name = "Linux"
+                version = "Debian"
+                buildNumber = ""
             else:
-                raise xenrt.XRTFailure("Failed to determine KRONOS Version")
-        elif self.execdom0("test -e /etc/vmware", retval="code") == 0:
-            # e.g. "ESXi"
-            name        = self.execdom0("grep ^product /etc/slp.reg").strip().split("\"")[1].split(" ")[1]
-            # e.g. "5.0.0"
-            version     = self.execdom0("grep ^product-version /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
-            # e.g. "623860"
-            buildNumber = self.execdom0("grep ^build /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
-        elif self.execdom0("test -e /etc/redhat-release", retval="code") == 0:
-            name = "Linux"
-            version = "RedHat"
-            buildNumber = ""
-        elif self.execdom0("test -e /etc/xen", retval="code") == 0:
-            name = "OSS"
-            version = ""
-            buildNumber = ""
-        elif self.execdom0("test -e /etc/debian_version", retval="code") == 0:
-            name = "Linux"
-            version = "Debian"
-            buildNumber = ""
-        else:
-            raise xenrt.XRTFailure("Failed to identify host software")
+                raise xenrt.XRTFailure("Failed to identify host software")
 
-        if not name:
-            raise xenrt.XRTFailure("Failed to resolve host software version")
+            if not name:
+                raise xenrt.XRTFailure("Failed to resolve host software version")
 
-        if data:
-            r = re.search(r"BUILD_NUMBER=.*?(\w+).*", data)
-            if not r:
-                raise xenrt.XRTFailure("Failed to get build number")
+            if data:
+                r = re.search(r"BUILD_NUMBER=.*?(\w+).*", data)
+                if not r:
+                    raise xenrt.XRTFailure("Failed to get build number")
+    
+                buildNumber = r.group(1)
 
-            buildNumber = r.group(1)
+            if "47101" in buildNumber:
+                name = "Oxford"
+            elif "58523" in buildNumber:
+                name = "SanibelCC"
 
-        if "47101" in buildNumber:
-            name = "Oxford"
-        elif "58523" in buildNumber:
-            name = "SanibelCC"
+            xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
+            xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
 
-        xenrt.TEC().logverbose("Found: Version Name: %s, Version Number: %s" % (name, version))
-        xenrt.TEC().logverbose("Found Build: %s" % (buildNumber))
-
-        self.productVersion = name
-        self.productRevision = "%s-%s" % (version, buildNumber)
+            self.productVersion = name
+            self.productRevision = "%s-%s" % (version, buildNumber)
 
         if versionNumber:
             return version

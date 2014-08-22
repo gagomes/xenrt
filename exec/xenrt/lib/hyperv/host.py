@@ -10,7 +10,7 @@
 
 import re, urllib, os.path
 
-import xenrt
+import xenrt, xenrt.lib.nativewindows
 
 
 __all__ = ["createHost",

@@ -67,45 +67,52 @@ class WindowsHost(xenrt.GenericHost):
         self.installWindows()
 
     def installWindows(self):
-        xenrt.xrtAssert(xenrt.TEC().lookup("USE_IPXE", False, boolean=True), "iPXE must be in use for Windows installation")
         # Construct a PXE target
-        pxe = xenrt.PXEBoot()
+        pxe1 = xenrt.PXEBoot()
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe.setSerial(serport, serbaud)
+        pxe1.setSerial(serport, serbaud)
+        pxe2 = xenrt.PXEBoot()
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe2.setSerial(serport, serbaud)
         chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
         if chain:
-            pxe.addEntry("local", boot="chainlocal", options=chain)
+            pxe1.addEntry("local", boot="chainlocal", options=chain)
         else:
-            pxe.addEntry("local", boot="local")
+            pxe1.addEntry("local", boot="local")
        
-        wipe = pxe.addEntry("wipe", boot="memdisk")
+        wipe = pxe2.addEntry("wipe", boot="memdisk")
         wipe.setInitrd("%s/wininstall/netinstall/wipe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
         wipe.setArgs("iso raw")
         
-        wininstall = pxe.addEntry("wininstall", boot="memdisk")
+        wininstall = pxe2.addEntry("wininstall", boot="memdisk")
         wininstall.setInitrd("%s/wininstall/netinstall/%s/winpe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
         wininstall.setArgs("iso raw")
-        
-        pxe.setDefault("wipe")
-        pxe.writeOut(self.machine)
-        pxe.writeIPXEConfig(self.machine, None)
+       
+
+        pxe2.setDefault("wipe")
+        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
+        ipxescript = """set 209:string pxelinux.cfg/%s
+chain tftp://${next-server}/pxelinux.0
+goto end""" % os.path.basename(filename)
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
 
         self.machine.powerctl.cycle()
         # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
-        pxe.waitForIPXEStamp(self.machine)
+        pxe1.waitForIPXEStamp(self.machine)
         xenrt.sleep(30) # 30s to allow PXELINUX to load
-        pxe.setDefault("wininstall")
-        pxe.writeOut(self.machine)
-        pxe.writeIPXEConfig(self.machine, None)
+        pxe2.setDefault("wininstall")
+        pxe2.writeOut(self.machine)
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
         
         # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
         
-        pxe.waitForIPXEStamp(self.machine)
+        pxe1.waitForIPXEStamp(self.machine)
         xenrt.sleep(30) # 30s to allow PXELINUX to load
-        pxe.clearIPXEConfig(self.machine)
-        pxe.setDefault("local")
-        pxe.writeOut(self.machine)
+        pxe2.clearIPXEConfig(self.machine)
+        pxe1.setDefault("local")
+        pxe1.writeOut(self.machine)
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)

@@ -343,13 +343,13 @@ DEFAULT %s
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeIPXEConfig(self, machine, url, forceip=None):
+    def writeIPXEConfig(self, machine, script, forceip=None):
         self.iPXE = True
         filename = self.getIPXEFile(machine, forceip)
         
-        if url:
-            out = "chain %s\n" % url
-            out += "goto end\n"
+        if script:
+            out = script
+            out += "\ngoto end\n"
         else:
             out = ""
 
@@ -408,7 +408,7 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None):
         """Write this config for the specified machine."""
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
@@ -440,6 +440,8 @@ dhcp
                                      string.split(machine.name, ".")[0])
             pxefile = string.replace(pxefile, "@LOGNAME@",
                                      pwd.getpwuid(os.getuid())[0])
+        if suffix:
+            pxefile += suffix
         filename = os.path.join(pxedir, pxefile)
         self.filename = filename
         if not self._exists(os.path.dirname(filename)):

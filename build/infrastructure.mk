@@ -385,8 +385,8 @@ tftp:
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/razor.ipxe $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default-ipxe.cgi $(TFTPROOT)
 	$(SUDO) sed -i 's/__RAZOR_SERVER__/$(RAZOR_SERVER)/' $(TFTPROOT)/razor.ipxe
-	-$(SUDO) cp $(TEST_INPUTS)/ipxe/ipxe.0 $(TFTPROOT)
 	-$(SUDO) cp $(TEST_INPUTS)/ipxe/undionly.kpxe $(TFTPROOT)
+	-$(SUDO) ln -sf undionly.kpxe $(TFTPROOT)/ipxe.0
 	-$(SUDO) cp -R $(TEST_INPUTS)/clean $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/tinycorelinux
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg

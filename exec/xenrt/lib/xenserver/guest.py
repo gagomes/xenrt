@@ -562,12 +562,14 @@ class Guest(xenrt.GenericGuest):
         kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
         if 'ubuntu1404' in distro:
             _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
+            _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
+                                "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
             if '64' in self.arch:
-                _new_kernel_path =  "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb"%(_new_kernel)
+                self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
+                self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
             else:
-                _new_kernel_path = "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"%(_new_kernel)
-            self.execcmd("wget %s"%(_new_kernel_path))
-            self.execcmd("dpkg -i updated_kernel.deb")
+                self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
+                self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
         elif 'rhel7' or 'oel7' or 'centos7' in distro:
             _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
             _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",

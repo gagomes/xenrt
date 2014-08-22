@@ -2105,6 +2105,7 @@ class _VPXWLBReports(_VPXWLB):
                 break
 
         if not found:
+            xenrt.TEC().logverbose("TEST_FAILED: %r.verifyTestPassed not found keyword in %r" % (self, report_contents[:1024]))
             raise xenrt.XRTFailure("TEST_FAILED.")
 
     def verifyTestPassed(self, report_contents, args_dictionary):

@@ -559,17 +559,26 @@ class Guest(xenrt.GenericGuest):
 
             if not notools and self.getState() == "UP":
                 self.installTools()
+        kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
         if 'ubuntu1404' in distro:
-            _new_kernel = repository + "/pool/main/l/linux/"
+            _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
             if '64' in self.arch:
                 _new_kernel_path =  "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb"%(_new_kernel)
             else:
                 _new_kernel_path = "%s/linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"%(_new_kernel)
-            ko = xenrt.TEC().tempFile()
-            xenrt.getHTTP(_new_kernel_path,ko)
-            guestSftp = self.sftpClient()
-            guestSftp.copyTo(ko,"/root/updated_kernel.deb")
+            self.execcmd("wget %s"%(_new_kernel_path))
             self.execcmd("dpkg -i updated_kernel.deb")
+        elif 'rhel7' or 'oel7' or 'centos7' in distro:
+            _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
+            _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+            for kernelFix in _new_kernel_path:
+                xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                self.execcmd("rpm -ivh --force %s"%(kernelFix))
+                
+                                
 
 
     def installWindows(self, isoname):

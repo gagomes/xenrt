@@ -3328,7 +3328,9 @@ class _BondMonitoring(xenrt.TestCase):
             convertedMessages.append(cm[1:])
 
         if isinstance(expected, list):
-            if convertedMessages != expected:
+            set_expected = set(expected)
+            set_convertedMessages = set(convertedMessages)
+            if not set_expected.issubset(set_convertedMessages):
                 raise xenrt.XRTFailure("Bond status monitoring messages were not as expected",
                                        data="Expecting %s, found %s" % (expected, convertedMessages))
         elif isinstance(expected, int):

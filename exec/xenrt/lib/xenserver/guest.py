@@ -2800,7 +2800,7 @@ exit /B 1
             xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
         return sruuid
 
-    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False):
+    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False):
         if sr:
             sruuid = sr
         else:
@@ -2831,10 +2831,11 @@ exit /B 1
         self.uuid = uuid
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
-        self.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
-        self.vifs.sort()
-        self.recreateVIFs(newMACs=True)
+        if not ispxeboot:
+            self.vifs = [ (nic, vbridge, mac, ip) for \
+                        (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.vifs.sort()
+            self.recreateVIFs(newMACs=True)
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):

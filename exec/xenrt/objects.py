@@ -1679,8 +1679,14 @@ strDomain & "\" & strUser, NULL)
         return table[longest]
 
     def getLinuxIFConfigData(self):
-        SECTION = r"(?m)(?P<key>^\S+)(?P<value>.*(?:\n^\s+\S+[^\n]+)+)"
-        VALUES = {"MAC":r"HWaddr (?P<MAC>[A-Fa-f0-9:]+)",
+        if self.deprecatedIfConfig():
+           SECTION = r"(?m)(?P<key>^\S+)(?P<value>.*(?:\n^\s+\S+[^\n]+)+)"
+           VALUES = {"MAC":r"ether (?P<MAC>[A-Fa-f0-9:]+)",
+                      "IP":r"inet (?P<IP>[0-9\.]+)",
+                      "netmask":r"netmask (?P<netmask>[0-9\.]+)"}
+        else:
+            SECTION = r"(?m)(?P<key>^\S+)(?P<value>.*(?:\n^\s+\S+[^\n]+)+)"
+            VALUES = {"MAC":r"HWaddr (?P<MAC>[A-Fa-f0-9:]+)",
                       "IP":r"inet addr:(?P<IP>[0-9\.]+)",
                       "netmask":r"Mask:(?P<netmask>[0-9\.]+)"}
 

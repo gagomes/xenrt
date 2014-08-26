@@ -607,11 +607,18 @@ class CloudStack(object):
     def getLogs(self, path):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
-        sftp.close()
         if xenrt.TEC() == xenrt.GEC().anontec:
             # CP-9393 We're the anonymous TEC, which means we are collecting job
             # logs, so get a database dump in addition to other logs
             self.mgtsvr.getDatabaseDump(path)
+            if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
+                self.mgtsvr.stop()
+                try:
+                    sftp.copyTreeFrom("/coverage_results", path)
+                except:
+                    xenrt.TEC().warning("Unable to collect code coverage data")
+                self.mgtsvr.start()
+        sftp.close()
 
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
 

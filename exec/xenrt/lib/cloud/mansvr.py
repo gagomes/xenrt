@@ -27,14 +27,6 @@ class ManagementServer(object):
         sftp = self.place.sftpClient()
         manSvrLogsLoc = self.place.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
         sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
-        if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True) and xenrt.TEC() == xenrt.GEC().anontec:
-            # We check we are in the anonymous TEC to ensure we only do this for the job logs
-            self.stop()
-            try:
-                sftp.copyTreeFrom("/coverage_results", destDir)
-            except:
-                xenrt.TEC().warning("Unable to collect code coverage data")
-            self.start()
         sftp.close()
 
     def getDatabaseDump(self, destDir):

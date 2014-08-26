@@ -31,7 +31,7 @@ class ManagementServer(object):
             # We check we are in the anonymous TEC to ensure we only do this for the job logs
             self.stop()
             try:
-                sftp.copyFrom("/coverage_results/jacoco.exec", os.path.join(destDir, "jacoco.exec"))
+                sftp.copyTreeFrom("/coverage_results", destDir)
             except:
                 xenrt.TEC().warning("Unable to collect code coverage data")
             self.start()

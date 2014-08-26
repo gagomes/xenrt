@@ -481,7 +481,7 @@ class TCRebootHost(_TCHostResiliencyBase):
         xenrt.TEC().logverbose("Not Required")
         pass
 
-    def postOutageCheck(self,host):
+    def postOutageCheck(self):
 
         xenrt.TEC().logverbose("Not Required")
         pass

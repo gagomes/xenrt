@@ -27,6 +27,13 @@ class ManagementServer(object):
         sftp = self.place.sftpClient()
         manSvrLogsLoc = self.place.execcmd('find /var/log -type d -name management | grep %s' % (self.cmdPrefix)).strip()
         sftp.copyTreeFrom(os.path.dirname(manSvrLogsLoc), destDir)
+        if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
+            self.stop()
+            try:
+                sftp.copyFrom("/coverage_results/jacoco.exec", os.path.join(destDir, "jacoco.exec"))
+            except:
+                xenrt.TEC().warning("Unable to collect code coverage data")
+            self.start()
         sftp.close()
 
     def getDatabaseDump(self, destDir):
@@ -92,12 +99,19 @@ class ManagementServer(object):
         if not startStop:
             self.place.execcmd('service %s-management restart' % (self.cmdPrefix))
         else:
-            self.place.execcmd('service %s-management stop' % (self.cmdPrefix))
+            self.stop()
             xenrt.sleep(120)
-            self.place.execcmd('service %s-management start' % (self.cmdPrefix))
+            self.start()
         
         if checkHealth:
             self.checkManagementServerHealth()
+
+    def stop(self):
+        self.place.execcmd('service %s-management stop' % (self.cmdPrefix))
+
+    def start(self):
+        self.place.execcmd('service %s-management start' % (self.cmdPrefix))
+
 
     def setupManagementServerDatabase(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
@@ -184,6 +198,12 @@ class ManagementServer(object):
                 url = 'cifs://%s' % (secondaryStorage.getMount().replace(':',''))
                 marvinApi.copySystemTemplatesToSecondaryStorage(storagePath, "SMB")
                 self.place.special['initialSMBSecStorageUrl'] = url
+
+        if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
+            xenrt.TEC().logverbose("Enabling code coverage collection...")
+            self.place.execcmd("%s/cloud/install_coverage_requirements.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            self.restart()
+            xenrt.TEC().logverbose("...done")
 
     def installApacheProxy(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:

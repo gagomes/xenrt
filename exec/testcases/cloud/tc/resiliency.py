@@ -443,7 +443,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
         self.csHost = csHost
         self.runSubcase('outage', (xrtHost), 'Outage', 'Host-%s' % (csHost.name))
-        self.runSubcase('postOutageCheck','PostOutageCheck','Host-%s' % (csHost.name))
+        self.runSubcase('postOutageCheck',(),'PostOutageCheck','Host-%s' % (csHost.name))
         self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
         self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
         self._destroyInstance()

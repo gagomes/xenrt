@@ -358,6 +358,8 @@ class TCManServerStartAfterDB(_TCManServerResiliencyBase):
 
 class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
+    csHost = None
+
     def _populateParam(self):
 
         self.cloud = self.getDefaultToolstack()
@@ -398,13 +400,13 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
         raise xenrt.XRTError("Unimplemented")
 
-    def postOutageCheck(self,host):
+    def postOutageCheck(self):
 
         xenrt.sleep(900)
-        if host.state != 'Down':
-            raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % host.name)
+        if self.csHost.state != 'Down':
+            raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % self.csHost.name)
 
-        self.cloud.healthCheck(ignoreHosts=[host])
+        self.cloud.healthCheck(ignoreHosts=[self.csHost])
 
     def postRecoverCheck(self):
 
@@ -435,8 +437,9 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
  
     def _resilliencyTest(self,xrtHost,csHost):
 
+        self.csHost = csHost
         self.runSubcase('outage', (xrtHost), 'Outage', 'Host-%s' % (csHost.name))
-        self.runSubcase('postOutageCheck',csHost,'PostOutageCheck','Host-%s' % (csHost.name))
+        self.runSubcase('postOutageCheck','PostOutageCheck','Host-%s' % (csHost.name))
         self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
         self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
  

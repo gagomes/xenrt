@@ -57,6 +57,7 @@ class DeployerPlugin(object):
             ret = []
             for i in ref['XRT_NetscalerVMs']:
                 netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i)
+                xenrt.GEC().registry.objPut("netscaler", i, netscaler)
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
                 ret.append({"username": "nsroot",
                             "publicinterface": "1/1",
@@ -102,7 +103,10 @@ class DeployerPlugin(object):
             return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
 
     def getGateway(self, key, ref):
-        if ref.has_key("XRT_VlanName"):
+        if ref.has_key("XRT_NetscalerGateway"):
+            ns = xenrt.GEC().registry.objGet("netscaler", ref['XRT_NetscalerGateway'])
+            return ns.gatewayIp(ref.get("XRT_VlanName", "NPRI"))
+        elif ref.has_key("XRT_VlanName"):
             if ref['XRT_VlanName'] == "NPRI":
                 return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
             elif ref['XRT_VlanName'] == "NSEC":

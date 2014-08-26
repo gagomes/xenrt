@@ -28,7 +28,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
                     }
 
     def addTC(self, cls):
-        self.tcs.append((cls.IN, cls.OUT, cls.EXTRAVARS))
+        self.tcs.append((cls.__name__, cls.IN, cls.OUT, cls.EXTRAVARS))
 
     def test_marvin_config_generator(self):
         self.tcs = []
@@ -64,10 +64,11 @@ class TestMarvinConfig(XenRTUnitTestCase):
         smb.return_value = dummySmb
         dummyNs = Mock()
         dummyNs.managementIp = "10.3.1.1"
+        dummyNs.gatewayIp.return_value = "10.3.1.2"
         ns.return_value = dummyNs
         tec.return_value = self.dummytec
         gec.return_value = self.dummytec
-        (indata, outdata, extravars) = data
+        (tcname, indata, outdata, extravars) = data
         self.extravars = extravars
         unit = xenrt.lib.cloud.marvindeploy.MarvinDeployer("1.1.1.1", Mock(), "root", "xenroot", None)
         cfg = copy.deepcopy(indata)
@@ -76,15 +77,18 @@ class TestMarvinConfig(XenRTUnitTestCase):
 
         deployer = xenrt.lib.cloud.deploy.DeployerPlugin(marvin)
         unit._processConfigElement(cfg, 'config', deployer)
-        print "Input Data"
-        pprint.pprint(indata)
-        print "Expected"
         expected = self.removeXRTValues(outdata)
-        pprint.pprint(expected)
-        print "Actual"
         actual = self.removeXRTValues(cfg)
-        pprint.pprint(self.removeXRTValues(cfg))
-        self.assertEqual(expected, actual)
+        try:
+            self.assertEqual(expected, actual)
+        except:
+            print "Input Data for test %s" % tcname
+            pprint.pprint(indata)
+            print "Expected"
+            pprint.pprint(expected)
+            print "Actual"
+            pprint.pprint(actual)
+            raise
 
     def _lookup(self, var, default="BADVALUE", boolean=False):
         values = {}
@@ -144,7 +148,7 @@ class DummyTEC(object):
         self.registry = DummyRegistry()
 
     def logverbose(self, msg):
-        print msg
+        pass
 
     def lookup(self, var, default="BADVALUE", boolean=False):
         return self.parent._lookup(var, default, boolean=False)
@@ -157,6 +161,9 @@ class DummyTEC(object):
         return self
 
 class DummyRegistry(object):
+    def __init__(self):
+        self.objs = {}
+        
     def hostGet(self, h):
         index = int(re.match("RESOURCE_HOST_(\d+)", h).group(1))
         m = Mock()
@@ -167,6 +174,13 @@ class DummyRegistry(object):
         g = Mock()
         g.createLinuxNfsShare.return_value = "guest:/path"
         return g
+
+    def objPut(self, objType, tag, obj):
+        self.objs["%s-%s" % (objType, tag)] = obj
+
+    def objGet(self, objType, tag):
+        return self.objs["%s-%s" % (objType, tag)]
+        
 
 class BaseTC(object):
     EXTRAVARS = {}
@@ -562,12 +576,10 @@ class TC6(BaseTC):
 class TC7(BaseTC):
     """Test KVM zones with a Netscaler"""
 
-    IN = {'zones': [{'guestcidraddress': '192.168.200.0/24',
+    IN = {'zones': [{
              'ipranges': [{'XRT_GuestIPRangeSize': 10}],
-             'networktype': 'Advanced',
-             'physical_networks': [{'XRT_VLANRangeSize': 10,
-                                     'isolationmethods': ['VLAN'],
-                                     'name': 'AdvPhyNetwork',
+             'networktype': 'Basic',
+             'physical_networks': [{ 'name': 'test-network',
                                      'providers': [{'broadcastdomainrange': 'ZONE',
                                                      'name': 'VirtualRouter'},
                                                     {'broadcastdomainrange': 'ZONE',
@@ -579,13 +591,18 @@ class TC7(BaseTC):
                                                        {'typ': 'Management'},
                                                        {'typ': 'Public'}]}],
              'pods': [{'XRT_PodIPRangeSize': 10,
+                       "XRT_NetscalerGateway": "NetscalerVPX",
+                       "guestIpRanges": [
+                         { "XRT_GuestIPRangeSize": 20, 
+                           "XRT_NetscalerGateway": "NetscalerVPX"
+                         }
+                         ],
                         'clusters': [{'XRT_Hosts': 1,
                                        'XRT_KVMHostIds': '0',
                                        'hypervisor': 'KVM'}]}]}]}
 
     OUT = {'zones': [{'dns1': '10.0.0.2',
          'domain': 'xenrtcloud',
-         'guestcidraddress': '192.168.200.0/24',
          'internaldns1': '10.0.0.2',
          'ipranges': [{'XRT_GuestIPRangeSize': 10,
                         'endip': '10.1.0.10',
@@ -593,11 +610,9 @@ class TC7(BaseTC):
                         'netmask': '255.255.255.0',
                         'startip': '10.1.0.1'}],
          'name': 'XenRT-Zone-0',
-         'networktype': 'Advanced',
-         'physical_networks': [{'XRT_VLANRangeSize': 10,
-                                 'broadcastdomainrange': 'Zone',
-                                 'isolationmethods': ['VLAN'],
-                                 'name': 'AdvPhyNetwork',
+         'networktype': 'Basic',
+         'physical_networks': [{ 'broadcastdomainrange': 'Zone',
+                                 'name': 'test-network',
                                  'providers': [{'broadcastdomainrange': 'ZONE',
                                                  'name': 'VirtualRouter'},
                                                 {'broadcastdomainrange': 'ZONE',
@@ -618,7 +633,7 @@ class TC7(BaseTC):
                                  'traffictypes': [{'typ': 'Guest'},
                                                    {'typ': 'Management'},
                                                    {'typ': 'Public'}],
-                                 'vlan': '3000-3009'}],
+                                 'vlan': None}],
          'pods': [{'XRT_PodIPRangeSize': 10,
                     'clusters': [{'XRT_Hosts': 1,
                                    'XRT_KVMHostIds': '0',
@@ -630,8 +645,12 @@ class TC7(BaseTC):
                                    'hypervisor': 'KVM',
                                    'primaryStorages': [{'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
                                                         'url': 'nfs://nfsserver/path'}]}],
+                    'guestIpRanges': [{'endip': '10.1.0.20',
+                                       'gateway': '10.3.1.2',
+                                       'netmask': '255.255.255.0',
+                                       'startip': '10.1.0.1'}],
                     'endip': '10.1.0.10',
-                    'gateway': '10.0.0.1',
+                    'gateway': '10.3.1.2',
                     'name': 'XenRT-Zone-0-Pod-0',
                     'netmask': '255.255.255.0',
                     'startip': '10.1.0.1'}],

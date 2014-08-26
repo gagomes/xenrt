@@ -123,3 +123,6 @@ class NetScaler(object):
             xenrt.xrtAssert(managementIp == self.__vpxGuest.mainip, 'The IP address of the guest matches the reported Netscaler management IP address')
             self.__managementIp = managementIp
         return self.__managementIp
+
+    def gatewayIp(self, network=None):
+        return "1.1.1.1"

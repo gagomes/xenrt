@@ -43,12 +43,12 @@
         <arg>dest_SR=lvm</arg>
       </testcase>
       
-      <!-- removed for now: CA-96410
+     
       <testcase id="xenserver.tc.sxm.SrcSRFailDuringMig" name="TC17078" tc="TC-17078">
         <arg>src_SR=lvmoiscsi</arg>
         <arg>dest_SR=lvm</arg>
         <arg>negative_test</arg>
-      </testcase>-->
+      </testcase>
       <testcase id="xenserver.tc.sxm.DestSRFailDringMig" name="TC17079" tc="TC-17079">
         <arg>src_SR=lvm</arg>
         <arg>dest_SR=lvmoiscsi</arg>
@@ -69,14 +69,13 @@
         <arg>src_SR=lvm</arg>
         <arg>dest_SR=lvmoiscsi</arg>
         <arg>negative_test</arg>
-      </testcase>-->
-      <!-- removed for now: CA-96410
+      </testcase>-->      
       <testcase id="xenserver.tc.sxm.SrcSRFailDuringMig" name="TC17080" tc="TC-17080">
         <arg>test=LiveVDI</arg>
         <arg>src_SR=lvmoiscsi</arg>
         <arg>dest_SR=lvm</arg>
         <arg>negative_test</arg>
-      </testcase>-->
+      </testcase>
       <testcase id="xenserver.tc.sxm.DestSRFailDringMig" name="TC17081" tc="TC-17081">
         <arg>test=LiveVDI</arg>
         <arg>src_SR=lvm</arg>

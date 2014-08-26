@@ -4182,6 +4182,8 @@ class GenericHost(GenericPlace):
 
     def registerJobTest(self, jt):
         try:
+            if xenrt.TEC().lookup("JTSKIP_%s" % jt.TCID, False, boolean=True):
+                return
             self.jobTests.append(jt(self))
         except:
             traceback.print_exc(file=sys.stderr)

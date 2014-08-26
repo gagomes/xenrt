@@ -8,6 +8,7 @@ __all__ = ["NetScaler"]
 
 class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
+
     @classmethod
     def setupNetScalerVpx(cls, vpxName):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
@@ -55,6 +56,7 @@ class NetScaler(object):
         self.__vpxGuest = vpxGuest
         self.__version = None
         self.__managementIp = None
+        self.__gateways = {}
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
     def __netScalerCliCommand(self, command):
@@ -125,4 +127,9 @@ class NetScaler(object):
         return self.__managementIp
 
     def gatewayIp(self, network=None):
-        return "1.1.1.1"
+        if not network:
+            network="NPRI"
+        if not self.__gateways.has_key(network):
+            self.__gateways[network] = xenrt.StaticIP4Addr(network=network).getAddr()
+            # TODO actually configure this on the netscaler!
+        return self.__gateways[network]

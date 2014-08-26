@@ -19,6 +19,9 @@ class Registry:
         self.data = {}
         self.mylock = threading.Lock()
 
+    def dump(self):
+        xenrt.TEC().logverbose(self.data)
+
     # Generic operations
     def write(self, path, value):
         self.mylock.acquire()

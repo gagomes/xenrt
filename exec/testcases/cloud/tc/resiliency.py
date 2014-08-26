@@ -378,12 +378,12 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         systemVMsNotOnThisHost = []
         systemVMsToBeMoved = []
         systemVMsNotOnThisHost = filter(lambda x:x.hostname != hostForSystemVm.name, self._systemVMs)
-        map(lambda x:xenrt.TEC().logverbose("[VM name %s, host name %s" % (x.name,x.hostname)),self._systemVMs)
+        map(lambda x:xenrt.TEC().logverbose("[MigratesystemVM] VM name %s, host name %s" % (x.name,x.hostname)),self._systemVMs)
         if systemVMsNotOnThisHost:
             systemVMsToBeMoved  = filter(lambda x:x.hostname != hostInDiffCluster.name, systemVMsNotOnThisHost)
             if systemVMsToBeMoved:
-                xenrt.TEC().logverbose("VMs to be migrated %s, to be migrated on %s " % (systemVMsToBeMoved,hostForSystemVm))
-                xenrt.TEC().logverbose('Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsToBeMoved), hostForSystemVm.name))
+                xenrt.TEC().logverbose("[MigratesystemVM] VMs to be migrated %s, to be migrated on %s " % (systemVMsToBeMoved,hostForSystemVm))
+                xenrt.TEC().logverbose('[MigratesystemVM] Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsToBeMoved), hostForSystemVm.name))
                 map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsToBeMoved)
                 self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
 

@@ -979,9 +979,9 @@ def existingHost(hostname):
     place.findPassword(ipList = ips)
     place.checkVersion()
     if place.productType == "hyperv":
-        host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+        host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
     elif place.productType == "nativewindows":
-        host = xenrt.lib.nativewindows.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
+        host = xenrt.lib.nativewindows.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
     elif place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":

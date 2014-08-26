@@ -8301,9 +8301,9 @@ class GenericGuest(GenericPlace):
                      "netcfg/choose_interface=eth0 " \
                      "hostname=%s domain=localdomain url=%s" % (hostname, url)
 
-        if self.host.productType == "kvm" and method != "CDROM":
+        if self.host.productType.lower() == "kvm" and method != "CDROM":
             self._setPVBoot(self.kernel, self.initrd, bootparams)
-        elif self.host.productType == "esx":
+        elif self.host.productType.lower() in ("esx", "hyperv"):
             pass
         else:
             self.setBootParams(bootparams)

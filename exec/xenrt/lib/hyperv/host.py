@@ -271,3 +271,48 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
         a string containing XML or a XML DOM node."""
         pass
 
+    def arpwatch(self, iface, mac, timeout=600, level=xenrt.RC_FAIL):
+        """Monitor an interface (or bridge) for an ARP reply"""
+
+        # TODO currently we just poll leases.
+
+        deadline = xenrt.util.timenow() + timeout
+
+        while True:
+            ip = self.checkLeases(mac)
+            if ip:
+                break
+            xenrt.sleep(20)
+            if xenrt.util.timenow() > deadline:
+                xenrt.XRT("Timed out monitoring for guest ARP/DHCP", level, data=mac)
+
+        return ip
+
+    def hypervCmd(self, cmd):
+        script = "$ErrorActionPreference = \"Stop\"\nImport-Module Hyper-V\n%s" % cmd
+        try:
+            data = self.xmlrpcExec(script, powershell=True, returndata=True)
+        except:
+            xenrt.TEC().logverbose("Exception running %s" % cmd)
+            raise
+        xenrt.TEC().logverbose(data)
+        return data
+
+    def getCDPath(self, isoname):
+        if self.xmlrpcFileExists("c:\\isos\\%s" % isoname):
+            return "c:\\isos\\%s" % isoname
+        try:
+            self.xmlrpcExec("mkdir c:\\isos")
+        except:
+            pass
+        try:
+            self.xmlrpcFetchFile("%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoname), "c:\\isos\\%s" % isoname)
+            return "c:\\isos\\%s" % isoname
+        except:
+            return None
+
+    def getPrimaryBridge(self):
+        return "externalSwitch"
+
+    def guestFactory(self):
+        return xenrt.lib.hyperv.guest.Guest

@@ -9,3 +9,4 @@
 #
 
 from xenrt.lib.hyperv.host import *
+from xenrt.lib.hyperv.guest import *

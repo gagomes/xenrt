@@ -392,6 +392,10 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         #creating vm instance on the other host
         self._instance = self.cloud.createInstance(distro="debian70_x86-64",startOn = hostForInstance.name)
 
+    def _destroyInstance(self):
+
+        self._instance.destroy() 
+
     def outage(self,host):
 
         raise xenrt.XRTError("Unimplemented")
@@ -442,6 +446,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         self.runSubcase('postOutageCheck','PostOutageCheck','Host-%s' % (csHost.name))
         self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
         self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
+        self._destroyInstance()
  
     def run(self,arglist):
 

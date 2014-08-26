@@ -163,7 +163,10 @@ class DummyTEC(object):
 class DummyRegistry(object):
     def __init__(self):
         self.objs = {}
-        
+    
+    def dump(self):
+        pass
+
     def hostGet(self, h):
         index = int(re.match("RESOURCE_HOST_(\d+)", h).group(1))
         m = Mock()

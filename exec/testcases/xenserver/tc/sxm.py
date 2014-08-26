@@ -1673,6 +1673,31 @@ class SrcSRFailDuringMig(MidMigrateFailure):
 
         sourceHost = self.observers[0].srcHost
         self.srFailure(sourceHost)
+        
+    def postHook(self):
+    #Fixing CA-96410: As the storage connectivity was lost ...once the sr connectivity is up rescan the sr and force reboot the vm 
+    #before we proceed for guest healthcheck
+        guest = self.guests[0]
+        if guest.getState() == "UP":                
+                cli = self.observers[0].srcHost.getCLIInstance()
+                vm = self.vm_config[guest.getName()]
+                VDIs = vm['VDI_SR_map'].keys()
+                src_host = vm['src_host']
+                orig_disks = vm['src_VDIs'].keys()
+                orig_disks.sort()
+                VDIs_sorted = [vm['src_VDIs'][disk] for disk in orig_disks]                
+                src_VDI_SR_map = dict(zip(VDIs_sorted, vm['VDI_src_SR_uuids']))
+                for vdi in VDIs:
+                    try:
+                        sr_uuid = src_host.getVDISR(vdi)
+                        orig_sr_uuid = src_VDI_SR_map[vdi]
+                        cli.execute("sr-scan", "uuid=%s" % (orig_sr_uuid))
+                        time.sleep(10)
+                    except Exception, e:
+                        xenrt.TEC().warning("Exception on sr-scan of %s: %s" % 
+                                    (orig_sr_uuid, str(e)))               
+                guest.reboot(force=True)
+        LiveMigrate.postHook(self)
 
 class DestSRFailDringMig(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated

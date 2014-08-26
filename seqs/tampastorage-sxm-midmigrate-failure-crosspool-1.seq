@@ -25,11 +25,12 @@
   <testsequence>
 
     <serial group="CrossPoolMidMigSXM">
+      <!--
       <testcase id="xenserver.tc.sxm.SrcSRFailDuringMig" name="TC17076" tc="TC-17076">
         <arg>src_SR=lvmoiscsi</arg>
         <arg>dest_SR=ext</arg>
-        <arg>negative_test</arg>
-      </testcase>
+        <arg>negative_test</arg>        
+      </testcase>-->
       <testcase id="xenserver.tc.sxm.DestSRFailDringMig" name="TC17077" tc="TC-17077">
         <arg>src_SR=ext</arg>
         <arg>dest_SR=lvmoiscsi</arg>

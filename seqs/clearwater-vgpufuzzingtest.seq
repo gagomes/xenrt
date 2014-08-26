@@ -2,7 +2,7 @@
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-    <VGPU_HOST_DRIVER_RPM>NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm</VGPU_HOST_DRIVER_RPM>
+    <!--<VGPU_HOST_DRIVER_RPM>NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm</VGPU_HOST_DRIVER_RPM>-->
   </variables>
 
   <prepare>

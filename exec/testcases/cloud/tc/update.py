@@ -61,6 +61,7 @@ class TCCloudUpdate(xenrt.TestCase):
             if len(templatesToUse) == 0:
                 templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates) 
                 map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
+                templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates)
 
             xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
             xenrt.TEC().logverbose(str(templatesToUse))

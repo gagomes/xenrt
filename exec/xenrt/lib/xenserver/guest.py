@@ -574,8 +574,8 @@ class Guest(xenrt.GenericGuest):
             elif 'rhel7' in distro or 'oel7' in distro or 'centos7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/Rhel7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
-                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+#                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
                 for kernelFix in _new_kernel_path:
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))

@@ -51,10 +51,10 @@
       ],
       "pods": [
         { "XRT_PodIPRangeSize": 20,
-          "XRT_NetscalerGateway": "Netscaler-VPX",
+          "XRT_NetscalerGateway": "NetScaler-VPX",
           "guestIpRanges": [
             { "XRT_GuestIPRangeSize": 40,
-              "XRT_NetscalerGateway": "Netscaler-VPX"
+              "XRT_NetscalerGateway": "NetScaler-VPX"
             }
           ],
           "clusters": [

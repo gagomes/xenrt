@@ -3080,7 +3080,6 @@ class SharedHost:
                         maxmem = mem
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not get free memopry from %s: %s" % (h, str(e)))
-                    raise
                     continue
 
         if not useHost:

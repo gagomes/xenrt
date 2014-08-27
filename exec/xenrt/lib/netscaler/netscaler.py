@@ -80,7 +80,7 @@ class NetScaler(object):
         for n in networks[1:]:
             i += 1
             self.__netScalerCliCommand("add vlan %d" % i)
-            self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % i)
+            self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
             self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
             self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
             self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))

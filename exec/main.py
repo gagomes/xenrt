@@ -1956,6 +1956,8 @@ if cleanupsharedhosts:
                 try:
                     m = re.match(".*-(\d+$)", v)
                     if m:
+                        if m.group(1) == "64": # This actually indicates a 64-bit VM!
+                            continue
                         xrs = xenrt.ctrl.XenRTStatus(None)                
                         try:
                             if xenrt.canCleanJobResources(m.group(1)):

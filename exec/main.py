@@ -1631,7 +1631,7 @@ if cleanupnfsdirs:
                 m.unmount()
         except:
             pass
-    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS")
+    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS", {})
     for n in smbConfig.keys():
         try:
             staticMount = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "STATIC_MOUNT"], None)

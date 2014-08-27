@@ -1625,7 +1625,8 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
-                except:
+                except Exception, e:
+                    xenrt.TEC().logverbose(str(e))
                     continue
             if m:
                 m.unmount()

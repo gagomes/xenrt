@@ -253,12 +253,11 @@ class ManagementServer(object):
 
     def installCloudStackManagementServer(self):
         self.__isCCP = False
-        placeArtifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self.place,
-                                                                         ["cloudstack-management-",
-                                                                          "cloudstack-common-",
-                                                                          "cloudstack-awsapi-"],
-                                                                         updateInputDir=True)
-        
+        placeArtifactDir = xenrt.lib.cloud.getACSArtifacts(self.place,
+                                                           ["cloudstack-management-",
+                                                            "cloudstack-common-",
+                                                            "cloudstack-awsapi-"])
+
         if self.place.distro in ['rhel63', 'rhel64', ]:
             self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
@@ -280,6 +279,7 @@ class ManagementServer(object):
             xenrt.TEC().logverbose('XenRT supports the following MS versions: %s' % (str(versionKeys)))
             masterMap = xenrt.TEC().lookup('CLOUD_MASTER_MAP')
             xenrt.TEC().logverbose('The branch master is currently treated as: %s' % masterMap)
+            versionKeys.append('master')
             # Try and get the version from the MS database
             dbVersionMatches = []
             installVersionMatches = []
@@ -290,7 +290,7 @@ class ManagementServer(object):
             except Exception, e:
                 xenrt.TEC().logverbose('Failed to get MS version from database: %s' % (str(e)))
 
-            installVersionStr = xenrt.TEC().lookup("CLOUDINPUTDIR", xenrt.TEC().lookup('ACS_BRANCH', None))
+            installVersionStr = xenrt.TEC().lookup("CLOUDINPUTDIR", xenrt.TEC().lookup("ACS_BUILD", xenrt.TEC().lookup("ACS_BRANCH", None)))
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
@@ -320,7 +320,7 @@ class ManagementServer(object):
         if self.__isCCP is None:
             # There appears no reliable way on pre-release versions to identify if we're using CCP or ACS,
             # for now we are therefore going to use the presence or absence of the ACS_BRANCH variable.
-            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None and xenrt.TEC().lookup("CLOUDRPMTAR", None) is None
+            self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None and xenrt.TEC().lookup("CLOUDRPMTAR", None) is None and xenrt.TEC().lookup("ACS_BUILD", None) is None
 
         return self.__isCCP
 
@@ -346,10 +346,10 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
             self.installCloudPlatformManagementServer()
-        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None:
+        elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None or xenrt.TEC().lookup("ACS_BUILD", None) != None:
             self.installCloudStackManagementServer()
         else:
-            raise xenrt.XRTError('CLOUDINPUTDIR and ACS_BRANCH options are not defined')
+            raise xenrt.XRTError("Didn't find one of CLOUDINPUTDIR, ACS_BRANCH, CLOUDRPMTAR or ACS_BUILD variables")
 
         self.postManagementServerInstall()
 

@@ -373,7 +373,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Install cloudstack-agent
             self.installJSVC()
             self.execdom0("yum install -y ipset jna")
-            artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-common-", "cloudstack-agent-"])
+            artifactDir = xenrt.lib.cloud.getACSArtifacts(self, ["cloudstack-common-", "cloudstack-agent-"])
             self.execdom0("rpm -ivh %s/cloudstack-*.rpm" % artifactDir)
 
             # Modify /etc/libvirt/qemu.conf

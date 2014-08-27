@@ -1673,7 +1673,9 @@ class Config:
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
-        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        # Specify which version 'master' currently maps to
+        self.config["CLOUD_MASTER_MAP"] = "4.5"
+        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"][self.config["CLOUD_MASTER_MAP"]])
 
 
         self.config["GUEST_VIFS_centos41"] = "3"

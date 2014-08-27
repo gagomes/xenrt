@@ -211,7 +211,7 @@ class ManagementServer(object):
 
     def checkJavaVersion(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if self.version in ['4.4', '4.5', 'master']:
+            if self.version in ['4.4', '4.5']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java*1.7*')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
@@ -277,7 +277,7 @@ class ManagementServer(object):
         # TODO - Need to find a better way of doing this
         if not self.__version:
             versionKeys = xenrt.TEC().lookup('CLOUD_CONFIG').keys()
-            xenrt.TEC().logverbose('XenRT supports the following MS versions' % (versionKeys))
+            xenrt.TEC().logverbose('XenRT supports the following MS versions: %s' % (str(versionKeys)))
             # Try and get the version from the MS database
             dbVersionMatches = []
             installVersionMatches = []
@@ -293,7 +293,11 @@ class ManagementServer(object):
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
                 if len(installVersionMatches) > 1 and "master" in installVersionMatches:
+                    # We found master + a version number - we'll use the version number
                     installVersionMatches.remove("master")
+                if len(installVersionMatches) == 1 and installVersionMatches[0] == "master":
+                    # Just master - replace it with the version we believe master to be at the moment
+                    installVersionMatches[0] = xenrt.TEC().lookup("CLOUD_MASTER_MAP")
 
             xenrt.TEC().logverbose('XenRT support MS versions matching DB version: %s' % (dbVersionMatches))
             xenrt.TEC().logverbose('XenRT support MS versions matching install version: %s' % (installVersionMatches))
@@ -331,7 +335,7 @@ class ManagementServer(object):
 
     def postManagementServerInstall(self):
         if self.place.distro in ['rhel63', 'rhel64', ]:
-            if not self.isCCP and self.version in ['4.4', 'master']:
+            if not self.isCCP and self.version in ['4.4', '4.5']:
                 self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
                 self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 

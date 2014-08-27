@@ -53,23 +53,21 @@ class DeployerPlugin(object):
 
     def getNetworkDevices(self, key, ref):
         ret = None
-        if ref.has_key('XRT_NetscalerVMs'):   
-            ret = []
-            for i in ref['XRT_NetscalerVMs'].keys():
-                netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i, networks=ref['XRT_NetscalerVMs'][i])
-                xenrt.GEC().registry.objPut("netscaler", i, netscaler)
-                xenrt.GEC().registry.dump()
-                netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                netscaler.disableL3()
-                ret.append({"username": "nsroot",
-                            "publicinterface": "1/1",
-                            "hostname": netscaler.managementIp,
-                            "privateinterface": "1/2",
-                            "lbdevicecapacity": "50",
-                            "networkdevicetype": "NetscalerVPXLoadBalancer",
-                            "lbdevicededicated": "false",
-                            "password": "nsroot",
-                            "numretries": "2"})
+        if ref.has_key('XRT_NetscalerVM'):   
+            netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(ref['XRT_NetscalerVM'], networks=ref['XRT_NetscalerNetworks'])
+            xenrt.GEC().registry.objPut("netscaler", ref['XRT_NetscalerVM'], netscaler)
+            xenrt.GEC().registry.dump()
+            netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+            netscaler.disableL3()
+            ret = [{"username": "nsroot",
+                    "publicinterface": "1/1",
+                    "hostname": netscaler.managementIp,
+                    "privateinterface": "1/2",
+                    "lbdevicecapacity": "50",
+                    "networkdevicetype": "NetscalerVPXLoadBalancer",
+                    "lbdevicededicated": "false",
+                    "password": "nsroot",
+                    "numretries": "2"}]
 
         return ret
 

@@ -47,7 +47,8 @@
             },
             { "broadcastdomainrange": "ZONE",
               "name": "Netscaler",
-              "XRT_NetscalerVMs":{"NetScaler-VPX": ["NSEC", "NPRI"]}
+              "XRT_NetscalerVM": "NetScaler-VPX",
+              "XRT_NetscalerNetworks": ["NSEC", "NPRI"]
             }
           ]
         }

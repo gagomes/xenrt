@@ -278,6 +278,8 @@ class ManagementServer(object):
         if not self.__version:
             versionKeys = xenrt.TEC().lookup('CLOUD_CONFIG').keys()
             xenrt.TEC().logverbose('XenRT supports the following MS versions: %s' % (str(versionKeys)))
+            masterMap = xenrt.TEC().lookup('CLOUD_MASTER_MAP')
+            xenrt.TEC().logverbose('The branch master is currently treated as: %s' % masterMap)
             # Try and get the version from the MS database
             dbVersionMatches = []
             installVersionMatches = []
@@ -297,7 +299,7 @@ class ManagementServer(object):
                     installVersionMatches.remove("master")
                 if len(installVersionMatches) == 1 and installVersionMatches[0] == "master":
                     # Just master - replace it with the version we believe master to be at the moment
-                    installVersionMatches[0] = xenrt.TEC().lookup("CLOUD_MASTER_MAP")
+                    installVersionMatches[0] = masterMap
 
             xenrt.TEC().logverbose('XenRT support MS versions matching DB version: %s' % (dbVersionMatches))
             xenrt.TEC().logverbose('XenRT support MS versions matching install version: %s' % (installVersionMatches))

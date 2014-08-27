@@ -15,6 +15,14 @@
 
   <prepare>
     <host productVersion="Clearwater" version="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+            <NIC />
+            <MANAGEMENT />
+            <VMS />
+            <VLAN network="NSEC" />
+        </PHYSICAL>
+      </NETWORK>
       <vm name="NetScaler-VPX">
         <file>%EXPORT_DISTFILES_HTTP%/tallahassee/NSVPX-XEN-10.0-72.5_nc.xva</file>
       </vm>

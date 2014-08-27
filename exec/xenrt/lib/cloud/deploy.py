@@ -60,8 +60,9 @@ class DeployerPlugin(object):
                 xenrt.GEC().registry.objPut("netscaler", i, netscaler)
                 xenrt.GEC().registry.dump()
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+                netscaler.cloudTailor()
                 ret.append({"username": "nsroot",
-                            "publicinterface": "1/1",
+                            "publicinterface": "1/2",
                             "hostname": netscaler.managementIp,
                             "privateinterface": "1/1",
                             "lbdevicecapacity": "50",

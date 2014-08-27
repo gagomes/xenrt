@@ -129,7 +129,16 @@ class NetScaler(object):
     def gatewayIp(self, network=None):
         if not network:
             network="NPRI"
+        # TODO Might be a temporary hack?
+        if network == "NPRI":
+            return self.managementIp
         if not self.__gateways.has_key(network):
             self.__gateways[network] = xenrt.StaticIP4Addr(network=network).getAddr()
             # TODO actually configure this on the netscaler!
         return self.__gateways[network]
+
+    def cloudTailor(self):
+        self.__vpxGuest.setState("DOWN")
+        self.__vpxGuest.createVIF(bridge="NSEC")
+        self.__vpxGuest.setState("UP")
+        #self.__netScalerCliCommand('add ip %s %s' % self.gatewayIp("NPRI"), xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"]))

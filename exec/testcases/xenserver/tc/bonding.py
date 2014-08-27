@@ -1919,7 +1919,7 @@ class TC15932(TC8210):
 
 class TC17718(xenrt.TestCase):
     """Check packet loss during bond failover"""
-    THRESHOLD = 5 # The number of pings declared acceptable to lose
+    THRESHOLD = 6 # The number of pings declared acceptable to lose
 
     def prepare(self, arglist):
         # Set up a host with a bond of 2 NICs

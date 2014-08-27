@@ -10,7 +10,7 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpxName):
+    def setupNetScalerVpx(cls, vpxName, networks=["NPRI"]):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
         vpxGuest = xenrt.TEC().registry.guestGet(vpxName)
         host = vpxGuest.host
@@ -27,9 +27,17 @@ class NetScaler(object):
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
+            # Configure the VIFs
+            vpxGuest.removeAllVIFs()
+
+            mgmtNet = networks[0]
+            for n in networks:
+                vpxGuest.createVIF(bridge=n)
+
             # Configure the management network for the VPX
-            vpxGuest.mainip = xenrt.StaticIP4Addr.getIPRange(1)[0].getAddr()
-            (_, mask, gateway) = host.getNICAllocatedIPAddress(0)
+            vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
+            gateway = xenrt.getNetworkParam(mgmtNet, "GATEWAY")
+            mask = xenrt.getNetworkParam(mgmtNet, "SUBNETMASK")
             vpxGuest.paramSet('xenstore-data:vm-data/ip', vpxGuest.mainip)
             vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
             vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
@@ -39,7 +47,7 @@ class NetScaler(object):
 
         # Wait / Check for SSH connectivity
         vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
-        return cls(vpxGuest)
+        return cls(vpxGuest, mgmtNet)
 
     @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):
@@ -52,11 +60,12 @@ class NetScaler(object):
         xenrt.productLib(hostname=host.getName()).guest.createVMFromFile(host=host, guestname=vpxName, filename=vpxHttpLocation)
         return cls.setupNetScalerVpx(vpxName)
 
-    def __init__(self, vpxGuest):
+    def __init__(self, vpxGuest, mgmtNet):
         self.__vpxGuest = vpxGuest
         self.__version = None
         self.__managementIp = None
         self.__gateways = {}
+        self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
     def __netScalerCliCommand(self, command):
@@ -129,18 +138,9 @@ class NetScaler(object):
     def gatewayIp(self, network=None):
         if not network:
             network="NPRI"
-        # TODO Might be a temporary hack?
-        if network == "NPRI":
+        if network == self.__mgmtNet:
             return self.managementIp
         if not self.__gateways.has_key(network):
             self.__gateways[network] = xenrt.StaticIP4Addr(network=network).getAddr()
-            # TODO actually configure this on the netscaler!
+            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[network], xenrt.getNetworkParam(network, "SUBNETMASK")))
         return self.__gateways[network]
-
-    def cloudTailor(self):
-        if vpxGuest.getState() == 'UP':
-            vpxGuest.shutdown()
-        self.__vpxGuest.createVIF(bridge="NSEC")
-        vpxGuest.lifecycleOperation('vm-start')
-        vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
-        #self.__netScalerCliCommand('add ip %s %s' % self.gatewayIp("NPRI"), xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"]))

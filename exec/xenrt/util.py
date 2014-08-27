@@ -80,7 +80,8 @@ __all__ = ["timenow",
            "keepSetup",
            "getADConfig",
            "getMarvinFile",
-           "dictToXML"
+           "dictToXML",
+           "getNetworkParam"
            ]
 
 def sleep(secs, log=True):
@@ -1377,3 +1378,18 @@ def dictToXML(d, indent):
             out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(d[k]), k)
     return out
 
+def getNetworkParam(network, param):
+    path = ["NETWORK_CONFIG"]
+    if network == "NPRI":
+        path.append("DEFAULT")
+    elif network == "NSEC":
+        path.append("SECONDARY")
+    else:
+        path.append("VLANS")
+        path.append(network)
+    if param == "VLAN" and network not in ["NPRI", "NSEC"]:
+        param = "ID"
+    elif param == "ID" and network in ["NPRI", "NSEC"]:
+        param = "VLAN"
+    path.append(param)
+    return xenrt.TEC().lookup(path)

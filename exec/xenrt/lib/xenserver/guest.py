@@ -2061,6 +2061,14 @@ exit /B 1
             args.append("param-name=qos_algorithm_params")
             cli.execute("vif-param-remove", string.join(args))
 
+    def removeAllVIFs(self):
+        devs = self.getHost().minimalList("vif-list",
+                                          "device",
+                                          "vm-uuid=%s" % (self.getUUID()))
+        vifs = list(self.vifs)
+        for dev in devs:
+            self.removeVIF(dev)
+
     def recreateVIFs(self, newMACs = False):
         """Recreate all VIFs we have in the guest's object config"""
         devs = self.getHost().minimalList("vif-list",

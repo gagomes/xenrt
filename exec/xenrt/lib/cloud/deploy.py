@@ -56,11 +56,10 @@ class DeployerPlugin(object):
         if ref.has_key('XRT_NetscalerVMs'):   
             ret = []
             for i in ref['XRT_NetscalerVMs']:
-                netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i)
+                netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(i, networks=["NSEC", "NPRI"])
                 xenrt.GEC().registry.objPut("netscaler", i, netscaler)
                 xenrt.GEC().registry.dump()
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                netscaler.cloudTailor()
                 ret.append({"username": "nsroot",
                             "publicinterface": "1/2",
                             "hostname": netscaler.managementIp,
@@ -94,15 +93,7 @@ class DeployerPlugin(object):
         return "xenrtcloud"
 
     def getNetmask(self, key, ref):
-        if ref.has_key("XRT_VlanName"):
-            if ref['XRT_VlanName'] == "NPRI":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"])
-            elif ref['XRT_VlanName'] == "NSEC":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "SUBNETMASK"])
-            else:
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "SUBNETMASK"])
-        else:
-            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+        return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "SUBNETMASK")
 
     def getGateway(self, key, ref):
         if ref.has_key("XRT_NetscalerGateway"):
@@ -110,15 +101,8 @@ class DeployerPlugin(object):
             xenrt.TEC().logverbose("XRT_NetscalerGateway")
             ns = xenrt.GEC().registry.objGet("netscaler", ref['XRT_NetscalerGateway'])
             return ns.gatewayIp(ref.get("XRT_VlanName", "NPRI"))
-        elif ref.has_key("XRT_VlanName"):
-            if ref['XRT_VlanName'] == "NPRI":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
-            elif ref['XRT_VlanName'] == "NSEC":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"])
-            else:
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "GATEWAY"])
         else:
-            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+            return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "GATEWAY")
 
     def getSecondaryStorages(self, key, ref):
         storageTypes = []

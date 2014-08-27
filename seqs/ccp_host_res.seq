@@ -92,7 +92,7 @@
 
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCRebootHost" name="RebootHost" blocker="yes" sku="${TESTED_HYPERVISOR}">
+      <testcase id="cloud.tc.resiliency.TCRebootHost" name="RebootHost" sku="${TESTED_HYPERVISOR}">
       </testcase>
       <testcase id="cloud.tc.resiliency.TCBlockTrafficHost" name="TrafficBlocked" sku="${TESTED_HYPERVISOR}">
       </testcase>

@@ -360,6 +360,11 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
     csHost = None
 
+    def _updateParameters(self):
+
+        self._hypervisors = self.cloud.getAllHypervisors()
+        self._systemVMs = self._cloudApi.listSystemVms()
+
     def _populateParam(self):
 
         self.cloud = self.getDefaultToolstack()
@@ -461,12 +466,15 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
         self._rearrangeCloud(singleHost[0],multipleHost[0],multipleHost[1])
         self._resilliencyTest(h1,multipleHost[0]) 
 
+        self._updateParameters()
         self._rearrangeCloud(singleHost[0],multipleHost[1],multipleHost[1])
         self._resilliencyTest(h1,multipleHost[0])
 
+        self._updateParameters()
         self._rearrangeCloud(singleHost[0],multipleHost[0],multipleHost[0])
         self._resilliencyTest(h2,multipleHost[1])
 
+        self._updateParameters()
         self._rearrangeCloud(singleHost[0],multipleHost[1],multipleHost[0])
         self._resilliencyTest(h2,multipleHost[1])
 

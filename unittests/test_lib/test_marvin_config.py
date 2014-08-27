@@ -624,7 +624,7 @@ class TC7(BaseTC):
                                                  'name': 'Netscaler',
                                                  'devices': [
                                                    {"username": "nsroot",
-                                                    "publicinterface": "1/1",
+                                                    "publicinterface": "1/2",
                                                     "hostname": "10.3.1.1",
                                                     "privateinterface": "1/1",
                                                     "lbdevicecapacity": "50",

@@ -23,6 +23,12 @@ class NetScaler(object):
         try:
             vpxMgmtIp = vpxGuest.paramGet(paramName='xenstore-data', paramKey='vm-data/ip')
             xenrt.xrtAssert(vpxGuest.mainip == vpxMgmtIp and vpxGuest.mainip != None, 'Netscaler VPX guest has inconsistent or NULL IP Address')
+            if vpxGuest.getState() == 'DOWN':
+                vpxGuest.lifecycleOperation('vm-start')
+
+            # Wait / Check for SSH connectivity
+            vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
+            vpx = cls(vpxGuest, None)
         except xenrt.XRTFailure, e:
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
@@ -42,12 +48,13 @@ class NetScaler(object):
             vpxGuest.paramSet('xenstore-data:vm-data/netmask', mask)
             vpxGuest.paramSet('xenstore-data:vm-data/gateway', gateway)
 
-        if vpxGuest.getState() == 'DOWN':
             vpxGuest.lifecycleOperation('vm-start')
 
-        # Wait / Check for SSH connectivity
-        vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
-        return cls(vpxGuest, mgmtNet)
+            # Wait / Check for SSH connectivity
+            vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
+            vpx = cls(vpxGuest, mgmtNet)
+            vpx.setup(networks)
+        return vpx
 
     @classmethod
     def createVPXOnHost(cls, host, vpxName=None, vpxHttpLocation=None):
@@ -67,6 +74,16 @@ class NetScaler(object):
         self.__gateways = {}
         self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
+
+    def setup(self, networks):
+        i = 1
+        for n in networks[1:]:
+            i += 1
+            self.__netScalerCliCommand("add vlan %d" % i)
+            self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % i)
+            self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
+            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
+            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
 
     def __netScalerCliCommand(self, command):
         """Helper method for creating specific NetScaler CLI command methods"""
@@ -140,7 +157,7 @@ class NetScaler(object):
             network="NPRI"
         if network == self.__mgmtNet:
             return self.managementIp
-        if not self.__gateways.has_key(network):
-            self.__gateways[network] = xenrt.StaticIP4Addr(network=network).getAddr()
-            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[network], xenrt.getNetworkParam(network, "SUBNETMASK")))
         return self.__gateways[network]
+
+    def disableL3(self):
+        self.__netScalerCliCommand("disable ns mode L3")

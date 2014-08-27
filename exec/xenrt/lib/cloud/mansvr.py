@@ -1,6 +1,6 @@
 import xenrt
 import logging
-import os, os.path, urllib
+import os, os.path, urllib, IPy
 from datetime import datetime
 
 import xenrt.lib.cloud
@@ -165,7 +165,9 @@ class ManagementServer(object):
         self.restart()
         marvinApi = xenrt.lib.cloud.MarvinApi(self)
 
-        marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12")
+        internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))
+
+        marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
         marvinApi.setCloudGlobalConfig("check.pod.cidrs", "false", restartManagementServer=True)

@@ -1261,6 +1261,7 @@ def jobOnMachine(machine, jobid):
 
 def canCleanJobResources(jobid):
     jobid = str(jobid)
+    xenrt.TEC().logverbose("Checking job %s" % jobid)
     xrs = xenrt.ctrl.XenRTStatus(None)
     jobdict = xrs.run([jobid])
     # See if the job is completed

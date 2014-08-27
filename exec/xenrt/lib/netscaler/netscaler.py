@@ -138,7 +138,9 @@ class NetScaler(object):
         return self.__gateways[network]
 
     def cloudTailor(self):
-        self.__vpxGuest.setState("DOWN")
+        if vpxGuest.getState() == 'UP':
+            vpxGuest.shutdown()
         self.__vpxGuest.createVIF(bridge="NSEC")
-        self.__vpxGuest.setState("UP")
+        vpxGuest.lifecycleOperation('vm-start')
+        vpxGuest.waitForSSH(timeout=300, username='nsroot', cmd='shell')
         #self.__netScalerCliCommand('add ip %s %s' % self.gatewayIp("NPRI"), xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"]))

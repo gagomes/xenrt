@@ -390,7 +390,9 @@ class Guest(xenrt.GenericGuest):
             #     for i in range(vifs - 1):
             #         self.vifs.append(("%s%d" % (self.vifstem, i + 1), bridge, xenrt.randomMAC(), None))
 
-        self.legacyVif = False
+        # TODO
+        # For now we'll use legacy VIFs everywhere, in future we should add it based on whether the distro supports PV VIFs
+        self.legacyVif = True
         if self.windows:
             if len(self.vifs) == 0:
                 raise xenrt.XRTError("Need at least one VIF to install Windows")
@@ -462,7 +464,8 @@ class Guest(xenrt.GenericGuest):
 
         self._postInstall()
 
-        self.removeLegacyVifs()
+        # TODO See above
+        # self.removeLegacyVifs()
 
         if not dontstartinstall:
             if start:

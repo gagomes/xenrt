@@ -400,12 +400,24 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             except Exception, e:
                 self.log(None, "error while breathing: %s" % (e,))
 
+    # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI")
     def convertNetworkToAssumedid(self, endpoint, network):
         if isinstance(endpoint, xenrt.GenericHost):
-            nics = endpoint.listSecondaryNICs(network=network)
-            assert len(nics) > 0
-            # Use the first device on this network
-            return nics[0]
+            # Treat 'network' as a friendly net name (e.g. "NET_A")
+            netuuid = endpoint.getNetworkUUID(network)
+            if netuuid == '':
+                raise XRTError("couldn't get network uuid for network '%s'" % (network))
+
+            # Look up PIF for this network
+            args = "host-uuid=%s" % (endpoint.getMyHostUUID())
+            pifuuid = endpoint.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            if pifuuid == '':
+                raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+            # Get the assumed enumeration ID for this PIF
+            pifdev = endpoint.genParamGet("pif", pifuuid, "device")
+            assumedid = endpoint.getNICEnumerationId(pifdev)
+            return assumedid
 
     def run(self, arglist=None):
         # unpause endpoints if paused

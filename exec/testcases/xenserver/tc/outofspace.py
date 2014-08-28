@@ -68,7 +68,7 @@ class PluginTester(object):
         sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
         result = self.callEchoPlugin(sayHelloThere)
 
-        assertions.equals('HELLO THERE', result.strip())
+        assertions.assertEquals('HELLO THERE', result.strip())
 
     def assertNonZeroStatus(self, response):
         if 'status: non-zero exit' not in response:

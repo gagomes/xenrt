@@ -97,9 +97,9 @@ class PluginTester(object):
                                                 path='/var/log/echo')
         result = self.callEchoPlugin(sayHelloToFile)
 
-        self.assertDomZeroPathContents('/var/log/echo', 'HELLO')
+        self._assertDomZeroPathContents('/var/log/echo', 'HELLO')
 
-    def assertDomZeroPathContents(self, path, expectedContents):
+    def _assertDomZeroPathContents(self, path, expectedContents):
         domZerosFilesystem = DomZeroFilesystem(self.host)
 
         actualContents = domZerosFilesystem.getContents(path)

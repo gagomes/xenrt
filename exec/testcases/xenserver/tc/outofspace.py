@@ -26,7 +26,7 @@ class PluginTester(object):
 
         assertions.assertEquals('HELLO THERE', result.strip())
 
-    def assertNonZeroStatus(self, response):
+    def _assertNonZeroStatus(self, response):
         if 'status: non-zero exit' not in response:
             raise xenrt.XRTFailure('Non Zero status not reported')
 
@@ -35,7 +35,7 @@ class PluginTester(object):
             data='HELLO', stderr=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnError)
 
-        self.assertNonZeroStatus(result)
+        self._assertNonZeroStatus(result)
 
         assertions.assertIn('stderr: HELLO', result)
 
@@ -44,7 +44,7 @@ class PluginTester(object):
             data='HELLO', stdout=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnOut)
 
-        self.assertNonZeroStatus(result)
+        self._assertNonZeroStatus(result)
 
         assertions.assertIn('stdout: HELLO', result)
 

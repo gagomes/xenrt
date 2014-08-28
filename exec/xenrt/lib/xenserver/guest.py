@@ -2895,10 +2895,10 @@ exit /B 1
             else:
                 self.waitForDaemon(boottime, desc="Guest migrate XML-RPC check")
 
-    def copyVM(self, name=None, timer=None, sruuid=None, noIP=False):
+    def copyVM(self, name=None, timer=None, sruuid=None, noIP=True):
         return self._cloneCopyVM("copy", name, timer, sruuid, noIP=noIP)
 
-    def cloneVM(self, name=None, timer=None, sruuid=None, noIP=False):
+    def cloneVM(self, name=None, timer=None, sruuid=None, noIP=True):
         if sruuid:
             xenrt.TEC().warning("Deprecated use of sruuid in cloneVM. Should "
                                 "use copyVM instead.")
@@ -2907,7 +2907,7 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
-    def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=False):
+    def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
         

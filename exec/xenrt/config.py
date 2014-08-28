@@ -917,9 +917,16 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WIN8"] = "Windows 8 (32-bit),Windows 8 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WIN8_64"] = "Windows 8 (64-bit),Windows 8 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WS12_64"] = "Windows Server 2012 (64-bit),Windows Server 2012 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_RHEL_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_CENTOS_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_OEL_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_SLES_12_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_UBUNTU_1404"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_UBUNTU_1404_64"] = "Other install media" 
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2047"
+        self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
         
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}

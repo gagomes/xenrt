@@ -170,12 +170,12 @@ class DomZeroFilesystemFiller(object):
         dd if=/dev/zero of=/logdrive bs=1M count=512
         df /dev/sda1
 
-        FIRST_FREE_LOPPBACK_DEVICE=$(losetup -f)
-        losetup "$FIRST_FREE_LOPPBACK_DEVICE" /logdrive
+        FIRST_FREE_LOOPBACK_DEVICE=$(losetup -f)
+        losetup "$FIRST_FREE_LOOPBACK_DEVICE" /logdrive
 
-        mkfs.ext3 -q "$FIRST_FREE_LOPPBACK_DEVICE"
+        mkfs.ext3 -q "$FIRST_FREE_LOOPBACK_DEVICE"
 
-        losetup -d "$FIRST_FREE_LOPPBACK_DEVICE"
+        losetup -d "$FIRST_FREE_LOOPBACK_DEVICE"
 
         sed -ie '/logdrive/d' /etc/fstab
         echo "/logdrive /var/log ext3 loop,rw 0 0" >> /etc/fstab

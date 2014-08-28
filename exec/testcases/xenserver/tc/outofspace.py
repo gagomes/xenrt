@@ -71,7 +71,7 @@ class PluginTest(xenrt.TestCase):
         domZerosFilesystem = DomZeroFilesystem(host)
 
         echoPlugin = echoplugin.EchoPlugin()
-        echoPlugin.installTo(domZerosFilesystem)
+        echoplugin.installTo(domZerosFilesystem)
 
         pluginTester = PluginTester(host)
 
@@ -87,7 +87,7 @@ class PluginTestWithoutSpace(xenrt.TestCase):
         domZerosFilesystem = DomZeroFilesystem(host)
 
         echoPlugin = echoplugin.EchoPlugin()
-        echoPlugin.installTo(domZerosFilesystem)
+        echoplugin.installTo(domZerosFilesystem)
 
         filesystemFiller = DomZeroFilesystemFiller(host)
 

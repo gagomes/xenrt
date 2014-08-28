@@ -10,13 +10,14 @@ def getSource():
     return inspect.getsource(sys.modules[__name__])
 
 
+def installTo(filesystem):
+    targetPath = '/etc/xapi.d/plugins/%s' % ECHO_PLUGIN_NAME
+
+    filesystem.setContents(targetPath, getSource())
+    filesystem.makePathExecutable(targetPath)
+
+
 class EchoPlugin(object):
-    def installTo(self, filesystem):
-        targetPath = '/etc/xapi.d/plugins/%s' % ECHO_PLUGIN_NAME
-
-        filesystem.setContents(targetPath, getSource())
-        filesystem.makePathExecutable(targetPath)
-
     def cmdLineToCallEchoFunction(self, echoRequest):
         args = [
             'plugin=%s' % ECHO_PLUGIN_NAME,

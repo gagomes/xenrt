@@ -20,7 +20,7 @@ class PluginTester(object):
             + ' || true'
         )
 
-    def assertNormalPluginCallWorks(self):
+    def _assertNormalPluginCallWorks(self):
         sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
         result = self.callEchoPlugin(sayHelloThere)
 
@@ -30,7 +30,7 @@ class PluginTester(object):
         if 'status: non-zero exit' not in response:
             raise xenrt.XRTFailure('Non Zero status not reported')
 
-    def assertStdErrCaptured(self):
+    def _assertStdErrCaptured(self):
         sayHelloOnError = echoplugin.EchoRequest(
             data='HELLO', stderr=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnError)
@@ -39,7 +39,7 @@ class PluginTester(object):
 
         assertions.assertIn('stderr: HELLO', result)
 
-    def assertStdOutCaptured(self):
+    def _assertStdOutCaptured(self):
         sayHelloOnOut = echoplugin.EchoRequest(
             data='HELLO', stdout=True, exitCode=1)
         result = self.callEchoPlugin(sayHelloOnOut)
@@ -48,7 +48,7 @@ class PluginTester(object):
 
         assertions.assertIn('stdout: HELLO', result)
 
-    def assertFileWritten(self):
+    def _assertFileWritten(self):
         sayHelloToFile = echoplugin.EchoRequest(data='HELLO',
                                                 path='/var/log/echo')
         result = self.callEchoPlugin(sayHelloToFile)
@@ -64,10 +64,10 @@ class PluginTester(object):
             raise xenrt.XRTFailure('File contents do not match')
 
     def performTests(self):
-        self.assertNormalPluginCallWorks()
-        self.assertStdErrCaptured()
-        self.assertStdOutCaptured()
-        self.assertFileWritten()
+        self._assertNormalPluginCallWorks()
+        self._assertStdErrCaptured()
+        self._assertStdOutCaptured()
+        self._assertFileWritten()
 
 
 class PluginTest(xenrt.TestCase):

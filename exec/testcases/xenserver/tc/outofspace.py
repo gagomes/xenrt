@@ -1,7 +1,7 @@
 import xenrt
 import textwrap
 from collections import namedtuple
-from testcases.xenserver.tc import echoplugin
+from xenrt.lib.xenserver import echoplugin
 
 
 SnapshotResult = namedtuple('SnapshotResult', ['succeeded'])

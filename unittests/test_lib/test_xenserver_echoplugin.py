@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from testcases.xenserver.tc import echoplugin
+from xenrt.lib.xenserver import echoplugin
 
 
 class TestEchoRequest(unittest.TestCase):

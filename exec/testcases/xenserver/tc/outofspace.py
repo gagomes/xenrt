@@ -63,6 +63,12 @@ class PluginTester(object):
         if actualContents != expectedContents:
             raise xenrt.XRTFailure('File contents do not match')
 
+    def performTests(self):
+        self.assertNormalPluginCallWorks()
+        self.assertStdErrCaptured()
+        self.assertStdOutCaptured()
+        self.assertFileWritten()
+
 
 class PluginTest(xenrt.TestCase):
     def run(self, arglist=None):
@@ -73,10 +79,7 @@ class PluginTest(xenrt.TestCase):
 
         pluginTester = PluginTester(host)
 
-        pluginTester.assertNormalPluginCallWorks()
-        pluginTester.assertStdErrCaptured()
-        pluginTester.assertStdOutCaptured()
-        pluginTester.assertFileWritten()
+        pluginTester.performTests()
 
 
 class PluginTestWithoutSpace(xenrt.TestCase):
@@ -96,10 +99,7 @@ class PluginTestWithoutSpace(xenrt.TestCase):
 
         pluginTester = PluginTester(host)
 
-        pluginTester.assertNormalPluginCallWorks()
-        pluginTester.assertStdErrCaptured()
-        pluginTester.assertStdOutCaptured()
-        pluginTester.assertFileWritten()
+        pluginTester.performTests()
 
 
 class DomZeroFilesystemFiller(object):

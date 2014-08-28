@@ -245,6 +245,7 @@ nfs: $(SCRATCHDIR)
 	$(SUDOSH) 'echo "$(IMAGEDIR) *(ro,$(NFSCOMMON))" > $(EXPORTS)'
 	$(SUDOSH) 'echo "$(SCRATCHDIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(SUDOSH) 'echo "$(XVADIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
+	$(SUDOSH) 'echo "$(TFTPROOT) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(foreach dir,$(EXTRANFSDIRS), $(SUDOSH) 'echo "$(dir) *(rw,$(NFSCOMMON))" >> $(EXPORTS)';)
 	$(SUDO) mkdir -p $(IMAGEDIR)
 	$(SUDO) mkdir -p $(XVADIR)

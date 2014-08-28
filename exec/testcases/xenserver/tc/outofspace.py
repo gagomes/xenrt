@@ -2,6 +2,7 @@ import xenrt
 import textwrap
 from collections import namedtuple
 from xenrt.lib.xenserver import echoplugin
+from xenrt.lib import assertions
 
 
 SnapshotResult = namedtuple('SnapshotResult', ['succeeded'])
@@ -67,12 +68,7 @@ class PluginTester(object):
         sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
         result = self.callEchoPlugin(sayHelloThere)
 
-        self.assertEquals('HELLO THERE', result.strip())
-
-    def assertEquals(self, expectedValue, actualValue):
-        if expectedValue != actualValue:
-            raise xenrt.XRTFailure(
-                '%s != %s' % (repr(expectedValue), repr(actualValue)))
+        assertions.equals('HELLO THERE', result.strip())
 
     def assertNonZeroStatus(self, response):
         if 'status: non-zero exit' not in response:

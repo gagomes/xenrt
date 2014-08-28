@@ -10,6 +10,22 @@ def getSource():
     return inspect.getsource(sys.modules[__name__])
 
 
+class EchoPlugin(object):
+    def installTo(self, filesystem):
+        targetPath = '/etc/xapi.d/plugins/%s' % ECHO_PLUGIN_NAME
+
+        filesystem.setContents(targetPath, getSource())
+        filesystem.makePathExecutable(targetPath)
+
+    def cmdLineToCallEchoFunction(self, echoRequest):
+        args = [
+            'plugin=%s' % ECHO_PLUGIN_NAME,
+            'fn=%s' % ECHO_FN_NAME
+        ] + toXapiArgs(echoRequest.serialize())
+
+        return ' '.join(args)
+
+
 class EchoRequest(object):
     def __init__(self, stdout=False, stderr=False, path=None,
                  exitCode=None, data=''):

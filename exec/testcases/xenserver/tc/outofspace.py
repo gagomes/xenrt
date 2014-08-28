@@ -9,28 +9,12 @@ from xenrt.lib.filesystem import DomZeroFilesystem
 SnapshotResult = namedtuple('SnapshotResult', ['succeeded'])
 
 
-class EchoPlugin(object):
-    def installTo(self, filesystem):
-        targetPath = '/etc/xapi.d/plugins/%s' % echoplugin.ECHO_PLUGIN_NAME
-
-        filesystem.setContents(targetPath, echoplugin.getSource())
-        filesystem.makePathExecutable(targetPath)
-
-    def cmdLineToCallEchoFunction(self, echoRequest):
-        args = [
-            'plugin=%s' % echoplugin.ECHO_PLUGIN_NAME,
-            'fn=%s' % echoplugin.ECHO_FN_NAME
-        ] + echoplugin.toXapiArgs(echoRequest.serialize())
-
-        return ' '.join(args)
-
-
 class PluginTester(object):
     def __init__(self, host):
         self.host = host
 
     def callEchoPlugin(self, request):
-        echoPlugin = EchoPlugin()
+        echoPlugin = echoplugin.EchoPlugin()
         return self.host.execdom0(
             'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
             + echoPlugin.cmdLineToCallEchoFunction(request)
@@ -86,7 +70,7 @@ class PluginTest(xenrt.TestCase):
         host = self.getHost('RESOURCE_HOST_0')
         domZerosFilesystem = DomZeroFilesystem(host)
 
-        echoPlugin = EchoPlugin()
+        echoPlugin = echoplugin.EchoPlugin()
         echoPlugin.installTo(domZerosFilesystem)
 
         pluginTester = PluginTester(host)
@@ -102,7 +86,7 @@ class PluginTestWithoutSpace(xenrt.TestCase):
         host = self.getHost('RESOURCE_HOST_0')
         domZerosFilesystem = DomZeroFilesystem(host)
 
-        echoPlugin = EchoPlugin()
+        echoPlugin = echoplugin.EchoPlugin()
         echoPlugin.installTo(domZerosFilesystem)
 
         filesystemFiller = DomZeroFilesystemFiller(host)

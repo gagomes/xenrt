@@ -413,6 +413,8 @@ class Guest(xenrt.GenericGuest):
                                      guestparams=guestparams, 
                                      rootdisk=rootdisk)
 
+        if self.isHVMLinux() and self.template == "Other install media" and rootdisk != self.DEFAULT:
+            rootdisk = 8096
         # Attaching root disk and extra disks for LUN Per VDI guests.
         if rawHBAVDIs:
             xenrt.TEC().logverbose("Attaching a list of VDIs %s to LUN Per VDI VM %s" % (rawHBAVDIs, self.getUUID()))

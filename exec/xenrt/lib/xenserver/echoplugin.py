@@ -18,13 +18,16 @@ def installTo(filesystem):
 
 
 class EchoPlugin(object):
-    def cmdLineToCallEchoFunction(self, echoRequest):
-        args = [
-            'plugin=%s' % ECHO_PLUGIN_NAME,
-            'fn=%s' % ECHO_FN_NAME
-        ] + toXapiArgs(echoRequest.serialize())
+    pass
 
-        return ' '.join(args)
+
+def cmdLineToCallEchoFunction(echoRequest):
+    args = [
+        'plugin=%s' % ECHO_PLUGIN_NAME,
+        'fn=%s' % ECHO_FN_NAME
+    ] + toXapiArgs(echoRequest.serialize())
+
+    return ' '.join(args)
 
 
 class EchoRequest(object):

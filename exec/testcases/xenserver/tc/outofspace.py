@@ -17,7 +17,7 @@ class PluginTester(object):
         echoPlugin = echoplugin.EchoPlugin()
         return self.host.execdom0(
             'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
-            + echoPlugin.cmdLineToCallEchoFunction(request)
+            + echoplugin.cmdLineToCallEchoFunction(request)
             + ' || true'
         )
 

@@ -424,14 +424,20 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         # Get the device position (assumedid) for the devices to use:
         #  - For hosts, endpointdev is a network name, so convert this.
         #  - For guests, endpointdev is a number. Just use this.
-        if isinstance(self.endpoint0, xenrt.GenericHost):
-            self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+        if self.e0devstr is None:
+            self.e0dev = None
         else:
-            self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
-        if isinstance(self.endpoint1, xenrt.GenericHost):
-            self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+            if isinstance(self.endpoint0, xenrt.GenericHost):
+                self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+            else:
+                self.e0dev = int(self.e0devstr)
+        if self.e1devstr is None:
+            self.e1dev = None
         else:
-            self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
+            if isinstance(self.endpoint1, xenrt.GenericHost):
+                self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+            else:
+                self.e1dev = int(self.e1devstr)
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:

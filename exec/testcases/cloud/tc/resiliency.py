@@ -1,6 +1,7 @@
 import xenrt
 from datetime import datetime
 from pprint import pformat
+import re
 
 class _TCCloudResiliencyBase(xenrt.TestCase):
     def prepare(self, arglist):
@@ -499,13 +500,13 @@ class TCBlockTrafficHost(_TCHostResiliencyBase):
     def outage(self,host):
 
         nic = host.getDefaultInterface()
-        macAddress = host.getNICMACAddress(nic)
+        macAddress = host.getNICMACAddress(int(re.findall(r'\d+',nic)[0]))
         host.disableNetPort(macAddress)
 
     def recover(self,host):
 
         nic = host.getDefaultInterface()
-        macAddress = host.getNICMACAddress(nic)
+        macAddress = host.getNICMACAddress(int(re.findall(r'\d+',nic)[0]))
         host.enableNetPort(macAddress)
 
 class TCShutdownHost(_TCHostResiliencyBase):

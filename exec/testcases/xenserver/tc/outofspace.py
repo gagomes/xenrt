@@ -13,7 +13,7 @@ class PluginTester(object):
     def __init__(self, host):
         self.host = host
 
-    def callEchoPlugin(self, request):
+    def _callEchoPlugin(self, request):
         return self.host.execdom0(
             'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
             + echoplugin.cmdLineToCallEchoFunction(request)
@@ -22,7 +22,7 @@ class PluginTester(object):
 
     def _assertNormalPluginCallWorks(self):
         sayHelloThere = echoplugin.EchoRequest(data='HELLO THERE')
-        result = self.callEchoPlugin(sayHelloThere)
+        result = self._callEchoPlugin(sayHelloThere)
 
         assertions.assertEquals('HELLO THERE', result.strip())
 
@@ -33,7 +33,7 @@ class PluginTester(object):
     def _assertStdErrCaptured(self):
         sayHelloOnError = echoplugin.EchoRequest(
             data='HELLO', stderr=True, exitCode=1)
-        result = self.callEchoPlugin(sayHelloOnError)
+        result = self._callEchoPlugin(sayHelloOnError)
 
         self._assertNonZeroStatus(result)
 
@@ -42,7 +42,7 @@ class PluginTester(object):
     def _assertStdOutCaptured(self):
         sayHelloOnOut = echoplugin.EchoRequest(
             data='HELLO', stdout=True, exitCode=1)
-        result = self.callEchoPlugin(sayHelloOnOut)
+        result = self._callEchoPlugin(sayHelloOnOut)
 
         self._assertNonZeroStatus(result)
 
@@ -51,7 +51,7 @@ class PluginTester(object):
     def _assertFileWritten(self):
         sayHelloToFile = echoplugin.EchoRequest(data='HELLO',
                                                 path='/var/log/echo')
-        result = self.callEchoPlugin(sayHelloToFile)
+        result = self._callEchoPlugin(sayHelloToFile)
 
         self._assertDomZeroPathContents('/var/log/echo', 'HELLO')
 

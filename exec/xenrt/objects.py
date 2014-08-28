@@ -7681,7 +7681,7 @@ class GenericGuest(GenericPlace):
             self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
             if method == "CDROM":
                 # Solaris only installs via CDROM booting either with cdrom or pxelinux, not pxegrub
-                pxeb = xenrt.PXEBoot()
+                pxeb = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
                 pxebootdir = pxeb.makeBootPath("")
                 pxecfg = pxeb.addEntry("install", default=1, boot="linux")
                 pxecfg.linuxSetKernel("mboot.c32")
@@ -7841,7 +7841,7 @@ class GenericGuest(GenericPlace):
                                      (method))
 
             # Construct a PXE target.
-            pxe = xenrt.PXEBoot()
+            pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
             pxe.copyIn(fk, target="vmlinuz")
             pxe.copyIn(fr, target="initrd.img")
             pxecfg = pxe.addEntry("install", default=1, boot="linux")
@@ -8017,7 +8017,7 @@ class GenericGuest(GenericPlace):
             xenrt.getHTTP("%s/isolinux/initrd.img" % (repository),fr)
 
             # Construct a PXE target
-            pxe = xenrt.PXEBoot()
+            pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
             pxe.copyIn(fk, target="vmlinuz")
             pxe.copyIn(fr, target="initrd.img")
             pxecfg = pxe.addEntry("install", default=1, boot="linux")
@@ -8256,7 +8256,7 @@ class GenericGuest(GenericPlace):
             xenrt.getHTTP(_url + boot_dir + "initrd.gz", fr)
 
             # Construct a PXE target
-            pxe = xenrt.PXEBoot()
+            pxe = xenrt.PXEBoot(remoteNfs=self.getHost().lookup("REMOTE_PXE", None))
             pxe.copyIn(fk, target="linux")
             pxe.copyIn(fr, target="initrd.gz")
             pxecfg = pxe.addEntry("install", default=1, boot="linux")

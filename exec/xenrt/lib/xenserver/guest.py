@@ -4216,10 +4216,49 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         g.createGuestFromTemplate(t, None)
-        g.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
-        g.vifs.sort()
-        g.recreateVIFs(newMACs=True)
+        
+        g.removeAllVIFs()
+        if re.search("[vw]", distro):
+            g.windows = True
+            g.vifstem = g.VIFSTEMHVM
+            g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+        else:
+            g.windows = False
+            g.vifstem = g.VIFSTEMPV
+
+        if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
+            vifs = [("0",
+                     host.getPrimaryBridge(),
+                     xenrt.randomMAC(),
+                     None)]
+
+        update = []
+        for v in vifs:
+            device, bridge, mac, ip = v
+            device = "%s%s" % (g.vifstem, device)
+            if not bridge:
+                bridge = host.getPrimaryBridge()
+            elif re.search(r"^[0-9]+$", bridge):
+                bridge = host.getBridgeWithMapping(int(bridge))
+            elif not host.getBridgeInterfaces(bridge):
+                br = host.parseListForOtherParam("network-list",
+                                                     "name-label",
+                                                      bridge,
+                                                     "bridge")
+                if br:
+                    bridge = br
+                elif not host.getNetworkUUID(bridge):
+                    bridge = None
+                    
+            if not bridge:
+                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
+                                     "host !%s" % (host.getName()))
+            update.append([device, bridge, mac, ip])
+        g.vifs = update
+        for v in g.vifs:
+            eth, bridge, mac, ip = v
+            g.createVIF(eth, bridge, mac)
+
         g.existing(host)
 
         g.start() 

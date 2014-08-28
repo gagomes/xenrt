@@ -205,12 +205,17 @@ LABEL %s
 
 class PXEBoot(xenrt.resources.DirectoryResource):
     """A directory on a PXE server."""
-    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None):
+    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None, remoteNfs=None):
         self.abspath = abspath
+        self.mount = None
         # Allow us to specify a guest to use as a PXE server.
-        place = xenrt.TEC().registry.guestGet(xenrt.TEC().lookup("PXE_SERVER", None))
+        if not place:
+            place = xenrt.TEC().registry.guestGet(xenrt.TEC().lookup("PXE_SERVER", None))
         if place:
             self.tftpbasedir = place.tftproot
+        elif remoteNfs:
+            self.mount = xenrt.MountNFS(remoteNfs)
+            self.tftpbasedir = self.mount.getMount()
         else:
             self.tftpbasedir = xenrt.TEC().lookup("TFTP_BASE")
         self.iSCSILUN = iSCSILUN
@@ -495,6 +500,8 @@ dhcp
                     xenrt.rootops.sudo("mv %s.xenrt.bak %s" % (self.filename, self.filename))
         self._delegate.remove() 
         xenrt.TEC().gec.unregisterCallback(self)
+        if self.mount:
+            self.mount.unmount()
 
 
 class PXEGrubBootEntry(PXEBootEntry):

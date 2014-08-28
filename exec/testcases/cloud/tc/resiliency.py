@@ -498,13 +498,13 @@ class TCBlockTrafficHost(_TCHostResiliencyBase):
 
     def outage(self,host):
 
-        nic = host.getdefaultinterface()
+        nic = host.getDefaultInterface()
         macAddress = host.getNICMACAddress(nic)
         host.disableNetPort(macAddress)
 
     def recover(self,host):
 
-        nic = host.getdefaultinterface()
+        nic = host.getDefaultInterface()
         macAddress = host.getNICMACAddress(nic)
         host.enableNetPort(macAddress)
 

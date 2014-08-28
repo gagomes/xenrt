@@ -157,7 +157,10 @@ class SnapshotTest(xenrt.TestCase):
 
         if not filesystemFiller.logDriveIsUsed():
             filesystemFiller.configureLogDrive()
-            rebootGuestAndHost(guest)
+            if guest.getState() == 'UP':
+                guest.shutdown()
+            host.reboot()
+            guest.start()
 
         filesystemFiller.fillFileSystem()
         self.snapshot(guest)
@@ -175,11 +178,3 @@ class SnapshotTest(xenrt.TestCase):
             retval='code')
 
         return SnapshotResult(succeeded=result == 0)
-
-
-def rebootGuestAndHost(guest):
-    host = guest.getHost()
-    if guest.getState() == 'UP':
-        guest.shutdown()
-    host.reboot()
-    guest.start()

@@ -1,10 +1,10 @@
 import os
-import unittest
+import testing
 
 from xenrt.lib.xenserver import echoplugin
 
 
-class TestEchoRequest(unittest.TestCase):
+class TestEchoRequest(testing.XenRTUnitTestCase):
     def test_init(self):
         req = echoplugin.EchoRequest(
             stdout='stdout',
@@ -60,7 +60,7 @@ class TestEchoRequest(unittest.TestCase):
         self.assertEquals(1, req2.exitCode)
 
 
-class TestParseRequest(unittest.TestCase):
+class TestParseRequest(testing.XenRTUnitTestCase):
     def test_data_parsed(self):
         req1 = echoplugin.EchoRequest()
         req1.data = 'HELLO'
@@ -100,7 +100,7 @@ class TestParseRequest(unittest.TestCase):
         self.assertTrue(null_req == req)
 
 
-class TestToXapiArgs(unittest.TestCase):
+class TestToXapiArgs(testing.XenRTUnitTestCase):
     def test_args_empty(self):
         self.assertEquals([], echoplugin.toXapiArgs({}))
 
@@ -114,7 +114,7 @@ class TestToXapiArgs(unittest.TestCase):
             ['args:key="value"'], echoplugin.toXapiArgs({'key': 'value'}))
 
 
-class TestGetSource(unittest.TestCase):
+class TestGetSource(testing.XenRTUnitTestCase):
     def test_get_source(self):
         echopluginPath = echoplugin.__file__
         echoPluginDir = os.path.dirname(echopluginPath)

@@ -818,13 +818,14 @@ class CloudStack(object):
                 errors.append(msg)
                 xenrt.TEC().reason(msg)
 
-        xenrt.TEC().logverbose("Checking all the Networks in the cloud")
-        nws = self.marvin.cloudApi.listNetworks()
-        for nw in nws:
-            if nw.state != 'Setup':
-                msg = 'Network %s is DOWN as per CLOUD' % nw.name
-                errors.append(msg)
-                xenrt.TEC().reason(msg)
+        #Commenting this out for the time being
+        #xenrt.TEC().logverbose("Checking all the Networks in the cloud")
+        #nws = self.marvin.cloudApi.listNetworks()
+        #for nw in nws:
+        #    if nw.state != 'Setup':
+        #        msg = 'Network %s is DOWN as per CLOUD' % nw.name
+        #        errors.append(msg)
+        #        xenrt.TEC().reason(msg)
 
         xenrt.TEC().logverbose("Checking Primary Storage in the cloud")
         sps = self.marvin.cloudApi.listStoragePools()

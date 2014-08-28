@@ -17,10 +17,6 @@ def installTo(filesystem):
     filesystem.makePathExecutable(targetPath)
 
 
-class EchoPlugin(object):
-    pass
-
-
 def cmdLineToCallEchoFunction(echoRequest):
     args = [
         'plugin=%s' % ECHO_PLUGIN_NAME,

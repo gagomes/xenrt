@@ -14,7 +14,6 @@ class PluginTester(object):
         self.host = host
 
     def callEchoPlugin(self, request):
-        echoPlugin = echoplugin.EchoPlugin()
         return self.host.execdom0(
             'xe host-call-plugin host-uuid=$(xe host-list --minimal) '
             + echoplugin.cmdLineToCallEchoFunction(request)
@@ -70,7 +69,6 @@ class PluginTest(xenrt.TestCase):
         host = self.getHost('RESOURCE_HOST_0')
         domZerosFilesystem = DomZeroFilesystem(host)
 
-        echoPlugin = echoplugin.EchoPlugin()
         echoplugin.installTo(domZerosFilesystem)
 
         pluginTester = PluginTester(host)
@@ -86,7 +84,6 @@ class PluginTestWithoutSpace(xenrt.TestCase):
         host = self.getHost('RESOURCE_HOST_0')
         domZerosFilesystem = DomZeroFilesystem(host)
 
-        echoPlugin = echoplugin.EchoPlugin()
         echoplugin.installTo(domZerosFilesystem)
 
         filesystemFiller = DomZeroFilesystemFiller(host)

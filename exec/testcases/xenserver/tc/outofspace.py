@@ -81,7 +81,7 @@ class PluginTester(object):
 
         self.assertNonZeroStatus(result)
 
-        self.assertIn('stderr: HELLO', result)
+        assertions.assertIn('stderr: HELLO', result)
 
     def assertStdOutCaptured(self):
         sayHelloOnOut = echoplugin.EchoRequest(
@@ -90,7 +90,7 @@ class PluginTester(object):
 
         self.assertNonZeroStatus(result)
 
-        self.assertIn('stdout: HELLO', result)
+        assertions.assertIn('stdout: HELLO', result)
 
     def assertFileWritten(self):
         sayHelloToFile = echoplugin.EchoRequest(data='HELLO',
@@ -106,11 +106,6 @@ class PluginTester(object):
 
         if actualContents != expectedContents:
             raise xenrt.XRTFailure('File contents do not match')
-
-    def assertIn(self, expectedFragment, actualData):
-        if expectedFragment not in actualData:
-            raise xenrt.XRTFailure(
-                '%s was not found in %s' % (expectedFragment, actualData))
 
 
 class PluginTest(xenrt.TestCase):

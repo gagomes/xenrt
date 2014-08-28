@@ -1858,6 +1858,13 @@ if setupsharedhost:
         net = host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % bondPif)[0]
         host.genParamSet("network", net, "name-label", "Pool-wide network associated with eth0")
 
+        cli = host.getCLIInstance()
+        if sh.has_key("VLANS"):
+            for v in sh['VLANS'].keys():
+                vlan = sh['VLANS'][v]
+                nw = cli.execute("network-create name-label=%s" % v).strip()
+                cli.execute("vlan-create pif-uuid=%s network-uuid=%s vlan=%s" % (bondPif, nw, vlan))
+
         templates = sh["TEMPLATES"]
         for t in templates.keys():
             sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))

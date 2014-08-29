@@ -164,7 +164,7 @@ class NetScaler(object):
         self.__netScalerCliCommand("disable ns mode L3")
         self.__netScalerCliCommand('save ns config')
 
-    def setupOutboundNAT(privateNetwork, publicNetwork):
+    def setupOutboundNAT(self, privateNetwork, publicNetwork):
         self.__netScalerCliCommand("set rnat %s %s -natIP %s" % (
                     xenrt.getNetworkParam(privateNetwork, "SUBNET"),
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),

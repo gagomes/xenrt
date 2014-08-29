@@ -4337,6 +4337,8 @@ fi
             nwuuid = self.parseListForUUID("network-list", "other-config:xenrtnetname", bridge)
         if not nwuuid:
             nwuuid = self.parseListForUUID("network-list", "name-label", bridge)
+        if not nwuuid and bridge == "NPRI":
+            self.getNetworkUUID(self.getPrimaryBridge())
         return nwuuid
     
     def getPrimaryBridge(self):

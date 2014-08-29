@@ -390,9 +390,7 @@ class Guest(xenrt.GenericGuest):
             #     for i in range(vifs - 1):
             #         self.vifs.append(("%s%d" % (self.vifstem, i + 1), bridge, xenrt.randomMAC(), None))
 
-        # TODO
-        # For now we'll use legacy VIFs everywhere, in future we should add it based on whether the distro supports PV VIFs
-        self.legacyVif = True
+        self.legacyVif = self.requiresLegacyNIC()
         if self.windows:
             if len(self.vifs) == 0:
                 raise xenrt.XRTError("Need at least one VIF to install Windows")
@@ -464,8 +462,7 @@ class Guest(xenrt.GenericGuest):
 
         self._postInstall()
 
-        # TODO See above
-        # self.removeLegacyVifs()
+        self.removeLegacyVifs()
 
         if not dontstartinstall:
             if start:
@@ -675,7 +672,7 @@ class Guest(xenrt.GenericGuest):
         self.host.hypervCmd("Add-VMNetworkAdapter -VMName \"%s\" -StaticMacAddress \"%s\" -SwitchName \"%s\" -IsLegacy %s" % (self.name, mac, bridge, legacy))
 
     def removeLegacyVifs(self):
-        if not self.legacyVif:
+        if self.requiresLegacyNIC() or not self.legacyVif:
             return
         else:
             if self.getState() == "UP":
@@ -1165,3 +1162,6 @@ class Guest(xenrt.GenericGuest):
     def paramSet(self, paramName, paramValue):
         xenrt.TEC().logverbose("WARNING: paramSet called! paramName=%s, paramValue=%s" % (paramName, paramValue))
 
+    def requiresLegacyNIC(self):
+        # TODO return based on whether the distro has the Hyper-V PV drivers
+        return True

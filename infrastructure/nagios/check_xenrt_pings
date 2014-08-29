@@ -7,6 +7,9 @@ checktype = sys.argv[1]
 sitexmlnodes = []
 machinexmlnodes = []
 
+errortext = "CRITICAL"
+exitlevel = 2
+
 if checktype == "gateways":
     sitexmlnodes = [("DEFAULT","GATEWAY","NPRI Gateway"),
                 ("SECONDARY","GATEWAY","NSEC Gateway"),
@@ -36,6 +39,8 @@ elif checktype == "pdus":
 elif checktype == "bmcs":
     sitexmlnodes = [("HOST_CONFIGS","BMC_ADDRESS","BMC")]
     machinexmlnodes = [("BMC_ADDRESS", "BMC")]
+    exitlevel = 1
+    errortext = "WARNING"
 elif checktype == "consoles":
     machinexmlnodes = [("CONSOLE_ADDRESS", "Serial Concentrator")]
     sitexmlnodes = [("CONSERVER_ENTRIES", "CONSOLE_ADDRESS", "Serial Concentrator")]
@@ -130,6 +135,6 @@ if len(errors) == 0:
     sys.exit(0)
 
 else:
-    print "XenRT ping check of %s CRITICAL: %s" % (checktype, ", ".join(map (lambda x: "%s failed" % x, errors)))
-    sys.exit(2)
+    print "XenRT ping check of %s %s: %s" % (checktype, errortext, ", ".join(map (lambda x: "%s failed" % x, errors)))
+    sys.exit(exitlevel)
 

@@ -971,7 +971,8 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
        
         self.updateLicenseSerInfo()
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
+        #TODO change the licensed flag to 'False' once tech preview is out
+        self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
 
         self.USELICENSESERVER = True
        

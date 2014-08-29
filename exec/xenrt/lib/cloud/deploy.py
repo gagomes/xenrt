@@ -53,12 +53,15 @@ class DeployerPlugin(object):
 
     def getNetworkDevices(self, key, ref):
         ret = None
-        if ref.has_key('XRT_NetscalerVM'):   
-            netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(ref['XRT_NetscalerVM'], networks=ref['XRT_NetscalerNetworks'])
+        if ref.has_key('XRT_NetscalerVM'):
+            networks = ref['XRT_NetscalerNetworks']
+            netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(ref['XRT_NetscalerVM'], networks=networks)
             xenrt.GEC().registry.objPut("netscaler", ref['XRT_NetscalerVM'], netscaler)
             xenrt.GEC().registry.dump()
             netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
             netscaler.disableL3()
+            for n in networks[1:]:
+                netscaler.setupOutboundNAT(n, networks[0])
             ret = [{"username": "nsroot",
                     "publicinterface": "1/1",
                     "hostname": netscaler.managementIp,

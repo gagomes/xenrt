@@ -87,6 +87,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         #self.host.genParamSet("network", self.ipv6_net, "other-config", "true", "xenrtvms")
 
     def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
+        xenrt.TEC().logverbose("Running iperf from origin %s (dev %s) to dest %s (dev %s)" % (origin, origindev, dest, destdev))
 
         prot_switch = None
         if protocol == "tcp":   prot_switch = ""
@@ -94,6 +95,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else: raise xenrt.XRTError("unknown protocol %s" % (protocol,))
 
         destIP = self.getIP(dest, destdev)
+        xenrt.TEC().logverbose("destIP = %s" % (destIP))
+        if destIP is None:
+            raise xenrt.XRTError("couldn't get the IP address of the destination %s (dev %s)" % (dest, destdev))
 
         if dest.windows:
             dest.startIperf()
@@ -145,14 +149,20 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
         if endpointdev is not None:
+            xenrt.TEC().logverbose("getIP(%s, %s): endpointdev %s is not None" % (endpoint, endpointdev, endpointdev))
             if isinstance(endpoint, xenrt.GenericGuest):
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a GenericGuest, endpoint.vifs = %s" % (endpoint, endpointdev, endpoint, endpoint.vifs))
                 (_, _, _, ip) = endpoint.vifs[endpointdev]
             elif isinstance(endpoint, xenrt.lib.xenserver.Host):
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a xenserver.Host" % (endpoint, endpointdev, endpoint))
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)
             elif isinstance(endpoint, xenrt.GenericHost):
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a GenericHost" % (endpoint, endpointdev, endpoint))
                 ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (endpoint.getNIC(endpointdev))).strip()
         else:
+            xenrt.TEC().logverbose("getIP(%s, %s): endpointdev %s is None, so getting IP of endpoint %s" % (endpoint, endpointdev, endpointdev, endpoint))
             ip = endpoint.getIP()
+        xenrt.TEC().logverbose("getIP(%s, %s) returning %s" % (endpoint, endpointdev, ip))
         return ip
 
     # endpointdev is the (integer) assumedid of the device
@@ -443,6 +453,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
             else:
                 self.e0dev = int(self.e0devstr)
+        xenrt.TEC().logverbose("endpoint0 device is %s %s" % (self.e0dev, type(self.e0dev)))
         if self.e1devstr is None:
             self.e1dev = None
         else:
@@ -450,11 +461,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
             else:
                 self.e1dev = int(self.e1devstr)
+        xenrt.TEC().logverbose("endpoint1 device is %s %s" % (self.e1dev, type(self.e1dev)))
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:
+            xenrt.TEC().logverbose("Setting IP address of %s (dev %s) to %s" % (self.endpoint0, self.e0dev, self.e0ip))
             self.setIPAddress(self.endpoint0, self.e0dev, self.e0ip)
         if self.e1ip:
+            xenrt.TEC().logverbose("Setting IP address of %s (dev %s) to %s" % (self.endpoint1, self.e1dev, self.e1ip))
             self.setIPAddress(self.endpoint1, self.e1dev, self.e1ip)
 
         # Collect as much information as necessary for the rage importer

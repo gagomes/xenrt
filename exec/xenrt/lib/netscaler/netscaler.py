@@ -84,6 +84,8 @@ class NetScaler(object):
             self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
             self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
             self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
+        self.__gateways[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
+        self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
         self.__netScalerCliCommand('save ns config')
 
     def __netScalerCliCommand(self, command):
@@ -156,9 +158,15 @@ class NetScaler(object):
     def gatewayIp(self, network=None):
         if not network:
             network="NPRI"
-        if network == self.__mgmtNet:
-            return self.managementIp
         return self.__gateways[network]
 
     def disableL3(self):
         self.__netScalerCliCommand("disable ns mode L3")
+        self.__netScalerCliCommand('save ns config')
+
+    def setupOutboundNAT(privateNetwork, publicNetwork):
+        self.__netScalerCliCommand("set rnat %s %s -natIP %s" % (
+                    xenrt.getNetworkParam(privateNetwork, "SUBNET"),
+                    xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
+                    self.gatewayIp(network=publicNetwork)))
+        self.__netScalerCliCommand('save ns config')

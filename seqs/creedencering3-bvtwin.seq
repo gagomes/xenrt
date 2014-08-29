@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Creedence basic Windows (32 bit and 64 bit) check -->
+  <!-- Creedence Ring3 basic Windows (32 bit and 64 bit) check -->
 
   <default name="GUESTMEMORY" value="512"/>
   <default name="GUESTVCPUS" value="2"/>

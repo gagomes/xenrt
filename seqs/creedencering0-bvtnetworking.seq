@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Creedence Network Functional Tests -->
+  <!-- Creedence Ring0 Network Functional Tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

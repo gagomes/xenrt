@@ -1,6 +1,6 @@
 <xenrt>
 
-<!-- Creedence basic storage operations tests -->
+<!-- Creedence Ring0 basic storage operations tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

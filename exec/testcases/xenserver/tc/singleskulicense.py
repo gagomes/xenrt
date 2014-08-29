@@ -471,7 +471,8 @@ class InsufficientLicenseUpgrade(SingleSkuBase):
        
         self.updateLicenseSerInfo() 
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
+        #TODO change the licensed flag to False after beta  build
+        self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
 
         self.USELICENSESERVER = True
        
@@ -717,8 +718,9 @@ class GraceLic(SingleSkuBase):
             xenrt.sleep(900)
   
             licenseInfo = host.getLicenseDetails()
-            if not 'no' in licenseInfo['grace']:
-                raise xenrt.XRTFailure("Host grace license has not expired")
+            #TODO change the if condition to 'not' as this is only valid for beta
+            if 'no' in licenseInfo['grace']:
+                raise xenrt.XRTFailure("Host grace license has expired")
                
             if '19700101T00:00:00Z' != licenseInfo['expiry']:
                 raise xenrt.XRTFailure("Host License expiry time is not epoch time")

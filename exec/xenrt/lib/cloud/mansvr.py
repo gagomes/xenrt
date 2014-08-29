@@ -45,9 +45,9 @@ class ManagementServer(object):
             lookupKeys.append(key)
         return xenrt.TEC().lookup(lookupKeys, default)
 
-    def checkManagementServerHealth(self):
+    def checkManagementServerHealth(self, timeout=120):
         managementServerOk = False
-        maxRetries = 2
+        maxRetries = timeout/60
         maxReboots = 2
         reboots = 0
         while(reboots < maxReboots and not managementServerOk):
@@ -162,7 +162,8 @@ class ManagementServer(object):
             # For some reason the cloud user doesn't seem to have access to the simulator DB
             self.place.execcmd("""sed -i s/db.simulator.username=cloud/db.simulator.username=root/ /usr/share/cloudstack-management/conf/db.properties""")
             self.place.execcmd("""sed -i s/db.simulator.password=cloud/db.simulator.password=xensource/ /usr/share/cloudstack-management/conf/db.properties""")
-        self.restart()
+        self.restart(checkHealth=False)
+        self.checkManagementServerHealth(timeout=300)
         marvinApi = xenrt.lib.cloud.MarvinApi(self)
 
         internalMask = IPy.IP("%s/%s" % (xenrt.getNetworkParam("NPRI", "SUBNET"), xenrt.getNetworkParam("NPRI", "SUBNETMASK")))

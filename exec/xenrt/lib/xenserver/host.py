@@ -4338,7 +4338,7 @@ fi
         if not nwuuid:
             nwuuid = self.parseListForUUID("network-list", "name-label", bridge)
         if not nwuuid and bridge == "NPRI":
-            self.getNetworkUUID(self.getPrimaryBridge())
+            nwuuid = self.getNetworkUUID(self.getPrimaryBridge())
         return nwuuid
     
     def getPrimaryBridge(self):

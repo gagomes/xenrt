@@ -453,6 +453,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
             else:
                 self.e0dev = int(self.e0devstr)
+                xenrt.TEC().logverbose("endpoint0 %s has vifs %s" % (self.endpoint0, self.endpoint0.vifs))
+                self.endpoint0.reparseVIFs() # ensure IP address is recorded in self.endpoint0.vifs
+                xenrt.TEC().logverbose("endpoint0 %s has vifs %s" % (self.endpoint0, self.endpoint0.vifs))
         xenrt.TEC().logverbose("endpoint0 device is %s %s" % (self.e0dev, type(self.e0dev)))
         if self.e1devstr is None:
             self.e1dev = None
@@ -461,6 +464,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
             else:
                 self.e1dev = int(self.e1devstr)
+                xenrt.TEC().logverbose("endpoint1 %s has vifs %s" % (self.endpoint1, self.endpoint1.vifs))
+                self.endpoint1.reparseVIFs() # ensure IP address is recorded in self.endpoint1.vifs
+                xenrt.TEC().logverbose("endpoint1 %s has vifs %s" % (self.endpoint1, self.endpoint1.vifs))
         xenrt.TEC().logverbose("endpoint1 device is %s %s" % (self.e1dev, type(self.e1dev)))
 
         # Give IP addresses to the endpoints if necessary

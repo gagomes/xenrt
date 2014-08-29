@@ -13,6 +13,7 @@ import sys, string, os.path, glob, time, re, math, random, shutil, os, stat, dat
 import traceback, threading, types
 import xml.dom.minidom, libxml2
 import tarfile
+import IPy
 import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
@@ -4321,6 +4322,15 @@ fi
         Return the UUID for a specified PIF device name (e.g. eth0). If a UUID
         is given as argument, just verify it's a network UUID and return it.
         """
+        # This is a special case for shared hosts on other networks - we can specify !NPRI, which means NSEC if the shared host is on this network, and NPRI otherwise
+        if bridge == "!NPRI":
+            nprinet = xenrt.getNetworkParam("NPRI", "SUBNET")
+            nprimask = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
+            net = IPy.IP("%s/%s" % (nprinet, nprimask))
+            if self.getIP() in net:
+                bridge = "NSEC"
+            else:
+                bridge = "NPRI"
         param = xenrt.isUUID(bridge) and "uuid" or "bridge"
         nwuuid = self.parseListForUUID("network-list", param, bridge)
         if not nwuuid:

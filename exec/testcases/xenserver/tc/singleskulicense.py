@@ -724,8 +724,7 @@ class GraceLic(SingleSkuBase):
             xenrt.sleep(900)
   
             licenseInfo = host.getLicenseDetails()
-            #TODO change the if condition to 'not' as this is only valid for beta
-            if 'no' in licenseInfo['grace']:
+            if not 'no' in licenseInfo['grace']:
                 raise xenrt.XRTFailure("Host grace license has expired")
                
             if '19700101T00:00:00Z' != licenseInfo['expiry']:

@@ -561,7 +561,7 @@ class Guest(xenrt.GenericGuest):
 
             if not notools and self.getState() == "UP":
                 self.installTools()
-        if xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+        if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
             if 'ubuntu1404' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"

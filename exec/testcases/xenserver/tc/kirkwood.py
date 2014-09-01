@@ -367,7 +367,7 @@ class TC8544(_KirkwoodErrorBase):
         self.kirkwood.poolConfig = {'sample':'config'}
         data = self.pool.retrieveWLBConfig()
 
-class TC22157(_KirkwoodErrorBase):
+class TC21681(_KirkwoodErrorBase):
     """Verify that receiving WLB Pool Audit Log configuration"""
 
     def runCommand(self):
@@ -1277,7 +1277,7 @@ class TC8635(_KirkwoodBase):
                                    data="Long report")
 
 
-class TC22158(_KirkwoodBase):
+class TC21682(_KirkwoodBase):
     """Verify the WLB reports functionality"""
     FORCE_FAKEKIRKWOOD = True
 
@@ -1285,7 +1285,7 @@ class TC22158(_KirkwoodBase):
         self.initialiseWLB()
         cli = self.pool.getCLIInstance()
         pool_uuid = self.pool.getUUID()
-        filename = os.path.join(xenrt.TEC().tempDir(), "TC22158.xml")
+        filename = os.path.join(xenrt.TEC().tempDir(), "TC21682.xml")
         argument = "report=pool_audit_history LocaleCode=en Start=-6 End=0 PoolID=%s ReportVersion=Creedence AuditUser=ALL AuditObject=ALL StartLine=1 EndLine=10000 UTCOffset=480 filename=%s" % (pool_uuid, filename)
         for i in xrange(100):
             if os.path.isfile(filename):
@@ -2176,7 +2176,7 @@ class TC18154(_VPXWLBReports):
         self.doRunBase(args_dictionary)
 
 
-class TC22156(TC18154):
+class TC21683(TC18154):
     """Test pool audit trail report in creedence"""
     def run(self, arglist=None):
         # rather then use dictionary immediately, lets use list then convert to dictionary

@@ -238,6 +238,17 @@ class ManagementServer(object):
 
         self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
         webdir.remove()
+
+        if self.place.distro == "rhel7":
+            fname = "ws-commons-util-1.0.1-29.el7.noarch.rpm"
+            wscommons = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/rpms/%s" % fname)
+            webdir = xenrt.WebDirectory()
+            webdir.copyIn(wscommons)
+            wscommonsurl = webdir.getURL(fname)
+            self.place.execcmd("wget %s -O /root/%s" % (wscommonsurl, fname))
+            self.place.execcmd("yum install -y /root/%s" % fname)
+            webdir.remove()
+
         self.place.execcmd('mkdir cloudplatform')
         self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
         installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))

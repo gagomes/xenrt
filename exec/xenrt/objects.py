@@ -10562,8 +10562,13 @@ class V6LicenseServer:
             try:
                 self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             except:
-                xenrt.sleep(30) # Allow a bit longer for the license server to start
-                self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
+                xenrt.sleep(300) # Allow a bit longer for the license server to start
+                try:
+                    self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
+                except:
+                    self.place.reboot()
+                    xenrt.sleep(30)
+                    self.place.execcmd("cd %s && LS/lmreread" % (self.workdir))
             self.port = None
 
         xenrt.TEC().logverbose("Removed license %s from license server" % (license))

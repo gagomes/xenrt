@@ -121,11 +121,12 @@ class ManagementServer(object):
             self.place.execcmd('mysqladmin -u root password xensource')
             self.place.execcmd('service mysqld restart')
 
-        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
-            self.tailorForSimulator()
 
         setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
         self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
+        
+        if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
+            self.tailorForSimulator()
 
     def setupManagementServer(self):
         self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')

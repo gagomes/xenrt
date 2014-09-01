@@ -2053,6 +2053,7 @@ class _BondBalance(_AggregateBondTest):
         self.lacpHashAlg = None
 
     def prepare(self, arglist=None):
+        step("Preparing %d guests on bond and %d guests on vlan on top of bond" % (self.DIRECT_GUESTS, self.VLAN_GUESTS))
         _AggregateBondTest.prepare(self, arglist=arglist)
         self.netpeer = xenrt.NetworkTestPeer()
 
@@ -2101,10 +2102,14 @@ class _BondBalance(_AggregateBondTest):
 
             xenrt.TEC().logverbose("MAC hash %s -> %s" % (hash, m))
             self.gmachashes[g] = hash
+        
+        log("gmacs: %s" % str(self.gmacs))
+        log("gmachashes: %s" % str(self.gmachashes))
 
     def run(self, arglist=None):
         peerips = []
         # Add them in the right order
+        step("Start iperf traffic from guests to their respective netpeers") 
         for i in range(self.DIRECT_GUESTS):
             peerips.append(self.netpeer.getAddress())
         for i in range(self.VLAN_GUESTS):
@@ -2127,19 +2132,25 @@ class _BondBalance(_AggregateBondTest):
         # be unbalanced having an effect, and also is about the interval real
         # world customers are likely to care about), checking balance after 30
         # seconds to make sure things are right instantaneously
+        step("Start capturing the packets on host")
         self.startCounts()
         time.sleep(30)
-        # Look at the bonding info and check we're balanced
+        
+        step("Check if the bond traffic is balanced based on bond info")
         sourceCount = self.DIRECT_GUESTS + self.VLAN_GUESTS
         if self.USE_DOM0: sourceCount += 1
+        log("sourceCount: %d" % sourceCount)
         self.checkBondBalance((sourceCount / 2) + 1,sourceCount)
         time.sleep(570)
-        counts = self.stopAndGetCounts()
 
-        # Verify that we're correctly balanced
+        step("Stop capturing and retrieve packet counts")
+        counts = self.stopAndGetCounts()
+        log("counts: %s" % str(counts))
+
+        step("Check if the bond traffic was balanced based on packet counts")
         self.checkBalanced(counts)
 
-        # Shut down 4 of the VMs
+        step("Reducing the number of guest traffic sources by 4")
         ignoreMACs = []
         for i in range(4):
             g = self.guests[i]
@@ -2149,15 +2160,22 @@ class _BondBalance(_AggregateBondTest):
         for i in range(4):
             self.guests[i].execcmd("cat /tmp/iperf.log")
         sourceCount -= 4
+        log("sourceCount: %d" % sourceCount)
 
+        step("Start capturing the packets on host")
         # Check again, but only for 5 minutes this time
         self.startCounts()
         time.sleep(30)
+        
+        step("Check if the bond traffic is balanced based on bond info")
         self.checkBondBalance((sourceCount / 2) + 1,sourceCount,ignoreMACs)
         time.sleep(270)
+        
+        step("Stop capturing and retrieve packet counts")
         counts = self.stopAndGetCounts()
+        log("counts: %s" % str(counts))
 
-        # Verify that we're correctly balanced
+        step("Check if the bond traffic was balanced based on packet counts")
         self.checkBalanced(counts)
 
     def postRun(self):
@@ -2188,6 +2206,9 @@ class _BondBalance(_AggregateBondTest):
                                    " > %s 2>&1 < /dev/null &" % (nic, mac, fn))
 
     def stopAndGetCounts(self):
+        #Returns the counts as a dictionary with (hostEth,guestMAC) as the key
+        #packet count as the value. e.g {(eth0,82:36:77:86:8a:3f):1234 ...}
+        
         self.host.execdom0("killall tcpdump")
         time.sleep(5) # Allow 5s for the tcpdumps to actually stop
         counts = {}
@@ -2241,8 +2262,7 @@ class _BondBalance(_AggregateBondTest):
             # We don't currently actually verify the balancing here, we just assume its OK
             # and that the packet counts will identify any balancing issues problems
             return
-        # Check that we've balanced groupa onto one NIC, and groupb onto the
-        # other
+        # Check that we've balanced groupA onto one NIC, and groupB onto the other
         (info, slaves) = self.host.getBondInfo(self.bondDevice)
         # Check this isn't a repeat of CA-25903 (if it is, wait 5s and try again)        
         if len(info['slb']) < numSources:
@@ -2250,30 +2270,34 @@ class _BondBalance(_AggregateBondTest):
                                    "seconds (CA-25903)...")
             time.sleep(5)
             (info, slaves) = self.host.getBondInfo(self.bondDevice)
-
+        log("info: %s" % str(info))
+        log("slaves: %s" % str(slaves))
+        
         # Figure out where each MAC we know about is
-        intfs = {}
-        for g in self.gmacs:
-            if self.gmacs[g] in ignoreMACs:
+        eths = {}
+        for guest in self.gmacs:
+            if self.gmacs[guest] in ignoreMACs:
                 continue
-            id = self.gmachashes[g]
-            xenrt.TEC().logverbose("Checking MAC %s (hash %s)" %
-                                   (self.gmacs[g], id))
-            if id in info['slb']:
-                intf = info['slb'][id]
-                if intf in intfs:
-                    intfs[intf].append(g)
+            hashid = self.gmachashes[guest]
+            log("Checking MAC %s (hash %s)" % (self.gmacs[guest], hashid))
+            if hashid in info['slb']:
+                eth = info['slb'][hashid]
+                if eth in eths:
+                    eths[eth].append(guest)
                 else:
-                    intfs[intf] = [g]
+                    eths[eth] = [guest]
+        log("eths: %s" % str(eths))
+
         # Check the two lists match one way round or the other
-        ifs = intfs.keys()
+        ifs = eths.keys()
         if len(ifs) < len(self.nics):
             raise xenrt.XRTFailure("One or more interfaces not carrying "
                                    "our traffic",
                                    str(ifs))
         nicSourceCounts = {}
         for intf in ifs:
-            nicSourceCounts[intf] = len(intfs[intf])
+            nicSourceCounts[intf] = len(eths[intf])
+        log("niSourceCounts: %s" % str(nicSourceCounts))
         if sum(nicSourceCounts.values()) != numSources:
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))

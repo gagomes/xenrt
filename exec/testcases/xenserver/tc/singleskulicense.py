@@ -19,6 +19,7 @@ class SingleSkuBase(xenrt.TestCase):
     LICENSENAME = ''
     v6 = None
     NEED_LINUX_VM = True
+    grace = xenrt.TEC().lookup("GRACE", default=None)
 
     def prepare(self,arglist=None):
     
@@ -472,19 +473,24 @@ class InsufficientLicenseUpgrade(SingleSkuBase):
         self.updateLicenseSerInfo() 
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
         #TODO change the licensed flag to False after beta  build
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+        if self.grace:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+        else:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
 
         self.USELICENSESERVER = True
        
         if self.LICENSEFILE:
             self.v6.addLicense(self.LICENSEFILE)
             self.updateLicenseCount()
- 
+
+        #TODO remove 'not' from the if condition 
         if self.hotfixStatus():
             xenrt.TEC().logverbose("Application of Hotfix is restricted for Unlicensed machineas expected" )
-        else :
+        elif self.grace:
+            xenrt.TEC().logverbose("Hotfix can be applied through Xencenter whic is expected")
+        else:
             raise xenrt.XRTFailure("Hotfix can be applied through Xencenter for Unlicensed Machine" )
-            
            
 class FreeEdnSufficientLicenseUpgrade(SingleSkuBase):
     #Class for upgrading the free machine where valid clearwater licenses are already available in the License Server
@@ -972,7 +978,11 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
         self.updateLicenseSerInfo()
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
         #TODO change the licensed flag to 'False' once tech preview is out
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+      
+        if self.grace: 
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+        else:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
 
         self.USELICENSESERVER = True
        
@@ -982,6 +992,8 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
  
         if self.hotfixStatus():
             xenrt.TEC().logverbose("Application of Hotfix is restricted for Unlicensed machineas expected" )
+        elif self.grace:
+            xenrt.TEC().logverbose("Hotfix can be applied through Xencenter which is expected")
         else :
             raise xenrt.XRTFailure("Hotfix can be applied through Xencenter for Unlicensed Machine" )
             

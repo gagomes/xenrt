@@ -110,7 +110,6 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['netscaler_VPX']['privateinterface'] = '1/1'
             
             if self.args['hypervisor'].lower() == "hyperv":
-                mem = int(self.args['mininstancemem'])
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['tiny']['memory'] = 512
                 testData['service_offerings']['small']['memory'] = 640

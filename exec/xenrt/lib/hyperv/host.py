@@ -151,12 +151,12 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
             self.xmlrpcSendFile(msi, "c:\\hypervagent.msi")
             self.xmlrpcExec("msiexec /i c:\\hypervagent.msi /quiet /qn /norestart /log c:\\cloudagent-install.log SERVICE_USERNAME=%s\\%s SERVICE_PASSWORD=%s" % (ad.domainName, ad.adminUser, ad.adminPassword))
         elif msi.endswith(".zip"):
-            tempDir = xenrt.TEC().tempDirectory()
+            tempDir = xenrt.TEC().tempDir()
             xenrt.command("unzip %s -d %s" % (msi, tempDir))
             self.xmlrpcCreateDir("c:\\cshyperv")
             self.xmlrpcSendRecursive(tempDir, "c:\\cshyperv")
             self.xmlrpcExec("c:\\cshyperv\\AgentShell.exe --install -u %s\\%s -p %s" % (ad.domainName, ad.adminUser, ad.adminPassword))
-            data = self.hypervCmd("New-SelfSignedCertificate -DnsName apachecloudstack -CertStoreLocation Cert:\LocalMachines\My | Format-Wide -Property Thumbprint").strip()
+            data = self.hypervCmd("New-SelfSignedCertificate -DnsName apachecloudstack -CertStoreLocation Cert:\\LocalMachine\\My | Format-Wide -Property Thumbprint -autosize").strip()
             thumbprint = data.splitlines()[-1]
             self.xmlrpcExec("netsh http add sslcert ipport=0.0.0.0:8250 certhash=%s appid=\"{727beb1c-6e7c-49b2-8fbd-f03dbe481b08}\"" % thumbprint)
         else:

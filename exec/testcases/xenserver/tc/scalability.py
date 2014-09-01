@@ -73,7 +73,7 @@ class _VMScalability(_Scalability):
     LOOPS = 0
     DISTRO = "LINUX"
     ARCH = "x86-32"
-    MEMORY=256
+    MEMORY=384
     CHECKHEALTH = False
     CHECKREACHABLE = False
     HATEST = False  #HA protected VMs

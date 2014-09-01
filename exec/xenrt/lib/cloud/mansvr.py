@@ -170,6 +170,7 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
             self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/hypervisor_capabilities.simulator.sql')
+            self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/templates.simulator.sql')
         marvinApi.setCloudGlobalConfig("secstorage.allowed.internal.sites", internalMask.strNormal())
         if not xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
             marvinApi.setCloudGlobalConfig("use.external.dns", "true")
@@ -338,7 +339,6 @@ class ManagementServer(object):
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-schema-simulator.sql')
-        self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/templates.simulator.sql')
 
     def preManagementServerInstall(self):
         # Check correct Java version is installed (installs correct version if required)

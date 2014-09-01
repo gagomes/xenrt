@@ -3064,7 +3064,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
     def ietGuestSetup(self, iHost, ietvm):
         """Setup an iet target""" 
         iqn=ietvm.installLinuxISCSITarget()
-        ietvm.createISCSITargetLun(0, 30 * 1024, timeout=2700)
+        ietvm.createISCSITargetLun(0, 30 * 1024, thickProvision=False, timeout=2700)
         cli=iHost.getCLIInstance()
         # Probe to get the scsi id
         try:

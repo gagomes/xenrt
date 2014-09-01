@@ -128,35 +128,34 @@ class ManagementServer(object):
         self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
 
     def setupManagementServer(self):
-        if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
-            setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
-            self.place.execcmd(setupMsLoc)
+        self.place.execcmd('iptables -I INPUT -p tcp --dport 8096 -j ACCEPT')
+        setupMsLoc = self.place.execcmd('find /usr/bin -name %s-setup-management' % (self.cmdPrefix)).strip()
+        self.place.execcmd(setupMsLoc)
 
-            self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
+        self.place.execcmd('mysql -u cloud --password=cloud --execute="UPDATE cloud.configuration SET value=8096 WHERE name=\'integration.api.port\'"')
 
-            templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
-                                "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
-                               "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
-                                "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
-                               "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
-                                "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
-                               "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
-                                "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
-                               "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
-                                "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
+        templateSubsts = {"http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2":
+                            "%s/cloudTemplates/centos56-x86_64.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/releases/4.3/centos6_4_64bit.vhd.bz2":
+                            "%s/cloudTemplates/centos6_4_64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/templates/builtin/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2":
+                            "%s/cloudTemplates/f59f18fb-ae94-4f97-afd2-f84755767aca.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova":
+                            "%s/cloudTemplates/CentOS5.3-x86_64.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                           "http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2":
+                            "%s/cloudTemplates/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")}
 
-            if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
-                templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \
-                        "%s/cloudTemplates/centos56-httpd-64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-                templateSubsts["http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova"] = \
-                        "%s/cloudTemplates/centos53-httpd-64bit.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-                templateSubsts["http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2"] = \
-                        "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
-                  
+        if xenrt.TEC().lookup("MARVIN_BUILTIN_TEMPLATES", False, boolean=True):
+            templateSubsts["http://download.cloud.com/templates/builtin/centos56-x86_64.vhd.bz2"] = \
+                    "%s/cloudTemplates/centos56-httpd-64bit.vhd.bz2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+            templateSubsts["http://download.cloud.com/releases/2.2.0/CentOS5.3-x86_64.ova"] = \
+                    "%s/cloudTemplates/centos53-httpd-64bit.ova" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+            templateSubsts["http://download.cloud.com/releases/2.2.0/eec2209b-9875-3c8d-92be-c001bd8a0faf.qcow2.bz2"] = \
+                    "%s/cloudTemplates/centos55-httpd-64bit.qcow2" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP")
+              
 
-            for t in templateSubsts.keys():
-                self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
+        for t in templateSubsts.keys():
+            self.place.execcmd("""mysql -u cloud --password=cloud --execute="UPDATE cloud.vm_template SET url='%s' WHERE url='%s'" """ % (templateSubsts[t], t))
 
         if xenrt.TEC().lookup("USE_CCP_SIMULATOR", False, boolean=True):
             # For some reason the cloud user doesn't seem to have access to the simulator DB
@@ -202,16 +201,15 @@ class ManagementServer(object):
             xenrt.TEC().logverbose("...done")
 
     def installApacheProxy(self):
-        if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execcmd("yum -y install httpd")
-            self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
-            self.place.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
-            self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
-            self.place.execcmd("chkconfig httpd on")
-            self.place.execcmd("service httpd restart")
+        self.place.execcmd("yum -y install httpd")
+        self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")
+        self.place.execcmd("echo ProxyPassReverse /client http://127.0.0.1:8080/client >> /etc/httpd/conf.d/cloudstack.conf")
+        self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
+        self.place.execcmd("chkconfig httpd on")
+        self.place.execcmd("service httpd restart")
 
     def checkJavaVersion(self):
-        if self.place.distro in ['rhel63', 'rhel64', ]:
+        if self.place.distro.startswith("rhel6"):
             if self.version in ['4.4', '4.5']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java*1.7*')
@@ -231,20 +229,19 @@ class ManagementServer(object):
         if not manSvrInputDir:
             raise xenrt.XRTError('Location of management server build not specified')
 
-        if self.place.distro in ['rhel63', 'rhel64', ]:
-            manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
-            if manSvrFile is None:
-                raise xenrt.XRTError("Couldn't find CCP build")
-            webdir = xenrt.WebDirectory()
-            webdir.copyIn(manSvrFile)
-            manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
+        manSvrFile = xenrt.TEC().getFile(manSvrInputDir)
+        if manSvrFile is None:
+            raise xenrt.XRTError("Couldn't find CCP build")
+        webdir = xenrt.WebDirectory()
+        webdir.copyIn(manSvrFile)
+        manSvrUrl = webdir.getURL(os.path.basename(manSvrFile))
 
-            self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
-            webdir.remove()
-            self.place.execcmd('mkdir cloudplatform')
-            self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-            installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-            self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
+        self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
+        webdir.remove()
+        self.place.execcmd('mkdir cloudplatform')
+        self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
+        installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
+        self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
 
         self.installCifs()
         self.checkJavaVersion()
@@ -259,8 +256,7 @@ class ManagementServer(object):
                                                             "cloudstack-common-",
                                                             "cloudstack-awsapi-"])
 
-        if self.place.distro in ['rhel63', 'rhel64', ]:
-            self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
+        self.place.execcmd('yum -y install %s' % (os.path.join(placeArtifactDir, '*')), timeout=600)
 
         self.installCifs()
         self.checkJavaVersion()
@@ -337,10 +333,9 @@ class ManagementServer(object):
         self.checkJavaVersion()
 
     def postManagementServerInstall(self):
-        if self.place.distro in ['rhel63', 'rhel64', ]:
-            if not self.isCCP and self.version in ['4.4', '4.5']:
-                self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
-                self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
+        if not self.isCCP and self.version in ['4.4', '4.5']:
+            self.place.execcmd('wget http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -P /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/')
+            self.place.execcmd('chmod 755 /usr/share/cloudstack-common/scripts/vm/hypervisor/xenserver/vhd-util')
 
     def installCloudManagementServer(self):
         self.preManagementServerInstall()

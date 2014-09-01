@@ -52,6 +52,8 @@ def createHost(id=0,
 
     host = HyperVHost(m, productVersion=productVersion, productType=productType)
 
+    host.cloudstack = extraConfig.get("cloudstack", False)
+
     host.install()
 
     xenrt.TEC().registry.hostPut(machine, host)
@@ -78,10 +80,11 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
         return
 
     def createBasicNetwork(self):
-        self.joinDefaultDomain()
-        self.setupDomainUserPermissions()
+        if self.cloudstack:
+            self.joinDefaultDomain()
+            self.setupDomainUserPermissions()
+            self.createCloudStackShares()
         self.reconfigureToStatic()
-        self.createCloudStackShares()
         self.createVirtualSwitch(0)
 
     def installHyperV(self):
@@ -258,9 +261,10 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
                 except:
                     pass
 
-        self.joinDefaultDomain()
-        self.setupDomainUserPermissions()
-        self.createCloudStackShares()
+        if self.cloudstack:
+            self.joinDefaultDomain()
+            self.setupDomainUserPermissions()
+            self.createCloudStackShares()
 
     def checkNetworkTopology(self,
                              topology,

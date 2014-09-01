@@ -144,6 +144,8 @@ chain tftp://${next-server}/pxelinux.0
                        "SZ",
                        "c:\\onboot.cmd")
         self.installAdditionalNICDrivers()
+        # Disable NLA requirement for RDP
+        self.xmlrpcExec("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\cimv2\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
 
     def installAdditionalNICDrivers(self):
         drivers = self.lookup("WINDRIVERS", None)

@@ -1085,6 +1085,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_HYPERV_DISTRO', 'hvs12r2-x64'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
+                                simpleHostNode.setAttribute('extraConfig', '{"cloudstack":true}')
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
                     elif cluster['hypervisor'].lower() == "vmware":

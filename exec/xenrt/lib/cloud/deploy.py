@@ -389,7 +389,12 @@ class DeployerPlugin(object):
     def getHyperVMsi(self):
         if xenrt.TEC().lookup("HYPERV_AGENT", None):
             self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT"))
-        else:
+        elif xenrt.TEC().lookup("ACS_BUILD", None):
+            artifacts = xenrt.lib.cloud.getACSArtifacts(None, [], ["hypervagent.zip"])
+            if len(artifacts) > 0:
+                self.hyperVMsi = artifacts[0]
+
+        if not self.hyperVMsi:
             # Install CloudPlatform packages
             cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
             if not cloudInputDir:

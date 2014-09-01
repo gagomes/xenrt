@@ -24,9 +24,9 @@ def getArtifactsFromTar(place, artifacts):
             place.execcmd('rm -f %s' % (os.path.join(placeArtifactDir, a)))
     return placeArtifactDir
 
-def getACSArtifacts(place, artifacts):
+def getACSArtifacts(place, artifactsStart, artifactsEnd=[]):
     if xenrt.TEC().lookup("CLOUDRPMTAR", None) is not None:
-        return getArtifactsFromTar(place, artifacts)
+        return getArtifactsFromTar(place, artifactsStart)
 
     buildUrl = xenrt.TEC().lookup("ACS_BUILD", None)
     if not buildUrl:
@@ -38,13 +38,18 @@ def getACSArtifacts(place, artifacts):
     for a in data['artifacts']:
         artifactsDict[a['fileName']] = a['relativePath']
 
-    artifactKeys = filter(lambda x: any(map(lambda a: x.startswith(a), artifacts)), artifactsDict.keys())
-
-    placeArtifactDir = '/tmp/csartifacts'
-    place.execcmd('mkdir %s' % (placeArtifactDir))
+    artifactKeys = filter(lambda x: any(map(lambda a: x.startswith(a), artifactsStart)), artifactsDict.keys())
+    artifactKeys.extend(filter(lambda x: any(map(lambda a: x.endswith(a), artifactsEnd)), artifactsDict.keys()))
+    
 
     # Copy artifacts into the temp directory
     localFiles = [xenrt.TEC().getFile(os.path.join(buildUrl, "artifact", artifactsDict[x])) for x in artifactKeys]
+
+    if not place:
+        return localFiles
+
+    placeArtifactDir = '/tmp/csartifacts'
+    place.execcmd('mkdir %s' % (placeArtifactDir))
 
     webdir = xenrt.WebDirectory()
     for f in localFiles:

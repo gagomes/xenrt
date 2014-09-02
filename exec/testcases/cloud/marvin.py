@@ -111,13 +111,8 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
+                testData['service_offerings']['memory'] = 512
                 testData['service_offerings']['tiny']['memory'] = 512
-                testData['service_offerings']['small']['memory'] = 640
-                testData['service_offerings']['hasmall']['memory'] = 640
-                testData['service_offerings']['taggedsmall']['memory'] = 640
-                testData['service_offerings']['medium']['memory'] = 768
-                testData['service_offerings']['big']['memory'] = 1024
-                testData['acl']['service_offering']['small']['memory'] = 512
 
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']

@@ -3750,6 +3750,7 @@ class TC13207(ExportImportSnapshotTree):
     ISWINDOWS = True
     LARGEVM = True
     SIZE = 102400 
+    STATICIP = 1
 
 class TC14452(ExportImportSnapshotTree):
     """To verify the export and import of Copied vm with 1 snapshot using WSMAN protocol"""

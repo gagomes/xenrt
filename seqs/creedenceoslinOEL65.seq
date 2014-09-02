@@ -35,6 +35,9 @@
             <arg>guest=oel65</arg>
             <arg>loops=20</arg>
           </testcase>
+          <testcase id="guestops.basic.TCVerifyUEK" tc="TC-21671">
+            <arg>guest=oel65</arg>
+          </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-21321">
             <arg>guest=oel65</arg>
             <arg>workloads</arg>
@@ -93,6 +96,9 @@
           <testcase id="guestops.basic.TCReboot" tc="TC-21330">
             <arg>guest=oel65x86-64</arg>
             <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCVerifyUEK" tc="TC-21675">
+            <arg>guest=oel65x86-64</arg>
           </testcase>
           <testcase id="guestops.srm.TCSuspendResume" tc="TC-21331">
             <arg>guest=oel65x86-64</arg>

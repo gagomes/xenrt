@@ -60,12 +60,12 @@
       </testcase>
 
       <testcase id="xenserver.tc.singleskulicense.VerifyHostSocketCount" name="TC18983" tc="TC-18983"/>
-
+<!--
       <testcase id="xenserver.tc.singleskulicense.GraceLic" name="TC19015" tc="TC-19015">
         <arg>system=host</arg>
         <arg>edition=per-socket</arg>
       </testcase>
-
+-->
     </serial>
   </testsequence>
 

@@ -400,14 +400,14 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
         if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
-            # RHEL7 based systems don't have jakarta-commons-daemon
-            return
-        # TODO: Don't hardcode the jsvc URL
-        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            jsvcFile = "apache-commons-daemon-jsvc-1.0.13-6.el7.x86_64.rpm"
+        else:
+            jsvcFile = "jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm"
+        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/%s" % jsvcFile)
         webdir = xenrt.WebDirectory()
         webdir.copyIn(jsvc)
-        jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
-        self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
+        jsvcUrl = webdir.getURL(jsvcFile)
+        self.execdom0("wget %s -O /tmp/%s" % (jsvcUrl, jsvcFile))
         webdir.remove()
-        self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        self.execdom0("rpm -ivh /tmp/%s" % jsvcFile)
 

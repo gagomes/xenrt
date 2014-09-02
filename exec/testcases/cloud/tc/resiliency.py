@@ -324,7 +324,8 @@ class TCDBRestart(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld restart")
+        db = self.cloud.mgtscr.db
+        msvm.execcmd("service %s restart" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -334,9 +335,10 @@ class TCDBOutage(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld stop")
+        db = self.cloud.mgtsvr.db
+        msvm.execcmd("service %s stop" % db)
         xenrt.sleep(120)
-        msvm.execcmd("service mysqld start")
+        msvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -345,14 +347,15 @@ class TCManServerStartAfterDB(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld stop")
+        db = self.cloud.mgtsvr.db
+        msvm.execcmd("service %s stop" % db)
         msvm.execcmd("service cloudstack-management stop")
         
         msvm.execcmd("service cloudstack-management start")
         
         xenrt.sleep(120)
 
-        msvm.execcmd("service mysqld start")
+        msvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()

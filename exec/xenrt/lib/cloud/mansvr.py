@@ -107,19 +107,33 @@ class ManagementServer(object):
 
 
     def setupManagementServerDatabase(self):
-        if self.place.distro in ['rhel63', 'rhel64', ]:
+        if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             # Configure SELinux
             self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.place.execcmd('setenforce Permissive')
-
             self.place.execcmd('yum -y install mysql-server mysql')
-            self.place.execcmd('service mysqld restart')
-            self.place.execcmd('chkconfig mysqld on')
+            self.db = "mysqld"
+        elif self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+            if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
+                self.place.execcmd('yum -y install mariadb-server mariadb')
+                self.db = "mariadb"
+            else:
+                # Add a proxy if we know about one
+                proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+                if proxy:
+                    self.place.execcmd("sed -i '/proxy/d' /etc/yum.conf")
+                    self.place.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
+                self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
+                self.place.execcmd("yum install -y mysql-repo.rpm")
+                self.place.execcmd('yum -y install mysql-server mysql')
+                self.db = "mysqld"
+        self.place.execcmd('service %s restart' % self.db)
+        self.place.execcmd('chkconfig %s on' % self.db)
 
-            self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
-            self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
-            self.place.execcmd('mysqladmin -u root password xensource')
-            self.place.execcmd('service mysqld restart')
+        self.place.execcmd('mysql -u root --execute="GRANT ALL PRIVILEGES ON *.* TO \'root\'@\'%\' WITH GRANT OPTION"')
+        self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
+        self.place.execcmd('mysqladmin -u root password xensource')
+        self.place.execcmd('service %s restart' % self.db)
 
 
         setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
@@ -213,7 +227,7 @@ class ManagementServer(object):
         self.place.execcmd("service httpd restart")
 
     def checkJavaVersion(self):
-        if self.place.distro.startswith("rhel6"):
+        if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             if self.version in ['4.4', '4.5']:
                 # Check if Java 1.7.0 is installed
                 self.place.execcmd('yum -y install java*1.7*')
@@ -243,7 +257,7 @@ class ManagementServer(object):
         self.place.execcmd('wget %s -O cp.tar.gz' % (manSvrUrl))
         webdir.remove()
 
-        if self.place.distro == "rhel7":
+        if self.place.distro == "rhel7" or self.place.distro == "centos7":
             fname = "ws-commons-util-1.0.1-29.el7.noarch.rpm"
             wscommons = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/rpms/%s" % fname)
             webdir = xenrt.WebDirectory()
@@ -358,6 +372,4 @@ class ManagementServer(object):
             self.installCloudStackManagementServer()
         else:
             raise xenrt.XRTError("Didn't find one of CLOUDINPUTDIR, ACS_BRANCH, CLOUDRPMTAR or ACS_BUILD variables")
-
-        self.postManagementServerInstall()
 

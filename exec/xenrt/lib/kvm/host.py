@@ -388,6 +388,29 @@ class KVMHost(xenrt.lib.libvirt.Host):
         self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
         self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 
+        if isLXC:
+            # LXC specific tweaks
+            self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties")
+            self.execdom0("umount /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuset /sys/fs/cgroup/memory /sys/fs/cgroup/devices /sys/fs/cgroup/freezer /sys/fs/cgroup/net_cls /sys/fs/cgroup/blkio")
+            self.execdom0("rm -f /sys/fs/cgroup/cpu /sys/fs/cgroup/cpuacct")
+            self.execdom0("""cat >> /etc/cgconfig.conf <<EOF
+mount {
+           cpuset = /sys/fs/cgroup/cpuset;
+           cpu = /sys/fs/cgroup/cpu;
+           cpuacct = /sys/fs/cgroup/cpuacct;
+           memory = /sys/fs/cgroup/memory;
+           devices = /sys/fs/cgroup/devices;
+           freezer = /sys/fs/cgroup/freezer;
+           net_cls = /sys/fs/cgroup/net_cls;
+           blkio = /sys/fs/cgroup/blkio;
+}
+""")
+            try:
+                self.execdom0("service cgconfig stop")
+                self.execdom0("service cgconfig start")
+            except:
+                pass
+
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")
         self.execdom0("touch /var/lib/xenrt/cloudTailored")

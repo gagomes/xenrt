@@ -1,0 +1,48 @@
+<xenrt>
+
+  <!-- VDI Copy performance tests -->
+    
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+  </variables>
+
+  <scheduler>
+    <resources>memory&gt;=5G</resources>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>nfs</flags>
+    <param>OPTION_KEEP_NFS=yes</param>
+  </scheduler>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="Windows7">
+          <distro>win7sp1-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="1" installsr="ext"/>
+      <storage type="nfs" name="nfsSR" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VDICopyPerf">
+
+      <!-- Local host copy (single host copy with no network storage involved) -->
+      <testcase id="testcases.xenserver.tc.vdicopyperfnew.TC21567New"/>
+
+      <!-- Host copy (single host copy with network storage involved, e.g. one SR is NFS) -->
+      <testcase id="testcases.xenserver.tc.vdicopyperfnew.TC21568New"/>
+      
+      <!-- Inter-hosts copy (copy between two hosts, disregarding SR types) -->
+      <testcase id="testcases.xenserver.tc.vdicopyperfnew.TC21569New"/>
+
+    </serial>
+  </testsequence>
+</xenrt>

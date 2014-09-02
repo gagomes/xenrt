@@ -373,3 +373,4 @@ class ManagementServer(object):
         else:
             raise xenrt.XRTError("Didn't find one of CLOUDINPUTDIR, ACS_BRANCH, CLOUDRPMTAR or ACS_BUILD variables")
 
+        self.postManagementServerInstall()

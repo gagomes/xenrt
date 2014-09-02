@@ -324,7 +324,7 @@ class TCDBRestart(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        db = self.cloud.mgtscr.db
+        db = self.cloud.mgtsvr.db
         msvm.execcmd("service %s restart" % db)
 
     def recover(self):

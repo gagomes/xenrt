@@ -2923,7 +2923,13 @@ class NetworkThroughputwithGroOn(NetworkThroughputwithGRO):
         xenrt.log("Measure throughput for nic 0")
         self.runThroughput(0)
         
-        rx_nics = self.host2.listSecondaryNICs() 
+        rx_nics = self.host2.listSecondaryNICs()
+        tx_nics = self.host1.listSecondaryNICs()
+        
+        #If tx host has lesser number of secondary NICS in connected state than rx host then test only for the lesser number of NICS.
+        if len(tx_nics) < len(rx_nics):
+            rx_nics = tx_nics
+            
         #Measure throughput for all the secondary NICS available on receiving host
         for nic in rx_nics :
             #Ensure that we have only those vifs attached to BOTH the vms that we want to test

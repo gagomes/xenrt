@@ -405,7 +405,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
         self._instance.destroy() 
 
-    def outage(self,host):
+    def outage(self,host,csHost):
 
         raise xenrt.XRTError("Unimplemented")
 
@@ -451,7 +451,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
     def _resilliencyTest(self,xrtHost,csHost):
 
         self.csHost = csHost
-        self.runSubcase('outage', (xrtHost), 'Outage', 'Host-%s' % (csHost.name))
+        self.runSubcase('outage', (xrtHost,csHost), 'Outage', 'Host-%s' % (csHost.name))
         self.runSubcase('postOutageCheck',(),'PostOutageCheck','Host-%s' % (csHost.name))
         self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
         self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
@@ -484,7 +484,7 @@ class _TCHostResiliencyBase(_TCCloudResiliencyBase):
 
 class TCRebootHost(_TCHostResiliencyBase):
 
-    def outage(self,host):
+    def outage(self,host,csHost):
 
         host.reboot()
 
@@ -500,7 +500,7 @@ class TCRebootHost(_TCHostResiliencyBase):
  
 class TCBlockTrafficHost(_TCHostResiliencyBase): 
 
-    def outage(self,host):
+    def outage(self,host,csHost):
 
         nic = host.getDefaultInterface()
         macAddress = host.getNICMACAddress(int(re.findall(r'\d+',nic)[0]))
@@ -514,7 +514,7 @@ class TCBlockTrafficHost(_TCHostResiliencyBase):
 
 class TCShutdownHost(_TCHostResiliencyBase):
 
-    def outage(self,host):
+    def outage(self,host,csHost):
 
         host.poweroff()
 
@@ -524,9 +524,9 @@ class TCShutdownHost(_TCHostResiliencyBase):
 
 class TCXapiStopped(_TCHostResiliencyBase):
 
-    def outage(self,host):
+    def outage(self,host,csHost):
 
-        if host.hypervisor != "XenServer":
+        if csHost.hypervisor != "XenServer":
             msg = "This testcase is only valid for Xenserver and not for any other Hypervisor"
             xenrt.TEC().logverbose(msg)
             raise xenrt.XRTError(msg)

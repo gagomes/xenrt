@@ -225,6 +225,8 @@ class ManagementServer(object):
         self.place.execcmd("echo RedirectMatch ^/$ /client >> /etc/httpd/conf.d/cloudstack.conf")
         self.place.execcmd("chkconfig httpd on")
         self.place.execcmd("service httpd restart")
+        if self.place.distro == "rhel7" or self.place.distro == "centos7":
+            self.place.execcmd('iptables -I INPUT -p tcp --dport 80 -j ACCEPT')
 
     def checkJavaVersion(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
@@ -277,6 +279,7 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+        self.saveFirewall()
 
     def installCloudStackManagementServer(self):
         self.__isCCP = False
@@ -292,6 +295,10 @@ class ManagementServer(object):
         self.setupManagementServerDatabase()
         self.setupManagementServer()
         self.installApacheProxy()
+        self.saveFirewall()
+
+    def saveFirewall(self):
+        self.place.execcmd("service iptables save")
 
     def installCifs(self):
         self.place.execcmd("yum install -y samba-client samba-common cifs-utils")

@@ -1139,9 +1139,23 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 tickettitle = unicode(tickettitle, errors='ignore')
             if not isinstance(description, unicode):
                 description = unicode(description, errors='ignore')
-            issue = j.create_issue(project={"key":project},summary = tickettitle[0:255],issuetype={"name":"Bug"},priority={"name":"Major"},
-                                environment=environment,description=description,
-                                components=[{'id':component}],assignee={'name':assignee})
+            fields = {"project": {"key":project},
+                      "summary": tickettitle[0:255],
+                      "issuetype": {"name":"Bug"},
+                      "priority": {"name":"Major"},
+                      "environment": environment,
+                      "description": description,
+                      "components": [{'id':component}],
+                      "assignee": {'name':assignee}}
+
+            version = xenrt.TEC().lookup("JIRA_TICKET_VERSION", None)
+            if version:
+                fields['versions'] = [{"name": version}]
+            # Cloudstack project needs custom field setting 
+            if project == "CS":
+                fields['customfield_13232'] = {"value": "Internal"}
+
+            issue = j.create_issue(**fields)
             xenrt.GEC().logverbose("Created JIRA issue %s" % (issue.key))
             if jiraTicketLabel is not None:
                 issue.update(labels=[jiraTicketLabel])

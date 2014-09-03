@@ -1154,7 +1154,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             if version:
                 fields['versions'] = [{"name": version}]
             # Cloudstack project needs custom field setting 
-            if project == "CS":
+            if project == "CS" and issueType == "Bug":
                 fields['customfield_13232'] = {"value": "Internal"}
 
             issue = j.create_issue(**fields)

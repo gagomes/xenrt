@@ -963,6 +963,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         track2 = re.sub(r"/\d+-xenrt[-]?\w+/", "/xxxxxx-xenrtxxxxxx/", track2)
         track2 = re.sub(r"=xenrt\w+", "=xenrtxxxxxx", track2)
         track2 = re.sub(r" xenrt\w+", " xenrtxxxxxx", track2)
+        track2 = re.sub(r"job\d+", "jobxxxxxx", track2)
         track2 = re.sub(r"/tmp/dist[A-Za-z0-9]+/", "/tmp/distxxxxxx/", track2)
         # A half-hearted attempt to match IPv6 addresses!
         track2 = re.sub("[A-Fa-f0-9]{4}:[A-Fa-f0-9]{4}:[A-Fa-f0-9:]+", "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx", track2)

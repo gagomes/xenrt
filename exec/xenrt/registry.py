@@ -133,7 +133,7 @@ class Registry:
         found = []
         for host in hosts:
             possibleHost = self.hostGet(host)
-            if hostName == possibleHost.getName():
+            if hostName == possibleHost.getName() or hostName == possibleHost.getIP():
                 found.append(possibleHost)
         return found
     

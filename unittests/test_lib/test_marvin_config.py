@@ -171,6 +171,7 @@ class DummyRegistry(object):
         index = int(re.match("RESOURCE_HOST_(\d+)", h).group(1))
         m = Mock()
         m.getIP.return_value = str(IPy.IP(IPy.IP("10.0.0.3").int() + index))
+        m.getFQDN.return_value = "h%d.domain" % index
         return m
 
     def guestGet(self, g):
@@ -244,14 +245,14 @@ class TC1(BaseTC):
                                    'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
                                    'clustertype': 'CloudManaged',
                                    'hosts': [{'password': 'xenroot',
-                                              'url': 'http://10.0.0.3',
+                                              'url': 'http://h0.domain',
                                               'username': 'root'}],
                                    'hypervisor': 'hyperv',
                                    'primaryStorages': [{'details': {'user': 'Administrator',
                                                                     'password': 'xenroot01T',
                                                                     'domain': 'XSQA'},
                                                         'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
-                                                        'url': 'cifs://10.0.0.3/storage/primary'}]}],
+                                                        'url': 'cifs://h0.domain/storage/primary'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
                     'name': 'XenRT-Zone-0-Pod-0',
@@ -262,7 +263,7 @@ class TC1(BaseTC):
                                             'password': 'xenroot01T',
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
-                                'url': 'cifs://10.0.0.3/storage/secondary'}]}]} 
+                                'url': 'cifs://h0.domain/storage/secondary'}]}]} 
 
 class TC2(BaseTC):
     """Test that KVM zones use NFS storage"""
@@ -480,14 +481,14 @@ class TC5(BaseTC):
                                    'clustername': 'XenRT-Zone-0-Pod-0-Cluster-0',
                                    'clustertype': 'CloudManaged',
                                    'hosts': [{'password': 'xenroot',
-                                              'url': 'http://10.0.0.3',
+                                              'url': 'http://h0.domain',
                                               'username': 'root'}],
                                    'hypervisor': 'hyperv',
                                    'primaryStorages': [{'details': {'user': 'Administrator',
                                                                     'password': 'xenroot01T',
                                                                     'domain': 'XSQA'},
                                                         'name': 'XenRT-Zone-0-Pod-0-Cluster-0-Primary-Store-0',
-                                                        'url': 'cifs://10.0.0.3/storage/primary'}]}],
+                                                        'url': 'cifs://h0.domain/storage/primary'}]}],
                     'endip': '10.1.0.10',
                     'gateway': '10.0.0.1',
                     'name': 'XenRT-Zone-0-Pod-0',

@@ -1353,13 +1353,14 @@ def keepSetup():
 def getADConfig():
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
+    dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
     adminUser = ad['ADMIN_USER']
     adminPassword = ad['ADMIN_PASSWORD']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword'])
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns'])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns)
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")

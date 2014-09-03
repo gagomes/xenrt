@@ -155,7 +155,7 @@ class DeployerPlugin(object):
                     storagePath = secondaryStorage.getMount()
                 else:
                     h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % ref['XRT_SMBHostId'])
-                    ip = h.getIP()
+                    ip = h.getFQDN()
                     url = "cifs://%s/storage/secondary" % ip
                     storagePath = "%s:/storage/secondary" % ip
                     
@@ -273,7 +273,7 @@ class DeployerPlugin(object):
                 url = 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
         elif storageType == "SMB":
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % ref['XRT_SMBHostId'])
-            ip = h.getIP()
+            ip = h.getFQDN()
             url =  "cifs://%s/storage/primary" % (ip)
             ad = xenrt.getADConfig()
         return url
@@ -358,6 +358,7 @@ class DeployerPlugin(object):
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
         elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
             hostIds = ref['XRT_HyperVHostIds'].split(',')
+            hostObjs = []
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 self.getHyperVMsi()
@@ -369,7 +370,12 @@ class DeployerPlugin(object):
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
-                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+                hosts.append({ 'url': 'http://%s' % (h.getFQDN()) })
+                hostObjs.append(h)
+            for h in hostObjs:
+                for j in hostObjs:
+                    h.enableDelegation(j, "cifs")
+                    h.enableDelegation(j, "Microsoft Virtual System Migration Service")
         elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'vmware' and ref.has_key('XRT_VMWareHostIds'):
             hostIds = ref['XRT_VMWareHostIds'].split(',')
             for hostId in hostIds:

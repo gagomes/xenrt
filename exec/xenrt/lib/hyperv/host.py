@@ -80,20 +80,22 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
         return
 
     def createBasicNetwork(self):
+        self.reconfigureToStatic(ad=self.cloudstack)
+        self.disableOtherNics()
+        self.createVirtualSwitch(0)
         if self.cloudstack:
             self.joinDefaultDomain()
             self.setupDomainUserPermissions()
             self.createCloudStackShares()
-        self.reconfigureToStatic()
-        self.createVirtualSwitch(0)
+            self.enableMigration()
 
     def installHyperV(self):
         if self.productVersion.startswith("hvs"):
             needReboot = False
-            features = ["RSAT-Hyper-V-Tools"]
+            features = ["RSAT-Hyper-V-Tools", "RSAT-AD-Powershell"]
         else:
             needReboot = True
-            features = ["Hyper-V", "RSAT-Hyper-V-Tools"]
+            features = ["Hyper-V", "RSAT-Hyper-V-Tools", "RSAT-AD-Powershell"]
         
         for i in features:
             xenrt.TEC().logverbose(self.xmlrpcExec("Get-WindowsFeature -Name %s" % i, powershell=True, returndata=True))
@@ -102,6 +104,24 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
 
         if needReboot:
             self.softReboot()
+
+    def enableMigration(self):
+        self.hypervCmd("Enable-VMMigration")
+        self.hypervCmd("Set-VMHost -VirtualMachineMigrationAuthenticationType Kerberos")
+        self.hypervCmd("Set-VMHost -UseAnyNetworkForMigration $true")
+        self.enableDialIn()
+        self.softReboot()
+
+    def enableDialIn(self):
+        ad = xenrt.getADConfig()
+        self.xmlrpcWriteFile("c:\\domainpassword.txt", ad.adminPassword)
+        script = """
+$pass=cat c:\\domainpassword.txt | ConvertTo-SecureString -AsPlainText -Force
+$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "%s\\%s",$pass
+Get-ADComputer -Credential $cred $env:COMPUTERNAME | Set-AdObject -Replace @{msnpallowdialin=$true}
+Get-ADComputer -Credential $cred $env:COMPUTERNAME -Properties msnpallowdialin | Select-Object -ExpandProperty msnpallowdialin
+""" % (ad.domainName, ad.adminUser)
+        xenrt.TEC().logverbose(self.hypervCmd(script))
 
     def createVirtualSwitch(self, eth):
         ps = """Import-Module Hyper-V
@@ -262,12 +282,7 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
         for e in allEths:
             if e not in usedEths:
                 eth = self.getNIC(e)
-                cmd = "netsh interface ip set address \"%s\" dhcp" % (eth)
-                try:
-                    self.xmlrpcExec(cmd)
-                except:
-                    pass
-                cmd = "netsh interface ipv4 set interface \"%s\" ignoredefaultroutes=enabled" % (eth)
+                cmd = "netsh interface set interface \"%s\" disabled" % (eth)
                 try:
                     self.xmlrpcExec(cmd)
                 except:
@@ -277,6 +292,7 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
             self.joinDefaultDomain()
             self.setupDomainUserPermissions()
             self.createCloudStackShares()
+            self.enableMigration()
 
     def checkNetworkTopology(self,
                              topology,
@@ -332,3 +348,18 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
 
     def guestFactory(self):
         return xenrt.lib.hyperv.guest.Guest
+
+    def getFQDN(self):
+        return "%s.%s" % (self.xmlrpcGetEnvVar("COMPUTERNAME"), xenrt.getADConfig().domain)
+
+    def enableDelegation(self, remoteHost, service):
+        remote = remoteHost.xmlrpcGetEnvVar("COMPUTERNAME")
+        ad = xenrt.getADConfig()
+        self.xmlrpcWriteFile("c:\\domainpassword.txt", ad.adminPassword)
+        script = """
+$pass=cat c:\\domainpassword.txt | ConvertTo-SecureString -AsPlainText -Force
+$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "%s\\%s",$pass
+Get-ADComputer -Credential $cred $env:COMPUTERNAME | Set-AdObject -Add @{"msDS-AllowedToDelegateTo"="%s/%s","%s/%s.%s"}
+Get-ADComputer -Credential $cred $env:COMPUTERNAME -Properties msDS-AllowedToDelegateTo | Select-Object -ExpandProperty msDs-AllowedToDelegateTo
+""" % (ad.domainName, ad.adminUser, service, remote, service, remote, ad.domain)
+        xenrt.TEC().logverbose(self.hypervCmd(script))

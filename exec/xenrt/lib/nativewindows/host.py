@@ -185,7 +185,7 @@ chain tftp://${next-server}/pxelinux.0
         self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, ad.domain, ad.domainName, ad.adminUser, ad.adminPassword))
         self.softReboot()
 
-    def reconfigureToStatic(self):
+    def reconfigureToStatic(self, ad=False):
         data = self.getWindowsIPConfigData()
         ifname = [x for x in data.keys() if data[x].has_key('IPv4 Address') and (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)][0]
         netcfg = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT"])
@@ -206,6 +206,25 @@ chain tftp://${next-server}/pxelinux.0
             if xenrt.timenow() > deadline:
                 raise xenrt.XRTError("Timed out setting IP to static")
             xenrt.sleep(5)
+
+        if ad:
+            dns = xenrt.getADConfig().dns
+        else:
+            dns = xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+        cmd = "netsh interface ipv4 add dnsservers \"%s\" %s" % (ifname, dns)
+        self.xmlrpcExec(cmd)
+
+    def disableOtherNics(self):
+        data = self.getWindowsIPConfigData()
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        for e in eths:
+            cmd = "netsh interface set interface \"%s\" disabled" % (e)
+            try:
+                self.xmlrpcExec(cmd)
+            except:
+                pass
+            
+        
 
     def isEnabled(self):
         return True

@@ -478,6 +478,8 @@ def doDeploy(cloudSpec, manSvr=None):
         marvin.waitForSystemVmsReady()
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvin.waitForBuiltInTemplatesReady()
+
+        toolstack.postDeploy()
     finally:
         # Get deployment logs from the MS
         manSvr.getLogs(deployLogDir)

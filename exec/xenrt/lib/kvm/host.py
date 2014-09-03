@@ -384,13 +384,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
 
-        # Set up /etc/cloudstack/agent/agent.properties
-        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
-        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro)) \
+            and xenrt.TEC().lookup("WORKAROUND_CS21359", False, boolean=True):
+            self.execdom0("yum install -y libcgroup-tools") # CS-21359
+            self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
 
-        if isLXC:
-            # LXC specific tweaks
-            self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties")
+        if isLXC and xenrt.TEC().lookup("WORKAROUND_CS?????", False, boolean=True):
             self.execdom0("umount /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuset /sys/fs/cgroup/memory /sys/fs/cgroup/devices /sys/fs/cgroup/freezer /sys/fs/cgroup/net_cls /sys/fs/cgroup/blkio")
             self.execdom0("rm -f /sys/fs/cgroup/cpu /sys/fs/cgroup/cpuacct")
             self.execdom0("""cat >> /etc/cgconfig.conf <<EOF
@@ -405,11 +404,12 @@ mount {
            blkio = /sys/fs/cgroup/blkio;
 }
 """)
-            try:
-                self.execdom0("service cgconfig stop")
-                self.execdom0("service cgconfig start")
-            except:
-                pass
+            self.execdom0("service cgconfig stop")
+            self.execdom0("service cgconfig start")
+
+        # Set up /etc/cloudstack/agent/agent.properties
+        self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
+        self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")

@@ -30,7 +30,7 @@ class CloudStack(object):
                         "KVM": "QCOW2",
                         "VMware": "OVA",
                         "Hyperv": "VHD",
-                        "LXC": "tar.gz"}
+                        "LXC": "TAR"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -915,6 +915,38 @@ class CloudStack(object):
             raise xenrt.XRTFailure(m)
 
         xenrt.TEC().logverbose("No problem found during the healthcheck of Cloud")
+
+    def postDeploy(self):
+        # Perform any post deployment steps
+        if xenrt.TEC().lookup("WORKAROUND_CLOUDSTACK7320", False, boolean=True) and \
+           "LXC" in [h.hypervisor for h in self.cloudApi.listHosts(type="routing")]:
+            ostypeid = [x for x in self.cloudApi.listOsTypes(description="CentOS 6.5 (64-bit)") if x.description=="CentOS 6.5 (64-bit)"][0].id
+            response = self.cloudApi.registerTemplate(zoneid=-1,
+                                                      ostypeid=ostypeid,
+                                                      name="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      displaytext="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      ispublic=True,
+                                                      isextractable=True,
+                                                      isfeatured=True,
+                                                      url="%s/cloudTemplates/centos65-x86_64.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                                                      hypervisor="LXC",
+                                                      format="TAR")
+            templateId = response.id
+            # Now wait until the Template is ready
+            deadline = xenrt.timenow() + 3600
+            xenrt.TEC().logverbose("Waiting for Template to be ready")
+            while True:
+                try:
+                    template = self.cloudApi.listTemplates(id=templateId)[0]
+                    if template.isready:
+                        break
+                    else:
+                        xenrt.TEC().logverbose("Status: %s" % template.status)
+                except:
+                    pass
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for LXC template to be ready")
+                xenrt.sleep(15)
 
 class NetworkProvider(object):
 

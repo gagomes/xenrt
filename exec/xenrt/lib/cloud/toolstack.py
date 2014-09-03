@@ -918,7 +918,7 @@ class CloudStack(object):
 
     def postDeploy(self):
         # Perform any post deployment steps
-        if xenrt.TEC().lookup("WORKAROUND_CLOUDSTACK7320", False, boolean=True) and \
+        if xenrt.TEC().lookup("WORKAROUND_CSTACK7320", False, boolean=True) and \
            "LXC" in [h.hypervisor for h in self.cloudApi.listHosts(type="routing")]:
             ostypeid = [x for x in self.cloudApi.listOsTypes(description="CentOS 6.5 (64-bit)") if x.description=="CentOS 6.5 (64-bit)"][0].id
             response = self.cloudApi.registerTemplate(zoneid=-1,

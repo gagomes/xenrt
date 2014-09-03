@@ -1230,7 +1230,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         xenrt.GEC().logverbose("Commented on JIRA issue %s" % (issue))
 
     def linkCrashdump(self,issue,cdticket):
-        self.jira.create_issue_link(type="Related", inwardIssue=issue, outwardIssue=cdticket)
+        self.jira.create_issue_link(type="Relates", inwardIssue=issue, outwardIssue=cdticket)
 
     def fileCrashDump(self,cd,path,place):
         if not self.attemptToConnect():

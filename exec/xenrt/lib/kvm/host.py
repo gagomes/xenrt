@@ -389,7 +389,6 @@ class KVMHost(xenrt.lib.libvirt.Host):
             self.execdom0("yum install -y libcgroup-tools") # CS-21359
             self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
 
-        if isLXC and xenrt.TEC().lookup("WORKAROUND_CS?????", False, boolean=True):
             self.execdom0("umount /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuset /sys/fs/cgroup/memory /sys/fs/cgroup/devices /sys/fs/cgroup/freezer /sys/fs/cgroup/net_cls /sys/fs/cgroup/blkio")
             self.execdom0("rm -f /sys/fs/cgroup/cpu /sys/fs/cgroup/cpuacct")
             self.execdom0("""cat >> /etc/cgconfig.conf <<EOF

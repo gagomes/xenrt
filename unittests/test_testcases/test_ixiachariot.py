@@ -98,18 +98,18 @@ class TestPairTest(XenRTUnitTestCase):
         pairTest = ixiachariot.PairTest('ip1', 'ip2', 'testname', '087')
 
         self.assertEquals([
-            'mkdir /cygdrive/c/tests/087',
-            'echo "1 ip1 ip2" > /cygdrive/c/tests/087/clone',
+            'mkdir /cygdrive/c/tests/job087',
+            'echo "1 ip1 ip2" > /cygdrive/c/tests/job087/clone',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/clonetst" '
             + r'"C:\\tests\\testname" '
-            + r'"C:\\tests\\087\\clone" '
-            + r'"C:\\tests\\087\\test.tst"',
+            + r'"C:\\tests\\job087\\clone" '
+            + r'"C:\\tests\\job087\\test.tst"',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/runtst" '
-            + r'"C:\\tests\\087\\test.tst" '
-            + r'"C:\\tests\\087\\result.tst"',
+            + r'"C:\\tests\\job087\\test.tst" '
+            + r'"C:\\tests\\job087\\result.tst"',
             '"/cygdrive/c/Program Files/Ixia/IxChariot/fmttst" '
-            + r'"C:\\tests\\087\\result.tst" '
-            + r'-v "C:\\tests\\087\\result.csv"',
+            + r'"C:\\tests\\job087\\result.tst" '
+            + r'-v "C:\\tests\\job087\\result.csv"',
         ],
             pairTest.getCommands())
 

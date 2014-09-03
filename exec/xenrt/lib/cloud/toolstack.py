@@ -937,7 +937,7 @@ class CloudStack(object):
             xenrt.TEC().logverbose("Waiting for Template to be ready")
             while True:
                 try:
-                    template = self.cloudApi.listTemplates(id=templateId)[0]
+                    template = self.cloudApi.listTemplates(templatefilter="all", id=templateId)[0]
                     if template.isready:
                         break
                     else:

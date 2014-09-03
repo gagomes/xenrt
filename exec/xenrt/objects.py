@@ -1701,7 +1701,7 @@ strDomain & "\" & strUser, NULL)
                 if match: entry[value] = match.group(value)
                 else: entry[value] = None
                 data[key] = entry
-                data[key.split(':')[0]] = data.pop(key)
+#                data[key.split(':')[0]] = data.pop(key)
         return data
 
     def getWindowsIPConfigData(self):

@@ -1139,9 +1139,11 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 tickettitle = unicode(tickettitle, errors='ignore')
             if not isinstance(description, unicode):
                 description = unicode(description, errors='ignore')
+
+            issueType = xenrt.TEC().lookup("JIRA_ISSUE_TYPE", "Bug")
             fields = {"project": {"key":project},
                       "summary": tickettitle[0:255],
-                      "issuetype": {"name":"Bug"},
+                      "issuetype": {"name":issueType},
                       "priority": {"name":"Major"},
                       "environment": environment,
                       "description": description,

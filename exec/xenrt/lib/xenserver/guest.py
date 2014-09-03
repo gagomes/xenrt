@@ -3024,8 +3024,8 @@ exit /B 1
                     raise lastexception
                 raise xenrt.XRTFailure("Snapshot with quiesce failed.")
         else:
-            if self.windows and state == "UP":
-                raise xenrt.XRTFailure("Windows VM should be shutdown before attempting to take a snapshot")
+            #if self.windows and state == "UP":
+            #    raise xenrt.XRTFailure("Windows VM should be shutdown before attempting to take a snapshot")
             xenrt.TEC().logverbose("Attempting snapshot of VM.")
             try:
                 uuid = cli.execute("vm-snapshot", command, strip=True)

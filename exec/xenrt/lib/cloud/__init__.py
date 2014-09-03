@@ -92,7 +92,7 @@ def findACSBuild(place):
 
     lastGoodBuild = view[jobKey].get_last_good_build()
     buildUrl = lastGoodBuild.baseurl
-    xenrt.TEC().setVariable("ACS_BUILD", buildUrl)
+    xenrt.GEC().config.setVariable("ACS_BUILD", buildUrl)
     xenrt.GEC().dbconnect.jobUpdate("ACS_BUILD", buildUrl)
     return buildUrl
 

@@ -1,11 +1,11 @@
 <xenrt>
 
-  <!-- Creedence Ring0 basic pool check -->
+  <!-- Creedence R3 basic pool check -->
 
   <default name="GUESTMEMORY" value="512"/>
   <default name="GUESTVCPUS" value="1"/>
   <default name="VIGUESTVERSION" value="rhel56"/>
-  <default name="WINGUESTVERSION" value="ws08sp2-x86"/>
+  <default name="WINGUESTVERSION" value="win7-x86"/>
   <default name="GUESTDISK" value="DEFAULT"/>
   <default name="VMOPSITER" value="4"/>
   <default name="CLITESTLIST" value="ALL"/>
@@ -48,14 +48,6 @@
         <testcase id="guestops.basic.TCShutdown" tc="TC-6676">
           <arg>guest=${GUESTNAME}</arg>
         </testcase>
-
-        <testcase id="xenserver.tc.snapshot.TC7866">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
-        <testcase id="xenserver.tc.checkpoint.TC15288">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
-
         <finally>
           <testcase id="guestops.basic.TCShutdown">
             <arg>guest=${GUESTNAME}</arg>
@@ -76,9 +68,6 @@
           <arg>inserttools</arg>
         </testcase>
         <testcase id="guestops.drivers.TCDriverInstall" tc="TC-14988">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
-        <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19833">
           <arg>guest=${GUESTNAME}</arg>
         </testcase>
         <testcase id="guestops.basic.TCStartStop" tc="TC-14989">
@@ -105,14 +94,6 @@
         <testcase id="guestops.basic.TCShutdown" tc="TC-14994">
           <arg>guest=${GUESTNAME}</arg>
         </testcase>
-
-        <testcase id="xenserver.tc.snapshot.TC7865">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
-        <testcase id="xenserver.tc.checkpoint.TC9228">
-          <arg>guest=${GUESTNAME}</arg>
-        </testcase>
-
         <finally>
           <testcase id="guestops.basic.TCShutdown">
             <arg>guest=${GUESTNAME}</arg>
@@ -125,7 +106,7 @@
   <testsequence>
 
     <!-- Install the hosts -->
-    <testcase id="testcases.xenserver.tc.hotfix.TCUnsignedHotfixChecks" tc="TC-19881" />
+
     <parallel group="HostInstallation" blocker="yes">
       <serial blocker="yes">
         <testcase id="xenserver.install.TCXenServerInstall" name="TCXenServerInstall" tc="TC-6647">
@@ -174,7 +155,6 @@
     <testcase id="xenserver.tc.ha.TC7829" group="HATests">
       <arg>mypool</arg>
     </testcase>
-    <testcase id="xenserver.install.TCVerifyLicenseList" tc="TC-17899"/>
 
   </testsequence>
 

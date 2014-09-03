@@ -1,17 +1,17 @@
 <xenrt>
 
-  <!-- Creedence Ring0 basic Windows (32 bit and 64 bit) check -->
+  <!-- Creedence ipv6 basic Windows (32 bit and 64 bit) check -->
 
-  <default name="GUESTMEMORY" value="512"/>
-  <default name="GUESTVCPUS" value="2"/>
-  <default name="GUESTDISK" value="DEFAULT"/>
-  <default name="GUESTVERSION" value="winxpsp3"/>
-  <default name="GUEST2MEMORY" value="1024"/>
-  <default name="GUEST2VCPUS" value="1"/>
-  <default name="GUEST2DISK" value="DEFAULT"/>
-  <default name="GUEST2VERSION" value="ws08r2-x64"/>
-  <default name="VMOPSITER" value="2"/>
-  <default name="SRMWORKLOADS" value="noworkloads"/>
+  <default name="GUESTMEMORY" value="512" />
+  <default name="GUESTVCPUS" value="2" />
+  <default name="GUESTDISK" value="DEFAULT" />
+  <default name="GUESTVERSION" value="winxpsp3" />
+  <default name="GUEST2MEMORY" value="1024" />
+  <default name="GUEST2VCPUS" value="1" />
+  <default name="GUEST2DISK" value="DEFAULT" />
+  <default name="GUEST2VERSION" value="ws08r2-x64" />
+  <default name="VMOPSITER" value="2" />
+  <default name="SRMWORKLOADS" value="noworkloads" />
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -19,9 +19,10 @@
 
   <testsequence>
     <serial group="HostInstallation">
-      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6643"/>
-      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6649"/>
-      <testcase id="xenserver.tc.vgpu.TCcheckNvidiaDriver" tc="TC-21483"/>
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6643">
+        <arg>ipv6=autoconf</arg>
+      </testcase>
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6649" />
 
       <parallel>
         <serial group="WindowsGuest1">
@@ -32,9 +33,6 @@
           </testcase>
           <testcase id="guestops.drivers.TCDriverInstall" tc="TC-6655">
             <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
-          </testcase>
-          <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19831">
-            <arg>guest=winguest</arg>
           </testcase>
           <testcase id="guestops.basic.TCReboot" tc="TC-6657">
             <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
@@ -70,9 +68,6 @@
           </testcase>
           <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9356">
             <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
-          </testcase>
-          <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19832">
-            <arg>guest=winguest2</arg>
           </testcase>
           <testcase id="guestops.basic.TCStartStop" tc="TC-9357">
             <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>

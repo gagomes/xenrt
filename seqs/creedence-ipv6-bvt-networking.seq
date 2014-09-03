@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Creedence Ring0 Network Functional Tests -->
+  <!-- Creedence ipv6 Network Functional Tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -8,7 +8,7 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host ipv6="autoconf"/>
   </prepare>
 
   <testsequence>

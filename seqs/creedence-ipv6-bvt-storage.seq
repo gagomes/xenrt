@@ -1,6 +1,6 @@
 <xenrt>
 
-<!-- Creedence Ring0 basic storage operations tests -->
+<!-- Creedence ipv6 basic storage operations tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -10,7 +10,7 @@
   </variables>
 
   <prepare>
-    <host/>
+    <host ipv6="autoconf"/>
   </prepare>
 
   <testsequence group="BasicSRTests">

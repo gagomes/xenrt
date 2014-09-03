@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- LVHD reliability tests -->
+  <!-- Creedence Storage LVHD reliability tests -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

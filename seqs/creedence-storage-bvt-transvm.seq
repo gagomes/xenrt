@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OVF/transferVM tests -->
+  <!-- Creedence Storage OVF/transferVM tests -->
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>

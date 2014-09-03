@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- OS functional tests: ws08sp2-x86 and ws08r2-x64 SP2 -->
+  <!-- Creedence Windows OS functional tests: ws08sp2-x86 and ws08r2-x64 SP2 -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

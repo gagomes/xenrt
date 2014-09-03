@@ -1,5 +1,7 @@
 <xenrt>
 
+  <!-- Creedence R0 basic networking check -->
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>

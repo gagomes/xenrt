@@ -146,6 +146,9 @@ class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
         sftp.copyTo("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "/root/marvin.cfg")
         
         self.runner.execguest("python /root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
+        cloud = xenrt.lib.cloud.CloudStack(self.getGuest("CS-MS"))
+        xenrt.GEC().registry.toolstackPut("cloud", cloud)
+        self.getDefaultToolstack()
 
 class TCRemoteNose(_TCRemoteNoseBase):
     SUBCASE_TICKETS = True

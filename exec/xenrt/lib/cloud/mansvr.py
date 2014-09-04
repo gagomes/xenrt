@@ -30,11 +30,12 @@ class ManagementServer(object):
         sftp.close()
 
     def getDatabaseDump(self, destDir):
-        self.place.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > /tmp/cloud.sql")
+        path = self.place.execcmd("mktemp").strip()
+        self.place.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > %s" % path)
         sftp = self.place.sftpClient()
-        sftp.copyFrom("/tmp/cloud.sql", os.path.join(destDir, "cloud.sql"))
+        sftp.copyFrom(path, os.path.join(destDir, "cloud.sql"))
         sftp.close()
-        self.place.execcmd("rm -f /tmp/cloud.sql")
+        self.place.execcmd("rm -f %s" % path)
 
     def lookup(self, key, default=None):
         """Perform a version based lookup on cloud config data"""

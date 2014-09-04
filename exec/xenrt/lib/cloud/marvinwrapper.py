@@ -256,7 +256,6 @@ class MarvinApi(object):
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
-            self.mgtSvr.place.execcmd("sed -i /nameserver/d /etc/resolv.conf; echo 'nameserver %s' >> /etc/resolv.conf" % ad.dns)
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
         installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
         for hv in templates:

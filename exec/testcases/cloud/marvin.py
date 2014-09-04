@@ -81,6 +81,7 @@ class _TCRemoteNoseBase(xenrt.TestCase):
         reason = re.sub("\d+-\d+-VM", "xx-xx-VM", reason)
         reason = re.sub("\d+-VM", "xx-VM", reason)
         reason = re.sub("\[\S+\|\S+\|\S+\]", "[xx|xx|xx]", reason)
+        reason = re.sub("rule \d+", "rule xx", reason)
         
         return reason
 

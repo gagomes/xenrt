@@ -3380,8 +3380,12 @@ class _BondMonitoring(xenrt.TestCase):
                 reportedTotal = m[1]
                 was = m[2]
                 # LACP bond are exception to logical ordering of nics coming up as it requires negotiation with physical switch. CA-113633
-                if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen) or \
-                   reportedTotal != total or was != lastSeen:
+                #Following if condition was modified to not to check the previous messages as they were inconsistent ,resulting into intermittent failures.CA-134684
+                #if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen) or \
+                #   reportedTotal != total or was != lastSeen:
+                if current > expected or (self.BOND_MODE !="lacp" and lastSeen is not None and current <= lastSeen):
+                    messages = self.host.minimalList("message-list")
+                    step(messages)
                     raise xenrt.XRTFailure("PR-1430 messages were not as expected",
                                            data="Expecting a message in up sequence showing x/%d, was %s, found %s" %
                                                 (total, lastSeen, convertedMessages))

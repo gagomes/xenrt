@@ -279,11 +279,7 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
         for e in allEths:
             if e not in usedEths:
                 eth = self.getNIC(e)
-                cmd = "netsh interface set interface \"%s\" disabled" % (eth)
-                try:
-                    self.xmlrpcExec(cmd)
-                except:
-                    pass
+                self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter" % eth)
 
         if self.cloudstack:
             self.joinDefaultDomain()

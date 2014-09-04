@@ -287,6 +287,12 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
             self.createCloudStackShares()
             self.enableMigration()
 
+    def disableOtherNics(self):
+        data = self.getWindowsIPConfigData()
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        for e in eths:
+            self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter" % e)
+            
     def checkNetworkTopology(self,
                              topology,
                              ignoremanagement=False,

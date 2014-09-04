@@ -1070,6 +1070,7 @@ class PrepareNode:
                     elif cluster['hypervisor'].lower() == "hyperv":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
+                        zone['XRT_ADDNS'] = True
                         if zone.has_key('ipranges'):
                             for i in zone['ipranges']:
                                 if not i.has_key("XRT_VlanName"):

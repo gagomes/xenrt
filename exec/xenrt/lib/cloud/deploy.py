@@ -85,7 +85,10 @@ class DeployerPlugin(object):
             return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getInternalDNS(self, key, ref):
-        return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
+        if ref.get("XRT_ADDNS"):
+            return xenrt.getADConfig().dns
+        else:
+            return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getDomain(self, key, ref):
         if xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):

@@ -1702,6 +1702,7 @@ strDomain & "\" & strUser, NULL)
                 else: entry[value] = None
             #key = key.split(':')[0]
             data[key] = entry
+        for key in data:
             data[key.split(':')[0]] = data.pop(key)
         return data
 

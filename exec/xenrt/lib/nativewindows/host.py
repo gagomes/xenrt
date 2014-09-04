@@ -64,6 +64,18 @@ def hostFactory(productVersion):
 
 class WindowsHost(xenrt.GenericHost):
 
+    def __init__(self,
+                 machine,
+                 productType="unknown",
+                 productVersion="unknown",
+                 productRevision="unknown"):
+        xenrt.GenericHost.__init__(self,
+                             machine=machine,
+                             productType=productType,
+                             productVersion=productVersion,
+                             productRevision=productRevision)
+        self.domainController=None
+
     def install(self):
         self.windows = True
         if xenrt.TEC().lookup("EXISTING_WINDOWS", False, boolean=True):
@@ -224,7 +236,12 @@ chain tftp://${next-server}/pxelinux.0
             except:
                 pass
             
-        
+    def getDomainController(self):
+        if not self.domainController:
+            ad = xenrt.getADConfig()
+            self.domainController = xenrt.lib.generic.StaticOS(ad.dcDistro, ad.dcAddress)
+            self.domainController.os.enablePowerShellUnrestricted()
+        return self.domainController
 
     def isEnabled(self):
         return True

@@ -113,15 +113,12 @@ class HyperVHost(xenrt.lib.nativewindows.WindowsHost):
         self.softReboot()
 
     def enableDialIn(self):
-        ad = xenrt.getADConfig()
-        self.xmlrpcWriteFile("c:\\domainpassword.txt", ad.adminPassword)
-        script = """
-$pass=cat c:\\domainpassword.txt | ConvertTo-SecureString -AsPlainText -Force
-$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "%s\\%s",$pass
-Get-ADComputer -Credential $cred $env:COMPUTERNAME | Set-AdObject -Replace @{msnpallowdialin=$true}
-Get-ADComputer -Credential $cred $env:COMPUTERNAME -Properties msnpallowdialin | Select-Object -ExpandProperty msnpallowdialin
-""" % (ad.domainName, ad.adminUser)
-        xenrt.TEC().logverbose(self.hypervCmd(script))
+        myhost = self.xmlrpcGetEnvVar("COMPUTERNAME")
+        script = """$ErrorActionPreference = "Stop"
+Get-ADComputer %s | Set-AdObject -Replace @{msnpallowdialin=$true}
+Get-ADComputer %s -Properties msnpallowdialin | Select-Object -ExpandProperty msnpallowdialin
+""" % (myhost, myhost)
+        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))
 
     def createVirtualSwitch(self, eth):
         ps = """Import-Module Hyper-V
@@ -354,12 +351,10 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
 
     def enableDelegation(self, remoteHost, service):
         remote = remoteHost.xmlrpcGetEnvVar("COMPUTERNAME")
+        myhost = self.xmlrpcGetEnvVar("COMPUTERNAME")
         ad = xenrt.getADConfig()
-        self.xmlrpcWriteFile("c:\\domainpassword.txt", ad.adminPassword)
-        script = """
-$pass=cat c:\\domainpassword.txt | ConvertTo-SecureString -AsPlainText -Force
-$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList "%s\\%s",$pass
-Get-ADComputer -Credential $cred $env:COMPUTERNAME | Set-AdObject -Add @{"msDS-AllowedToDelegateTo"="%s/%s","%s/%s.%s"}
-Get-ADComputer -Credential $cred $env:COMPUTERNAME -Properties msDS-AllowedToDelegateTo | Select-Object -ExpandProperty msDs-AllowedToDelegateTo
-""" % (ad.domainName, ad.adminUser, service, remote, service, remote, ad.domain)
-        xenrt.TEC().logverbose(self.hypervCmd(script))
+        script = """$ErrorActionPreference = "Stop"
+Get-ADComputer %s | Set-AdObject -Add @{"msDS-AllowedToDelegateTo"="%s/%s","%s/%s.%s"}
+Get-ADComputer %s -Properties msDS-AllowedToDelegateTo | Select-Object -ExpandProperty msDs-AllowedToDelegateTo
+""" % (myhost, service, remote, service, remote, ad.domain, myhost)
+        xenrt.TEC().logverbose(self.getDomainController().os.execCmd(script, powershell=True, returndata=True))

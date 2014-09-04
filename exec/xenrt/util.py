@@ -1357,10 +1357,12 @@ def getADConfig():
     domainName = ad['DOMAIN_NAME']
     adminUser = ad['ADMIN_USER']
     adminPassword = ad['ADMIN_PASSWORD']
+    dcAddress = ad['DC_ADDRESS']
+    dcDistro = ad['DC_DISTRO']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns'])
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns)
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")

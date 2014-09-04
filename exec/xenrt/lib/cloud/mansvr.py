@@ -30,7 +30,7 @@ class ManagementServer(object):
         sftp.close()
 
     def getDatabaseDump(self, destDir):
-        self.place.execcmd("mysqldump -u cloud --password=cloud cloud > /tmp/cloud.sql")
+        self.place.execcmd("mysqldump -u cloud --password=cloud --skip-opt cloud > /tmp/cloud.sql")
         sftp = self.place.sftpClient()
         sftp.copyFrom("/tmp/cloud.sql", os.path.join(destDir, "cloud.sql"))
         sftp.close()

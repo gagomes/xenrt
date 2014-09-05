@@ -263,7 +263,7 @@ class TC1(BaseTC):
                                             'password': 'xenroot01T',
                                             'user': 'Administrator'},
                                 'provider': 'SMB',
-                                'url': 'cifs://h0.domain/storage/secondary'}]}]} 
+                                'url': 'cifs://10.0.0.3/storage/secondary'}]}]} 
 
 class TC2(BaseTC):
     """Test that KVM zones use NFS storage"""

@@ -5,7 +5,6 @@ from datetime import datetime
 import shutil
 import tarfile
 import inspect
-import socket
 
 import xenrt.lib.cloud
 try:
@@ -257,8 +256,6 @@ class MarvinApi(object):
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
-            (server, path) = storagePath.split(":", 1)
-            storagePath = "%s:%s" % (socket.gethostbyname(server), path)
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
         installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
         for hv in templates:

@@ -155,7 +155,7 @@ class DeployerPlugin(object):
                     storagePath = secondaryStorage.getMount()
                 else:
                     h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % ref['XRT_SMBHostId'])
-                    ip = h.getFQDN()
+                    ip = h.getIP()
                     url = "cifs://%s/storage/secondary" % ip
                     storagePath = "%s:/storage/secondary" % ip
                     

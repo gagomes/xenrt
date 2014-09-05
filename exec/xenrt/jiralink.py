@@ -190,7 +190,10 @@ class JiraLink:
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
-
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         seenagain = ("Seen again on %s\n" % (environment))
 
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE",None)
@@ -349,7 +352,10 @@ class JiraLink:
             tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
             if tsr:
                 environment += "\nTestRun Suite Run ID: %s" % (tsr)
-
+            jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+            if jenkins:
+                environment += "\nJenkins URL: %s" % jenkins
+            environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
             seenagain = ("Seen again on %s\nXenRT logs available at "
                          "%s?action=testlogs&id=%s&phase=%s&test=%s" %
                          (environment,self.XENRT_WEB,jobid,phase,test))
@@ -735,6 +741,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE", None)
 
         sstr = "JobTest/%s: %s" % (tcid, reason)
@@ -1050,7 +1060,12 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             issueTrack = self.getCustomField(i, self.TRACK_FIELD)
             if self.TRACK_TAG:
                 if issueTrack.startswith("%s_" % self.TRACK_TAG):
-                    issueTrack = issueTrack[len("%s_" % self.TRACK_TAG):]
+                    trackLen = len("%s_" % self.TRACK_TAG)
+                    truncate = 255-trackLen
+                    issueTrack = issueTrack[trackLen:]
+                    fullTrack = fullTrack[:truncate]
+                    halfTrack = halfTrack[:truncate]
+                    miniTrack = miniTrack[:truncate]
 
             match = -1 # No match
             if issueTrack == fullTrack:
@@ -1278,6 +1293,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
 
         j = self.jira
         componentName = xenrt.TEC().lookup("JIRA_TICKET_COMPONENT", None)

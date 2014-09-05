@@ -18,6 +18,10 @@ class RemoteNoseInstaller(object):
         else:
             sftp = self.runner.sftpClient()
             sftp.copyTo(xenrt.getMarvinFile(), "/root/marvin.tar.gz")
+
+        self.runner.execguest("wget '%s/marvindeps.tgz' -O /root/marvindeps.tgz" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
+        self.runner.execguest("tar -zxf /root/marvindeps.tgz -C /root/")
+        self.runner.execguest("pip install --no-index --find-links=/root/marvindeps /root/marvindeps/*")
         self.runner.execguest("pip install /root/marvin.tar.gz")
 
         testurl = xenrt.TEC().lookup("MARVIN_TEST_URL", None)

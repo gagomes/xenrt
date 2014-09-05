@@ -22,8 +22,6 @@
       <testcase id="xenserver.tc.checkpoint.TC12554"/>
       <testcase id="xenserver.tc.checkpoint.TC12555"/>
       <testcase id="xenserver.tc.checkpoint.TC21646"/>
-      <testcase id="xenserver.tc.checkpoint.TC21647"/>
-      <testcase id="xenserver.tc.checkpoint.TC21648"/>
     </serial>
   </testsequence>
 

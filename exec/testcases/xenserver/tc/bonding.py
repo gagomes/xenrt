@@ -3758,3 +3758,87 @@ class TCBondModeChange(_BondTestCase):
         
     def postRun(self):
         self.host.removeBond(self.bond_uuid,management = True)
+
+class TCBondFailoverRarp(_BondSetUp):
+    """Test to verify LLC-SNAP/RARP packet is sent on bond failover. Regression test for SCTX-1774"""
+    # Jira TC-21566
+
+    BOND_MODE = "active-backup"
+    FILENAME = "tcpdump.txt"
+
+    def prepare(self, arglist=None):        
+        self.host = self.getDefaultHost()
+        step("Create Bond of 2 NICs")
+        self.bond = self.createBonds(1, nicsPerBond=self.NUMBER_NICS, networkName=self.NETWORK_NAME)[0]
+        
+        step("Create a VM on the bond")
+        self.g = self.host.createGenericLinuxGuest(bridge=self.bond.bridge)
+        self.uninstallOnCleanup(self.g)
+    
+    def run(self, arglist=None):
+        self.bondMac = self.host.parseListForOtherParam("pif-list", "device", self.bond.device, "MAC")
+        vif = self.g.getVIFs().keys()[0]
+        self.guestMac = vif[0]
+        
+        step("Generate traffic on guest")
+        retCode = xenrt.command(("ping -c 3 %s" % self.g.getIP()), retval="code")
+        if retCode != 0:
+            raise xenrt.XRTFailure("Failed to ping the guest on %s" % self.g.getIP())
+        self.g.execguest("ping -c 3 %s" % (self.host.getIP()))
+        
+        step("Fetch active and passive slaves of bond")
+        info, x = self.host.getBondInfo(self.bond.device)
+        slaves = info["slaves"]
+        self.activeSlave = info["active_slave"]
+        passiveSlave = [s for s in slaves if s != self.activeSlave][0]
+        
+        step("Get ovs version")
+        ovsVersion= self.host.getOvsVersion()
+        ovsVersion = float(ovsVersion.rsplit('.', 1)[0])
+        log("OVS version is %s" % (ovsVersion))
+        
+        step("Perform bond failover and fetch TCP packets on passive slave")
+        if ovsVersion >= 1.8:
+            command = "tcpdump -i %s rarp &> %s & echo $!" % (passiveSlave, self.FILENAME)
+            self.tcpDumpOnBondFailover(command)
+            step("Since ovs version is %s, looking for RARP packets" % ovsVersion)
+            self.verifyRARP()
+        else:
+            command = "tcpdump -i %s -e &> %s & echo $!" % (passiveSlave, self.FILENAME)
+            self.tcpDumpOnBondFailover(command)
+            step("Since ovs version is %s, looking for LLC broadcast packet" % ovsVersion)
+            self.verifyLLC()
+            
+    def tcpDumpOnBondFailover(self, command):
+        pid = self.host.execdom0(command).strip()
+        
+        #disable active bond slave and capture tcpdump over next 30 seconds
+        self.host.execdom0("ifconfig %s down" % (self.activeSlave))
+        xenrt.sleep(30)
+        self.host.execdom0("kill %s" % (pid))
+        
+    def verifyLLC(self):
+        """LLC packet is broadcasted.
+        Format of packet:
+        08:37:50.421514 b2:24:46:86:03:79 (oui Unknown) > Broadcast, 802.3, length 55: LLC, dsap SNAP (0xaa) Individual, ssap SNAP (0xaa)..."""
+        
+        res = self.host.execdom0("cat %s | grep '%s.*Broadcast.*LLC.*SNAP'" % (self.FILENAME, self.guestMac))
+        if res:
+            log("LLC packet found")
+        else:
+            raise xenrt.XRTFailure("Could not find LLC packet")
+            
+    def verifyRARP(self):
+        """CA-140817.RARP packet is sent for both dom0's MAC  and guest MAC.
+        Format of packet:
+        10:30:50.341194 ARP, Reverse Request who-is c8:1f:66:d9:38:71 tell c8:1f:66:d9:38:71, length 28
+        10:30:50.341242 ARP, Reverse Request who-is 62:6f:cf:5f:e9:0d tell 62:6f:cf:5f:e9:0d, length 28"""
+        
+        res = self.host.execdom0("cat %s | grep 'ARP, Reverse Request'" % (self.FILENAME))
+        if len(res.splitlines()) >= 2 and (self.guestMac in res) and (self.bondMac in res):
+            log("RARP packets for both guest and dom0 MAC found")
+        else:
+            raise xenrt.XRTFailure("Could not find expected RARP packets. tcpdump output:%s" % (res))
+            
+    def postRun(self):
+        self.host.removeBond(self.bond.uuid)

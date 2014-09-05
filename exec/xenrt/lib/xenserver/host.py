@@ -5353,7 +5353,10 @@ fi
                                                "storage" % (netname))
                 # TODO: check the IP addresses in dom0 are on the right
                 # devices
-
+    def getOvsVersion(self):
+        """Return openvSwitch version on the host""" 
+        return self.execdom0("ovs-vsctl --version | grep 'ovs-vsctl' | sed -n -e 's/^.*(Open vSwitch) //p'").strip()
+    
     #########################################################################
     # Storage operations
     def getSRs(self, type=None, local=False):

@@ -928,7 +928,7 @@ class CloudStack(object):
                                                       ispublic=True,
                                                       isextractable=True,
                                                       isfeatured=True,
-                                                      url="%s/cloudTemplates/centos65-x86_64.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                                                      url="%s/cloudTemplates/centos65_x86_64_2.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                                                       hypervisor="LXC",
                                                       format="TAR",
                                                       requireshvm=False)

@@ -402,6 +402,7 @@ mount {
            net_cls = /sys/fs/cgroup/net_cls;
            blkio = /sys/fs/cgroup/blkio;
 }
+EOF
 """)
             self.execdom0("service cgconfig stop")
             self.execdom0("service cgconfig start")

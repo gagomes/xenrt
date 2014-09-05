@@ -930,7 +930,8 @@ class CloudStack(object):
                                                       isfeatured=True,
                                                       url="%s/cloudTemplates/centos65-x86_64.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
                                                       hypervisor="LXC",
-                                                      format="TAR")
+                                                      format="TAR",
+                                                      requireshvm=False)
             templateId = response[0].id
             # Now wait until the Template is ready
             deadline = xenrt.timenow() + 3600

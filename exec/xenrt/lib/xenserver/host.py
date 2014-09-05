@@ -11037,6 +11037,9 @@ done
                 self.execdom0("ethtool -K %s gro on" % eth)
                 self.genParamSet("pif", pif, "other-config:ethtool-gro", "on")
 
+        if xenrt.TEC().lookup("INSTALL_VGPU_DRIVER", False, boolean=True):
+            self.installNVIDIAHostDrivers()
+
     def startVifDebug(self, domid):
         try:
             self.execdom0("killall -9 debugfs")

@@ -279,18 +279,28 @@ New-VMSwitch -Name externalSwitch -NetAdapterName $ethernet.Name -AllowManagemen
         for e in allEths:
             if e not in usedEths:
                 eth = self.getNIC(e)
-                cmd = "netsh interface set interface \"%s\" disabled" % (eth)
                 try:
-                    self.xmlrpcExec(cmd)
+                    self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter -Confirm:$false" % eth)
                 except:
                     pass
 
+        self.getWindowsIPConfigData()
         if self.cloudstack:
             self.joinDefaultDomain()
             self.setupDomainUserPermissions()
             self.createCloudStackShares()
             self.enableMigration()
 
+    def disableOtherNics(self):
+        data = self.getWindowsIPConfigData()
+        eths = [x for x in data.keys() if data[x].has_key('IPv4 Address') and not (data[x]['IPv4 Address'] == self.machine.ipaddr or data[x]['IPv4 Address'] == "%s(Preferred)" % self.machine.ipaddr)]
+        for e in eths:
+            try:
+                self.hypervCmd("Get-NetAdapter -Name \"%s\" | Disable-NetAdapter -Confirm:$false" % e)
+            except:
+                pass
+        self.getWindowsIPConfigData()
+            
     def checkNetworkTopology(self,
                              topology,
                              ignoremanagement=False,

@@ -1206,19 +1206,22 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     issueToComment.update(fields={"labels": issueToComment.fields.labels})
                     xenrt.GEC().logverbose("Added label to JIRA issue - %s" % (jiraTicketLabel))
 
-            comps = [x.id for x in issueToComment.fields.components]
-            if component not in comps:
-                needToAddComponent = True
-                for c in comps:
-                    if c not in triageComponents:
-                        needToAddComponent = False
-                if needToAddComponent:
-                    comps.append(component)
-                    issueToComment.update(components=[{"id":x} for x in comps])
-                    # If we're adding the Triage component, we might need to set the assignee to the TA owner
-                    if component == self.TRIAGE and issueToComment.fields.assignee is None:
-                        taAssignee = self._lookupTAAssignee(jiratc)
-                        j.assign_issue(issueToComment, taAssignee)
+            try:
+                comps = [x.id for x in issueToComment.fields.components]
+                if component not in comps:
+                    needToAddComponent = True
+                    for c in comps:
+                        if c not in triageComponents:
+                            needToAddComponent = False
+                    if needToAddComponent:
+                        comps.append(component)
+                        issueToComment.update(components=[{"id":x} for x in comps])
+                        # If we're adding the Triage component, we might need to set the assignee to the TA owner
+                        if component == self.TRIAGE and issueToComment.fields.assignee is None:
+                            taAssignee = self._lookupTAAssignee(jiratc)
+                            j.assign_issue(issueToComment, taAssignee)
+            except Exception, e:
+                xenrt.GEC().logverbose("Couldn't add component/assign ticket: %s" % str(e))
 
             return (issueToComment,False)
         elif bestknownmatch > 0:

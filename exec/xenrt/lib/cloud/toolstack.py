@@ -163,7 +163,13 @@ class CloudStack(object):
     
             hypervisor = None
             if hypervisorType:
-                hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
+                if hypervisorType in self.__hypervisorTypeMapping.keys():
+                    # This is a slight abuse of the interface, however it avoids
+                    # unnecessary complications in sequence files with multiple names
+                    # for the same hypervisor!
+                    hypervisor = hypervisorType
+                else:
+                    hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             startOnZoneId = None
             if startOn:

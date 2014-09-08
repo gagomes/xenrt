@@ -1635,6 +1635,8 @@ class TC12419(xenrt.TestCase):
 
     def isVMIsolated(self, delay):
         self.guest.waitForDaemon(30)
+        
+        step("Capturing broadcast ARP packets on bridge")
         handle = self.startAsync(self.master,
                                 "tcpdump -i %s -c 1 arp and broadcast and ether host %s; " \
                                 "sleep %s; " \
@@ -1647,16 +1649,18 @@ class TC12419(xenrt.TestCase):
             self.slave.execdom0("ovs-appctl vlog/set bridge:syslog:DBG")
         except Exception, e:
             pass
+        
+        step("Live migrating the VM")
         self.guest.migrateVM(self.slave, live="true", fast=True)
         time.sleep(delay+5)
+        
         try:
             try:
                 if 'Network subsystem type' in self.slave.special and not self.slave.special['Network subsystem type'] == "linux":
                     data = self.slave.showPortMappings(self.bridge)
                     match = re.search("\s+(?P<port>\d+)\s+\d+\s+%s" % (self.mac), data)
                     if match:
-                        xenrt.TEC().logverbose("MAC %s is on port %s on bridge %s." % 
-                                               (self.mac, match.group("port"), self.bridge))
+                        log("MAC %s is on port %s on bridge %s." % (self.mac, match.group("port"), self.bridge))
                         data = self.slave.execdom0("ovs-dpctl show %s" % (self.bridge))
                         vifmatch = re.search("port\s+(?P<port>\d+):\s+vif%s.0" % (self.guest.getDomid()), data)
                         if vifmatch:
@@ -1664,15 +1668,14 @@ class TC12419(xenrt.TestCase):
                                 raise xenrt.XRTFailure("%s was observed on port %s but it should be on port %s." % 
                                                        (self.mac, match.group("port"), vifmatch.group("port")))
                         else:
-                            xenrt.TEC().logverbose("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
+                            log("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
                     else:
-                        xenrt.TEC().logverbose("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
+                        log("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
                 else:
                     data = self.slave.execdom0("brctl showmacs %s" % (self.bridge))
                     match = re.search("\s+(?P<port>\d+)\s+%s" % (self.mac), data)
                     if match:
-                        xenrt.TEC().logverbose("MAC %s is on port %s on bridge %s." % 
-                                               (self.mac, match.group("port"), self.bridge))
+                        log("MAC %s is on port %s on bridge %s." % (self.mac, match.group("port"), self.bridge))
                         data = self.slave.execdom0("brctl showstp %s" % (self.bridge)) 
                         vifmatch = re.search("vif%s.0\s+\((?P<port>\d+)\)" % (self.guest.getDomid()), data)
                         if vifmatch:
@@ -1680,12 +1683,12 @@ class TC12419(xenrt.TestCase):
                                 raise xenrt.XRTFailure("%s was observed on port %s but it should be on port %s." % 
                                                        (self.mac, match.group("port"), vifmatch.group("port")))
                         else:
-                            xenrt.TEC().logverbose("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
+                            log("Couldn't find vif%s.0 on bridge %s." % (self.guest.getDomid(), self.bridge))
                     else:
-                        xenrt.TEC().logverbose("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
+                        log("Couldn't find MAC %s on bridge %s." % (self.mac, self.bridge))
                 self.guest.waitForDaemon(120, level=xenrt.RC_ERROR)
             except xenrt.XRTFailure, e:
-                xenrt.TEC().logverbose("Exception: %s" % (str(e)))
+                log("Exception: %s" % (str(e)))
                 return True 
             else:
                 return False
@@ -1695,21 +1698,22 @@ class TC12419(xenrt.TestCase):
             except:
                 pass
             try:
-                xenrt.TEC().logverbose(self.completeAsync(handle))
+                log(self.completeAsync(handle))
             except:
                 pass
+            step("Live migrating the VM back to master")
             self.guest.migrateVM(self.master, live="true", fast=True)
 
     def run(self, arglist=[]):
         for i in map(lambda x:float(x)/2.0, range(4*self.LIMIT)):
-            xenrt.TEC().logverbose("Testing with an ARP %ss after the first." % (i))
+            step("Testing with an ARP %ss after the first." % (i))
             if self.isVMIsolated(i):
                 if i >= self.LIMIT:
-                    xenrt.TEC().logverbose("VM became isolated by an ARP sent %ss after the first." % (i))
+                    log("VM became isolated by an ARP sent %ss after the first." % (i))
                 else:
                     raise xenrt.XRTFailure("VM became isolated by an ARP sent %ss after the first." % (i))
             else:
-                xenrt.TEC().logverbose("VM is not isolated by and ARP sent %ss after the first." % (i))
+                log("VM is not isolated by and ARP sent %ss after the first." % (i))
             # Allow a minute for everything to settle down.
             time.sleep(60)
 

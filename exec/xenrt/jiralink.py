@@ -74,13 +74,13 @@ class JiraLink:
         i = self.jira.issue(issueKey)
         return i.fields.resolution is None
 
-    def getSnippet(self, logfilename, pattern, patterndesc, maxchars=4096):
+    def getSnippet(self, logfilename, pattern, patterndesc, startPoint=0, endPoint=4096):
         """Returns a snippet string containing log matched in logfile"""
         noformattext = str(xenrt.command("pcregrep -M '%s' %s" % (pattern, logfilename) , level=xenrt.RC_OK))
         noformattext = noformattext.strip()
         if noformattext!="1":
-            if(len(noformattext)) > maxchars:
-                noformattext = noformattext[0:maxchars] + "\n\n..."
+            if(len(noformattext)) > (endPoint - startPoint) and abs(endPoint) <= (len(noformattext)) and abs(startPoint) <=(len(noformattext)):
+                noformattext = noformattext[startPoint:endPoint] + "\n\n..."
             snippet = ("Found '%s' in '%s':- \n{noformat}\n%s\n{noformat}" % (patterndesc,logfilename.replace(xenrt.TEC().getLogdir()+"/", ""),noformattext.strip()))
             return snippet
         return ""
@@ -138,17 +138,33 @@ class JiraLink:
             {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
                 'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
             {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
-                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
+                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'},
+
+            {'file':"*/management-server.log*", 'desc':"Management server logs",
+                'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
+
+            {'file':"*/apilog.log*", 'desc':"API logs",
+                'pattern':r'(?:.*\n){0,5}(?:.*exception\:.+)(?:.*\n){0,5}','type':"CLOUD"},
+
+            {'file':"*/localhost*", 'desc':"Local Host log",
+                'pattern':r'(?:.*\n){0,1}(?:.*SEVERE\:.+)(?:.*\n){0,10}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
+
+            {'file':"*/agent.log*", 'desc':"Agent logs",
+                'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1}
         ]
         desc = "\n"
         for fp in failurepatterns:
             try:
                 clogfiles = glob.glob("%s/%s" % (xenrt.TEC().getLogdir(),fp['file']))
             except Exception, e:
-                xenrt.TEC().warning("Failed to get logfile list matching '%s': %s" %(fp['file'],str(e)))
+                if not fp.has_key('type'):
+                    xenrt.TEC().warning("Failed to get logfile list matching '%s': %s" %(fp['file'],str(e)))
             for file in clogfiles:
                 try:
-                    desc += self.getSnippet(file, fp['pattern'], fp['desc'])
+                    if fp.has_key('startPoint'):
+                        desc += self.getSnippet(file, fp['pattern'], fp['desc'],startPoint=fp['startPoint'], endPoint=fp['endPoint'])
+                    else:
+                        desc += self.getSnippet(file, fp['pattern'], fp['desc'])
                     desc += "\n"
                 except Exception, e:
                     xenrt.TEC().warning("Failed to get snippet from file %s: %s" %(file,str(e)))

@@ -379,7 +379,7 @@ class TC19175(xenrt.TestCase):
             xenrt.TEC().logverbose("write some data to logs and check it is going to appropriate files")
             t = _GenerateLogs(self.host)
             t.start()
-            sleep(1)
+            sleep(5)
             pid = self.host.execdom0("ps aux | grep 'python /home/logspammer.py'| grep -v grep").split()[1]
             self.host.execdom0("kill -9 %s" %(pid))
             

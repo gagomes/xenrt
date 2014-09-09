@@ -13,6 +13,7 @@ import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
 import calendar, types, fcntl, resource
 import xenrt, xenrt.ssh
 import IPy
+import xml.sax.saxutils
 from collections import namedtuple
 
 # Symbols we want to export from the package.
@@ -78,7 +79,9 @@ __all__ = ["timenow",
            "xrtCheck",
            "keepSetup",
            "getADConfig",
-           "getMarvinFile"
+           "getMarvinFile",
+           "dictToXML",
+           "getNetworkParam"
            ]
 
 def sleep(secs, log=True):
@@ -1258,6 +1261,7 @@ def jobOnMachine(machine, jobid):
 
 def canCleanJobResources(jobid):
     jobid = str(jobid)
+    xenrt.TEC().logverbose("Checking job %s" % jobid)
     xrs = xenrt.ctrl.XenRTStatus(None)
     jobdict = xrs.run([jobid])
     # See if the job is completed
@@ -1349,13 +1353,16 @@ def keepSetup():
 def getADConfig():
     ad = xenrt.TEC().lookup("AD_CONFIG")
     domain=ad['DOMAIN']
+    dns=ad['DNS']
     domainName = ad['DOMAIN_NAME']
     adminUser = ad['ADMIN_USER']
     adminPassword = ad['ADMIN_PASSWORD']
+    dcAddress = ad['DC_ADDRESS']
+    dcDistro = ad['DC_DISTRO']
 
-    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword'])
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
 
-    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword)
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
@@ -1365,3 +1372,28 @@ def getMarvinFile():
         return xenrt.TEC().getFile(marvinversion)
     else:
         return "/usr/share/xenrt/marvin-%s.tar.gz" % marvinversion
+
+def dictToXML(d, indent):
+    out = ""
+    for k in sorted(d.keys()):
+        if isinstance(d[k], dict):
+            out += "%s<%s>\n%s%s</%s>\n" % (indent, k, dictToXML(d[k], indent + "  "),indent, k)
+        else:
+            out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(d[k]), k)
+    return out
+
+def getNetworkParam(network, param):
+    path = ["NETWORK_CONFIG"]
+    if network == "NPRI":
+        path.append("DEFAULT")
+    elif network == "NSEC":
+        path.append("SECONDARY")
+    else:
+        path.append("VLANS")
+        path.append(network)
+    if param == "VLAN" and network not in ["NPRI", "NSEC"]:
+        param = "ID"
+    elif param == "ID" and network in ["NPRI", "NSEC"]:
+        param = "VLAN"
+    path.append(param)
+    return xenrt.TEC().lookup(path)

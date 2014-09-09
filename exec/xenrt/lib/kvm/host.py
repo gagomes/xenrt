@@ -373,7 +373,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Install cloudstack-agent
             self.installJSVC()
             self.execdom0("yum install -y ipset jna")
-            artifactDir = xenrt.lib.cloud.getLatestArtifactsFromJenkins(self, ["cloudstack-common-", "cloudstack-agent-"])
+            artifactDir = xenrt.lib.cloud.getACSArtifacts(self, ["cloudstack-common-", "cloudstack-agent-"])
             self.execdom0("rpm -ivh %s/cloudstack-*.rpm" % artifactDir)
 
             # Modify /etc/libvirt/qemu.conf
@@ -383,6 +383,29 @@ class KVMHost(xenrt.lib.libvirt.Host):
             # Ensure SELinux is in permissive mode
             self.execdom0("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.execdom0("/usr/sbin/setenforce permissive")
+
+        if (re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro)) \
+            and xenrt.TEC().lookup("WORKAROUND_CS21359", False, boolean=True):
+            self.execdom0("yum install -y libcgroup-tools") # CS-21359
+            self.execdom0("echo kvmclock.disable=true >> /etc/cloudstack/agent/agent.properties") # CLOUDSTACK-7472
+
+            self.execdom0("umount /sys/fs/cgroup/cpu,cpuacct /sys/fs/cgroup/cpuset /sys/fs/cgroup/memory /sys/fs/cgroup/devices /sys/fs/cgroup/freezer /sys/fs/cgroup/net_cls /sys/fs/cgroup/blkio")
+            self.execdom0("rm -f /sys/fs/cgroup/cpu /sys/fs/cgroup/cpuacct")
+            self.execdom0("""cat >> /etc/cgconfig.conf <<EOF
+mount {
+           cpuset = /sys/fs/cgroup/cpuset;
+           cpu = /sys/fs/cgroup/cpu;
+           cpuacct = /sys/fs/cgroup/cpuacct;
+           memory = /sys/fs/cgroup/memory;
+           devices = /sys/fs/cgroup/devices;
+           freezer = /sys/fs/cgroup/freezer;
+           net_cls = /sys/fs/cgroup/net_cls;
+           blkio = /sys/fs/cgroup/blkio;
+}
+EOF
+""")
+            self.execdom0("service cgconfig stop")
+            self.execdom0("service cgconfig start")
 
         # Set up /etc/cloudstack/agent/agent.properties
         self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
@@ -400,14 +423,14 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 javaDir = self.execdom0('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                 self.execdom0('update-alternatives --set java %s' % (javaDir.split()[0]))
         if re.search(r"rhel7", self.distro) or re.search(r"centos7", self.distro) or re.search(r"oel7", self.distro):
-            # RHEL7 based systems don't have jakarta-commons-daemon
-            return
-        # TODO: Don't hardcode the jsvc URL
-        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+            jsvcFile = "apache-commons-daemon-jsvc-1.0.13-6.el7.x86_64.rpm"
+        else:
+            jsvcFile = "jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm"
+        jsvc = xenrt.TEC().getFile("/usr/groups/xenrt/cloud/%s" % jsvcFile)
         webdir = xenrt.WebDirectory()
         webdir.copyIn(jsvc)
-        jsvcUrl = webdir.getURL("jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
-        self.execdom0("wget %s -O /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm" % jsvcUrl)
+        jsvcUrl = webdir.getURL(jsvcFile)
+        self.execdom0("wget %s -O /tmp/%s" % (jsvcUrl, jsvcFile))
         webdir.remove()
-        self.execdom0("rpm -ivh /tmp/jakarta-commons-daemon-jsvc-1.0.1-8.9.el6.x86_64.rpm")
+        self.execdom0("rpm -ivh /tmp/%s" % jsvcFile)
 

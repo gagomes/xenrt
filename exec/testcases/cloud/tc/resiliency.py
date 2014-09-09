@@ -1,6 +1,7 @@
 import xenrt
 from datetime import datetime
 from pprint import pformat
+import re
 
 class _TCCloudResiliencyBase(xenrt.TestCase):
     def prepare(self, arglist):
@@ -323,7 +324,8 @@ class TCDBRestart(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld restart")
+        db = self.cloud.mgtsvr.db
+        msvm.execcmd("service %s restart" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -333,9 +335,10 @@ class TCDBOutage(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld stop")
+        db = self.cloud.mgtsvr.db
+        msvm.execcmd("service %s stop" % db)
         xenrt.sleep(120)
-        msvm.execcmd("service mysqld start")
+        msvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()
@@ -344,14 +347,192 @@ class TCManServerStartAfterDB(_TCManServerResiliencyBase):
     
     def outage(self):
         msvm = self.cloud.mgtsvr.place
-        msvm.execcmd("service mysqld stop")
+        db = self.cloud.mgtsvr.db
+        msvm.execcmd("service %s stop" % db)
         msvm.execcmd("service cloudstack-management stop")
         
         msvm.execcmd("service cloudstack-management start")
         
         xenrt.sleep(120)
 
-        msvm.execcmd("service mysqld start")
+        msvm.execcmd("service %s start" % db)
 
     def recover(self):
         self.waitForCCP()
+
+class _TCHostResiliencyBase(_TCCloudResiliencyBase):
+
+    csHost = None
+
+    def _updateParameters(self):
+
+        self._hypervisors = self.cloud.getAllHypervisors()
+        self._systemVMs = self._cloudApi.listSystemVms()
+
+    def _populateParam(self):
+
+        self.cloud = self.getDefaultToolstack()
+        self._cloudApi = self.cloud.cloudApi
+        self._hypervisors = self.cloud.getAllHypervisors()
+        self._systemVMs = self._cloudApi.listSystemVms()
+        self._clusters = self._cloudApi.listClusters()
+        self._pods = self._cloudApi.listPods()
+        xenrt.xrtAssert(len(self._pods) == 1, 'There must be 1 and only 1 pod configured for this test-case')
+
+        self._hostsInClusters = []
+        for cluster in self._clusters:
+            self._hostsInClusters.append(self.cloud.getAllHostInClusterByClusterId(cluster.id))
+
+    def _rearrangeCloud(self,hostInDiffCluster,hostForSystemVm,hostForInstance):
+
+        #moving all the system VMs to the given host
+        systemVMsNotOnThisHost = []
+        systemVMsToBeMoved = []
+        systemVMsNotOnThisHost = filter(lambda x:x.hostname != hostForSystemVm.name, self._systemVMs)
+        map(lambda x:xenrt.TEC().logverbose("[MigratesystemVM] VM name %s, host name %s" % (x.name,x.hostname)),self._systemVMs)
+        if systemVMsNotOnThisHost:
+            systemVMsToBeMoved  = filter(lambda x:x.hostname != hostInDiffCluster.name, systemVMsNotOnThisHost)
+            if systemVMsToBeMoved:
+                xenrt.TEC().logverbose("[MigratesystemVM] VMs to be migrated %s, to be migrated on %s " % (systemVMsToBeMoved,hostForSystemVm))
+                xenrt.TEC().logverbose('[MigratesystemVM] Migrating System VMs %s to host: %s' % (map(lambda x:x.name, systemVMsToBeMoved), hostForSystemVm.name))
+                map(lambda x:self._cloudApi.migrateSystemVm(hostid=hostForSystemVm.id, virtualmachineid=x.id), systemVMsToBeMoved)
+                self.waitForSystemVmAgentState(self._pods[0].id, state='Up', timeout=60)
+
+        #creating vm instance on the other host
+        self._instance = self.cloud.createInstance(distro="debian70_x86-64",startOn = hostForInstance.name)
+
+    def _destroyInstance(self):
+
+        self._instance.destroy() 
+
+    def outage(self,host,csHost):
+
+        raise xenrt.XRTError("Unimplemented")
+
+    def recover(self,host):
+
+        raise xenrt.XRTError("Unimplemented")
+
+    def postOutageCheck(self):
+
+        xenrt.sleep(900)
+        if self.csHost.state != 'Down':
+            raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % self.csHost.name)
+
+        self.cloud.healthCheck(ignoreHosts=[self.csHost])
+
+    def postRecoverCheck(self):
+
+        xenrt.sleep(900)
+        self.cloud.healthCheck()    
+
+    def _getMultipleHostCluster(self):
+
+        multipleHost = []
+        for host in self._hostsInClusters:
+            if len(host) > 1:
+                multipleHost = host
+                break
+        return multipleHost
+
+    def _getSingleHostCluster(self):
+
+        singleHost = []
+        for host in self._hostsInClusters:
+            if len(host) == 1:
+                singleHost = host
+                break
+        return singleHost
+
+    def prepare(self,arglist):
+
+        self._populateParam()
+ 
+    def _resilliencyTest(self,xrtHost,csHost):
+
+        self.csHost = csHost
+        self.runSubcase('outage', (xrtHost,csHost), 'Outage', 'Host-%s' % (csHost.name))
+        self.runSubcase('postOutageCheck',(),'PostOutageCheck','Host-%s' % (csHost.name))
+        self.runSubcase('recover',(xrtHost),'Recover','Host-%s' % (csHost.name))
+        self.runSubcase('postRecoverCheck',(),'PostRecoverCheck','Host-%s' % (csHost.name))
+        self._destroyInstance()
+ 
+    def run(self,arglist):
+
+        multipleHost = []
+        singleHost = []
+        multipleHost = self._getMultipleHostCluster()
+        singleHost = self._getSingleHostCluster()
+
+        h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)[0]
+        h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)[0]
+
+        self._rearrangeCloud(singleHost[0],multipleHost[0],multipleHost[1])
+        self._resilliencyTest(h1,multipleHost[0]) 
+
+        self._updateParameters()
+        self._rearrangeCloud(singleHost[0],multipleHost[1],multipleHost[1])
+        self._resilliencyTest(h1,multipleHost[0])
+
+        self._updateParameters()
+        self._rearrangeCloud(singleHost[0],multipleHost[0],multipleHost[0])
+        self._resilliencyTest(h2,multipleHost[1])
+
+        self._updateParameters()
+        self._rearrangeCloud(singleHost[0],multipleHost[1],multipleHost[0])
+        self._resilliencyTest(h2,multipleHost[1])
+
+class TCRebootHost(_TCHostResiliencyBase):
+
+    def outage(self,host,csHost):
+
+        host.reboot()
+
+    def recover(self,host):
+
+        xenrt.TEC().logverbose("Not Required")
+        pass
+
+    def postOutageCheck(self):
+
+        xenrt.TEC().logverbose("Not Required")
+        pass
+ 
+class TCBlockTrafficHost(_TCHostResiliencyBase): 
+
+    def outage(self,host,csHost):
+
+        nic = host.getDefaultInterface()
+        macAddress = host.getNICMACAddress(int(re.findall(r'\d+',nic)[0]))
+        host.disableNetPort(macAddress)
+
+    def recover(self,host):
+
+        nic = host.getDefaultInterface()
+        macAddress = host.getNICMACAddress(int(re.findall(r'\d+',nic)[0]))
+        host.enableNetPort(macAddress)
+
+class TCShutdownHost(_TCHostResiliencyBase):
+
+    def outage(self,host,csHost):
+
+        host.poweroff()
+
+    def recover(self,host):
+
+        host.poweron()
+
+class TCXapiStopped(_TCHostResiliencyBase):
+
+    def outage(self,host,csHost):
+
+        if csHost.hypervisor != "XenServer":
+            msg = "This testcase is only valid for Xenserver and not for any other Hypervisor"
+            xenrt.TEC().logverbose(msg)
+            raise xenrt.XRTError(msg)
+  
+        host.execdom0("service xapi stop")
+
+    def recover(self,host):
+
+        host.execdom0("service xapi start")

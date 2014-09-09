@@ -8,6 +8,7 @@ import string
 import random
 
 import xenrt.lib.cloud
+from xenrt.lib.netscaler import NetScaler
 
 __all__ = ["doDeploy"]
 
@@ -50,6 +51,29 @@ class DeployerPlugin(object):
         xenrt.TEC().logverbose('getName returned: %s for key: %s' % (nameValue, key))
         return nameValue
 
+    def getNetworkDevices(self, key, ref):
+        ret = None
+        if ref.has_key('XRT_NetscalerVM'):
+            networks = ref['XRT_NetscalerNetworks']
+            netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(ref['XRT_NetscalerVM'], networks=networks)
+            xenrt.GEC().registry.objPut("netscaler", ref['XRT_NetscalerVM'], netscaler)
+            xenrt.GEC().registry.dump()
+            netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
+            netscaler.disableL3()
+            for n in networks[1:]:
+                netscaler.setupOutboundNAT(n, networks[0])
+            ret = [{"username": "nsroot",
+                    "publicinterface": "1/1",
+                    "hostname": netscaler.managementIp,
+                    "privateinterface": "1/2",
+                    "lbdevicecapacity": "50",
+                    "networkdevicetype": "NetscalerVPXLoadBalancer",
+                    "lbdevicededicated": "false",
+                    "password": "nsroot",
+                    "numretries": "2"}]
+
+        return ret
+
     def getDNS(self, key, ref):
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             if ref['XRT_ZoneNetwork'] == "NSEC":
@@ -64,31 +88,23 @@ class DeployerPlugin(object):
         return xenrt.TEC().config.lookup("XENRT_SERVER_ADDRESS")
 
     def getDomain(self, key, ref):
+        if xenrt.TEC().lookup("MARVIN_SETUP", False, boolean=True):
+            return None
         if ref.has_key("XRT_ZoneNetwork") and ref['XRT_ZoneNetwork'].lower() != "NPRI":
             return "%s-xenrtcloud" % ref['XRT_ZoneNetwork'].lower()
         return "xenrtcloud"
 
     def getNetmask(self, key, ref):
-        if ref.has_key("XRT_VlanName"):
-            if ref['XRT_VlanName'] == "NPRI":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "SUBNETMASK"])
-            elif ref['XRT_VlanName'] == "NSEC":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "SUBNETMASK"])
-            else:
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "SUBNETMASK"])
-        else:
-            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
+        return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "SUBNETMASK")
 
     def getGateway(self, key, ref):
-        if ref.has_key("XRT_VlanName"):
-            if ref['XRT_VlanName'] == "NPRI":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "GATEWAY"])
-            elif ref['XRT_VlanName'] == "NSEC":
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "SECONDARY", "GATEWAY"])
-            else:
-                return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "GATEWAY"])
+        if ref.has_key("XRT_NetscalerGateway"):
+            xenrt.GEC().registry.dump()
+            xenrt.TEC().logverbose("XRT_NetscalerGateway")
+            ns = xenrt.GEC().registry.objGet("netscaler", ref['XRT_NetscalerGateway'])
+            return ns.gatewayIp(ref.get("XRT_VlanName", "NPRI"))
         else:
-            return xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
+            return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "GATEWAY")
 
     def getSecondaryStorages(self, key, ref):
         storageTypes = []
@@ -257,7 +273,7 @@ class DeployerPlugin(object):
                 url = 'nfs://%s' % (primaryStorage.getMount().replace(':',''))
         elif storageType == "SMB":
             h = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%s" % ref['XRT_SMBHostId'])
-            ip = h.getIP()
+            ip = h.getFQDN()
             url =  "cifs://%s/storage/primary" % (ip)
             ad = xenrt.getADConfig()
         return url
@@ -342,6 +358,7 @@ class DeployerPlugin(object):
                 hosts.append({ 'url': 'http://%s' % (h.getIP()) })
         elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'hyperv' and ref.has_key('XRT_HyperVHostIds'):
             hostIds = ref['XRT_HyperVHostIds'].split(',')
+            hostObjs = []
             for hostId in hostIds:
                 h = xenrt.TEC().registry.hostGet('RESOURCE_HOST_%d' % (int(hostId)))
                 self.getHyperVMsi()
@@ -353,7 +370,12 @@ class DeployerPlugin(object):
                 except Exception, e:
                     xenrt.TEC().logverbose("Warning - could not update machine info - %s" % str(e))
 
-                hosts.append({ 'url': 'http://%s' % (h.getIP()) })
+                hosts.append({ 'url': 'http://%s' % (h.getFQDN()) })
+                hostObjs.append(h)
+            for h in hostObjs:
+                for j in hostObjs:
+                    h.enableDelegation(j, "cifs")
+                    h.enableDelegation(j, "Microsoft Virtual System Migration Service")
         elif ref.has_key('hypervisor') and ref['hypervisor'].lower() == 'vmware' and ref.has_key('XRT_VMWareHostIds'):
             hostIds = ref['XRT_VMWareHostIds'].split(',')
             for hostId in hostIds:
@@ -373,7 +395,12 @@ class DeployerPlugin(object):
     def getHyperVMsi(self):
         if xenrt.TEC().lookup("HYPERV_AGENT", None):
             self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT"))
-        else:
+        elif xenrt.TEC().lookup("ACS_BUILD", None):
+            artifacts = xenrt.lib.cloud.getACSArtifacts(None, [], ["hypervagent.zip"])
+            if len(artifacts) > 0:
+                self.hyperVMsi = artifacts[0]
+
+        if not self.hyperVMsi:
             # Install CloudPlatform packages
             cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
             if not cloudInputDir:
@@ -385,7 +412,7 @@ class DeployerPlugin(object):
             xenrt.command("tar -xvzf %s -C %s" % (ccpTar, t.path()))
             self.hyperVMsi = xenrt.command("find %s -type f -name *hypervagent.msi" % t.path()).strip()
         if not self.hyperVMsi:
-            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.4/CloudPlatform-4.4.0.0-15-hypervagent.msi"))
+            self.hyperVMsi = xenrt.TEC().getFile(xenrt.TEC().lookup("HYPERV_AGENT_FALLBACK", "http://repo-ccp.citrix.com/releases/ASF/hyperv/ccp-4.5/CloudPlatform-4.5.0.0-19-hypervagent.msi"))
         if not self.hyperVMsi:
             raise xenrt.XRTError("Could not find Hyper-V agent in build")
 
@@ -451,6 +478,8 @@ def doDeploy(cloudSpec, manSvr=None):
         marvin.waitForSystemVmsReady()
         if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
             marvin.waitForBuiltInTemplatesReady()
+
+        toolstack.postDeploy()
     finally:
         # Get deployment logs from the MS
         manSvr.getLogs(deployLogDir)

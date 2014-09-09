@@ -1571,7 +1571,7 @@ class TC21544(_ReadCachePerformance):
     READMAXGAIN = 0.5
     READMINGAIN = 0.01
     WRITEMAXGAIN = 1.20
-    WRITEMINGAIN = 0.80
+    WRITEMINGAIN = 0.50
 
 class TC21545(_ReadCachePerformance):
     """ Compare scenarios where read cache is on and where read cache is off
@@ -1580,9 +1580,9 @@ class TC21545(_ReadCachePerformance):
     INTELLICACHE = True
     CACHED = True
     READMAXGAIN = 1.20
-    READMINGAIN = 0.80
+    READMINGAIN = 0.50
     WRITEMAXGAIN = 1.20
-    WRITEMINGAIN = 0.80
+    WRITEMINGAIN = 0.50
 
 class TC12008(_Cache):
     """Check that vm-start succeeds if a VM's VDIs are set for caching but no

@@ -2,6 +2,7 @@ import xenrt
 from datetime import datetime
 import random
 
+
 class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
     def preMasterUpdate(self):
         self.upgradeHook.call(self.newPool.master, True, True)
@@ -37,6 +38,7 @@ class TCCloudUpdate(xenrt.TestCase):
                 self.cloud.marvin.cloudApi.createTags(resourceids=[template.id],
                                                 resourcetype="Template",
                                                 tags=[{"key":"distro", "value":'centos56_x86-64'}])
+                xenrt.sleep(300)
             else:
                 raise xenrt.XRTError('Unknown built in template type')
 
@@ -51,6 +53,7 @@ class TCCloudUpdate(xenrt.TestCase):
         self.cloud = self.getDefaultToolstack()
 
         args = self.parseArgsKeyValue(arglist)
+        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
         self.noUpdate = args.has_key('noupdate') and args['noupdate']=='true'
         if not args.has_key('distros'):
             existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
@@ -58,8 +61,11 @@ class TCCloudUpdate(xenrt.TestCase):
             if len(templatesToUse) == 0:
                 templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates) 
                 map(lambda x:self.tailorBuiltInTemplate(x), templatesToUse)
+                existingTemplates = self.cloud.marvin.cloudApi.listTemplates(templatefilter='all', zoneid=self.zone.id)
+                templatesToUse = filter(lambda x:x.templatetype == 'BUILTIN', existingTemplates)
 
             xenrt.TEC().logverbose('Using existing templates: %s' % (','.join(map(lambda x:x.name, templatesToUse))))
+            xenrt.TEC().logverbose(str(templatesToUse))
             for template in templatesToUse:
                 distro = filter(lambda x:x.key == 'distro', template.tags)[0].value
                 distroName = distro.replace('_','-')
@@ -81,7 +87,6 @@ class TCCloudUpdate(xenrt.TestCase):
 
         # Create instances
         # Determine how how many instances can be created based on capacity
-        self.zone = self.cloud.marvin.cloudApi.listZones()[0]
         capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zone.id, type=8)[0]
         instancesPerDistro = (capacity.capacitytotal - (capacity.capacityused + 6)) / len(self.distros)
 

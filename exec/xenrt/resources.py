@@ -3059,17 +3059,34 @@ class StaticIP6Addr(_StaticIPAddr):
 class SharedHost:
     def __init__(self, hostname=None, doguests=False):
         hosts = xenrt.TEC().lookup("SHARED_HOSTS")
-        if not hostname:
-            if len(hosts.keys()) == 0:
-                raise xenrt.XRTError("Could not find shared host")
-            hostname = random.choice(hosts.keys())
-        h = hosts[hostname]
-        machine = xenrt.PhysicalHost(hostname, ipaddr = h["ADDRESS"])
-        place = xenrt.GenericHost(machine)
-        place.findPassword()
-        place.checkVersion()
-        host = xenrt.lib.xenserver.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
-        place.populateSubclass(host)
+
+        if hostname:
+            h = hosts[hostname]
+            machine = xenrt.PhysicalHost(hostname, ipaddr = h["ADDRESS"])
+            useHost = xenrt.GenericHost(machine)
+            useHost.findPassword()
+        else:
+            maxmem = 0
+            useHost = None
+            for host in hosts.keys():
+                try:
+                    h = hosts[host]
+                    machine = xenrt.PhysicalHost(host, ipaddr = h["ADDRESS"])
+                    place = xenrt.GenericHost(machine)
+                    place.findPassword()
+                    mem = int(place.execdom0("xe host-list params=memory-free --minimal").strip())
+                    if (mem > maxmem):
+                        useHost = place
+                        maxmem = mem
+                except Exception, e:
+                    xenrt.TEC().logverbose("Warning - could not get free memopry from %s: %s" % (h, str(e)))
+                    continue
+
+        if not useHost:
+            raise xenrt.XRTError("Could not find shared host")
+        useHost.checkVersion()
+        host = xenrt.lib.xenserver.hostFactory(useHost.productVersion)(useHost.machine, productVersion=useHost.productVersion)
+        useHost.populateSubclass(host)
         host.existing(doguests=doguests)
         self.host = host
         xenrt.TEC().gec.registerCallback(self)

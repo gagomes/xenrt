@@ -187,6 +187,17 @@ ifeq ($(DOWINPE),yes)
 	rm -rf $(TMP)
 endif
 
+.PHONY: machines
+machines:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machines
+endif
+
+.PHONY: machine-%
+machine-%:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machine $(patsubst machine-%,%,$@)
+endif
 
 .PHONY: files
 files:
@@ -234,6 +245,7 @@ nfs: $(SCRATCHDIR)
 	$(SUDOSH) 'echo "$(IMAGEDIR) *(ro,$(NFSCOMMON))" > $(EXPORTS)'
 	$(SUDOSH) 'echo "$(SCRATCHDIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(SUDOSH) 'echo "$(XVADIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
+	$(SUDOSH) 'echo "$(TFTPROOT) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(foreach dir,$(EXTRANFSDIRS), $(SUDOSH) 'echo "$(dir) *(rw,$(NFSCOMMON))" >> $(EXPORTS)';)
 	$(SUDO) mkdir -p $(IMAGEDIR)
 	$(SUDO) mkdir -p $(XVADIR)
@@ -374,13 +386,14 @@ tftp:
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/razor.ipxe $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default-ipxe.cgi $(TFTPROOT)
 	$(SUDO) sed -i 's/__RAZOR_SERVER__/$(RAZOR_SERVER)/' $(TFTPROOT)/razor.ipxe
-	-$(SUDO) cp $(TEST_INPUTS)/ipxe/ipxe.0 $(TFTPROOT)
 	-$(SUDO) cp $(TEST_INPUTS)/ipxe/undionly.kpxe $(TFTPROOT)
+	-$(SUDO) ln -sf undionly.kpxe $(TFTPROOT)/ipxe.0
 	-$(SUDO) cp -R $(TEST_INPUTS)/clean $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/tinycorelinux
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
+	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 
 .PHONY: tftp-uninstall

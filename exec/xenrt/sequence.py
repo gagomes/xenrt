@@ -926,6 +926,7 @@ class PrepareNode:
         self.controllersForPools = {}
         self.preparecount = 0
 
+        # Ignore cloud nodes on the first pass
         for n in node.childNodes:
             if n.localName == "pool":
                 self.handlePoolNode(n, params)
@@ -948,31 +949,35 @@ class PrepareNode:
                     if i == stop:
                         break
                     i = i + 1
-            elif n.localName == "cloud":
-                self.handleCloudNode(n, params)
             elif n.localName == "template":
                 self.handleInstanceNode(n, params, template=True)
             elif n.localName == "instance":
                 self.handleInstanceNode(n, params, template=False)
+        
+        # Do the cloud nodes now the other hosts have been allocated
+        for n in node.childNodes:
+            if n.localName == "cloud":
+                self.handleCloudNode(n, params)
+
+    def __minAvailable(self, allocated):
+        i = 0
+        while True:
+            if i not in allocated:
+                return i
+            i += 1
+
+    def __minAvailableHost(self, additionalHosts=[]):
+        hosts = [int(x['id']) for x in self.hosts]
+        hosts.extend(additionalHosts)
+        return str(self.__minAvailable(hosts))
+
+    def __minAvailablePool(self):
+        return str(self.__minAvailable([int(x['id']) for x in self.pools]))
 
     def handleCloudNode(self, node, params):
         # Load the JSON block from the sequence file
         self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
 
-
-        # Find allocated host IDs 
-        allocatedHostIds = map(lambda x:int(x['id']), self.hosts)
-        hostIdIndex = 0
-        if len(allocatedHostIds) > 0:
-            hostIdIndex = max(allocatedHostIds) + 1
-
-        allocatedPoolIds = map(lambda x:int(x['id']), self.pools)
-        poolIdIndex = 0
-        if len(allocatedPoolIds) > 0:
-            poolIdIndex = max(allocatedPoolIds) + 1
-
-        xenrt.TEC().logverbose('Allocate Hosts from ID: %d' % (hostIdIndex))
-        xenrt.TEC().logverbose('Allocate Pools from ID: %d' % (poolIdIndex))
 
         job = xenrt.GEC().jobid() or "nojob"
 
@@ -1013,29 +1018,31 @@ class PrepareNode:
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if not cluster.has_key('XRT_MasterHostId'):
-                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                            poolId = poolIdIndex
 
                             simplePoolNode = xml.dom.minidom.Element('pool')
-                            simplePoolNode.setAttribute('id', str(poolId))
-                            for hostId in hostIds:
+                            poolId = self.__minAvailablePool()
+                            simplePoolNode.setAttribute('id', poolId)
+                            poolHosts = []
+                            for h in xrange(cluster['XRT_Hosts']):
                                 simpleHostNode = xml.dom.minidom.Element('host')
-                                simpleHostNode.setAttribute('id', str(hostId))
+                                hostId = self.__minAvailableHost(poolHosts)
+                                poolHosts.append(int(hostId))
+                                simpleHostNode.setAttribute('id', hostId)
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simplePoolNode.appendChild(simpleHostNode)
 
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
-                            hostIdIndex += cluster['XRT_Hosts']
-                            poolIdIndex += 1
 
                             self.handlePoolNode(simplePoolNode, params)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
                             cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
                     elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
-                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                            for hostId in hostIds:
+                            hostIds = []
+                            for h in xrange(cluster['XRT_Hosts']):
+                                hostId = self.__minAvailableHost()
+                                hostIds.append(hostId)
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'kvm')
@@ -1045,11 +1052,12 @@ class PrepareNode:
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
-                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'].lower() == "lxc":
                         if not cluster.has_key('XRT_LXCHostIds'):
-                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                            for hostId in hostIds:
+                            hostIds = []
+                            for h in xrange(cluster['XRT_Hosts']):
+                                hostId = self.__minAvailableHost()
+                                hostIds.append(hostId)
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'kvm')
@@ -1059,7 +1067,6 @@ class PrepareNode:
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_LXCHostIds'] = string.join(map(str, hostIds),',')
 
-                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'].lower() == "hyperv":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
@@ -1068,17 +1075,19 @@ class PrepareNode:
                                 if not i.has_key("XRT_VlanName"):
                                     i['XRT_VlanName'] = "NSEC"
                         if not cluster.has_key('XRT_HyperVHostIds'):
-                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                            for hostId in hostIds:
+                            hostIds = []
+                            for h in xrange(cluster['XRT_Hosts']):
+                                hostId = self.__minAvailableHost()
+                                hostIds.append(hostId)
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'hyperv')
                                 simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_HYPERV_DISTRO', 'ws12r2-x64'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
+                                simpleHostNode.setAttribute('extraConfig', '{"cloudstack":true}')
                                 self.handleHostNode(simpleHostNode, params)
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
-                            hostIdIndex += cluster['XRT_Hosts']
                     elif cluster['hypervisor'].lower() == "vmware":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
                             zone['XRT_ZoneNetwork'] = "NSEC"
@@ -1094,8 +1103,10 @@ class PrepareNode:
                             cluster['XRT_VMWareDC'] = zone['XRT_VMWareDC']
                         if not cluster.has_key('XRT_VMWareCluster'):
                             cluster['XRT_VMWareCluster'] = 'cluster-%s' % (uuid.uuid4().hex)
-                            hostIds = range(hostIdIndex, hostIdIndex + cluster['XRT_Hosts'])
-                            for hostId in hostIds:
+                            hostIds = []
+                            for h in xrange(cluster['XRT_Hosts']):
+                                hostId = self.__minAvailableHost()
+                                hostIds.append(hostId)
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'esx')
@@ -2191,6 +2202,11 @@ class HostInstallWorker(_InstallWorker):
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
             work["noisos"] = True
             xenrt.lib.native.createHost(**work)
+        elif specProductType == "nativewindows":
+            if specProductType is None:
+                raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
+            work["noisos"] = True
+            xenrt.lib.nativewindows.createHost(**work)
         elif specProductType == "kvm":
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
@@ -2198,6 +2214,7 @@ class HostInstallWorker(_InstallWorker):
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
             xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
+            work["noisos"] = True
             xenrt.lib.hyperv.createHost(**work)
         elif specProductType == "oss":
             work["noisos"] = True

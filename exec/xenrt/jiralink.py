@@ -74,13 +74,13 @@ class JiraLink:
         i = self.jira.issue(issueKey)
         return i.fields.resolution is None
 
-    def getSnippet(self, logfilename, pattern, patterndesc, maxchars=4096):
+    def getSnippet(self, logfilename, pattern, patterndesc, startPoint=0, endPoint=4096):
         """Returns a snippet string containing log matched in logfile"""
         noformattext = str(xenrt.command("pcregrep -M '%s' %s" % (pattern, logfilename) , level=xenrt.RC_OK))
         noformattext = noformattext.strip()
         if noformattext!="1":
-            if(len(noformattext)) > maxchars:
-                noformattext = noformattext[0:maxchars] + "\n\n..."
+            if(len(noformattext)) > (endPoint - startPoint) and abs(endPoint) <= (len(noformattext)) and abs(startPoint) <=(len(noformattext)):
+                noformattext = noformattext[startPoint:endPoint] + "\n\n..."
             snippet = ("Found '%s' in '%s':- \n{noformat}\n%s\n{noformat}" % (patterndesc,logfilename.replace(xenrt.TEC().getLogdir()+"/", ""),noformattext.strip()))
             return snippet
         return ""
@@ -138,17 +138,33 @@ class JiraLink:
             {'file':"*/guest-console-logs/console*", 'desc':"Guest BUG",
                 'pattern':r'(?:.*\n){0,2}(?:.*BUG\:.*)(?:.*\n){0,3}'},
             {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
-                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'}
+                'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'},
+
+            {'file':"*/management-server.log*", 'desc':"Management server logs",
+                'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
+
+            {'file':"*/apilog.log*", 'desc':"API logs",
+                'pattern':r'(?:.*\n){0,5}(?:.*exception\:.+)(?:.*\n){0,5}','type':"CLOUD"},
+
+            {'file':"*/localhost*", 'desc':"Local Host log",
+                'pattern':r'(?:.*\n){0,1}(?:.*SEVERE\:.+)(?:.*\n){0,10}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
+
+            {'file':"*/agent.log*", 'desc':"Agent logs",
+                'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1}
         ]
         desc = "\n"
         for fp in failurepatterns:
             try:
                 clogfiles = glob.glob("%s/%s" % (xenrt.TEC().getLogdir(),fp['file']))
             except Exception, e:
-                xenrt.TEC().warning("Failed to get logfile list matching '%s': %s" %(fp['file'],str(e)))
+                if not fp.has_key('type'):
+                    xenrt.TEC().warning("Failed to get logfile list matching '%s': %s" %(fp['file'],str(e)))
             for file in clogfiles:
                 try:
-                    desc += self.getSnippet(file, fp['pattern'], fp['desc'])
+                    if fp.has_key('startPoint'):
+                        desc += self.getSnippet(file, fp['pattern'], fp['desc'],startPoint=fp['startPoint'], endPoint=fp['endPoint'])
+                    else:
+                        desc += self.getSnippet(file, fp['pattern'], fp['desc'])
                     desc += "\n"
                 except Exception, e:
                     xenrt.TEC().warning("Failed to get snippet from file %s: %s" %(file,str(e)))
@@ -184,13 +200,16 @@ class JiraLink:
                       "%s" % (jobid,seq,revision,hostsStr)
         if jobdesc:
             environment += "\n%s" % (jobdesc)
-        inputdir = xenrt.TEC().lookup("INPUTDIR", None)
+        inputdir = xenrt.TEC().lookup(xenrt.TEC().lookup("AUTO_BUG_INPUTDIR", "INPUTDIR"), None)
         if inputdir:
             environment += "\nInput Directory: %s" % (inputdir)
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
-
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         seenagain = ("Seen again on %s\n" % (environment))
 
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE",None)
@@ -343,13 +362,16 @@ class JiraLink:
             environment += "\n%s" % (fullName)
             if jobdesc:
                 environment += "\n%s" % (jobdesc)
-            inputdir = xenrt.TEC().lookup("INPUTDIR", None)
+            inputdir = xenrt.TEC().lookup(xenrt.TEC().lookup("AUTO_BUG_INPUTDIR", "INPUTDIR"), None)
             if inputdir:
                 environment += "\nInput Directory: %s" % (inputdir)
             tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
             if tsr:
                 environment += "\nTestRun Suite Run ID: %s" % (tsr)
-
+            jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+            if jenkins:
+                environment += "\nJenkins URL: %s" % jenkins
+            environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
             seenagain = ("Seen again on %s\nXenRT logs available at "
                          "%s?action=testlogs&id=%s&phase=%s&test=%s" %
                          (environment,self.XENRT_WEB,jobid,phase,test))
@@ -363,16 +385,56 @@ class JiraLink:
                     pass # An exception means the ticket didn't exist...
 
             # See if we should assign tickets to anybody in particular
-            assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE",None)
+            assignee = tec.tc.ticketAssignee()
+            if not assignee:
+                assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE",None)
 
             if not jiratc:
                 # See if this is a TC style test
                 m = re.match("TC(\d{3,4}\d*)",tec.tc.basename)
                 if m:
                     jiratc = "TC-%s" % (m.group(1))
+            
+            if tec.tc.SUBCASE_TICKETS:
+                xenrt.GEC().logverbose("Test wants seperate tickets for each subcase")
+                # We have subcases, gather the results
+                allresults = []
+                tec.tc.results.gather(allresults,"","")
+                for result in allresults:
+                    if result[4] in (xenrt.RESULT_FAIL, xenrt.RESULT_ERROR):
+                        reasons = tec.tc.results.groups[result[2]].tests[result[3]].reasons
+                        if reasons:
+                            reason = reasons[0]
+                        else:
+                            reason = "Unknown"
+
+                        msg = tec.tc.getSubCaseTicketDescription(result[2], result[3])
+                        if msg:
+                            description = "Remaining XenRT logs available at %s?action=testlogs&id=%s&phase=%s&test=%s\n\n" % (self.XENRT_WEB,jobid,phase,test)
+                            description += msg
+                        sstr = "%s/%s: %s" % (result[2], result[3], reason)
+                        (i, new) = self.fileTicket(result[4],
+                                                   (result[2],
+                                                    result[3],
+                                                    reason),
+                                                   sstr,
+                                                   description,
+                                                   environment,
+                                                   seenagain,
+                                                   assignee,
+                                                   hosts,
+                                                   jiratc
+                                                   )
+                        if i and new:
+                            self.attachFileToTicket(i, "%s/xenrt.log" % (tec.getLogdir()))
+                            for f in tec.tc.ticketAttachments():
+                                self.attachFileToTicket(i, f)
+                   
+                i = None
+                new = False
 
             # Check for subcases
-            if len(tec.tc.results.getTestCases("","")) > 1:
+            elif len(tec.tc.results.getTestCases("","")) > 1:
                 xenrt.GEC().logverbose("Test has subcases")
                 # We have subcases, gather the results
                 allresults = []
@@ -611,7 +673,7 @@ class JiraLink:
                     xenrt.TEC().warning("Set reporter exception: %s" % (str(e)))
                     traceback.print_exc(file=sys.stderr)
 
-            ikey = i.key
+            ikey = i and i.key or None
 
         return ikey
 
@@ -689,12 +751,16 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         environment += "\n%s" % (fullName)
         if jobdesc:
             environment += "\n%s" % (jobdesc)
-        inputdir = xenrt.TEC().lookup("INPUTDIR", None)
+        inputdir = xenrt.TEC().lookup(xenrt.TEC().lookup("AUTO_BUG_INPUTDIR", "INPUTDIR"), None)
         if inputdir:
             environment += "\nInput Directory: %s" % (inputdir)
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE", None)
 
         sstr = "JobTest/%s: %s" % (tcid, reason)
@@ -910,8 +976,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             project = self.ERR_PROJ
 
         # Remove varying things like UUIDs,IPs,hostnames etc. from the track
-        track2 = re.sub(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-"
-                        "[0-9a-f]{12}",
+        track2 = re.sub(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+                        "[0-9a-fA-F]{12}",
                         "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
                         track[2])
         track2 = re.sub(r"ovs-vswitchd\.\d+\.ctl", "ovs-vswitchd.xxxx.ctl", track2)
@@ -923,12 +989,16 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         track2 = re.sub(r"/\d+-xenrt[-]?\w+/", "/xxxxxx-xenrtxxxxxx/", track2)
         track2 = re.sub(r"=xenrt\w+", "=xenrtxxxxxx", track2)
         track2 = re.sub(r" xenrt\w+", " xenrtxxxxxx", track2)
+        track2 = re.sub(r"job\d+", "jobxxxxxx", track2)
         track2 = re.sub(r"/tmp/dist[A-Za-z0-9]+/", "/tmp/distxxxxxx/", track2)
         # A half-hearted attempt to match IPv6 addresses!
         track2 = re.sub("[A-Fa-f0-9]{4}:[A-Fa-f0-9]{4}:[A-Fa-f0-9:]+", "xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx:xxxx", track2)
         track2 = re.sub("create_nfs_sr xxx.xxx.xxx.xxx \S+", "create_nfs_sr xxx.xxx.xxx.xxx xxxxxx", track2)
         # some dates
         track2 = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", "xxxx-xx-xxTxx:xx:xx", track2)
+        # JQL can't escape square brackets
+        track2 = re.sub("\[", "", track2)
+        track2 = re.sub("\]", "", track2)
         if len(hosts) > 0:
             for h in hosts:
                 # Replace host, unless we see !host, in which case remove !
@@ -1006,7 +1076,12 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             issueTrack = self.getCustomField(i, self.TRACK_FIELD)
             if self.TRACK_TAG:
                 if issueTrack.startswith("%s_" % self.TRACK_TAG):
-                    issueTrack = issueTrack[len("%s_" % self.TRACK_TAG):]
+                    trackLen = len("%s_" % self.TRACK_TAG)
+                    truncate = 255-trackLen
+                    issueTrack = issueTrack[trackLen:]
+                    fullTrack = fullTrack[:truncate]
+                    halfTrack = halfTrack[:truncate]
+                    miniTrack = miniTrack[:truncate]
 
             match = -1 # No match
             if issueTrack == fullTrack:
@@ -1094,9 +1169,29 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                                     "george-update-1", "bodie", "laurie",
                                     "cowley-newkernel", "boston-newxen"]:
                 tickettitle = "[%s] %s" % (r.group(1), tickettitle)
-            issue = j.create_issue(project={"key":project},summary = unicode(tickettitle[0:255], errors='ignore'),issuetype={"name":"Bug"},priority={"name":"Major"},
-                                environment=environment,description=unicode(description, errors='ignore'),
-                                components=[{'id':component}],assignee={'name':assignee})
+            if not isinstance(tickettitle, unicode):
+                tickettitle = unicode(tickettitle, errors='ignore')
+            if not isinstance(description, unicode):
+                description = unicode(description, errors='ignore')
+
+            issueType = xenrt.TEC().lookup("JIRA_ISSUE_TYPE", "Bug")
+            fields = {"project": {"key":project},
+                      "summary": tickettitle[0:255],
+                      "issuetype": {"name":issueType},
+                      "priority": {"name":"Major"},
+                      "environment": environment,
+                      "description": description,
+                      "components": [{'id':component}],
+                      "assignee": {'name':assignee}}
+
+            version = xenrt.TEC().lookup("JIRA_TICKET_VERSION", None)
+            if version:
+                fields['versions'] = [{"name": version}]
+            # Cloudstack project needs custom field setting 
+            if project == "CS" and issueType == "Bug":
+                fields['customfield_13232'] = {"value": "Internal"}
+
+            issue = j.create_issue(**fields)
             xenrt.GEC().logverbose("Created JIRA issue %s" % (issue.key))
             if jiraTicketLabel is not None:
                 issue.update(labels=[jiraTicketLabel])
@@ -1127,19 +1222,22 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     issueToComment.update(fields={"labels": issueToComment.fields.labels})
                     xenrt.GEC().logverbose("Added label to JIRA issue - %s" % (jiraTicketLabel))
 
-            comps = [x.id for x in issueToComment.fields.components]
-            if component not in comps:
-                needToAddComponent = True
-                for c in comps:
-                    if c not in triageComponents:
-                        needToAddComponent = False
-                if needToAddComponent:
-                    comps.append(component)
-                    issueToComment.update(components=[{"id":x} for x in comps])
-                    # If we're adding the Triage component, we might need to set the assignee to the TA owner
-                    if component == self.TRIAGE and issueToComment.fields.assignee is None:
-                        taAssignee = self._lookupTAAssignee(jiratc)
-                        j.assign_issue(issueToComment, taAssignee)
+            try:
+                comps = [x.id for x in issueToComment.fields.components]
+                if component not in comps:
+                    needToAddComponent = True
+                    for c in comps:
+                        if c not in triageComponents:
+                            needToAddComponent = False
+                    if needToAddComponent:
+                        comps.append(component)
+                        issueToComment.update(components=[{"id":x} for x in comps])
+                        # If we're adding the Triage component, we might need to set the assignee to the TA owner
+                        if component == self.TRIAGE and issueToComment.fields.assignee is None:
+                            taAssignee = self._lookupTAAssignee(jiratc)
+                            j.assign_issue(issueToComment, taAssignee)
+            except Exception, e:
+                xenrt.GEC().logverbose("Couldn't add component/assign ticket: %s" % str(e))
 
             return (issueToComment,False)
         elif bestknownmatch > 0:
@@ -1169,7 +1267,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         xenrt.GEC().logverbose("Commented on JIRA issue %s" % (issue))
 
     def linkCrashdump(self,issue,cdticket):
-        self.jira.create_issue_link(type="Related", inwardIssue=issue, outwardIssue=cdticket)
+        self.jira.create_issue_link(type="Relates", inwardIssue=issue, outwardIssue=cdticket)
 
     def fileCrashDump(self,cd,path,place):
         if not self.attemptToConnect():
@@ -1208,12 +1306,16 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         environment = "XenRT JobID: %s, seq: %s, revision: %s, host(s): " \
                       "%s" % (jobid,seq,revision,hostsStr)
         environment += "\n%s" % (fullName)
-        inputdir = xenrt.TEC().lookup("INPUTDIR", None)
+        inputdir = xenrt.TEC().lookup(xenrt.TEC().lookup("AUTO_BUG_INPUTDIR", "INPUTDIR"), None)
         if inputdir:
             environment += "\nInput Directory: %s" % (inputdir)
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
             environment += "\nTestRun Suite Run ID: %s" % (tsr)
+        jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
+        if jenkins:
+            environment += "\nJenkins URL: %s" % jenkins
+        environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
 
         j = self.jira
         componentName = xenrt.TEC().lookup("JIRA_TICKET_COMPONENT", None)
@@ -1387,6 +1489,25 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             issue.update(fields={fieldid: {"value":value}})
         else:
             issue.update(fields={fieldid: value})
+    
+    def attachFileToTicket(self, issue, fname):
+        try:
+            statinfo = os.stat(fname)
+            if statinfo.st_size > 20971520 and not fname.endswith(".bz2") and not fname.endswith(".gz"):
+                # Greater than 20M, compress it first
+                tmpFile = xenrt.TEC().tempFile()
+                xenrt.command("gzip -c %s > %s" %
+                              (fname, tmpFile))
+                f = open(tmpFile)
+                self.jira.add_attachment(issue.key, f, os.path.basename("%s.gz" % (fname)))
+                f.close()
+            elif statinfo.st_size > 0:
+                f = open(fname)
+                self.jira.add_attachment(issue.key, f)
+                f.close()
+        except Exception, e:
+            xenrt.TEC().warning("Jira attach exception: %s" % (str(e)))
+            traceback.print_exc(file=sys.stderr)
 
 _theJiralink = None
 def getJiraLinkCached():

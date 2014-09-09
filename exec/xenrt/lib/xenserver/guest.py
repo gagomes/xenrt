@@ -236,6 +236,9 @@ class Guest(xenrt.GenericGuest):
         else:
             xenrt.TEC().logverbose("Guest %s not up to check for daemon" % self.name)
 
+    def wouldBootHVM(self):
+        return (self.paramGet("HVM-boot-policy") == "BIOS order")
+
     def isHVMLinux(self, distro=None):
         if not distro:
             distro=self.distro
@@ -331,12 +334,13 @@ class Guest(xenrt.GenericGuest):
         if self.isoname and ([i for i in ["win81","ws12r2"] if i in self.isoname]):
             xenrt.TEC().config.setVariable("OPTION_CLONE_TEMPLATE", True)
             
-            if not isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest):
-                # this hack isn't required on Creedence as we've got the templates sorted
-                rootdisk=32000
-            else:
+            if isinstance(self, xenrt.lib.xenserver.guest.CreedenceGuest) and self.memory:
                 xenrt.TEC().logverbose("rootdisk = 20000 + %s"%(self.memory))
                 rootdisk = 20000 + self.memory
+            else:
+                # this hack isn't required on Creedence as we've got the templates sorted
+                rootdisk=32000
+
         if distro:
             self.distro = distro
         host.addGuest(self)
@@ -409,6 +413,8 @@ class Guest(xenrt.GenericGuest):
                                      guestparams=guestparams, 
                                      rootdisk=rootdisk)
 
+        if self.isHVMLinux() and self.template == "Other install media" and rootdisk == self.DEFAULT:
+            rootdisk = 8096
         # Attaching root disk and extra disks for LUN Per VDI guests.
         if rawHBAVDIs:
             xenrt.TEC().logverbose("Attaching a list of VDIs %s to LUN Per VDI VM %s" % (rawHBAVDIs, self.getUUID()))
@@ -555,6 +561,38 @@ class Guest(xenrt.GenericGuest):
 
             if not notools and self.getState() == "UP":
                 self.installTools()
+        if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
+            kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
+            if 'ubuntu1404' in distro:
+                _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
+                _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
+                                    "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
+                if '64' in self.arch:
+                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
+                    self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
+                else:
+                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
+                    self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
+            elif 'oel7' in distro:
+                _new_kernel = kernelUpdatesPrefix + "/OEL7/"
+                _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
+                                    "kernel-uek-devel-3.8.13-36.3.1.el7uek.xs.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
+            elif distro in ['rhel7','centos7']:
+                _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
+                _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
+                                    "kernel-tools-libs-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
+                                    "kernel-headers-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
+                                    "kernel-tools-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
+                                    "kernel-3.10.0-123.6.3.el7.xs1.x86_64.rpm"]
+                for kernelFix in _new_kernel_path:
+                    xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
+                    self.execcmd("rpm -ivh --force %s"%(kernelFix))
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""
@@ -1110,6 +1148,23 @@ at > c:\\xenrtatlog.txt
     
     def convertHVMtoPV(self):
         """Convert an HVM guest into a PV guest. Reboots guest if it is running."""
+
+        # Handle guests that don't have a PV-compatible kernel installed by default
+        if self.distro.startswith("sles12"):
+            oldstate = self.getState()
+            self.setState("UP")
+
+            # Sorry, this is necessarily going to be ugly!
+            # When we update the grub config, it sees that we're running in HVM mode and skips xenkernels.
+            # So we need to hack grub to temporarily think that we're not in HVM mode.
+            self.execguest("sed -i 's/CONFIG_XEN/xxx/' /etc/grub.d/10_linux")
+
+            self.execguest("zypper -n install kernel-xen")
+
+            # Now revert the grub hack
+            self.execguest("sed -i 's/xxx/CONFIG_XEN/' /etc/grub.d/10_linux")
+
+            self.setState(oldstate)
 
         self.paramSet("HVM-boot-policy", "")
         self.paramRemove("HVM-boot-params", "order")
@@ -2019,6 +2074,14 @@ exit /B 1
             args.append("param-name=qos_algorithm_params")
             cli.execute("vif-param-remove", string.join(args))
 
+    def removeAllVIFs(self):
+        devs = self.getHost().minimalList("vif-list",
+                                          "device",
+                                          "vm-uuid=%s" % (self.getUUID()))
+        vifs = list(self.vifs)
+        for dev in devs:
+            self.removeVIF(dev)
+
     def recreateVIFs(self, newMACs = False):
         """Recreate all VIFs we have in the guest's object config"""
         devs = self.getHost().minimalList("vif-list",
@@ -2758,7 +2821,7 @@ exit /B 1
             xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
         return sruuid
 
-    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False):
+    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False):
         if sr:
             sruuid = sr
         else:
@@ -2789,10 +2852,11 @@ exit /B 1
         self.uuid = uuid
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
-        self.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
-        self.vifs.sort()
-        self.recreateVIFs(newMACs=True)
+        if not ispxeboot:
+            self.vifs = [ (nic, vbridge, mac, ip) for \
+                        (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.vifs.sort()
+            self.recreateVIFs(newMACs=True)
         self.existing(host)
 
     def migrateVM(self, host, live="false", fast=False, timer=None):
@@ -2842,10 +2906,10 @@ exit /B 1
             else:
                 self.waitForDaemon(boottime, desc="Guest migrate XML-RPC check")
 
-    def copyVM(self, name=None, timer=None, sruuid=None, noIP=False):
+    def copyVM(self, name=None, timer=None, sruuid=None, noIP=True):
         return self._cloneCopyVM("copy", name, timer, sruuid, noIP=noIP)
 
-    def cloneVM(self, name=None, timer=None, sruuid=None, noIP=False):
+    def cloneVM(self, name=None, timer=None, sruuid=None, noIP=True):
         if sruuid:
             xenrt.TEC().warning("Deprecated use of sruuid in cloneVM. Should "
                                 "use copyVM instead.")
@@ -2854,7 +2918,7 @@ exit /B 1
     def instantiateSnapshot(self, uuid, name=None, timer=None, sruuid=None, noIP=False):
         return self._cloneCopyVM("instance", name, timer, sruuid, uuid=uuid, noIP=noIP)
 
-    def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=False):
+    def _cloneCopyVM(self, operation, name, timer, sruuid, uuid=None, noIP=True):
         cli = self.getCLIInstance()
         g_uuid = None
         
@@ -2960,6 +3024,8 @@ exit /B 1
                     raise lastexception
                 raise xenrt.XRTFailure("Snapshot with quiesce failed.")
         else:
+            if self.windows and state == "UP":
+                xenrt.TEC().warning("Snapshot of running Windows VM taken")
             xenrt.TEC().logverbose("Attempting snapshot of VM.")
             try:
                 uuid = cli.execute("vm-snapshot", command, strip=True)
@@ -3744,7 +3810,7 @@ exit /B 1
                     pass
                 else:
                     raise e
-            if reboot or ((self.distro.startswith("centos4") or self.distro.startswith("rhel4")) and updateKernel):
+            if reboot or ((self.distro and (self.distro.startswith("centos4") or self.distro.startswith("rhel4"))) and updateKernel):
                 # RHEL/CentOS 4.x update the kernel, so need to be rebooted
                 self.reboot()
         else:
@@ -3991,7 +4057,10 @@ exit /B 1
         return recs
 
     def vendorInstallDevicePrefix(self):
-        return "xvd"
+        if self.distro.startswith("sles12") and self.wouldBootHVM():
+            return "hd"
+        else:
+            return "xvd"
 
     def installXDVDABrokerLessConn(self):
 
@@ -4160,10 +4229,49 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         g.createGuestFromTemplate(t, None)
-        g.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
-        g.vifs.sort()
-        g.recreateVIFs(newMACs=True)
+        
+        g.removeAllVIFs()
+        if re.search("[vw]", distro):
+            g.windows = True
+            g.vifstem = g.VIFSTEMHVM
+            g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+        else:
+            g.windows = False
+            g.vifstem = g.VIFSTEMPV
+
+        if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
+            vifs = [("0",
+                     host.getPrimaryBridge(),
+                     xenrt.randomMAC(),
+                     None)]
+
+        update = []
+        for v in vifs:
+            device, bridge, mac, ip = v
+            device = "%s%s" % (g.vifstem, device)
+            if not bridge:
+                bridge = host.getPrimaryBridge()
+            elif re.search(r"^[0-9]+$", bridge):
+                bridge = host.getBridgeWithMapping(int(bridge))
+            elif not host.getBridgeInterfaces(bridge):
+                br = host.parseListForOtherParam("network-list",
+                                                     "name-label",
+                                                      bridge,
+                                                     "bridge")
+                if br:
+                    bridge = br
+                elif not host.getNetworkUUID(bridge):
+                    bridge = None
+                    
+            if not bridge:
+                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
+                                     "host !%s" % (host.getName()))
+            update.append([device, bridge, mac, ip])
+        g.vifs = update
+        for v in g.vifs:
+            eth, bridge, mac, ip = v
+            g.createVIF(eth, bridge, mac)
+
         g.existing(host)
 
         g.start() 

@@ -63,12 +63,12 @@
       </testcase>
 
       <testcase id="xenserver.tc.singleskulicense.VerifyPoolSocketCount" name="TC18984" tc="TC-18984"/>
-
+<!--
       <testcase id="xenserver.tc.singleskulicense.GraceLic" name="TC19016" tc="TC-19016">
         <arg>system=pool</arg>
         <arg>edition=per-socket</arg>
       </testcase>
-
+-->
     </serial>
 
   </testsequence>

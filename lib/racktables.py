@@ -17,7 +17,7 @@ class RackTables:
         # Gets a RackTablesObject from an object name
         res = self._execSQL("SELECT id FROM RackObject WHERE name='%s'" % name)
         if len(res) == 0:
-            raise Exception("Could not find Object %s" % name)
+            raise UserWarning("Could not find Object %s" % name)
         return RackTablesObject(self, res[0][0], name)
     
     def renderString(self, val):
@@ -28,6 +28,9 @@ class RackTables:
         if len(res) == 0:
             return None
         return res[0][0]
+
+    def close(self):
+        self.db.close()
 
 class RackTablesObject:
     def __init__(self, parent, objid, name):

@@ -6,9 +6,6 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
-  <scheduler>
-    <resources>memory&gt;=48G</resources>
-  </scheduler>
 
   <prepare>
     <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>

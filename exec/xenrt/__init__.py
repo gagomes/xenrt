@@ -340,6 +340,7 @@ class TestCase:
 
     This is the parent class for all testcases."""
     iamtc = True
+    SUBCASE_TICKETS = False
     
     def __init__(self, tcid=None, anon=False):
         """Constructor.
@@ -1558,7 +1559,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         d = xenrt.TEC().getLogdir()
         xenrt.command("/bin/ps wwwaxf -eo pid,tty,stat,time,nice,psr,pcpu,pmem,nwchan,wchan:25,args > %s/xenrt-process-tree.txt" % (d))
         xenrt.command("TERM=linux /usr/bin/top -b -n 1 > %s/xenrt-top.txt" % (d))
-        xenrt.command("/usr/sbin/arp > %s/xenrt-arp.txt" % (d))
+        xenrt.command("/usr/sbin/arp -n > %s/xenrt-arp.txt" % (d))
 
     def getLogsFrom(self, obj, paths=None):
         """Register a host or guest for log collection.
@@ -1884,12 +1885,21 @@ rm -f %s
         kv = {}
         if arglist:
             for a in arglist:
-                aa = a.split("=", 2)
+                aa = a.split("=", 1)
                 if len(aa) == 1:
                     kv[aa[0]] = None
                 else:
                     kv[aa[0]] = aa[1]
         return kv
+
+    def ticketAttachments(self):
+        return []
+
+    def getSubCaseTicketDescription(self):
+        return None
+
+    def ticketAssignee(self):
+        return None
 
 class TCAnon(TestCase):
     """The "anonymous testcase".
@@ -2242,19 +2252,34 @@ logdata call."""
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFile(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f)
+            if ret:
+                break
+        return ret
         
     def getFiles(self, *filename):
         """Look up a selection of names with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFiles(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f, multiple=True)
+            if ret:
+                break
+        return ret
 
     def fileExists(self, *filename):
         """Determine if a file exists with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.fileExists(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.fileExists(f)
+            if ret:
+                break
+        return ret
 
     def getDir(self, dirname):
         """Look up a name with the file manager."""
@@ -2262,12 +2287,19 @@ logdata call."""
 
     def setInputDir(self, dirname):
         """Set (or clear if dirname is None) a temporary INPUTDIR override."""
-        if not self.gec.filemanager:
-            raise XRTError("No filemanager object")
-        self.gec.filemanager.setInputDir(dirname)
+        if not dirname:
+            dirname = ""
+        xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR", dirname, fallbackToGlobal=True)
+
+    def getInputDir(self):
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", None)
+        if not inputDir:
+            inputDir = xenrt.TEC().lookup("INPUTDIR")
+        return inputDir
 
     def isReleasedBuild(self):
-        return self.gec.filemanager.isReleasedBuild()
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", xenrt.TEC().lookup("INPUTDIR"))
+        return "/release/" in inputDir
     
     def __str__(self):
         if self.tc:

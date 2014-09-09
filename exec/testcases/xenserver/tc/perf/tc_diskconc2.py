@@ -99,6 +99,8 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd")
 
             cloned_vm.start()
+            if not self.windows:
+                libsynexec.start_slave(cloned_vm, self.jobid)
 
     def runPrepopulate(self):
         for vm in self.vm:
@@ -117,28 +119,26 @@ clean all
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:
             # Run synexec master
-            proc, port = libsynexec.start_master_on_controller(
+            libsynexec.start_master_in_dom0(self.host,
                     """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
     pididx=0
-    /root/latency -s -t%s%s -b %d /dev/*d$i %d &> /root/out-$i &
-    pid[$pididx]=$!
+    /root/latency -s -t%s%s -b %d /dev/xvd\\$i %d &> /root/out-\\$i &
+    pid[\\$pididx]=\\$!
     ((pididx++))
 done
 
 for ((idx=0; idx<pididx; idx++)); do
-  wait ${pid[$idx]}
+  wait \\${pid[\\$idx]}
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
        " -z" if self.zeros else "", blocksize, self.duration),
                     self.jobid, len(self.vm))
 
             for vm in self.vm:
-                libsynexec.start_slave(vm, self.jobid, port)
-
-            proc.wait()
+                libsynexec.start_slave(vm, self.jobid)
 
             # Fetch results from slaves
             for vm in self.vm:
@@ -150,7 +150,7 @@ done
                                  (op, count + 1, blocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, line))
 
             # Fetch log from master
-            results = libsynexec.get_master_log_on_controller(self.jobid)
+            results = libsynexec.get_master_log(self.host)
             for line in results.splitlines():
                 self.log("master", "%d %s" % (blocksize, line))
 
@@ -338,6 +338,10 @@ Version 1.1.0
                 self.template.installLatency()
                 libsynexec.initialise_slave(self.template)
 
+            if self.distro.startswith("rhel") or self.distro.startswith("centos") or self.distro.startswith("oel"):
+                # When we clone this guest, we don't want it to remember its MAC address
+                self.template.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
             # Shutdown VM for cloning
             self.shutdown_vm(self.template)
         else:
@@ -350,7 +354,7 @@ Version 1.1.0
     def run(self, arglist=None):
         self.changeNrDom0vcpus(self.host, self.dom0vcpus)
 
-        libsynexec.initialise_master_on_controller(self.jobid)
+        libsynexec.initialise_master_in_dom0(self.host)
 
         guests = self.host.guests.values()
         self.installTemplate(guests)

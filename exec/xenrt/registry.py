@@ -19,6 +19,9 @@ class Registry:
         self.data = {}
         self.mylock = threading.Lock()
 
+    def dump(self):
+        xenrt.TEC().logverbose(self.data)
+
     # Generic operations
     def write(self, path, value):
         self.mylock.acquire()
@@ -130,7 +133,7 @@ class Registry:
         found = []
         for host in hosts:
             possibleHost = self.hostGet(host)
-            if hostName == possibleHost.getName():
+            if hostName == possibleHost.getName() or hostName == possibleHost.getIP():
                 found.append(possibleHost)
         return found
     

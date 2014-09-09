@@ -298,7 +298,9 @@ class _XSAutoCertKit(xenrt.TestCase):
                 if re.match("^.*%s$" % f, r):
                     xenrt.TEC().logverbose("Expecting failure for %s" % r)
                     optionalfail = True
-            if results[r] == "pass":
+            if results[r] == "skip":
+                result = xenrt.RESULT_SKIPPED
+            elif results[r] == "pass":
                 if fail:
                     result = xenrt.RESULT_FAIL
                 else:

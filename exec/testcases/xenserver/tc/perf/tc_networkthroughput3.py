@@ -174,6 +174,11 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 endpoints[endpoint].append(g)
 
         self.log(None, "self.nr_vm_pairs=%s, endpoint=%s, endpoints=%s, self.endpoints_of(endpoint)=%s" % (self.nr_vm_pairs, endpoint, endpoints, self.endpoints_of(endpoint)))
+
+        if endpoint.distro.startswith("rhel") or endpoint.distro.startswith("centos") or endpoint.distro.startswith("oel"):
+            # When we clone this guest, we don't want it to remember its MAC address
+            endpoint.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
         # clone as needed
         if self.nr_vm_pairs > len(self.endpoints_of(endpoint)):
             self.shutdown_endpoint(endpoint) #required state for cloning
@@ -343,6 +348,7 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         total_nr_vifs_per_host  = vifs_per_vm * (self.nr_vm_pairs * 2) / total_nr_hosts
         info["total_nr_vifs_per_host"]  = total_nr_vifs_per_host
         info["vifs_per_dom0vcpu"] = total_nr_vifs_per_host / self.dom0vcpus
+        info["dom0vcpus"] = self.dom0vcpus
         vif_pairs = vifs_per_vm * self.nr_vm_pairs
         info["vif_pairs"] = vif_pairs
         # sanity checks

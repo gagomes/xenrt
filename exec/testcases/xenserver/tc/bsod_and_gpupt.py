@@ -16,6 +16,8 @@ class Windows81GPUPTCrashtest(xenrt.TestCase):
 
         guest.crash()
 
+        xenrt.sleep(30)
+
         logdir = xenrt.TEC().getLogdir()
 
         filename = logdir + '/actual-bsod.jpg'
@@ -23,7 +25,7 @@ class Windows81GPUPTCrashtest(xenrt.TestCase):
         image = Image.open(filename)
 
         if not guest_lib.isBSODBlue(image):
-            raise xenrt.XRTError(
+            raise xenrt.XRTFailure(
                 'The screenshot [{0}] does not look like a BSOD'.format(
                     filename))
 

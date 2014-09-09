@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, string, time
+import sys, string, time, re
 import xenrt
 
 class TCStartStop(xenrt.LoopingTestCase):
@@ -321,3 +321,52 @@ class TCGuestUpdate(xenrt.TestCase):
             raise xenrt.XRTError("Upgraded VM has the same kernel as "
                                  "before the upgrade: %s" % (oldkver))
         xenrt.TEC().comment("New kernel version %s" % (newkver))
+
+class TCVerifyUEK(xenrt.TestCase):
+    """ Verify Oracle Enterprise Linux 6.5 is UEK by default(on Creedence)"""
+    
+    def __init__(self):
+        xenrt.TestCase.__init__(self, "TCVerifyUEK")
+        
+    def run(self, arglist=None):
+        gname = None
+
+        for arg in arglist:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+            elif l[0] == "config":
+                matching = xenrt.TEC().registry.guestLookup(\
+                            **xenrt.util.parseXMLConfigString(l[1]))
+                for n in matching:
+                    xenrt.TEC().comment("Found matching guest(s): %s" % (matching))
+                if matching:
+                    gname = matching[0]
+
+        if not gname:
+            raise xenrt.XRTError("No guest name specified")
+
+        guest = self.getGuest(gname)
+        host = guest.getHost()
+        
+        if guest.getState() == "DOWN":
+            guest.start()
+
+        self.getLogsFrom(host)
+        try:
+            kversion = guest.execguest("uname -r | grep 'uek' ").strip()
+        except Exception, e:
+            if not kversion:
+                raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+        
+        xenstoreEntry = host.xenstoreRead("/local/domain/%u/data/os_uname" %(guest.getDomid()))
+        vmparamUname = guest.paramGet('os-version','uname')
+        
+        #Additional check to make sure OEL is UEK by default (on creedence)
+        
+        if  not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)):
+            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+        elif not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
+            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+         
+        xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)

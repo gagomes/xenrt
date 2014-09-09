@@ -239,9 +239,12 @@ class  _VmGen(xenrt.TestCase):
         if self.guest.getState() != "UP":
             self.guest.start()
         preVmGenId = self.guest.retreiveVmGenId()
+        self.guest.shutdown()
         self.snapshot= self.guest.snapshot("snapshot_revert")
+        self.guest.start()
         self.guest.waitForAgent(180)
-        self.guest.revert(self.snapshot)        
+        self.guest.shutdown()
+        self.guest.revert(self.snapshot)
         self.vmlifecycle(self.guest)
         
         newVmGenId = self.guest.retreiveVmGenId()

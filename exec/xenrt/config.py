@@ -52,7 +52,7 @@ class Config:
         self.config["GUESTFILE_BASE_PATH"] = "/local/scratch/guestfiles"
         self.config["NFS_BASE_PATH"] = "/local/scratch/nfs"
         self.config["ISCSI_BASE_PATH"] = "/local/scratch/iscsi"
-        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache"
+        self.config["FILE_MANAGER_CACHE"] = "/local/scratch/cache2"
         self.config["CLEANUP_FLAGS_PATH"] = "/local/scratch/cleanup"
         self.config["RESOURCE_LOCK_DIR"] = "${NFS_BASE_PATH}/locks"
         self.config["DB_BUFFER_DIR"] = "${NFS_BASE_PATH}/dbconnect"
@@ -112,6 +112,7 @@ class Config:
         self.config["SITE_CONFIG_DIR"] = "${XENRT_CONF}/conf.d"
         self.config["XENRT_VERSION_CONFIG"] = "${XENRT_BASE}/VERSION"
         self.config["MACHINE_CONFIGS"] = "${XENRT_CONF}/machines"
+        self.config["MACHINE_CONFIGS_INPUT"] = "${XENRT_CONF}/machinesinput"
         self.config["SUITE_CONFIGS"] = "${XENRT_CONF}/suites"
         self.config["STARTUP_DIR"] = os.getcwd()
         self.config["LOG_DIR_BASE"] = "${STARTUP_DIR}/logs"
@@ -916,9 +917,16 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WIN8"] = "Windows 8 (32-bit),Windows 8 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WIN8_64"] = "Windows 8 (64-bit),Windows 8 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_WS12_64"] = "Windows Server 2012 (64-bit),Windows Server 2012 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_RHEL_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_CENTOS_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_OEL_7_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_SLES_12_64"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_UBUNTU_1404"] = "Other install media"
+        self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_UBUNTU_1404_64"] = "Other install media" 
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2047"
+        self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
         
         # Sarasota
         self.config["VERSION_CONFIG"]["Sarasota"] = {}
@@ -1672,7 +1680,8 @@ class Config:
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
-        self.config["CLOUD_CONFIG"]["master"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.5"])
+        # Specify which version 'master' currently maps to
+        self.config["CLOUD_MASTER_MAP"] = "4.5"
 
 
         self.config["GUEST_VIFS_centos41"] = "3"
@@ -1750,6 +1759,9 @@ class Config:
         self.config["PRODUCT_CODENAMES"]["6.4.94"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.95"] = "Creedence"
         self.config["PRODUCT_CODENAMES"]["6.4.96"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.97"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.98"] = "Creedence"
+        self.config["PRODUCT_CODENAMES"]["6.4.99"] = "Creedence"
 
         # Platform releases
         self.config["PLATFORM_CODENAMES"] = {}
@@ -3100,8 +3112,11 @@ class Config:
         # Burglarbill - sm, blktap. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1007"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1007/86311/hotfix-XS62ESP1007/XS62ESP1007.xsupdate"
         
-        # AliBaba - qemu, xen-hyp, openSSL, xapi. Rolls up XS62ESP1002,XS62ESP1004, XS62ESP1006,XS62ESP1007, XS62E014
+        # AliBaba - Kernel. Rolls up XS62ESP1002,XS62ESP1004, XS62ESP1006,XS62ESP1007, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1008/86714/hotfix-XS62ESP1008/XS62ESP1008.xsupdate"
+        
+        # Adele - Kernel. Rolls up XS62ESP1005
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1009/87218/hotfix-XS62ESP1009/XS62ESP1009.xsupdate"
 
 
 
@@ -3235,8 +3250,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF05"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1005"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF08"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

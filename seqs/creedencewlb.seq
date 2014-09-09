@@ -95,6 +95,9 @@
       <testcase id="xenserver.tc.kirkwood.TC21446"/>  <!-- creedence -->
       <testcase id="xenserver.tc.kirkwood.TC21448"/>  <!-- creedence -->
       <testcase id="xenserver.tc.kirkwood.TC21449"/>  <!-- creedence -->
+      <testcase id="xenserver.tc.kirkwood.TC21683"/>  <!-- creedence -->
+      <testcase id="xenserver.tc.kirkwood.TC21681"/>  <!-- creedence -->
+      <testcase id="xenserver.tc.kirkwood.TC21682"/>  <!-- creedence -->
     </serial>
     <serial group="ErrorHandling">
       <testcase id="xenserver.tc.kirkwood.TC8541"/>

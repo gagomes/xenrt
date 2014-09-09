@@ -22,6 +22,7 @@ class RHELKickStartFile :
                  ethmac=None,
                  vcpus=1,
                  memory=256,
+                 bootDiskFS="ext4",
                  bootDiskSize=100,
                  options={},
                  installOn=xenrt.HypervisorType.native,
@@ -44,6 +45,7 @@ class RHELKickStartFile :
         self.repository = repository
         self.method = method
         self.installOn = installOn
+        self.bootDiskFS = bootDiskFS
         self.bootDiskSize = bootDiskSize
         self.ethDevice=ethDevice
         self.extraPackages = extraPackages
@@ -179,7 +181,7 @@ zerombr
 # here so unless you clear all partitions first, this is
 # not guaranteed to work
 clearpart --all --initlabel
-part /boot --fstype=ext4 --size=%d --ondisk=%s
+part /boot --fstype=%s --size=%d --ondisk=%s
 part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
 volgroup VolGroup --pesize=32768 pv.8
 logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
@@ -198,12 +200,14 @@ e2fsprogs
 nfs-utils
 stunnel
 net-tools
+wget
 %s
 %%end
 """ % (self._url(),
        self.ethDevice,
        self._password(),
        self._timezone(),
+       self.bootDiskFS,
        self.bootDiskSize,
        self.mainDisk,
        self.mainDisk,
@@ -238,6 +242,8 @@ net-tools
 
         out = out+ """
 %%post
+echo "# Flush firewall rules to avoid blocking iperf, synexec, etc." >> /etc/rc.local
+echo "iptables -F" >> /etc/rc.local
 echo "sleep 10" >> /etc/rc.local
 echo "ping -c 1 `ip route show | grep default | awk '{print $3}'` || true" >> /etc/rc.local
 echo "sleep 10" >> /etc/rc.local
@@ -292,7 +298,7 @@ zerombr
 # here so unless you clear all partitions first, this is
 # not guaranteed to work
 clearpart --all --initlabel
-part /boot --fstype=ext4 --size=%d --ondisk=%s
+part /boot --fstype=%s --size=%d --ondisk=%s
 part pv.8 --grow --size=1 --ondisk=%s --maxsize=12000 
 volgroup VolGroup --pesize=32768 pv.8
 logvol / --fstype=ext4 --name=lv_root --vgname=VolGroup --grow --size=1024 --maxsize=51200
@@ -317,6 +323,7 @@ stunnel
        self.ethDevice,
        self._password(),
        self._timezone(),
+       self.bootDiskFS,
        self.bootDiskSize,
        self.mainDisk,
        self.mainDisk,

@@ -1,0 +1,298 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Sanibel</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <param>OPTION_KEEP_CVSM=yes</param>
+  </variables>
+
+
+   
+<prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="Red Hat Enterprise Linux 6.1">
+          <distro>rhel61</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <disk device="1" size="1" format="yes" />
+          <disk device="2" size="1" format="yes" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+
+        
+        <vm name="Red Hat Enterprise Linux 5.6">
+          <distro>rhel56</distro>
+          <memory>1024</memory>
+          <vcpus>4</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Debian Squeeze 6.0">
+          <distro>debian60</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>1</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      
+        <vm name="Windows Server 2012 R2">
+          <distro>ws12r2-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+     
+        <vm name="Red Hat Enterprise Linux 4.7">
+          <distro>rhel47</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Red Hat Enterprise Linux 6.2">
+          <distro>rhel62</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <disk device="1" size="1" format="yes" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+
+        <vm name="Windows 7 SP1">
+          <distro>win7sp1-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+
+        <vm name="SUSE Linux Enterprise Server 10 SP1">
+          <distro>sles101</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="CentOS 5.3">
+          <distro>centos53</distro>
+          <memory>512</memory>
+          <vcpus>1</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <disk device="1" size="10" format="yes" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+        
+        <vm name="Windows Server 2008">
+          <distro>ws08-x64</distro>
+          <arch>x86-64</arch>
+          <memory>2048</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+        
+        <vm name="Windows Server 2012">
+          <distro>ws12-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+        
+        <vm name="Windows Server 2012 R2">
+          <distro>ws12r2-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+        
+        <vm name="Red Hat Enterprise Linux 4.7">
+          <distro>rhel47</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="CentOS 6.2">
+          <distro>centos62</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+       
+        <vm name="SUSE Linux Enterprise Server 11">
+          <distro>sles11</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>5</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="License Server">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer" />
+        </vm>
+      </host>
+      
+      
+      <host id="1">
+        <vm name="Red Hat Enterprise Linux 6.0">
+          <distro>rhel6</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <network device="1" />
+          <disk device="0" size="8" />
+          <disk device="1" size="8" format="yes" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+      
+        <vm name="CentOS 5.5">
+          <distro>centos55</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Windows Server 2012 R2">
+          <distro>ws12r2-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+        
+        <vm name="Red Hat Enterprise Linux 4.7">
+          <distro>rhel47</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="CentOS 6.2">
+          <distro>centos62</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+       
+        <vm name="SUSE Linux Enterprise Server 11">
+          <distro>sles11</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>5</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="SUSE Linux Enterprise Server 10 SP3">
+          <distro>sles103</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Ubuntu Lucid Lynx 10.04">
+          <distro>ubuntu1004</distro>
+          <memory>128</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Red Hat Enterprise Linux 5.6">
+          <distro>rhel56</distro>
+          <memory>1024</memory>
+          <vcpus>4</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Debian Squeeze 6.0">
+          <distro>debian60</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>1</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+      
+        <vm name="Windows Server 2012 R2">
+          <distro>ws12r2-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="32" />
+        </vm>
+     
+        <vm name="Red Hat Enterprise Linux 4.7">
+          <distro>rhel47</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        
+        <vm name="Red Hat Enterprise Linux 6.2">
+          <distro>rhel62</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <disk device="1" size="1" format="yes" />
+          <storage>NFS Storage Repository 1</storage>
+        </vm>
+        
+        <vm name="Windows XP SP3">
+          <distro>winxpsp3</distro>
+          <memory>256</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="16" />
+          <storage>ISCSI Storage Repository 1</storage>
+        </vm>
+      </host>
+      
+      <storage type="nfs" name="NFS Storage Repository 1" />
+      <storage type="icvsmnetapp" name="NetApp ISCSI iSL Storage Repository 1" />
+      <storage type="lvmoiscsi" name="ISCSI Storage Repository 1" size="50" vmhost="0" options="ietvm" />
+    </pool>
+  </prepare>
+  
+  </xenrt>

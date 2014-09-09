@@ -314,7 +314,7 @@ class TC17438(_TC6860):
     """ Suspend/Resume of a sles 11.1 with "VCPUs-max > VCPU """
     xenrt.TEC().config.setVariable("VMLIFECYCLE_ITERS", "1")
     def installVM(self, host):
-        self.guest = host.createBasicGuest(distro="sles111")
+        self.guest = host.createBasicGuest(distro="sles112")
         _setVCPUMax(self.guest)
 
 class TC6861(_TC6860):

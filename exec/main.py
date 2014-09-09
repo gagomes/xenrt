@@ -29,7 +29,7 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys, xenrt.lib.hyperv, xenrt.lib.oraclevm
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys, xenrt.lib.hyperv, xenrt.lib.oraclevm, xenrt.lib.nativewindows
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
@@ -141,6 +141,8 @@ def usage(fd):
 
     --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
+    --make-machines                       Make all machine config files for this site
+    --make-machine <machine>              Make a single machine config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
     --shell-logs                          Open an interactive shell with logs
@@ -165,6 +167,7 @@ def usage(fd):
     --nmi <machine>                       Sent NMI to a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
+    --bootwinpe <machine>                 Boot a machine into WinPE
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
     --show-network6                       Display site IPv6 network details
@@ -204,6 +207,8 @@ existing = False
 aux = False
 sanitycheck = False
 makeconfigs = False
+makemachines = False
+makemachine = None
 switchconfig = False
 doshell = False
 shelllogging = False
@@ -241,6 +246,7 @@ powerhost = None
 poweroperation = None
 bootdiskless = False
 boothost = None
+bootwinpe = None
 ro = None
 dumpsuite = None
 listsuitetcs = None
@@ -259,7 +265,6 @@ knownissuelist = None
 knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
-loadmachines = None
 noloadmachines = False
 mconfig = None
 installguest = None
@@ -317,6 +322,8 @@ try:
                                       'email=',
                                       'sanity-check',
                                       'make-configs',
+                                      'make-machines',
+                                      'make-machine=',
                                       'switch-config',
                                       'shell',
                                       'shell-logs',
@@ -356,6 +363,7 @@ try:
                                       'nmi=',
                                       'mconfig=',
                                       'bootdiskless=',
+                                      'bootwinpe=',
                                       'perf-data=',
                                       'runon=',
                                       'check-suite=',
@@ -581,10 +589,17 @@ try:
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
+        elif flag == "--make-machines":
+            makemachines = True
+            noloadmachines = True
+            aux = True
+        elif flag == "--make-machine":
+            makemachine = value
+            noloadmachines = True
+            aux = True
         elif flag == "--switch-config":
             switchconfig = True
             aux = True
-            setvars.append(("RACKTABLES_IGNORE_MISSING_MACS", "yes"))
         elif flag == "--shell":
             doshell = True
             aux = True
@@ -712,29 +727,24 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "off"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--poweron":
             powercontrol = True
             powerhost = value
             poweroperation = "on"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--powercycle":
             powercontrol = True
             powerhost = value
             poweroperation = "cycle"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--nmi":
             powercontrol = True
             powerhost = value
             poweroperation = "nmi"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--mconfig":
             mconfig = value
-            loadmachines = [value]
             aux = True
         elif flag == "--pdu":
             forcepdu = True
@@ -743,7 +753,10 @@ try:
             boothost = value
             aux = True
             verbose = True
-            loadmachines = [boothost]
+        elif flag == "--bootwinpe":
+            bootwinpe = value
+            aux = True
+            verbose = True
         elif flag == "--dump-suite":
             dumpsuite = value
             aux = True
@@ -894,59 +907,26 @@ for f in perfcheck:
 
 machines = []
 for machine in config.lookup("HOST_CONFIGS", {}).keys():
-    if loadmachines and machine not in loadmachines:
-        continue
     machines.append(machine)
-    if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
-        try:
-            xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-        except Exception, e:
-            xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
 
-        
-
-# Read in all machine config files
-hcfbase = config.lookup("MACHINE_CONFIGS", None)
-if not hcfbase:
-    sys.stderr.write("Could not find machine config directory.\n")
-    sys.exit(1)
-files = glob.glob("%s/*.xml" % (hcfbase))
-files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
-for filename in files:
-    r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
-    if r:
-        machine = r.group(1)
-        if loadmachines and machine not in loadmachines:
-            continue
-        machines.append(machine)
-        try:
-            config.readFromFile(filename, path=["HOST_CONFIGS", machine])
-        except:
-            sys.stderr.write("Warning: Could not read from %s\n" % filename)
-        if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+if not noloadmachines:
+    # Read in all machine config files
+    hcfbase = config.lookup("MACHINE_CONFIGS", None)
+    if not hcfbase:
+        sys.stderr.write("Could not find machine config directory.\n")
+        sys.exit(1)
+    files = glob.glob("%s/*.xml" % (hcfbase))
+    files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
+    for filename in files:
+        r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
+        if r:
+            machine = r.group(1)
+            if not machine in machines:
+                machines.append(machine)
             try:
-                xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-            except Exception, e:
-                xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
-                
-
-if loadmachines:
-    for m in loadmachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m)
+                config.readFromFile(filename, path=["HOST_CONFIGS", machine])
             except:
-                pass
-elif config.lookup("XENRT_SITE", None) and not noloadmachines:
-    sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
-    for m in sitemachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m, kvm=shownetwork)
-                machines.append(m)
-            except:
-                pass
-            
+                sys.stderr.write("Warning: Could not read from %s\n" % filename)
 
 # Populate the knownissues list with any issues specified in config files
 for var, varval in config.getWithPrefix("KNOWN_"):
@@ -975,7 +955,7 @@ if not remote:
         remote = True
 
 # Select a suitable file manager
-gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+gec.filemanager = xenrt.filemanager.getFileManager()
 
 #############################################################################
 def existingHost(hostname):
@@ -995,9 +975,14 @@ def existingHost(hostname):
             ips.append(place.getNICAllocatedIPAddress(n)[0])
         except:
             pass
+    place.checkWindows(ipList = ips)
     place.findPassword(ipList = ips)
     place.checkVersion()
-    if place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
+    if place.productType == "hyperv":
+        host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
+    elif place.productType == "nativewindows":
+        host = xenrt.lib.nativewindows.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
+    elif place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":
         host = xenrt.lib.native.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
@@ -1229,6 +1214,13 @@ if sanitycheck:
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)
     sys.exit(ret)
+
+if makemachines:
+    xenrt.infrastructuresetup.makeMachineFiles(config)
+    sys.exit(0)
+elif makemachine:
+    xenrt.infrastructuresetup.makeMachineFiles(config, makemachine)
+    sys.exit(0)
 
 if shownetwork:
     if shownetwork6:
@@ -1467,7 +1459,7 @@ if installpackages:
             var, value = sv
             config.setVariable(var, value)
 
-    if xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
+    if xenrt.TEC().lookup("MARVIN_VERSION", None) or xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("ACS_BUILD", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
         xenrt.util.command("pip install %s" % xenrt.getMarvinFile())
     else:
         print "CLOUDINPUTDIR not specified, so marvin is not required"
@@ -1577,7 +1569,7 @@ if replaydb:
 if cleanupfilecache:
     xenrt.TEC().logverbose("Cleaning shared file cache...")
     days = xenrt.TEC().lookup("FILECACHE_EXPIRY_DAYS", None)
-    rfm = xenrt.filemanager.RemoteFileManager()
+    rfm = xenrt.getFileManager()
     if days:
         rfm.cleanup(days=int(days))
     else:
@@ -1633,13 +1625,14 @@ if cleanupnfsdirs:
                 try:
                     if xenrt.canCleanJobResources(j):
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
-                except:
+                except Exception, e:
+                    xenrt.TEC().logverbose(str(e))
                     continue
             if m:
                 m.unmount()
         except:
             pass
-    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS")
+    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS", {})
     for n in smbConfig.keys():
         try:
             staticMount = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "STATIC_MOUNT"], None)
@@ -1865,6 +1858,13 @@ if setupsharedhost:
         net = host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % bondPif)[0]
         host.genParamSet("network", net, "name-label", "Pool-wide network associated with eth0")
 
+        cli = host.getCLIInstance()
+        if sh.has_key("VLANS"):
+            for v in sh['VLANS'].keys():
+                vlan = sh['VLANS'][v]
+                nw = cli.execute("network-create name-label=%s" % v).strip()
+                cli.execute("vlan-create pif-uuid=%s network-uuid=%s vlan=%s" % (bondPif, nw, vlan))
+
         templates = sh["TEMPLATES"]
         for t in templates.keys():
             sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))
@@ -1963,6 +1963,8 @@ if cleanupsharedhosts:
                 try:
                     m = re.match(".*-(\d+$)", v)
                     if m:
+                        if m.group(1) == "64": # This actually indicates a 64-bit VM!
+                            continue
                         xrs = xenrt.ctrl.XenRTStatus(None)                
                         try:
                             if xenrt.canCleanJobResources(m.group(1)):
@@ -1993,12 +1995,27 @@ if bootdiskless:
     h = xenrt.GenericHost(machine) 
     h.bootRamdiskLinux() 
 
+if bootwinpe:
+    machine = xenrt.PhysicalHost(bootwinpe)
+    h = xenrt.GenericHost(machine) 
+    pxe = xenrt.PXEBoot()
+    winpe = pxe.addEntry("winpe", default=True, boot="memdisk")
+    winpe.setInitrd("winpe/winpe.iso")
+    winpe.setArgs("iso raw")
+    pxe.writeOut(machine)
+    machine.powerctl.cycle()
+    xenrt.TEC().logverbose("Machine will reboot into WinPE")
+    
+
 if powercontrol:
     # Setup logdir
     if forcepdu:
         powerctltype = "APCPDU"
     else:
         powerctltype = None
+    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS").keys():
+        print "Loading %s from Racktables" % powerhost
+        xenrt.readMachineFromRackTables(powerhost)
     machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
     h = xenrt.GenericHost(machine)
     machine.powerctl.setVerbose()
@@ -2459,7 +2476,7 @@ else:
     # one then recreate the filemanager
     inputdir2 = xenrt.TEC().lookup("INPUTDIR", None)
     if inputdir1 != inputdir2 and not inputdir1:
-        gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+        gec.filemanager = xenrt.filemanager.getFileManager()
     if seqdump:
         if seq.prepare:
             seq.prepare.debugDisplay()

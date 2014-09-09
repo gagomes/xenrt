@@ -30,7 +30,7 @@ class CloudStack(object):
                         "KVM": "QCOW2",
                         "VMware": "OVA",
                         "Hyperv": "VHD",
-                        "LXC": "tar.gz"}
+                        "LXC": "TAR"}
 
     def __init__(self, place=None, ip=None):
         assert place or ip
@@ -163,7 +163,13 @@ class CloudStack(object):
     
             hypervisor = None
             if hypervisorType:
-                hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
+                if hypervisorType in self.__hypervisorTypeMapping.keys():
+                    # This is a slight abuse of the interface, however it avoids
+                    # unnecessary complications in sequence files with multiple names
+                    # for the same hypervisor!
+                    hypervisor = hypervisorType
+                else:
+                    hypervisor = self.hypervisorTypeToHypervisor(hypervisorType)
             startOnId = None
             startOnZoneId = None
             if startOn:
@@ -607,11 +613,18 @@ class CloudStack(object):
     def getLogs(self, path):
         sftp = self.mgtsvr.place.sftpClient()
         sftp.copyLogsFrom(["/var/log/cloudstack"], path)
-        sftp.close()
-        if xenrt.TEC() == xenrt.GEC().anontec:
+        if xenrt.TEC() == xenrt.GEC().anontec or xenrt.TEC().lookup("ALWAYS_DUMP_CS_DB", False, boolean=True):
             # CP-9393 We're the anonymous TEC, which means we are collecting job
             # logs, so get a database dump in addition to other logs
             self.mgtsvr.getDatabaseDump(path)
+        if xenrt.TEC() == xenrt.GEC().anontec and xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
+            self.mgtsvr.stop()
+            try:
+                sftp.copyTreeFrom("/coverage_results", path)
+            except:
+                xenrt.TEC().warning("Unable to collect code coverage data")
+            self.mgtsvr.start()
+        sftp.close()
 
     def addTemplateIfNotPresent(self, hypervisor, templateFormat, distro, url, zone):
 
@@ -714,6 +727,16 @@ class CloudStack(object):
 
         return self.marvin.cloudApi.listHosts(type="routing")
 
+    def getAllHostInClusterByClusterId(self,clusterId):
+
+        hostsInClusters = []
+        hosts = self.getAllHypervisors()
+        for h in hosts:
+            if h.clusterid == clusterId:
+                hostsInClusters.append(h)
+
+        return hostsInClusters
+
     def _createDestroyInstance(self,host,distro=None):
 
         if not distro:
@@ -751,7 +774,7 @@ class CloudStack(object):
             xenrt.TEC().reason(reason)
             raise xenrt.XRTFailure(reason)
 
-    def _level1HealthCheck(self):
+    def _level1HealthCheck(self,ignoreHosts=None):
 
         errors = []
 
@@ -760,6 +783,10 @@ class CloudStack(object):
         xenrt.TEC().logverbose("Checking all the host in the cloud")
         hosts = self.getAllHypervisors()
         for host in hosts:
+            if ignoreHosts:
+                for h in ignoreHosts:
+                    if host.name == h.name:
+                        continue
             if host.state != 'Up':
                 msg = 'Host %s is DOWN as per CLOUD' % host.name
                 errors.append(msg)
@@ -797,13 +824,14 @@ class CloudStack(object):
                 errors.append(msg)
                 xenrt.TEC().reason(msg)
 
-        xenrt.TEC().logverbose("Checking all the Networks in the cloud")
-        nws = self.marvin.cloudApi.listNetworks()
-        for nw in nws:
-            if nw.state != 'Setup':
-                msg = 'Network %s is DOWN as per CLOUD' % nw.name
-                errors.append(msg)
-                xenrt.TEC().reason(msg)
+        #Commenting this out for the time being
+        #xenrt.TEC().logverbose("Checking all the Networks in the cloud")
+        #nws = self.marvin.cloudApi.listNetworks()
+        #for nw in nws:
+        #    if nw.state != 'Setup':
+        #        msg = 'Network %s is DOWN as per CLOUD' % nw.name
+        #        errors.append(msg)
+        #        xenrt.TEC().reason(msg)
 
         xenrt.TEC().logverbose("Checking Primary Storage in the cloud")
         sps = self.marvin.cloudApi.listStoragePools()
@@ -867,11 +895,11 @@ class CloudStack(object):
 
         return errors
 
-    def healthCheck(self):
+    def healthCheck(self,listDownHost=None):
 
         errors = []
 
-        errors = self._level1HealthCheck()
+        errors = self._level1HealthCheck(listDownHost)
         if len(errors) > 0:
             xenrt.TEC().logverbose("Level 1 Health check of Cloud has failed")
             xenrt.TEC().logverbose(errors)
@@ -893,6 +921,39 @@ class CloudStack(object):
             raise xenrt.XRTFailure(m)
 
         xenrt.TEC().logverbose("No problem found during the healthcheck of Cloud")
+
+    def postDeploy(self):
+        # Perform any post deployment steps
+        if xenrt.TEC().lookup("WORKAROUND_CSTACK7320", False, boolean=True) and \
+           "LXC" in [h.hypervisor for h in self.cloudApi.listHosts(type="routing")]:
+            ostypeid = [x for x in self.cloudApi.listOsTypes(description="CentOS 6.5 (64-bit)") if x.description=="CentOS 6.5 (64-bit)"][0].id
+            response = self.cloudApi.registerTemplate(zoneid=-1,
+                                                      ostypeid=ostypeid,
+                                                      name="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      displaytext="CentOS 6.5(64-bit) no GUI (LXC)",
+                                                      ispublic=True,
+                                                      isextractable=True,
+                                                      isfeatured=True,
+                                                      url="%s/cloudTemplates/centos65_x86_64_2.tar.gz" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"),
+                                                      hypervisor="LXC",
+                                                      format="TAR",
+                                                      requireshvm=False)
+            templateId = response[0].id
+            # Now wait until the Template is ready
+            deadline = xenrt.timenow() + 3600
+            xenrt.TEC().logverbose("Waiting for Template to be ready")
+            while True:
+                try:
+                    template = self.cloudApi.listTemplates(templatefilter="all", id=templateId)[0]
+                    if template.isready:
+                        break
+                    else:
+                        xenrt.TEC().logverbose("Status: %s" % template.status)
+                except:
+                    pass
+                if xenrt.timenow() > deadline:
+                    raise xenrt.XRTError("Timed out waiting for LXC template to be ready")
+                xenrt.sleep(15)
 
 class NetworkProvider(object):
 

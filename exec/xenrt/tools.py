@@ -1641,23 +1641,13 @@ def NICCSV(machine):
     except Exception,e:
         print "Exception %s creating CSV for machine %s" % (str(e),machine)
 
-def dictToXML(d, indent):
-    xml = ""
-    for k in sorted(d.keys()):
-        if isinstance(d[k], dict):
-            xml += "%s<%s>\n%s%s</%s>\n" % (indent, k, dictToXML(d[k], indent + "  "),indent, k)
-            pass
-        else:
-            xml += "%s<%s>%s</%s>\n" % (indent, k, escape(d[k]), k)
-    return xml
-
 def machineXML(machine=None):
     if machine:
         cfg = xenrt.TEC().lookup(["HOST_CONFIGS",machine],{})
-        xml = "<xenrt>\n%s</xenrt>" % dictToXML(cfg, "  ")
+        xml = "<xenrt>\n%s</xenrt>" % xenrt.dictToXML(cfg, "  ")
     else:
         cfg = xenrt.TEC().lookup("HOST_CONFIGS",{})
-        xml = "<xenrt>\n  <HOST_CONFIGS>\n%s  </HOST_CONFIGS>\n</xenrt>" % dictToXML(cfg, "    ")
+        xml = "<xenrt>\n  <HOST_CONFIGS>\n%s  </HOST_CONFIGS>\n</xenrt>" % xenrt.dictToXML(cfg, "    ")
     print xml
 
 def productCodeName(version):

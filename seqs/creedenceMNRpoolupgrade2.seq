@@ -8,6 +8,7 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <RPU_WINDOWS_VERSION>ws08sp2-x86</RPU_WINDOWS_VERSION>
+    <RPU_LINUX_VERSION>oel65</RPU_LINUX_VERSION>
   </variables>
 
   <prepare>
@@ -19,6 +20,9 @@
 
   <testsequence>
     <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765"/>
+    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEK" tc="TC-21671">
+        <arg>guest=Linux</arg>
+    </testcase>
   </testsequence>
 
 </xenrt>

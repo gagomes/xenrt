@@ -925,7 +925,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["TEMPLATE_NAME_UBUNTU_1404_64"] = "Other install media" 
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
-        self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2047"
+        self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
         self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
         
         # Sarasota
@@ -1127,7 +1127,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VLANS_PER_HOST_VSWITCH"] = "800"
         self.config["VERSION_CONFIG"]["Sarasota"]["VIF_PER_VM"] = "7"
         self.config["VERSION_CONFIG"]["Sarasota"]["LOCAL_DISK_TiB"] = "6"
-        self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VBDS_PER_HOST"] = "2047"
+        self.config["VERSION_CONFIG"]["Sarasota"]["MAX_VBDS_PER_HOST"] = "2048"
         
         # Creedence
         self.config["VERSION_CONFIG"]["Creedence"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Sarasota"])

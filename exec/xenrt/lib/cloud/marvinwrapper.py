@@ -257,7 +257,7 @@ class MarvinApi(object):
         elif provider == 'SMB':
             ad = xenrt.getADConfig()
             self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
-        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
+        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
             webdir.copyIn(templateFile)

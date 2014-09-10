@@ -152,6 +152,9 @@ class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
         
         self.runner.execguest("python /root/cloudstack/tools/marvin/marvin/deployDataCenter.py -i /root/marvin.cfg")
         cloud = xenrt.lib.cloud.CloudStack(self.getGuest("CS-MS"))
+        cloud.mgtsvr.restart()
+        marvin = xenrt.lib.cloud.MarvinApi(cloud.mgtsvr)
+        marvin.waitForBuiltInTemplatesReady()
         xenrt.GEC().registry.toolstackPut("cloud", cloud)
         self.getDefaultToolstack()
 

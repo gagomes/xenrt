@@ -5135,7 +5135,7 @@ class GenericHost(GenericPlace):
                     self.tailor()
                 return
             try:
-                self.execdom0("/sbin/reboot", timeout=600)
+                self.execdom0("/sbin/reboot", timeout=timeout)
             except Exception, e:
                 xenrt.TEC().logverbose(str(e))
             rebootTime = xenrt.util.timenow()

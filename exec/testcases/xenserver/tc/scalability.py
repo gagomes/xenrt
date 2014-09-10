@@ -2922,7 +2922,7 @@ class _VBDScalability(_Scalability):
          
         if vdiCount < maxVbds :
             raise xenrt.XRTFailure("Asked to create %u VDIs, only managed "
-                                        "to create %u" % (max,vdiCount))
+                                        "to create %u" % (maxVbds,vdiCount))
         else:
             xenrt.TEC().value("numberVDIs",vdiCount)
          

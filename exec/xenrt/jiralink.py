@@ -149,7 +149,7 @@ class JiraLink:
             {'file':"*/cloudstack/management/localhost*", 'desc':"Local Host log",
                 'pattern':r'(?:.*\n){0,1}(?:.*SEVERE\:.+)(?:.*\n){0,10}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
 
-            {'file':"*/cloudstack/management/agent.log*", 'desc':"Agent logs",
+            {'file':"*/cloudstack/agent.log*", 'desc':"Agent logs",
                 'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1}
         ]
         desc = "\n"

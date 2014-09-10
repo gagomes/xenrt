@@ -212,7 +212,7 @@ class MarvinApi(object):
                     break
                 if templateList[0].hypervisor.lower() == "hyperv":
                     # CS-20595 - Hyper-V downloads are very slow
-                    timeout = 7200
+                    timeout = 10800
             else:
                 raise xenrt.XRTFailure('>1 template found with name %s' % (name))
 

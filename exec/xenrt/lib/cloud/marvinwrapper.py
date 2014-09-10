@@ -260,6 +260,7 @@ class MarvinApi(object):
         installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
+            xenrt.TEC().logverbose("Using %s system VM template %s (md5sum: %s)" % (hv, templates[hv], xenrt.command("md5sum %s" % templateFile)))
             webdir.copyIn(templateFile)
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 

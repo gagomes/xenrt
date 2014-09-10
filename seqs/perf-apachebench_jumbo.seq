@@ -13,22 +13,22 @@
     <prepare>
       <pool>
         <host id="0">
-          <NETWORK>$
-            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">$
-              <MANAGEMENT/>$
-              <NIC/>$
-              <VMS/>$
-            </PHYSICAL>$
-          </NETWORK>$
+          <NETWORK>
+            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">
+              <MANAGEMENT/>
+              <NIC/>
+              <VMS/>
+            </PHYSICAL>
+          </NETWORK>
         </host>
         <host id="1">
-          <NETWORK>$
-            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">$
-              <MANAGEMENT/>$
-              <NIC/>$
-              <VMS/>$
-            </PHYSICAL>$
-          </NETWORK>$
+          <NETWORK>
+            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">
+              <MANAGEMENT/>
+              <NIC/>
+              <VMS/>
+            </PHYSICAL>
+          </NETWORK>
         </host>
       </pool>
     </prepare>

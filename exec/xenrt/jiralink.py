@@ -140,16 +140,16 @@ class JiraLink:
             {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
                 'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'},
 
-            {'file':"*/management-server.log*", 'desc':"Management server logs",
+            {'file':"*/cloudstack/management/management-server.log*", 'desc':"Management server logs",
                 'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
 
-            {'file':"*/apilog.log*", 'desc':"API logs",
+            {'file':"*/cloudstack/management/apilog.log*", 'desc':"API logs",
                 'pattern':r'(?:.*\n){0,5}(?:.*exception.+)(?:.*\n){0,5}','type':"CLOUD"},
 
-            {'file':"*/localhost*", 'desc':"Local Host log",
+            {'file':"*/cloudstack/management/localhost*", 'desc':"Local Host log",
                 'pattern':r'(?:.*\n){0,1}(?:.*SEVERE\:.+)(?:.*\n){0,10}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
 
-            {'file':"*/agent.log*", 'desc':"Agent logs",
+            {'file':"*/cloudstack/management/agent.log*", 'desc':"Agent logs",
                 'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1}
         ]
         desc = "\n"

@@ -536,3 +536,45 @@ class TCXapiStopped(_TCHostResiliencyBase):
     def recover(self,host):
 
         host.execdom0("service xapi start")
+
+class TCBlockVcenter(_TCHostResiliencyBase):
+
+    def outage(self,host,csHost):
+
+        if csHost.hypervisor != "vmware":
+            msg = "This testcase is only valid for VMWare and not for any other Hypervisor"
+            xenrt.TEC().logverbose(msg)
+            raise xenrt.XRTError(msg)
+
+        ms=xenrt.TEC().registry.guestGet('CS-MS')
+        vc = xenrt.TEC().lookup("VCENTER")
+        ms.execcmd("iptables -A INPUT -s %s -j DROP" % (vc['ADDRESS']))
+        ms.execcmd("iptables -A OUTPUT -s %s -j DROP" % (vc['ADDRESS']))
+ 
+    def recover(self,host):
+
+        ms=xenrt.TEC().registry.guestGet('CS-MS')
+        vc = xenrt.TEC().lookup("VCENTER")
+        ms.execcmd("iptables -D INPUT -s %s -j DROP" % (vc['ADDRESS']))
+        ms.execcmd("iptables -D OUTPUT -s %s -j DROP" % (vc['ADDRESS']))        
+
+    def postOutageCheck(self):
+
+        xenrt.sleep(900)
+        for host in self._hypervisors:
+            if host.state != 'Down':
+                raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % self.csHost.name)
+
+    def run(self,arglist):
+
+        multipleHost = []
+        singleHost = []
+        multipleHost = self._getMultipleHostCluster()
+        singleHost = self._getSingleHostCluster()
+
+        h1 = xenrt.TEC().registry.hostFind(multipleHost[0].name)[0]
+        h2 = xenrt.TEC().registry.hostFind(multipleHost[1].name)[0]
+
+        self._rearrangeCloud(singleHost[0],multipleHost[0],multipleHost[1])
+        self._resilliencyTest(h1,multipleHost[0])
+ 

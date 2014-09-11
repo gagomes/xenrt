@@ -411,6 +411,12 @@ EOF
         self.execdom0("echo 'public.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
         self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 
+        # Log the commit
+        try:
+            xenrt.TEC().logverbose("ACS/CCP agent was built from commit %s" % self.execdom0("cloudstack-sccs"))
+        except:
+            xenrt.TEC().warning("Error when trying to identify agent version")
+
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")
         self.execdom0("touch /var/lib/xenrt/cloudTailored")

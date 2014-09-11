@@ -219,6 +219,11 @@ class ManagementServer(object):
             self.restart()
             xenrt.TEC().logverbose("...done")
 
+        try:
+            xenrt.TEC().logverbose("Management server was built from commit %s" % self.place.execcmd("cloudstack-sccs"))
+        except:
+            xenrt.TEC().warning("Error when trying to identify management server version")
+
     def installApacheProxy(self):
         self.place.execcmd("yum -y install httpd")
         self.place.execcmd("echo ProxyPass /client http://127.0.0.1:8080/client > /etc/httpd/conf.d/cloudstack.conf")

@@ -55,7 +55,7 @@
       <testcase id="testcases.xenserver.tc.gui.TestCompleteDVSCSetup" blocker="yes">
         <arg>http://hg.uk.xensource.com/closed/guitest/sarasota.hg</arg>
       </testcase>
-      <testcase id="testcases.xenserver.tc.gui.LocalXenRTInfiniteLoop" tc="LocalXenRTInfiniteLoop" name="LocalXenRTInfiniteLoop">
+      <testcase id="testcases.xenserver.tc.gui.LocalXenRTInfiniteLoop" name="LocalXenRTInfiniteLoop">
       </testcase>
    </serial>
   </testsequence>

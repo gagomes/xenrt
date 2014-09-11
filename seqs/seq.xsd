@@ -9,7 +9,7 @@
 
   <xs:simpleType name="groupType">
     <xs:restriction base="xs:string">
-      <xs:pattern value=".{1,32}"/>
+      <xs:pattern value=".{1,32}|.*\$.*"/>
     </xs:restriction>
   </xs:simpleType>
   
@@ -45,7 +45,7 @@
 
   <xs:simpleType name="tcIdType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="TC-\d+|.*$.*"/>
+      <xs:pattern value="TC-\d+|.*\$.*"/>
     </xs:restriction>
   </xs:simpleType>
 

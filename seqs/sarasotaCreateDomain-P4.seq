@@ -47,7 +47,7 @@
       </testcase>
     </serial>
     <serial group="CreateDomain">
-      <testcase id="testcases.xenserver.tc.gui.TestComplete" tc="DMCSetup" name="DMCSetup">
+      <testcase id="testcases.xenserver.tc.gui.TestComplete" name="DMCSetup">
         <arg>http://hg.uk.xensource.com/closed/guitest/sarasota.hg</arg>
         <arg>DMCSetup</arg>
         <arg>DMCSetup</arg>

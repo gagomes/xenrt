@@ -541,7 +541,7 @@ class TCBlockVcenter(_TCHostResiliencyBase):
 
     def outage(self,host,csHost):
 
-        if csHost.hypervisor != "vmware":
+        if csHost.hypervisor != "VMware":
             msg = "This testcase is only valid for VMWare and not for any other Hypervisor"
             xenrt.TEC().logverbose(msg)
             raise xenrt.XRTError(msg)

@@ -522,6 +522,12 @@ if __name__ == '__main__':
                     com.run("mstatus", [m, "running"])
                 for machine in machines:
                     com.run("event", ["JobStart", machine, j])
+
+                # Set the user of the job to the DB events table for quick access later
+                data = com.run("status", ["%s" % j])
+                if data.has_key("USERID"):
+                    com.run("event", ["JobStartUser", data["USERID"], j])
+
                 start_job(j)
                 starttimes.append(now)
                 maystart = maystart - 1

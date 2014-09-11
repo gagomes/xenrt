@@ -4,9 +4,9 @@ import os,urllib,re,sys
 
 print os.environ
 
-seq = "clearwatercert.seq"
-rev = "6.2.0-70446"
-inputs = "/usr/groups/xen/carbon/clearwater/70446"
+seq = "creedenceautocertkit.seq"
+rev = "6.4.96-88221"
+inputs = "/usr/groups/xen/carbon/creedence/88221"
 
 if os.environ['No Bonding Tests'] == "true":
     noBond = "-D SINGLE_NIC=yes"

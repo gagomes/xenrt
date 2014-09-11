@@ -1459,8 +1459,8 @@ exit /B 1
                         if self.host.xenstoreExists(otherpath):
                             upvalue = othervalue or self.host.xenstoreRead(otherpath)
                             upkey = otherkey
-                        else:
-                            upkey = defaultkey
+                        #else:
+                        #    upkey = defaultkey
                     resttime = deadline - xenrt.util.timenow()
 
         xenrt.TEC().logverbose("waitForAgent() expired (domid = %d)" % (domid))

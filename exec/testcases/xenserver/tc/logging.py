@@ -68,6 +68,13 @@ class TC6710(xenrt.TestCase):
         step("Check the message reached the syslogd")
         if guest.execguest("grep %s /var/log/syslog*" % (msg),retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server")
+        
+        step("Check the message is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+            if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("grep %s /var/log/xensource.log" % (msg),retval="code") != 0:
+            raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
 
         step("Spam the syslog to ensure the next check doesn't see old entries")
         host.execdom0('for (( i=0;i<6000;i++ )); do logger -t xenrt "logspam $i"; done')
@@ -79,6 +86,13 @@ class TC6710(xenrt.TestCase):
         step("Check the \"xapi (re)start message\" reached the syslogd")
         if guest.execguest("tail -n 6000 /var/log/syslog | grep '(Re)starting xapi'", retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server (xapi)")
+        
+        step("Check the \"xapi (re)start message\" is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+            if host.execdom0("tail -n 6000 /var/log/messages | grep '(Re)starting xapi'", retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("tail -n 6000 /var/log/xensource.log | grep '(Re)starting xapi'", retval="code") != 0:
+            raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
 
         step("Stop the remote syslog server and verify the host still works")
         if useRsyslog:
@@ -103,9 +117,17 @@ class TC6710(xenrt.TestCase):
         host.execdom0("logger -t xenrt '%s'" % (msg))
         time.sleep(20)
         
+        step("Check the message reached the syslogd")
         if guest.execguest("grep %s /var/log/syslog*" % (msg), retval="code") != 0:
             raise xenrt.XRTFailure("syslog message not found on syslog server after restart")
 
+        step("Check the message is populated in Host")
+        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+            if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        elif host.execdom0("grep %s /var/log/xensource.log" % (msg),retval="code") != 0:
+                raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
+        
         step("Spam the syslog to ensure the next check doesn't see old entries")
         host.execdom0('for (( i=0;i<6000;i++ )); do logger -t xenrt "logspam $i"; done')
 

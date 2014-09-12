@@ -3593,6 +3593,21 @@ exit /B 1
                     if eip:
                         raise xenrt.XRTFailure(eip + desc)
                 finally:
+                    
+                    try:
+                        # use key presses to log /var/log/syslog to the console
+                        
+                        self.sendVncKeys([0x72, 0x6f, 0x6f, 0x74, 0x0d]) #root
+                        xenrt.sleep(10)
+                        
+                        self.sendVncKeys([0x78, 0x65, 0x6e, 0x72, 0x6f, 0x6f, 0x74, 0x0d]) #xenroot
+                        xenrt.sleep(10)
+                        
+                        self.sendVncKeys([0x63, 0x61, 0x74, 0x20, 0x2f, 0x76, 0x61, 0x72, 0x2f, 0x6c, 0x6f, 0x67, 0x2f, 0x73, 0x79, 0x73, 0x6c, 0x6f, 0x67, 0x0d]) #cat /var/log/syslog
+                        xenrt.sleep(30)
+                    except Exception, ex:
+                        xenrt.TEC().logverbose("Exception sending keys for guest syslog: " + str(ex))
+
                     # Send sysrq-t, -m, -p and -w to the VM if it's Linux
                     for key in ('9', 't', 'm', 'p', 'w'):
                         xenrt.TEC().logverbose("Sending sysrq-%s to %s" % 

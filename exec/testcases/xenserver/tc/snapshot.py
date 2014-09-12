@@ -2791,38 +2791,41 @@ class TC18784(xenrt.TestCase):
         if self.vdiuuid:
             self.host.destroyVDI(self.vdiuuid)
 
-class TC21699(_VDISnapshotBase):
+class TC21699(_VMSnapshotBase):
     """Verify no exceptions thrown when exporting metadata of shapshot."""
 
     SRTYPE = "ext"
+    VMNAME = "Linux-VM"
 
     def run(self, arglist):
+        # Default VDI sizes to 100Mb.
+        self.size = 100*1024*1024
+        self.vdis = []
+
         self.host = self.getDefaultHost()
         srs = self.host.getSRs(type=self.SRTYPE)
         if not srs:
             raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
         self.sr = srs[0]
-        g = self.createguest()
 
         xenrt.TEC().logverbose("Creating a test VDI.")
         vdiuuid = self.host.createVDI(self.size,
-                                      sruuid=self.sr,
-                                      smconfig=self.VDICREATE_SMCONFIG)
+                                      sruuid=self.sr)
         self.vdis.append(vdiuuid)
 
         xenrt.TEC().logverbose("Plugging VDI.")
-        userdevice = g.createDisk(vdiuuid=vdiuuid)
+        userdevice = self.guest.createDisk(vdiuuid=vdiuuid)
         device = self.host.parseListForOtherParam("vbd-list",
                                                   "vm-uuid",
-                                                   g.getUUID(),
+                                                   self.guest.getUUID(),
                                                   "device",
                                                   "userdevice=%s" % 
                                                   (userdevice))
         xenrt.TEC().logverbose("Formatting VDI within VM.")
         time.sleep(30)
-        g.execguest("mkfs.ext2 /dev/%s" % (device))
+        self.guest.execguest("mkfs.ext2 /dev/%s" % (device))
 
-        self.host.execdom0("xe vm-snapshot uuid=%s new-name-label=newsnapshot" % g.getUUID())
+        self.host.execdom0("xe vm-snapshot uuid=%s new-name-label=newsnapshot" % self.guest.getUUID())
         self.host.execdom0("xe-backup-metadata -c -u %s" % self.sr)
 
         errorString = "Exporting metadata of a snapshot is not allowed"

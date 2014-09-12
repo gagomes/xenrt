@@ -2444,7 +2444,7 @@ class _VMToolsUpgrade(xenrt.TestCase):
                 raise xenrt.XRTFailure("PV drivers should be reported as up-to-date after driver upgrade")
         else:
             guest.installTools()
-        guest.waitForAgent(60, desc="Windows guest agent start after driver upgrade")
+        guest.waitForAgent(60)
         guest.reboot()
         v = guest.getPVDriverVersion(micro=True)
         if not v:

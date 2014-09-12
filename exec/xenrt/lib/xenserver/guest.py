@@ -784,6 +784,12 @@ class Guest(xenrt.GenericGuest):
                         max_tries = 30
                     if tries == max_tries:
                         self.checkHealth(desc="VM Start, waiting for IP address")
+
+                        try:
+                            activity = xenrt.command("sudo zgrep '%s' /var/log/syslog*" % mac)
+                            xenrt.TEC().logverbose("DHCP activity from controller: " + activity)
+                        except Exception, ex:
+                            xenrt.TEC().logverbose("Error getting DHCP activity from controller: " + str(ex))
                         raise xenrt.XRTFailure("No IP address found for %s" % (vifname))
                     xenrt.sleep(30, log=False)
             else:
@@ -1401,73 +1407,50 @@ exit /B 1
 
         self.enlightenedDrivers = False
 
-    def waitForAgent(self, timeout, level=xenrt.RC_FAIL, desc="Wait for agent", sleeptime=15, extrawait=5):
+    def waitForAgent(self, timeout):
         """Wait for guest agent to come up"""
-        
+
         deadline = xenrt.util.timenow() + timeout
-        resttime = timeout
-        upkey = None
-        upvalue = None
-        defaultkey = "updated"
-        otherkey = "update_cnt"
-        domid = self.getDomid()
-        
-        while resttime >= 0:
-            # eval domid each round just in case VM might restart
+
+        while xenrt.util.timenow() < deadline:
             domid = self.getDomid()
-            uppath = "/local/domain/%d/data/%s" % (domid, upkey or defaultkey)
-            otherpath = "/local/domain/%d/data/%s" % (domid, otherkey)
-            pvpath = "/local/domain/%d/attr/PVAddons/Installed" % domid
-            
-            find, upvalue = self.host.xenstoreWatch(uppath,
-                                                    condition=lambda v: v!= upvalue,
-                                                    interval=sleeptime,
-                                                    timeout=resttime)
-            if not find:
-                return xenrt.XRT("%s timed out (dom = %d)" % (desc, domid), level)
-            else:
-                xenrt.TEC().logverbose("Found new value %s at xenstore path %s." % (upvalue, uppath))
-                
-                othervalue = None
-                try:
-                    if self.host.xenstoreExists(otherpath):
-                        othervalue = self.host.xenstoreRead(otherpath)
-                except:
-                    pass
-                
-                pvvalue = None
-                try:
-                    if self.host.xenstoreExists(pvpath):
-                        pvvalue = self.host.xenstoreRead(pvpath)
-                except:
-                    pass
-                
-                if pvvalue == "1":
-                    xenrt.TEC().logverbose("Found PV driver evidence at xenstore path %s." % pvpath)
-                    if extrawait:
-                        xenrt.TEC().logverbose("Wait %d seconds just in case XAPI is still settling." % extrawait)
-                        xenrt.sleep(extrawait)
+            otherValue = None
+            pvValue = None
+            defaultValue = None
 
-                        for i in range(48):
-                            if self.pvDriversUpToDate():
-                                break
-                            xenrt.sleep(10)
-                    return xenrt.RC_OK
-                else:
-                    xenrt.TEC().logverbose("Not found PV driver evidence at xenstore path %s" % pvpath)
-                    if not upkey:
-                        if self.host.xenstoreExists(otherpath):
-                            upvalue = othervalue or self.host.xenstoreRead(otherpath)
-                            upkey = otherkey
-                        #else:
-                        #    upkey = defaultkey
-                    resttime = deadline - xenrt.util.timenow()
+            try:
+                defaultValue = self.host.xenstoreRead("/local/domain/%d/data/updated" % domid)
+            except:
+                pass
 
-        xenrt.TEC().logverbose("waitForAgent() expired (domid = %d)" % (domid))
+            try:
+                otherValue = self.host.xenstoreRead("/local/domain/%d/data/update_cnt" % domid)
+            except:
+                pass
+
+            try:
+                pvValue = self.host.xenstoreRead("/local/domain/%d/attr/PVAddons/Installed" % domid)
+            except:
+                pass
+
+            if pvValue == "1" and (defaultValue or otherValue):
+                xenrt.TEC().logverbose("Found PV driver evidence")
+                xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
+                xenrt.sleep(5)
+
+                for i in range(48):
+                    if self.pvDriversUpToDate():
+                        break
+                    xenrt.sleep(10)
+                return xenrt.RC_OK
+                
+            xenrt.sleep(5)
+
+        raise xenrt.XRTFailure("Not found any PV driver evidence")
 
     def checkForWinGuestAgent(self):
         """Check if the VM up and the guest agent has reported."""
-        return self.waitForAgent(0, level=xenrt.RC_OK, extrawait=False) == xenrt.RC_OK
+        return self.waitForAgent(0) == xenrt.RC_OK
         
     def checkPVDevices(self):
         # Check the guest is using the PV drivers

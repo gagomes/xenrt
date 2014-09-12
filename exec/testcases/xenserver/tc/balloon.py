@@ -2346,7 +2346,7 @@ class TC9527(xenrt.TestCase):
             guest.poll("UP", pollperiod=5)
             guest.waitforxmlrpc(600, desc="Guest boot", sleeptime=5, reallyImpatient=True)
             # Now wait for the guest agent
-            guest.waitForAgent(180, sleeptime=5)
+            guest.waitForAgent(180)
             # VM has booted
             timer.stopMeasurement()
             # Sleep 10s before shutting the VM down (CA-32492)

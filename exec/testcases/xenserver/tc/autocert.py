@@ -130,8 +130,8 @@ class _XSAutoCertKit(xenrt.TestCase):
     
     def waitForFinish(self):
         now = xenrt.util.timenow()
-        testdeadline = now + 21600 
-        connectdeadline = now + 600 + int(self.pool.master.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
+        testdeadline = now + 21600
+        connectdeadline = now + 1800 + int(self.pool.master.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
         time.sleep(180) # Extra time to allow the kit to get started
         while True:
             time.sleep(60)
@@ -139,11 +139,11 @@ class _XSAutoCertKit(xenrt.TestCase):
             if now > testdeadline:
                 raise xenrt.XRTError("Auto cert kit timed out")
             try:
+                connectdeadline = now + 1800 + int(self.pool.master.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
                 fn = xenrt.TEC().tempFile()
                 status = self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit && ./status.py", outfile=fn)
                 if status == -1:
                     raise xenrt.XRTFailure("Command returned -1")
-                connectdeadline = now + 1800 + int(self.pool.master.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
             except xenrt.XRTFailure, e:
                 xenrt.TEC().logverbose("Couldn't SSH, %s" % str(e))
                 now = xenrt.util.timenow()
@@ -263,7 +263,7 @@ class _XSAutoCertKit(xenrt.TestCase):
             if self.tec.lookup("POF_ALL", False, boolean=True):
                 optionstr += " -d"
 
-            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit; python ack_cli.py -n networkconf %s < /dev/null > ack_cli.log 2>&1 &" % optionstr)    
+            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit; python ack_cli.py -n networkconf %s < /dev/null > ack_cli.log 2>&1 &" % optionstr)
         except Exception, e:
             raise xenrt.XRTError("There is an error while running XenServer Auto Cert Kit %s" % str(e))
        

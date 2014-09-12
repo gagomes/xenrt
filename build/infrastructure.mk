@@ -61,7 +61,7 @@ ifeq ($(APT_CACHER_ONLINE),yes)
 endif
 
 .PHONY: extrapackages
-extrapackages: extrapackages-install dython-sync
+extrapackages: extrapackages-install
 	
 
 .PHONY: extrapackages-install
@@ -565,7 +565,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt debugger
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
 	$(info XenRT infrastructure installed.)
 
 

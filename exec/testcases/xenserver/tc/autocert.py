@@ -333,6 +333,14 @@ class _XSAutoCertKit(xenrt.TestCase):
         finally:
             if not self.EXPECTERROR:
                 self.processResults()
+                
+    def postRun(self):
+        for cd in self.host.listCrashDumps():
+            try:
+                self.host.destroyCrashDump(cd)
+            except:
+                pass
+
 
 class XSAutoCertKit(_XSAutoCertKit):
     """Run the auto cert kit with good configuration"""

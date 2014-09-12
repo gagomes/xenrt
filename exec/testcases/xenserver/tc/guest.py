@@ -819,7 +819,7 @@ class TC18693(_TCToolstackRestart):
         # Wait for guests to fully reboot
         for guest in guests:
             if guest.windows:
-                guest.waitForAgent(timeout=300)
+                guest.waitForAgent(300)
             else:
                 guest.waitForSSH(timeout=60)
 

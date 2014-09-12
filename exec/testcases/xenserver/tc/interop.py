@@ -605,10 +605,10 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         map(lambda x:xenrt.TEC().logverbose(x), self.executeASFShellCommand(asfCont, 'Show-AsfConfig'))
 
     def configureInfrastructureVMs(self, host, infraGuests):
-        infraGuests['ASFDC1'].waitForAgent(timeout=300)
+        infraGuests['ASFDC1'].waitForAgent(300)
         infraGuests['ASFDC1'].shutdown()
 
-        infraGuests['ASFController'].waitForAgent(timeout=300)
+        infraGuests['ASFController'].waitForAgent(300)
         infraGuests['ASFController'].tailored = True
         infraGuests['ASFController'].existing(host)
         xenrt.TEC().logverbose('ASFController: IP=%s, windows=%s, enlightenedDrivers=%s' % (infraGuests['ASFController'].mainip, infraGuests['ASFController'].windows, infraGuests['ASFController'].enlightenedDrivers))

@@ -1695,17 +1695,17 @@ class _FailoverBondTest(_AggregateBondTest):
                     self.check(expected_paths)
                 if mac in macs_disabled:
                     self.enablePath(host, mac)
-                    time.sleep(60)
+                    time.sleep(100)
                     expected_paths += 1
                     self.check(expected_paths)
                     macs_disabled.remove(mac)
                 else:
                     self.disablePath(host, mac)
+                    time.sleep(100)
                     expected_paths -= 1
                     if expected_paths != 0:
                         time.sleep(60)
                         self.check(expected_paths)
-                    time.sleep(60)
                     macs_disabled.add(mac)
                     
         return
@@ -1841,7 +1841,6 @@ class TCFailoverExistingBonds(_FailoverBondTest):
         for bond in self.host.getBonds():
             
             master = self.host.genParamGet("bond", bond, "master")
-            
             device = self.host.genParamGet("pif", master, "device")
             
             step("Retrieving bridge of %s" % (device))
@@ -1856,13 +1855,11 @@ class TCFailoverExistingBonds(_FailoverBondTest):
             guest = self.host.createGenericLinuxGuest(bridge=bridge)
             
             self.bondsinfo.append((device,nics,guest))
-            
             log(self.bondsinfo)
 
     def run(self, arglist=None):
         
         for device, nics, guest in self.bondsinfo:
-            
             self.bondDevice = device
             self.guests.append(guest)
             self.nics = nics

@@ -24,5 +24,8 @@
     <serial group="HFX952">
       <testcase id="xenserver.tc.host.TC20917" />
     </serial>
+    <serial group="DecryptHotfix">
+      <testcase id="testcases.xenserver.tc.hotfix.TCDecryptHotfix" tc="TC-21698" />
+    </serial>
   </testsequence>
 </xenrt>

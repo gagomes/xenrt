@@ -2163,3 +2163,19 @@ class TC21007(TCRollingPoolUpdate):
 
     def doRestartToolstack(self, host):
         host.restartToolstack()
+
+class TCDecryptHotfix(xenrt.TestCase):
+    """Test-case for CA-144941"""
+
+    def run(self, arglist):
+        workdir = xenrt.TEC().getWorkdir()
+        if xenrt.command("test -e %s/patchapply" % workdir, retval="code") != 0:
+            xenrt.getTestTarball("patchapply", extract=True, directory=workdir)
+
+        try:
+            self.getDefaultHost().applyPatch("%s/patchapply/hotfix-6.1.0-test1.xsupdate" % workdir)
+        except Exception, ex:
+            if not "incorrect version" in str(ex):
+                raise xenrt.XRTFailure("Hotfix did not report 'incorrect version'")
+        else:
+            raise xenrt.XRTFailure("Hotfix should not have been applied as the version is wrong")

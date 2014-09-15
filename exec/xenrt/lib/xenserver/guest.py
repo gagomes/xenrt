@@ -563,7 +563,7 @@ class Guest(xenrt.GenericGuest):
                 self.installTools()
         if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if 'ubuntu1404' in distro:
+            if distro and 'ubuntu1404' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
                 _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
                                     "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
@@ -573,7 +573,7 @@ class Guest(xenrt.GenericGuest):
                 else:
                     self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
                     self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-            elif 'oel7' in distro:
+            elif distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
@@ -582,7 +582,7 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
-            elif distro in ['rhel7','centos7']:
+            elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
                 _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
                                     "kernel-tools-libs-3.10.0-123.6.3.el7.xs1.x86_64.rpm",

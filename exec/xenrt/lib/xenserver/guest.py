@@ -3596,6 +3596,13 @@ exit /B 1
                     
                     try:
                         # use key presses to log /var/log/syslog to the console
+                        xenrt.TEC().logverbose("Using keypresses to write syslog to console")
+                        
+                        # press enter twice to clear any junk
+                        self.sendVncKeys([0x0d])
+                        xenrt.sleep(10)
+                        self.sendVncKeys([0x0d])
+                        xenrt.sleep(10)
                         
                         self.sendVncKeys([0x72, 0x6f, 0x6f, 0x74, 0x0d]) #root
                         xenrt.sleep(10)

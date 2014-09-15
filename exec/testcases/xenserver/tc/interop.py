@@ -606,6 +606,7 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
 
     def configureInfrastructureVMs(self, host, infraGuests):
         infraGuests['ASFDC1'].waitForAgent(300)
+        infraGuests['ASFDC1'].enlightenedDrivers = True
         infraGuests['ASFDC1'].shutdown()
 
         infraGuests['ASFController'].waitForAgent(300)

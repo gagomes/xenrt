@@ -2181,7 +2181,7 @@ class TC21683(TC18154):
     def run(self, arglist=None):
         # rather then use dictionary immediately, lets use list then convert to dictionary
         # since in the future, may use run(arglist) method directly.
-        args_list = ["tmp_dir=%s/" % xenrt.TEC().tempDir().rstrip('/'), "vmname=TestVM", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=pool_audit_history", "minutes_per_iteration=3", "iterations=5"]
+        args_list = ["tmp_dir=/tmp/", "vmname=TestVM", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=pool_audit_history", "minutes_per_iteration=3", "iterations=5"]
         args_dictionary = self.argslistToDictionary(args_list)
         hosts = self.pool.getHosts()
         # Initialise WLB

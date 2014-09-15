@@ -335,9 +335,10 @@ class _XSAutoCertKit(xenrt.TestCase):
                 self.processResults()
                 
     def postRun(self):
-        for cd in self.host.listCrashDumps():
+        host = self.getDefaultHost()
+        for cd in host.listCrashDumps():
             try:
-                self.host.destroyCrashDump(cd)
+                host.destroyCrashDump(cd)
             except:
                 pass
 

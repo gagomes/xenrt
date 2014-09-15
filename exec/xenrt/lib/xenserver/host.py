@@ -11026,6 +11026,7 @@ done
         if self.getName() == "capelin":
             xenrt.TEC().logverbose("Machine is capelin")
             self.execdom0('echo "options bnx2x debug=0x100032" > /etc/modprobe.d/bnx2x')
+            self.reboot()
 
     def postInstall(self):
         TampaHost.postInstall(self)

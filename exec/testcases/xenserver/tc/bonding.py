@@ -2298,13 +2298,31 @@ class _BondBalance(_AggregateBondTest):
         if sum(nicSourceCounts.values()) != numSources:
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))
+        """
         biggest = max(nicSourceCounts.values())
         smallest = min(nicSourceCounts.values())
         if biggest > maxSources:
             raise xenrt.XRTFailure("Balancing outside allowed range",
                                    data="Allowed %u:%u, found %u:%u" %
                                    (maxSources, (numSources-maxSources),
-                                    biggest, smallest))
+                                    biggest, smallest))"""
+        if len(ifs) != 2:        
+            raise xenrt.XRTError("Load balancing verification is NOT yet implemented for more than 2 slaves")
+            
+        iftraffic0 = info['load'][ifs[0]]
+        iftraffic1=  info['load'][ifs[1]]
+        if iftraffic0 < 100 and iftraffic1 < 100 :
+            raise xenrt.XRTError("Not enough traffic across interface to verify Balalncing .%s load = %s,%s load = %s" %(ifs[0],iftraffic0,ifs[1],iftraffic1))
+            
+        if iftraffic0 >= iftraffic1 :
+            balanceratio = float(iftraffic1)/float(iftraffic0)
+        else :
+            balanceratio = float(iftraffic0)/float(iftraffic1)            
+        if balanceratio >=0.75 and balanceratio <=1 :
+            xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
+        else :
+            raise xenrt.XRTFailure("Load is a not balance across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            
 
 class TC8310(_BondBalance):
     """Verify bond balancing works as expected"""

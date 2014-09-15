@@ -8319,6 +8319,7 @@ class MNRHost(Host):
         
         info['slb'] = {}
         info['mode'] = None # bond modes are not supported on all versions of vSwitch
+        info['load'] = {}
         slave = None
         for line in lines:
             if line.startswith("updelay: ") or \
@@ -8330,6 +8331,7 @@ class MNRHost(Host):
                 statusmap = {'enabled': 'up', 'disabled': 'down'}
                 _,slave,status = line.split()
                 slave = slave.rstrip(":")
+                info['load'][slave] = 0
 
                 assert(not slaves.has_key(slave))
                 slaves[slave] = {}
@@ -8354,7 +8356,10 @@ class MNRHost(Host):
                 assert(slave)
                 _,hash,_ = line.split(None, 2)
                 hash = hash.rstrip(":")
-                info['slb'][int(hash)] = slave
+                info['slb'][int(hash)] = slave                               
+                load = re.search(":\s(.*)\skB",line)
+                load = int(load.group(1))
+                info['load'][slave]=info['load'][slave] + load                
             elif line[:2] == "\t\t":
                 assert(re.match("[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$", line[2:]))
             
@@ -9039,6 +9044,7 @@ class BostonHost(MNRHost):
         
         info['slb'] = {}
         info['mode'] = None # bond modes are not yet supported on the vSwitch
+        info['load'] = {}
         slave = None
         for line in lines:
             if line.startswith("updelay: ") or \
@@ -9056,6 +9062,7 @@ class BostonHost(MNRHost):
                 statusmap = {'enabled': 'up', 'disabled': 'down'}
                 _,slave,status = line.split()
                 slave = slave.rstrip(":")
+                info['load'][slave] = 0
 
                 assert(not slaves.has_key(slave))
                 slaves[slave] = {}
@@ -9079,6 +9086,9 @@ class BostonHost(MNRHost):
                 _,hash,_ = line.split(None, 2)
                 hash = hash.rstrip(":")
                 info['slb'][int(hash)] = slave
+                load = re.search(":\s(.*)\skB",line)
+                load = int(load.group(1))
+                info['load'][slave]=info['load'][slave] + load
             elif line[:2] == "\t\t":
                 assert(re.match("[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}$", line[2:]))
             

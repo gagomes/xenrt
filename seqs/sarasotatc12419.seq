@@ -3,7 +3,8 @@
   <variables>
     <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
     <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
-    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>    
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+    <NO_SLB>yes</NO_SLB>
   </variables>
 
   <prepare>

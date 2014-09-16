@@ -6,11 +6,6 @@
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
-  <scheduler>
-    <param>MACHINES_REQUIRED=1</param>
-    <param>OPTION_KEEP_NFS=yes</param>
-  </scheduler>
-
   <prepare>
     <host/>
   </prepare>

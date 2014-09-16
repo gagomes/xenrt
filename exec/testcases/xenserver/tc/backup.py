@@ -17,10 +17,13 @@ from xenrt.lazylog import step, comment, log, warning
 class TC8226(xenrt.TestCase):
     """Smoketest of metadata backup and restore (aka Portable SRs)"""
 
+    BACKUP_SR = "iscsi"
+
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid=tcid)
         self.pool = None
         self.sruuid = None
+        self.sr = None
         self.guests = []
         self.template = None
 
@@ -28,11 +31,23 @@ class TC8226(xenrt.TestCase):
         step("Set up a pool of 2 hosts, using iSCSI storage")
         self.pool1 = self.getPool("RESOURCE_POOL_0")
         self.pool2 = self.getPool("RESOURCE_POOL_1")
-        self.iscsiSR = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool1.master, 
-                                                                  "iSCSI")
-        self.iscsiSR.create(subtype="lvm")
-        self.pool1.addSRToPool(self.iscsiSR)
-        self.sruuid = self.pool1.master.minimalList("sr-list", args="type=lvmoiscsi")[0]
+        
+        if self.BACKUP_SR == "iscsi":
+            self.sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool1.master, "iSCSI")
+            self.sr.create(subtype="lvm")
+        else:
+            nfs = xenrt.ExternalNFSShare().getMount()
+            r = re.search(r"([0-9\.]+):(\S+)", nfs)
+            if not r:
+                raise xenrt.XRTError("Unable to parse NFS paths %s" % (nfs))
+            self.sr = xenrt.lib.xenserver.NFSStorageRepository(self.pool1.master, "nfs")
+            self.sr.create(r.group(1), r.group(2))
+        
+        self.pool1.addSRToPool(self.sr)
+        if self.BACKUP_SR == "iscsi":
+            self.sruuid = self.pool1.master.minimalList("sr-list", args="type=lvmoiscsi")[0]
+        else:
+            self.sruuid = self.pool1.master.minimalList("sr-list", args="type=nfs")[0]
 
         step("Install a VM, and make it a template")
         t = self.pool1.master.createGenericLinuxGuest()
@@ -41,7 +56,7 @@ class TC8226(xenrt.TestCase):
         t.shutdown()
         t.paramSet("is-a-template", "true")
         t.removeVIF("eth0")
-        password = xenrt.TEC().lookup("ROOT_PASSWORD")
+        password = t.password
         
         step("Install 4 VMs from the template")
         for i in range(4):
@@ -57,7 +72,7 @@ class TC8226(xenrt.TestCase):
             # shut it down
             g.shutdown()
 
-            # copy it from local storage to the iSCSI SR
+            # copy it from local storage to the defined SR
             newGuest = g.copyVM(name="copy%u"%i, sruuid=self.sruuid)
             
             # delete it from local storage
@@ -65,13 +80,13 @@ class TC8226(xenrt.TestCase):
             
             self.guests.append(newGuest)
             
-        step("copy the template to the iSCSI storage")
+        step("copy the template to the defined storage")
         self.template = t.copyVM(name="copy" + t.getName(), sruuid=self.sruuid)
         
         step("delete the template from local storage")
         self.pool1.master.removeTemplate(t.uuid)
         
-        step("set default SR to be iSCSI SR")
+        step("set default SR to be defined SR")
         self.pool1.master.genParamSet("pool", self.pool1.getUUID(), "default-SR", self.sruuid)
         
     def run(self, arglist=None):
@@ -79,16 +94,16 @@ class TC8226(xenrt.TestCase):
         master = self.pool1.master
         master.execdom0("xe-backup-metadata -c -u %s" % (self.sruuid))
 
-        self.iscsiSR.forget()
+        self.sr.forget()
 
         step("Set up any IQNs etc required for the SR")
         for h in self.pool2.getHosts():
             for sr in self.pool1.master.srs.values():
                 sr.prepareSlave(self.pool1.master, h)
         
-        self.iscsiSR.host = self.pool2.master
+        self.sr.host = self.pool2.master
         step("Introduce the SR and wait a little for the VDIs to be found")
-        self.iscsiSR.introduce()
+        self.sr.introduce()
 
         step("Wait 1 minute to ensure the master has picked up the VDIs etc")
         time.sleep(60)
@@ -110,6 +125,7 @@ class TC8226(xenrt.TestCase):
             g.uuid = None # We expect the UUID to change 
             g.start()
             g.check()
+            self.uninstallOnCleanup(g)
             rc = g.execguest("ls /vm%u" % (i), retval="code")
             if rc > 0:
                 raise xenrt.XRTFailure("VMs have been mismatched!")
@@ -130,7 +146,15 @@ class TC8226(xenrt.TestCase):
                                            "xs-tools.iso" % (name))
             i += 1
 
+    def postRun(self):
+        self.sr.forget()
+        self.sr.destroy()
+    
 
+class MetadataOnNFSSR(TC8226):
+    """Smoketest of metadata backup and restore (on NFS SR)"""
+    
+    BACKUP_SR = "nfs"
 
 wdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 

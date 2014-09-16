@@ -412,6 +412,11 @@ class JiraLink:
                         if msg:
                             description = "Remaining XenRT logs available at %s?action=testlogs&id=%s&phase=%s&test=%s\n\n" % (self.XENRT_WEB,jobid,phase,test)
                             description += msg
+                            try:
+                                description += self.getFailedLogSnippetsFromPattern()
+                            except Exception, e:
+                                description += "Exception creating Failed logs Snippets: %s" % (str(e))
+
                         sstr = "%s/%s: %s" % (result[2], result[3], reason)
                         (i, new) = self.fileTicket(result[4],
                                                    (result[2],

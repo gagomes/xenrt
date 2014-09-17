@@ -414,7 +414,7 @@ EOF
         # Log the commit
         commit = None
         try:
-            commit = self.execdom0("cloudstack-sccs")
+            commit = self.execdom0("cloudstack-sccs").strip()
             xenrt.TEC().logverbose("ACS/CCP agent was built from commit %s" % commit)
         except:
             xenrt.TEC().warning("Error when trying to identify agent version")

@@ -222,7 +222,7 @@ class ManagementServer(object):
 
         commit = None
         try:
-            commit = self.place.execcmd("cloudstack-sccs")
+            commit = self.place.execcmd("cloudstack-sccs").strip()
             xenrt.TEC().logverbose("Management server was built from commit %s" % commit)
         except:
             xenrt.TEC().warning("Error when trying to identify management server version")

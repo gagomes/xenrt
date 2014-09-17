@@ -209,6 +209,9 @@ class JiraLink:
         jenkins = xenrt.TEC().lookup("JENKINS_URL", None)
         if jenkins:
             environment += "\nJenkins URL: %s" % jenkins
+        ccpCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+        if ccpCommit:
+            environment += "\nCCP Commit: %s" % ccpCommit
         environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         seenagain = ("Seen again on %s\n" % (environment))
 

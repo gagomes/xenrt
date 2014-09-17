@@ -548,8 +548,8 @@ class TCBlockVcenter(_TCHostResiliencyBase):
 
         ms=xenrt.TEC().registry.guestGet('CS-MS')
         vc = xenrt.TEC().lookup("VCENTER")
-        ms.execcmd("iptables -A INPUT -s %s -j DROP" % (vc['ADDRESS']))
-        ms.execcmd("iptables -A OUTPUT -s %s -j DROP" % (vc['ADDRESS']))
+        ms.execcmd("iptables -I INPUT -s %s -j DROP" % (vc['ADDRESS']))
+        ms.execcmd("iptables -I OUTPUT -s %s -j DROP" % (vc['ADDRESS']))
  
     def recover(self,host):
 

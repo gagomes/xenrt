@@ -353,11 +353,11 @@ class TCVerifyUEK(xenrt.TestCase):
             guest.start()
 
         self.getLogsFrom(host)
+
         try:
             kversion = guest.execguest("uname -r | grep 'uek' ").strip()
         except Exception, e:
-            if not kversion:
-                raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+            raise xenrt.XRTFailure("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
         
         xenstoreEntry = host.xenstoreRead("/local/domain/%u/data/os_uname" %(guest.getDomid()))
         vmparamUname = guest.paramGet('os-version','uname')

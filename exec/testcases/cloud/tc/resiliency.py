@@ -563,7 +563,7 @@ class TCBlockVcenter(_TCHostResiliencyBase):
         xenrt.sleep(900)
         for host in self._hypervisors:
             if host.state != 'Alert':
-                raise xenrt.XRTFailure("Host %s is not reported Down by Cloud" % self.csHost.name)
+                raise xenrt.XRTFailure("Host %s is not reported Alert by Cloud" % self.csHost.name)
 
     def run(self,arglist):
 

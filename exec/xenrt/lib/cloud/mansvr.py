@@ -215,7 +215,8 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
             xenrt.TEC().logverbose("Enabling code coverage collection...")
-            self.place.execcmd("%s/cloud/install_coverage_requirements.sh" % xenrt.TEC().lookup("REMOTE_SCRIPTDIR"))
+            javaHome = self.place.execcmd("dirname `which java`").strip()
+            self.place.execcmd("export JAVA_HOME=%s;%s/cloud/install_coverage_requirements.sh" % (javaHome, xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
             self.restart()
             xenrt.TEC().logverbose("...done")
 

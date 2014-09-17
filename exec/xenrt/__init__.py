@@ -2292,15 +2292,17 @@ logdata call."""
         xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR", dirname, fallbackToGlobal=True)
 
     def getInputDir(self):
+        # Check if there is a thread local INPUTDIR.  If not default to using the global INPUTDIR
+        # If there is neither a thread local or global INPUTDIR specified this function will
+        # raise an exception
         inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", None)
         if not inputDir:
             inputDir = xenrt.TEC().lookup("INPUTDIR")
         return inputDir
 
     def isReleasedBuild(self):
-        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", xenrt.TEC().lookup("INPUTDIR"))
-        return "/release/" in inputDir
-    
+        return "/release/" in self.getInputDir()
+
     def __str__(self):
         if self.tc:
             return "TEC:%s" % (self.tc.tcid)

@@ -155,6 +155,11 @@ class CloudStack(object):
 
         if not name:
             name = xenrt.util.randomGuestName()
+
+        # Verify instance name.  Names must start with a letter and contain only letters, numbers and hyphens
+        result = re.findall('^[a-zA-Z][a-zA-Z0-9-]*$', name)
+        xenrt.xrtAssert(len(result) == 1 and result[0] == name, 'Cloud instance name starts with a letter and contains only letters, numbers and hyphens')
+
         instance = xenrt.lib.Instance(self, name, distro, vcpus, memory, extraConfig=extraConfig, vifs=vifs, rootdisk=rootdisk)
 
         xenrt.TEC().registry.instancePut(name, instance)

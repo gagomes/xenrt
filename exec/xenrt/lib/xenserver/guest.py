@@ -5134,12 +5134,12 @@ class TampaGuest(BostonGuest):
                     xenrt.sleep(30)
 
         # now wait for PV devices to be connected
-        for i in range(10):
+        for i in range(20):
             try:
                 self.checkPVDevices()
                 break
             except xenrt.XRTException:
-                if i == 9:
+                if i == 19:
                     raise
                 xenrt.sleep(120)
         

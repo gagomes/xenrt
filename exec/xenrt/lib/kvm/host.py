@@ -412,10 +412,16 @@ EOF
         self.execdom0("echo 'private.network.device=cloudbr0' >> /etc/cloudstack/agent/agent.properties")
 
         # Log the commit
+        commit = None
         try:
-            xenrt.TEC().logverbose("ACS/CCP agent was built from commit %s" % self.execdom0("cloudstack-sccs"))
+            commit = self.execdom0("cloudstack-sccs")
+            xenrt.TEC().logverbose("ACS/CCP agent was built from commit %s" % commit)
         except:
             xenrt.TEC().warning("Error when trying to identify agent version")
+        if commit:
+            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            if expectedCommit and commit != expectedCommit:
+                raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
 
         # Write the stamp file to record this has already been done
         self.execdom0("mkdir -p /var/lib/xenrt")

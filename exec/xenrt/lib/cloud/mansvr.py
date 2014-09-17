@@ -220,10 +220,16 @@ class ManagementServer(object):
             self.restart()
             xenrt.TEC().logverbose("...done")
 
+        commit = None
         try:
-            xenrt.TEC().logverbose("Management server was built from commit %s" % self.place.execcmd("cloudstack-sccs"))
+            commit = self.place.execcmd("cloudstack-sccs")
+            xenrt.TEC().logverbose("Management server was built from commit %s" % commit)
         except:
             xenrt.TEC().warning("Error when trying to identify management server version")
+        if commit:
+            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            if expectedCommit and commit != expectedCommit:
+                raise xenrt.XRTError("Management server commit %s does not match expected commit %s" % (commit, expectedCommit))
 
     def installApacheProxy(self):
         self.place.execcmd("yum -y install httpd")

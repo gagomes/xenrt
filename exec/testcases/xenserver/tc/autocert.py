@@ -334,7 +334,7 @@ class _XSAutoCertKit(xenrt.TestCase):
             if not self.EXPECTERROR:
                 self.processResults()
                 
-    def postRun(self):
+    def preLogs(self):
         host = self.getDefaultHost()
         for cd in host.listCrashDumps():
             try:

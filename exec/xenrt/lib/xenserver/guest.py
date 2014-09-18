@@ -2081,8 +2081,7 @@ exit /B 1
             for v in self.vifs:
                 eth, bridge, mac, ip = v
                 self.createVIF(eth, bridge) 
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                       (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.reparseVIFs()
             self.vifs.sort()
         else:
             for v in self.vifs:
@@ -2162,6 +2161,10 @@ exit /B 1
                 reply["%s%s" % (self.vifstem, device)] = (mac, ip, mybridge)
 
         return reply
+
+    def reparseVIFs(self):
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
 
     def changeVIF(self, name, bridge=None, mac=None):
         """Change the specified VIF to be on a different bridge or have a different MAC"""
@@ -2838,8 +2841,7 @@ exit /B 1
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
         if not ispxeboot:
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                        (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.reparseVIFs()
             self.vifs.sort()
             self.recreateVIFs(newMACs=True)
         self.existing(host)
@@ -2954,8 +2956,7 @@ exit /B 1
 
 
         # Get the new VIFs:
-        g.vifs = [ (nic, vbridge, mac, ip) for \
-                   (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
+        g.reparseVIFs()
         g.vifs.sort()
         xenrt.TEC().logverbose("Found VIFs: %s" % (g.vifs))
         g.recreateVIFs(newMACs=True)

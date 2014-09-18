@@ -152,7 +152,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             xenrt.TEC().logverbose("getIP(%s, %s): endpointdev %s is not None" % (endpoint, endpointdev, endpointdev))
             if isinstance(endpoint, xenrt.GenericGuest):
                 xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a GenericGuest, endpoint.vifs = %s" % (endpoint, endpointdev, endpoint, endpoint.vifs))
-                (_, _, _, ip) = endpoint.vifs[endpointdev]
+                ip = [ip for (dev,br,mac,ip) in endpoint.vifs if dev==('eth%d' % endpointdev)][0]
             elif isinstance(endpoint, xenrt.lib.xenserver.Host):
                 xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a xenserver.Host" % (endpoint, endpointdev, endpoint))
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)

@@ -1124,7 +1124,7 @@ class PrepareNode:
         if not template:
             instance["name"] = expand(node.getAttribute("name"), params)
         instance["zone"] = expand(node.getAttribute("zone"), params)
-        instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools") in ('y', 't', '1', 'Y', 'T')
+        instance["installTools"] = node.getAttribute("installTools") is None or node.getAttribute("installTools")[0] in ('y', 't', '1', 'Y', 'T')
         instance["hypervisorType"] = expand(node.getAttribute("hypervisorType"), params)
         
         # TODO: vifs

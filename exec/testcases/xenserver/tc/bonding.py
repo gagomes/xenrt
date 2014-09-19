@@ -1916,8 +1916,8 @@ class TC15932(TC8210):
 
 class TC17718(xenrt.TestCase):
     """Check packet loss during bond failover"""
-    THRESHOLD = 6 # The number of pings declared acceptable to lose
-
+    THRESHOLD = 10 # The number of pings declared acceptable to lose
+    THRESHOLD_PERCENT = 6 # The percentage of pings acceptable to lose
     def prepare(self, arglist):
         # Set up a host with a bond of 2 NICs
         self.host = self.getDefaultHost()
@@ -1946,12 +1946,14 @@ class TC17718(xenrt.TestCase):
         xenrt.command("kill -s INT `cat %s/ping.pid`; rm -f %s/ping.pid" % (self.tempdir, self.tempdir))
         data = xenrt.command("cat %s/ping.log" % (self.tempdir))
         for line in data.splitlines():
-            m = re.match("(\d+) packets transmitted, (\d+) received",line)
-            if m:
-                txd = int(m.group(1))
-                rxd = int(m.group(2))
-                lost = txd-rxd
-                return lost
+            m = re.findall("(\d+)",line)
+            txd = int(m[0])
+            rxd = int(m[1])
+            if len(m) == 4:      #if there were no duplicate packets
+                packetlossPercent = m[2]
+            else:
+                packetlossPercent = m[3]
+            return (txd, rxd, packetlossPercent)
         raise xenrt.XRTError("Unable to parse ping output")
 
     def run(self, arglist):
@@ -1982,9 +1984,15 @@ class TC17718(xenrt.TestCase):
 
         # Allow time for things to settle and review packet loss
         time.sleep(60)
-        lost = self.stopPing()
-        if lost > self.THRESHOLD:
-            raise xenrt.XRTFailure("Lost >%d pings during bond failover cycle" % (self.THRESHOLD), data=lost)
+        
+        #If the pings are more than 100, tolerate a percent packet loss of THRESHOLD_PERCENT
+        #otherwise tolerate packet loss of self.THRESHOLD at max
+        transmitted, received, packetlossPercent = self.stopPing()
+        packetloss = transmitted - received
+        if transmitted > 100 and packetlossPercent > self.THRESHOLD_PERCENT:
+            raise xenrt.XRTFailure("Lost > %d% pings during bond failover cycle" % (self.THRESHOLD_PERCENT))
+        elif packetloss > self.THRESHOLD:
+            raise xenrt.XRTFailure("Lost > %d pings during bond failover cycle" % (self.THRESHOLD))
 
     def postRun(self):
         try:

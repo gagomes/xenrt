@@ -354,19 +354,14 @@ class TCVerifyUEK(xenrt.TestCase):
 
         self.getLogsFrom(host)
 
-        try:
-            kversion = guest.execguest("uname -r | grep 'uek' ").strip()
-        except Exception, e:
-            raise xenrt.XRTFailure("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-        
+        kversion = guest.execguest("uname -r").strip()
         xenstoreEntry = host.xenstoreRead("/local/domain/%u/data/os_uname" %(guest.getDomid()))
         vmparamUname = guest.paramGet('os-version','uname')
-        
-        #Additional check to make sure OEL is UEK by default (on creedence)
-        
-        if  not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)):
-            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-        elif not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
-            raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
-         
-        xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)
+
+        #Check to make sure OEL is UEK by default (on creedence)
+        if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+            if not re.search("uek" , kversion) or not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)) or not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
+                raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
+            xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)
+        elif re.search("uek" , kversion) or (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)) or ((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
+            raise xenrt.XRTError("Oracle enterprise linux is UEK on upgrade from %s " %host.productVersion )

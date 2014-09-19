@@ -119,6 +119,16 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['memory'] = 512
                 testData['service_offerings']['tiny']['memory'] = 512
+                testData['service_offerings']['small']['memory'] = 512
+                testData['service_offerings']['medium']['memory'] = 512
+                testData['service_offerings']['big']['memory'] = 512
+
+                testData['service_offering']['cpuspeed'] = 500
+                testData['service_offerings']['cpuspeed'] = 500
+                testData['service_offerings']['tiny']['cpuspeed'] = 500
+                testData['service_offerings']['small']['cpuspeed'] = 500
+                testData['service_offerings']['medium']['cpuspeed'] = 500
+                testData['service_offerings']['big']['cpuspeed'] = 500
 
             testData['hypervisor'] = self.args['hypervisor']
             testData['small']['hypervisor'] = self.args['hypervisor']

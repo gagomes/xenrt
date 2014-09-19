@@ -1838,6 +1838,7 @@ class Experiment_vmrun(Experiment):
                             g0.xmlrpcExec('c:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe executequeueditems')
                         if "noagent" in pi:
                             g0.xmlrpcExec('sc config xensvc start= disabled')
+                            g0.enlightenedDrivers = False
                         if "others" in pi:
                             g0.xmlrpcExec('sc config sppsvc start= disabled')
                             g0.xmlrpcExec('sc config wdisystemhost start= disabled')

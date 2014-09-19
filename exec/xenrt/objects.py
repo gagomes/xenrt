@@ -4483,10 +4483,9 @@ class GenericHost(GenericPlace):
             xenrt.TEC().logverbose("Couldn't find %s in dhcpd.leases." % (mac))
 
             try:
-                leases = xenrt.command("sudo zgrep '%s' /var/log/syslog*" % mac)
-                xenrt.TEC().logverbose("DHCP activity from controller: " + leases)
-            except Exception, ex:
-                xenrt.TEC().logverbose("Error getting DHCP activity from controller: " + str(ex))
+                xenrt.command("sudo zgrep '%s' /var/log/syslog*" % mac)
+            except:
+                pass
 
             return None
         # matches is a list of tuples of (ip,start,end)

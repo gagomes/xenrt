@@ -20,5 +20,8 @@
     <serial group="DecryptHotfix">
       <testcase id="testcases.xenserver.tc.hotfix.TCDecryptHotfix" tc="TC-21698" />
     </serial>
+    <serial group="SCTX1879">
+      <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
+    </serial>
   </testsequence>
 </xenrt>

@@ -1829,8 +1829,7 @@ class TCCopyDataOnMultipleVIFsWindows(xenrt.TestCase):
         log("Remove file created and copied in %s %s" % (fromLocation, toLocation))
         self.guest.xmlrpcExec('del %s\\%s' % (fromLocation,filename))
         self.guest.xmlrpcExec('del %s\\%s' % (toLocation,filename))
-        
-    
+
     def run(self, arglist=None):
         
         step("Get the guest installed in seq")
@@ -1847,4 +1846,22 @@ class TCCopyDataOnMultipleVIFsWindows(xenrt.TestCase):
         
         step("Test the file copying speed vice-versa")
         self.checkTimeForCopyingData(pathB,pathA)
-    
+
+class TC21711(xenrt.TestCase):
+    def prepare(self, arglist):
+        host = self.getDefaultHost()
+        self.guest = host.createBasicGuest("rhel59")
+
+        if self.guest is None:
+            raise xenrt.XRTError("Need RHEL VM for testcase. None found.")
+
+    def run(self, arglist):
+        self.guest.reboot()
+        filepath = "/sys/hypervisor/uuid"
+        response = self.guest.execguest("cat %s" % (filepath))
+
+        # UUID pattern
+        pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+        if not re.search(pattern, response):
+            raise xenrt.XRTFailure("Failure. Was not able to read uuid from %s" % (filepath))

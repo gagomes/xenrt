@@ -11,6 +11,12 @@
     <PREPARE_WORKERS>4</PREPARE_WORKERS>
     <OPTION_CLONE_TEMPLATE>yes</OPTION_CLONE_TEMPLATE>
   </variables>
+  
+  <scheduler>
+    <pool>VMX,SVM</pool>
+    <param>MACHINES_REQUIRED=4</param>
+    <resources>memory&gt;=32G/disk1&gt;=500G/NPRI&gt;=1/NSEC&gt;=1</resources>
+  </scheduler>
 
   <prepare>
     <pool id="0">

@@ -3592,7 +3592,14 @@ exit /B 1
                     if eip:
                         raise xenrt.XRTFailure(eip + desc)
                 finally:
-                    
+
+                    # see if we can SSH to the guest from dom0.
+                    try:
+                        xenrt.TEC().logverbose("Attempting to SSH to guest from dom0")
+                        self.host.execdom0("ssh -i /etc/ssh/ssh_host_dsa_key.pub -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@%s ls /" % self.getIP())
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
                     try:
                         # use key presses to log /var/log/syslog to the console
                         xenrt.TEC().logverbose("Using keypresses to write syslog to console")

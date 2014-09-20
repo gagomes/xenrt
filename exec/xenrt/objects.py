@@ -7103,9 +7103,14 @@ class GenericGuest(GenericPlace):
             sftp = self.sftpClient()
             sftp.copyTreeTo("%s/scripts" % (xrt), sdir)
 
-            # Make sure /bin/bash exists (Windows guests)
-            if self.windows:
-                self.execguest("ln -s /usr/local/bin/bash /bin/bash || true")
+            # write out host key to guest to allow us to SSH to guest from dom0. This is a useful diagnostic tool.
+            try:
+                k = self.host.execdom0("cat /etc/ssh/ssh_host_dsa_key.pub")
+                self.execguest("mkdir -p /root/.ssh")
+                self.execguest("echo '%s' > /root/.ssh/authorized_keys" % k)
+                self.execguest("chmod 600 /root/.ssh/authorized_keys")
+            except Exception, ex:
+                xenrt.TEC().logverbose(str(ex))
 
         # Build a Windows preparation script.
         if self.windows:

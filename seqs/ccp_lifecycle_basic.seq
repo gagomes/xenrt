@@ -3,6 +3,7 @@
   <default name="DISTROS" value="ubuntu1204_x86-32,debian70_x86-64,rhel64_x86-64,centos59_x86-32,oel59_x86-32,win7sp1-x86,winxpsp3,w2k3eesp2-x64" />
   <default name="TESTED_HYPERVISOR" value="XenServer"/>
   <default name="HYPERVISOR_VERSION" value=""/>
+  <default name="LC_WORKERS" value="3"/>
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
@@ -42,7 +43,7 @@
     </sharedhost>
   </prepare>
   <testsequence>
-    <parallel workers="3">
+    <parallel workers="${LC_WORKERS}">
       <for iter="DISTRO" values="${DISTROS}">
         <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}${HYPERVISOR_VERSION}/Basic/${DISTRO}">
           <arg>distro=${DISTRO}</arg>

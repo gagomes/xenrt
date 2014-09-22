@@ -1,6 +1,13 @@
 import string
 import xenrt
 
+def get_if_name_param():
+    ifname = xenrt.TEC().lookup("IFNAME")
+    if ifname:
+        return " -i %s " % (ifname,)
+    else:
+        return ""
+
 def _initialise(host, prog):
     workdir = string.strip(host.execcmd("mktemp -d /tmp/XXXXXX"))
     host.execcmd("wget -O - '%s/synexec.tgz' | tar -xz -C %s" %
@@ -29,7 +36,7 @@ def start_master_in_dom0(host, slaveCommand, jobid, numclients):
     host.execdom0("echo \"%s\" > /root/synexec.conf" % slaveCommand)
 
     # Run synexec master
-    host.execdom0("/root/synexec_master -v -s %d %d /root/synexec.conf 1>/root/synexec_master.log 2>&1" % (jobid, numclients))
+    host.execdom0("/root/synexec_master %s -v -s %d %d /root/synexec.conf 1>/root/synexec_master.log 2>&1" % (get_if_name_param(), jobid, numclients))
 
 def get_slave_log(slave):
     return slave.execguest("cat /tmp/synexec.out")

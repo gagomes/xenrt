@@ -972,3 +972,22 @@ class TCGPUSetup(_GPU):
             self.args['vendor'] = "NVIDIA"
 
         self.assertGPURunningInVM(self.guest, self.args['vendor'])
+        
+class TC20904(xenrt.TestCase):
+#This testcase is derived from HFX-929 in Hotfix Samsonite
+
+    def run(self,arglist):
+        self.host = self.getDefaultHost()
+        output =self.host.execdom0("head -1 /dev/vga_arbiter")
+        p = [ s for s in output.split(',') if 'PCI' in s][0]
+        pciID = re.search('PCI:(.*)$',p).group(1)
+        xenrt.TEC().logverbose("PCI ID of the motherboard: %s" %pciID)
+        
+        pci_obj = self.host.minimalList("pgpu-list", "uuid", "pci-id=%s" %pciID)        
+        if pci_obj :
+            raise xenrt.XRTFailure("The PCI object list  contain the motherboard PCI ID which is UNexpected: %s" %pci_obj[0])
+        else :
+            xenrt.TEC().logverbose("The PCI object list doesn't contain the motherboard PCI ID as Expected")
+
+        
+

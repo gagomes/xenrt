@@ -1916,8 +1916,8 @@ class TC15932(TC8210):
 
 class TC17718(xenrt.TestCase):
     """Check packet loss during bond failover"""
-    THRESHOLD = 6 # The number of pings declared acceptable to lose
-
+    THRESHOLD = 10 # The number of pings declared acceptable to lose
+    THRESHOLD_PERCENT = 6 # The percentage of pings acceptable to lose
     def prepare(self, arglist):
         # Set up a host with a bond of 2 NICs
         self.host = self.getDefaultHost()
@@ -1946,12 +1946,14 @@ class TC17718(xenrt.TestCase):
         xenrt.command("kill -s INT `cat %s/ping.pid`; rm -f %s/ping.pid" % (self.tempdir, self.tempdir))
         data = xenrt.command("cat %s/ping.log" % (self.tempdir))
         for line in data.splitlines():
-            m = re.match("(\d+) packets transmitted, (\d+) received",line)
-            if m:
-                txd = int(m.group(1))
-                rxd = int(m.group(2))
-                lost = txd-rxd
-                return lost
+            m = re.findall("(\d+)",line)
+            txd = int(m[0])
+            rxd = int(m[1])
+            if len(m) == 4:      #if there were no duplicate packets
+                packetlossPercent = m[2]
+            else:
+                packetlossPercent = m[3]
+            return (txd, rxd, packetlossPercent)
         raise xenrt.XRTError("Unable to parse ping output")
 
     def run(self, arglist):
@@ -1982,9 +1984,15 @@ class TC17718(xenrt.TestCase):
 
         # Allow time for things to settle and review packet loss
         time.sleep(60)
-        lost = self.stopPing()
-        if lost > self.THRESHOLD:
-            raise xenrt.XRTFailure("Lost >%d pings during bond failover cycle" % (self.THRESHOLD), data=lost)
+        
+        #If the pings are more than 100, tolerate a percent packet loss of THRESHOLD_PERCENT
+        #otherwise tolerate packet loss of self.THRESHOLD at max
+        transmitted, received, packetlossPercent = self.stopPing()
+        packetloss = transmitted - received
+        if transmitted > 100 and packetlossPercent > self.THRESHOLD_PERCENT:
+            raise xenrt.XRTFailure("Lost > %d% pings during bond failover cycle" % (self.THRESHOLD_PERCENT))
+        elif packetloss > self.THRESHOLD:
+            raise xenrt.XRTFailure("Lost > %d pings during bond failover cycle" % (self.THRESHOLD))
 
     def postRun(self):
         try:
@@ -2298,30 +2306,32 @@ class _BondBalance(_AggregateBondTest):
         if sum(nicSourceCounts.values()) != numSources:
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))
-        """
-        biggest = max(nicSourceCounts.values())
-        smallest = min(nicSourceCounts.values())
-        if biggest > maxSources:
-            raise xenrt.XRTFailure("Balancing outside allowed range",
-                                   data="Allowed %u:%u, found %u:%u" %
-                                   (maxSources, (numSources-maxSources),
-                                    biggest, smallest))"""
+        
         if len(ifs) != 2:        
             raise xenrt.XRTError("Load balancing verification is NOT yet implemented for more than 2 slaves")
+        
+        if self.host.special['Network subsystem type'] == "linux":
+            biggest = max(nicSourceCounts.values())
+            smallest = min(nicSourceCounts.values())
+            if biggest > maxSources:
+                raise xenrt.XRTFailure("Balancing outside allowed range",
+                                    data="Allowed %u:%u, found %u:%u" %
+                                    (maxSources, (numSources-maxSources),
+                                        biggest, smallest))
+        else:
+            iftraffic0 = info['load'][ifs[0]]
+            iftraffic1=  info['load'][ifs[1]]
+            if iftraffic0 < 100 and iftraffic1 < 100 :
+                raise xenrt.XRTError("Not enough traffic across interface to verify Balalncing .%s load = %s,%s load = %s" %(ifs[0],iftraffic0,ifs[1],iftraffic1))
             
-        iftraffic0 = info['load'][ifs[0]]
-        iftraffic1=  info['load'][ifs[1]]
-        if iftraffic0 < 100 and iftraffic1 < 100 :
-            raise xenrt.XRTError("Not enough traffic across interface to verify Balalncing .%s load = %s,%s load = %s" %(ifs[0],iftraffic0,ifs[1],iftraffic1))
-            
-        if iftraffic0 >= iftraffic1 :
-            balanceratio = float(iftraffic1)/float(iftraffic0)
-        else :
-            balanceratio = float(iftraffic0)/float(iftraffic1)            
-        if balanceratio >=0.75 and balanceratio <=1 :
-            xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
-        else :
-            raise xenrt.XRTFailure("Load is a not balance across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+            if iftraffic0 >= iftraffic1 :
+                balanceratio = float(iftraffic1)/float(iftraffic0)
+            else :
+                balanceratio = float(iftraffic0)/float(iftraffic1)            
+            if balanceratio >=0.75 and balanceratio <=1 :
+                xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
+            else :
+                raise xenrt.XRTFailure("Load is a not balance across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
             
 
 class TC8310(_BondBalance):

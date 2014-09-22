@@ -1797,3 +1797,71 @@ class TCSettingGuestNameViaXenstore(xenrt.TestCase):
         step("Check name has been set")
         if newName == finalName:
             raise xenrt.XRTFailure("Initial name: %s and final name: %s do not match" % (initialName, finalName))
+
+class TCCopyDataOnMultipleVIFsWindows(xenrt.TestCase):
+    """
+    This addresses SCTX-1778 which states Windows VM with 5 VIFs
+    becomes unresponsive when copying data
+    """
+    
+    FILESIZE = 8 # In GB
+    THRESHOLD = 200 # Measuring 40MB/s copying speed
+    
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+        self.guest = None
+    
+    def checkTimeForCopyingData(self, fromLocation, toLocation):
+        # Copy data from one drive to another drive
+        log("Create a %dGB file on location %s" % (self.FILESIZE,fromLocation))
+        filename = 'xenrt-%s.dat' % (''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+        self.guest.xmlrpcExec('fsutil file createnew %s\\%s %d' % (fromLocation, filename, (self.FILESIZE * xenrt.GIGA)))
+        
+        log("Measure the time taken for copying file from %s to %s" % (fromLocation, toLocation))
+        startTime = datetime.now()
+        self.guest.xmlrpcExec('copy %s\\%s %s\\%s' % (fromLocation,filename,toLocation,filename), timeout=1800)
+        timeDelta = datetime.now() - startTime
+        
+        log('Total time taken %d seconds' % timeDelta.seconds)
+        if(timeDelta.seconds > self.THRESHOLD):
+            raise xenrt.XRTFailure("File copied at slow rate, total time taken to copy %dGB is %s" % (self.FILESIZE,timeDelta.seconds))
+        
+        log("Remove file created and copied in %s %s" % (fromLocation, toLocation))
+        self.guest.xmlrpcExec('del %s\\%s' % (fromLocation,filename))
+        self.guest.xmlrpcExec('del %s\\%s' % (toLocation,filename))
+
+    def run(self, arglist=None):
+        
+        step("Get the guest installed in seq")
+        self.guest = self.getGuest("Windows VM")
+        
+        pathA = 'C:\\temp'
+        pathB = 'E:\\temp'
+        log("Create directories %s %s" % (pathA, pathB))
+        self.guest.xmlrpcCreateDir(pathA)
+        self.guest.xmlrpcCreateDir(pathB)
+        
+        step("Test the file copying speed from one drive to another")
+        self.checkTimeForCopyingData(pathA,pathB)
+        
+        step("Test the file copying speed vice-versa")
+        self.checkTimeForCopyingData(pathB,pathA)
+
+class TC21711(xenrt.TestCase):
+    def prepare(self, arglist):
+        host = self.getDefaultHost()
+        self.guest = host.createBasicGuest("rhel59")
+
+        if self.guest is None:
+            raise xenrt.XRTError("Need RHEL VM for testcase. None found.")
+
+    def run(self, arglist):
+        self.guest.reboot()
+        filepath = "/sys/hypervisor/uuid"
+        response = self.guest.execguest("cat %s" % (filepath))
+
+        # UUID pattern
+        pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+        if not re.search(pattern, response):
+            raise xenrt.XRTFailure("Failure. Was not able to read uuid from %s" % (filepath))

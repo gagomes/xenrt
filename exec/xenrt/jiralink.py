@@ -140,8 +140,11 @@ class JiraLink:
             {'file':"*/guest-console-logs/console*", 'desc':"Kernel Panic",
                 'pattern':r'(?:.*\n){0,4}(?:.*Kernel panic.*)(?:.*\n){0,4}'},
 
-            {'file':"*/cloudstack/management/management-server.log*", 'desc':"Management server logs",
+            {'file':"*/cloudstack/management/management-server.log*", 'desc':"Management server Exception logs",
                 'pattern':r'(?:.*\n){0,1}(?:.*Exception\:.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
+
+            {'file':"*/cloudstack/management/management-server.log*", 'desc':"Management server Error logs",
+                'pattern':r'(?:.*\n){0,1}(?:.*ERROR.+)(?:.*\n){0,4}','type':"CLOUD",'startPoint':-8192,'endPoint':-1},
 
             {'file':"*/cloudstack/management/apilog.log*", 'desc':"API logs",
                 'pattern':r'(?:.*\n){0,5}(?:.*exception.+)(?:.*\n){0,5}','type':"CLOUD"},

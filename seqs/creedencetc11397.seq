@@ -37,7 +37,7 @@
       <testcase id="xenserver.tc.vswitch.TC11403"/>
       <testcase id="xenserver.tc.vswitch.TC11404"/>
       <testcase id="xenserver.tc.vswitch.TC11405"/>
-      <testcase id="xenserver.tc.vswitch.TC11407"/>
+      <!--<testcase id="xenserver.tc.vswitch.TC11407"/>-->
       <testcase id="xenserver.tc.vswitch.TC11408"/>
       <testcase id="xenserver.tc.vswitch.TC11409"/>
       <testcase id="xenserver.tc.vswitch.TC11512"/>

@@ -11,15 +11,35 @@
   <prepare>
     <cloud>
       { "zones": [
-        { "networktype": "Basic",
+        { "networktype": "Advanced",
+          "guestcidraddress": "192.168.200.0/24",
           "physical_networks": [
-            { "name": "BasicPhyNetwork" }
+            { "name": "AdvPhyNetwork",
+              "isolationmethods": [ "VLAN" ],
+              "XRT_VLANRangeSize": 3,
+              "traffictypes": [
+                { "typ": "Guest" },
+                { "typ": "Management" },
+                { "typ": "Public" }
+              ],
+              "providers": [
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "VpcVirtualRouter"
+                },
+                { "broadcastdomainrange": "ZONE",
+                  "name": "InternalLbVm"
+                }
+              ]
+            }
+          ],
+          "ipranges": [
+            { "XRT_GuestIPRangeSize": 15 }
           ],
           "pods": [
             { "XRT_PodIPRangeSize": 5,
-              "guestIpRanges": [
-                { "XRT_GuestIPRangeSize": 15 }
-              ],
               "clusters": [
                 { "hypervisor": "${TESTED_HYPERVISOR}", "XRT_Hosts": 2 }
               ]
@@ -44,7 +64,7 @@
   <testsequence>
     <parallel workers="3">
       <for iter="DISTRO" values="${DISTROS}">
-        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}${HYPERVISOR_VERSION}/Basic/${DISTRO}">
+        <testcase id="cloud.tc.instancelifecycles.TCCloudGuestLifeCycle" name="LC-${DISTRO}" tc="TC-21203" sku="${TESTED_HYPERVISOR}${HYPERVISOR_VERSION}/Adv/${DISTRO}">
           <arg>distro=${DISTRO}</arg>
         </testcase>
       </for>

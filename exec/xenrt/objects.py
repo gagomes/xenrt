@@ -7002,7 +7002,7 @@ class GenericGuest(GenericPlace):
                   username=None,
                   retval="string",
                   level=xenrt.RC_FAIL,
-                  timeout=300,
+                  timeout=1200,
                   idempotent=False,
                   newlineok=False,
                   getreply=True,

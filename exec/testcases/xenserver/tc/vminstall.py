@@ -2234,12 +2234,6 @@ class TC21721(_TC6767):
     ARCH = "x86-32"
     METHOD = "HTTP"
 
-class TC21722(_TC6767):
-    """Install a Ubuntu 14.04 32 bit VM from NFS"""
-    DISTRO = "ubuntu1404"
-    ARCH = "x86-32"
-    METHOD = "NFS"
-
 class TC21723(_TC5786):
     """Install a Ubuntu 14.04 64 bit VM from ISO"""
     DISTRO = "ubuntu1404"
@@ -2250,10 +2244,4 @@ class TC21724(_TC6767):
     DISTRO = "ubuntu1404"
     ARCH = "x86-64"
     METHOD = "HTTP"
-
-class TC21725(_TC6767):
-    """Install a Ubuntu 14.04 64 bit VM from NFS"""
-    DISTRO = "ubuntu1404"
-    ARCH = "x86-64"
-    METHOD = "NFS"
 

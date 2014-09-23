@@ -10161,6 +10161,13 @@ class BostonHost(MNRHost):
                 continue
             self.genParamSet("template", uuids[0], "PV-args", args[a])
 
+        if xenrt.TEC().lookup("WORKAROUND_XOP589", False, boolean=True):
+            xenrt.TEC().warning("Using XOP-589 workaround")
+            for t in ["Debian Wheezy 7 (32-bit)", "Debian Wheezy 7 (64-bit)"]:
+                uuids = self.minimalList("template-list", args="name-label=\"%s\"" % t)
+                for u in uuids:
+                    self.genParamSet("template", u, "name-label", t.replace("7", "7.0"))
+
 #############################################################################
 class BostonXCPHost(BostonHost):
   

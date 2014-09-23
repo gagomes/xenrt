@@ -361,7 +361,7 @@ class TCVerifyUEK(xenrt.TestCase):
         vmparamUname = guest.paramGet('os-version','uname')
 
         #OEL is UEK by default on creedence
-        if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+        if isinstance(host, xenrt.lib.xenserver.CreedenceHost) and self.UEK:
             if not re.search("uek" , kversion) or not (re.search("uek" , xenstoreEntry) and re.search("uek" , vmparamUname)) or not((xenstoreEntry == kversion ) and (vmparamUname == kversion)):
                 raise xenrt.XRTError("Oracle enterprise linux is not UEK by default on %s " %host.productVersion )
             xenrt.TEC().logverbose("Oracle enterprise linux is UEK by default on %s " %host.productVersion)

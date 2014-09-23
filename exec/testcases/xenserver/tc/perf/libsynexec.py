@@ -67,8 +67,8 @@ def start_master_on_controller(slaveCommand, jobid, numclients):
     # Run synexec master
     port = 5165
     while port < 5300:
-        p = subprocess.Popen("%s/synexec_master -v -s %d -p %d %d %s 1> %s/synexec_master.log 2>&1" %
-                         (workdir, jobid, port, numclients, conffile, workdir), shell=True)
+        p = subprocess.Popen("%s/synexec_master %s -v -s %d -p %d %d %s 1> %s/synexec_master.log 2>&1" %
+                         (workdir, get_if_name_param(), jobid, port, numclients, conffile, workdir), shell=True)
         time.sleep(1)
         if "Address already in use" not in get_master_log_on_controller(jobid):
             return (p, port)

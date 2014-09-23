@@ -80,7 +80,7 @@ class _VMScalability(_Scalability):
     DOM0MEM = False #Dom 0 Memory in MB
     NET_BRIDGE=False # Use Linux Bridge for Network Backend
     FLOW_EVT_THRESHOLD = False # set flow-eviction-threshold value (e.g.: 8192)
-    POSTRUN = "cleanup" # nocleanup|cleanup|forcecleanup 
+    POSTRUN = "forcecleanup" #CA-126090      nocleanup|cleanup|forcecleanup    
     
     
     #Pin additional vCPUs for dom0. Will use this if TRYMAX is set to True

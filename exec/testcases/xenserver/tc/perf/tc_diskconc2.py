@@ -99,8 +99,6 @@ class TCDiskConcurrent2(libperf.PerfTestCase):
                     self.host.genParamSet("vbd", vbd_uuid, "other-config:backend-kind", "vbd")
 
             cloned_vm.start()
-            if not self.windows:
-                libsynexec.start_slave(cloned_vm, self.jobid)
 
     def runPrepopulate(self):
         for vm in self.vm:
@@ -119,26 +117,28 @@ clean all
     def runPhase(self, count, op):
         for blocksize in self.blocksizes:
             # Run synexec master
-            libsynexec.start_master_in_dom0(self.host,
+            proc, port = libsynexec.start_master_on_controller(
                     """/bin/bash :CONF:
 #!/bin/bash
 
 for i in {b..%s}; do
     pididx=0
-    /root/latency -s -t%s%s -b %d /dev/xvd\\$i %d &> /root/out-\\$i &
-    pid[\\$pididx]=\\$!
+    /root/latency -s -t%s%s -b %d /dev/*d$i %d &> /root/out-$i &
+    pid[$pididx]=$!
     ((pididx++))
 done
 
 for ((idx=0; idx<pididx; idx++)); do
-  wait \\${pid[\\$idx]}
+  wait ${pid[$idx]}
 done
 """ % (chr(ord('a') + self.vbds_per_vm), "" if op == "r" else " -w",
        " -z" if self.zeros else "", blocksize, self.duration),
                     self.jobid, len(self.vm))
 
             for vm in self.vm:
-                libsynexec.start_slave(vm, self.jobid)
+                libsynexec.start_slave(vm, self.jobid, port)
+
+            proc.wait()
 
             # Fetch results from slaves
             for vm in self.vm:
@@ -150,7 +150,7 @@ done
                                  (op, count + 1, blocksize, vm.getName().split("-")[0], vm.getName().split("-")[1], j, line))
 
             # Fetch log from master
-            results = libsynexec.get_master_log(self.host)
+            results = libsynexec.get_master_log_on_controller(self.jobid)
             for line in results.splitlines():
                 self.log("master", "%d %s" % (blocksize, line))
 
@@ -354,7 +354,7 @@ Version 1.1.0
     def run(self, arglist=None):
         self.changeNrDom0vcpus(self.host, self.dom0vcpus)
 
-        libsynexec.initialise_master_in_dom0(self.host)
+        libsynexec.initialise_master_on_controller(self.jobid)
 
         guests = self.host.guests.values()
         self.installTemplate(guests)

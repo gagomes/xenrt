@@ -177,15 +177,19 @@ class MarvinApi(object):
 
         while True:
             systemvms = self.cloudApi.listSystemVms() or []
+            startingvms = [x for x in systemvms if x.state == "Starting"]
             systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
-            if systemvms and systemvmhosts:
+            if systemvmhosts: # At least one host object has been created
                 downhosts = [x for x in systemvmhosts if x.state != "Up"]
-                if not downhosts:
+                if not downhosts and not startingvms:
                     # All up, complete
                     xenrt.TEC().logverbose("All System VMs ready")
                     return
                 else:
-                    xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                    if downhosts:
+                        xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                    if startingvms:
+                        xenrt.TEC().logverbose("%s starting" % ", ".join([x.name for x in startingvms]))
             else:
                 xenrt.TEC().logverbose("No system VMs present yet")
             

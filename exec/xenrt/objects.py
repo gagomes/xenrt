@@ -8231,7 +8231,7 @@ class GenericGuest(GenericPlace):
         webdir.copyIn(filename)
         url = webdir.getURL(os.path.basename(filename))
 
-        if pxe:
+        if pxe and method != "CDROM":
             xenrt.TEC().logverbose("Experimental debian pxe installation support")
             # HVM PXE install
             self.enablePXE()

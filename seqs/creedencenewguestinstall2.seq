@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- Linux installation test sequence 2 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="4"/>
+
+  <prepare>
+      <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+      <testcase id="xenserver.tc.vminstall.TC21720" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21721" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21722" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21723" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21724" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC21725" group="VMInstall"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -3600,6 +3600,14 @@ exit /B 1
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))
 
+                    # see if we can arping to the guest from dom0.
+                    try:
+                        xenrt.TEC().logverbose("Attempting to arping the guest from dom0")
+                        bridge = self.getVIFs()['eth0'][2]
+                        self.host.execdom0("arping -I %s -c 2 %s" % (bridge, self.getIP()))
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
                     try:
                         # use key presses to log /var/log/syslog to the console
                         xenrt.TEC().logverbose("Using keypresses to write syslog to console")

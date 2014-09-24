@@ -1685,10 +1685,9 @@ class Config:
         #Templates not present in cloud
         #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = ""
         #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = ""
-        #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-32"] = ""
         #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-64"] = ""
-        #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-32"] = ""
         #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-64"] = ""
+        #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel7_x86-64"] = ""
         
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"

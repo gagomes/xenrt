@@ -102,7 +102,7 @@ class PerformanceUtility(object):
         logdir = xenrt.TEC().getLogdir()
 
         fileNumber = 0
-        while not os.path.isfile("%s/timed-results-run-%s.json" % (logdir, fileNumber):
+        while not os.path.isfile("%s/timed-results-run-%s.json" % (logdir, fileNumber)):
             fileNumber++
 
         filename = "%s/timed-results-run-%s" % (logdir, fileNumber)

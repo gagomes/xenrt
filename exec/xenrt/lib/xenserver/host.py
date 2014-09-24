@@ -11158,7 +11158,7 @@ class SarasotaHost(CreedenceHost):
                         xenrt.TEC().warning("Found known firstboot issue %s in %s" % (known, f))
                         return
 
-                raise xenrt.XRTFailure("firstboot.d %s %s" % (f, msg))
+                raise xenrt.XRTFailure("firstboot.d %s failed" % f)
 
     def getSCSIID(self, device):
         # TODO: When CentOS 6.4 userspace in trunk, remove the fallback to -s /block

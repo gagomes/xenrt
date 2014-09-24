@@ -137,10 +137,13 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def setIPAddress(self, endpoint, endpointdev, ip):
         if isinstance(endpoint, xenrt.GenericGuest):
-            (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
+            xenrt.TEC().logverbose("setIPAddress: guest endpoint %s has vifs %s" % (endpoint, endpoint.vifs))
+            idx = [i for i,(dev,_,_,_) in enumerate(endpoint.vifs) if dev==('eth%d' % endpointdev)][0]
+            xenrt.TEC().logverbose("setIPAddress: dev %s is at index %d in vifs" % (endpointdev, idx))
+            (eth, bridge, mac, _) = endpoint.vifs[idx]
             # TODO support configuring static IP in Windows guests
             endpoint.execguest("ifconfig %s %s netmask 255.255.255.0" % (eth, ip))
-            endpoint.vifs[endpointdev] = (eth, bridge, mac, ip)
+            endpoint.vifs[idx] = (eth, bridge, mac, ip)
         elif isinstance(endpoint, xenrt.lib.xenserver.Host):
             raise xenrt.XRTError("setting IP on XenServer PIF is not yet implemented")
         elif isinstance(endpoint, xenrt.GenericHost):

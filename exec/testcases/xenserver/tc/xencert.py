@@ -237,7 +237,7 @@ class _XSStorageCertKit(xenrt.TestCase):
         fileName.append(self.SR_TYPE)
         fileName.append(".log")
         
-        res = self.pool.master.execdom0("/usr/bin/python -u /opt/xensource/debug/XenCert/XenCert %s" % ' '.join(params),retval="code" ,timeout=3600)
+        res = self.pool.master.execdom0("/usr/bin/python /opt/xensource/debug/XenCert/XenCert %s" % ' '.join(params),retval="code" ,timeout=3600)
         # obtain the resulting XenCert logs
         xclogs = self.pool.master.execdom0("ls -t1 /tmp/XenCert-*").splitlines()
         if len(xclogs) > 0:

@@ -103,7 +103,7 @@ class PerformanceUtility(object):
 
         fileNumber = 0
         while not os.path.isfile("%s/timed-results-run-%s.json" % (logdir, fileNumber)):
-            fileNumber++
+            fileNumber += 1
 
         filename = "%s/timed-results-run-%s" % (logdir, fileNumber)
 

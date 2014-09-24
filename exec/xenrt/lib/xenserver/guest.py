@@ -3615,6 +3615,11 @@ exit /B 1
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))
 
+                    if xenrt.TEC().lookup("PAUSE_CANT_CONTACT_VM", False, boolean=True):
+                        xenrt.GEC().dbconnect.jobUpdate("CANT_CONTACT_VM_PAUSED", "yes")
+                        xenrt.TEC().tc.pause("Paused - can't contact VM")
+                        xenrt.GEC().dbconnect.jobUpdate("CANT_CONTACT_VM_PAUSED", "no")
+
                     try:
                         # use key presses to log /var/log/syslog to the console
                         xenrt.TEC().logverbose("Using keypresses to write syslog to console")

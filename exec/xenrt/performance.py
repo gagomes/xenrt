@@ -3,84 +3,114 @@
 #
 # Generic solution for performance test cases functionality.
 
-import xenrt, json
+import xenrt, json, os
 from datetime import datetime
 
-class PerformanceBase(xenrt.TestCase):
-    """Decorator for TestCase which adds performance testing functionality."""
-    def __init__(self, tc, runs=1, scenarioData={}, normalized=False):
-        self._tc = tc
-        self._runs = runs
-        self._scenarioData = scenarioData
-        self.normalized = normalized
+class PerformanceUtility(object):
+    """Class which holds some performance testcase functionality."""
+    def __init__(self, runs=1, scenarioData={}, normalized=False):
+        """Inits PU using..
 
-        if self._runs < 1:
-            self._runs = 1
+        Args:
+            runs: Number of runs to perform the test on the function.
+            scenarioData: Dictionary of any relavent data which you wish to 
+                store in the log file, along with the timing results.
+            normalized: If you wish the results to be normalized. The slowest 
+                and fastest run will be ignored if True. (Will default to 
+                minimum of 3 runs if normalized is True)
+        """
+        self.__runs = runs
+        self.__scenarioData = scenarioData
+        self.__normalized = normalized
+        self.__timingDataResults = {}
+        self.__results = []
 
-        if self.normalized and self._runs < 3:
-            self._runs = 3
+        if self.__runs < 1:
+            self.__runs = 1
 
-    def timedRuns(self, fnP, fnC, *args, **kwargs):
-        """Takes a function you want to run and time it."""
-        self.timingDataResults = {}
+        if self.normalized and self.__runs < 3:
+            self.__runs = 3
 
-        xenrt.TEC().logverbose("Amount of runs: %s" % self._runs)
+    def executePerformanceTest(self, functionRun, functionCleanup=None):
+        """Run a given function (and cleanup) a given number of times, 
+            times it, and records the results from the test.
 
-        self.results = []
+        Args:
+            functionRun: Pointer to function that will be timed when running.
+            functionCleanup: Point to function that will cleanup after 
+                every run. (Optional)
+        """
 
-        self.executeRuns(fnP, fnC, *args, **kwargs)
-        self.calculateRunTime()
-        self.dumpResults()
+        xenrt.TEC().logverbose("Amount of runs: %s" % self.__runs)
 
-    def executeRuns(self, fnP, fnC, *args, **kwargs):
-        """Single run of the function you are performing."""
-        for i in range(self._runs): 
+        self.__executeRuns(functionRun, functionCleanup)
+        self.__calculateRunTime()
+        self.__dumpResults()
+
+    def __executeRuns(self, functionRun, functionCleanup):
+        """Run a given function (and cleanup) a given number of times."""
+        for i in range(self.__runs):
             startTime = datetime.now()
 
-            fnP(*args, **kwargs)
+            functionRun()
 
             endTime = datetime.now()
-            # Clean up after run.
-            fnC()
+
+            # Cleanup after run.
+            # Don't cleanup if no cleanup function, or if the last iteration.
+            if functionCleanup != None:
+                if i != range(self.__runs)[-1]:
+                    functionCleanup()
+
             xenrt.TEC().logverbose("Start: %s" % startTime)
             xenrt.TEC().logverbose("End: %s" % endTime)
 
             runTime = endTime - startTime
-            runResult = self.totalSeconds(runTime)
-            xenrt.TEC().logverbose("Time taken for run #%i: %s seconds." % (i+1, runResult))
-            self.results.append(runResult)
+            runResult = self.__totalSeconds(runTime)
+            xenrt.TEC().logverbose("Time taken for run #%i: %s seconds." %
+                                    (i+1, runResult))
+            self.__results.append(runResult)
 
-    def calculateRunTime(self):
-        """Calculates the average time taken for a single run"""
-        # After X runs, the average run time is ...
-        totalTime = sum(self.results)
-        totalRuns = len(self.results)
+    def __calculateRunTime(self):
+        """Calculate the average time taken for the group of run(s)."""
+        totalTime = sum(self.__results)
+        totalRuns = len(self.__results)
 
         # Want to remove the results from totals, but not the record of them.
-        if self.normalized:
-            assert(len(self.results) >= 3)
-            totalTime -= max(self.results)
-            totalTime -= min(self.results)
+        if self.__normalized:
+            assert(len(self.__results) >= 3)
+            totalTime -= max(self.__results)
+            totalTime -= min(self.__results)
             totalRuns -= 2
 
         averageRunTime =  totalTime / totalRuns
-        xenrt.TEC().logverbose("Data collected from %i runs" % len(self.results))
-        xenrt.TEC().logverbose("Average time taken for a run: %s seconds." % averageRunTime)
+        xenrt.TEC().logverbose("Data collected from %i runs" % 
+                                len(self.__results))
+        xenrt.TEC().logverbose("Average time taken for a run: %s seconds." % 
+                                averageRunTime)
 
-        self.timingDataResults["run-times-in-seconds"] = self.results
-        self.timingDataResults["average-run-time-in-seconds"] = averageRunTime
-        self.timingDataResults["result-normalized"] = self.normalized
+        self.__timingDataResults["run-times-in-seconds"] = self.__results
+        self.__timingDataResults["average-run-time-in-seconds"] = averageRunTime
+        self.__timingDataResults["result-normalized"] = self.__normalized
 
-    def dumpResults(self):
-        """Writes the results of the run to JSON file"""
+    def __dumpResults(self):
+        """Write the results of the run to JSON file"""
         exportData = {}
-        exportData["TimingData"] = self.timingDataResults
-        exportData["ScenarioData"] = self._scenarioData
+        exportData["TimingData"] = self.__timingDataResults
+        exportData["ScenarioData"] = self.__scenarioData
 
-        f = open("%s/timed-results.json" % (xenrt.TEC().getLogdir()), "w")
-        f.write(json.dumps(exportData))
-        f.close()
+        logdir = xenrt.TEC().getLogdir()
 
-    def totalSeconds(self, timedelta):
-        """Util function, timedelta.total_seconds() only in python 2.7"""
-        return (timedelta.microseconds + (timedelta.seconds + timedelta.days * 24 * 3600) * 10**6) / 10**float(6)
+        fileNumber = 0
+        while not os.path.isfile("%s/timed-results-run-%s.json" % (logdir, fileNumber):
+            fileNumber++
+
+        filename = "%s/timed-results-run-%s" % (logdir, fileNumber)
+
+        with open(filename, "w") as f:
+            f.write(json.dumps(exportData))
+
+    def __totalSeconds(self, td):
+        """Util function, td.total_seconds() only in python 2.7"""
+        return (td.microseconds + 
+                (td.seconds + td.days * 24 * 3600) * 10**6) / 10**float(6)

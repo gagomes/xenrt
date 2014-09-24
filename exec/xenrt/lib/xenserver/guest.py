@@ -3608,6 +3608,12 @@ exit /B 1
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))
 
+                    # capture the VIF ring and internal queue state
+                    try:
+                        self.host.execdom0("mount -t debugfs none /sys/kernel/debug && (cat /sys/kernel/debug/xen-netback/vif%d.0/io_ring;umount /sys/kernel/debug)" % self.getDomid())
+                    except Exception, ex:
+                        xenrt.TEC().logverbose(str(ex))
+
                     try:
                         # use key presses to log /var/log/syslog to the console
                         xenrt.TEC().logverbose("Using keypresses to write syslog to console")

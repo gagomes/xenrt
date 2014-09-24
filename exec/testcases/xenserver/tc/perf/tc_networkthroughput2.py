@@ -300,15 +300,35 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getHostname(self, endpoint):
         return endpoint.execcmd("hostname").strip()
 
+    # Return the assumedid of the NIC on which this VIF is bridged
     def physicalDeviceOf(self, guest, endpointdev):
         assert isinstance(guest, xenrt.GenericGuest)
         if endpointdev is None:
             return None
         else:
-            (_, bridge, _, _) = guest.vifs[endpointdev]
-            # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
-            if bridge.startswith("xenbr"):
-                return int(bridge[5:])
+            # Get the bridge this VIF is on
+            br = [b for (dev,b,_,_) in guest.vifs if dev==('eth%d' % endpointdev)][0]
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): guest.vifs = %s, so device %d is bridged on %s" % (guest, endpointdev, guest.vifs, endpointdev, br))
+
+            # Get the network-uuid for this bridge
+            netuuid = guest.host.getNetworkUUID(br)
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): network uuid of bridge %s is %s" % (guest, endpointdev, br, netuuid))
+            if netuuid == '':
+                raise XRTError("couldn't get network uuid for network having bridge '%s'" % (br))
+
+            # Look up PIF for this network
+            args = "host-uuid=%s" % (guest.host.getMyHostUUID())
+            pifuuid = guest.host.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF on network %s is %s" % (guest, endpointdev, netuuid, pifuuid))
+            if pifuuid == '':
+                raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+            # Get the assumed enumeration ID for this PIF
+            pifdev = guest.host.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF with uuid %s is %s" % (guest, endpointdev, pifuuid, pifdev))
+            assumedid = guest.host.getNICEnumerationId(pifdev)
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF %s corresponds to assumedid %d" % (guest, endpointdev, pifdev, assumedid))
+            return assumedid
 
     def getIssue(self, endpoint):
         issue = endpoint.execcmd("head -n 1 /etc/issue || true").strip()
@@ -481,6 +501,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             self.setIPAddress(self.endpoint1, self.e1dev, self.e1ip)
 
         # Collect as much information as necessary for the rage importer
+        xenrt.TEC().logverbose("Collecting metadata...")
         self.rageinfo()
 
         # Run some traffic in one direction

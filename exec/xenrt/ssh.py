@@ -173,7 +173,7 @@ class SFTPSession(SSHSession):
     def __init__(self,
                  ip,
                  username="root",
-                 timeout=300,
+                 timeout=1200,
                  level=xenrt.RC_ERROR,
                  password=None,
                  nowarn=False,

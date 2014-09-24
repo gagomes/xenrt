@@ -1348,6 +1348,9 @@ def keepSetup():
         if xenrt.TEC().lookup(o, False, boolean=True):
             return True
 
+    if xenrt.TEC().lookup("MACHINE_HOLD_FOR", None):
+        return True
+
     return False
 
 def getADConfig():

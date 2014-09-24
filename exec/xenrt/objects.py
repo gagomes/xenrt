@@ -7107,7 +7107,7 @@ class GenericGuest(GenericPlace):
             try:
                 k = self.host.execdom0("cat /etc/ssh/ssh_host_dsa_key.pub")
                 self.execguest("mkdir -p /root/.ssh")
-                self.execguest("echo '%s' > /root/.ssh/authorized_keys" % k)
+                self.execguest("echo '%s' > /root/.ssh/authorized_keys" % k, newlineok=True)
                 self.execguest("chmod 600 /root/.ssh/authorized_keys")
             except Exception, ex:
                 xenrt.TEC().logverbose(str(ex))

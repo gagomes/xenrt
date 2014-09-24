@@ -92,6 +92,7 @@ class _VDICopyPerfNew(xenrt.TestCase):
         timeRecords = []
 
         self.performCopy()
+        self.cleanUp()
 
     def performCopy(self):
         self.newVdiUuid = self.cli.execute("vdi-copy", string.join(self.args)).strip()
@@ -114,10 +115,10 @@ class TC21567New(_VDICopyPerfNew):
 
     def prepare(self, arglist):
         super(TC21567New, self).prepare(arglist)
-        self.__perf = xenrt.performance.PerformanceBase(self, runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
+        self.__perf = xenrt.performance.PerformanceUtility(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
 
     def performCopy(self):
-        self.__perf.timedRuns(super(TC21567New, self).performCopy, self.cleanUp)
+        self.__perf.executePerformanceTest(super(TC21567New, self).performCopy, self.cleanUp)
 
 
 class TC21568New(_VDICopyPerfNew):
@@ -130,10 +131,10 @@ class TC21568New(_VDICopyPerfNew):
 
     def prepare(self, arglist):
         super(TC21568New, self).prepare(arglist)
-        self.__perf = xenrt.performance.PerformanceBase(self, runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
+        self.__perf = xenrt.performance.PerformanceBase(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
 
     def performCopy(self):
-        self.__perf.timedRuns(super(TC21568New, self).performCopy, super(TC21568New, self).cleanUp)
+        self.__perf.executePerformanceTest(super(TC21568New, self).performCopy, super(TC21568New, self).cleanUp)
 
 class TC21569New(_VDICopyPerfNew):
     """Inter hosts vdi copy performance test between two SRs"""
@@ -145,7 +146,7 @@ class TC21569New(_VDICopyPerfNew):
 
     def prepare(self, arglist):
         super(TC21569New, self).prepare(arglist)
-        self.__perf = xenrt.performance.PerformanceBase(self, runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
+        self.__perf = xenrt.performance.PerformanceBase(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
 
     def performCopy(self):
-        self.__perf.timedRuns(super(TC21569New, self).performCopy, super(TC21569New, self).cleanUp)
+        self.__perf.executePerformanceTest(super(TC21569New, self).performCopy, super(TC21569New, self).cleanUp)

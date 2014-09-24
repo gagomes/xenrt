@@ -3610,6 +3610,7 @@ exit /B 1
 
                     # capture the VIF ring and internal queue state
                     try:
+                        xenrt.TEC().logverbose("Attempting to capture the VIF ring and internal queue state")
                         self.host.execdom0("mount -t debugfs none /sys/kernel/debug && (cat /sys/kernel/debug/xen-netback/vif%d.0/io_ring;umount /sys/kernel/debug)" % self.getDomid())
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))

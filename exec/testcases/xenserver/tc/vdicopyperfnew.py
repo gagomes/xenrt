@@ -131,10 +131,10 @@ class TC21568New(_VDICopyPerfNew):
 
     def prepare(self, arglist):
         super(TC21568New, self).prepare(arglist)
-        self.__perf = xenrt.performance.PerformanceBase(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
+        self.__perf = xenrt.performance.PerformanceUtility(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
 
     def performCopy(self):
-        self.__perf.executePerformanceTest(super(TC21568New, self).performCopy, super(TC21568New, self).cleanUp)
+        self.__perf.executePerformanceTest(super(TC21568New, self).performCopy, self.cleanUp)
 
 class TC21569New(_VDICopyPerfNew):
     """Inter hosts vdi copy performance test between two SRs"""
@@ -146,7 +146,7 @@ class TC21569New(_VDICopyPerfNew):
 
     def prepare(self, arglist):
         super(TC21569New, self).prepare(arglist)
-        self.__perf = xenrt.performance.PerformanceBase(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
+        self.__perf = xenrt.performance.PerformanceUtility(runs=10, scenarioData=self.vdiCopyPerfResults, normalized=True)
 
     def performCopy(self):
-        self.__perf.executePerformanceTest(super(TC21569New, self).performCopy, super(TC21569New, self).cleanUp)
+        self.__perf.executePerformanceTest(super(TC21569New, self).performCopy, self.cleanUp)

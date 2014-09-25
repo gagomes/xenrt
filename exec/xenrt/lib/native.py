@@ -57,13 +57,7 @@ def createHost(id=0,
 
     xenrt.GEC().startLogger(m)
 
-    distro = productVersion
-    dd = distro.rsplit("-", 1)
-    if len(dd) == 2 and dd[1] == "x64":
-        arch = "x86-64"
-        distro = dd[0]
-    else:
-        arch = "x86-32"
+    (distro, arch) = xenrt.getDistroAndArch(productVersion)
 
     host = xenrt.lib.native.NativeLinuxHost(m, version)
     host.installLinuxVendor(distro, arch=arch)

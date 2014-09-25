@@ -8,6 +8,8 @@ from datetime import datetime
 
 class PerformanceUtility(object):
     """Class which holds some performance testcase functionality."""
+    __performanceRuns = 0
+
     def __init__(self, runs=1, scenarioData={}, normalized=False):
         """Inits PU using..
 
@@ -40,7 +42,7 @@ class PerformanceUtility(object):
             functionCleanup: Point to function that will cleanup after 
                 every run. (Optional)
         """
-
+        self.__performanceRuns += 1
         xenrt.TEC().logverbose("Amount of runs: %s" % self.__runs)
 
         self.__executeRuns(functionRun, functionCleanup)
@@ -101,11 +103,7 @@ class PerformanceUtility(object):
 
         logdir = xenrt.TEC().getLogdir()
 
-        fileNumber = 0
-        while not os.path.isfile("%s/timed-results-run-%s.json" % (logdir, fileNumber)):
-            fileNumber += 1
-
-        filename = "%s/timed-results-run-%s" % (logdir, fileNumber)
+        filename = "%s/timed-results-run-%s" % (logdir, self.__performanceRuns)
 
         with open(filename, "w") as f:
             f.write(json.dumps(exportData))

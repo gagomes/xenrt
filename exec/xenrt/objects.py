@@ -3883,6 +3883,35 @@ bootlocal.close()
                 self.paramSet("platform:usb", "true")
                 self.lifecycleOperation("vm-start")
                 self.waitforxmlrpc(20 * 60)
+                
+        windowsIPConfigLogger = """Set osh = WScript.CreateObject("WScript.Shell")
+dim oex
+set oex = osh.Exec("ipconfig /all")
+
+Set objWMIService = GetObject("winmgmts:\\\\.\\root\\wmi")
+Set base = objWmiService.InstancesOf("CitrixXenStoreBase")
+
+for each itementry in base
+    set objitem = itementry
+next
+
+objitem.AddSession "NewSession", answer
+query = "select * from CitrixXenStoreSession where SessionId = '" & answer & "'"
+Set sessions = objWMIService.ExecQuery(query) 
+for each itementry in sessions
+   rem is there a more trivial way of getting the only item from a collection in vbscript?
+   set session = itementry
+next
+
+Do
+    str = oex.StdOut.ReadLine()
+    session.log(str)
+Loop While not oex.Stdout.atEndOfStream"""
+        
+        self.xmlrpcWriteFile("C:\\Users\\Administrator\\logger.vbs", windowsIPConfigLogger)
+        self.xmlrpcExec("Wscript.exe C:\\Users\\Administrator\\logger.vbs")
+        self.checkHealth(unreachable=True)
+
 
     def setWindowsNX(self, enable):
         """Enable or disable Windows NX (DEP) support."""

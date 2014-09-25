@@ -259,8 +259,8 @@ class JiraLink:
                 xenrt.TEC().warning("Jira attach exception: %s" % (str(e)))
                 traceback.print_exc(file=sys.stderr)
 
-    def processTC(self,tec,jiratc):
-        xenrt.GEC().logverbose("processTC tec=%s, jiratc=%s" % ((tec or ""), (jiratc or "")))
+    def processTC(self,tec,jiratc,tcsku=None):
+        xenrt.GEC().logverbose("processTC tec=%s, jiratc=%s, tcsku=%s" % ((tec or ""), (jiratc or ""), (tcsku or "")))
         
         if not self.attemptToConnect():
             xenrt.GEC().logverbose("Jira not connected, not filing bug",
@@ -407,6 +407,8 @@ class JiraLink:
                 allresults = []
                 tec.tc.results.gather(allresults,"","")
                 for result in allresults:
+                    i = None
+                    new = False
                     if result[4] in (xenrt.RESULT_FAIL, xenrt.RESULT_ERROR):
                         reasons = tec.tc.results.groups[result[2]].tests[result[3]].reasons
                         if reasons:
@@ -440,6 +442,9 @@ class JiraLink:
                             self.attachFileToTicket(i, "%s/xenrt.log" % (tec.getLogdir()))
                             for f in tec.tc.ticketAttachments():
                                 self.attachFileToTicket(i, f)
+                    
+                    ikey = i and i.key or None
+                    self.recordSubcase(tec, result, ikey, tcsku)
                    
                 i = None
                 new = False
@@ -685,8 +690,37 @@ class JiraLink:
                     traceback.print_exc(file=sys.stderr)
 
             ikey = i and i.key or None
-
+        elif tec.tc.SUBCASE_TICKETS:
+            xenrt.GEC().logverbose("Test wants seperate tickets for each subcase")
+            # We have subcases, gather the results
+            allresults = []
+            tec.tc.results.gather(allresults,"","")
+            for result in allresults:
+                self.recordSubcase(tec, result, None, tcsku)
+             
         return ikey
+
+    def recordSubcase(self, tec, result, ikey, tcsku): 
+        tsr = tec.lookup("TESTRUN_SR",None)
+        if tsr:
+            xenrt.GEC().logverbose("Logging result against SR %s" % tsr) 
+            ident = tec.tc.getSubCaseJiraIdent(result[2], result[3])
+            xenrt.GEC().logverbose("Ident = %s" % ident)
+            tcid = self.lookupTCFromIdent(ident)
+            xenrt.GEC().logverbose("TC = %s" % tcid)
+            if tcid:
+                if tec.tc.group:
+                    phase = tec.tc.group
+                else:
+                    phase = "Phase 99"
+                test = tec.tc.basename
+                detailid = None
+                try:
+                    detailid = xenrt.GEC().dbconnect.detailid(phase,test)
+                except:
+                    # This might happen if we've e.g. lost connectivity
+                    xenrt.TEC().warning("Unable to retrieve detailid")
+                self.recordRun(tsr,tcid,xenrt.resultDisplay(result[4]),ikey,detailid,tcsku)
 
     def processTR(self,tec,ikey,jiratc,tcsku=None):
         xenrt.TEC().logverbose("processTR ikey=%s jiratc=%s tcsku=%s" % (str(ikey or ""), str(jiratc or ""), str(tcsku or "")))
@@ -879,7 +913,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             xenrt.GEC().logverbose("JiraLink Exception: %s" % (str(e)))            
             if self._bufferdir:
                 xenrt.TEC().logverbose("Buffering TestRun Submission: "
-                                       "%s,%s,%s,%s,%s" % (sr,tc,result,ticket,
+                                           "%s,%s,%s,%s,%s" % (sr,tc,result,ticket,
                                                            detailid))
                 f = file("%s/bufferedruns" % (self._bufferdir), "a")
                 try:
@@ -1258,6 +1292,20 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         else:
             xenrt.GEC().logverbose("Not created new ticket but found no "
                                    "issues to comment on", pref='WARNING')
+
+    def lookupTCFromIdent(self, ident):
+        xenrt.GEC().logverbose("lookupTCFromIdent ident=%s" % ident)
+        postURL = "%s/backend/tcfromident" % self.TESTRUN_URL
+        dict = {'ident': ident}
+        postdic = urllib.urlencode(dict)
+        u = urllib2.urlopen(postURL, postdic)
+        tc = u.readline().strip()
+        u.close()
+        xenrt.GEC().logverbose("Got %s as TC" % tc)
+        if re.match("TC-\d+", tc):
+            return tc
+        else:
+            return None
 
     def _lookupTAAssignee(self,jiratc):
         if jiratc:

@@ -267,6 +267,10 @@ class TCRemoteNose(_TCRemoteNoseBase):
         else:
             return None
 
+    def getSubCaseJiraIdent(self, group, test):
+        grouptext = ".".join(reversed(group.split(".")))
+        return "Marvin: %s.%s" % (test, grouptext)
+
     def ticketAttachments(self):
         logdir = xenrt.TEC().getLogdir()
         return glob.glob("%s/marvin/MarvinLogs/*/results.txt" % logdir)

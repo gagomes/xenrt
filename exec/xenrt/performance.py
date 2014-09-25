@@ -28,7 +28,7 @@ class PerformanceUtility(object):
         if self.__runs < 1:
             self.__runs = 1
 
-        if self.normalized and self.__runs < 3:
+        if self.__normalized and self.__runs < 3:
             self.__runs = 3
 
     def executePerformanceTest(self, functionRun, functionCleanup=None):

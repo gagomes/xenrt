@@ -690,13 +690,6 @@ class JiraLink:
                     traceback.print_exc(file=sys.stderr)
 
             ikey = i and i.key or None
-        elif tec.tc.SUBCASE_TICKETS:
-            xenrt.GEC().logverbose("Test wants seperate tickets for each subcase")
-            # We have subcases, gather the results
-            allresults = []
-            tec.tc.results.gather(allresults,"","")
-            for result in allresults:
-                self.recordSubcase(tec, result, None, tcsku)
              
         return ikey
 
@@ -727,34 +720,51 @@ class JiraLink:
         # Testrun bits - returns True if it updates a ticket
         tsr = xenrt.TEC().lookup("TESTRUN_SR",None)
         if tsr:
-            if not jiratc:
-                # See if this is a TC style test
-                m = re.match("TC(\d{3,4}\d*)",tec.tc.basename)
-                if m:
-                    jiratc = "TC-%s" % (m.group(1))
-                else:
-                    return False
-
             tcResult = tec.tc.getResult()
-            if tec.tc.group:
-                phase = tec.tc.group
+            if tec.tc.SUBCASE_TICKETS:
+                alreadyRecorded = False
+                # If the testcase failed we would have done this with bug filing
+                if tcResult in ("fail", "error"):
+                    alreadyRecorded = True
+                # Unless we weren't filing tickets
+                if not xenrt.TEC().lookup("AUTO_BUG_FILE", False, boolean=True):
+                    alreadyRecorded = False
+                if not alreadyRecorded:
+                    xenrt.GEC().logverbose("Test wants seperate tickets for each subcase")
+                    # We have subcases, gather the results
+                    allresults = []
+                    tec.tc.results.gather(allresults,"","")
+                    for result in allresults:
+                        self.recordSubcase(tec, result, None, tcsku)
+                return True
             else:
-                phase = "Phase 99"
-            test = tec.tc.basename
-            detailid = None
-            try:
-                detailid = xenrt.GEC().dbconnect.detailid(phase,test)
-            except:
-                # This might happen if we've e.g. lost connectivity
-                xenrt.TEC().warning("Unable to retrieve detailid")
-            self.recordRun(tsr,jiratc,tcResult,ikey,detailid,tcsku)
-            subresults = []
-            tec.tc.gather(subresults)
-            if len(subresults) > 1:
-                # We have some subcases
-                for r in subresults:
-                    self.recordSubResult(tsr,jiratc,r,tcsku)
-            return True
+                if not jiratc:
+                    # See if this is a TC style test
+                    m = re.match("TC(\d{3,4}\d*)",tec.tc.basename)
+                    if m:
+                        jiratc = "TC-%s" % (m.group(1))
+                    else:
+                        return False
+
+                if tec.tc.group:
+                    phase = tec.tc.group
+                else:
+                    phase = "Phase 99"
+                test = tec.tc.basename
+                detailid = None
+                try:
+                    detailid = xenrt.GEC().dbconnect.detailid(phase,test)
+                except:
+                    # This might happen if we've e.g. lost connectivity
+                    xenrt.TEC().warning("Unable to retrieve detailid")
+                self.recordRun(tsr,jiratc,tcResult,ikey,detailid,tcsku)
+                subresults = []
+                tec.tc.gather(subresults)
+                if len(subresults) > 1:
+                    # We have some subcases
+                    for r in subresults:
+                        self.recordSubResult(tsr,jiratc,r,tcsku)
+                return True
 
         return False
 

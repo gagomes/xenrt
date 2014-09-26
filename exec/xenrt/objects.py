@@ -3907,8 +3907,10 @@ Do
     str = oex.StdOut.ReadLine()
     session.log(str)
 Loop While not oex.Stdout.atEndOfStream"""
-        
-        self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
+        try:
+            self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
+        except Exception as e:
+            xenrt.TEC().logverbose("Writing ipconfig logger to Windows VM failed: %s"%(e.message))
 
 
     def setWindowsNX(self, enable):

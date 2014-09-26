@@ -1929,7 +1929,7 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         Check the contents file of the hotfix package does not have duplicate lines of of text in it
         """
         xenrt.TEC().logverbose("Checking for duplicate lines in CONTENTS file")
-        for version in ["^5\.6\.0$", "^5\.6\.100$", "^5\.5\.0$", "^5\.0\.0$"]:
+        for version in ["^5\.5\.0$", "^6\.0\.0$"]:
             if self._versionRegexFound(version, metadata):
                 if not "oxford-lcm" in xenrt.TEC().lookup("INPUTDIR"): #Run for oxford-lcm
                     xenrt.TEC().logverbose("Version %s so skipping duplicate contents test" % version) 
@@ -2077,6 +2077,7 @@ class TCRollingPoolUpdate(xenrt.TestCase):
     UPGRADE = True
 
     def prepare(self, arglist):
+        
         self.pool = self.getDefaultPool()
         self.newPool = None
         self.INITIAL_VERSION = self.pool.master.productVersion

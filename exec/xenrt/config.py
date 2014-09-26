@@ -3027,6 +3027,8 @@ class Config:
         # AliBaba: xen-hyp, qemu, openSSL. Rolls up XS61E003,XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E041/86672/hotfix-XS61E041/XS61E041.xsupdate"
       
+        # Scalextric: xcp-python-libs, kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035, XS61E039
+        #self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E042/87613/hotfix-XS61E042/XS61E042.xsupdate"
       
       
       
@@ -3141,6 +3143,10 @@ class Config:
         
         # Adele - Kernel. Rolls up XS62ESP1005
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1009/87218/hotfix-XS62ESP1009/XS62ESP1009.xsupdate"
+        
+        # Whetstone - xapi, vgpu, guest-templates, xen-hyp. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62E014, XS62E017
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1011/88409/hotfix-XS62ESP1011/XS62ESP1011.xsupdate"
+
 
 
 
@@ -3274,8 +3280,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF08"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1008"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF11"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1011"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

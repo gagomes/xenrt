@@ -3908,9 +3908,7 @@ Do
     session.log(str)
 Loop While not oex.Stdout.atEndOfStream"""
         
-        self.xmlrpcWriteFile("C:\\Users\\Administrator\\logger.vbs", windowsIPConfigLogger)
-        self.xmlrpcExec("Wscript.exe C:\\Users\\Administrator\\logger.vbs")
-        self.checkHealth(unreachable=True)
+        self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
 
 
     def setWindowsNX(self, enable):

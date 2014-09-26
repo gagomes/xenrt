@@ -3,6 +3,168 @@ from datetime import datetime
 from pprint import pformat
 import re
 
+class SystemVM(object):
+    """Object for managing and monitoring CS/CP System VMs"""
+
+    @classmethod
+    def systemVMFactory(cls, toolstack, hypervisorHosts, podid=None, systemvmtype=None):
+        """Return a list of System VM objects"""
+        systemVmData = toolstack.marvin.cloudApi.listSystemVms(podid=podid, systemvmtype=systemvmtype)
+        xenrt.TEC().logverbose('Found %d System VMs: %s' % (len(systemVmData), ','.join(map(lambda x:x.name, systemVmData))))
+        return map(lambda x:cls(x.name, toolstack, hypervisorHosts), systemVmData)
+
+    def __init__(self, name, toolstack, hypervisorHosts):
+        self.cloud = toolstack
+        self.hypervisorHosts = hypervisorHosts
+        self.name = name
+        systemVmData = self.cloud.marvin.cloudApi.listSystemVms(name=self.name)
+        xenrt.xrtAssert(len(systemVmData) == 1, 'System VM with name %s not found' % (name))
+
+    def getSystemVMData(self):
+        systemVmData = self.cloud.marvin.cloudApi.listSystemVms(name=self.name)
+        xenrt.xrtAssert(len(systemVmData) == 1, 'System VM with name %s not found' % (self.name))
+        return systemVmData[0]
+
+    def command(self, command):
+        systemVmData = self.getSystemVMData()
+        if systemVmData.hypervisor == 'XenServer':
+            xsHost = filter(lambda x:x.getName() == systemVmData.hostname, self.hypervisorHosts)[0]
+            rData = xsHost.execdom0('ssh -i /root/.ssh/id_rsa.cloud -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -p 3922 root@%s %s' % (systemVmData.linklocalip, command)).strip()
+            xenrt.TEC().logverbose('Command: %s returned: %s' % (command, rData))
+            return rData
+        else:
+            raise XRTError('System VM command execution not supported for non-XS hypervisors')
+
+    def waitForReady(self, timeout=600, pollPeriod=20):
+        """This method check the CP host state, CP System VM state and checks that the agent is running"""
+        isReady = False
+        startTime = datetime.now()
+        msAgentState = None
+        msVMState = None
+        agentRunning = None
+        while (datetime.now() - startTime).seconds < timeout:
+            systemVmData = self.getSystemVMData()
+            if msVMState != systemVmData.state:
+                xenrt.TEC().logverbose('[%s] MS VM state changed from %s to %s' % (self.name, msVMState, systemVmData.state))
+                msVMState = systemVmData.state
+            hostData = self.getManSvrVMData()
+            if msAgentState != hostData.state:
+                xenrt.TEC().logverbose('[%s] MS Agent state changed from %s to %s' % (self.name, msAgentState, hostData.state))
+                msAgentState = hostData.state
+            running = self.isAgentRunning()
+            if agentRunning != running:
+                xenrt.TEC().logverbose('[%s] Agent transitioned from Running: %s to Running: %s' % (self.name, agentRunning, running))
+                agentRunning = running
+
+            if msVMState == 'Running' and msAgentState == 'Up' and agentRunning:
+                xenrt.TEC().logverbose('System VM [%s] reached ready state in %d seconds' % (self.name, (datetime.now() - startTime).seconds))
+                isReady = True
+                break
+
+            xenrt.sleep(pollPeriod)
+
+        if not isReady:
+            raise xenrt.XRTFailure('System VM [%s] failed to reach ready state in %d seconds' % (self.name, timeout))
+
+    def getManSvrVMData(self):
+        hostData = self.cloud.marvin.cloudApi.listHosts(name=self.name)
+        xenrt.xrtAssert(len(hostData) == 1, 'ManSvr Host record with name %s not found' % (self.name))
+        return hostData[0]
+
+    def isAgentRunning(self):
+        isRunning = False
+        try:
+            rData = self.command('service cloud status')
+            isRunning = 'is running' in rData
+        except Exception, e:
+            pass
+
+        return isRunning
+
+    def stopAgent(self):
+        self.command('service cloud stop')
+
+    def killAgent(self):
+        rData = self.command('service cloud status')
+        pid = int(re.search('process id: (\d+)$', st).group(1))
+        self.command('kill -9 %d' % (pid))
+
+    def inGuestShutdown(self):
+        self.command('shutdown -h now')
+
+    def inGuestReboot(self):
+        self.command('reboot')
+
+    def reboot(self):
+        systemVmData = self.getSystemVMData()
+        self.cloud.marvin.cloudApi.rebootSystemVm(id=systemVmData.id)
+
+    def stop(self):
+        systemVmData = self.getSystemVMData()
+        self.cloud.marvin.cloudApi.stopSystemVm(id=systemVmData.id)
+
+    def forcedStop(self):
+        systemVmData = self.getSystemVMData()
+        self.cloud.marvin.cloudApi.stopSystemVm(id=systemVmData.id, forced='true')
+
+    def migrateToHost(self, host):
+        systemVmData = self.getSystemVMData()
+        if systemVmData.hostid != host.id:
+            xenrt.TEC().logverbose('Migrating System VM [%s] from host: %s to %s' % (self.name, systemVmData.hostname, host.name))
+            self.cloud.marvin.cloudApi.migrateSystemVm(hostid=host.id, virtualmachineid=systemVmData.id)
+        else:
+            xenrt.TEC().logverbose('System VM [%s] already on host: %s' % (self.name, host.name))
+
+class _TCCloudSystemVMResiliencyBase(xenrt.TestCase):
+    """Base class for CCP System VM resiliency tests"""
+
+    def prepare(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        self.cloud = self.getDefaultToolstack()
+        pods = self.cloud.marvin.cloudApi.listPods()
+        xenrt.xrtAssert(len(pods) == 1, 'There must be 1 and only 1 pod configured for this test-case')
+
+        systemVmType = 'secondarystoragevm'
+        if args.has_key('systemvmtype'):
+            systemVmType = args['systemvmtype']
+
+        self.systemVm = SystemVM.systemVMFactory(self.cloud, self.getAllHosts(), podid=pods[0].id, systemvmtype=systemVmType)[0]
+
+        # Check that the system VM is healthy before the test
+        self.systemVm.waitForReady()
+
+    def _doResiliencyTest(self, arglist):
+        raise xenrt.XRTError('This must be overridden in derived classes')
+
+    def verifySystemVMRecovery(self, arglist):
+        self._doResiliencyTest(arglist)
+        # Wait for resiliency action to change the state of the system VM
+        xenrt.sleep(10)
+        self.systemVm.waitForReady()
+
+    def run(self, arglist):
+        hosts = self.cloud.marvin.cloudApi.listHosts(type='Routing')
+        for host in hosts:
+            self.systemVm.migrateToHost(host)
+            self.systemVm.waitForReady()
+            self.runSubcase('verifySystemVMRecovery', (arglist), 'SystemVMRecovery', 'Host=%s' % (host.name))
+
+    def postRun(self):
+        # If the system VM is not running try a force shutdown to reset the state
+        try:
+            self.systemVm.waitForReady()
+        except Exception, e:
+            self.systemVm.forcedStop()
+            self.systemVm.waitForReady()
+
+class TCSystemVMOpsResiliency(_TCCloudSystemVMResiliencyBase):
+
+    def _doResiliencyTest(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        xenrt.xrtAssert(args.has_key('systemvmoperation'), 'TCSystemVMOpsResiliency requires an systemvmoperation argument')
+        xenrt.xrtAssert(hasattr(self.systemVm, args['systemvmoperation']), 'systemvmoperation must be a valid method on SystemVM object')
+        getattr(self.systemVm, args['systemvmoperation'])()
+
 class _TCCloudResiliencyBase(xenrt.TestCase):
     def prepare(self, arglist):
         self.cloud = self.getDefaultToolstack()
@@ -58,6 +220,9 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
                     h = filter(lambda x:x.getName() == host.name, self.getAllHosts())[0]
                     xenrt.TEC().logverbose('[%s] BOOT-TIME: %s' % (host.name, datetime.fromtimestamp(int(float(h.getHostParam("other-config", "boot_time")))).strftime('%d-%m %H:%M')))
                     xenrt.TEC().logverbose('[%s] XAPI-TIME: %s' % (host.name, datetime.fromtimestamp(int(float(h.getHostParam("other-config", "agent_start_time")))).strftime('%d-%m %H:%M')))
+                    if h == h.pool.master:
+                        xenrt.TEC().logverbose('Current Master: %s: [uuid=%s]' % (host.name, h.uuid))
+                        xenrt.TEC().logverbose('VM State:\n' + pformat(h.parameterList(command='vm-list', params=['name-label', 'power-state', 'resident-on'], argsString='is-control-domain=false')))
                 except Exception, e:
                     xenrt.TEC().logverbose('Reg:\n' + pformat(xenrt.TEC().registry.__dict__))
                     xenrt.TEC().logverbose('Could not get data from XS Host [%s]: Exception: %s' % (host.name, str(e)))
@@ -132,14 +297,25 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
         startTime = datetime.now()
         while (datetime.now() - startTime).seconds < timeout:
             hostData = self.cloud.marvin.cloudApi.listHosts(type='Routing', podid=podid)
+            allHypervisorsUp = True
+            for host in hostData:
+                if host.hypervisor == 'XenServer':
+                    try:
+                        h = filter(lambda x:x.getName() == host.name, self.getAllHosts())[0]
+                        h.checkHealth()
+                    except Exception, e:
+                        xenrt.TEC().logverbose('Health check for host: %s failed' % (host.name))
+                        allHypervisorsUp = False
+
             hostsNotInState = filter(lambda x:x.state != state, hostData)
-            if len(hostsNotInState) == 0:
+            if len(hostsNotInState) == 0 and allHypervisorsUp:
                 allHostsReachedState = True
                 break
-            else:
+
+            if len(hostsNotInState) > 0:
                 xenrt.TEC().logverbose('Waiting for the following Hosts to reach state %s: %s' % (state, pformat(map(lambda x:(x.name, x.state), hostsNotInState))))
-                self.logCloudHostInfo()
-                xenrt.sleep(pollPeriod)
+            self.logCloudHostInfo()
+            xenrt.sleep(pollPeriod)
 
         self.logCloudHostInfo()
         if not allHostsReachedState:

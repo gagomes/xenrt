@@ -125,13 +125,13 @@ class Fragment(threading.Thread):
                     return
         if node.localName == "serial":
             tc = expand(node.getAttribute("tc"), params)
-            tcsku = expand(node.getAttribute("sku"), params)
+            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
             newfrag = Serial(self,jiratc=tc,tcsku=tcsku)
             newfrag.handleXMLNode(toplevel, node, params)
             self.addStep(newfrag)
         elif node.localName == "parallel":
             tc = expand(node.getAttribute("tc"), params)
-            tcsku = expand(node.getAttribute("sku"), params)
+            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
             newfrag = Parallel(self,jiratc=tc,tcsku=tcsku)
             a = expand(node.getAttribute("workers"), params)
             if a:
@@ -271,12 +271,8 @@ class Fragment(threading.Thread):
             prios = expand(node.getAttribute("prio"), params)
             ttype = expand(node.getAttribute("ttype"), params)
             depend = expand(node.getAttribute("depends"), params)
-            tc = expand(node.getAttribute("tc"), params)
-            tcsku = expand(node.getAttribute("sku"), params)
-            if not tc:
-                tc = self.jiratc
-            if not tcsku:
-                tcsku = self.tcsku
+            tc = expand(node.getAttribute("tc"), params) or self.jiratc
+            tcsku = expand(node.getAttribute("sku"), params) or self.tcsku
             blocker = None
             a = expand(node.getAttribute("blocker"), params)           
             if a:

@@ -225,8 +225,7 @@ class _Hotfix(xenrt.TestCase):
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
                     xenrt.TEC().logverbose("Patch apply failed as expected when 6.2_vGPU_Tech_Preview is already installed")
-                # we didn't correctly escape this for Oxford but we still test this so have added exception.
-                elif "required_version" in e.data and not "5.6SP2" in e.data and not "XenServer 6.2 Service Pack" in e.data:
+                elif "required_version" in e.data and not "XenServer 6.2 Service Pack" in e.data:
                     if not "^" in e.data or not e.data.strip().endswith("$"):
                         raise xenrt.XRTFailure("Version regex not correctly anchored")
                     elif not "\\." in e.data and not "BUILD_NUMBER" in e.data:
@@ -267,7 +266,7 @@ class _Hotfix(xenrt.TestCase):
         self.doHotfixRetail()
 
     def checkHotfixContents(self):
-        if isinstance(self.host, xenrt.lib.xenserver.BostonHost) or self.host.productVersion == "Oxford":
+        if isinstance(self.host, xenrt.lib.xenserver.BostonHost):
             remotefn = "/tmp/XSUPDATE"
             sftp = self.host.sftpClient()
             hotfix = xenrt.TEC().lookup("THIS_HOTFIX")
@@ -1905,8 +1904,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
             self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
             self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
-            self.runSubcase("_checkOxfordPreCheckUuid", (hotfixHead, contents), hotfixName, "Oxford pre-check uuid")
-            self.runSubcase("_checkCowleyNoPreCheckUuid", (hotfixHead, contents), hotfixName, "Cowley no-pre-check uuid")
             self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
             self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
             
@@ -1925,20 +1922,12 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
                 
     """Sub-tests"""
     def _checkDuplicateLines(self, h, tmp, contents, metadata):
-        """
-        Check the contents file of the hotfix package does not have duplicate lines of of text in it
-        """
-        xenrt.TEC().logverbose("Checking for duplicate lines in CONTENTS file")
-        for version in ["^5\.6\.0$", "^5\.6\.100$", "^5\.5\.0$", "^5\.0\.0$"]:
-            if self._versionRegexFound(version, metadata):
-                if not "oxford-lcm" in xenrt.TEC().lookup("INPUTDIR"): #Run for oxford-lcm
-                    xenrt.TEC().logverbose("Version %s so skipping duplicate contents test" % version) 
-                    return
-        
-        if "XS62ESP1" in metadata:
+        """Check the contents file of the hotfix package does not have duplicate lines of of text in it"""
+
+        if "XS62ESP1" in metadata or "XS60" in metadata or "XS5" in metadata:
             # There are duplicated lines and there's nothing we can do about it.
             return
-        
+
         contentsUniq = xenrt.command("cat %s/CONTENTS | sort | uniq" % tmp).strip()
         if contents != contentsUniq:
             xenrt.TEC().logverbose("Contents are: %s" % contents) 
@@ -1968,20 +1957,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         verifySubstring = "verify_update"
         self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
         
-    def _checkOxfordPreCheckUuid(self, metadata, contents): 
-        oxfordUuid="17fde43e-0a5e-48ac-8b85-cf6ed8c6344d"  
-        expectedLabel="XS56ESP2"
-        versionRegex="^5\.6\.100$"
-        verifySubstring = "verify_update"
-        self._checkPreCheckUuid(metadata, contents, oxfordUuid, expectedLabel, versionRegex, verifySubstring)
-        
-    def _checkCowleyNoPreCheckUuid(self, metadata, contents): 
-        cowleyUuid="17fde43e-0a5e-48ac-8b85-cf6ed8c6344d"  
-        expectedLabel="XS56EFP1"
-        versionRegex="^5\.6\.100$"
-        verifySubstring = "verify_no_update"
-        self._checkPreCheckUuid(metadata, contents, cowleyUuid, expectedLabel, versionRegex, verifySubstring)
-    
     def _checkSanibelBuildRegex(self, metadata):
         """
         If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:
@@ -2077,6 +2052,7 @@ class TCRollingPoolUpdate(xenrt.TestCase):
     UPGRADE = True
 
     def prepare(self, arglist):
+        
         self.pool = self.getDefaultPool()
         self.newPool = None
         self.INITIAL_VERSION = self.pool.master.productVersion

@@ -3034,7 +3034,7 @@ class GlobalExecutionContext:
                 if t.tec.lookup("AUTO_BUG_FILE", False, boolean=True):
                     try:
                         jl = xenrt.jiralink.getJiraLink()
-                        t.ticket = jl.processTC(t.tec,jiratc)
+                        t.ticket = jl.processTC(t.tec,jiratc, tcsku)
                         if t.ticket:
                             self.dbconnect.jobLogData(phase, t.basename, "comment", "Jira Ticket %s" % (t.ticket))
                             for cdt in t._crashdumpTickets:

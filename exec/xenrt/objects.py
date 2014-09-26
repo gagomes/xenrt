@@ -8039,7 +8039,23 @@ class GenericGuest(GenericPlace):
         nfsdir.copyIn(filename)
         h, p = nfsdir.getHostAndPath("kickstart.cfg")
 
-        if pxe:
+        cleanupdir = None
+
+        if pxe and method == "CDROM":
+            xenrt.TEC().logverbose("RHEL HVM CD installation")
+            # We need to put the answerfile where the guest can reach it
+            # The only thing we know is the MAC, so we have to use that
+            path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), mac.lower().replace(":",""))
+            cleanupdir = path
+            try:
+                os.makedirs(path)
+            except:
+                pass
+            xenrt.rootops.sudo("chmod -R a+w %s" % path)
+            xenrt.command("rm -f %s/kickstart.stamp" % path)
+            shutil.copyfile(filename, "%s/kickstart" % path)
+            pxe = False
+        elif pxe:
             # HVM PXE install
             self.enablePXE()
             if method != "HTTP":
@@ -8221,6 +8237,9 @@ class GenericGuest(GenericPlace):
             self.lifecycleOperation("vm-shutdown")
         self.poll("DOWN", timeout=240)
 
+        if cleanupdir:
+            shutil.rmtree(cleanupdir)
+
     def installDebian(self,
                       distro,
                       repository,
@@ -8260,7 +8279,23 @@ class GenericGuest(GenericPlace):
         webdir.copyIn(filename)
         url = webdir.getURL(os.path.basename(filename))
 
-        if pxe and method != "CDROM":
+        cleanupdir = None
+
+        if pxe and method == "CDROM":
+            xenrt.TEC().logverbose("debian HVM CD installation")
+            # We need to put the answerfile where the guest can reach it
+            # The only thing we know is the MAC, so we have to use that
+            path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), mac.lower().replace(":",""))
+            cleanupdir = path
+            try:
+                os.makedirs(path)
+            except:
+                pass
+            xenrt.rootops.sudo("chmod -R a+w %s" % path)
+            xenrt.command("rm -f %s/preseed.stamp" % path)
+            shutil.copyfile(filename, "%s/preseed" % path)
+            pxe = False
+        elif pxe:
             xenrt.TEC().logverbose("Experimental debian pxe installation support")
             # HVM PXE install
             self.enablePXE()
@@ -8393,6 +8428,9 @@ class GenericGuest(GenericPlace):
             self.enablePXE(False)
             pxe.remove()
     
+        if cleanupdir:
+            shutil.rmtree(cleanupdir)
+
 
     def waitToReboot(self,timeout=3600):
         deadline = xenrt.util.timenow() + timeout

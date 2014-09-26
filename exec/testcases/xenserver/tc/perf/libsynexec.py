@@ -5,7 +5,7 @@ import time
 import xenrt
 
 def get_if_name_param():
-    ifname = xenrt.TEC().lookup("IFNAME")
+    ifname = xenrt.TEC().lookup("IFNAME", None)
     if ifname:
         return " -i %s " % (ifname,)
     else:

@@ -4188,3 +4188,38 @@ class TC20979(SRIntroduceBase):
     
     SR_TYPE = "nfs"
     NFSSR_WITH_NOSUBDIR = True
+    
+class TC21718(xenrt.TestCase):
+    """ Verify creating PBD with SRmaster key set to true throws exception"""
+    
+    SR_TYPE = "nfs"
+    
+    def prepare(self, arglist):
+        # Get a host to use
+        self.host = self.getDefaultHost()
+        self.sruuid = self.host.getSRs(type=self.SR_TYPE)
+        
+    def run(self, arglist):
+        args = []
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("sr-uuid=%s" % self.sruuid[0])
+        pbd = self.host.minimalList("pbd-list", args=string.join(args))[0]
+        
+        cli = self.host.getCLIInstance()
+        cli.execute("pbd-unplug", "uuid=%s" % (pbd))
+        cli.execute("pbd-destroy", "uuid=%s" % (pbd))
+        
+        try:
+            args = []
+            args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+            args.append("sr-uuid=%s" % (self.sruuid[0]))
+            args.append("device-config:SRmaster=true")
+            pbd = cli.execute("pbd-create", string.join(args)).strip()
+            
+        except Exception, e:
+        
+            if e.data and re.search(r"This key is for internal use only",e.data):
+                xenrt.TEC().logverbose("Setting SRmaster key in pbd device config failed with expected message")
+                return
+        raise xenrt.XRTFailure("SRmaster key in PBD device config can be set while creating PBD")
+

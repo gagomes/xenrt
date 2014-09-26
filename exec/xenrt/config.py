@@ -3028,7 +3028,7 @@ class Config:
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E041/86672/hotfix-XS61E041/XS61E041.xsupdate"
       
         # Scalextric: xcp-python-libs, kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035, XS61E039
-        #self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E042/87613/hotfix-XS61E042/XS61E042.xsupdate"
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E042/87613/hotfix-XS61E042/XS61E042.xsupdate"
       
       
       
@@ -3261,9 +3261,9 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF09"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E009"]
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF39"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
         self.config["CARBON_PATCHES_TAMPA"]["HF41"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}

@@ -21,8 +21,8 @@
       <testcase id="xenserver.tc.multipath.TC12152"/>
       <testcase id="xenserver.tc.multipath.TC12153"/>
       <testcase id="xenserver.tc.multipath.TC12154"/>
-      <testcase id="xenserver.tc.multipath.TC12155"/>
-      <testcase id="xenserver.tc.multipath.TC12156"/>
+      <!--<testcase id="xenserver.tc.multipath.TC12155"/>
+      <testcase id="xenserver.tc.multipath.TC12156"/>-->
     </serial>
   </testsequence>
 

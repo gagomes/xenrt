@@ -1279,11 +1279,6 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                 if not line in place.thingsWeHaveReported:
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("Out of memory in %s: %s" % (log,line))
-                                    
-                            if "on network device vif" in line and "failed: No such device" in line:
-                                if not line in place.thingsWeHaveReported:
-                                    place.thingsWeHaveReported.append(line)
-                                    self._warnWithPrefix("vswitch VIF error in %s: %s" % (log,line))
 
                 except:
                     pass

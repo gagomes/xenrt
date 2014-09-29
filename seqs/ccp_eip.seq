@@ -99,7 +99,7 @@
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <postinstall action="installCloudManagementServer" />
-        <network device="0" />
+        <network device="0" bridge="!NPRI"/>
         <disk device="0" size="20" />
       </vm>
       <vm name="CS-Marvin">
@@ -108,7 +108,7 @@
         <memory>1024</memory>
         <vcpus>2</vcpus>
         <postinstall action="installMarvin" />
-        <network device="0" bridge="NSEC"/>
+        <network device="0" bridge="!NPRI"/>
         <disk device="0" size="20" />
       </vm>
     </sharedhost>

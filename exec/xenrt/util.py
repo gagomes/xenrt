@@ -79,6 +79,7 @@ __all__ = ["timenow",
            "xrtCheck",
            "keepSetup",
            "getADConfig",
+           "getDistroAndArch",
            "getMarvinFile",
            "dictToXML",
            "getNetworkParam"
@@ -1366,6 +1367,27 @@ def getADConfig():
     ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
 
     return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
+
+def getDistroAndArch(distrotext):
+    if distrotext.endswith("-x64"):
+        distro = distrotext[:-4]
+        arch = "x86-64"
+    elif distrotext.endswith("-x86"):
+        distro = distrotext[:-4]
+        arch = "x86-32"
+    elif distrotext.endswith("-x32"):
+        distro = distrotext[:-4]
+        arch = "x86-32"
+    elif distrotext.endswith("_x86-64"):
+        distro = distrotext[:-7]
+        arch = "x86-64"
+    elif distrotext.endswith("_x86-32"):
+        distro = distrotext[:-7]
+        arch = "x86-32"
+    else:
+        distro = distrotext
+        arch = "x86-32"
+    return (distro, arch)
 
 def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")

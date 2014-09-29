@@ -47,13 +47,7 @@ def createHost(id=0,
     xenrt.GEC().startLogger(m)
 
     if productVersion:
-        distro = productVersion
-        dd = distro.rsplit('-', 1)
-        if len(dd) == 2 and dd[1] == "x64":
-            distro = dd[0]
-            arch = "x86-64"
-        else:
-            arch = "x86-32"
+        (distro, arch) = xenrt.getDistroAndArch(productVersion)
     else:
         distro = "centos64"
         arch = "x86-32"

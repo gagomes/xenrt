@@ -1784,6 +1784,46 @@ class TC19753(_TC6767):
     METHOD = "NFS"
 
 
+class TC21728(_TC5786):
+    """Install a RHEL5.10 32 bit VM from ISO"""
+    DISTRO = "rhel510"
+    ARCH = "x86-32"
+
+
+class TC21729(_TC6767):
+    """Install a RHEL5.10 32 bit VM from HTTP"""
+    DISTRO = "rhel510"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+
+class TC21731(_TC6767):
+    """Install a RHEL5.10 32 bit VM from NFS"""
+    DISTRO = "rhel510"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+
+class TC21732(_TC5786):
+    """Install a RHEL5.10 64 bit VM from ISO"""
+    DISTRO = "rhel510"
+    ARCH = "x86-64"
+
+
+class TC21733(_TC6767):
+    """Install a RHEL5.10 64 bit VM from HTTP"""
+    DISTRO = "rhel510"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21734(_TC6767):
+    """Install a RHEL5.10 64 bit VM from NFS"""
+    DISTRO = "rhel510"
+    ARCH = "x86-64"
+    METHOD = "NFS"
+
+
 class TC19754(_TC5786):
     """Install a RHEL6.3 32 bit VM from ISO"""
     DISTRO = "rhel63"
@@ -1860,6 +1900,45 @@ class TC19764(_TC6767):
 class TC19765(_TC6767):
     """Install a RHEL6.4 64 bit VM from NFS"""
     DISTRO = "rhel64"
+    ARCH = "x86-64"
+    METHOD = "NFS"
+
+class TC21735(_TC5786):
+    """Install a RHEL6.5 32 bit VM from ISO"""
+    DISTRO = "rhel65"
+    ARCH = "x86-32"
+
+
+class TC21736(_TC6767):
+    """Install a RHEL6.5 32 bit VM from HTTP"""
+    DISTRO = "rhel65"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+
+class TC21737(_TC6767):
+    """Install a RHEL6.5 32 bit VM from NFS"""
+    DISTRO = "rhel65"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+
+class TC21738(_TC5786):
+    """Install a RHEL6.5 64 bit VM from ISO"""
+    DISTRO = "rhel65"
+    ARCH = "x86-64"
+
+
+class TC21739(_TC6767):
+    """Install a RHEL6.5 64 bit VM from HTTP"""
+    DISTRO = "rhel65"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21740(_TC6767):
+    """Install a RHEL6.5 64 bit VM from NFS"""
+    DISTRO = "rhel65"
     ARCH = "x86-64"
     METHOD = "NFS"
 
@@ -1943,6 +2022,39 @@ class TC19777(_TC6767):
     ARCH = "x86-64"
     METHOD = "NFS"
 
+class TC21741(_TC5786):
+    """Install a CentOS5.10 32 bit VM from ISO"""
+    DISTRO = "centos510"
+    ARCH = "x86-32"
+
+class TC21742(_TC6767):
+    """Install a CentOS5.10 32 bit VM from HTTP"""
+    DISTRO = "centos510"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+class TC21743(_TC6767):
+    """Install a CentOS5.10 32 bit VM from NFS"""
+    DISTRO = "centos510"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+class TC21744(_TC5786):
+    """Install a CentOS5.10 64 bit VM from ISO"""
+    DISTRO = "centos510"
+    ARCH = "x86-64"
+
+class TC21745(_TC6767):
+    """Install a CentOS5.10 64 bit VM from HTTP"""
+    DISTRO = "centos510"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+class TC21746(_TC6767):
+    """Install a CentOS5.10 64 bit VM from NFS"""
+    DISTRO = "centos510"
+    ARCH = "x86-64"
+    METHOD = "NFS"
 
 class TC19778(_TC5786):
     """Install a CentOS6.3 32 bit VM from ISO"""
@@ -2023,6 +2135,43 @@ class TC19789(_TC6767):
     ARCH = "x86-64"
     METHOD = "NFS"
 
+class TC21747(_TC5786):
+    """Install a CentOS6.5 32 bit VM from ISO"""
+    DISTRO = "centos65"
+    ARCH = "x86-32"
+
+
+class TC21748(_TC6767):
+    """Install a CentOS6.5 32 bit VM from HTTP"""
+    DISTRO = "centos65"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+
+class TC21749(_TC6767):
+    """Install a CentOS6.5 32 bit VM from NFS"""
+    DISTRO = "centos65"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+class TC21750(_TC5786):
+    """Install a CentOS6.5 64 bit VM from ISO"""
+    DISTRO = "centos65"
+    ARCH = "x86-64"
+
+
+class TC21751(_TC6767):
+    """Install a CentOS6.5 64 bit VM from HTTP"""
+    DISTRO = "centos65"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21752(_TC6767):
+    """Install a CentOS6.5 64 bit VM from NFS"""
+    DISTRO = "centos65"
+    ARCH = "x86-64"
+    METHOD = "NFS"
 
 class TC19790(_TC5786):
     """Install a OEL5.8 32 bit VM from ISO"""
@@ -2100,6 +2249,46 @@ class TC19800(_TC6767):
 class TC19801(_TC6767):
     """Install a OEL5.9 64 bit VM from NFS"""
     DISTRO = "oel59"
+    ARCH = "x86-64"
+    METHOD = "NFS"
+
+
+class TC21753(_TC5786):
+    """Install a OEL5.10 32 bit VM from ISO"""
+    DISTRO = "oel510"
+    ARCH = "x86-32"
+
+
+class TC21754(_TC6767):
+    """Install a OEL5.10 32 bit VM from HTTP"""
+    DISTRO = "oel510"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+
+class TC21755(_TC6767):
+    """Install a OEL5.10 32 bit VM from NFS"""
+    DISTRO = "oel510"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+
+class TC21756(_TC5786):
+    """Install a OEL5.10 64 bit VM from ISO"""
+    DISTRO = "oel510"
+    ARCH = "x86-64"
+
+
+class TC21757(_TC6767):
+    """Install a OEL5.10 64 bit VM from HTTP"""
+    DISTRO = "oel510"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21758(_TC6767):
+    """Install a OEL5.10 64 bit VM from NFS"""
+    DISTRO = "oel510"
     ARCH = "x86-64"
     METHOD = "NFS"
 
@@ -2184,6 +2373,46 @@ class TC19813(_TC6767):
     METHOD = "NFS"
 
 
+class TC21759(_TC5786):
+    """Install a OEL6.5 32 bit VM from ISO"""
+    DISTRO = "oel65"
+    ARCH = "x86-32"
+
+
+class TC21761(_TC6767):
+    """Install a OEL6.5 32 bit VM from HTTP"""
+    DISTRO = "oel65"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+
+class TC21762(_TC6767):
+    """Install a OEL6.5 32 bit VM from NFS"""
+    DISTRO = "oel65"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+
+class TC21763(_TC5786):
+    """Install a OEL6.5 64 bit VM from ISO"""
+    DISTRO = "oel65"
+    ARCH = "x86-64"
+
+
+class TC21764(_TC6767):
+    """Install a OEL6.5 64 bit VM from HTTP"""
+    DISTRO = "oel65"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21765(_TC6767):
+    """Install a OEL6.5 64 bit VM from NFS"""
+    DISTRO = "oel65"
+    ARCH = "x86-64"
+    METHOD = "NFS"
+
+
 class TC19814(_TC5786):
     """Install a SLES11SP2 32 bit VM from ISO"""
     DISTRO = "sles112"
@@ -2223,25 +2452,65 @@ class TC19819(_TC6767):
     ARCH = "x86-64"
     METHOD = "NFS"
 
+
+class TC21767(_TC5786):
+    """Install a SLES11SP3 32 bit VM from ISO"""
+    DISTRO = "sles113"
+    ARCH = "x86-32"
+
+class TC21768(_TC6767):
+    """Install a SLES11SP3 32 bit VM from HTTP"""
+    DISTRO = "sles113"
+    ARCH = "x86-32"
+    METHOD = "HTTP"
+
+class TC21769(_TC6767):
+    """Install a SLES11SP3 32 bit VM from NFS"""
+    DISTRO = "sles113"
+    ARCH = "x86-32"
+    METHOD = "NFS"
+
+class TC21770(_TC5786):
+    """Install a SLES11SP3 64 bit VM from ISO"""
+    DISTRO = "sles113"
+    ARCH = "x86-64"
+
+
+class TC21771(_TC6767):
+    """Install a SLES11SP3 64 bit VM from HTTP"""
+    DISTRO = "sles113"
+    ARCH = "x86-64"
+    METHOD = "HTTP"
+
+
+class TC21772(_TC6767):
+    """Install a SLES11SP3 64 bit VM from NFS"""
+    DISTRO = "sles113"
+    ARCH = "x86-64"
+    METHOD = "NFS"
+
 class TC21720(_TC5786):
     """Install a Ubuntu 14.04 32 bit VM from ISO"""
     DISTRO = "ubuntu1404"
     ARCH = "x86-32"
-
-class TC21721(_TC6767):
-    """Install a Ubuntu 14.04 32 bit VM from HTTP"""
-    DISTRO = "ubuntu1404"
-    ARCH = "x86-32"
-    METHOD = "HTTP"
 
 class TC21723(_TC5786):
     """Install a Ubuntu 14.04 64 bit VM from ISO"""
     DISTRO = "ubuntu1404"
     ARCH = "x86-64"
     
-class TC21724(_TC6767):
-    """Install a Ubuntu 14.04 64 bit VM from HTTP"""
-    DISTRO = "ubuntu1404"
+class TC21773(_TC5786):
+    """Install a RHEL7 64 bit VM from ISO"""
+    DISTRO = "rhel7"
     ARCH = "x86-64"
-    METHOD = "HTTP"
+
+class TC21774(_TC5786):
+    """Install a CentOS7 64 bit VM from ISO"""
+    DISTRO = "centos7"
+    ARCH = "x86-64"
+
+class TC21775(_TC5786):
+    """Install a OEL7 64 bit VM from ISO"""
+    DISTRO = "oel7"
+    ARCH = "x86-64"
 

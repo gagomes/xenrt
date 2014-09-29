@@ -703,6 +703,7 @@ class CloudStack(object):
                 else:
                     osname = "None"
 
+                xenrt.TEC().logverbose('Looking for CCP OS Name: %s' % (osname))
                 ostypeid = [x for x in self.cloudApi.listOsTypes(description=osname) if x.description==osname][0].id
                 self.cloudApi.registerIso(zoneid= zoneid,
                                           ostypeid=ostypeid,

@@ -836,15 +836,19 @@ class TC14902(xenrt.TestCase):
         else:
             self.host = pool.master
 
-        xenrt.getTestTarball("rbac", extract=True)
-
+        #xenrt.getTestTarball("rbac", extract=True)
+        xenrt.util.command("cp %s/tests/rbac/%s/rbac_static.csv %s/" % (xenrt.TEC().lookup("BINARY_INPUTS_BASE"),
+                           xenrt.TEC().lookup("PRODUCT_VERSION"), xenrt.TEC().getWorkdir()))
+        
         if self.host.execdom0("ls /opt/xensource/debug/rbac_static.csv", retval="code") != 0:
             raise xenrt.XRTFailure('rbac_static is missing')
         
         self.rbac_from_host = self.host.execdom0("cat /opt/xensource/debug/rbac_static.csv").strip()
                
-        p = "%s/rbac/%s/rbac_static.csv" % (xenrt.TEC().getWorkdir(), 
-                                            xenrt.TEC().lookup("PRODUCT_VERSION"))
+        #p = "%s/rbac/%s/rbac_static.csv" % (xenrt.TEC().getWorkdir(), 
+        #                                    xenrt.TEC().lookup("PRODUCT_VERSION"))
+        p = "%s/rbac_static.csv" % xenrt.TEC().getWorkdir()
+        
         self.rbac_reference_copy = file(p).read().strip()
         
     def parsePermissions(self, rbac):

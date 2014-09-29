@@ -467,19 +467,20 @@ def doDeploy(cloudSpec, manSvr=None):
     shutil.copy(fn, os.path.join(deployLogDir, 'marvin-deploy.cfg'))
     toolstack.marvinCfg = marvinCfg.marvinCfg
 
-    try:
-        # Create deployment
-        marvinCfg.deployMarvinConfig()
+    if not xenrt.TEC().lookup("NO_CLOUDSTACK_DEPLOY", False, boolean=True):
+        try:
+            # Create deployment
+            marvinCfg.deployMarvinConfig()
 
-        # Restart MS if any global config setting have been changed
-        if cloudSpec.has_key('globalConfig'):
-            manSvr.restart()
+            # Restart MS if any global config setting have been changed
+            if cloudSpec.has_key('globalConfig'):
+                manSvr.restart()
 
-        marvin.waitForSystemVmsReady()
-        if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
-            marvin.waitForBuiltInTemplatesReady()
+            marvin.waitForSystemVmsReady()
+            if xenrt.TEC().lookup("CLOUD_WAIT_FOR_TPLTS", False, boolean=True):
+                marvin.waitForBuiltInTemplatesReady()
 
-        toolstack.postDeploy()
-    finally:
-        # Get deployment logs from the MS
-        manSvr.getLogs(deployLogDir)
+            toolstack.postDeploy()
+        finally:
+            # Get deployment logs from the MS
+            manSvr.getLogs(deployLogDir)

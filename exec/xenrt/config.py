@@ -1680,7 +1680,7 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-32"] = "Oracle Enterprise Linux 6.5 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
-        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x32"] = "Windows 8.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x86"] = "Windows 8.1 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x64"] = "Windows 8.1 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = "CentOS 5.10 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = "CentOS 5.10 (64-bit)"

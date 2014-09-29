@@ -3909,6 +3909,7 @@ Do
 Loop While not oex.Stdout.atEndOfStream"""
         try:
             self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
+            self.logger = True
         except Exception as e:
             xenrt.TEC().logverbose("Writing ipconfig logger to Windows VM failed: %s"%(e.message))
 

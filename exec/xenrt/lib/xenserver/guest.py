@@ -3684,6 +3684,7 @@ exit /B 1
                 
                 ##Try to log the ipconfig data using a VB script writing it into the WMI
                 try:
+                    self.logger
                     # Send Windows-R to bring up a run dialog
                     self.sendVncKeys(["0x72/0xffeb"])
                     xenrt.sleep(8)
@@ -3696,16 +3697,9 @@ exit /B 1
                     # Send the keys to start the logger.vbs: wscript.exe logger.vbs
                     self.sendVncKeys([0x57, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x2e, 0x65, 0x78, 0x65, 0x20, 0x2e, 0x2e, 0x5c, 0x2e, 0x2e, 0x5c, 0x6c, 0x6f, 0x67, 0x67, 0x65, 0x72, 0x2e, 0x76, 0x62, 0x73, 0xff0d])
                     xenrt.sleep(10)
-                
-
-                except:
-                    pass
-                
-                try:
                     self.host.execdom0("tail -n100 /var/log/daemon.log | grep 'Windows IP Configuration'")
                 except Exception as e:
-                    xenrt.TEC().logverbose("IP config logging fails with %s"%(e.message))
-                
+                    xenrt.TEC().logverbose("Windows ipconfig logger error: %s"%(e.message))
 
             if self.windows and self.getIP():
                 # Check if RDP is accepting connections.

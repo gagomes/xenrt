@@ -335,7 +335,7 @@ def setGec(gec):
 
 #############################################################################
 
-class TestCase(object):
+class TestCase:
     """The definition and implementation of a testcase.
 
     This is the parent class for all testcases."""

@@ -361,7 +361,7 @@ class IPMI(_PowerCtlBase):
 
     def off(self):
         xenrt.TEC().logverbose("Turning off machine %s" % (self.machine.name))
-        if self.getPower() != "off":
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "off":
             self.ipmi("power off")
 
     def on(self):
@@ -372,7 +372,7 @@ class IPMI(_PowerCtlBase):
             
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
-        if self.getPower() != "on":
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
             if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
                 self.ipmi("bootdev pxe")
             if self.antiSurge:
@@ -395,13 +395,15 @@ class IPMI(_PowerCtlBase):
             self.ipmi("bootdev pxe")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
-            if currentPower == "on":
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
                 self.ipmi("power off")
                 xenrt.sleep(5)
             self.ipmi("power on")
         else:
-            if currentPower == "on":
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
                 self.ipmi("power reset")
+                if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True):
+                    self.ipmi("power on")
             else:
                 self.ipmi("power on") # In case the machine was hard powered off
 

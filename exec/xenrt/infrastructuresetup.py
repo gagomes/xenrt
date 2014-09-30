@@ -1000,7 +1000,7 @@ def portConfig(config,switch,port,network):
             print "no vlan %s untagged %s" % (v, port)
         for v in extravlanstoadd:
             print "vlan %s tagged %s" % (v, port)
-    elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5"):
+    elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5", "DellN2048"):
         print "interface %s" % port
         print "switchport mode general"
         print "switchport general pvid %s" % nativevlan
@@ -1046,6 +1046,27 @@ def portConfig(config,switch,port,network):
             print "switchport allowed vlan add tagged %s" % v
             print "switchport tagging %s" % v
         print "exit"
+    if swtype == "DellS60":
+        print "interface %s" % port
+        print "mtu 9216"
+        print "switchport"
+        print "exit"
+        print "interface vlan %s" % nativevlan
+        print "untagged %s" % port
+        print "exit"
+        for v in vlanstoadd:
+            print "interface vlan %s" % v
+            print "tagged %s" % port
+            print "exit"
+        for v in vlanstoremove:
+            print "interface vlan %s" % v
+            print "no tagged %s" % v
+            print "no untagged %s" % v
+            print "exit"
+        for v in extravlanstoadd:
+            print "interface vlan %s" % v
+            print "tagged %s" % port
+            print "exit"
     if swtype == "FujitsuBX900":
         print "interface %s" % port
         print "mtu 9216"
@@ -1095,7 +1116,7 @@ def portName(config, switch, unit, port):
         return None
     if swtype == "HP6120XG":
         return port
-    elif swtype in ("DellM6348", "DellM6348v5"):
+    elif swtype in ("DellM6348", "DellM6348v5", "DellN2048"):
         return "GigabitEthernet %s/0/%s" % (unit, port)
     elif swtype == "DellPC62xx":
         return "ethernet %s/g%s" % (unit, port)

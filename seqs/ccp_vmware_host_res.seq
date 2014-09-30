@@ -60,7 +60,7 @@
   </prepare>
 
   <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCBlockVcenter" name="VCenterBlocked" >
+      <testcase id="cloud.tc.resiliency.TCBlockVcenter" name="VCenterBlocked" tc="TC-21909" >
       </testcase>
   </testsequence>
 </xenrt>

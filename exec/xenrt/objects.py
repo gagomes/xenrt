@@ -3909,6 +3909,7 @@ Do
 Loop While not oex.Stdout.atEndOfStream"""
         try:
             self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
+            self.logger = True
         except Exception as e:
             xenrt.TEC().logverbose("Writing ipconfig logger to Windows VM failed: %s"%(e.message))
 
@@ -10524,7 +10525,7 @@ class V6LicenseServer:
             xenrt.sleep(5)
 
             #Add the root to lmadmin group so the root has priviledges to lmreread
-            self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
+            self.place.writeToConsole("sed -i 's/lmadmin:x:500:/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
 
             # Install SSH and SCP

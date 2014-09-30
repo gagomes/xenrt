@@ -1011,7 +1011,8 @@ def portConfig(config,switch,port,network):
         print "switchport general allowed vlan remove %s" % ",".join(vlanstoremove)
         print "switchport general allowed vlan add %s tagged" % ",".join(extravlanstoadd)
         print "spanning-tree portfast"
-        print "mtu 9216"
+        if swtype not in ("DellN2048"):
+            print "mtu 9216"
         print "exit"
     elif swtype in ("CiscoC3750G", "CiscoC2960X"):
         print "interface %s" % port
@@ -1049,6 +1050,7 @@ def portConfig(config,switch,port,network):
     if swtype == "DellS60":
         print "interface %s" % port
         print "mtu 9216"
+        print "portmode hybrid"
         print "switchport"
         print "exit"
         print "interface vlan %s" % nativevlan
@@ -1067,6 +1069,9 @@ def portConfig(config,switch,port,network):
             print "interface vlan %s" % v
             print "tagged %s" % port
             print "exit"
+        if privvlans:
+            print "interface range vlan %s - %s" % (privvlanstart, privvlanend)
+            print "tagged %s" % port
     if swtype == "FujitsuBX900":
         print "interface %s" % port
         print "mtu 9216"

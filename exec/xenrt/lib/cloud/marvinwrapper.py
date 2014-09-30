@@ -1,6 +1,6 @@
 import xenrt
 import logging
-import os, urllib
+import os, urllib, glob
 from datetime import datetime
 import shutil
 import tarfile
@@ -265,7 +265,15 @@ class MarvinApi(object):
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
             xenrt.TEC().logverbose("Using %s system VM template %s (md5sum: %s)" % (hv, templates[hv], xenrt.command("md5sum %s" % templateFile)))
-            webdir.copyIn(templateFile)
+            if templateFile.endswith(".zip") and xenrt.TEC().lookup("WORKAROUND_CS22839", False, boolean=True):
+                xenrt.TEC().warning("Using CS-22839 workaround")
+                tempDir = xenrt.TEC().tempDir()
+                xenrt.command("cd %s && unzip %s" % (tempDir, templateFile))
+                dirContents = glob.glob("%s/*" % tempDir)
+                if len(dirContents) != 1:
+                    raise xenrt.XRTError("Unexpected contents of system template ZIP file")
+                templateFile = dirContents[0]
+            webdir.copyIn(templateFile) 
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 
             if provider in ('NFS', 'SMB'):

@@ -1124,7 +1124,7 @@ def portName(config, switch, unit, port):
     elif swtype in ("DellM6348", "DellM6348v5", "DellN2048"):
         return "GigabitEthernet %s/0/%s" % (unit, port)
     elif swtype in ("DellS60"):
-        return "GigabitEthernet %s/%s" % (unit, port)
+        return "GigabitEthernet %d/%s" % (int(unit)-1, port)
     elif swtype == "DellPC62xx":
         return "ethernet %s/g%s" % (unit, port)
     elif swtype == "DellPC8024":

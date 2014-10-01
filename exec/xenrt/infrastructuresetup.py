@@ -1062,8 +1062,8 @@ def portConfig(config,switch,port,network):
             print "exit"
         for v in vlanstoremove:
             print "interface vlan %s" % v
-            print "no tagged %s" % v
-            print "no untagged %s" % v
+            print "no tagged %s" % port
+            print "no untagged %s" % port
             print "exit"
         for v in extravlanstoadd:
             print "interface vlan %s" % v

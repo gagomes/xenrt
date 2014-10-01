@@ -6181,6 +6181,7 @@ exit 0
 
             portOffset = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "UNIT%s" % unit, "PORTOFFSET"], "0"))
 
+            portInterval = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "PORTINTERVAL"], "1"))
             oidBase = xenrt.TEC().lookup(["NETSWITCHES", unit, "OID_BASE"],
                                     ".1.3.6.1.2.1.2.2.1.7")
 
@@ -6191,7 +6192,7 @@ exit 0
             else:
                 raise xenrt.XRTError("Unknown port action: %s" % (action))
             cmd = "snmpset -c %s -v1 -t 10 -r 10 %s %s.%u i %s" % \
-                  (comm, addr, oidBase, int(portNumber) + portOffset, icmd)
+                  (comm, addr, oidBase, int(portNumber)*portInterval + portOffset, icmd)
 
         # Run the command
         if cmd:

@@ -1774,7 +1774,10 @@ exit /B 1
         
         if xenrt.TEC().lookup("EXP_VIRIDIAN", False, boolean=True):
             self.paramSet("platform:exp-viridian-timers", "true")
-        
+
+        if xenrt.TEC().lookup("DISABLE_VIRIDIAN_COUNT", False, boolean=True):
+            self.paramSet("platform:viridian_time_ref_count", "false")
+
         if db:
             try:
                 self.paramSet("actions-after-crash", "preserve")

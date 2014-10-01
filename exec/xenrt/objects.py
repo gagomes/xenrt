@@ -8041,6 +8041,7 @@ class GenericGuest(GenericPlace):
         h, p = nfsdir.getHostAndPath("kickstart.cfg")
 
         cleanupdir = None
+        inosreboot = False
 
         if pxe and method == "CDROM":
             xenrt.TEC().logverbose("RHEL HVM CD installation")
@@ -8056,6 +8057,7 @@ class GenericGuest(GenericPlace):
             xenrt.command("rm -f %s/kickstart.stamp" % path)
             shutil.copyfile(filename, "%s/kickstart" % path)
             pxe = False
+            inosreboot = True
         elif pxe:
             # HVM PXE install
             self.enablePXE()
@@ -8187,7 +8189,7 @@ class GenericGuest(GenericPlace):
         if xenrt.TEC().lookup("DEBUGSTOP_CA6404", False, boolean=True):
             raise xenrt.XRTError("CA-6404 debug stop")
 
-        if pxe:
+        if pxe or inosreboot:
             # Just wait for the reboot that kickstart performed
             pass
         elif options.has_key("OSS_PV_INSTALL"):

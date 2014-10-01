@@ -76,6 +76,7 @@ extrapackages-install:
 
 	-$(SUDO) apt-get install -y --force-yes git
 	-$(SUDO) apt-get install -y --force-yes git-core
+	-$(SUDO) apt-get install -y --force-yes default-jre-headless
 
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid

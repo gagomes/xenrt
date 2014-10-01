@@ -6181,6 +6181,7 @@ exit 0
 
             portOffset = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "UNIT%s" % unit, "PORTOFFSET"], "0"))
 
+            portInterval = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "PORTINTERVAL"], "1"))
             oidBase = xenrt.TEC().lookup(["NETSWITCHES", unit, "OID_BASE"],
                                     ".1.3.6.1.2.1.2.2.1.7")
 
@@ -6191,7 +6192,7 @@ exit 0
             else:
                 raise xenrt.XRTError("Unknown port action: %s" % (action))
             cmd = "snmpset -c %s -v1 -t 10 -r 10 %s %s.%u i %s" % \
-                  (comm, addr, oidBase, int(portNumber) + portOffset, icmd)
+                  (comm, addr, oidBase, int(portNumber)*portInterval + portOffset, icmd)
 
         # Run the command
         if cmd:
@@ -8041,6 +8042,7 @@ class GenericGuest(GenericPlace):
         h, p = nfsdir.getHostAndPath("kickstart.cfg")
 
         cleanupdir = None
+        inosreboot = False
 
         if pxe and method == "CDROM":
             xenrt.TEC().logverbose("RHEL HVM CD installation")
@@ -8056,6 +8058,7 @@ class GenericGuest(GenericPlace):
             xenrt.command("rm -f %s/kickstart.stamp" % path)
             shutil.copyfile(filename, "%s/kickstart" % path)
             pxe = False
+            inosreboot = True
         elif pxe:
             # HVM PXE install
             self.enablePXE()
@@ -8187,7 +8190,7 @@ class GenericGuest(GenericPlace):
         if xenrt.TEC().lookup("DEBUGSTOP_CA6404", False, boolean=True):
             raise xenrt.XRTError("CA-6404 debug stop")
 
-        if pxe:
+        if pxe or inosreboot:
             # Just wait for the reboot that kickstart performed
             pass
         elif options.has_key("OSS_PV_INSTALL"):

@@ -350,19 +350,19 @@ class IPMIWithPDUFallback(_PowerCtlBase):
 class IPMI(_PowerCtlBase):
 
     def getPower(self):
-        status = self.ipmi("power status")
+        status = self.ipmi("chassis power status")
         if re.search("is off", status):
             return "off"
         elif re.search("is on", status):
             return "on"
 
     def triggerNMI(self):
-        self.ipmi("power diag")
+        self.ipmi("chassis power diag")
 
     def off(self):
         xenrt.TEC().logverbose("Turning off machine %s" % (self.machine.name))
-        if self.getPower() != "off":
-            self.ipmi("power off")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "off":
+            self.ipmi("chassis power off")
 
     def on(self):
         xenrt.TEC().logverbose("Turning on machine %s" % (self.machine.name))
@@ -372,12 +372,12 @@ class IPMI(_PowerCtlBase):
             
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
-        if self.getPower() != "on":
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
             if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-                self.ipmi("bootdev pxe")
+                self.ipmi("chassis bootdev pxe")
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
-            self.ipmi("power on")
+            self.ipmi("chassis power on")
 
     def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
@@ -391,19 +391,35 @@ class IPMI(_PowerCtlBase):
         if self.antiSurge:
             xenrt.sleep(random.randint(0, 20))
         currentPower = self.getPower()
+
+        if currentPower == "off" and xenrt.TEC().lookupHost(self.machine.name, "RESET_BMC", False, boolean=True):
+            self.ipmi("mc reset cold")
+            deadline = xenrt.timenow() + 120
+            while xenrt.timenow() < deadline:
+                xenrt.sleep(10)
+                try:
+                    self.ipmi("chassis power status")
+                    break
+                except:
+                    pass
+            if self.machine.consoleLogger:
+                self.machine.consoleLogger.reload()
+            
         if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-            self.ipmi("bootdev pxe")
+            self.ipmi("chassis bootdev pxe")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
-            if currentPower == "on":
-                self.ipmi("power off")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
+                self.ipmi("chassis power off")
                 xenrt.sleep(5)
-            self.ipmi("power on")
+            self.ipmi("chassis power on")
         else:
-            if currentPower == "on":
-                self.ipmi("power reset")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
+                self.ipmi("chassis power reset")
+                if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True):
+                    self.ipmi("chassis power on")
             else:
-                self.ipmi("power on") # In case the machine was hard powered off
+                self.ipmi("chassis power on") # In case the machine was hard powered off
 
     def ipmi(self, action):
         # New method
@@ -421,7 +437,7 @@ class IPMI(_PowerCtlBase):
             user = "-U %s" % (ipmiuser)
         else:
             user = ""
-        command = "ipmitool -I %s -H %s %s %s chassis %s" % \
+        command = "ipmitool -I %s -H %s %s %s %s" % \
                    (ipmiintf, address, auth, user, action)
         return self.command(command)
 

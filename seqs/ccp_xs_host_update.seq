@@ -1,15 +1,18 @@
 <xenrt>
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  
+
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
     <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
     <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
-    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
   </variables>
   <scheduler>
     <resources>memory&gt;=4G</resources>
-    <param>MACHINES_REQUIRED=3</param>
-    <flags>staticip,nfs,!unsup_rhel63,vcenter</flags>
+    <param>MACHINES_REQUIRED=2</param>
+    <flags>staticip,nfs,!unsup_rhel63</flags>
     <param>OPTION_KEEP_NFS=yes</param>
   </scheduler>
   <prepare>
@@ -17,22 +20,14 @@
 {
     "zones": [
         {
-            "name": "XenRT-Zone-0",
             "networktype": "Basic",
             "pods": [
                 {
-                    "name": "XenRT-Zone-0-Pod-0",
                     "XRT_PodIPRangeSize": 5,
                     "clusters": [
                         {
-                            "name": "XenRT-Zone-0-Pod-0-Cluster-0",
-                            "hypervisor": "vmware",
-                            "XRT_Hosts": 2
-                        },
-                        {
-                            "name": "XenRT-Zone-0-Pod-0-Cluster-1",
-                            "hypervisor": "vmware",
-                            "XRT_Hosts": 1
+                            "hypervisor": "XenServer",
+                            "XRT_MasterHostId": 0
                         }
                     ],
                     "guestIpRanges": [
@@ -57,10 +52,19 @@
         <disk device="0" size="12" />
       </vm>
     </sharedhost>
+    
+    <pool master="RESOURCE_HOST_0">
+        <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
   </prepare>
-
-  <testsequence group="Resiliency">
-      <testcase id="cloud.tc.resiliency.TCBlockVcenter" name="VCenterBlocked" tc="TC-21909" >
-      </testcase>
+  
+    <testsequence>
+    <parallel workers="2">
+        <testcase id="cloud.tc.update.TCCloudUpdate" name="cloudupgrade" tc="TC-21910" >
+        <arg>distros=debian70_x86-64</arg>
+        </testcase>
+    </parallel>
   </testsequence>
+
+  
 </xenrt>

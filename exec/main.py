@@ -1208,7 +1208,38 @@ if confdump:
 if sanitycheck:
     # If we get this far then our standard imports etc have all
     # succeeded, so report this back to the user
-    sys.stderr.write("Sanity check passed sucessfully\n")
+    sys.stderr.write("Core XenRT libraries imported sucessfully\n")
+
+    # Now check that all the testcases can be imported successfully
+    tcDir = os.path.join(localxenrt.SHAREDIR, "exec/testcases")
+    importFails = []
+    for root, _, files in os.walk(tcDir):
+        if root.startswith(os.path.join(tcDir, "xenserver/tc/perf")):
+            # Skip performance tests
+            continue
+
+        sys.stderr.write("Checking %s\n" % root)
+        for fn in files:
+            if not fn.endswith(".py"):
+                # Ignore non .py files
+                continue
+
+            importPath = "testcases%s.%s" % (root[len(tcDir):].replace("/", "."), fn[:-3])
+            # Skip any files we know to be broken that have been removed, but
+            # may still exist on systems as we don't do --delete with rsync
+
+            if importPath in ["testcases.xenserver.tc.pysphere"]:
+                continue
+
+            try:
+                __import__(importPath)
+            except:
+                importFails.append(importPath)
+
+    if len(importFails) > 0:
+        sys.stderr.write("The following testcase files failed to import: %s" % importFails)
+        sys.exit(1)
+
     sys.exit(0)
 
 if makeconfigs:

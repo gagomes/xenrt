@@ -15,7 +15,7 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
 
     LICENSE             = "%s/keys/xenserver/%s/FG_Free" % \
                           (xenrt.TEC().lookup("XENRT_CONF"),
-                           xenrt.TEC().lookup("PRODUCT_VERSION"))
+                           xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
     PATCH               = "%s/patchapply/hotfix-mnr-test2.xsupdate" % \
                           (xenrt.TEC().getWorkdir())

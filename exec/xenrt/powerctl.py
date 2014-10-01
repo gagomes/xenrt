@@ -392,7 +392,7 @@ class IPMI(_PowerCtlBase):
             xenrt.sleep(random.randint(0, 20))
         currentPower = self.getPower()
 
-        if currentPower == "off" and xenrt.TEC().lookup("RESET_BMC", False, boolean=True):
+        if currentPower == "off" and xenrt.TEC().lookupHost(self.machine.name, "RESET_BMC", False, boolean=True):
             self.ipmi("mc reset cold")
             deadline = xenrt.timenow() + 120
             while xenrt.timenow() < deadline:
@@ -402,7 +402,8 @@ class IPMI(_PowerCtlBase):
                     break
                 except:
                     pass
-            self.machine.consoleLogger.reload()
+            if self.machine.consoleLogger:
+                self.machine.consoleLogger.reload()
             
         if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
             self.ipmi("chassis bootdev pxe")

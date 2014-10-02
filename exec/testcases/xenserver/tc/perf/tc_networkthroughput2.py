@@ -310,24 +310,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             br = [b for (dev,b,_,_) in guest.vifs if dev==('eth%d' % endpointdev)][0]
             xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): guest.vifs = %s, so device %d is bridged on %s" % (guest, endpointdev, guest.vifs, endpointdev, br))
 
-            # Get the network-uuid for this bridge
-            netuuid = guest.host.getNetworkUUID(br)
-            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): network uuid of bridge %s is %s" % (guest, endpointdev, br, netuuid))
-            if netuuid == '':
-                raise XRTError("couldn't get network uuid for network having bridge '%s'" % (br))
-
-            # Look up PIF for this network
-            args = "host-uuid=%s" % (guest.host.getMyHostUUID())
-            pifuuid = guest.host.parseListForUUID("pif-list", "network-uuid", netuuid, args)
-            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF on network %s is %s" % (guest, endpointdev, netuuid, pifuuid))
-            if pifuuid == '':
-                raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
-
-            # Get the assumed enumeration ID for this PIF
-            pifdev = guest.host.genParamGet("pif", pifuuid, "device")
-            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF with uuid %s is %s" % (guest, endpointdev, pifuuid, pifdev))
-            assumedid = guest.host.getNICEnumerationId(pifdev)
-            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): PIF %s corresponds to assumedid %d" % (guest, endpointdev, pifdev, assumedid))
+            # Convert bridge into the assumed id of the PIF
+            assumedid = self.convertNetworkToAssumedid(guest.host, br)
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): bridge '%s' corresponds to assumedid %d" % (guest, endpointdev, br, assumedid))
             return assumedid
 
     def getIssue(self, endpoint):
@@ -433,23 +418,27 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             except Exception, e:
                 self.log(None, "error while breathing: %s" % (e,))
 
-    # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI")
-    def convertNetworkToAssumedid(self, endpoint, network):
-        if isinstance(endpoint, xenrt.GenericHost):
-            # Treat 'network' as a friendly net name (e.g. "NET_A")
-            netuuid = endpoint.getNetworkUUID(network)
+    # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI") or a bridge name (e.g. "xenbr3")
+    def convertNetworkToAssumedid(self, host, network):
+        if isinstance(host, xenrt.GenericHost):
+            # Get the network-uuid
+            netuuid = host.getNetworkUUID(network)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: network uuid of network '%s' is %s" % (network, netuuid))
             if netuuid == '':
                 raise XRTError("couldn't get network uuid for network '%s'" % (network))
 
             # Look up PIF for this network
-            args = "host-uuid=%s" % (endpoint.getMyHostUUID())
-            pifuuid = endpoint.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            args = "host-uuid=%s" % (host.getMyHostUUID())
+            pifuuid = host.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF on network %s is %s" % (netuuid, pifuuid))
             if pifuuid == '':
                 raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
 
             # Get the assumed enumeration ID for this PIF
-            pifdev = endpoint.genParamGet("pif", pifuuid, "device")
-            assumedid = endpoint.getNICEnumerationId(pifdev)
+            pifdev = host.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF with uuid %s is %s" % (pifuuid, pifdev))
+            assumedid = host.getNICEnumerationId(pifdev)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
             return assumedid
 
     def run(self, arglist=None):

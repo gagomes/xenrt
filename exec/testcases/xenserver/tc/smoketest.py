@@ -508,7 +508,6 @@ class TC21926(_TCSmoketest):
     ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
-    ARCH = "x86-64"
 
 class TC21927(_TCSmoketest):
     """Operation of CentOS 7 with with 32 vcpus"""
@@ -516,7 +515,6 @@ class TC21927(_TCSmoketest):
     ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
-    ARCH = "x86-64"
 
 class TC21928(_TCSmoketest):
     """Operation of OEL 7 with with 32 vcpus"""
@@ -524,7 +522,6 @@ class TC21928(_TCSmoketest):
     ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
-    ARCH = "x86-64"
 
 class TC21929(_TCSmoketest):
     """Operation of Ubuntu 14.04 7 with with 32 vcpus"""

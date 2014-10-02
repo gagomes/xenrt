@@ -403,7 +403,7 @@ class TC8598(_TCSmoketest):
     VCPUS = 2
     VARCH = "VMXEPT"
 
-# Max memory tests for all HVM guests
+# Max vCPU tests for all HVM guests
 class TC21911(_TCSmoketest):
     """Operation of Windows 7 SP1 x86 with 16 vcpus (8 cores per socket)"""
     DISTRO = "win7sp1-x86"
@@ -447,14 +447,14 @@ class TC21916(_TCSmoketest):
     CPS = 8
 
 class TC21917(_TCSmoketest):
-    """Operation of Windows Server 2003 SP1 Enterprise with 16 vcpus"""
-    DISTRO = "w2k3eesp1"
+    """Operation of Windows Server 2003 SP2 Enterprise with 16 vcpus"""
+    DISTRO = "w2k3eesp2"
     VCPUS = 16
     MEMORY = 4096
 
 class TC21918(_TCSmoketest):
-    """Operation of Windows Server 2003 SP1 Enterprise x64 with 16 vcpus"""
-    DISTRO = "w2k3eesp1-x64"
+    """Operation of Windows Server 2003 SP2 Enterprise x64 with 16 vcpus"""
+    DISTRO = "w2k3eesp2-x64"
     VCPUS = 16
     MEMORY = 4096
 
@@ -505,18 +505,21 @@ class TC21925(_TCSmoketest):
 class TC21926(_TCSmoketest):
     """Operation of RHEL 7 with with 32 vcpus"""
     DISTRO = "rhel7"
+    ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
 
 class TC21927(_TCSmoketest):
     """Operation of CentOS 7 with with 32 vcpus"""
     DISTRO = "centos7"
+    ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
 
 class TC21928(_TCSmoketest):
     """Operation of OEL 7 with with 32 vcpus"""
     DISTRO = "oel7"
+    ARCH = "x86-64"
     VCPUS = 32
     MEMORY = 4096
 

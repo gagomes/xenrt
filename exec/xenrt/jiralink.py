@@ -1051,6 +1051,9 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         track2 = re.sub("create_nfs_sr xxx.xxx.xxx.xxx \S+", "create_nfs_sr xxx.xxx.xxx.xxx xxxxxx", track2)
         # some dates
         track2 = re.sub("\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", "xxxx-xx-xxTxx:xx:xx", track2)
+        # mac addresses
+        track2 = re.sub("[0-9a-zA-z]{2}:[0-9a-zA-z]{2}:[0-9a-zA-z]{2}:[0-9a-zA-z]{2}:[0-9a-zA-z]{2}:[0-9a-zA-z]{2}", "xx:xx:xx:xx:xx:xx", track2)
+
         # JQL can't escape square brackets
         track2 = re.sub("\[", "", track2)
         track2 = re.sub("\]", "", track2)

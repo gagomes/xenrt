@@ -853,8 +853,8 @@ class TC18491(xenrt.TestCase):
         self.guest = self.getGuest("vm")
         
         webDir = xenrt.WebDirectory()
-        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6vpx11-12_unzipped.xva"))
-        self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12_unzipped.xva"))
+        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6vpx11-12-1_unzipped.xva"))
+        self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12-1_unzipped.xva"))
         
         # install NFS server on guest
         self.guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common portmap")
@@ -875,7 +875,7 @@ class TC18491(xenrt.TestCase):
     def run(self, arglist):
         
         # start long running import going.
-        self.host.execdom0("xe vm-import filename=/mnt/nfs/v6vpx11-12_unzipped.xva > /dev/null 2>&1 </dev/null &")
+        self.host.execdom0("xe vm-import filename=/mnt/nfs/v6vpx11-12-1_unzipped.xva > /dev/null 2>&1 </dev/null &")
         
         # sleep for 23 hours, 59 mins
         time.sleep((24 * 3600) - 1)

@@ -101,6 +101,11 @@ class WebDirectory(DirectoryResource):
             return self.httpbaseurl + urllib.pathname2url(relpath)
         return self.httpbaseurl + "/" + urllib.pathname2url(relpath)
 
+    def getCIFSPath(self):
+        preflen = len(os.path.normpath(self.httpbasedir))
+        subdir = self.dir[preflen+1:]
+        return "share\\export" + "\\" + subdir
+
 class NFSDirectory(DirectoryResource):
     """A temporary directory exported by a NFS server."""
     def __init__(self, keep=0, place=None):

@@ -14666,10 +14666,10 @@ class IOvirt:
             return
         
         numPFs = int(self.getHost().execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS-NAPI drivers: in which case, configuration differs slightly. 
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
         ixgbe_version = self.host.execdom0("modinfo ixgbe | grep 'version:        '") 
         if numPFs > 0:
-            if (re.search("NS-NAPI", ixgbe_version.split()[1])):
+            if (re.search("NS", ixgbe_version.split()[1])):
                 maxVFs = "63" + (",63" * (numPFs - 1))
             else:
                 maxVFs = "40" #+ (",40" * (numPFs - 1))

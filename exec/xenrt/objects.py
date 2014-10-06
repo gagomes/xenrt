@@ -9372,6 +9372,18 @@ while True:
 
         self.reboot()
 
+    def getInstance(self):
+        if self.windows or not self.arch:
+            osdistro = self.distro
+        else:
+            osdistro = "%s_%s" % (self.distro, self.arch)
+        
+        wrapper = xenrt.lib.generic.GuestWrapper(self)
+        instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
+        instance.os.tailor()
+        xenrt.TEC().registry.instancePut(self.name, self)
+        return instance
+
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):

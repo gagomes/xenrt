@@ -123,16 +123,12 @@ class WindowsOS(OS):
             if r:
                 if installer.REQUIRE_IMMEDIATE_REBOOT:
                     self.reboot()
-                    xenrt.sleep(120)
-                    self.waitForBoot(600)
                     needReboot = False
                 elif installer.REQUIRE_REBOOT:
                     needReboot = True
 
         if needReboot:
             self.reboot()
-            xenrt.sleep(120)
-            self.waitForBoot(600)
                 
 
     def isPackageInstalled(self, package, installOptions={}):
@@ -151,6 +147,20 @@ class WindowsOS(OS):
         xenrt.TEC().logverbose("Got IP, waiting for XML/RPC daemon")
         self.waitForDaemon(14400)
         self.updateDaemon()
+        self.tailor()
+
+    def tailor(self):
+        self.writeFile("c:\\onboot.cmd", "echo Booted > c:\\booted.stamp")
+        self.winRegAdd("HKLM",
+                       "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\"
+                       "Run",
+                       "Booted",
+                       "SZ",
+                       "c:\\onboot.cmd")
+        try:
+            self.execCmd("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
+        except:
+            pass
 
     def waitForBoot(self, timeout):
         self.waitForDaemon(timeout)
@@ -338,7 +348,21 @@ class WindowsOS(OS):
     def reboot(self):
         """Use the test execution daemon to reboot the guest"""
         xenrt.TEC().logverbose("Rebooting %s" % (self.parent.getIP()))
+        self.execCmd("del c:\\booted.stamp")
+        deadline = xenrt.util.timenow() + 1800
+
         self._xmlrpc().reboot()
+        
+        while True:
+            try:
+                if self.fileExists("c:\\booted.stamp"):
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for windows reboot")
+            xenrt.sleep(15)
+
 
     def pollCmd(self, ref, retries=1):
         """Returns True if the command has completed."""

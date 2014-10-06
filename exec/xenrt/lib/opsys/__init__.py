@@ -19,6 +19,9 @@ class OS(object):
         self.viridian = False
         self.__installMethod = None
 
+    def tailor(self):
+        pass
+
     @abstractproperty
     def canonicalDistroName(self):
         pass

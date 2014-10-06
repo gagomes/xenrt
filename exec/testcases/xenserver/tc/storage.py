@@ -183,7 +183,15 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
-    NFS_SR_CLASS = xenrt.lib.xenserver.host.NFSStorageRepository
+    NFS_VERSION = 3
+
+    def getNFSSRClass(self):
+        if self.NFS_VERSION == 3:
+            return xenrt.lib.xenserver.host.NFSStorageRepository
+        elif self.NFS_VERSION == 4:
+            return xenrt.lib.xenserver.host.NFSv4StorageRepository
+        else:
+            raise xenrt.XRTError('Unsupported NFS revision')
 
     def createSR(self,host,guest):
         # Set up NFS
@@ -203,7 +211,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = self.NFS_SR_CLASS(host, self.SRNAME)
+            sr = self.getNFSSRClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:
@@ -224,7 +232,7 @@ class TC6824(NFSSRSanityTest):
 class TC21934(NFSSRSanityTest):
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
-    NFS_SR_CLASS = xenrt.lib.xenserver.host.NFSv4StorageRepository
+    NFS_VERSION = 4
 
 
 class TC20940(NFSSRSanityTest):

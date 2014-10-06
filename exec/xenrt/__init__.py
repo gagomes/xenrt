@@ -2568,6 +2568,13 @@ class PhysicalHost:
         
         return
 
+    def lookup(self, var, default=xenrt.XRTError, boolean=False):
+        """Lookup a per-host variable"""
+        return xenrt.TEC().lookupHost(self.name,
+                                      var,
+                                      default=default,
+                                      boolean=boolean)
+
     def exitPowerOff(self):
         if not xenrt.TEC().lookup("NO_HOST_POWEROFF", False, boolean=True) and not self.poweredOffAtExit:
             self.poweredOffAtExit = True
@@ -2614,6 +2621,10 @@ class PhysicalHost:
         if self.consoleLogger:
             return self.consoleLogger.getLogHistory()
         return []
+
+    def getVirtualMedia(self):
+        """Return a VirtualMedia object for manipulating virtual media."""
+        return xenrt.virtualmedia.VirtualMediaFactory(self)
 
 def markThread():
     """Thread to run periodic mark callback methods."""

@@ -220,7 +220,7 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
             {
                 'server': 'guest-IP',
                 'serverpath': '/nfs-export',
-                'version': '4'
+                'nfsversion': '4'
             },
             sr.dconf
         )

@@ -11823,7 +11823,7 @@ class NFSStorageRepository(StorageRepository):
 
 
 class NFSv4StorageRepository(NFSStorageRepository):
-    EXTRA_DCONF = {'version': '4'}
+    EXTRA_DCONF = {'nfsversion': '4'}
 
 
 class ISCSIStorageRepository(StorageRepository):

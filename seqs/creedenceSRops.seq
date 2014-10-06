@@ -24,6 +24,7 @@
     <testcase id="xenserver.tc.storage.TC8538" prio="3"/>
     <testcase id="xenserver.tc.storage.TC9085" prio="3"/>
     <testcase id="xenserver.tc.storage.TC12818" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC21934" prio="3"/>
   </testsequence>
 
 </xenrt>

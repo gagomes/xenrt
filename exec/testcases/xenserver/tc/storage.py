@@ -183,6 +183,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
+    NFS_SR_CLASS = xenrt.lib.xenserver.host.NFSStorageRepository
 
     def createSR(self,host,guest):
         # Set up NFS
@@ -202,8 +203,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = xenrt.lib.xenserver.host.NFSStorageRepository(host,
-                                                               self.SRNAME)
+            sr = self.NFS_SR_CLASS(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:
@@ -219,6 +219,12 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 class TC6824(NFSSRSanityTest):
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
+
+
+class TC21934(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+    NFS_SR_CLASS = xenrt.lib.xenserver.host.NFSv4StorageRepository
 
 
 class TC20940(NFSSRSanityTest):

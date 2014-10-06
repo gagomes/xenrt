@@ -4954,7 +4954,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         iso = "%s/isos/reader.iso" % xenrt.TEC().lookup("TEST_TARBALL_ROOT")
         self.virtualmedia.mountCD(iso)
 
-        xenrt.sleep(10)
+        xenrt.sleep(20)
 
         vdiName = self.host.minimalList("vdi-list", "name-label", args="sr-uuid=%s" % self.dvdSR)[0]
 
@@ -4962,7 +4962,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         for g in self.guests:
             g.changeCD(vdiName)
 
-        xenrt.sleep(10)
+        xenrt.sleep(30)
 
         # Verify the guests see the DVD
         self.checkDVDPresence(True)
@@ -4974,7 +4974,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         for g in self.guests:
             g.changeCD(None)
 
-        xenrt.sleep(10)
+        xenrt.sleep(20)
 
         # Now eject the CD from the host
         self.virtualmedia.unmountCD()

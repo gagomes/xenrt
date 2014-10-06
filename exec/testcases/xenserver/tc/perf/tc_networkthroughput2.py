@@ -420,7 +420,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI") or a bridge name (e.g. "xenbr3")
     def convertNetworkToAssumedid(self, host, network):
-        if isinstance(host, xenrt.GenericHost):
+        if isinstance(host, xenrt.lib.xenserver.Host):
             # Get the network-uuid
             netuuid = host.getNetworkUUID(network)
             xenrt.TEC().logverbose("convertNetworkToAssumedid: network uuid of network '%s' is %s" % (network, netuuid))
@@ -440,6 +440,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             assumedid = host.getNICEnumerationId(pifdev)
             xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
             return assumedid
+        elif isinstance(host, xenrt.lib.native.NativeLinuxHost):
+            nics = host.listSecondaryNICs(network=network)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (native linux host): network '%s' corresponds to NICs %s" % (network, nics))
+            assert len(nics) > 0
+            # Use the first device on this network
+            return nics[0]
+        else:
+            raise xenrt.XRTError("convertNetworkToAssumedid does not support hosts of type %s" % (type(host)))
 
     def run(self, arglist=None):
         # unpause endpoints if paused

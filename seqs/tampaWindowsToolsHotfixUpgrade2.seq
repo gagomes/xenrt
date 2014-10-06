@@ -60,7 +60,7 @@
         <postinstall action="shutdown"/>
       </vm>
       <vm name="testpeer">
-        <distro>debian50</distro>
+        <distro>generic-linux</distro>
         <network device="0" />
         <network device="1" bridge="internal"/>
         <postinstall action="preCloneTailor"/>

@@ -4983,7 +4983,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         self.checkDVDPresence(False)
 
     def checkDVDPresence(self, expectedPresent):
-        expectedCode = expectedPresent and 0 or 2
+        expectedCode = 0 if expectedPresent else 2
         for g in self.guests:
             if g.execguest("blkid /dev/%s" % self.device[g], retval="code") != expectedCode:
                 if expectedPresent:

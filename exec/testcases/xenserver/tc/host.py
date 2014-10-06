@@ -4962,7 +4962,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         for g in self.guests:
             g.changeCD(vdiName)
 
-        xenrt.sleep(30)
+        xenrt.sleep(60)
 
         # Verify the guests see the DVD
         self.checkDVDPresence(True)
@@ -4974,7 +4974,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
         for g in self.guests:
             g.changeCD(None)
 
-        xenrt.sleep(20)
+        xenrt.sleep(60)
 
         # Now eject the CD from the host
         self.virtualmedia.unmountCD()

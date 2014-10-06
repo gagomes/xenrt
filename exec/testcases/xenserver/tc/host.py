@@ -4925,7 +4925,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
             cd = self.host.minimalList("vbd-list", "empty", args="vm-uuid=%s type=CD" % g.getUUID())
             if len(cd) == 0:
                 cli = self.host.getCLIInstance()
-                cli.execute("vbd-create", "vm-uuid=%s device=3 type=CD mode=RO")
+                cli.execute("vbd-create", "vm-uuid=%s device=3 type=CD mode=RO" % g.getUUID())
                 break
             if len(cd) > 1:
                 raise xenrt.XRTError("Installed guest had more than one CD drive!")

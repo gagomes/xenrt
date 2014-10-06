@@ -4933,8 +4933,7 @@ class TCCheckLocalDVD(xenrt.TestCase):
                 g.changeCD(None)
 
         # Identify the DVD SR etc
-        dvdSR = self.host.minimalList("sr-list", args="type=udev content-type=iso")[0]
-        self.vdiName = self.host.minimalList("vdi-list", "name-label", args="sr-uuid=%s" % dvdSR)[0]
+        self.dvdSR = self.host.minimalList("sr-list", args="type=udev content-type=iso")[0]
 
     def createGuest(self, pv):
         if pv:
@@ -4957,9 +4956,11 @@ class TCCheckLocalDVD(xenrt.TestCase):
 
         xenrt.sleep(10)
 
+        vdiName = self.host.minimalList("vdi-list", "name-label", args="sr-uuid=%s" % self.dvdSR)[0]
+
         # Plug it through to the guests
         for g in self.guests:
-            g.changeCD(self.vdiName)
+            g.changeCD(vdiName)
 
         xenrt.sleep(10)
 
@@ -4969,31 +4970,14 @@ class TCCheckLocalDVD(xenrt.TestCase):
         # Verify the DVD checksum
         self.checkDVDChecksum(iso)
 
-        # Now eject the CD from the host
-        self.virtualmedia.unmountCD()
-
-        xenrt.sleep(10)
-
-        # Check it's not present in the guests
-        self.checkDVDPresence(False)
-
-        # Insert another ISO on the virtual media
-        iso2 = "%s/isos/writer.iso" % xenrt.TEC().lookup("TEST_TARBALL_ROOT")
-        self.virtualmedia.mountCD(iso2)
-
-        xenrt.sleep(10)
-
-        # Check it's present in the guests
-        self.checkDVDPresence(True)
-
-        # Verify the checksum
-        self.checkDVDChecksum(iso2)
-
-        # Eject it from the guests
+        # Unplug it from the guests
         for g in self.guests:
             g.changeCD(None)
 
         xenrt.sleep(10)
+
+        # Now eject the CD from the host
+        self.virtualmedia.unmountCD()
 
         # Verify the guests doesn't see the DVD
         self.checkDVDPresence(False)

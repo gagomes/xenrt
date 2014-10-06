@@ -3701,7 +3701,6 @@ exit /B 1
                     # Send the keys to start the logger.vbs: wscript.exe logger.vbs
                     self.sendVncKeys([0x57, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x2e, 0x65, 0x78, 0x65, 0x20, 0x2e, 0x2e, 0x5c, 0x2e, 0x2e, 0x5c, 0x6c, 0x6f, 0x67, 0x67, 0x65, 0x72, 0x2e, 0x76, 0x62, 0x73, 0xff0d])
                     xenrt.sleep(10)
-                    self.host.execdom0("tail -n100 /var/log/daemon.log | grep 'Windows IP Configuration'")
                 except Exception as e:
                     xenrt.TEC().logverbose("Windows ipconfig logger error: %s"%(e.message))
 

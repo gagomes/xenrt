@@ -4904,7 +4904,7 @@ class TCHostRebootLoop(xenrt.TestCase):
 
 class TCCheckLocalDVD(xenrt.TestCase):
     """Verify that a local DVD drive can be accessed by guests"""
-    HVMDISTRO = "rhel70"
+    HVMDISTRO = "rhel7"
     HVMARCH = "x86-64"
 
     def prepare(self, arglist):

@@ -64,7 +64,7 @@ class TC7804(xenrt.TestCase):
         except:
             pass
 
-class _TC6824(xenrt.TestCase):
+class SRSanityTestTemplate(xenrt.TestCase):
     """SR Sanity Test Template"""
 
     SKIP_VDI_CREATE = False
@@ -178,7 +178,7 @@ class _TC6824(xenrt.TestCase):
     def createSR(self,host,guest):
         raise xenrt.XRTError("Unimplemented")
 
-class NFSSRSanityTest(_TC6824):
+class NFSSRSanityTest(SRSanityTestTemplate):
     """NFS SR Sanity Test"""
 
     SRNAME = "test-nfs"
@@ -268,7 +268,7 @@ class TC20948(NFSSRSanityTest):
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
-class TC20949(_TC6824):
+class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -286,7 +286,7 @@ class TC20949(_TC6824):
         
         return self.sruuids
 
-class TC20950(_TC6824):
+class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -304,7 +304,7 @@ class TC20950(_TC6824):
 
         return self.sruuids
 
-class TC20951(_TC6824):
+class TC20951(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -322,7 +322,7 @@ class TC20951(_TC6824):
 
         return self.sruuids
 
-class TC20952(_TC6824):
+class TC20952(SRSanityTestTemplate):
     """Co-existance of Classic NFS SR and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -340,7 +340,7 @@ class TC20952(_TC6824):
 
         return self.sruuids
 
-class TC6825(_TC6824):
+class TC6825(SRSanityTestTemplate):
     """ISCSI SR Sanity Test"""
 
     def createSR(self,host,guest):
@@ -416,7 +416,7 @@ class TC6825(_TC6824):
 
         return sr.uuid
 
-class TC7366(_TC6824):
+class TC7366(SRSanityTestTemplate):
     """Create an iSCSI SR on a LUN other then LUN ID 0"""
     CHECK_FOR_OPEN_ISCSI = True
 
@@ -452,7 +452,7 @@ class TC7366(_TC6824):
                                    "was 1024MB" % (size))
         return sr.uuid
 
-class TC7367(_TC6824):
+class TC7367(SRSanityTestTemplate):
     """Create two iSCSI SRs on LUNs on the same target"""
 
     NUM_LUNS = 2
@@ -599,7 +599,7 @@ class TC9085(TC7367):
     SKIP_VDI_CREATE = True
     TARGET_USE_EXTRA_VBD = True
     
-class TC7368(_TC6824):
+class TC7368(SRSanityTestTemplate):
     """Create two NFS SRs on the same NFS server"""
 
     def createSR(self,host,guest):
@@ -639,7 +639,7 @@ class TC7368(_TC6824):
                                    "first SR")
         self.checkSRs()
 
-class TC7369(_TC6824):
+class TC7369(SRSanityTestTemplate):
     """Create an iSCSI SR on a target requiring CHAP authentication"""
 
     user = "myuser"

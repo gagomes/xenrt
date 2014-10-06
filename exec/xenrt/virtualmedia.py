@@ -41,7 +41,7 @@ class VirtualMediaSuperMicro(VirtualMediaBase):
     def mountCD(self, location):
         cifs = self._exportCifs(location)
         self._login()
-        self.session.post("http://%s/cgi/op.cgi" % self.machine.lookup("BMC_ADDRESS"), data={"op": "config_iso", "machine": xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), "path": cifs, "user": "", "pwd": ""})
+        self.session.post("http://%s/cgi/op.cgi" % self.machine.lookup("BMC_ADDRESS"), data={"op": "config_iso", "host": xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), "path": "\\%s" % cifs, "user": "", "pwd": ""})
         self.session.post("http://%s/cgi/op.cgi" % self.machine.lookup("BMC_ADDRESS"), data={"op": "mount_iso"})
 
     def _exportCifs(self, location):

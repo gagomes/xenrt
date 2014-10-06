@@ -178,7 +178,7 @@ class _TC6824(xenrt.TestCase):
     def createSR(self,host,guest):
         raise xenrt.XRTError("Unimplemented")
 
-class TC6824(_TC6824):
+class NFSSRSanityTest(_TC6824):
     """NFS SR Sanity Test"""
 
     SRNAME = "test-nfs"
@@ -215,18 +215,24 @@ class TC6824(_TC6824):
 
         return sr.uuid
 
-class TC20940(TC6824):
+
+class TC6824(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+
+
+class TC20940(NFSSRSanityTest):
     """File SR Sanity Test"""
     
     SR_TYPE="file"
 
-class TC10626(TC6824):
+class TC10626(NFSSRSanityTest):
     """Creation, operation and destruction of a NFS SR with a name containing non-ASCII characters"""
 
     NEW_SRNAME =  u"NFS\u03b1booo2342\u03b1 SR"
 
     def createSR(self,host,guest):
-        sruuid = TC6824.createSR(self, host, guest)
+        sruuid = NFSSRSanityTest.createSR(self, host, guest)
         try:
             session = host.getAPISession()
             try:
@@ -256,7 +262,7 @@ class TC20937(TC10626):
 
     SR_TYPE = "file"
 
-class TC20948(TC6824):
+class TC20948(NFSSRSanityTest):
     """NFS SR (with no sub directory) Sanity Test"""
 
     def prepare(self,arglist):

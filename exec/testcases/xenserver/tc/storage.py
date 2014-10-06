@@ -234,6 +234,9 @@ class TC21934(NFSSRSanityTest):
     SR_TYPE = "nfs"
     NFS_VERSION = 4
 
+    def postRun(self):
+        pass
+
 
 class TC20940(NFSSRSanityTest):
     """File SR Sanity Test"""

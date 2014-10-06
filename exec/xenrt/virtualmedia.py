@@ -45,6 +45,8 @@ class VirtualMediaSuperMicro(VirtualMediaBase):
         self.session.post("http://%s/cgi/op.cgi" % self.machine.lookup("BMC_ADDRESS"), data={"op": "mount_iso"})
 
     def _exportCifs(self, location):
+        if not os.path.exists(location):
+            raise xenrt.XRTError("Asked to mount non-existant ISO file")
         d = xenrt.WebDirectory()
         d.copyIn(location)
         return d.getCIFSPath() + "\\" + os.path.basename(location)

@@ -1,5 +1,9 @@
 import xenrt
 import string, xmlrpclib, IPy, httplib, socket, sys, traceback, os, re, bz2, time
+try:
+    import winrm
+except:
+    pass
 from xenrt.lib.opsys import OS, registerOS
 from zope.interface import implements
 
@@ -65,7 +69,7 @@ class MyPatientTrans(xmlrpclib.Transport):
 
 class WindowsOS(OS):
 
-    tcpCommunicationPorts={"XML/RPC": 8936}
+    tcpCommunicationPorts={"XML/RPC": 8936, "WinRM": 5985}
 
     implements(xenrt.interfaces.InstallMethodIso)
 
@@ -101,6 +105,8 @@ class WindowsOS(OS):
         self.vifStem = "eth"
         self.viridian = True
         self.__randomStringGenerator = None
+        self.username = "Administrator"
+        self.password = "xensource"
 
     @property
     def canonicalDistroName(self):
@@ -161,7 +167,37 @@ class WindowsOS(OS):
             self.execCmd("""(Get-WmiObject -class "Win32_TSGeneralSetting" -Namespace root\\cimv2\\terminalservices -ComputerName $env:ComputerName -Filter "TerminalName='RDP-tcp'").SetUserAuthenticationRequired(0)""", powershell=True)
         except:
             pass
+        try:
+            self.enableWinRM()
+        except:
+            xenrt.TEC().warning("Could not enable WinRM")
 
+    def enableWinRM(self):
+        if self.fileExists("c:\\winrm.stamp"):
+            return
+        self.execCmd("NETSH FIREWALL SET ALLOWEDPROGRAM PROGRAM=c:\\Python27\\python.exe NAME=\"XMLRPCDaemon\" MODE=ENABLE PROFILE=ALL")
+        self.ensurePackageInstalled("PowerShell 3.0")
+        self.execCmd("""# Skip network location setting for pre-Vista operating systems
+if([environment]::OSVersion.version.Major -lt 6) { return }
+
+# Skip network location setting if local machine is joined to a domain.
+if(1,3,4,5 -contains (Get-WmiObject win32_computersystem).DomainRole) { return }
+
+# Get network connections
+$networkListManager = [Activator]::CreateInstance([Type]::GetTypeFromCLSID([Guid]"{DCB00C01-570F-4A9B-8D69-199FDBA5723B}"))
+$connections = $networkListManager.GetNetworkConnections()
+
+# Set network location to Private for all networks
+$connections | % {$_.GetNetwork().SetCategory(1)}""", powershell=True)
+        self.execCmd("""winrm quickconfig -quiet""")
+        self.execCmd("""winrm set winrm/config/client/auth @{Basic="true"}""")
+        self.execCmd("""winrm set winrm/config/service/auth @{Basic="true"}""")
+        self.execCmd("""winrm set winrm/config/service @{AllowUnencrypted="true"}""")
+        self.writeFile("c:\\winrm.stamp", "installed")
+
+    def winRM(self):
+        return winrm.Session("http://%s:%d" % (self.parent.getIP(trafficType="WinRM"), self.parent.getPort(trafficType="WinRM")), auth=(self.username, self.password))
+        
     def waitForBoot(self, timeout):
         self.waitForDaemon(timeout)
 

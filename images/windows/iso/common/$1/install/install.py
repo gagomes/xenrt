@@ -47,7 +47,7 @@ def installXMLRPC():
                 "%s\\execdaemon.cmd" % (os.getenv("SystemDrive")))    
     try:
         os.system("NETSH FIREWALL SET ALLOWEDPROGRAM PROGRAM=%s\\Python27\\python.exe " % (os.getenv("SystemDrive")) +
-                  "NAME=\"XMLRPCDaemon\" MODE=ENABLE")
+                  "NAME=\"XMLRPCDaemon\" MODE=ENABLE PROFILE=ALL")
     except Exception, e:
         pdebug("Exception: %s" % (str(e)))
     addRun("%s\execdaemon.cmd" % (os.getenv("SystemDrive")))

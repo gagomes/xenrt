@@ -4901,3 +4901,121 @@ class TCHostRebootLoop(xenrt.TestCase):
         h = self.getDefaultHost()
         for i in range(1000):
             h.reboot()
+
+class TCCheckLocalDVD(xenrt.TestCase):
+    """Verify that a local DVD drive can be accessed by guests"""
+    HVMDISTRO = "rhel70"
+    HVMARCH = "x86-64"
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+
+        # Ensure we don't have anything in the virtual media
+        self.virtualmedia = self.host.machine.getVirtualMedia()
+        self.virtualmedia.unmountCD()
+
+        # TODO: Parallelise these
+        self.device = {}
+        self.guests = []
+
+        xenrt.pfarm([(self.createGuest, False), (self.createGuest, True)])
+
+        # Ensure the guests have CD devices and they're empty
+        for g in self.guests:
+            cd = self.host.minimalList("vbd-list", "empty", args="vm-uuid=%s type=CD" % g.getUUID())
+            if len(cd) == 0:
+                cli = self.host.getCLIInstance()
+                cli.execute("vbd-create", "vm-uuid=%s device=3 type=CD mode=RO")
+                break
+            if len(cd) > 1:
+                raise xenrt.XRTError("Installed guest had more than one CD drive!")
+            if cd[0] == "false":
+                g.changeCD(None)
+
+        # Identify the DVD SR etc
+        dvdSR = self.host.minimalList("sr-list", args="type=udev content-type=iso")[0]
+        self.vdiName = self.host.minimalList("vdi-list", "name-label", args="sr-uuid=%s" % dvdSR)[0]
+
+    def createGuest(self, pv):
+        if pv:
+            g = self.host.createGenericLinuxGuest()
+            self.device[g] = "xvdd"
+            self.guests.append(g)
+        else:
+            g = self.host.createBasicGuest(distro=self.HVMDISTRO, arch=self.HVMARCH)
+            self.device[g] = "cdrom"
+            self.guests.append(g)
+
+    def run(self, arglist):
+
+        # Verify the devices show as empty
+        self.checkDVDPresence(False)
+
+        # Plug an ISO to the virtual media
+        iso = "%s/isos/reader.iso" % xenrt.TEC().lookup("TEST_TARBALL_ROOT")
+        self.virtualmedia.mountCD(iso)
+
+        xenrt.sleep(10)
+
+        # Plug it through to the guests
+        for g in self.guests:
+            g.changeCD(self.vdiName)
+
+        xenrt.sleep(10)
+
+        # Verify the guests see the DVD
+        self.checkDVDPresence(True)
+
+        # Verify the DVD checksum
+        self.checkDVDChecksum(iso)
+
+        # Now eject the CD from the host
+        self.virtualmedia.unmountCD()
+
+        xenrt.sleep(10)
+
+        # Check it's not present in the guests
+        self.checkDVDPresence(False)
+
+        # Insert another ISO on the virtual media
+        iso2 = "%s/isos/writer.iso" % xenrt.TEC().lookup("TEST_TARBALL_ROOT")
+        self.virtualmedia.mountCD(iso2)
+
+        xenrt.sleep(10)
+
+        # Check it's present in the guests
+        self.checkDVDPresence(True)
+
+        # Verify the checksum
+        self.checkDVDChecksum(iso2)
+
+        # Eject it from the guests
+        for g in self.guests:
+            g.changeCD(None)
+
+        xenrt.sleep(10)
+
+        # Verify the guests doesn't see the DVD
+        self.checkDVDPresence(False)
+
+    def checkDVDPresence(self, expectedPresent):
+        expectedCode = expectedPresent and 0 or 2
+        for g in self.guests:
+            if g.execguest("blkid /dev/%s" % self.device[g], retval="code") != expectedCode:
+                if expectedPresent:
+                    raise xenrt.XRTFailure("DVD not found in guest when expected")
+                else:
+                    raise xenrt.XRTFailure("DVD found in guest when not expected")
+
+    def checkDVDChecksum(self, iso):
+        realChecksum = xenrt.command("md5sum %s" % iso)
+        for g in self.guests:
+            checksum = g.execguest("md5sum /dev/%s" % self.device[g])
+            if checksum != realChecksum:
+                raise xenrt.XRTError("In-guest checksum of physical DVD drive didn't match DVD")
+
+    def postRun(self):
+        try:
+            self.virtualmedia.unmountCD()
+        except:
+            pass

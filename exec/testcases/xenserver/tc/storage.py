@@ -214,7 +214,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
             raise xenrt.XRTError('Unsupported NFS revision')
 
     def prepareSharedDirectory(self, guest):
-        for command in self.getPrepareCommands():
+        for command in self.getMakedirCommands():
             guest.execguest(command)
 
     def createSR(self,host,guest):

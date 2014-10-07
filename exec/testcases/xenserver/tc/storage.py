@@ -202,7 +202,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
             raise xenrt.XRTError('Unsupported NFS revision')
 
     def getMakedirCommands(self):
-        return "mkdir /sr"
+        return ["mkdir /sr"]
 
     def createSR(self,host,guest):
         # Set up NFS
@@ -210,7 +210,9 @@ class NFSSRSanityTest(SRSanityTestTemplate):
                         "portmap")
 
         # Create a dir and export it
-        guest.execguest(self.getMakedirCommands())
+        for command in self.getPrepareCommands():
+            guest.execguest(command)
+
         guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")

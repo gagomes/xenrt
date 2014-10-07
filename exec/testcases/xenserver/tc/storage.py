@@ -225,10 +225,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         else:
             raise xenrt.XRTError('Unsupported NFS revision')
 
-    def createSR(self,host,guest):
-        # Set up NFS
-        self.prepareDomZero(host)
-
+    def createNFSExportOnGuest(self, guest, path):
         guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
                         "portmap")
 
@@ -238,6 +235,12 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+
+    def createSR(self,host,guest):
+        # Set up NFS
+        self.prepareDomZero(host)
+
+        self.createNFSExportOnGuest(guest, '/sr')
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)

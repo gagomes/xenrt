@@ -26,13 +26,18 @@ class AbstractLinuxHostedNFSExport(object):
     def getCommandsToPrepareSharedDirectory(self):
         raise NotImplementedError('This is an abstract class')
 
+    def getStorageRepositoryClass(self):
+        raise NotImplementedError('This is an abstract class')
+
     def prepareSharedDirectory(self, guest):
         for command in self.getCommandsToPrepareSharedDirectory():
             guest.execguest(command)
 
     def createNFSExportOnGuest(self, guest):
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        guest.execguest(
+            "apt-get install -y --force-yes nfs-kernel-server nfs-common "
+            "portmap"
+        )
 
         # Create a dir and export it
         self.prepareSharedDirectory(guest)
@@ -49,6 +54,12 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
     def getCommandsToPrepareSharedDirectory(self):
         return ["mkdir %s" % self.path]
 
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSStorageRepository
+
+    def prepareDomZero(self, host):
+        pass
+
 
 class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
     def getExportsLine(self):
@@ -60,6 +71,21 @@ class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
             "mkdir /nfsv4-root%s" % self.path,
             "chmod o+w /nfsv4-root%s" % self.path,
         ]
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSv4StorageRepository
+
+    def hostNameCouldBeResolved(self, host):
+        return 0 == host.execdom0('ping -c 1 -W1 $(hostname)', retval='code')
+
+    def prepareDomZero(self, host):
+        if not self.hostNameCouldBeResolved(host):
+            host.execdom0(
+                'echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
+
+        if not self.hostNameCouldBeResolved(host):
+            raise xenrt.XRTError(
+                'NFSv4 expects hostname to resolve to an address')
 
 
 def linuxBasedNFSExport(revision, path):
@@ -243,34 +269,19 @@ class NFSSRSanityTest(SRSanityTestTemplate):
     SR_TYPE = "nfs"
     NFS_VERSION = 3
 
-    def getNFSSRClass(self):
-        if self.NFS_VERSION == 3:
-            return xenrt.lib.xenserver.host.NFSStorageRepository
-        elif self.NFS_VERSION == 4:
-            return xenrt.lib.xenserver.host.NFSv4StorageRepository
-        else:
-            raise xenrt.XRTError('Unsupported NFS revision')
-
-    def prepareDomZero(self, host):
-        if self.NFS_VERSION == 3:
-            pass
-        elif self.NFS_VERSION == 4:
-            host.execdom0('echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
-        else:
-            raise xenrt.XRTError('Unsupported NFS revision')
-
     def createSR(self,host,guest):
-        self.prepareDomZero(host)
-
         nfsExport = linuxBasedNFSExport(self.NFS_VERSION, '/sr')
+
         nfsExport.createNFSExportOnGuest(guest)
+
+        nfsExport.prepareDomZero(host)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = self.getNFSSRClass()(host, self.SRNAME)
+            sr = nfsExport.getStorageRepositoryClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:

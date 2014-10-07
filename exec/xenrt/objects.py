@@ -8833,15 +8833,22 @@ class GenericGuest(GenericPlace):
                 for device in vifs:
                     self.execguest("dhclient %s" % device)
 
-    def disableIPv6(self, reboot=True):
+    def disableIPv6(self, reboot=True, deleteInterfaces=True):
         if self.windows:
             self.winRegAdd('HKLM', 'SYSTEM\\currentcontrolset\\services\\tcpip6\\parameters', 'DisabledComponents', 'DWORD', -1)
+            
+            if deleteInterfaces:
+                try:
+                    self.xmlrpcExec("REG DELETE \"HKLM\\SYSTEM\\currentcontrolset\\services\\tcpip6\\parameters\\interfaces\" /f")
+                except:
+                    pass #doesn't always exist
+            
             if reboot:
                 # Reboot the VM to disable IPv6
                 self.reboot()
         else:
             raise xenrt.XRTError('disableIPv6 not implemented for non-windows guests')
-
+            
     def specifyStaticIPv6(self,device="eth0"):
 
         network = self.deviceToNetworkName(device)

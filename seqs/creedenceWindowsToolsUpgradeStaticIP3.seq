@@ -22,6 +22,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
         <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -49,6 +50,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
         <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>

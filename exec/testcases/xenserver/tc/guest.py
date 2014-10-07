@@ -1865,3 +1865,13 @@ class TC21711(xenrt.TestCase):
 
         if not re.search(pattern, response):
             raise xenrt.XRTFailure("Failure. Was not able to read uuid from %s" % (filepath))
+
+class TCInstallDriversNoIPv6(xenrt.TestCase):
+    def doGuest(self, g):
+        g.disableIPv6()
+        g.installDrivers()
+    
+    def run(self, arglist=None):
+        for g in self.getDefaultHost().guests.values():
+            self.getLogsFrom(g)
+            self.runSubcase("doGuest", (g), "TCInstallDriversNoIPv6", g.getName())

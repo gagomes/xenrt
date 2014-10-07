@@ -217,8 +217,18 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         for command in self.getCommandsToPrepareSharedDirectory():
             guest.execguest(command)
 
+    def prepareDomZero(self, host):
+        if self.NFS_VERSION == 3:
+            pass
+        elif self.NFS_VERSION == 4:
+            host.execdom0('echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
+        else:
+            raise xenrt.XRTError('Unsupported NFS revision')
+
     def createSR(self,host,guest):
         # Set up NFS
+        self.prepareDomZero(host)
+
         guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
                         "portmap")
 

@@ -204,7 +204,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
     def getMakedirCommands(self):
         return ["mkdir /sr"]
 
-    def prepareFileSystem(self, guest):
+    def prepareSharedDirectory(self, guest):
         for command in self.getPrepareCommands():
             guest.execguest(command)
 
@@ -214,7 +214,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
                         "portmap")
 
         # Create a dir and export it
-        self.prepareFileSystem(guest)
+        self.prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")

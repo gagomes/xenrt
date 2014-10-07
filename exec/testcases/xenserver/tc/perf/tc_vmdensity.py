@@ -1798,7 +1798,10 @@ class Experiment_vmrun(Experiment):
                     ##g0.installTools()
                     
                 else: #non-windows iso image for installation
-                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,sr=defaultSR)
+                    postinstall=[]
+                    if "convertHVMtoPV" in self.vmpostinstall:
+                        postinstall+=['convertHVMtoPV']
+                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
                     
                 g0.check()

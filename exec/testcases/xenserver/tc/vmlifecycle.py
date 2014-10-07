@@ -766,7 +766,7 @@ class _TCXenMotionNonLocal(xenrt.TestCase):
     VARCH = None
     TESTMODE = False
 
-    LOOPITERS = 100
+    LOOPITERS = 300
 
     def checkHostIsSuitable(self, host):
         pass

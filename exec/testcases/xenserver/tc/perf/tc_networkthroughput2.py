@@ -87,6 +87,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         #self.host.genParamSet("network", self.ipv6_net, "other-config", "true", "xenrtvms")
 
     def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
+        xenrt.TEC().logverbose("Running iperf from origin %s (dev %s) to dest %s (dev %s)" % (origin, origindev, dest, destdev))
 
         prot_switch = None
         if protocol == "tcp":   prot_switch = ""
@@ -94,6 +95,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else: raise xenrt.XRTError("unknown protocol %s" % (protocol,))
 
         destIP = self.getIP(dest, destdev)
+        xenrt.TEC().logverbose("destIP = %s" % (destIP))
+        if destIP is None:
+            raise xenrt.XRTError("couldn't get the IP address of the destination %s (dev %s)" % (dest, destdev))
 
         if dest.windows:
             dest.startIperf()
@@ -133,10 +137,13 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def setIPAddress(self, endpoint, endpointdev, ip):
         if isinstance(endpoint, xenrt.GenericGuest):
-            (eth, bridge, mac, _) = endpoint.vifs[endpointdev]
+            xenrt.TEC().logverbose("setIPAddress: guest endpoint %s has vifs %s" % (endpoint, endpoint.vifs))
+            idx = [i for i,(dev,_,_,_) in enumerate(endpoint.vifs) if dev==('eth%d' % endpointdev)][0]
+            xenrt.TEC().logverbose("setIPAddress: dev %s is at index %d in vifs" % (endpointdev, idx))
+            (eth, bridge, mac, _) = endpoint.vifs[idx]
             # TODO support configuring static IP in Windows guests
             endpoint.execguest("ifconfig %s %s netmask 255.255.255.0" % (eth, ip))
-            endpoint.vifs[endpointdev] = (eth, bridge, mac, ip)
+            endpoint.vifs[idx] = (eth, bridge, mac, ip)
         elif isinstance(endpoint, xenrt.lib.xenserver.Host):
             raise xenrt.XRTError("setting IP on XenServer PIF is not yet implemented")
         elif isinstance(endpoint, xenrt.GenericHost):
@@ -145,14 +152,20 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getIP(self, endpoint, endpointdev=None):
         # If the device is specified then get the IP for that device
         if endpointdev is not None:
+            xenrt.TEC().logverbose("getIP(%s, %s): endpointdev %s is not None" % (endpoint, endpointdev, endpointdev))
             if isinstance(endpoint, xenrt.GenericGuest):
-                (_, _, _, ip) = endpoint.vifs[endpointdev]
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a GenericGuest, endpoint.vifs = %s" % (endpoint, endpointdev, endpoint, endpoint.vifs))
+                ip = [ip for (dev,br,mac,ip) in endpoint.vifs if dev==('eth%d' % endpointdev)][0]
             elif isinstance(endpoint, xenrt.lib.xenserver.Host):
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a xenserver.Host" % (endpoint, endpointdev, endpoint))
                 ip = endpoint.getNICAllocatedIPAddress(endpointdev)
             elif isinstance(endpoint, xenrt.GenericHost):
+                xenrt.TEC().logverbose("getIP(%s, %s): endpoint %s is a GenericHost" % (endpoint, endpointdev, endpoint))
                 ip = endpoint.execdom0("ifconfig %s | fgrep 'inet addr:' | awk '{print $2}' | awk -F: '{print $2}'" % (endpoint.getNIC(endpointdev))).strip()
         else:
+            xenrt.TEC().logverbose("getIP(%s, %s): endpointdev %s is None, so getting IP of endpoint %s" % (endpoint, endpointdev, endpointdev, endpoint))
             ip = endpoint.getIP()
+        xenrt.TEC().logverbose("getIP(%s, %s) returning %s" % (endpoint, endpointdev, ip))
         return ip
 
     # endpointdev is the (integer) assumedid of the device
@@ -287,15 +300,20 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
     def getHostname(self, endpoint):
         return endpoint.execcmd("hostname").strip()
 
+    # Return the assumedid of the NIC on which this VIF is bridged
     def physicalDeviceOf(self, guest, endpointdev):
         assert isinstance(guest, xenrt.GenericGuest)
         if endpointdev is None:
             return None
         else:
-            (_, bridge, _, _) = guest.vifs[endpointdev]
-            # TODO is it safe to assume that xenbrN corresponds to XenRT's idea of NIC N?
-            if bridge.startswith("xenbr"):
-                return int(bridge[5:])
+            # Get the bridge this VIF is on
+            br = [b for (dev,b,_,_) in guest.vifs if dev==('eth%d' % endpointdev)][0]
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): guest.vifs = %s, so device %d is bridged on %s" % (guest, endpointdev, guest.vifs, endpointdev, br))
+
+            # Convert bridge into the assumed id of the PIF
+            assumedid = self.convertNetworkToAssumedid(guest.host, br)
+            xenrt.TEC().logverbose("physicalDeviceOf(%s, %s): bridge '%s' corresponds to assumedid %d" % (guest, endpointdev, br, assumedid))
+            return assumedid
 
     def getIssue(self, endpoint):
         issue = endpoint.execcmd("head -n 1 /etc/issue || true").strip()
@@ -400,12 +418,36 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             except Exception, e:
                 self.log(None, "error while breathing: %s" % (e,))
 
-    def convertNetworkToAssumedid(self, endpoint, network):
-        if isinstance(endpoint, xenrt.GenericHost):
-            nics = endpoint.listSecondaryNICs(network=network)
+    # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI") or a bridge name (e.g. "xenbr3")
+    def convertNetworkToAssumedid(self, host, network):
+        if isinstance(host, xenrt.lib.xenserver.Host):
+            # Get the network-uuid
+            netuuid = host.getNetworkUUID(network)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: network uuid of network '%s' is %s" % (network, netuuid))
+            if netuuid == '':
+                raise XRTError("couldn't get network uuid for network '%s'" % (network))
+
+            # Look up PIF for this network
+            args = "host-uuid=%s" % (host.getMyHostUUID())
+            pifuuid = host.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF on network %s is %s" % (netuuid, pifuuid))
+            if pifuuid == '':
+                raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+            # Get the assumed enumeration ID for this PIF
+            pifdev = host.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF with uuid %s is %s" % (pifuuid, pifdev))
+            assumedid = host.getNICEnumerationId(pifdev)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
+            return assumedid
+        elif isinstance(host, xenrt.lib.native.NativeLinuxHost):
+            nics = host.listSecondaryNICs(network=network)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (native linux host): network '%s' corresponds to NICs %s" % (network, nics))
             assert len(nics) > 0
             # Use the first device on this network
             return nics[0]
+        else:
+            raise xenrt.XRTError("convertNetworkToAssumedid does not support hosts of type %s" % (type(host)))
 
     def run(self, arglist=None):
         # unpause endpoints if paused
@@ -424,22 +466,39 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         # Get the device position (assumedid) for the devices to use:
         #  - For hosts, endpointdev is a network name, so convert this.
         #  - For guests, endpointdev is a number. Just use this.
-        if isinstance(self.endpoint0, xenrt.GenericHost):
-            self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+        if self.e0devstr is None:
+            self.e0dev = None
         else:
-            self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
-        if isinstance(self.endpoint1, xenrt.GenericHost):
-            self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+            if isinstance(self.endpoint0, xenrt.GenericHost):
+                self.e0dev = self.convertNetworkToAssumedid(self.endpoint0, self.e0devstr)
+            else:
+                self.e0dev = int(self.e0devstr)
+                xenrt.TEC().logverbose("endpoint0 %s has vifs %s" % (self.endpoint0, self.endpoint0.vifs))
+                self.endpoint0.reparseVIFs() # ensure IP address is recorded in self.endpoint0.vifs
+                xenrt.TEC().logverbose("endpoint0 %s has vifs %s" % (self.endpoint0, self.endpoint0.vifs))
+        xenrt.TEC().logverbose("endpoint0 device is %s %s" % (self.e0dev, type(self.e0dev)))
+        if self.e1devstr is None:
+            self.e1dev = None
         else:
-            self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
+            if isinstance(self.endpoint1, xenrt.GenericHost):
+                self.e1dev = self.convertNetworkToAssumedid(self.endpoint1, self.e1devstr)
+            else:
+                self.e1dev = int(self.e1devstr)
+                xenrt.TEC().logverbose("endpoint1 %s has vifs %s" % (self.endpoint1, self.endpoint1.vifs))
+                self.endpoint1.reparseVIFs() # ensure IP address is recorded in self.endpoint1.vifs
+                xenrt.TEC().logverbose("endpoint1 %s has vifs %s" % (self.endpoint1, self.endpoint1.vifs))
+        xenrt.TEC().logverbose("endpoint1 device is %s %s" % (self.e1dev, type(self.e1dev)))
 
         # Give IP addresses to the endpoints if necessary
         if self.e0ip:
+            xenrt.TEC().logverbose("Setting IP address of %s (dev %s) to %s" % (self.endpoint0, self.e0dev, self.e0ip))
             self.setIPAddress(self.endpoint0, self.e0dev, self.e0ip)
         if self.e1ip:
+            xenrt.TEC().logverbose("Setting IP address of %s (dev %s) to %s" % (self.endpoint1, self.e1dev, self.e1ip))
             self.setIPAddress(self.endpoint1, self.e1dev, self.e1ip)
 
         # Collect as much information as necessary for the rage importer
+        xenrt.TEC().logverbose("Collecting metadata...")
         self.rageinfo()
 
         # Run some traffic in one direction

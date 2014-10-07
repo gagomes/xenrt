@@ -1680,14 +1680,13 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel510_x86-64"] = "Oracle Enterprise Linux 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-32"] = "Oracle Enterprise Linux 6.5 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel65_x86-64"] = "Oracle Enterprise Linux 6.5 (64-bit)"
-        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x32"] = "Windows 8.1 (32-bit)"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x86"] = "Windows 8.1 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["win81-x64"] = "Windows 8.1 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-32"] = "CentOS 5.10 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos510_x86-64"] = "CentOS 5.10 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["rhel7_x86-64"] = "Red Hat Enterprise Linux 7.0"
-        #Templates not present in cloud
-        #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-64"] = ""
-        #self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-64"] = ""
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["centos7_x86-64"] = "CentOS 7"
+        self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["oel7_x86-64"] = "Oracle Linux 7"
         
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-xen.vhd.bz2"
         self.config["CLOUD_CONFIG"]["4.3"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-04-10-master-kvm.qcow2.bz2"
@@ -2413,6 +2412,11 @@ class Config:
         #  AliBaba:openssl, xen-hyp , qemu. Rolls up XS55EU2001,XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018, XS55EU2019, XS55EU2020
         self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2021/86503/hotfix-XS55EU2021/XS55EU2021.xsupdate"
         
+        #  Ronan:arcmsr-modules, dhcp, kernel, likewise, lpfc, md3000-rdac, mtnic, nx_nic, openssl, qla2xxx, qla4xxx, vncterm, xen-device-model, xen-hypervisor, xen-tools. Rolls up XS55EU2001, XS55EU2003, XS55EU2006, XS55EU2007, XS55EU2011, XS55EU2012, XS55EU2013, XS55EU2014, XS55EU2015, XS55EU2016, XS55EU2017, XS55EU2018,XS55EU2019, XS55EU2020, XS55EU2021
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2022"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2022/88499/hotfix-XS55EU2022/XS55EU2022.xsupdate"
+        
+        #  ShellShock: bash. Rolls up nothing
+        self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2023"] = "/usr/groups/release/XenServer-5.5.0-Update2-rc3/hotfixes/XS55EU2023/88767/hotfix-XS55EU2023/XS55EU2023.xsupdate"
         
         
         # INT-mnr-1: stunnel
@@ -2804,6 +2808,12 @@ class Config:
         # AliBaba: xenhyp, qemu, openSSL. Rolls up XXS60E014,XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035, XS60E037
         self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E039/86675/hotfix-XS60E039/XS60E039.xsupdate"
        
+        # Ronan: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools .Rolls up XS60E014, XS60E018, XS60E020, XS60E023, XS60E024, XS60E026, XS60E028, XS60E029, XS60E033, XS60E034, XS60E035, XS60E037, XS60E039
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E040"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E040/88554/hotfix-XS60E040/XS60E040.xsupdate"
+        
+        # ShellShock: bash .Rolls up nothing
+        self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E041"] = "/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E041/88766/hotfix-XS60E041/XS60E041.xsupdate"
+       
        
        
        
@@ -2903,6 +2913,13 @@ class Config:
         
         #AliBaba : qemu, xen-hyp, openSSL. Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011, XS602E013, XS602E014, XS602E016, XS602E017, XS602E018, XS602E020, XS602E021, XS602E022, XS602E023, XS602E025, XS602E026, XS602E027, XS602E028, XS602E029, XS602E030, XS602E032, XS602E033, XS602E034
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E035/86670/hotfix-XS602E035/XS602E035.xsupdate"
+        
+        #Ronan : blktap, device-mapper-multipath, kernel, kexec-tools, kpartx, md3000-rdac, mkinitrd, nash, openssl, sm, v6d, vhd-tool, vncterm, xapi-core, xapi-xenops, xen-device-model, xen-firmware, xen-hypervisor, xen-tools. 
+        #Rolls up XS602E001,XS602E003, XS602E004,XS602E005, XS602E007,XS602E008, XS602E011,XS602E013, XS602E014,XS602E016, XS602E017,XS602E018, XS602E020,XS602E021, XS602E022,XS602E023, XS602E025,XS602E026, XS602E027,XS602E028, XS602E029,XS602E030 ,XS602E032,XS602E033, XS602E034,XS602E035
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E036"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E036/88549/hotfix-XS602E036/XS602E036.xsupdate"
+        
+        #ShellShock : bash. Rolls up nothing
+        self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E037"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E037/88769/hotfix-XS602E037/XS602E037.xsupdate"
         
       
       
@@ -3029,6 +3046,14 @@ class Config:
       
         # Scalextric: xcp-python-libs, kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035, XS61E039
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E042/87613/hotfix-XS61E042/XS61E042.xsupdate"
+        
+        # Ronan: kexec-tools, openssl, vhd-tool, xapi-core, xapi-networkd, xapi-noarch-backend-udev, xapi-rrdd, xapi-xenopsd, xen-device-model, xen-firmware, xen-hypervisor, xen-tools. 
+        #Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E043"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E043/88551/hotfix-XS61E043/XS61E043.xsupdate"
+        
+        # ShellShock: bash. Rolls up nothing
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E044/88768/hotfix-XS61E044/XS61E044.xsupdate"
+        
       
       
       
@@ -3065,6 +3090,12 @@ class Config:
         
         # AliBaba - qemu, xen-hyp, openSSL . Rolls up XS602ECC001,XS602ECC002, XS602ECC003,XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008 
         self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC011/86671/hotfix-XS602ECC011/XS602ECC011.xsupdate"
+        
+        # Ronan - openssl, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602ECC001, XS602ECC002, XS602ECC003, XS602ECC005, XS602ECC006,XS602ECC007, XS602ECC008, XS602ECC011
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC012"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC012/88550/hotfix-XS602ECC012/XS602ECC012.xsupdate"
+        
+        # ShellShock - bash . Rolls up nothing
+        self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC013"] = "/usr/groups/release/XenServer-6.x/sweeney/hotfixes/XS602ECC013/88777/hotfix-XS602ECC013/XS602ECC013.xsupdate"
       
       
       
@@ -3146,6 +3177,15 @@ class Config:
         
         # Whetstone - xapi, vgpu, guest-templates, xen-hyp. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62E014, XS62E017
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1011/88409/hotfix-XS62ESP1011/XS62ESP1011.xsupdate"
+        
+        # Ronan - blktap, guest-templates, openssl, perf-tools, sm, vgpu, vhd-tool, xapi-core, xapi-networkd, xapi-xe, xapi-xenopsd, xen-device-model, xen-hypervisor, xen-tools
+        # Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1013"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1013/88548/hotfix-XS62ESP1013/XS62ESP1013.xsupdate"
+        
+        # ShellShock - bash. Rolls up nothing
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1014/88765/hotfix-XS62ESP1014/XS62ESP1014.xsupdate"
+        
+
 
 
 
@@ -3190,7 +3230,8 @@ class Config:
         self.config["CARBON_PATCHES_GEORGE"]["HF08"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2008"]
         self.config["CARBON_PATCHES_GEORGE"]["HF09"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2009"]
         self.config["CARBON_PATCHES_GEORGE"]["HF10"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2010"]
-        self.config["CARBON_PATCHES_GEORGE"]["HF21"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2021"]
+        self.config["CARBON_PATCHES_GEORGE"]["HF22"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2022"]
+        self.config["CARBON_PATCHES_GEORGE"]["HF23"] = self.config["HOTFIXES"]["George"]["RTM"]["XS55EU2023"]
         
         if not self.config.has_key("CARBON_PATCHES_MNR"):
             self.config["CARBON_PATCHES_MNR"] = {}
@@ -3237,7 +3278,8 @@ class Config:
         self.config["CARBON_PATCHES_BOSTON"]["HF32"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E032"]
         self.config["CARBON_PATCHES_BOSTON"]["HF36"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E036"]
         self.config["CARBON_PATCHES_BOSTON"]["HF38"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E038"]
-        self.config["CARBON_PATCHES_BOSTON"]["HF39"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E039"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF40"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E040"]
+        self.config["CARBON_PATCHES_BOSTON"]["HF41"] = self.config["HOTFIXES"]["Boston"]["RTM"]["XS60E041"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBEL"):
             self.config["CARBON_PATCHES_SANIBEL"] = {}
@@ -3246,14 +3288,16 @@ class Config:
         self.config["CARBON_PATCHES_SANIBEL"]["HF19"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF24"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E024"]
         self.config["CARBON_PATCHES_SANIBEL"]["HF31"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"]
-        self.config["CARBON_PATCHES_SANIBEL"]["HF35"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E035"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF36"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E036"]
+        self.config["CARBON_PATCHES_SANIBEL"]["HF37"] = self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E037"]
         
         if not self.config.has_key("CARBON_PATCHES_SANIBELCC"):
             self.config["CARBON_PATCHES_SANIBELCC"] = {}
         self.config["CARBON_PATCHES_SANIBELCC"]["HF04"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC004"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF09"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC009"]
         self.config["CARBON_PATCHES_SANIBELCC"]["HF10"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC010"]
-        self.config["CARBON_PATCHES_SANIBELCC"]["HF11"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC011"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF12"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC012"]
+        self.config["CARBON_PATCHES_SANIBELCC"]["HF13"] = self.config["HOTFIXES"]["SanibelCC"]["RTM"]["XS602ECC013"]
         
         if not self.config.has_key("CARBON_PATCHES_TAMPA"):
             self.config["CARBON_PATCHES_TAMPA"] = {}
@@ -3262,8 +3306,9 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF20"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E020"]
         self.config["CARBON_PATCHES_TAMPA"]["HF38"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"]
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF41"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E041"]
         self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF43"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E043"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}
@@ -3281,7 +3326,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF11"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1011"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF13"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1013"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

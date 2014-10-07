@@ -18,6 +18,7 @@ class ManagementServer(object):
         self.place.addExtraLogFile("/var/log/cloudstack")
         self.__isCCP = None
         self.__version = None
+        self.__db = None
         if self.version in ['3.0.7']:
             self.cmdPrefix = 'cloud'
         else:
@@ -113,11 +114,9 @@ class ManagementServer(object):
             self.place.execcmd("sed -i 's/SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config")
             self.place.execcmd('setenforce Permissive')
             self.place.execcmd('yum -y install mysql-server mysql')
-            self.db = "mysqld"
         elif self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
             if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
                 self.place.execcmd('yum -y install mariadb-server mariadb')
-                self.db = "mariadb"
             else:
                 # Add a proxy if we know about one
                 proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
@@ -127,7 +126,6 @@ class ManagementServer(object):
                 self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
                 self.place.execcmd("yum install -y mysql-repo.rpm")
                 self.place.execcmd('yum -y install mysql-server mysql')
-                self.db = "mysqld"
         self.place.execcmd('service %s restart' % self.db)
         self.place.execcmd('chkconfig %s on' % self.db)
 
@@ -135,7 +133,6 @@ class ManagementServer(object):
         self.place.execcmd('iptables -I INPUT -p tcp --dport 3306 -j ACCEPT')
         self.place.execcmd('mysqladmin -u root password xensource')
         self.place.execcmd('service %s restart' % self.db)
-
 
         setupDbLoc = self.place.execcmd('find /usr/bin -name %s-setup-databases' % (self.cmdPrefix)).strip()
         self.place.execcmd('%s cloud:cloud@localhost --deploy-as=root:xensource' % (setupDbLoc))
@@ -369,6 +366,19 @@ class ManagementServer(object):
             self.__isCCP = xenrt.TEC().lookup("ACS_BRANCH", None) is None and xenrt.TEC().lookup("CLOUDRPMTAR", None) is None and xenrt.TEC().lookup("ACS_BUILD", None) is None
 
         return self.__isCCP
+
+    @property
+    def db(self):
+        if self.__db is None:
+            # Default DB is MySQL
+            self.__db = 'mysqld'
+
+            if xenrt.TEC().lookup("CLOUDSTACK_MARIADB", False, boolean=True):
+                if self.place.distro.startswith("rhel7") or self.place.distro.startswith("centos7"):
+                    self.__db = "mariadb"
+                else:
+                    xenrt.XRTError('Maria DB only support in RHEL / CentOS 7')
+        return self.__db
 
     def tailorForSimulator(self):
         self.place.execcmd('mysql -u root --password=xensource < /usr/share/cloudstack-management/setup/create-database-simulator.sql')

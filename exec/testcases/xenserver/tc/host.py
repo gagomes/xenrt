@@ -198,124 +198,6 @@ class TC6641(xenrt.TestCase):
         xenrt.TEC().comment("Generated a %skb trace." % (bytes))
         host.execdom0("rm -f %s" % (outfile))
 
-class TC7827(xenrt.TestCase):
-    """Test CA-16710."""
-
-    def createguest(self):
-        g = self.host.guestFactory()(xenrt.randomGuestName(),
-                                     template="Other install media",
-                                     host=self.host)
-        g.memory = 256
-        g.vcpus = 1
-        g.createGuestFromTemplate(g.template, self.host.getLocalSR())
-        self.guests.append(g)        
-        return g 
-
-    def run(self, arglist):
-        self.host = self.getDefaultHost()
-
-        if not self.host.isSvmHardware():
-            raise xenrt.XRTError("Not running on SVM hardware")
-        sftp = self.host.sftpClient()
-        self.guests = []
-        self.isosr = None
-
-        if self.host.execdom0("test -e /boot/grub/menu.lst", retval="code") == 0:
-            # Back up menu.lst.
-            self.host.execdom0("cp /boot/grub/menu.lst /boot/grub/menu.lst.TC7827")
-
-            # Get the most recent kernel command line.
-            dmesg = self.host.execdom0("xe host-dmesg")
-            cmdline = re.search("(Command line: )(?P<cmdline>.*)", dmesg).group("cmdline")
-        
-            # Add 'mem=4G' to command line.
-            grubconf = self.host.execdom0("cat /boot/grub/menu.lst")
-            grubconf = re.sub(cmdline, cmdline + " mem=4G", grubconf)
-            # Replace the host grub.conf.
-            gfile = xenrt.TEC().tempFile()
-            file(gfile, "w").write(grubconf)
-            sftp.copyTo(gfile, "/boot/grub/menu.lst")
-        else:
-            # Back up extlinux.conf
-            self.host.execdom0("cp /boot/extlinux.conf /boot/extlinux.conf.TC7827")
-            
-            # Get the most recent kernel command line.
-            dmesg = self.host.execdom0("xe host-dmesg")
-            cmdline = re.search("(Command line: )(?P<cmdline>.*)", dmesg).group("cmdline").strip()
-
-            extconf = self.host.execdom0("cat /boot/extlinux.conf")
-            if re.search("mem=\d+G", cmdline):
-                # CA-84156 / CA-88698 - assume new style where we can do the substitution directly on extlinux.conf
-                extconf = re.sub("\smem=\d+G", " mem=4G", extconf)
-                #fix for CA-99352: Due to EA-1041, if mem is changed to 4G (low memory), then dom0_mem,max must also be changed to 752M.
-                extconf = re.sub("\sdom0_mem=\d+M,max:\d+M", " dom0_mem=752M,max:752M", extconf)
-            else:
-                # Add 'mem=4G' to command line.
-                newcmdline = "%s mem=4G" % (cmdline)
-                extconf = re.sub(cmdline, newcmdline, extconf)
-                
-            
-            # Replace the host extlinux.conf.
-            gfile = xenrt.TEC().tempFile()
-            file(gfile, "w").write(extconf)
-            sftp.copyTo(gfile, "/boot/extlinux.conf")
-
-        # Reboot the host with the new command line.
-        self.host.reboot()
-
-        # Make sure the change occurred.
-        dmesg = self.host.execdom0("xe host-dmesg")
-        cmdline = re.search("(Command line: )(?P<cmdline>.*)", dmesg).group("cmdline")
-        if not re.search("mem=4G", cmdline):
-            raise xenrt.XRTError("Didn't find mem=4G in command line.")
-
-        # Create a temporary ISO SR with the test ISOs.
-        nfs = xenrt.NFSDirectory()
-        xenrt.getTestTarball("shadowtest", extract=True, directory=nfs.path())
-        self.host.createISOSR(nfs.getMountURL("shadowtest"))
-        self.isosr = self.host.parseListForUUID("sr-list",
-                                                "name-label",
-                                                "Remote ISO Library on: %s" % 
-                                                (nfs.getMountURL("shadowtest"))) 
-
-        g1 = self.createguest()
-        g1.changeCD("ptetest.iso")
-
-        g2 = self.createguest()
-        g2.changeCD("psetest.iso")
-        g2.paramSet("HVM-shadow-multiplier", "4")
-
-        g1.start()
-        g2.start()
-
-        # Make sure the host stays up for a while.
-        for i in range(30):
-            self.host.waitForSSH(10)
-            time.sleep(10)
-
-    def postRun(self):
-        for g in self.guests:
-            try:
-                g.shutdown()
-            except:     
-                pass
-            try:
-                g.uninstall()
-            except:
-                pass
-        try:
-            self.host.forgetSR(self.isosr)
-        except:
-            pass
-
-        self.host.execdom0("if [ -e /boot/grub/menu.lst.TC7827 ]; then  "
-                           "  cp /boot/grub/menu.lst.TC7827 /boot/grub/menu.lst; "
-                           "fi")
-        self.host.execdom0("if [ -e /boot/extlinux.conf.TC7827 ]; then  "
-                           "  cp /boot/extlinux.conf.TC7827 /boot/extlinux.conf; "
-                           "fi")
-        self.host.reboot()
-    
 class TC8101(xenrt.TestCase):
     """Check HAP is enabled on AMD processors with this feature."""
     
@@ -5019,3 +4901,105 @@ class TCHostRebootLoop(xenrt.TestCase):
         h = self.getDefaultHost()
         for i in range(1000):
             h.reboot()
+
+class TCCheckLocalDVD(xenrt.TestCase):
+    """Verify that a local DVD drive can be accessed by guests"""
+    HVMDISTRO = "rhel7"
+    HVMARCH = "x86-64"
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+
+        # Ensure we don't have anything in the virtual media
+        self.virtualmedia = self.host.machine.getVirtualMedia()
+        self.virtualmedia.unmountCD()
+
+        # TODO: Parallelise these
+        self.device = {}
+        self.guests = []
+
+        xenrt.pfarm([(self.createGuest, False), (self.createGuest, True)])
+
+        # Ensure the guests have CD devices and they're empty
+        for g in self.guests:
+            cd = self.host.minimalList("vbd-list", "empty", args="vm-uuid=%s type=CD" % g.getUUID())
+            if len(cd) == 0:
+                cli = self.host.getCLIInstance()
+                cli.execute("vbd-create", "vm-uuid=%s device=3 type=CD mode=RO" % g.getUUID())
+                break
+            if len(cd) > 1:
+                raise xenrt.XRTError("Installed guest had more than one CD drive!")
+            if cd[0] == "false":
+                g.changeCD(None)
+
+        # Identify the DVD SR etc
+        self.dvdSR = self.host.minimalList("sr-list", args="type=udev content-type=iso")[0]
+
+    def createGuest(self, pv):
+        if pv:
+            g = self.host.createGenericLinuxGuest()
+            self.device[g] = "xvdd"
+            self.guests.append(g)
+        else:
+            g = self.host.createBasicGuest(distro=self.HVMDISTRO, arch=self.HVMARCH)
+            self.device[g] = "cdrom"
+            self.guests.append(g)
+
+    def run(self, arglist):
+
+        # Verify the devices show as empty
+        self.checkDVDPresence(False)
+
+        # Plug an ISO to the virtual media
+        iso = "%s/isos/reader.iso" % xenrt.TEC().lookup("TEST_TARBALL_ROOT")
+        self.virtualmedia.mountCD(iso)
+
+        xenrt.sleep(20)
+
+        vdiName = self.host.minimalList("vdi-list", "name-label", args="sr-uuid=%s" % self.dvdSR)[0]
+
+        # Plug it through to the guests
+        for g in self.guests:
+            g.changeCD(vdiName)
+
+        xenrt.sleep(60)
+
+        # Verify the guests see the DVD
+        self.checkDVDPresence(True)
+
+        # Verify the DVD checksum
+        self.checkDVDChecksum(iso)
+
+        # Unplug it from the guests
+        for g in self.guests:
+            g.changeCD(None)
+
+        xenrt.sleep(60)
+
+        # Now eject the CD from the host
+        self.virtualmedia.unmountCD()
+
+        # Verify the guests doesn't see the DVD
+        self.checkDVDPresence(False)
+
+    def checkDVDPresence(self, expectedPresent):
+        expectedCode = 0 if expectedPresent else 2
+        for g in self.guests:
+            if g.execguest("blkid /dev/%s" % self.device[g], retval="code") != expectedCode:
+                if expectedPresent:
+                    raise xenrt.XRTFailure("DVD not found in guest when expected")
+                else:
+                    raise xenrt.XRTFailure("DVD found in guest when not expected")
+
+    def checkDVDChecksum(self, iso):
+        realChecksum = xenrt.command("md5sum %s" % iso)
+        for g in self.guests:
+            checksum = g.execguest("md5sum /dev/%s" % self.device[g])
+            if checksum != realChecksum:
+                raise xenrt.XRTError("In-guest checksum of physical DVD drive didn't match DVD")
+
+    def postRun(self):
+        try:
+            self.virtualmedia.unmountCD()
+        except:
+            pass

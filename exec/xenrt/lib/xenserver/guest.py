@@ -1774,7 +1774,10 @@ exit /B 1
         
         if xenrt.TEC().lookup("EXP_VIRIDIAN", False, boolean=True):
             self.paramSet("platform:exp-viridian-timers", "true")
-        
+
+        if xenrt.TEC().lookup("DISABLE_VIRIDIAN_COUNT", False, boolean=True):
+            self.paramSet("platform:viridian_time_ref_count", "false")
+
         if db:
             try:
                 self.paramSet("actions-after-crash", "preserve")
@@ -2078,8 +2081,7 @@ exit /B 1
             for v in self.vifs:
                 eth, bridge, mac, ip = v
                 self.createVIF(eth, bridge) 
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                       (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.reparseVIFs()
             self.vifs.sort()
         else:
             for v in self.vifs:
@@ -2159,6 +2161,10 @@ exit /B 1
                 reply["%s%s" % (self.vifstem, device)] = (mac, ip, mybridge)
 
         return reply
+
+    def reparseVIFs(self):
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
 
     def changeVIF(self, name, bridge=None, mac=None):
         """Change the specified VIF to be on a different bridge or have a different MAC"""
@@ -2835,8 +2841,7 @@ exit /B 1
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
         if not ispxeboot:
-            self.vifs = [ (nic, vbridge, mac, ip) for \
-                        (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+            self.reparseVIFs()
             self.vifs.sort()
             self.recreateVIFs(newMACs=True)
         self.existing(host)
@@ -2951,8 +2956,7 @@ exit /B 1
 
 
         # Get the new VIFs:
-        g.vifs = [ (nic, vbridge, mac, ip) for \
-                   (nic, (mac, ip, vbridge)) in g.getVIFs().items() ]
+        g.reparseVIFs()
         g.vifs.sort()
         xenrt.TEC().logverbose("Found VIFs: %s" % (g.vifs))
         g.recreateVIFs(newMACs=True)
@@ -3684,6 +3688,7 @@ exit /B 1
                 
                 ##Try to log the ipconfig data using a VB script writing it into the WMI
                 try:
+                    self.logger
                     # Send Windows-R to bring up a run dialog
                     self.sendVncKeys(["0x72/0xffeb"])
                     xenrt.sleep(8)
@@ -3696,16 +3701,8 @@ exit /B 1
                     # Send the keys to start the logger.vbs: wscript.exe logger.vbs
                     self.sendVncKeys([0x57, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x2e, 0x65, 0x78, 0x65, 0x20, 0x2e, 0x2e, 0x5c, 0x2e, 0x2e, 0x5c, 0x6c, 0x6f, 0x67, 0x67, 0x65, 0x72, 0x2e, 0x76, 0x62, 0x73, 0xff0d])
                     xenrt.sleep(10)
-                
-
-                except:
-                    pass
-                
-                try:
-                    self.host.execdom0("tail -n100 /var/log/daemon.log | grep 'Windows IP Configuration'")
                 except Exception as e:
-                    xenrt.TEC().logverbose("IP config logging fails with %s"%(e.message))
-                
+                    xenrt.TEC().logverbose("Windows ipconfig logger error: %s"%(e.message))
 
             if self.windows and self.getIP():
                 # Check if RDP is accepting connections.

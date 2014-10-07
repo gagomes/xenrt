@@ -1735,7 +1735,7 @@ class TCDDKSourceCheck(SourceISOCheck): # TC-18003
     """Verify DDK iso (xe-phase-3/source-ddk.iso) content for missing RPMs."""
 
     APPLIANCE_NAME = "DDK VM"
-    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source.iso': 'xe-phase-3'}
+    SOURCE_ISO_FILES = {'source-ddk.iso': 'xe-phase-3', 'source-1.iso': 'xe-phase-3'}
 
     # In addition to the list of base packages, we have ...
     IGNORE_EXTRA_RPM_PACKAGES = ['PyPAM', 'SDL', 'biosdevname', 'blktap', 'dbus', 'device-mapper-multipath', 

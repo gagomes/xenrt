@@ -936,7 +936,7 @@ class Guest(xenrt.GenericGuest):
             if force:
                 self.host.hypervCmd("Stop-VM -Name \"%s\" -TurnOff" % self.name)
             else:
-                self.host.hypervCmd("Stop-VM -Name \"%s\"" % self.name)
+                self.host.hypervCmd("Stop-VM -Name \"%s\" -Force" % self.name)
         elif command == "vm-reboot":
             self.host.hypervCmd("Restart-VM -Name \"%s\"" % self.name)
         elif command == "vm-suspend":

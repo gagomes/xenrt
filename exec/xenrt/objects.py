@@ -3909,6 +3909,7 @@ Do
 Loop While not oex.Stdout.atEndOfStream"""
         try:
             self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
+            self.logger = True
         except Exception as e:
             xenrt.TEC().logverbose("Writing ipconfig logger to Windows VM failed: %s"%(e.message))
 
@@ -6180,6 +6181,7 @@ exit 0
 
             portOffset = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "UNIT%s" % unit, "PORTOFFSET"], "0"))
 
+            portInterval = int(xenrt.TEC().lookup(["NETSWITCHES", switchName, "PORTINTERVAL"], "1"))
             oidBase = xenrt.TEC().lookup(["NETSWITCHES", unit, "OID_BASE"],
                                     ".1.3.6.1.2.1.2.2.1.7")
 
@@ -6190,7 +6192,7 @@ exit 0
             else:
                 raise xenrt.XRTError("Unknown port action: %s" % (action))
             cmd = "snmpset -c %s -v1 -t 10 -r 10 %s %s.%u i %s" % \
-                  (comm, addr, oidBase, int(portNumber) + portOffset, icmd)
+                  (comm, addr, oidBase, int(portNumber)*portInterval + portOffset, icmd)
 
         # Run the command
         if cmd:
@@ -8040,6 +8042,7 @@ class GenericGuest(GenericPlace):
         h, p = nfsdir.getHostAndPath("kickstart.cfg")
 
         cleanupdir = None
+        inosreboot = False
 
         if pxe and method == "CDROM":
             xenrt.TEC().logverbose("RHEL HVM CD installation")
@@ -8055,6 +8058,7 @@ class GenericGuest(GenericPlace):
             xenrt.command("rm -f %s/kickstart.stamp" % path)
             shutil.copyfile(filename, "%s/kickstart" % path)
             pxe = False
+            inosreboot = True
         elif pxe:
             # HVM PXE install
             self.enablePXE()
@@ -8186,7 +8190,7 @@ class GenericGuest(GenericPlace):
         if xenrt.TEC().lookup("DEBUGSTOP_CA6404", False, boolean=True):
             raise xenrt.XRTError("CA-6404 debug stop")
 
-        if pxe:
+        if pxe or inosreboot:
             # Just wait for the reboot that kickstart performed
             pass
         elif options.has_key("OSS_PV_INSTALL"):
@@ -8829,15 +8833,22 @@ class GenericGuest(GenericPlace):
                 for device in vifs:
                     self.execguest("dhclient %s" % device)
 
-    def disableIPv6(self, reboot=True):
+    def disableIPv6(self, reboot=True, deleteInterfaces=True):
         if self.windows:
             self.winRegAdd('HKLM', 'SYSTEM\\currentcontrolset\\services\\tcpip6\\parameters', 'DisabledComponents', 'DWORD', -1)
+            
+            if deleteInterfaces:
+                try:
+                    self.xmlrpcExec("REG DELETE \"HKLM\\SYSTEM\\currentcontrolset\\services\\tcpip6\\parameters\\interfaces\" /f")
+                except:
+                    pass #doesn't always exist
+            
             if reboot:
                 # Reboot the VM to disable IPv6
                 self.reboot()
         else:
             raise xenrt.XRTError('disableIPv6 not implemented for non-windows guests')
-
+            
     def specifyStaticIPv6(self,device="eth0"):
 
         network = self.deviceToNetworkName(device)
@@ -9367,6 +9378,18 @@ while True:
         self.xmlrpcExec("regEdit.exe /s c:\\crashDump.reg")
 
         self.reboot()
+
+    def getInstance(self):
+        if self.windows or not self.arch:
+            osdistro = self.distro
+        else:
+            osdistro = "%s_%s" % (self.distro, self.arch)
+        
+        wrapper = xenrt.lib.generic.GuestWrapper(self)
+        instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
+        instance.os.tailor()
+        xenrt.TEC().registry.instancePut(self.name, self)
+        return instance
 
 class EventObserver(xenrt.XRTThread):
 
@@ -10524,7 +10547,7 @@ class V6LicenseServer:
             xenrt.sleep(5)
 
             #Add the root to lmadmin group so the root has priviledges to lmreread
-            self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
+            self.place.writeToConsole("sed -i 's/lmadmin:x:500:/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
 
             # Install SSH and SCP

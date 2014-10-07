@@ -349,6 +349,16 @@ def createHost(id=0,
     if xenrt.TEC().lookup("OPTION_AD_ENABLE", False, boolean=True):
         host.enableDefaultADAuth()
 
+    # Run arbitrary command in dom0 or a script from REMOTE_SCRIPTDIR
+    dom0cmd = xenrt.TEC().lookup("DOM0_COMMAND", None)
+    if dom0cmd:
+        host.execdom0(dom0cmd)
+
+    # Run a script from REMOTE_SCRIPTDIR
+    dom0script = xenrt.TEC().lookup("DOM0_SCRIPT", None)
+    if dom0script:
+        host.execdom0("%s/%s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dom0script))
+
     xenrt.TEC().setInputDir(None)
 
     return host
@@ -7150,16 +7160,6 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 xenrt.TEC().logverbose("Multi vcpu enablement complete")
             else:
                 xenrt.TEC().logverbose("Not enabling multiple vCPUs as there are already %u" % (pcount))
-
-        # Run arbitrary command in dom0 or a script from REMOTE_SCRIPTDIR
-        dom0cmd = xenrt.TEC().lookup("DOM0_COMMAND", None)
-        if dom0cmd:
-            self.execdom0(dom0cmd)
-
-        # Run a script from REMOTE_SCRIPTDIR
-        dom0script = xenrt.TEC().lookup("DOM0_SCRIPT", None)
-        if dom0script:
-            self.execdom0("%s/%s" % (xenrt.TEC().lookup("REMOTE_SCRIPTDIR"), dom0script))
 
     def postUpgrade(self):
         """Perform any product-specific post upgrade actions."""
@@ -14666,10 +14666,10 @@ class IOvirt:
             return
         
         numPFs = int(self.getHost().execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS-NAPI drivers: in which case, configuration differs slightly. 
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
         ixgbe_version = self.host.execdom0("modinfo ixgbe | grep 'version:        '") 
         if numPFs > 0:
-            if (re.search("NS-NAPI", ixgbe_version.split()[1])):
+            if (re.search("NS", ixgbe_version.split()[1])):
                 maxVFs = "63" + (",63" * (numPFs - 1))
             else:
                 maxVFs = "40" #+ (",40" * (numPFs - 1))

@@ -27,6 +27,9 @@
             }
           ]
         }
+        ],
+        "globalConfig": [
+          { "name": "alert.wait", "value": "300" }
         ]
       }
     </cloud>

@@ -1352,6 +1352,17 @@ def keepSetup():
     if xenrt.TEC().lookup("MACHINE_HOLD_FOR", None):
         return True
 
+    # if machines are borrowed then keep resources
+    try:
+        xrs = xenrt.ctrl.XenRTStatus(None)
+        jobdict = xrs.run([str(xenrt.GEC().jobid())])
+        for m in jobdict['SCHEDULEDON'].split(","):
+            mcmd = xenrt.ctrl.XenRTMachine(None)
+            if mcmd.run([m]).has_key("LEASEUSER"):
+                return True
+    except Exception, ex:
+        xenrt.TEC().logverbose("Exception checking if machines are borrowed: " + str(ex))
+
     return False
 
 def getADConfig():

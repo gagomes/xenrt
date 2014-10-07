@@ -86,7 +86,7 @@ class SystemVM(object):
 
     def killAgent(self):
         rData = self.command('service cloud status')
-        pid = int(re.search('process id: (\d+)$', st).group(1))
+        pid = int(re.search('process id: (\d+)$', rData).group(1))
         self.command('kill -9 %d' % (pid))
 
     def inGuestShutdown(self):

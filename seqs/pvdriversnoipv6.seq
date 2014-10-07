@@ -1,0 +1,52 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="Windows 7 SP1">
+        <distro>win7sp1-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="Windows 8.1">
+        <distro>win81-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="Windows Server 2008">
+        <distro>ws08-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="Windows Server 2008 R2">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="Windows Server 2012 R2 Core">
+        <distro>ws12r2core-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="TCInstallDriversNoIPv6">
+    <testcase id="testcases.xenserver.tc.guest.TCInstallDriversNoIPv6" tc="TC-23184"/>
+  </testsequence>
+</xenrt>

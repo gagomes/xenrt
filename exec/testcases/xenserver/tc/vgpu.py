@@ -1381,7 +1381,15 @@ class VGPUAllocationModeBase(_VGPUOwnedVMsTest):
 
             candidate = guest
 
-            vdiuuid = guest.getHost().minimalList("vbd-list", "vdi-uuid", "device=hda vm-uuid=%s" % (guest.getUUID(),))[0]
+            listvdiuuid = guest.getHost().minimalList("vbd-list", "vdi-uuid", "device=hda vm-uuid=%s" % (guest.getUUID(),))
+            if not listvdiuuid:
+                listvdiuuid = guest.getHost().minimalList("vbd-list", "vdi-uuid", "device=xvda vm-uuid=%s" % (guest.getUUID(),))
+
+            if listvdiuuid:
+                vdiuuid = listvdiuuid[0]
+            else:
+                raise xenrt.XRTFailure("wrong device id given")
+
             sruuid = guest.getHost().genParamGet("vdi", vdiuuid, "sr-uuid")
             if sruuid == self.sr:
                 log("Found pre created VM %s. Adding it to MasterVMs list." % (vmname,))

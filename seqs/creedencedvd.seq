@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- MNR AMD test sequence -->
+  <!-- Host DVD drive testing -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -10,11 +10,8 @@
     <host/>
   </prepare>
 
-  <testsequence>
-    <serial group="AMD">
-      <testcase id="xenserver.tc.host.TC7827"/>
-    </serial>
-
+  <testsequence group="DVD">
+    <testcase id="xenserver.tc.host.TCCheckLocalDVD" prio="3" tc="TC-21935"/>
   </testsequence>
 
 </xenrt>

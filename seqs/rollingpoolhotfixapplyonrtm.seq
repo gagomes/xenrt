@@ -49,14 +49,6 @@
         </vm>
       </host>
       <host id="1" >
-        <vm name="ubuntu1004">
-          <distro>ubuntu1004</distro>
-          <memory>128</memory>
-          <vcpus>2</vcpus>
-          <network device="0" />
-          <disk device="0" size="8" />
-          <storage>nfs1</storage>
-        </vm>
         <vm name="win7-x86">
           <distro>win7-x86</distro>
           <memory>1024</memory>

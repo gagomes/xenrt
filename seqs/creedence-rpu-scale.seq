@@ -12,6 +12,7 @@
     <EXTRA_TIME>yes</EXTRA_TIME>
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
     <NTHREADS>50</NTHREADS>
+    <ENABLE_VM_CONSOLE_LOGS>no</ENABLE_VM_CONSOLE_LOGS>
   </variables>
 
   <scheduler>

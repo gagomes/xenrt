@@ -52,6 +52,7 @@
     <testcase id="xenserver.tc.storage.TC8122"/>
     <testcase id="xenserver.tc.storage.TC10601"/> 
     <testcase id="xenserver.cli.TCQuicktest" tc="TC-8760"/>
+    <testcase id="xenserver.tc.vhd.TC21727" tc="TC-21727"/>
   </testsequence>
 
 </xenrt>

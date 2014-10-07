@@ -588,7 +588,8 @@ class GuestEvent_VMLogin(GuestEvent):
             #call script when guest starts
             # Escape / in script_path
             script_path = script_path.replace('/', '\\/')
-            guest.execguest("sed -i 's/exit 0/python %s\\nexit 0\\n/' /etc/rc.local" % script_path)
+            guest.execguest("sed -i 's/exit 0//g' /etc/rc.local")
+            guest.execguest("echo 'nohup python %s &' >> /etc/rc.local" % (script_path,))
  
 class Measurement(Util):
 

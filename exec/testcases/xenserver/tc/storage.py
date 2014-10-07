@@ -194,7 +194,12 @@ class NFSSRSanityTest(SRSanityTestTemplate):
             raise xenrt.XRTError('Unsupported NFS revision')
 
     def getExportsLine(self):
-        return '/sr *(sync,rw,no_root_squash,no_subtree_check)'
+        if self.NFS_VERSION == 3:
+            return '/sr *(sync,rw,no_root_squash,no_subtree_check)'
+        elif self.NFS_VERSION == 4:
+            return '/sr *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
+        else:
+            raise xenrt.XRTError('Unsupported NFS revision')
 
     def createSR(self,host,guest):
         # Set up NFS

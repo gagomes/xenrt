@@ -13,6 +13,64 @@ import sys, traceback
 import xenrt
 from xenrt.lazylog import *
 
+
+class AbstractLinuxHostedNFSExport(object):
+    def __init__(self, path):
+        self.path = path
+        if not path.startswith('/'):
+            raise ValueError('absolute path expected')
+
+    def getExportsLine(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def getCommandsToPrepareSharedDirectory(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def prepareSharedDirectory(self, guest):
+        for command in self.getCommandsToPrepareSharedDirectory():
+            guest.execguest(command)
+
+    def createNFSExportOnGuest(self, guest):
+        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
+                        "portmap")
+
+        # Create a dir and export it
+        self.prepareSharedDirectory(guest)
+        guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
+        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/nfs-common start || true")
+        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+
+
+class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
+    def getExportsLine(self):
+        return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
+
+    def getCommandsToPrepareSharedDirectory(self):
+        return ["mkdir %s" % self.path]
+
+
+class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
+    def getExportsLine(self):
+        return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
+
+    def getCommandsToPrepareSharedDirectory(self):
+        return [
+            "mkdir /nfsv4-root",
+            "mkdir /nfsv4-root%s" % self.path,
+            "chmod o+w /nfsv4-root%s" % self.path,
+        ]
+
+
+def linuxBasedNFSExport(revision, path):
+    if revision == 3:
+        return LinuxHostedNFSv3Export(path)
+    elif revision == 4:
+        return LinuxHostedNFSv4Export(path)
+    else:
+        raise ValueError('Invalid value for revision')
+
+
 class TC7804(xenrt.TestCase):
     """Check that installing PV drivers doesn't cause a disk to go offline."""
 
@@ -193,30 +251,6 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         else:
             raise xenrt.XRTError('Unsupported NFS revision')
 
-    def getExportsLine(self):
-        if self.NFS_VERSION == 3:
-            return '/sr *(sync,rw,no_root_squash,no_subtree_check)'
-        elif self.NFS_VERSION == 4:
-            return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
-        else:
-            raise xenrt.XRTError('Unsupported NFS revision')
-
-    def getCommandsToPrepareSharedDirectory(self):
-        if self.NFS_VERSION == 3:
-            return ["mkdir /sr"]
-        elif self.NFS_VERSION == 4:
-            return [
-                "mkdir /nfsv4-root",
-                "mkdir /nfsv4-root/sr",
-                "chmod o+w /nfsv4-root/sr",
-            ]
-        else:
-            raise xenrt.XRTError('Unsupported NFS revision')
-
-    def prepareSharedDirectory(self, guest):
-        for command in self.getCommandsToPrepareSharedDirectory():
-            guest.execguest(command)
-
     def prepareDomZero(self, host):
         if self.NFS_VERSION == 3:
             pass
@@ -225,22 +259,11 @@ class NFSSRSanityTest(SRSanityTestTemplate):
         else:
             raise xenrt.XRTError('Unsupported NFS revision')
 
-    def createNFSExportOnGuest(self, guest, path):
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
-
-        # Create a dir and export it
-        self.prepareSharedDirectory(guest)
-        guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
-
     def createSR(self,host,guest):
-        # Set up NFS
         self.prepareDomZero(host)
 
-        self.createNFSExportOnGuest(guest, '/sr')
+        nfsExport = linuxBasedNFSExport(self.NFS_VERSION, '/sr')
+        nfsExport.createNFSExportOnGuest(guest)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)

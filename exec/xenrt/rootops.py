@@ -28,7 +28,7 @@ class Mount:
             xenrt.TEC().gec.registerCallback(self)
             os.chmod(self.mountpoint,
                      stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
-            for i in range(3):
+            for i in range(6):
                 cmd = ["sudo", "mount"]
                 if options:
                     cmd.append("-o%s" % (options))

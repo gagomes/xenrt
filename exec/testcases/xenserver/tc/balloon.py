@@ -2877,7 +2877,7 @@ class TCMemoryActual(xenrt.TestCase):
         for i in range(5):
             step("Perform vm migration to slave")
             g.migrateVM(self.host1, live="true")
-            xenrt.sleep(60)
+            xenrt.sleep(90)
             step("Verify memory actual and memory Target are equal to 4096MiB")
             memoryActual = g.getMemoryActual() / xenrt.MEGA
             memoryTarget = g.getMemoryTarget() / xenrt.MEGA
@@ -2888,7 +2888,7 @@ class TCMemoryActual(xenrt.TestCase):
      
             step("Perform vm migration to master")
             g.migrateVM(self.host0, live="true")
-            xenrt.sleep(60)
+            xenrt.sleep(90)
             step("Verify memory actual and memory target are equal to 4096MiB")
             memoryActual = g.getMemoryActual() / xenrt.MEGA
             memoryTarget = g.getMemoryTarget() / xenrt.MEGA

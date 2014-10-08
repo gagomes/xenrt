@@ -80,7 +80,7 @@ def createHost(id=0,
 class ESXHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = False
-    TCPDUMP = "tcpdump-uw"
+    TCPDUMP = "tcpdump-uw -p" # -p makes it not use promiscuous mode, which causes packets to be duplicated
 
     def __init__(self, machine, productType="esx", productVersion="esx"):
         xenrt.lib.libvirt.Host.__init__(self, machine,

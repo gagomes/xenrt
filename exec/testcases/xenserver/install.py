@@ -1833,7 +1833,7 @@ class TCVerifyDom0DriverVersions(xenrt.TestCase):
 
         for driver in self.expectedDrivers.keys():
             try:
-                actualVer = self.host.execdom0("modinfo -F %s %s" % (self.expectedDrivers[driver]['field'], driver)).split().strip()
+                actualVer = self.host.execdom0("modinfo -F %s %s" % (self.expectedDrivers[driver]['field'], driver)).strip()
                 if self.expectedDrivers[driver]['regex']:
                     val = re.findall(self.expectedDrivers[driver]['regex'], actualVer)
                     if len(val) != 1:

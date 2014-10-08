@@ -360,7 +360,15 @@ class XenRTMasterURL(XenRTAPIPage):
     def render(self):
         return config.masterurl
 
+class DumpHeaders(XenRTAPIPage):
+    def render(self):
+        out = ""
+        for h in self.request.headers.items():
+            out += "%s: %s\n" % h
+        return out
+
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
+PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs
 import app.api.sites

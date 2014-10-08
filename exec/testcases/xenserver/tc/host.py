@@ -4770,6 +4770,7 @@ class TCDriverDisk(xenrt.TestCase):
             
         # dictionary of kernel objects for cross referencing against installed ones after driver disk has been installed
         kos = {}
+        kokdump = []
             
         # manually unpack all rpms to get driver names and versions
         xenrt.TEC().logverbose("Unpacking all RPMs in driver disk so can get version numbers")
@@ -4780,6 +4781,9 @@ class TCDriverDisk(xenrt.TestCase):
             for ko in self.host.execdom0('cd / && find %s/%d | grep ".ko$" || true' % (tmpDir, j)).strip().splitlines():
                 koShort = re.match(".*/(.*?)\.ko$", ko).group(1)
                 kos[koShort] = self.host.execdom0('modinfo %s | grep "^srcversion:"' % ko)
+                if 'kdump' in ko:
+                    kokdump.append(ko[ko.find("/lib"):]) 
+                
 
         # list all rpms before installing driver disk
         rpmsBefore = self.host.execdom0("rpm -qa|sort").splitlines()
@@ -4800,6 +4804,12 @@ class TCDriverDisk(xenrt.TestCase):
             xenrt.TEC().logverbose("modprobe output: '%s'" % stdout)
             if stdout.strip() != "":
                 raise xenrt.XRTFailure("Loading kernel module %s may have failed, see stout: '%s'" % (ko, stdout))
+                
+        #check if kdump  is built
+        xenrt.TEC().logverbose("Check if kdump is built")
+        for ko in kokdump:
+            if "kdump" not in self.host.execdom0("modinfo %s | grep vermagic" % (ko)):
+                raise xenrt.XRTFailure("module was not built against the kdump kernel for %s" % ko)
 
     def run(self, arglist):
         driverDisk = xenrt.TEC().lookup("DRIVER_DISK")

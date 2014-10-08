@@ -1473,6 +1473,9 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
         return trresult
 
     def testrunRecordSubResult(self,suiterun,tc,subcase,result,tcsku=None):
+        # Don't record skipped tests
+        if result == "skipped":
+            return
         result = self.xenrtResultToTestrunResult(result)
        
 

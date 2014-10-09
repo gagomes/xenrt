@@ -556,6 +556,7 @@ class Host(xenrt.GenericHost):
         self.tailored = None
         self.bootLun = None
         self.bootNics = []
+        self.distro = "XSDom0"
 
         self.i_cd = None
         self.i_primarydisk = None
@@ -679,6 +680,7 @@ class Host(xenrt.GenericHost):
                     xenrt.TEC().registry.guestPut(guestname, guest)
                 except:
                     xenrt.TEC().logverbose("Could not load guest - perhaps it was deleted")
+        self.distro = "XSDom0"
 
     def reinstall(self):
         self.install(cd=self.i_cd, primarydisk=self.i_primarydisk,

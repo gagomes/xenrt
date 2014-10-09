@@ -76,3 +76,4 @@ from xenrt.lib.opsys.windows import *
 from xenrt.lib.opsys.windowspackages import *
 from xenrt.lib.opsys.rhel import *
 from xenrt.lib.opsys.sles import *
+from xenrt.lib.opsys.xs import *

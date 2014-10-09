@@ -4193,6 +4193,7 @@ class GenericHost(GenericPlace):
         self.ipv6_mode = None
         self.controller = None
         self.containerHost = None
+        self.os = None
         self.jobTests = []
 
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
@@ -4212,6 +4213,19 @@ class GenericHost(GenericPlace):
         x.containerHost = self.containerHost
         if x.machine:
             x.machine.setHost(x)
+
+    def getOS(self):
+        if not self.os:
+            if self.windows or not self.arch:
+                osdistro = self.distro
+            else:
+                osdistro = "%s_%s" % (self.distro, self.arch)
+
+            wrapper = xenrt.lib.generic.HostWrapper(self)
+            self.os = xenrt.lib.opsys.osFactory(osdistro, wrapper)
+            wrapper.os = self.os
+            self.os.tailor()
+        return self.os
 
     def registerJobTest(self, jt):
         try:

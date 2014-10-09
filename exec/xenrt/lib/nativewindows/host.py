@@ -78,11 +78,15 @@ class WindowsHost(xenrt.GenericHost):
 
     def install(self):
         self.windows = True
+        self.distro = self.productVersion
         if xenrt.TEC().lookup("EXISTING_WINDOWS", False, boolean=True):
             return
         self.installWindows()
 
     def existing(self):
+        self.windows=True
+        # TODO actually detect this
+        self.distro = "ws12r2-x64"
         return
 
     def installWindows(self):

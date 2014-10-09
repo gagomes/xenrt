@@ -1338,7 +1338,7 @@ def setupStaticHost():
     storage = host.lookup("STORAGE")
     if storage.startswith("nfs://"):
         (server, path) = storage[6:].split(":")
-        mount = xenrt.rootops.MountNFSv3(storage[6:])
+        mount = xenrt.rootops.MountNFS(storage[6:])
         xenrt.rootops.sudo("rm -rfv %s/*" % mount.getMount())
         mount.unmount()
         sr = xenrt.lib.xenserver.NFSStorageRepository(host, "Default Storage")

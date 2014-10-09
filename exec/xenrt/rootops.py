@@ -14,7 +14,6 @@ import xenrt, xenrt.util
 # Symbols we want to export from the package.
 __all__ = ["MountISO",
            "MountNFS",
-           "MountNFSv3",
            "nmap",
            "sudo"]
     
@@ -104,10 +103,6 @@ class MountISO(Mount):
         Mount.__init__(self, iso, options="loop,ro")
 
 class MountNFS(Mount):
-    def __init__(self, nfs, retry=True):
-        Mount.__init__(self, nfs, options="nfsvers=2", mtype="nfs", retry=retry)
-
-class MountNFSv3(Mount):
     def __init__(self, nfs, retry=True):
         Mount.__init__(self, nfs, options="nfsvers=3", mtype="nfs", retry=retry)
 

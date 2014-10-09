@@ -15,7 +15,7 @@ class TCGenerateTemplate(xenrt.TestCase):
             templateFormat = cloud._templateFormats[hypervisor].lower()
             cloud.downloadTemplate(templateName, "%s/%s.%s" % (d.path(), distro, templateFormat))
             xenrt.util.command("bzip2 %s/%s.%s" % (d.path(), distro, templateFormat))
-            m = xenrt.MountNFSv3(xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_NFS"))
+            m = xenrt.MountNFS(xenrt.TEC().lookup("EXPORT_CCP_TEMPLATES_NFS"))
             xenrt.sudo("mkdir -p %s/%s" % (m.getMount(), hypervisor))
             xenrt.sudo("cp %s/%s.%s.bz2 %s/%s/" % (d.path(), distro, templateFormat, m.getMount(), hypervisor))
             d.remove()

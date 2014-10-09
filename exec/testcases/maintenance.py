@@ -53,7 +53,7 @@ class TCSyncRPMs(xenrt.TestCase):
             # heirarchy as necessary.
             mount = None
             try:
-                mount = xenrt.MountNFSv3(nfspath, retry=False)
+                mount = xenrt.MountNFS(nfspath, retry=False)
             except xenrt.XRTException, e:
                 if e.data and ("No such file or directory" in e.data or
                                "Permission denied" in e.data or
@@ -70,7 +70,7 @@ class TCSyncRPMs(xenrt.TestCase):
                             makepath = string.join(pathdirs[i:], "/")
                             xenrt.TEC().logverbose("Trying to create %s in %s"
                                                    % (makepath, nfspathx))
-                            mountx = xenrt.MountNFSv3(nfspathx, retry=False)
+                            mountx = xenrt.MountNFS(nfspathx, retry=False)
                             try:
                                 mountpointx = mountx.getMount()
                                 try:
@@ -97,7 +97,7 @@ class TCSyncRPMs(xenrt.TestCase):
                     if not done:
                         raise xenrt.XRTError(\
                             "Unable to create new export path")
-                    mount = xenrt.MountNFSv3(nfspath, retry=False)
+                    mount = xenrt.MountNFS(nfspath, retry=False)
             try:
                 mountpoint = mount.getMount()
             
@@ -232,7 +232,7 @@ class _TCSyncDir(xenrt.TestCase):
             mount = None
             mountpoint = nfspath.split(":")[1]
         else:
-            mount = xenrt.MountNFSv3(nfspath, retry=False)
+            mount = xenrt.MountNFS(nfspath, retry=False)
             mountpoint = mount.getMount()
         try:
             # Perform the rsync

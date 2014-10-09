@@ -191,3 +191,36 @@ class TestCreedenceHost(XenRTUnitTestCase):
         guestFactory = host.guestFactory()
 
         self.assertEquals('CreedenceGuest', guestFactory.__name__)
+
+
+class TestNFSStorageRepository(XenRTUnitTestCase):
+    def testCreateStoresDeviceConfiguration(self):
+        host = Mock()
+        sr = xenrt.lib.xenserver.host.NFSStorageRepository(host, 'sr-name')
+
+        sr.create('guest-IP', '/nfs-export')
+
+        self.assertEquals(
+            {
+                'server': 'guest-IP',
+                'serverpath': '/nfs-export'
+            },
+            sr.dconf
+        )
+
+
+class TestNFSv4StorageRepository(XenRTUnitTestCase):
+    def testCreateUsesVersion4AsAParameter(self):
+        host = Mock()
+        sr = xenrt.lib.xenserver.host.NFSv4StorageRepository(host, 'sr-name')
+
+        sr.create('guest-IP', '/nfs-export')
+
+        self.assertEquals(
+            {
+                'server': 'guest-IP',
+                'serverpath': '/nfs-export',
+                'nfsversion': '4'
+            },
+            sr.dconf
+        )

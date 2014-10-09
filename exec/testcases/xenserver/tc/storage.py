@@ -13,6 +13,90 @@ import sys, traceback
 import xenrt
 from xenrt.lazylog import *
 
+
+class AbstractLinuxHostedNFSExport(object):
+    def __init__(self, path):
+        self.path = path
+        if not path.startswith('/'):
+            raise ValueError('absolute path expected')
+
+    def getExportsLine(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def getCommandsToPrepareSharedDirectory(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def getStorageRepositoryClass(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def prepareSharedDirectory(self, guest):
+        for command in self.getCommandsToPrepareSharedDirectory():
+            guest.execguest(command)
+
+    def createNFSExportOnGuest(self, guest):
+        guest.execguest(
+            "apt-get install -y --force-yes nfs-kernel-server nfs-common "
+            "portmap"
+        )
+
+        # Create a dir and export it
+        self.prepareSharedDirectory(guest)
+        guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
+        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/nfs-common start || true")
+        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+
+
+class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
+    def getExportsLine(self):
+        return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
+
+    def getCommandsToPrepareSharedDirectory(self):
+        return ["mkdir %s" % self.path]
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSStorageRepository
+
+    def prepareDomZero(self, host):
+        pass
+
+
+class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
+    def getExportsLine(self):
+        return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
+
+    def getCommandsToPrepareSharedDirectory(self):
+        return [
+            "mkdir /nfsv4-root",
+            "mkdir /nfsv4-root%s" % self.path,
+            "chmod o+w /nfsv4-root%s" % self.path,
+        ]
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSv4StorageRepository
+
+    def hostNameCouldBeResolved(self, host):
+        return 0 == host.execdom0('ping -c 1 -W1 $(hostname)', retval='code')
+
+    def prepareDomZero(self, host):
+        if not self.hostNameCouldBeResolved(host):
+            host.execdom0(
+                'echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
+
+        if not self.hostNameCouldBeResolved(host):
+            raise xenrt.XRTError(
+                'NFSv4 expects hostname to resolve to an address')
+
+
+def linuxBasedNFSExport(revision, path):
+    if revision == 3:
+        return LinuxHostedNFSv3Export(path)
+    elif revision == 4:
+        return LinuxHostedNFSv4Export(path)
+    else:
+        raise ValueError('Invalid value for revision')
+
+
 class TC7804(xenrt.TestCase):
     """Check that installing PV drivers doesn't cause a disk to go offline."""
 
@@ -64,7 +148,7 @@ class TC7804(xenrt.TestCase):
         except:
             pass
 
-class _TC6824(xenrt.TestCase):
+class SRSanityTestTemplate(xenrt.TestCase):
     """SR Sanity Test Template"""
 
     SKIP_VDI_CREATE = False
@@ -178,32 +262,26 @@ class _TC6824(xenrt.TestCase):
     def createSR(self,host,guest):
         raise xenrt.XRTError("Unimplemented")
 
-class TC6824(_TC6824):
+class NFSSRSanityTest(SRSanityTestTemplate):
     """NFS SR Sanity Test"""
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
+    NFS_VERSION = 3
 
     def createSR(self,host,guest):
-        # Set up NFS
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsExport = linuxBasedNFSExport(self.NFS_VERSION, '/sr')
 
-        # Create a dir and export it
-        guest.execguest("mkdir /sr")
-        guest.execguest("echo '/sr *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " > /etc/exports")
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+        nfsExport.createNFSExportOnGuest(guest)
+
+        nfsExport.prepareDomZero(host)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = xenrt.lib.xenserver.host.NFSStorageRepository(host,
-                                                               self.SRNAME)
+            sr = nfsExport.getStorageRepositoryClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:
@@ -215,18 +293,30 @@ class TC6824(_TC6824):
 
         return sr.uuid
 
-class TC20940(TC6824):
+
+class TC6824(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+
+
+class TC21934(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+    NFS_VERSION = 4
+
+
+class TC20940(NFSSRSanityTest):
     """File SR Sanity Test"""
     
     SR_TYPE="file"
 
-class TC10626(TC6824):
+class TC10626(NFSSRSanityTest):
     """Creation, operation and destruction of a NFS SR with a name containing non-ASCII characters"""
 
     NEW_SRNAME =  u"NFS\u03b1booo2342\u03b1 SR"
 
     def createSR(self,host,guest):
-        sruuid = TC6824.createSR(self, host, guest)
+        sruuid = NFSSRSanityTest.createSR(self, host, guest)
         try:
             session = host.getAPISession()
             try:
@@ -256,13 +346,13 @@ class TC20937(TC10626):
 
     SR_TYPE = "file"
 
-class TC20948(TC6824):
+class TC20948(NFSSRSanityTest):
     """NFS SR (with no sub directory) Sanity Test"""
 
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
-class TC20949(_TC6824):
+class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -280,7 +370,7 @@ class TC20949(_TC6824):
         
         return self.sruuids
 
-class TC20950(_TC6824):
+class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -298,7 +388,7 @@ class TC20950(_TC6824):
 
         return self.sruuids
 
-class TC20951(_TC6824):
+class TC20951(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -316,7 +406,7 @@ class TC20951(_TC6824):
 
         return self.sruuids
 
-class TC20952(_TC6824):
+class TC20952(SRSanityTestTemplate):
     """Co-existance of Classic NFS SR and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -334,7 +424,7 @@ class TC20952(_TC6824):
 
         return self.sruuids
 
-class TC6825(_TC6824):
+class TC6825(SRSanityTestTemplate):
     """ISCSI SR Sanity Test"""
 
     def createSR(self,host,guest):
@@ -410,7 +500,7 @@ class TC6825(_TC6824):
 
         return sr.uuid
 
-class TC7366(_TC6824):
+class TC7366(SRSanityTestTemplate):
     """Create an iSCSI SR on a LUN other then LUN ID 0"""
     CHECK_FOR_OPEN_ISCSI = True
 
@@ -446,7 +536,7 @@ class TC7366(_TC6824):
                                    "was 1024MB" % (size))
         return sr.uuid
 
-class TC7367(_TC6824):
+class TC7367(SRSanityTestTemplate):
     """Create two iSCSI SRs on LUNs on the same target"""
 
     NUM_LUNS = 2
@@ -593,7 +683,7 @@ class TC9085(TC7367):
     SKIP_VDI_CREATE = True
     TARGET_USE_EXTRA_VBD = True
     
-class TC7368(_TC6824):
+class TC7368(SRSanityTestTemplate):
     """Create two NFS SRs on the same NFS server"""
 
     def createSR(self,host,guest):
@@ -633,7 +723,7 @@ class TC7368(_TC6824):
                                    "first SR")
         self.checkSRs()
 
-class TC7369(_TC6824):
+class TC7369(SRSanityTestTemplate):
     """Create an iSCSI SR on a target requiring CHAP authentication"""
 
     user = "myuser"

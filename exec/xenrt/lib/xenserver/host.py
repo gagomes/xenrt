@@ -11208,6 +11208,7 @@ class StorageRepository:
     SHARED = False
     TYPENAME = None
     SIZEVAR = None
+    EXTRA_DCONF = {}
 
     def __init__(self, host, name):
         self.host = host
@@ -11277,6 +11278,9 @@ class StorageRepository:
         self.isDestroyed = True
 
     def _create(self, type, dconf, physical_size=0, content_type="", smconf={}):
+        actualDeviceConfiguration = dict(self.EXTRA_DCONF)
+        actualDeviceConfiguration.update(dconf)
+
         cli = self.host.getCLIInstance()
         args = []
         args.append("type=%s" % (type))
@@ -11287,12 +11291,12 @@ class StorageRepository:
         if self.SHARED:
             args.append("shared=true")
         args.extend(["device-config:%s=\"%s\"" % (x, y)
-                     for x,y in dconf.items()])
+                     for x,y in actualDeviceConfiguration.items()])
         args.extend(["sm-config:%s=\"%s\"" % (x, y)
                     for x,y in smconf.items()])
         self.uuid = cli.execute("sr-create", string.join(args)).strip()
         self.srtype = type
-        self.dconf = dconf
+        self.dconf = actualDeviceConfiguration
         self.content_type = content_type
         self.smconf = smconf
 
@@ -11816,6 +11820,11 @@ class NFSStorageRepository(StorageRepository):
         if nfs != shouldbe:
             raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
                                    (nfs, shouldbe))
+
+
+class NFSv4StorageRepository(NFSStorageRepository):
+    EXTRA_DCONF = {'nfsversion': '4'}
+
 
 class ISCSIStorageRepository(StorageRepository):
     """Models an ISCSI SR"""

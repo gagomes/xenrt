@@ -15,6 +15,7 @@ class TCPhoronix(libperf.PerfTestCase):
         self.distro = libperf.getArgument(arglist, "distro", str, "debian70")
         self.arch = libperf.getArgument(arglist, "arch", str, "x86-64")
         self.vcpus = libperf.getArgument(arglist, "vcpus", int, 2)
+        self.rootDiskSizeGB = libperf.getArgument(arglist, "disksize", int, 24) # GB
         self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
 
         self.dom0vcpus  = libperf.getArgument(arglist, "dom0vcpus", int, None)
@@ -36,6 +37,7 @@ class TCPhoronix(libperf.PerfTestCase):
                     memory=self.vm_ram,
                     distro=self.distro,
                     arch=self.arch,
+                    disks=[("0", self.rootDiskSizeGB, False)],
                     postinstall=postinstall,
                     vifs=self.host.guestFactory().DEFAULT)
         else:

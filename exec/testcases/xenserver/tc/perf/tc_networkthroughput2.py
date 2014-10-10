@@ -168,12 +168,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         xenrt.TEC().logverbose("getIP(%s, %s) returning %s" % (endpoint, endpointdev, ip))
         return ip
 
-    # endpointdev is the (integer) assumedid of the device
+    # endpointdev is the (integer) assumedid of the device. We return the device name, e.g. 'eth0' or 'vmnic0'
     def nicdevOfEndpointDev(self, endpoint, endpointdev):
         assert isinstance(endpoint, xenrt.GenericHost)
-        ethdev = endpoint.getNIC(endpointdev)
-        mac    = endpoint.execcmd("ifconfig %s | fgrep HWaddr | awk '{print $5}'" % (ethdev)).strip()
-        return ethdev, mac
+        return endpoint.getNIC(endpointdev)
 
     def nicdev(self, endpoint):
         ip = self.getIP(endpoint, None)
@@ -189,18 +187,16 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 "portgroup=$(esxcli network ip interface list | grep -A 10 \"^$vmk\\$\" | fgrep \"Portgroup:\" | sed 's/^.*: //')",
                 "vswitch=$(esxcli network vswitch standard portgroup list | grep \"^$portgroup \" | sed \"s/^$portgroup *//\" | awk '{print $1}')",
                 "nic=$(esxcfg-vswitch -l | fgrep $vswitch | awk '{print $6}')",
-                "mac=$(esxcfg-vmknic -l | fgrep '%s' | awk '{print toupper($8)}')" % (ip,),
-                "echo $nic $mac",
+                "echo $nic",
             ]
             cmd = "; ".join(cmds)
+            return endpoint.execcmd(cmd).strip()
         else:
-            cmd = "ifconfig |grep -B 1 '%s'|grep HWaddr|awk '{print $1,$5}'" % (ip,)
-
-        _dev, mac = endpoint.execcmd(cmd).split(" ")
-
-        dev = _dev.replace("xenbr","eth")
-        dev = dev.replace("virbr","eth")
-        return dev, mac
+            cmd = "ifconfig |grep -B 1 '%s'|grep HWaddr|awk '{print $1}'" % (ip,)
+            _dev = endpoint.execcmd(cmd).strip()
+            dev = _dev.replace("xenbr","eth")
+            dev = dev.replace("virbr","eth")
+            return dev
 
     # endpoint is always a xenrt.GenericHost
     # endpointdev is the (integer) assumedid of the device, or None to use the default device
@@ -209,9 +205,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         def map2kvs(ls):return map(lambda l: l.split("="), ls)
         def kvs2dict(prefix,kvs):return dict(map(lambda (k,v): ("%s%s" % (prefix, k.strip()), v.strip()), filter(lambda kv: len(kv)==2, kvs)))
         if endpointdev is None:
-            dev, mac = self.nicdev(endpoint)
+            dev = self.nicdev(endpoint)
         else:
-            dev, mac = self.nicdevOfEndpointDev(endpoint, endpointdev)
+            dev = self.nicdevOfEndpointDev(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
         ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
         ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
@@ -231,13 +227,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             ethtool_g["ethtool-g:ringcurTX"]     = g[10][1]
         if "ethtool-P:Permanent address" in ethtool_P:
             pa = ethtool_P["ethtool-P:Permanent address"].strip().upper()
-            m  = mac.strip().upper()
             xenrt.TEC().logverbose("ethtool -i output is: %s" % (ethtool_i))
             if ethtool_i["ethtool-i:driver"] in ["mlx4_en", "enic"] and pa == "00:00:00:00:00:00":
                 # This has been observed on CentOS 6.5, despite it working fine on XenServer with the same driver version and firmware version
                 xenrt.TEC().logverbose("Permanent address of %s is zero. Not sure why, but it's not a problem." % (dev,))
-            elif pa != m:
-                raise xenrt.XRTError("ethtool_P permanent address '%s' is different from mac from ifconfig '%s'" % (pa, m))
         pci_id = ethtool_i["ethtool-i:bus-info"][5:]
         dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]
         proc_sys_net = kvs2dict("", map2kvs(endpoint.execcmd("find /proc/sys/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
@@ -379,7 +372,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
 
     def setup_gro(self):
         def setgro(endpoint):
-            dev, mac = self.nicdev(endpoint)
+            dev = self.nicdev(endpoint)
             if self.gro in ["on", "off"]:
                 endpoint.execcmd("ethtool -K %s gro %s" % (dev, self.gro))
             elif self.gro in ["default", ""]:

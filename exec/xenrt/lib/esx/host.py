@@ -65,7 +65,7 @@ def createHost(id=0,
 
     if installSRType != "no":
         # Add the default SR which is installed by ESX
-        sr = xenrt.lib.esx.EXTStorageRepository(host, "datastore1")
+        sr = xenrt.lib.esx.EXTStorageRepository(host, host.getDefaultDatastore())
         sr.existing()
         host.addSR(sr)
 
@@ -93,9 +93,13 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def guestFactory(self):
         return xenrt.lib.esx.guest.Guest
 
+    # Normally it's datastore1, but sometimes you get datastore2. Not clear why.
+    def getDefaultDatastore(self):
+        # Let's return the first one we find in the list of volumes.
+        return self.execdom0("cd /vmfs/volumes && ls -d datastore* | head -n 1").strip()
+
     def lookupDefaultSR(self):
-        # TODO
-        return self.srs["datastore1"].uuid
+        return self.srs[self.getDefaultDatastore()].uuid
 
     def getSRNameFromPath(self, srpath):
         """Returns the name of the SR in the path.
@@ -325,8 +329,8 @@ reboot
             toolsFile = "%s/tools.t00" % (mountpoint)
 
             # Use the first-named datastore to temporarily dump the file. (Alternatively, could use /tardisks?)
-            firstDatastore = self.execdom0("ls -d /vmfs/volumes/datastore* | head -n 1").strip()
-            destFilePath = "%s/tools.t00" % (firstDatastore)
+            firstDatastore = self.getDefaultDatastore()
+            destFilePath = "/vmfs/volumes/%s/tools.t00" % (firstDatastore)
             sftp = self.sftpClient()
             try:
                 sftp.copyTo(toolsFile, destFilePath)

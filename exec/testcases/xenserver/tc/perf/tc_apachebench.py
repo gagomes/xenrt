@@ -44,14 +44,14 @@ class TCApacheBench(libperf.PerfTestCase):
         self.invokeClients(self.clientHost)
 
     def createVM(self, host, name):
-        return xenrt.lib.xenserver.guest.createVM(\
+        return xenrt.productLib(host=host).guest.createVM(\
             host=host,
             guestname=name,
             distro=self.distro,
             arch=self.arch,
             memory=self.vmram,
             vcpus=self.vcpus,
-            vifs=xenrt.lib.xenserver.Guest.DEFAULT,
+            vifs=self.host.guestFactory().DEFAULT,
             disks=[])
 
     def createServers(self, host):

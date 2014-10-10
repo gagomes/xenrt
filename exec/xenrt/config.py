@@ -1500,7 +1500,7 @@ class Config:
         self.config["CLOUD_CONFIG"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"] = {}
-        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/acton-systemvm-02062012.vhd.bz2"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
@@ -1661,6 +1661,7 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles112_x86-64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit)"
 
         self.config["CLOUD_CONFIG"]["4.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["3.0.7"])
+        self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
 

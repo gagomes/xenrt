@@ -50,7 +50,7 @@ def createHost(id=0,
         (distro, arch) = xenrt.getDistroAndArch(productVersion)
     else:
         distro = "centos64"
-        arch = "x86-32"
+        arch = "x86-64"
 
     host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []

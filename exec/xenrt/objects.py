@@ -3883,10 +3883,20 @@ bootlocal.close()
                 self.paramSet("platform:usb", "true")
                 self.lifecycleOperation("vm-start")
                 self.waitforxmlrpc(20 * 60)
-                
+        
+        applicationEventLogger = "wevtutil qe Application /c:50 /f:text"
+        systemEventLogger = "wevtutil qe System /c:50 /f:text"
+        setupEventLogger = "wevtutil qe Setup /c:50 /f:text"
+        if 'xp' in self.distro or '2003' in self.distro:
+            applicationEventLogger = "cscript C:\\Windows\\System32\\eventquery.vbs /L Application /R 50"
+            systemEventLogger = "cscript C:\\Windows\\System32\\eventquery.vbs /L System /R 50"
+            setupEventLogger = "cscript C:\\Windows\\System32\\eventquery.vbs /L Setup /R 50"
         windowsIPConfigLogger = """Set osh = WScript.CreateObject("WScript.Shell")
-dim oex
+dim oex, oex1, oex2, oex3
 set oex = osh.Exec("ipconfig /all")
+set oex1 = osh.Exec("%s")
+set oex2 = osh.Exec("%s")
+set oex3 = osh.Exec("%s")
 
 Set objWMIService = GetObject("winmgmts:\\\\.\\root\\wmi")
 Set base = objWmiService.InstancesOf("CitrixXenStoreBase")
@@ -3906,7 +3916,23 @@ next
 Do
     str = oex.StdOut.ReadLine()
     session.log(str)
-Loop While not oex.Stdout.atEndOfStream"""
+Loop While not oex.Stdout.atEndOfStream
+
+Do
+    str = oex1.StdOut.ReadLine()
+    session.log(str)
+Loop While not oex1.Stdout.atEndOfStream
+
+Do
+    str = oex2.StdOut.ReadLine()
+    session.log(str)
+Loop While not oex2.Stdout.atEndOfStream
+
+Do
+    str = oex3.StdOut.ReadLine()
+    session.log(str)
+Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventLogger,setupEventLogger)
+
         try:
             self.xmlrpcWriteFile("C:\\logger.vbs", windowsIPConfigLogger)
             self.logger = True

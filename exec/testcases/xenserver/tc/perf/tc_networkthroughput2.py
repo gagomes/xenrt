@@ -419,6 +419,7 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
                 self.log(None, "error while breathing: %s" % (e,))
 
     # 'network' can be a network friendly name (e.g. "NET_A") or a name (e.g. "NPRI") or a bridge name (e.g. "xenbr3")
+    # We assume there is only one NIC on the network.
     def convertNetworkToAssumedid(self, host, network):
         if isinstance(host, xenrt.lib.xenserver.Host):
             # Get the network-uuid
@@ -440,12 +441,37 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             assumedid = host.getNICEnumerationId(pifdev)
             xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
             return assumedid
+
         elif isinstance(host, xenrt.lib.native.NativeLinuxHost):
             nics = host.listSecondaryNICs(network=network)
             xenrt.TEC().logverbose("convertNetworkToAssumedid (native linux host): network '%s' corresponds to NICs %s" % (network, nics))
+
             assert len(nics) > 0
             # Use the first device on this network
             return nics[0]
+
+        elif isinstance(host, xenrt.lib.esx.ESXHost):
+            # NET_A -> vmnic8       esxcfg-vswitch -l
+            #       -> MAC          esxcfg-nics -l
+            #       -> assumedid    h.listSecondaryNICs()
+
+            # Find out which NIC(s) are on this network
+            nics = host.execcmd("esxcfg-vswitch -l | grep '^  %s ' | awk '{print $4}'" % (network)).strip().split('\n')
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (ESXHost %s): network '%s' corresponds to NICs %s" % (host, network, nics))
+
+            assert len(nics) > 0
+            # Use the first NIC on this network
+            nic = nics[0]
+
+            # Get the MAC address
+            nicmac = host.execcmd("esxcfg-nics -l | grep '^%s ' | awk '{print $7}'" % (nic)).strip().split('\n')[0]
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (ESXHost %s): NIC '%s' has MAC address %s" % (host, nic, nicmac))
+
+            # Convert MAC to assumedid
+            assumedid = host.listSecondaryNICs(macaddr=nicmac)[0]
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (ESXHost %s): MAC %s corresponds to assumedid %d" % (host, nicmac, assumedid))
+            return assumedid
+
         else:
             raise xenrt.XRTError("convertNetworkToAssumedid does not support hosts of type %s" % (type(host)))
 

@@ -1283,8 +1283,8 @@ class Guest(xenrt.GenericGuest):
                     newdisk = sr.copyVDI(vdiname, newdiskname)
                 else:
                     newdisk = sr.cloneVDI(vdiname, newdiskname)
-            except:
-                xenrt.TEC().logverbose("Not cloning disk image %s" % sourcefile)
+            except Exception, e:
+                xenrt.TEC().logverbose("Not cloning disk image %s due to exception %s" % (sourcefile, e))
                 newdisk = sourcefile
             source.setAttribute("file", newdisk)
 

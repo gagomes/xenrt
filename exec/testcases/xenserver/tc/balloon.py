@@ -827,12 +827,12 @@ class TC9284(xenrt.TestCase):
         # Install our VM (use XP SP3 as it will fit in the memory range we want,
         # unlike 2008.
         self.guest = self.host.createGenericWindowsGuest(start=False,
-                                                         distro="winxpsp3")
+                                                         distro="win7sp1-x86")
         self.uninstallOnCleanup(self.guest)
         self.guests.append(self.guest)
         # Set its parameters
-        self.guest.setStaticMemRange(128, 1024)
-        self.guest.setDynamicMemRange(512, 768)
+        self.guest.setStaticMemRange(1024, 2048)
+        self.guest.setDynamicMemRange(1024, 2048)
 
     def run(self, arglist=None):
         tests = ["start","shutdown","forceShutdown","reboot","forceReboot",

@@ -1377,17 +1377,50 @@ class TCNsSuppPack(xenrt.TestCase):
                                                        "host-uuid=%s" %
                                                        self.host.getMyHostUUID()).strip()
 
+    def getSourcesFromP4(self):
+        '''Sync the NS-SDX supplemental pack source code from NetScaler perforce server'''
+
+        # Get the perforce command line client (32bit or 64bit) tool: p4
+        arch = self.ddkVM.execguest('uname -m').strip()
+        if arch == 'x86_64':
+            p4File = xenrt.TEC().getFile('/usr/groups/xenrt/perforce/x86_64/p4')
+        else:
+            p4File = xenrt.TEC().getFile('/usr/groups/xenrt/perforce/x86/p4')
+
+        sftp = self.ddkVM.sftpClient()
+        try:
+            sftp.copyTo(p4File, '/usr/bin/p4')
+        except:
+            raise xenrt.XRTError("Failed to sftp perforce binary to ddkVM")
+        finally:
+            sftp.close()
+
+        self.ddkVM.execguest("chmod +x /usr/bin/p4")
+
+        # Get NetScaler perforce server credentials
+        p4user = xenrt.TEC().lookup("NS_P4_USERNAME")
+        p4passwd = xenrt.TEC().lookup("NS_P4_PASSWORD")
+        p4client = xenrt.TEC().lookup("NS_P4_CLIENT")
+        p4port = xenrt.TEC().lookup("NS_P4_PORT")
+
+        # setup the p4 environment in the ddkVM
+        p4config_cmd = 'echo "export P4USER=%s; export P4PASSWD=%s; export P4CLIENT=%s; export P4PORT=%s"  >> /root/.bash_profile' % (p4user, p4passwd, p4client, p4port)
+        self.ddkVM.execguest(p4config_cmd)
+
+        # Force sync because multiple ddk vm's will be using the same p4 client and without force sync, the checkout will be unpredictable
+        self.ddkVM.execguest('source /root/.bash_profile; p4 sync -f //depot/SDX/main/supp-pack/xs-netscaler/...')
+
 
     def run(self, arglist):
-        self.ddkVM.execguest('hg clone http://hg.uk.xensource.com/closed/xs-netscaler.hg xs-netscaler.hg')
-        self.ddkVM.execguest('make -C xs-netscaler.hg > install.log 2>&1')
+        self.getSourcesFromP4()
+        self.ddkVM.execguest('make -C xs-netscaler > install.log 2>&1')
 
-        self.workdir = "/root/xs-netscaler.hg/output"
+        self.workdir = "/root/xs-netscaler/output"
 
         # Create a tmp directory on the controller that will be automatically cleaned up
         ctrlTmpDir = xenrt.TEC().tempDir()
 
-        sourcePath = self.ddkVM.execguest("find /root/xs-netscaler.hg/output/ -iname xs-netscaler*iso -type f").strip()
+        sourcePath = self.ddkVM.execguest("find /root/xs-netscaler/output/ -iname xs-netscaler*iso -type f").strip()
         packName = os.path.basename(sourcePath)
 
         # copy to tempdir on controller

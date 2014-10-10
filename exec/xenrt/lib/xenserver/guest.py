@@ -2142,10 +2142,6 @@ exit /B 1
 
         return reply
 
-    def reparseVIFs(self):
-        self.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
-
     def changeVIF(self, name, bridge=None, mac=None):
         """Change the specified VIF to be on a different bridge or have a different MAC"""
         device = re.sub(self.vifstem, "", name)

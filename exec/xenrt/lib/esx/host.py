@@ -172,6 +172,18 @@ class ESXHost(xenrt.lib.libvirt.Host):
         """Return the first *physical nic* on the host. See output from 'esxcfg-nics -l'"""
         return "vmnic0"
 
+    def getNIC(self, assumedid):
+        """ Return the product enumeration name (e.g. "vmnic0") for the
+        assumed enumeration ID (integer)"""
+        mac = self.getNICMACAddress(assumedid)
+        mac = xenrt.util.normaliseMAC(mac)
+        ieth = self.execcmd("esxcfg-nics -l | fgrep -i ' %s ' | awk '{print $1}'" % (mac)).strip()
+        if ieth == '':
+            raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
+        else:
+            xenrt.TEC().logverbose("getNIC: interface with MAC %s is %s" % (mac, ieth))
+            return ieth
+
     def arpwatch(self, iface, mac, **kwargs):
         xenrt.TEC().logverbose("Working out vmkernel device for iface='%s' in order to arpwatch for %s..." % (iface, mac))
 

@@ -75,8 +75,8 @@ class TCApacheBench(libperf.PerfTestCase):
         self.servervms[0].start()
 
     def createClients(self, host):
-        # Copy synexec master binary to dom0
-        libsynexec.initialise_master_in_dom0(host)
+        # Run synexec on the controller to allow this to work on any hypervisor
+        libsynexec.initialise_master_on_controller(self.jobid)
 
         # Install 'client00'
         xenrt.TEC().progress("Installing client zero")
@@ -103,6 +103,9 @@ class TCApacheBench(libperf.PerfTestCase):
         self.clientvms[0].start()
 
     def invokeClients(self, host):
+        # Run synexec master
+        proc, port = libsynexec.start_master_on_controller("/bin/sh /root/synexec_cmd", self.jobid, self.numclients)
+
         # After all the servers have booted, set up synexec slave in each of the client VMs
         for i in range(0, self.numclients):
             # Write a file containing the apachebench command, pointing it at the relevant server VM
@@ -110,10 +113,10 @@ class TCApacheBench(libperf.PerfTestCase):
             self.clientvms[i].execguest("echo '%s' > /root/synexec_cmd" % (self.abCmd % target))
 
             # Wait for the synexec master to tell this VM to run the apachebench command
-            libsynexec.start_slave(self.clientvms[i], self.jobid)
+            libsynexec.start_slave(self.clientvms[i], self.jobid, port)
 
-        # Run synexec master
-        libsynexec.start_master_in_dom0(host, "/bin/sh /root/synexec_cmd", self.jobid, self.numclients)
+        # Wait for jobs to complete
+        proc.wait()
 
         # Fetch results from slaves
         for i in range (0, self.numclients):
@@ -123,5 +126,5 @@ class TCApacheBench(libperf.PerfTestCase):
             sftp.copyFrom(logFileRemote, logFileLocal)
 
         # Fetch log from master
-        results = libsynexec.get_master_log(host)
+        results = libsynexec.get_master_log_on_controller(self.jobid)
         self.log("synexec_master", "%s" % results)

@@ -2217,6 +2217,7 @@ class HostInstallWorker(_InstallWorker):
             work["noisos"] = True
             xenrt.lib.nativewindows.createHost(**work)
         elif specProductType == "kvm":
+            work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
             xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
             # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set

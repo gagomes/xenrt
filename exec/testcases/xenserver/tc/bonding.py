@@ -2307,7 +2307,7 @@ class _BondBalance(_AggregateBondTest):
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))
         
-        if len(ifs) != 2:        
+        if len(ifs) > 2:        
             raise xenrt.XRTError("Load balancing verification is NOT yet implemented for more than 2 slaves")
         
         if self.host.special['Network subsystem type'] == "linux":

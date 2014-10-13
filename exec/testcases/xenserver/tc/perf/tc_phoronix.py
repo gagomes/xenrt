@@ -49,12 +49,17 @@ class TCPhoronix(libperf.PerfTestCase):
 
     def installPhoronix(self, guest):
         # Obtain the test suite
-        if guest.distro.startswith("debian70"):
+        if guest.distro.startswith("debian60") or guest.distro.startswith("debian70"):
+            if guest.distro.startswith("debian60"):
+                codename = "squeeze"
+            else:
+                codename = "wheezy"
+
             # The .tgz contains the .deb and the user-config.xml file, which should appear in the right place in /root/.phoronix-test-suite
             guest.execcmd("wget -O - '%s/phoronix-5.0.0.tgz' | tar -xz -C /root" % xenrt.TEC().lookup("TEST_TARBALL_BASE"))
 
             # Install some dependencies of the .deb
-            guest.execcmd("echo 'deb http://http.debian.net/debian wheezy main' >> /etc/apt/sources.list")
+            guest.execcmd("echo 'deb http://http.debian.net/debian %s main' >> /etc/apt/sources.list" % (codename))
             guest.execcmd("apt-get update")
             guest.execcmd("apt-get -y --force-yes install php5-gd php5-cli")
             guest.execcmd("dpkg -i /root/phoronix-5.0.0/phoronix-test-suite_5.0.0_all.deb")

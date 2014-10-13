@@ -24,6 +24,9 @@ class TCApacheBench(libperf.PerfTestCase):
         self.numclients = libperf.getArgument(arglist, "numvms", int, 20)
         self.numservers = self.numclients  # we use the same number of clients as servers
 
+        self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
+        self.postinstall = [] if (self.postinstall is None or self.postinstall == "") else self.postinstall.split(",")
+
         # Apachebench client command-line
         self.abCmd = "/usr/bin/ab -n 1000 -c 100 -g /root/ab.log http://%s/" # expects IP address of server
 
@@ -52,7 +55,8 @@ class TCApacheBench(libperf.PerfTestCase):
             memory=self.vmram,
             vcpus=self.vcpus,
             vifs=self.host.guestFactory().DEFAULT,
-            disks=[])
+            disks=[],
+            postinstall=self.postinstall)
 
     def createServers(self, host):
         xenrt.TEC().progress("Installing server zero")

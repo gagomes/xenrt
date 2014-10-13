@@ -4,6 +4,7 @@
     <default name="ARCH" value="x86-32"/>
     <default name="GUESTMEMORY" value="256"/>
     <default name="GUESTVCPUS" value="1"/>
+    <default name="POSTINSTALL" value=""/>
 
     <variables>
       <PREPARE_WORKERS>2</PREPARE_WORKERS>
@@ -22,6 +23,7 @@
         <arg>arch=${ARCH}</arg>
         <arg>memory=${GUESTMEMORY}</arg>
         <arg>vcpus=${GUESTVCPUS}</arg>
+        <arg>postinstall=${POSTINSTALL}</arg>
       </testcase>
     </testsequence>
   </xenrt>

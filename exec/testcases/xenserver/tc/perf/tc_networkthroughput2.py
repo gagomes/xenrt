@@ -209,10 +209,10 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         else:
             dev = self.nicdevOfEndpointDev(endpoint, endpointdev)
         endpointHost = self.hostOfEndpoint(endpoint)
-        ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s"    % (dev,)).replace(": ","=").split("\n")))
-        ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s" % (dev,)).replace(": ","=").split("\n")))
-        ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s" % (dev,)).replace(": ","=").split("\n")))
-        ethtool_P = kvs2dict("ethtool-P:", map2kvs(endpoint.execcmd("ethtool -P %s" % (dev,)).replace(": ","=").split("\n")))
+        ethtool   = kvs2dict("ethtool:",   map2kvs(endpoint.execcmd("ethtool %s || true"    % (dev,)).replace(": ","=").split("\n")))
+        ethtool_i = kvs2dict("ethtool-i:", map2kvs(endpoint.execcmd("ethtool -i %s || true" % (dev,)).replace(": ","=").split("\n")))
+        ethtool_k = kvs2dict("ethtool-k:", map2kvs(endpoint.execcmd("ethtool -k %s || true" % (dev,)).replace(": ","=").split("\n")))
+        ethtool_P = kvs2dict("ethtool-P:", map2kvs(endpoint.execcmd("ethtool -P %s || true" % (dev,)).replace(": ","=").split("\n")))
         ethtool_g_unsupp = endpoint.execcmd("ethtool -g %s" % (dev,), retval="code")
         if not ethtool_g_unsupp:
             g = map2kvs(endpoint.execcmd("ethtool -g %s" % (dev,)).replace("\t","").replace(":","=").split("\n"))

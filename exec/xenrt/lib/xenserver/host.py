@@ -14324,7 +14324,7 @@ class Tile:
         # 2x w2k3eesp2 VMs
         # 2x RHEL 5.1 VMs    
 
-        winWorkloads = [["Prime95"],["IOMeter"]]
+        winWorkloads = [["Prime95"]]
         linuxWorkloads = [[],["LinuxSysbench"]]
         tileMemory = int(xenrt.TEC().lookup("TILE_MEMORY_MB", "2048")) # 2GB default
 

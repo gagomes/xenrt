@@ -231,8 +231,11 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             if ethtool_i["ethtool-i:driver"] in ["mlx4_en", "enic"] and pa == "00:00:00:00:00:00":
                 # This has been observed on CentOS 6.5, despite it working fine on XenServer with the same driver version and firmware version
                 xenrt.TEC().logverbose("Permanent address of %s is zero. Not sure why, but it's not a problem." % (dev,))
-        pci_id = ethtool_i["ethtool-i:bus-info"][5:]
-        dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]
+        if "ethtool-i:bus-info" in ethtool_i:
+            pci_id = ethtool_i["ethtool-i:bus-info"][5:]
+            dev_desc = endpoint.execcmd("lspci |grep '%s'" % (pci_id,)).split("controller: ")[1]
+        else:
+            dev_desc = None
         proc_sys_net = kvs2dict("", map2kvs(endpoint.execcmd("find /proc/sys/net/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         sys_class_net = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/class/net/*/* 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))
         sys_devices = kvs2dict("", map2kvs(endpoint.execcmd("find /sys/devices/system/cpu/ 2>/dev/null | while read p; do echo \"$p=`head --bytes=256 $p`\"; done", timeout=600).split("\n")))

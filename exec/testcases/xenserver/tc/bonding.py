@@ -2331,7 +2331,7 @@ class _BondBalance(_AggregateBondTest):
             if balanceratio >=0.75 and balanceratio <=1 :
                 xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
             else :
-                raise xenrt.XRTFailure("Load is a not balance across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+                raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
             
 
 class TC8310(_BondBalance):

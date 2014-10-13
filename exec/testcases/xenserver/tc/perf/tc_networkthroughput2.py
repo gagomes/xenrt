@@ -55,6 +55,9 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
         self.gro      = libperf.getArgument(arglist, "gro", str, "default")
         self.dopause  = libperf.getArgument(arglist, "pause", str, "off")
 
+        self.postinstall = libperf.getArgument(arglist, "postinstall", str, None) # comma-separated list of guest function names
+        self.postinstall = [] if self.postinstall is None else self.postinstall.split(",")
+
         # Optionally, the sequence file can specify which eth device to use in each endpoint
         self.e0devstr = libperf.getArgument(arglist, "endpoint0dev", str, None)
         self.e1devstr = libperf.getArgument(arglist, "endpoint1dev", str, None)
@@ -80,6 +83,12 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             raise xenrt.XRTError("Failed to find an endpoint")
         self.endpoint0 = self.getGuestOrHostFromName(e0)
         self.endpoint1 = self.getGuestOrHostFromName(e1)
+
+        # Postinstall hook for guests
+        for g in self.guests:
+            xenrt.TEC().logverbose("executing post-install functions %s for guest %s" % (self.postinstall, g))
+            for p in self.postinstall:
+                eval("g.%s()" % (p))
 
     def before_prepare(self, arglist=None):
         pass

@@ -1094,6 +1094,8 @@ class Guest(xenrt.GenericGuest):
                     if self.xmlrpcIsAlive():
                         self.xmlrpcShutdown()
                     else:
+                        xenrt.TEC().logverbose("soft shutdown requested but not possible; calling 'sync' before destroying domain")
+                        self.execcmd("sync")
                         self.virDomain.destroy()
         elif command == "vm-reboot":
             try:

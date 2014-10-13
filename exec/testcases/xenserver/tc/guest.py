@@ -1143,6 +1143,8 @@ class TCWinSMBFileTransfer(xenrt.TestCase):
    
     def getCopyDurationFromRobocopyLog(self, guest, robocopyLogFile, expectedFilesCopied=None):
         logData = guest.xmlrpcReadFile(robocopyLogFile)
+        if logData:
+            xenrt.TEC().logverbose(logData)
         data = map(lambda x:x.split(), logData.splitlines())
         data = filter(lambda x:len(x) > 0, data)
         filesData = filter(lambda x:x[0] == 'Files', data)

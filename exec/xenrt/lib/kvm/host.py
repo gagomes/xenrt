@@ -63,6 +63,7 @@ def createHost(id=0,
         rhel7 = True
         extrapackages.append("ntp")
         extrapackages.append("wget")
+        extrapackages.append("virt-install")
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")

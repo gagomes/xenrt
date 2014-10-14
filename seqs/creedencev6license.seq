@@ -24,7 +24,6 @@
       <testcase id="xenserver.tc.license.TC11006" />
       <testcase id="xenserver.tc.license.TC11337" />
       <testcase id="xenserver.tc.license.TC12524" />
-      <testcase id="xenserver.tc.license.TC13498" />
       <testcase id="xenserver.tc.license.TC14444" />
       <testcase id="xenserver.tc.license.TC10165" />
     </serial>

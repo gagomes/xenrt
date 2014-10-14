@@ -25,9 +25,12 @@
 
   <testsequence>
     <serial group="RBAC">
-      <testcase id="testcases.xenserver.tc.rbaccli.TC9802"/>        
-      <testcase id="testcases.xenserver.tc.rbaccli.TC9803"/>        
-      <testcase id="testcases.xenserver.tc.rbaccli.TC9804"/>        
+      <testcase id="testcases.xenserver.tc.rbaccli.TC9802"/>
+      <testcase id="testcases.xenserver.tc.rbaccli.PoolAdminHATest" tc="TC-23321"/>
+      <testcase id="testcases.xenserver.tc.rbaccli.TC9803"/>
+      <testcase id="testcases.xenserver.tc.rbaccli.PoolOperatorHATest" tc="TC-23322"/>
+      <testcase id="testcases.xenserver.tc.rbaccli.TC9804"/>
+      <testcase id="testcases.xenserver.tc.rbaccli.VmPowerAdminHATest" tc="TC-23323"/>
     </serial>
   </testsequence>
 

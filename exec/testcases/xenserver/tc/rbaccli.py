@@ -256,10 +256,10 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
                  'pool-ha-compute-vm-failover-plan' : (['Pool'],
                                                        ['host-uuids=Host.getUUID()'], 
                                                        ['Pool']),
-                 'pool-ha-disable'                 : (["HAPool"],
-                                                      []),
-                 'pool-ha-enable'                  : (["DisabledHAPool"],
-                                                      []),
+#                 'pool-ha-disable'                 : (["HAPool"],
+#                                                      []),
+#                 'pool-ha-enable'                  : (["DisabledHAPool"],
+#                                                      []),
                  'pool-initialize-wlb'             : (["Kirkwood"],
                                                       ["wlb_url=Kirkwood.ref.ip:Kirkwood.ref.port",
                                                        "wlb_username=root",
@@ -728,29 +728,65 @@ class _DebugCLI(_CLITest):
         _CLITest.prepare(self, arglist)
         self.OPERATIONS["cli"] = filter(self.FN, self.OPERATIONS["cli"])
         
+
+class _HATest(_CLITest):
+    
+    CONFIG = {'pool-ha-disable' : (["HAPool"], []),
+              'pool-ha-enable' : (["DisabledHAPool"], []),}
+
 class TC9802(_CLITest):
 
     ROLES = {"user" : ["pool-admin"]}
+
+class PoolAdminHATest(_HATest):
+
+    ROLES = {"user" : ["pool-admin"]}
+
 
 class TC9803(_CLITest):
 
     ROLES = {"user" : ["pool-operator"]}
 
+class PoolOperatorHATest(_HATest):
+
+    ROLES = {"user" : ["pool-operator"]}
+
+
 class TC9804(_CLITest):
 
     ROLES = {"user" : ["vm-power-admin"]}
+
+class VmPowerAdminHATest(_HATest):
+
+    ROLES = {"user" : ["vm-power-admin"]}
+
 
 class TC9805(_CLITest):
 
     ROLES = {"user" : ["vm-admin"]}
 
+class VmAdminHATest(_HATest):
+
+    ROLES = {"user" : ["vm-admin"]}
+
+
 class TC9806(_CLITest):
 
     ROLES = {"user" : ["vm-operator"]}
 
+class VmOperatorHATest(_HATest):
+
+    ROLES = {"user" : ["vm-operator"]}
+
+
 class TC9807(_CLITest):
 
     ROLES = {"user" : ["read-only"]}
+
+class ReadOnlyHATest(_HATest):
+
+    ROLES = {"user" : ["read-only"]}
+
 
 class TC10183(_FieldTest):
 

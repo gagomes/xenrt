@@ -14362,13 +14362,13 @@ class Tile:
             li = 0
             for g in self.guests:
                 if g.windows:
-                    self.guestWorkloads[g] = \
-                                          g.installWorkloads(winWorkloads[wi])
-                    wi += 1
+                    if len(winWorkloads) > wi:
+                        self.guestWorkloads[g] = g.installWorkloads(winWorkloads[wi])
+                        wi += 1
                 else:
-                    self.guestWorkloads[g] = \
-                                          g.installWorkloads(linuxWorkloads[li])
-                    li += 1
+                    if len(linuxWorkloads) > li:
+                        self.guestWorkloads[g] = g.installWorkloads(linuxWorkloads[li])
+                        li += 1
 
         # Make sure they're shut down
         for g in self.guests:

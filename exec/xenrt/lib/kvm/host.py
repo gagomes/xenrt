@@ -272,15 +272,13 @@ class KVMHost(xenrt.lib.libvirt.Host):
                     else:
                         raise xenrt.XRTError("Wrong new IP %s for host %s on %s" % (newip, self, pri_bridge))
 
-                if jumbo == True:
+                if jumbo != False:
+                    mtu = (jumbo == True) and "9000" or jumbo #jumbo can be an int string value
                     #enable jumbo frames immediately
-                    self.execcmd("ifconfig %s mtu 9000" % (pri_eth,))
+                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, mtu))
                     #make it permanent
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"9000\"/; t; s/^/MTU=\"9000\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (pri_eth,))
-                    requiresReboot = False
-                elif jumbo != False: #ie jumbo is a string
-                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, jumbo))
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"%s\"/; t; s/^/MTU=\"%s\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (jumbo,jumbo,pri_eth))
+                    pri_eth_path = "/etc/sysconfig/network-scripts/ifcfg-%s" % pri_eth
+                    self.execcmd("if $(grep -q MTU= %s); then sed -i 's/^MTU=.*$/MTU=%s/g' %s; else echo MTU=%s >> %s; fi" % (pri_eth_path, mtu, pri_eth_path, mtu, pri_eth_path))
                     requiresReboot = False
 
             if len(nicList) > 1:

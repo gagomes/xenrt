@@ -333,9 +333,7 @@ class TCHCTStress(xenrt.TestCase):
             guest.enableDriverVerifier()
 
         # fetch and unpack stress.tgz into  c:\stress
-        guest.xmlrpcUnpackTarball("%s/hct/stress.tgz" %
-                                  (xenrt.TEC().lookup("TEST_TARBALL_BASE")),
-                                  "c:\\")
+        guest.xmlrpcUnpackTarball("%s/hct/stress.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
 
         # Get out domid before the test to check for reboots
         domid = guest.getDomid()
@@ -349,42 +347,34 @@ class TCHCTStress(xenrt.TestCase):
         # Change in to c:\stress and run runstrss.exe <duration> <tests>
         self.tec.comment("Duration will be %u hours" % (duration))
         self.tec.comment("Number of tests will be %u" % (tests))
-        try:
-            ref = guest.xmlrpcStart("cd \\stress\nrunstrss.exe %u %u" %
-                                    (duration, tests))
-        except:
-            raise xenrt.XRTError("Error starting runstrss.exe")
-        try:
-            deadline = xenrt.timenow() + (3600 * duration) + 1800
-            excount = 0
-            while True:
-                time.sleep(120)
-                if xenrt.timenow() > deadline:
-                    raise xenrt.XRTFailure("HCT stress still running after "
-                                           "timeout")
-                try:
-                    if guest.xmlrpcPoll(ref):
-                        break
-                    excount = 0
-                except Exception, e:
-                    excount = excount + 1
-                    if excount > 5:
-                        raise e
+        ref = guest.xmlrpcStart("cd \\stress\nrunstrss.exe %u %u" % (duration, tests))
+        
+        deadline = xenrt.timenow() + (3600 * duration) + 1800
+        excount = 0
+        while True:
+            time.sleep(120)
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTFailure("HCT stress still running after timeout")
+            try:
+                if guest.xmlrpcPoll(ref):
+                    break
+                excount = 0
+            except Exception, e:
+                excount = excount + 1
+                if excount > 5:
+                    raise e
 
-            # When complete grab c:\stress\stress.log
-            data = guest.xmlrpcReadFile("c:\\stress\\stress.log")
-            f = file("%s/stress.log" % (self.tec.getLogdir()), "w")
-            f.write(data)
-            f.close()
+        # When complete grab c:\stress\stress.log
+        data = guest.xmlrpcReadFile("c:\\stress\\stress.log")
+        f = file("%s/stress.log" % (self.tec.getLogdir()), "w")
+        f.write(data)
+        f.close()
 
-            # Verifier data
-            data = guest.xmlrpcExec("verifier.exe /query", returndata=True)
-            f = file("%s/verifier_after.txt" % (self.tec.getLogdir()), "w")
-            f.write(data)
-            f.close()
-            barf = None
-        except Exception, e:
-            barf = e
+        # Verifier data
+        data = guest.xmlrpcExec("verifier.exe /query", returndata=True)
+        f = file("%s/verifier_after.txt" % (self.tec.getLogdir()), "w")
+        f.write(data)
+        f.close()
             
         # Try to find out whether there was a crash etc.
         time.sleep(120)
@@ -392,19 +382,9 @@ class TCHCTStress(xenrt.TestCase):
             raise xenrt.XRTFailure("Guest was not UP after tests exited")
         if guest.getDomid() != domid:
             raise xenrt.XRTFailure("Guest has rebooted during tests")
-        try:
-            if not guest.xmlrpcIsAlive():
-                raise xenrt.XRTFailure("Could not reach guest after tests exited")
-            else:
-                guest.execguest("true")
-        except:
+        if not guest.xmlrpcIsAlive():
             raise xenrt.XRTFailure("Could not reach guest after tests exited")
 
-        # Any other exception we got during the run will turn in to
-        # and error
-        if barf:
-            raise xenrt.XRTError("Exception during test run: %s" % (str(barf)))
-        
     def postRun(self):
         guest = self.storedguest
         try:

@@ -627,8 +627,12 @@ class ManagedStorageResource(CentralResource):
 
 class _ExternalFileShare(CentralResource):
     """An file share volume, or subdirectory thereof, on an external share server"""
-    def __init__(self, jumbo=False, network="NPRI"):
+    def __init__(self, jumbo=False, network="NPRI", version=None):
         self.subdir = None
+        if not version:
+            version = self.DEFAULT_VERSION
+        version = str(version)
+        self.version = version
         # Find a suitable server
         serverdict = xenrt.TEC().lookup(self.SHARE_TYPE, None)
         if not serverdict:
@@ -647,6 +651,9 @@ class _ExternalFileShare(CentralResource):
             if jumbo and not xjumbo:
                 ok = False
             if not jumbo and xjumbo:
+                ok = False
+            xversions = xenrt.TEC().lookup([self.SHARE_TYPE, s, "SUPPORTED_VERSIONS"], self.DEFAULT_VERSION).split(",")
+            if version not in xversions:
                 ok = False
             if network == "NPRI":
                 address = xenrt.TEC().lookup([self.SHARE_TYPE,
@@ -737,15 +744,17 @@ class _ExternalFileShare(CentralResource):
 
 class ExternalNFSShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_NFS_SERVERS"
+    DEFAULT_VERSION = "3"
 
     def mount(self, path):
-        return xenrt.rootops.MountNFS(path)
+        return xenrt.rootops.MountNFS(path, version=self.version)
 
     def setPermissions(self, td):
         xenrt.rootops.sudo("chmod 777 %s" % (td))
 
 class ExternalSMBShare(_ExternalFileShare):
     SHARE_TYPE="EXTERNAL_SMB_SERVERS"
+    DEFAULT_VERSION = "2"
 
     def mount(self, path):
         ad = xenrt.getADConfig()

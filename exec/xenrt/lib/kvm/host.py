@@ -64,6 +64,7 @@ def createHost(id=0,
         extrapackages.append("ntp")
         extrapackages.append("wget")
         extrapackages.append("virt-install")
+        extrapackages.append("qemu-kvm")
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")

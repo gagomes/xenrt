@@ -3593,16 +3593,18 @@ exit /B 1
 
                     # see if we can SSH to the guest from dom0.
                     try:
-                        xenrt.TEC().logverbose("Attempting to SSH to guest from dom0")
-                        self.host.execdom0("ssh -i /etc/ssh/ssh_host_dsa_key.pub -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@%s ls /" % self.getIP())
+                        if self.getIP():
+                            xenrt.TEC().logverbose("Attempting to SSH to guest from dom0")
+                            self.host.execdom0("ssh -i /etc/ssh/ssh_host_dsa_key.pub -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@%s ls /" % self.getIP())
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))
 
                     # see if we can arping to the guest from dom0.
                     try:
-                        xenrt.TEC().logverbose("Attempting to arping the guest from dom0")
-                        bridge = self.getVIFs()['eth0'][2]
-                        self.host.execdom0("arping -I %s -c 2 %s" % (bridge, self.getIP()))
+                        if self.getIP():
+                            xenrt.TEC().logverbose("Attempting to arping the guest from dom0")
+                            bridge = self.getVIFs()['eth0'][2]
+                            self.host.execdom0("arping -I %s -c 2 %s" % (bridge, self.getIP()))
                     except Exception, ex:
                         xenrt.TEC().logverbose(str(ex))
 

@@ -178,8 +178,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getPrimaryBridge(self):
         return self.getBridge(self.getDefaultInterface())
 
-    def createNetwork(self, name="bridge"):
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
+    def getBridgeByName(self, name):
+        return (self.execvirt("virsh net-info %s | grep 'Bridge' | tr -s ' ' | cut -d ' ' -f 2" % name)).strip()
+
+    def createNetwork(self, name="bridge", iface=None):
+        if iface is None: iface = self.getDefaultInterface()
+        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -238,17 +242,17 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 pri_bridge = self.getBridge(pri_eth)
                 has_virsh_pri_bridge = self.execcmd("virsh iface-list|grep %s|wc -l" % (pri_bridge,)).strip() != "0"
                 if not has_virsh_pri_bridge:
-                    self.createNetwork(name=pri_bridge)
-                    self.execvirt("virsh net-destroy %s" % (previous_bridge,))
+                    self.createNetwork(name=pri_bridge, iface=pri_eth)
+                else:
                     self.execvirt("virsh net-undefine %s" % (previous_bridge,))
-                    networkConfig  = "<network>"
-                    networkConfig += "<name>%s</name>" % (pri_bridge,)
-                    networkConfig += "<forward mode='bridge'/>"
-                    networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
-                    networkConfig += "</network>"
-                    self.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+                networkConfig  = "<network>"
+                networkConfig += "<name>%s</name>" % (friendlynetname,)
+                networkConfig += "<forward mode='bridge'/>"
+                networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
+                networkConfig += "</network>"
+                self.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
 
-                xenrt.GEC().registry.objPut("libvirt", friendlynetname, pri_bridge)
+                # xenrt.GEC().registry.objPut("libvirt", friendlynetname, pri_bridge)
 
                 if mgmt:
                     #use the ip of the mgtm nic on the list as the default ip of the host

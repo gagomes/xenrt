@@ -85,7 +85,7 @@ class Host(xenrt.GenericHost):
     def execvirt(self, cmd):
         """Execute a command on the machine running libvirt. (Not in xenrt.lib.xenserver)"""
         if self.LIBVIRT_REMOTE_DAEMON:
-            self.execdom0(cmd)
+            return self.execdom0(cmd)
         else:
             cmd += " --connect \"%s\" " % self._getVirURL()
             child = pexpect.spawn(cmd)
@@ -98,6 +98,8 @@ class Host(xenrt.GenericHost):
             child.close()
             if child.exitstatus != 0:
                 raise xenrt.XRTFailure("libvirt command exited with error (%s)" % (cmd))
+            else:
+                return output
 
     def existing(self):
         """Query an existing host"""
@@ -332,4 +334,8 @@ class Host(xenrt.GenericHost):
         #TODO: use virsh list output
         return "unknown"
 
-
+    def getBridgeByName(self, name):
+        """Return the actual bridge based on the given friendly name. Currently
+        KVM has no way to store the friendly name of a bridge in its data model,
+        therefore should overwrite this function. """
+        return name

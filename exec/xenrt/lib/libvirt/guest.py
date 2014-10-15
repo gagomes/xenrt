@@ -84,7 +84,7 @@ def createVM(host,
         if not bridge:
             raise xenrt.XRTError("Failed to choose a bridge for createVM on "
                                  "host !%s" % (host.getName()))
-        bridge = xenrt.GEC().registry.objGet("libvirt", bridge) or bridge
+        bridge = host.getBridgeByName(bridge)
         update.append([device, bridge, mac, ip])
     vifs = update
 

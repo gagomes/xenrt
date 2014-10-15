@@ -1035,7 +1035,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_112_64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit),SUSE Linux Enterprise Server 11 SP2 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit),SUSE Linux Enterprise Server 11 SP3"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
-        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_12_64"] = "Red Hat Enterprise Linux 7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_12_64"] = "SUSE Linux Enterprise Server 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9_32"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_WINDOWS_2003_64"] = "Windows Server 2003 (64-bit),Windows Server 2003 x64"

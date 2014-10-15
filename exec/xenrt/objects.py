@@ -11648,6 +11648,8 @@ class ConversionApplianceServer:
         xenrt.TEC().logverbose("ConversionVM::Enter password Completed")
         xenrt.sleep(5)
         xenrt.TEC().logverbose("ConversionVM::VPX Login Completed")
+        self.place.writeToConsole("service sshd start\\n")
+        xenrt.sleep(30)
 
     def getVpx(self, session):
         # call the XenServer host plugin to get the IP address of the conversion VPX,

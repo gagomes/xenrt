@@ -1620,8 +1620,6 @@ class TCVPXConversionSourceCheck(SourceISOCheck): # TC-18001
         #self.convServer.doSanityChecks()
         # Increasing default uptime from 300 seconds to 3600 seconds
         self.convServer.increaseConversionVMUptime(3600)
-        # Install SSH on the Conversion VM
-        self.convServer.installSSH()
         g.hasSSH = True
         time.sleep(30)
 

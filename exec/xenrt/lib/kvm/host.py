@@ -239,14 +239,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 has_virsh_pri_bridge = self.execcmd("virsh iface-list|grep %s|wc -l" % (pri_bridge,)).strip() != "0"
                 if not has_virsh_pri_bridge:
                     self.createNetwork(name=pri_bridge)
-                    host.execvirt("virsh net-destroy %s" % (previous_bridge,))
-                    host.execvirt("virsh net-undefine %s" % (previous_bridge,))
+                    self.execvirt("virsh net-destroy %s" % (previous_bridge,))
+                    self.execvirt("virsh net-undefine %s" % (previous_bridge,))
                     networkConfig  = "<network>"
                     networkConfig += "<name>%s</name>" % (pri_bridge,)
                     networkConfig += "<forward mode='bridge'/>"
                     networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
                     networkConfig += "</network>"
-                    host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+                    self.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+
+                xenrt.GEC().registry.objPut("libvirt", friendlynetname, pri_bridge)
 
                 if mgmt:
                     #use the ip of the mgtm nic on the list as the default ip of the host

@@ -1226,6 +1226,8 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_50_64"] = "debian5_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60"] = "debian6"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60_64"] = "debian6_64"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_70"] = "debian7"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_70_64"] = "debian7_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41"] = "rhel4"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41_64"] = "rhel4_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_44"] = "rhel4"

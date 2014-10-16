@@ -884,16 +884,15 @@ class Guest(xenrt.GenericGuest):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)
         reply = {}
+        id = 0
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("interface"):
             if node.getAttribute("type") == "bridge":
                 bridge = node.getElementsByTagName("source")[0].getAttribute("bridge")
-                brinfo = self.host.execdom0("brctl show %s" % bridge)
-                r = re.search("(nic\d+|eth\d+)", brinfo)
-                if r:
-                    nic = r.group(1)
-                    mac = node.getElementsByTagName("mac")[0].getAttribute("address")
-                    ip = None
-                    reply[nic] = (mac, ip, bridge)
+                nic = self.VIFSTEM + str(id)
+                mac = node.getElementsByTagName("mac")[0].getAttribute("address")
+                ip = None
+                reply[nic] = (mac, ip, bridge)
+                id += 1
         xmldom.unlink()
         return reply
 

@@ -10,6 +10,7 @@
 
 import string, time
 import xenrt
+import assertions
 
 class TCVerifyDriversUptoDate(xenrt.TestCase):
 
@@ -163,4 +164,20 @@ class TCDriverUpgrade(xenrt.TestCase):
             guest.installTools()
         guest.waitForAgent(60)
         guest.shutdown()
+
+
+
+class TCGPODoesNotBSOD(xenrt.TestCase):
+
+    def run(self, arglist=None):
+        host = self.getDefaultHost()
+        guest = self.getGuest(host.listGuests()[0])
+        assertTrue(guest.windows, "Guest is not windows")
+
+        self.__setGPO(guest)
+        guest.installDrivers()
+        guest.checkHealth()
+
+    def __setGPO(self, guest):
+        pass
 

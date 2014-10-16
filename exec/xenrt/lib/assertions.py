@@ -1,10 +1,16 @@
 import xenrt
 
 
-def assertEquals(expectedValue, actualValue):
+def assertTrue(actualValue, message=None):
+    assertEquals(True, actualValue, message)
+
+
+def assertEquals(expectedValue, actualValue, message=None):
     if expectedValue != actualValue:
-        raise xenrt.XRTFailure(
-            '%s != %s' % (repr(expectedValue), repr(actualValue)))
+        msg = message
+        if not message:
+            msg = '%s != %s' % (repr(expectedValue), repr(actualValue))
+        raise xenrt.XRTFailure(msg)
 
 
 def assertIn(expectedFragment, actualData):

@@ -6861,6 +6861,9 @@ class GenericGuest(GenericPlace):
                     if not memcap:
                         memcap = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], None)
 
+                if xenrt.TEC().lookup("IGNORE_MEM_LIMITATIONS", False, boolean=True):
+                    memcap = None
+
                 if memcap and self.memory > int(memcap):
                     xenrt.TEC().logverbose("%s will not use more than %sMB memory." % (self.distro, memcap))
                     m = int(memcap)

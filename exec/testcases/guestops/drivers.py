@@ -8,11 +8,11 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, string, time
+import string, time
 import xenrt
 
 class TCVerifyDriversUptoDate(xenrt.TestCase):
-    
+
     def run(self, arglist=None):
         gname = None
         for arg in arglist:
@@ -22,10 +22,10 @@ class TCVerifyDriversUptoDate(xenrt.TestCase):
 
         if not gname:
             raise xenrt.XRTError("No guest name specified.")
-        
+
         guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
-        
+
         if not guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as up-to-date after installation")
 
@@ -60,7 +60,7 @@ class TCDriverInstall(xenrt.TestCase):
                               boolean=True):
             xenrt.TEC().skip("Skipping because of --noinstall option.")
             return
-    
+
         # Mandatory args.
         gname = None
         verify = False
@@ -85,7 +85,7 @@ class TCDriverInstall(xenrt.TestCase):
                 resident_on = l[1]
             elif l[0] == "useHostTimeUTC":
                 useHostTimeUTC = True
-        
+
         if not gname:
             raise xenrt.XRTError("No guest name specified.")
 
@@ -96,7 +96,7 @@ class TCDriverInstall(xenrt.TestCase):
         else:
             guest = self.getGuest(gname)
         self.getLogsFrom(guest.host)
-        
+
         # Make sure the guest is up
         if guest.getState() == "DOWN":
             xenrt.TEC().comment("Starting guest for driver install")
@@ -109,7 +109,7 @@ class TCDriverInstall(xenrt.TestCase):
             guest.installDrivers(useHostTimeUTC=useHostTimeUTC)
         else:
             guest.installDrivers()
-        
+
         if xenrt.TEC().lookup("DISABLE_EMULATED_DEVICES", False, boolean=True):
             guest.shutdown()
             cli = guest.getCLIInstance()

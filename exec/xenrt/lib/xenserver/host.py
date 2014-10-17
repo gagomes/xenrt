@@ -1615,9 +1615,9 @@ done
         else:
             pxecfg.mbootArgsKernelAdd("console=com%s,tty" % (comport))
         if isinstance(self, xenrt.lib.xenserver.TampaHost):
-            pxecfg.mbootArgsKernelAdd("dom0_mem=752M,max:752M")
+            pxecfg.mbootArgsKernelAdd("dom0_mem=2048,max:2048")
         else:
-            pxecfg.mbootArgsKernelAdd("dom0_mem=752M")
+            pxecfg.mbootArgsKernelAdd("dom0_mem=2048")
         pxecfg.mbootArgsKernelAdd("dom0_max_vcpus=2")
         if xen_extra_args:
             pxecfg.mbootArgsKernelAdd(xen_extra_args)
@@ -1670,6 +1670,9 @@ done
                                 % (dom0_extra_args_user))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             pxecfg.mbootArgsModule1Add("bash-shell")
+
+	pxecfg.mbootArgsModule1Add("net.ifnames=0")
+	pxecfg.mbootArgsModule1Add("biosdevname=0")
 
         if self.bootLun:
             pxecfg.mbootArgsModule1Add("use_ibft")

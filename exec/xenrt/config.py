@@ -3209,6 +3209,9 @@ class Config:
             except:
                 return ""
         
+        if not self.config.has_key("VERSION") and self.config.has_key("PRODUCT_TYPE"):
+                self.config["VERSION"] = self.config["PRODUCT_TYPE"]
+
         if self.config.has_key("INPUTDIR"):
             self.config["REVISION"] = getRevisionfromInputdir(self.config["INPUTDIR"])
         elif self.config.has_key("TO_PRODUCT_INPUTDIR"):

@@ -1615,9 +1615,9 @@ done
         else:
             pxecfg.mbootArgsKernelAdd("console=com%s,tty" % (comport))
         if isinstance(self, xenrt.lib.xenserver.TampaHost):
-            pxecfg.mbootArgsKernelAdd("dom0_mem=2048,max:2048")
+            pxecfg.mbootArgsKernelAdd("dom0_mem=2048M,max:2048M")
         else:
-            pxecfg.mbootArgsKernelAdd("dom0_mem=2048")
+            pxecfg.mbootArgsKernelAdd("dom0_mem=2048M")
         pxecfg.mbootArgsKernelAdd("dom0_max_vcpus=2")
         if xen_extra_args:
             pxecfg.mbootArgsKernelAdd(xen_extra_args)

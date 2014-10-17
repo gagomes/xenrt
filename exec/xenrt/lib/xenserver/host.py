@@ -1970,6 +1970,10 @@ fi
             except xenrt.XRTFailure, e:
                 self.checkForHardwareBootProblem(False)
                 raise
+
+	# Wait for all services to start
+	xenrt.sleep(180)
+
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 

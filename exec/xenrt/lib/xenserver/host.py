@@ -1971,6 +1971,9 @@ fi
                 self.checkForHardwareBootProblem(False)
                 raise
 
+	# Wait for firstboot and other scripts to complete
+	xenrt.sleep(300)
+
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 
@@ -7968,7 +7971,6 @@ class MNRHost(Host):
     def __detect_v6(self):
         """Detect whether the host requires v6 licensing"""
 
-	self.waitForXapi(600, desc="xapi startup")
         try:
             self.paramGet("software-version", "dbv")
             # If this succeeds then a dbv field is present, so we are on v6

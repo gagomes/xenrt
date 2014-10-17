@@ -477,6 +477,16 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             xenrt.TEC().logverbose("convertNetworkToAssumedid (ESXHost %s): MAC %s corresponds to assumedid %d" % (host, nicmac, assumedid))
             return assumedid
 
+        elif isinstance(host, xenrt.lib.kvm.KVMHost):
+            # cloudbrX -> MAC         virsh iface-mac
+            #          -> assumedid   h.listSecondaryNICs
+
+            brname = network
+            nicmac = host.execvirt("virsh iface-mac %s" % brname).strip()
+            assumedid = host.listSecondaryNICs(macaddr=nicmac)[0]
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (KVMHost: %s): MAC %s corresponds to assumedid %d" % (host, nicmac, assumedid))
+            return assumedid
+
         else:
             raise xenrt.XRTError("convertNetworkToAssumedid does not support hosts of type %s" % (type(host)))
 

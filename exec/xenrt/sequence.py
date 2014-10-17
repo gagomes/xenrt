@@ -1491,7 +1491,7 @@ class PrepareNode:
 
         if not nohostprepare:
             # Get rid of the old CCP management servers, and the info about them
-            xenrt.TEC().logverbose("Resetting machines Cloudstack info")
+            xenrt.TEC().logverbose("Resetting machine info")
             i = 0
             cleanedGuests = []
             while True:
@@ -1514,6 +1514,7 @@ class PrepareNode:
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSIP", ""])
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSGUEST", ""])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "WINDOWS", ""])
                 except:
                     pass
                 i += 1

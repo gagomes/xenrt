@@ -8431,14 +8431,14 @@ class MNRHost(Host):
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") != 0:
                     xenrt.TEC().reason("No process found with PID %d" % pid)
                     ok = 0
-                elif self.execdom0("readlink /proc/%d/exe" % pid).strip() != "/sbin/dhclient":
+                elif os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) != "dhclient":
                     xenrt.TEC().reason("Process %d is not /sbin/dhclient" % pid)
                     ok = 0
         elif proto == "static":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") == 0:
                 pid = int(self.execdom0("cat /var/run/dhclient-%s.pid" % name).strip())
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") == 0 and \
-                   self.execdom0("readlink /proc/%d/exe" % pid).strip() == "/sbin/dhclient":
+                   os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) == "dhclient":
                     ok = 0
                     xenrt.TEC().reason("dhclient (%d) found for static interface" % pid)
 

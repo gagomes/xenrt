@@ -976,43 +976,6 @@ class Guest(xenrt.GenericGuest):
         self.uuid = self.getHost().getGuestUUID(self)
         return self.uuid
         
-    def listVIFs(self):
-        """Return a dictionary of the guest's VIFs and their parameters"""
-        vifs = {}
-        cli = self.getCLIInstance()
-        o = cli.execute("vm-vif-list", "vm-name=%s" % (self.name))
-        name = None
-        mac = None
-        ip = None
-        vbridge = None
-        rate = None
-        for line in string.split(o, "\n"):
-            r = re.search(r"^name: (\S+)", line)
-            if r:
-                if name:
-                    vifs[name] = (mac, ip, vbridge, rate)
-                name = r.group(1)
-                mac = None
-                ip = None
-                vbridge = None
-                rate = None                
-            if name:
-                r = re.search(r"mac: ([0-9A-Fa-f:]+)", line)
-                if r:
-                    mac = r.group(1)
-                r = re.search(r"ip: ([0-9\.]+)", line)
-                if r:
-                    ip = r.group(1)
-                r = re.search(r"vbridge: (\S+)", line)
-                if r:
-                    vbridge = r.group(1)
-                r = re.search(r"rate: ([0-9]+)", line)
-                if r:
-                    rate = int(r.group(1))
-        if name:
-            vifs[name] = (mac, ip, vbridge, rate)
-        return vifs
-
     def hasRootDisk(self):
         return (len(self.listVBDs()) > 0)            
 

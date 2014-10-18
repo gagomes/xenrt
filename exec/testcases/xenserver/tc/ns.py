@@ -819,7 +819,7 @@ class NSBVT(xenrt.TestCase):
     ATS_PASSWORD = "freebsd"
 
     # Client VMs should reside on Client VLAN 
-    ATS = "ATS.xva"
+    ATS = "ATS_10_5.xva"
     BWC1="BWC1.xva"
     BWC2="BWC2.xva"
     LCLNT1="LCLNT1.xva"
@@ -836,11 +836,12 @@ class NSBVT(xenrt.TestCase):
     IIS3 = "IIS3.xva"
 
     # NS VMs
-    VPX1 = "VPX1.xva"
-    VPX2 = "VPX2.xva"
+    VPX1 = "VPX1_10_5.xva"
+    VPX2 = "VPX2_10_5.xva"
 
     # Acceptable failures
-    IGNORE_TESTS = set(['26.2.1.37', '26.2.1.53', '26.2.1.87', '26.2.1.150'])
+    IGNORE_TESTS = set(['26.2.1.14', '26.2.1.192', '26.2.1.37'])
+    
     
     def getMountDir(self, mounts, src_path):
         
@@ -1040,16 +1041,52 @@ class NSBVT(xenrt.TestCase):
         self.configureTestVM(host, vlan_lst, xva_path, vm_key, start_vm)
         
         return
-
-
+    
+    def configurLClientNetwork(self, clnt, vm_uuid):
+        
+        self.addVIFOnVlan(clnt, vm_uuid, None, "1")
+        guest = self.createAtsGuestObject(clnt, vm_uuid)
+        guest.enlightenedDrivers = False
+        guest.start()
+        xenrt.sleep(180)
+        guest.waitForSSH(300, level=xenrt.RC_ERROR, desc="Waiting for LCLNT vm to boot")
+        guest.execcmd("cat /etc/sysconfig/network-scripts/ifcfg-eth7.bak > /etc/sysconfig/network-scripts/ifcfg-eth7",
+                       username='root', retval='code', password='freebsd')
+        
+        vlan_lst = [self.CLIENT_VLAN]
+        for i in range(len(vlan_lst)):
+            nic = str(i)
+            vlan = vlan_lst[i]
+            self.addVIFOnVlan(clnt, vm_uuid, vlan, nic)
+        
+        xenrt.sleep(60)
+        guest.execcmd("/sbin/reboot", username='root', retval='code', password='freebsd')
+        
+    
+    def configurLClient(self, xva):
+        xva_path = os.path.join(self.cfg['clnt_nfs_dir'],
+                                self.cfg["xva_dir"],
+                                xva)
+        vm_key = xva.split('.')[0].strip().lower() + '_uuid'
+        clnt = self.cfg['clnt']
+        vm_uuid = self.importXVA(clnt, xva_path)
+        self.cfg[vm_key] = vm_uuid
+        self.deleteAllVIFs(clnt, vm_uuid)
+        self.configurLClientNetwork(clnt, vm_uuid)
+        
+    
     def configureClient(self, start_vm=True):
         
         self.cfg['clnt_nfs_dir'] = self.mountXvaNfsDir(self.cfg['clnt'])
         
-        client_test_vms = [self.BWC1, self.BWC2, self.LCLNT1, self.LCLNT2, self.WCLNT1]
-        
+        #client_test_vms = [self.BWC1, self.BWC2, self.LCLNT1, self.LCLNT2, self.WCLNT1]
+        client_test_vms = [self.BWC1, self.BWC2, self.WCLNT1]
         for xva in client_test_vms:
             self.configureClientVM(xva, start_vm)
+            
+        client_test_vms_lc = [self.LCLNT1, self.LCLNT2]
+        for xva in client_test_vms_lc:
+            self.configurLClient(xva)
             
         self.configureAtsController()
         if start_vm:
@@ -1289,7 +1326,7 @@ class NSBVT(xenrt.TestCase):
         self.startTest()
 
         # A little wait can do wonders
-        time.sleep(60 * 5)
+        time.sleep(60 * 10)
         status = self.pollTestStatus()
         if status == 'RUNNING':
             self.stopTest()

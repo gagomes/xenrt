@@ -2069,8 +2069,8 @@ fi
             self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
             self.restartToolstack()
 
-        if xenrt.TEC().lookup("USE_TLS", False, boolean=True):
-            self.execdom0("sed -i 's/TIMEOUTclose = 0/options = NO_SSLv3\\\nTIMEOUTclose = 0/g' /etc/init.d/xapissl")
+        if xenrt.TEC().lookup("USE_TLS_" + (self.productVersion or "").upper(), False, boolean=True):
+            self.execdom0("sed -i 's/TIMEOUTclose = 0/options = NO_SSLv3\\\nTIMEOUTclose = 0/g' /etc/init.d/xapissl", newlineok=True)
             self.execdom0("cat /etc/init.d/xapissl")
             self.restartToolstack()
         

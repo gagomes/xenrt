@@ -65,7 +65,7 @@ def createHost(id=0,
 
     if installSRType != "no":
         # Add the default SR which is installed by ESX
-        sr = xenrt.lib.esx.EXTStorageRepository(host, "datastore1")
+        sr = xenrt.lib.esx.EXTStorageRepository(host, host.getDefaultDatastore())
         sr.existing()
         host.addSR(sr)
 
@@ -80,7 +80,7 @@ def createHost(id=0,
 class ESXHost(xenrt.lib.libvirt.Host):
 
     LIBVIRT_REMOTE_DAEMON = False
-    TCPDUMP = "tcpdump-uw"
+    TCPDUMP = "tcpdump-uw -p" # -p makes it not use promiscuous mode, which causes packets to be duplicated
 
     def __init__(self, machine, productType="esx", productVersion="esx"):
         xenrt.lib.libvirt.Host.__init__(self, machine,
@@ -93,9 +93,13 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def guestFactory(self):
         return xenrt.lib.esx.guest.Guest
 
+    # Normally it's datastore1, but sometimes you get datastore2. Not clear why.
+    def getDefaultDatastore(self):
+        # Let's return the first one we find in the list of volumes.
+        return self.execdom0("cd /vmfs/volumes && ls -d datastore* | head -n 1").strip()
+
     def lookupDefaultSR(self):
-        # TODO
-        return self.srs["datastore1"].uuid
+        return self.srs[self.getDefaultDatastore()].uuid
 
     def getSRNameFromPath(self, srpath):
         """Returns the name of the SR in the path.
@@ -167,6 +171,18 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def getDefaultInterface(self):
         """Return the first *physical nic* on the host. See output from 'esxcfg-nics -l'"""
         return "vmnic0"
+
+    def getNIC(self, assumedid):
+        """ Return the product enumeration name (e.g. "vmnic0") for the
+        assumed enumeration ID (integer)"""
+        mac = self.getNICMACAddress(assumedid)
+        mac = xenrt.util.normaliseMAC(mac)
+        ieth = self.execcmd("esxcfg-nics -l | fgrep -i ' %s ' | awk '{print $1}'" % (mac)).strip()
+        if ieth == '':
+            raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
+        else:
+            xenrt.TEC().logverbose("getNIC: interface with MAC %s is %s" % (mac, ieth))
+            return ieth
 
     def arpwatch(self, iface, mac, **kwargs):
         xenrt.TEC().logverbose("Working out vmkernel device for iface='%s' in order to arpwatch for %s..." % (iface, mac))
@@ -325,8 +341,8 @@ reboot
             toolsFile = "%s/tools.t00" % (mountpoint)
 
             # Use the first-named datastore to temporarily dump the file. (Alternatively, could use /tardisks?)
-            firstDatastore = self.execdom0("ls -d /vmfs/volumes/datastore* | head -n 1").strip()
-            destFilePath = "%s/tools.t00" % (firstDatastore)
+            firstDatastore = self.getDefaultDatastore()
+            destFilePath = "/vmfs/volumes/%s/tools.t00" % (firstDatastore)
             sftp = self.sftpClient()
             try:
                 sftp.copyTo(toolsFile, destFilePath)

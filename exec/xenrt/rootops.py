@@ -103,8 +103,8 @@ class MountISO(Mount):
         Mount.__init__(self, iso, options="loop,ro")
 
 class MountNFS(Mount):
-    def __init__(self, nfs, retry=True):
-        Mount.__init__(self, nfs, options="nfsvers=3", mtype="nfs", retry=retry)
+    def __init__(self, nfs, retry=True, version="3"):
+        Mount.__init__(self, nfs, options="nfsvers=%s" % version, mtype="nfs", retry=retry)
 
 class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):

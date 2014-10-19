@@ -46,11 +46,14 @@ def createHost(id=0,
     m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
     xenrt.GEC().startLogger(m)
 
+    xenrt.TEC().logverbose("KVM.createHost: productType='%s' productVersion='%s' version='%s'" % (productType, productVersion, version))
     if productVersion:
         (distro, arch) = xenrt.getDistroAndArch(productVersion)
     else:
         distro = "centos64"
-        arch = "x86-32"
+        arch = "x86-64"
+
+    xenrt.TEC().logverbose("KVM.createHost: using distro '%s' (%s)" % (distro, arch))
 
     host = KVMHost(m, productVersion=productVersion, productType=productType)
     extrapackages = []
@@ -60,6 +63,8 @@ def createHost(id=0,
         rhel7 = True
         extrapackages.append("ntp")
         extrapackages.append("wget")
+        extrapackages.append("virt-install")
+        extrapackages.append("qemu-kvm")
     else:
         extrapackages.append("python-virtinst")
         extrapackages.append("kvm")

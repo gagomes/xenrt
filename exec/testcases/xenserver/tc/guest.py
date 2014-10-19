@@ -88,11 +88,7 @@ class TC7477(xenrt.TestCase):
         guests = []
 
         # Create initial guest
-        guest = host.guestFactory()(
-                    xenrt.randomGuestName(),
-                    None,
-                    host)
-        self.uninstallOnCleanup(guest)
+        guest = host.guestFactory()(xenrt.randomGuestName(), None, host)
         guest.createHVMGuest([], pxe=True)
         guest.memset(256)
         guest.createVIF(bridge=host.getPrimaryBridge())
@@ -101,7 +97,6 @@ class TC7477(xenrt.TestCase):
         # Clone it the required number of times
         for i in range(vmcount-1):
             g = guest.cloneVM()
-            self.uninstallOnCleanup(g)
             guests.append(g.getUUID())
 
         # Run a script in dom0 to vm-uninstall force=true the VMs
@@ -131,8 +126,7 @@ class TC7477(xenrt.TestCase):
         if present > 0:
             xenrt.TEC().comment("%u VMs left" % (present))
             # Deliberately don't give the number left, to avoid filing new bugs
-            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left "
-                                   "some behind" % (vmcount))
+            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left some behind" % (vmcount))
 
 class TC8605(xenrt.TestCase):
     """Suspend of a VM without PV drivers should be prevented"""
@@ -1149,6 +1143,8 @@ class TCWinSMBFileTransfer(xenrt.TestCase):
    
     def getCopyDurationFromRobocopyLog(self, guest, robocopyLogFile, expectedFilesCopied=None):
         logData = guest.xmlrpcReadFile(robocopyLogFile)
+        if logData:
+            xenrt.TEC().logverbose(logData)
         data = map(lambda x:x.split(), logData.splitlines())
         data = filter(lambda x:len(x) > 0, data)
         filesData = filter(lambda x:x[0] == 'Files', data)

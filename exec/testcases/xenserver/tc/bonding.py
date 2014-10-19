@@ -2307,7 +2307,7 @@ class _BondBalance(_AggregateBondTest):
             raise xenrt.XRTError("Found %u sources, expecting %u" %
                                  (sum(nicSourceCounts.values()), numSources))
         
-        if len(ifs) != 2:        
+        if len(ifs) > 2:        
             raise xenrt.XRTError("Load balancing verification is NOT yet implemented for more than 2 slaves")
         
         if self.host.special['Network subsystem type'] == "linux":
@@ -2331,7 +2331,7 @@ class _BondBalance(_AggregateBondTest):
             if balanceratio >=0.75 and balanceratio <=1 :
                 xenrt.log("Load is BALANCED with ratio of %s " %balanceratio)
             else :
-                raise xenrt.XRTFailure("Load is a not balance across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
+                raise xenrt.XRTFailure("Load is not balanced across nics . Balance ratio = %s .%s load = %s,%s load = %s"%(balanceratio,ifs[0],iftraffic0,ifs[1],iftraffic1))
             
 
 class TC8310(_BondBalance):

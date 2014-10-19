@@ -1035,7 +1035,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_112_64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit),SUSE Linux Enterprise Server 11 SP2 x64"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit),SUSE Linux Enterprise Server 11 SP3"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_113_64"] = "SUSE Linux Enterprise Server 11 SP3 (64-bit),SUSE Linux Enterprise Server 11 SP3 x64"
-        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_12_64"] = "Red Hat Enterprise Linux 7"
+        self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SLES_12_64"] = "SUSE Linux Enterprise Server 12 (64-bit)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9_32"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_SOLARIS_10U9"] = "Solaris 10 (experimental)"
         self.config["VERSION_CONFIG"]["Sarasota"]["TEMPLATE_NAME_WINDOWS_2003_64"] = "Windows Server 2003 (64-bit),Windows Server 2003 x64"
@@ -1226,6 +1226,8 @@ class Config:
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_50_64"] = "debian5_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60"] = "debian6"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_60_64"] = "debian6_64"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_70"] = "debian7"
+        self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_DEBIAN_70_64"] = "debian7_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41"] = "rhel4"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_41_64"] = "rhel4_64"
         self.config["VERSION_CONFIG"]["esx"]["TEMPLATE_NAME_RHEL_44"] = "rhel4"
@@ -1500,7 +1502,7 @@ class Config:
         self.config["CLOUD_CONFIG"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"] = {}
-        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["3.0.7"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/acton-systemvm-02062012.vhd.bz2"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"] = {}
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["winxpsp3"] = "Windows XP SP3 (32-bit)"
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["w2k3eesp2"] = "Windows Server 2003 Enterprise Edition(32-bit)"
@@ -1661,6 +1663,7 @@ class Config:
         self.config["CLOUD_CONFIG"]["3.0.7"]["OS_NAMES"]["sles112_x86-64"] = "SUSE Linux Enterprise Server 11 SP2 (64-bit)"
 
         self.config["CLOUD_CONFIG"]["4.1"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["3.0.7"])
+        self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
 

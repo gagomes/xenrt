@@ -2069,6 +2069,11 @@ fi
             self.execdom0("sed -i 's/default-vbd-backend-kind=vbd3/default-vbd-backend-kind=vbd/' /etc/xenopsd.conf")
             self.restartToolstack()
 
+        if xenrt.TEC().lookup("USE_TLS_" + (self.productVersion or "").upper(), False, boolean=True):
+            self.execdom0("sed -i 's/TIMEOUTclose = 0/options = NO_SSLv3\\\nTIMEOUTclose = 0/g' /etc/init.d/xapissl", newlineok=True)
+            self.execdom0("cat /etc/init.d/xapissl")
+            self.restartToolstack()
+        
         if xenrt.TEC().lookup("HOST_POST_INSTALL_REBOOT", False, boolean=True):
             self.reboot()
 
@@ -14324,7 +14329,7 @@ class Tile:
         # 2x w2k3eesp2 VMs
         # 2x RHEL 5.1 VMs    
 
-        winWorkloads = [["Prime95"],["IOMeter"]]
+        winWorkloads = [["Prime95"]]
         linuxWorkloads = [[],["LinuxSysbench"]]
         tileMemory = int(xenrt.TEC().lookup("TILE_MEMORY_MB", "2048")) # 2GB default
 
@@ -14362,13 +14367,13 @@ class Tile:
             li = 0
             for g in self.guests:
                 if g.windows:
-                    self.guestWorkloads[g] = \
-                                          g.installWorkloads(winWorkloads[wi])
-                    wi += 1
+                    if len(winWorkloads) > wi:
+                        self.guestWorkloads[g] = g.installWorkloads(winWorkloads[wi])
+                        wi += 1
                 else:
-                    self.guestWorkloads[g] = \
-                                          g.installWorkloads(linuxWorkloads[li])
-                    li += 1
+                    if len(linuxWorkloads) > li:
+                        self.guestWorkloads[g] = g.installWorkloads(linuxWorkloads[li])
+                        li += 1
 
         # Make sure they're shut down
         for g in self.guests:
@@ -14471,7 +14476,7 @@ class Tile:
                 xenrt.TEC().logverbose("%s.findHost() exception: %s" %
                                        (g.getName(), str(e)))
             g.check()
-            if self.useWorkloads:
+            if self.useWorkloads and self.guestWorkloads.has_key(g):
                 for w in self.guestWorkloads[g]:
                     # Verify workloads still running correctly
                     if not w.checkRunning():

@@ -425,8 +425,7 @@ class Guest(xenrt.GenericGuest):
 
         self._preInstall()
 
-        # TODO adjustable disk size
-        self.host.hypervCmd("New-VM -Name \"%s\" -MemoryStartupBytes %dMB -NewVHDPath %s\\%s.vhdx -NewVHDSizeBytes 32GB -Generation 1" % (self.name, self.memory, srpath, str(uuid.uuid4())))
+        self.host.hypervCmd("New-VM -Name \"%s\" -MemoryStartupBytes %dMB -NewVHDPath %s\\%s.vhdx -NewVHDSizeBytes %d -Generation 1" % (self.name, self.memory, srpath, str(uuid.uuid4()), rootdisk))
         # Delete the default network adapter
         self.host.hypervCmd("Remove-VMNetworkAdapter -VMName \"%s\"" % self.name)
 

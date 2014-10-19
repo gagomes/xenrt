@@ -2884,7 +2884,7 @@ class TCMemoryActual(xenrt.TestCase):
             xenrt.TEC().logverbose("Memory Actual after Migration= %s" % memoryActual)
             xenrt.TEC().logverbose("Memory Target after Migration= %s" % memoryTarget)
             if abs(memoryActual - 4096) > 2:
-                raise xenrt.XRTFailure("Unexpected memory actual. memoryActual=%s. dynamicMin=4096" % memoryActual)
+                raise xenrt.XRTFailure("Unexpected memory actual after VM migration")
      
             step("Perform vm migration to master")
             g.migrateVM(self.host0, live="true")
@@ -2895,4 +2895,4 @@ class TCMemoryActual(xenrt.TestCase):
             xenrt.TEC().logverbose("Memory Actual after Migration= %s" % memoryActual)
             xenrt.TEC().logverbose("Memory Target after Migration= %s" % memoryTarget)
             if abs(memoryActual - 4096) > 2:
-                raise xenrt.XRTFailure("Unexpected memory actual. memoryActual=%s. dynamicMin=4096" % memoryActual)
+                raise xenrt.XRTFailure("Unexpected memory actual after VM migration")

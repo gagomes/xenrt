@@ -25,6 +25,9 @@ def _initialise(host, prog):
 def initialise_master_in_dom0(host):
     _initialise(host, "synexec_master")
 
+def initialise_master_in_guest(guest):
+    _initialise(guest, "synexec_master")
+
 def initialise_slave(slave):
     _initialise(slave, "synexec_slave")
 
@@ -32,15 +35,21 @@ def start_slave(slave, jobid, port=None):
     port = " -p %d" % port if port else ""
     slave.execguest("/root/synexec_slave -v%s -s %d >> /tmp/synexec.log &" % (port, jobid))
 
+def _start_master(master, slaveCommand, jobid, numclients, ifname=''):
+    # Write synexec master configuration file
+    master.execcmd("echo '%s' > /root/synexec.conf" % slaveCommand)
+
+    # Run synexec master
+    return master.execcmd("/root/synexec_master %s -v -s %d %d /root/synexec.conf 1>/root/synexec_master.log 2>&1" % (ifname, jobid, numclients))
+
 def start_master_in_dom0(host, slaveCommand, jobid, numclients):
     # Disable firewall on DOM0 to allow synexec to communicate
     host.execdom0("iptables -F INPUT")
 
-    # Write synexec master configuration file
-    host.execdom0("echo \"%s\" > /root/synexec.conf" % slaveCommand)
+    return _start_master(host, slaveCommand, jobid, numclients, get_if_name_param())
 
-    # Run synexec master
-    host.execdom0("/root/synexec_master %s -v -s %d %d /root/synexec.conf 1>/root/synexec_master.log 2>&1" % (get_if_name_param(), jobid, numclients))
+def start_master_in_guest(guest, slaveCommand, jobid, numclients):
+    return _start_master(guest, slaveCommand, jobid, numclients, '')
 
 def initialise_master_on_controller(jobid):
     workdir = "/tmp/synexec%d" % jobid
@@ -89,3 +98,7 @@ def get_master_log_on_controller(jobid):
     data = f.read()
     f.close()
     return data
+
+def kill_slave(slave):
+    slave.execcmd("killall synexec_slave || true")
+    slave.execcmd("killall -9 synexec_slave || true")

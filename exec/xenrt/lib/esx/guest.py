@@ -44,7 +44,7 @@ class Guest(xenrt.lib.libvirt.Guest):
     def _detectDistro(self):
         # we put the "distro" in the "template" field
         try:
-            self.template = self.host.execdom0("grep 'guestOS = .*' /vmfs/volumes/datastore1/%s/%s.vmx" % (self.name, self.name)).strip().replace("guestOS = ", "").strip("\"")
+            self.template = self.host.execdom0("grep 'guestOS = .*' /vmfs/volumes/%s/%s/%s.vmx" % (self.host.getDefaultDatastore(), self.name, self.name)).strip().replace("guestOS = ", "").strip("\"")
             self.distro = self.template
             if "win" in self.distro:
                 self.windows = True
@@ -82,8 +82,8 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.virDomain = xenrt.lib.libvirt.tryupto(self.virConn.defineXML)(newxmlstr)
         self.uuid = self.virDomain.UUIDString()
         # do some manual tweaking
-        self.host.execdom0("sed -i -e 's/guestOS = \".*\"/guestOS = \"%s\"/' /vmfs/volumes/datastore1/%s/%s.vmx" %
-                           (self.template.replace("Guest", ""), self.name, self.name))
+        self.host.execdom0("sed -i -e 's/guestOS = \".*\"/guestOS = \"%s\"/' /vmfs/volumes/%s/%s/%s.vmx" %
+                           (self.template.replace("Guest", ""), self.host.getDefaultDatastore(), self.name, self.name))
         # Specifying a pciBridge is required in order to use vmxnet3, otherwise you'll get a cryptic "Vmxnet3 PCI: failed to register vmxnet3 PCIe device" error
         extralines = [
             "pciBridge0.present = \"TRUE\"",
@@ -91,7 +91,7 @@ class Guest(xenrt.lib.libvirt.Guest):
             "pciBridge0.functions = \"8\"",
         ]
         for line in extralines:
-            self.host.execdom0("echo '%s' >> /vmfs/volumes/datastore1/%s/%s.vmx" % (line, self.name, self.name))
+            self.host.execdom0("echo '%s' >> /vmfs/volumes/%s/%s/%s.vmx" % (line, self.host.getDefaultDatastore(), self.name, self.name))
 
     def _esxGetVMID(self):
         return self.host.execdom0("vim-cmd vmsvc/getallvms | grep '%s/%s.vmx'" % (self.name, self.name)).split(' ')[0]

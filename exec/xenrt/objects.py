@@ -6861,6 +6861,9 @@ class GenericGuest(GenericPlace):
                     if not memcap:
                         memcap = xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXMEMORY"], None)
 
+                if xenrt.TEC().lookup("IGNORE_MEM_LIMITATIONS", False, boolean=True):
+                    memcap = None
+
                 if memcap and self.memory > int(memcap):
                     xenrt.TEC().logverbose("%s will not use more than %sMB memory." % (self.distro, memcap))
                     m = int(memcap)
@@ -11648,6 +11651,8 @@ class ConversionApplianceServer:
         xenrt.TEC().logverbose("ConversionVM::Enter password Completed")
         xenrt.sleep(5)
         xenrt.TEC().logverbose("ConversionVM::VPX Login Completed")
+        self.place.writeToConsole("service sshd start\\n")
+        xenrt.sleep(30)
 
     def getVpx(self, session):
         # call the XenServer host plugin to get the IP address of the conversion VPX,

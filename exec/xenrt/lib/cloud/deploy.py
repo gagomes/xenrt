@@ -202,7 +202,11 @@ class DeployerPlugin(object):
             else:
                 return xenrt.TEC().lookup(["NETWORK_CONFIG", "VLANS", ref['XRT_VlanName'], "ID"])
         else:
-            return None
+            # It is mandatory to specify a VLAN for public IP ranges in 4.2.x and earlier releases
+            if self.marvin.mgtSvr.version in ['3.0.7', '4.1', '4.2']:
+                return 0
+            else:
+                return None
 
     def getGuestIPRangeStartAddr(self, key, ref):
         if self.currentIPRange != None:

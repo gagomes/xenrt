@@ -83,7 +83,8 @@ __all__ = ["timenow",
            "getMarvinFile",
            "dictToXML",
            "getNetworkParam",
-           "getCCPInputs"
+           "getCCPInputs",
+           "getCCPCommit"
            ]
 
 def sleep(secs, log=True):
@@ -1445,3 +1446,14 @@ def getCCPInputs(distro):
         return rh7Inputs
     else:
         return defaultInputs
+
+def getCCPCommit(distro):
+    defaultCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+    rh6Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL6", None)
+    rh7Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL7", None)
+    if rh6Commit and distro.startswith("rhel6") or distro.startswith("centos6"):
+        return rh6Commit
+    elif rh7Commit and distro.startswith("rhel7") or distro.startswith("centos7"):
+        return rh7Commit
+    else:
+        return defaultCommit

@@ -418,7 +418,7 @@ EOF
         except:
             xenrt.TEC().warning("Error when trying to identify agent version")
         if commit:
-            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            expectedCommit = xenrt.getCCPCommit(self.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
 

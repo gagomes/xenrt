@@ -227,7 +227,7 @@ class ManagementServer(object):
         except:
             xenrt.TEC().warning("Error when trying to identify management server version")
         if commit:
-            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            expectedCommit = xenrt.getCCPCommit(self.place.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("Management server commit %s does not match expected commit %s" % (commit, expectedCommit))
 

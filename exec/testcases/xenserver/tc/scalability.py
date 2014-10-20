@@ -58,12 +58,12 @@ class _Scalability(xenrt.TestCase):
             guest.start()
             guest.waitForAgent(180)
             guest.suspend()
-            guest.resume()  
+            guest.resume()
 
 
 
 class _VMScalability(_Scalability):
-    
+
     VCPUCOUNT= None #default values
     VIFCOUNT=1 #default values
     VIFS = False # No VIFs for individual VMs
@@ -80,13 +80,13 @@ class _VMScalability(_Scalability):
     DOM0MEM = False #Dom 0 Memory in MB
     NET_BRIDGE=False # Use Linux Bridge for Network Backend
     FLOW_EVT_THRESHOLD = False # set flow-eviction-threshold value (e.g.: 8192)
-    POSTRUN = "forcecleanup" #CA-126090      nocleanup|cleanup|forcecleanup    
-    
-    
+    POSTRUN = "forcecleanup" #CA-126090      nocleanup|cleanup|forcecleanup
+
+
     #Pin additional vCPUs for dom0. Will use this if TRYMAX is set to True
-    DOM0CPUS = False 
+    DOM0CPUS = False
     tunevcpus = 8
-    
+
     pri_bridge = False
     pool = None
     vmtemplate = "Golden-VM-Template"
@@ -110,14 +110,14 @@ class _VMScalability(_Scalability):
             self.MAX=int(value)
         elif param=="postrun": #Post Run Cleanup
             self.POSTRUN=value
-        
-    
+
+
     #Base class for cloning VMs with worker threads
     def prepare(self, arglist=None):
         # Find the gold VMs - we'll clone from these
         # e.g. if we have 2 golden images, we'll clone half from gold0 and half from gold1
         self.gold = []
-        
+
 
     def installVM(self, host):
         if self.DISTRO == "LINUX":
@@ -135,13 +135,13 @@ class _VMScalability(_Scalability):
         #the size of the additional VBDs are configured to be 1G, that can be made flexible
         for i in range(self.VBDCOUNT-1):
           disklist.append((str(i+1),1,False))
-        
+
         #Workaround to avoid a potential script failure in case of lower memory
         mem = False
         if self.MEMORY < 256:
             mem = self.MEMORY
-            self.MEMORY = 256   
-        
+            self.MEMORY = 256
+
         g0 = xenrt.lib.xenserver.guest.createVM(host,
                                                   self.vmtemplate,
                                                   distro,
@@ -150,18 +150,18 @@ class _VMScalability(_Scalability):
                                                   vifs=viflist,
                                                   disks=disklist,
                                                   vcpus=self.VCPUCOUNT)
-        
+
         if g0.windows:
             g0.installDrivers()
-        
+
         g0.shutdown()
-        
+
         #If memory set
         if mem:
             g0.memset(mem)
-        
+
         if self.TRYMAX:
-            # post-install post-shutdown    
+            # post-install post-shutdown
             xenrt.TEC().logverbose("Disabling specific guest features")
             host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g0.uuid)
             host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g0.uuid)
@@ -169,23 +169,23 @@ class _VMScalability(_Scalability):
             vbds = g0.listVBDUUIDs("CD")
             for vbd in vbds:
                 host.execdom0("xe vbd-destroy uuid=%s" % vbd)
-        
-        #Some SKUs only allow Windows to run on two sockets. So, we should present multiple vCPUs as a single socket.    
+
+        #Some SKUs only allow Windows to run on two sockets. So, we should present multiple vCPUs as a single socket.
         if self.VCPUCOUNT > 2 and self.DISTRO == "winxpsp3":
             g0.paramSet("platform:cores-per-socket", self.VCPUCOUNT/2)
-        
+
         return g0
 
     def runTC(self,host,tailor_guest=None):
-      
+
         if self.DOM0CPUS:
-            #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus 
+            #To increase I/O throughput for guest VMs, have dom0 with some exclusively-pinned vcpus
             try:
                 xenrt.TEC().logverbose("Set Dom0 with %s exclusively-pinned vcpus" % self.tunevcpus)
                 host.execdom0("%s set %s xpin" % (host._findXenBinary("host-cpu-tune"), self.tunevcpus),timeout=3600)
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to xpin Dom0 : %s" % (e))
-        
+
         if self.DOM0MEM:
             #editing the extlinux.conf file to change the dom0 mem values
             xenrt.TEC().logverbose("Update the DOM0 Memory")
@@ -195,16 +195,16 @@ class _VMScalability(_Scalability):
         if self.NET_BRIDGE:
             #Linux bridge on host side as Network backend
             host.execdom0("xe-switch-network-backend bridge")
-            
+
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
             host.reboot(timeout=3600)
-        
-        # Get the Existing Guest 
+
+        # Get the Existing Guest
         for gname in host.listGuests():
-            if gname != self.vmtemplate and host.getGuest(gname): 
+            if gname != self.vmtemplate and host.getGuest(gname):
                 self.guests.append(host.getGuest(gname))
-                
+
         if self.TRYMAX:
             for g in self.guests:
                 if g.getState() != "DOWN":
@@ -215,24 +215,24 @@ class _VMScalability(_Scalability):
                 vbds = g.listVBDUUIDs("CD")
                 for vbd in vbds:
                     host.execdom0("xe vbd-destroy uuid=%s" % vbd)
-                    
+
         if self.HATEST:
             try:
-                self.pool = xenrt.lib.xenserver.poolFactory(host.productVersion)(host)            
+                self.pool = xenrt.lib.xenserver.poolFactory(host.productVersion)(host)
                 # Enable HA on the pool
                 self.pool.enableHA()
-        
+
                 # Set nTol to 1
                 self.pool.setPoolParam("ha-host-failures-to-tolerate", 1)
             except xenrt.XRTFailure, e:
                 raise xenrt.XRTFailure("Failed to create HA enabled Pool.. %s" % (e))
-                
-        
+
+
         if self.MAX == True:
             max = int(xenrt.TEC().lookup("OVERRIDE_MAX_CONC_VMS", host.lookup("MAX_CONCURRENT_VMS")))
         else:
             max = self.MAX
- 
+
         #VM Master Copy
         guest = None
         if max == 0 or len(self.guests) < max:
@@ -247,8 +247,8 @@ class _VMScalability(_Scalability):
                     vbds = guest.listVBDUUIDs("CD")
                     for vbd in vbds:
                         host.execdom0("xe vbd-destroy uuid=%s" % vbd)
-        
-                    
+
+
             # Create the initial VM
             else:
                 guest = self.installVM(host)
@@ -256,12 +256,12 @@ class _VMScalability(_Scalability):
                 guest.shutdown()
             if self.POSTRUN != "nocleanup":
                 self.uninstallOnCleanup(guest)
-        
+
         if self.pri_bridge == False:
             self.pri_bridge = host.getPrimaryBridge()
         if self.FLOW_EVT_THRESHOLD and xenrt.TEC().lookup("NETWORK_BACKEND", None) != "bridge":
             host.execdom0("ovs-vsctl set bridge %s other-config:flow-eviction-threshold=%u" % (self.pri_bridge,self.FLOW_EVT_THRESHOLD))
-        
+
         if not self.VIFS and not self.CHECKREACHABLE:
             # Remove the VIF
             guest.removeVIF("0")
@@ -285,7 +285,7 @@ class _VMScalability(_Scalability):
                     xenrt.TEC().warning("Failed to start VM %u: %s" % (count+1,e))
                     break
             count += 1
-        
+
         #To reduce the Xenserver load, due to XenRT interference, it is better to start the guests after creating all the Clones
         if max != 0:
             for g in self.guests:
@@ -294,7 +294,7 @@ class _VMScalability(_Scalability):
                     if self.HATEST:
                         g.setHAPriority(order=2, protect=True, restart=False)
                         if not g.paramGet("ha-restart-priority") == "best-effort":
-                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName())) 
+                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
                 except xenrt.XRTFailure, e:
                     raise xenrt.XRTFailure("Couldn't start VM %s: %s" % (g.getName(),e))
                     break
@@ -313,7 +313,7 @@ class _VMScalability(_Scalability):
 
         #checking the health of the VMs ( checking if qemu is working if it's HVM VM,
         #taking a snapshot of the VM to search for BSODs and other issues)
-        upCount = 0		
+        upCount = 0
         if self.CHECKHEALTH:
             for g in self.guests:
                 try:
@@ -322,10 +322,10 @@ class _VMScalability(_Scalability):
                         upCount += 1
                 except:
                     xenrt.TEC().warning("Guest %s not up" % (g.getName()))
-                   
+
             xenrt.TEC().logverbose("%d/%d guests up" % (upCount, count))
-        
-        
+
+
         if max > 0:
             if count < max:
                 raise xenrt.XRTFailure("Asked to start %u VMs, only managed to "
@@ -335,10 +335,10 @@ class _VMScalability(_Scalability):
 
         if self.CHECKREACHABLE and aliveCount < count:
             raise xenrt.XRTFailure("%d guests not reachable" % (count-aliveCount))
-            
+
         if self.CHECKHEALTH and upCount < count:
             raise xenrt.XRTFailure("%d guests are not healthy" % (count-upCount))
-        
+
         if self.LOOPS > 0:
             # Looping test
             for g in self.guests:
@@ -355,7 +355,7 @@ class _VMScalability(_Scalability):
                     lcount += 1
             finally:
                 self.host.execdom0("sar -A")
-                xenrt.TEC().comment("%u/%u iterations successful" % 
+                xenrt.TEC().comment("%u/%u iterations successful" %
                                     (lcount,self.LOOPS))
 
     def postRun(self):
@@ -365,13 +365,13 @@ class _VMScalability(_Scalability):
                 self.pool.disableHA(check=False)
             except:
                 pass
-        
+
         if self.getResult(code=True) == xenrt.RESULT_FAIL or self.getResult(code=True) == xenrt.RESULT_ERROR:
             self.POSTRUN = "forcecleanup"
 
         if self.POSTRUN != "nocleanup":
             xenrt.TEC().logverbose("Starting Host Cleanup")
-            if self.POSTRUN == "forcecleanup":                
+            if self.POSTRUN == "forcecleanup":
                 self.host.reboot(forced=True)
             for g in self.guests:
                 try:
@@ -385,7 +385,7 @@ class _VMScalability(_Scalability):
 class _VIFScalability(_Scalability):
     MAX = None
     VALIDATE = False
-    
+
     def parseArgument(self,param,value):
         if param == "VIF_per_VM":
             self.MAX = int(xenrt.TEC().lookup(["VERSION_CONFIG", xenrt.TEC().lookup("PRODUCT_VERSION"), "VIF_PER_VM"]))
@@ -418,7 +418,7 @@ class _VIFScalability(_Scalability):
         else:
             max = self.MAX
 
-        # Start adding VIFs, once we reach allowed VIFs, make a new clone and 
+        # Start adding VIFs, once we reach allowed VIFs, make a new clone and
         # continue
         vmCount = 0
         vifCount = 0
@@ -435,7 +435,7 @@ class _VIFScalability(_Scalability):
                 vmCount += 1
                 vifCount += 1 # Each VM already has 1 vif
             except xenrt.XRTFailure, e:
-                xenrt.TEC().comment("Failed to create VM %u: %s" % 
+                xenrt.TEC().comment("Failed to create VM %u: %s" %
                                     (vmCount+1,e))
                 break
 
@@ -445,21 +445,21 @@ class _VIFScalability(_Scalability):
                     g.plugVIF(v)
                     vifCount += 1
             except xenrt.XRTFailure, e:
-                xenrt.TEC().comment("Failed to add VIF %u to VM %u: %s" % 
+                xenrt.TEC().comment("Failed to add VIF %u to VM %u: %s" %
                                     (vifCount+1,vmCount,e))
                 break
 
         if max > 0:
             if vifCount < max:
                 raise xenrt.XRTFailure("Asked to create %u VIFs, only managed "
-                                       "to create %u (on %u VMs)" % 
+                                       "to create %u (on %u VMs)" %
                                        (max,vifCount,vmCount))
             # Perform some lifecycle operations to check guest health
             if self.VALIDATE:
                 if self.runSubcase("lifecycleOperations", (), "LifecycleOperations", "LifecycleOperations") != \
                     xenrt.RESULT_PASS:
                     return
-                
+
         else:
             xenrt.TEC().value("numberVMs",vmCount)
             xenrt.TEC().value("maximumNumberVIFs",vifCount)
@@ -491,7 +491,7 @@ class TC6853(_VMScalability):
     VIFS = True
     CHECKREACHABLE = True
     MEMORY=128
-    
+
 class TC19082(_VMScalability):
     """Test for ability to run the maximum supported HA protected VMs on a host"""
     MAX = True
@@ -525,7 +525,7 @@ class TC12610(_VMScalability):
     CHECKREACHABLE = True
 
 class TC19270(_VMScalability):
-    """Test for ability to run the supported number of Linux VMs by disabling some guest features and adjusting Dom0 memory"""    
+    """Test for ability to run the supported number of Linux VMs by disabling some guest features and adjusting Dom0 memory"""
     MAX = 0
     VIFS = True
     CHECKREACHABLE=True
@@ -538,7 +538,7 @@ class TC19270(_VMScalability):
     DOM0CPUS = True
 
 class TC19271(_VMScalability):
-    """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""    
+    """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""
     MAX = 0
     VIFS = True
     CHECKREACHABLE=True
@@ -558,7 +558,7 @@ class TC14899(_VMScalability):
     REQUIRED_CORES=160 # Check the host uses at least this number of cores
     MIN_ACTIVE=0.9 # Fraction of a processer used to be considered active
     CHECKREACHABLE=True
-    
+
     def getHostRRD(self, host, seconds=30):
         xenrt.TEC().logverbose("Attempting to get RRD from %s" %
                                (host.getName()))
@@ -570,14 +570,14 @@ class TC14899(_VMScalability):
         data = u.read()
         xenrt.TEC().logverbose("RRD retrieved as: %s"%data)
         return xml.dom.minidom.parseString(data)
-    
+
     def installVM(self, host):
         return host.createGenericLinuxGuest(name=xenrt.randomGuestName(),
                                                   arch="x86-32",
                                                   vcpus=self.VCPUS,
                                                   bridge=host.getPrimaryBridge(),
                                                   memory=256)
-    
+
     def installXenalise(self, host):
         self.xenalise= "/root/xenalyze"
         xenrt.getTestTarball("xen", extract=True)
@@ -588,7 +588,7 @@ class TC14899(_VMScalability):
     def runTC(self,host):
         # Install the VMs
         _VMScalability.runTC(self, host)
-        
+
         live_guests = 0
         for guest in self.guests:
             if guest.getState() != "UP":
@@ -598,7 +598,7 @@ class TC14899(_VMScalability):
                 guest.execguest("while [ -e /tmp/doload ]; do true; done > "
                              "/dev/null 2>&1 < /dev/null &")
             live_guests = live_guests + 1
-            
+
         xenrt.TEC().logverbose("Allowing 100% CPU usage to continue for 90 seconds")
         time.sleep(90)
         # Get the RRD for the last 60 seconds
@@ -624,7 +624,7 @@ class TC14899(_VMScalability):
             if guest.getState() != "UP":
                 continue
             guest.execguest("rm -f /tmp/doload")
-        
+
 
 class TC15293(_VMScalability):
 
@@ -636,7 +636,7 @@ class TC15293(_VMScalability):
     CHECKREACHABLE=True
 
     # These two variables are used for by a closure (pin_the_vm) passed to runTC.
-    GUESTS_PINNING_INFO=dict() 
+    GUESTS_PINNING_INFO=dict()
     LAST_CPU_PINNED=0  # cpu number starts from 0
 
     def installVM(self, host):
@@ -645,9 +645,9 @@ class TC15293(_VMScalability):
                                             vcpus=self.VCPUS,
                                             bridge=host.getPrimaryBridge(),
                                             memory=256)
-    
+
     def pinVm(self, guest, host):
-        
+
         num_vcpus = self.VCPUS
         first_cpu = self.LAST_CPU_PINNED
         last_cpu = self.LAST_CPU_PINNED + num_vcpus
@@ -670,28 +670,28 @@ class TC15293(_VMScalability):
     def checkVMPinning(self, guests, host):
 
         test_status = True
-        
+
         for g in guests:
             if g.getState() != 'UP':
                 continue
-            
+
             mask = self.GUESTS_PINNING_INFO[g.getName()]
             xenrt.TEC().logverbose("Checking VM [%s] " % g.getUUID())
             domid = g.getDomid()
             vm_affinity_status = True
             for c in range(0, g.vcpus):
-            
+
                 data = host.execdom0("/opt/xensource/debug/xenops affinity_get -domid %s -vcpu %s" %
                                     (domid, c)).strip()
                 for j in mask:
                     if not int(list(data)[j]) == 1:
                         vm_affinity_status = False
-            
+
             if vm_affinity_status is False:
-                xenrt.TEC().logverbose('VM [%s] has unexpected affinity expected mask = %s' % 
+                xenrt.TEC().logverbose('VM [%s] has unexpected affinity expected mask = %s' %
                                        (g.getUUID(), mask))
                 test_status = False
-                
+
         return test_status
 
 
@@ -699,13 +699,13 @@ class TC15293(_VMScalability):
         # Install the VMs
         self.cores = host.getCPUCores()
         if self.cores < self.REQUIRED_CORES:
-            raise xenrt.XRTError("host has only %s cores, but we need a host with atleast %s cores" % 
+            raise xenrt.XRTError("host has only %s cores, but we need a host with atleast %s cores" %
                                  (self.cores, self.REQUIRED_CORES))
         pin_the_guest = lambda g : self.pinVm(g, host)
         _VMScalability.runTC(self, host, tailor_guest=pin_the_guest)
-        
+
         status = self.checkVMPinning(self.guests, host)
-        
+
         if status is False:
             raise xenrt.XRTFailure('VMs have unexpected affinity')
 
@@ -746,7 +746,7 @@ class _VDIScalability(_Scalability):
             conc = int(host.lookup("MAX_ATTACHED_VDIS_PER_SR_%s" % (self.SR)))
         else:
             conc = self.CONCURRENT
-        
+
         # Find the SR
         srs = host.getSRs(type=self.SR)
         if len(srs) == 0:
@@ -780,14 +780,14 @@ class _VDIScalability(_Scalability):
             except xenrt.XRTFailure, e:
                 # Check we haven't run out of space...
                 psize = int(host.getSRParam(sr,"physical-size"))
-                if psize > 0:              
+                if psize > 0:
                     spaceleft = psize - \
                                 int(host.getSRParam(sr,"physical-utilisation"))
-                    if spaceleft < 10485760:                
+                    if spaceleft < 10485760:
                         xenrt.TEC().warning("Ran out of space on SR, required "
                                             "10485760, had %u" % (spaceleft))
 
-                xenrt.TEC().comment("Failed to create VDI %u: %s" % 
+                xenrt.TEC().comment("Failed to create VDI %u: %s" %
                                     (vdiCount+1,e))
                 break
             if vdiCount == 4000:
@@ -801,15 +801,15 @@ class _VDIScalability(_Scalability):
         else:
             xenrt.TEC().value("numberVDIs",vdiCount)
 
-        # See how long an sr-scan takes       
+        # See how long an sr-scan takes
         try:
             t = xenrt.util.Timer()
-            t.startMeasurement()            
+            t.startMeasurement()
             cli.execute("sr-scan","uuid=%s" % (sr))
             t.stopMeasurement()
             xenrt.TEC().value("sr-scan",t.max())
         except xenrt.XRTFailure, e:
-            xenrt.TEC().warning("Exception while performing sr-scan: %s" % (e))            
+            xenrt.TEC().warning("Exception while performing sr-scan: %s" % (e))
 
         # Now see if we can use them all...
 
@@ -840,7 +840,7 @@ class _VDIScalability(_Scalability):
         if conc and conc < vdiCount:
             vdiConcurrent = conc
         else:
-            vdiConcurrent = vdiCount            
+            vdiConcurrent = vdiCount
         for i in range(vdiConcurrent):
             if leftOnGuest == 0:
                 try:
@@ -856,14 +856,14 @@ class _VDIScalability(_Scalability):
                     self.guests.append(currentGuest)
                     leftOnGuest = vbdsAvailable
                 except xenrt.XRTFailure, e:
-                    # This isn't a failure of the testcase, but does mean we 
+                    # This isn't a failure of the testcase, but does mean we
                     # can't fully test so raise an error (i.e. we need to use a
                     # better provisioned host!)
                     raise xenrt.XRTError("Failed to create VM %u (%s) required "
                                          "for testing maximum number of VDIs" %
                                          (vmCount+1,e))
 
-            try:            
+            try:
                 currentGuest.createDisk(vdiuuid=self.vdis[i])
                 pluggedCount += 1
                 leftOnGuest -= 1
@@ -874,7 +874,7 @@ class _VDIScalability(_Scalability):
 
         if pluggedCount < vdiConcurrent:
             raise xenrt.XRTFailure("Created %u VDIs, only able to create/plug "
-                                   "VBDs for %u on %u guests" % 
+                                   "VBDs for %u on %u guests" %
                                    (vdiConcurrent,pluggedCount,vmCount))
         else:
             xenrt.TEC().value("numberVMs",vmCount)
@@ -1027,7 +1027,7 @@ class TC7298(_Scalability):
 
         cli = host.getCLIInstance()
         self.cli = cli
-        
+
         # Create the initial VDI
         args = []
         args.append("name-label=\"VHD chain length VDI\"")
@@ -1060,7 +1060,7 @@ class TC7298(_Scalability):
                 self.cli.execute("vdi-destroy uuid=%s" % (vdi))
             except:
                 xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
-           
+
 class TC8237(xenrt.TestCase):
 
     def __init__(self, tcid="TC8237"):
@@ -1110,7 +1110,7 @@ class TC8237(xenrt.TestCase):
             try:
                 g.uninstall()
             except:
-                pass 
+                pass
 
 class _VMInstall(xenrt.XRTThread):
 
@@ -1212,7 +1212,7 @@ class TC8397(xenrt.TestCase):
                 for host in self.hosts:
                     host.listDomains()
                 c = copy.copy(guestlist)
-                # On the first iteration of a reboot test we just start 
+                # On the first iteration of a reboot test we just start
                 # because the previous subcase left the VM down
                 if i == 0:
                     doreboot = False
@@ -1289,16 +1289,16 @@ class _TimedTestCase(xenrt.TestCase):
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
         self.timings = []
-    
+
     def addTiming(self, timing):
         self.timings.append(timing)
-    
+
     def preLogs(self):
         filename = "%s/xenrt-timings.log" % (xenrt.TEC().getLogdir())
         f = file(filename, "w")
         f.write("\n".join(self.timings))
         f.close()
-    
+
 
 class _TCCloneVMs(_TimedTestCase):
 
@@ -1318,14 +1318,14 @@ class _TCCloneVMs(_TimedTestCase):
             if not g:
                 break
             self.gold.append(g)
-            
+
         # Get the hosts
         defhost = self.getDefaultHost()
         if defhost.pool:
             self.hosts = defhost.pool.getHosts()
         else:
             self.hosts = [defhost]
-        
+
         # If we're using intellicache, enable it now, on the hosts and the golden image
         if xenrt.TEC().lookup("USE_INTELLICACHE", False, boolean=True):
             for h in self.hosts:
@@ -1343,7 +1343,7 @@ class _TCCloneVMs(_TimedTestCase):
         hostCount = len(self.hosts)
         vmsPerHost = None
         threads = None
-        
+
         # Get the sequence variables
         if arglist and len(arglist) > 0:
             for arg in arglist:
@@ -1352,10 +1352,10 @@ class _TCCloneVMs(_TimedTestCase):
                     vmsPerHost = int(l[1])
                 if l[0] == "threads":
                     threads = int(l[1])
-        
+
         # This is the total number of VMs
         vmCount = hostCount * vmsPerHost
-      
+
         # Generate the list of VM names, which host they will run on and where they're clones from
         # The name will be of the format clonex.y.z:
         #   x = host the VM will run on
@@ -1367,7 +1367,7 @@ class _TCCloneVMs(_TimedTestCase):
         # Each worker thread will pull a VM Spec from the list, clone it, then move onto the next one. The threads will complete when all VMs are cloned
         pClone = map(lambda x: xenrt.PTask(self.doClones), range(threads))
         xenrt.pfarm(pClone)
-        
+
     def doClones(self):
         # Worker thread function for cloning VMs.
         while True:
@@ -1407,7 +1407,7 @@ class TCXenDesktopCloneVMs(_TCCloneVMs):
         if gold.getUseIPv6():
             vm.setUseIPv4(None)
             vm.setUseIPv6()
-        
+
         # Set the host it should be started on
         vm.setHost(host)
 
@@ -1420,7 +1420,7 @@ class TCXenDesktopCloneVMs(_TCCloneVMs):
         vm.createDisk(sruuid=goldsr, userdevice=2, sizebytes=xenrt.GIGA)
 
         self.addTiming("TIME_VM_CLONE_ATTACHPVD_%s:%.3f" % (vmname, xenrt.util.timenow(float=True)))
-       
+
         if xenrt.TEC().lookup("OPTION_USE_VDIRESET", False, boolean=True):
             vdi = vm.getHost().minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % vm.getUUID(), params="vdi-uuid")[0]
             vm.getHost().genParamSet("vdi", vdi, "on-boot", "reset")
@@ -1463,22 +1463,22 @@ class _TCScaleVMOp(_TimedTestCase):
 
         # Get the list of VMs - this is everything that begins with "clone" (cloned in _TCCloneVMs)
         vms = map(lambda x: xenrt.TEC().registry.guestGet(x), filter(lambda x: "clone" in x, xenrt.TEC().registry.guestList()))
-        
+
         self.doVMOperations(vms, threads, iterations)
-    
+
     # This is a separate function so that a derived class can override self.vms
     def doVMOperations(self, vms, threads, iterations=1, func=None, timestamps=True):
-        
+
         if func is None:
             func = self.doOperation
-        
+
         # We'll store failed VMs here so we don't just bail out at the first failure
-        
+
         self.vms = vms
-        
+
         self.failedVMs = []
-        
-        # Each iteration will wait for the completion of the previous iteration before going again        
+
+        # Each iteration will wait for the completion of the previous iteration before going again
         for i in range(iterations):
             # The VM operation may want to complete asynchronously (e.g. finish booting).
             # It can append a completion thread here, and at the end we'll wait for them all to complete before finishing
@@ -1491,17 +1491,17 @@ class _TCScaleVMOp(_TimedTestCase):
                 self.addTiming("TIME_ITERATION%d_START:%.3f" % (i, xenrt.util.timenow(float=True)))
             # Start the worker threads
             pOp = map(lambda x: xenrt.PTask(self.doVMWorker, func), range(threads))
-            
+
             # Wait for them to complete. The worker threads will wait for the completion threads.
             xenrt.pfarm(pOp)
             if timestamps is True:
                 self.addTiming("TIME_ITERATION%d_COMPLETE:%.3f" % (i, xenrt.util.timenow(float=True)))
-            
+
             # Do any post-iteration cleanup (e.g. deleting old base disks)
             self.postIterationCleanup()
             if timestamps is True:
                 self.addTiming("TIME_ITERATION%d_CLEANUPCOMPLETE:%.3f" % (i, xenrt.util.timenow(float=True)))
-        
+
         try:
             if len(self.failedVMs) > 0:
                 raise xenrt.XRTFailure("Failed to perform operation on %d/%d VMs - %s" % (len(self.failedVMs), len(self.vms), ", ".join(self.failedVMs)))
@@ -1511,7 +1511,7 @@ class _TCScaleVMOp(_TimedTestCase):
                 self.failedHosts = []
                 pVerify = map(lambda x: xenrt.PTask(self.verifyHost, x), self.hosts)
                 xenrt.pfarm(pVerify)
-                
+
                 if len(self.failedHosts) > 0 and len(self.failedVMs) == 0:
                     raise xenrt.XRTFailure("Failed to verify hosts %s" % ", ".join(self.failedHosts))
 
@@ -1554,15 +1554,15 @@ class _TCScaleVMOp(_TimedTestCase):
                 self.lock.acquire()
                 self.failedVMs.append(vm.getName())
                 self.lock.release()
-        
+
         # Now we wait for the completion threads to finish, then we can exit the worker thread.
         # It's the responsibility of the completion thread to implement any necessary timeouts
         # A VM operation function may have added a completion thread in order to e.g. wait for VM boot to complete,
         # having exited the function after vm-start returned
         for t in self.completionThreads:
             t.join()
-        
-        
+
+
 
     def doOperation(self, vm, gold):
         raise xenrt.XRTError("Unimplemented")
@@ -1609,11 +1609,11 @@ class _TCScaleVMLifecycle(_TCScaleVMOp):
 
     def start(self, vm):
         # Conventional start
-        
+
         self.addTiming("TIME_VM_START_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Start the VM
         vm.lifecycleOperation("vm-start", specifyOn=True)
-        
+
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot
         t = xenrt.PTask(self.waitForVMBoot, vm)
@@ -1627,7 +1627,7 @@ class _TCScaleVMLifecycle(_TCScaleVMOp):
 
         # Shutdown VM
         vm.shutdown()
-        
+
         shutdownCompleteTime = xenrt.util.timenow(float=True)
         self.addTiming("TIME_VM_SHUTDOWN_%s:%.3f" % (vm.getName(), startTime))
         self.addTiming("TIME_VM_SHUTDOWNCOMPLETE_%s:%.3f" % (vm.getName(), shutdownCompleteTime))
@@ -1637,11 +1637,11 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
     # Define the XenDesktop style lifecycle ops
     def __init__(self, tcid=None):
         _TCScaleVMLifecycle.__init__(self, tcid)
-        self.vdisToDestroy = []        
+        self.vdisToDestroy = []
 
     def xenDesktopStart(self, vm, gold):
         # XenDesktop style start - attach a new clone from the golden image and boot
-        
+
         self.addTiming("TIME_VM_START_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         vbds = len(vm.getHost().minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % vm.getUUID()))
         # A shutdown VM will need a new VDI attaching, a fresh clone won't
@@ -1654,14 +1654,14 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
             vm.getHost().getCLIInstance().execute("vbd-create", "device=0 bootable=true vm-uuid=%s vdi-uuid=%s" % (vm.getUUID(), newVDI))
 
             self.addTiming("TIME_VM_DISKPREPARE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
-        
+
         else:
             self.addTiming("TIME_VM_DISKPREPARE_%s:N/A" % (vm.getName()))
 
         # Start the VM
         flatVMDist = xenrt.TEC().lookup("FLAT_VM_DIST", True, boolean=True)
         vm.lifecycleOperation("vm-start", specifyOn=flatVMDist, timeout=6000)
-        
+
         self.addTiming("TIME_VM_STARTCOMPLETE_%s:%.3f" % (vm.getName(), xenrt.util.timenow(float=True)))
         # Asynchronously wait for it to boot
         t = xenrt.PTask(self.waitForVMBoot, vm)
@@ -1669,7 +1669,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
         self.completionThreads.append(t)
         self.lock.release()
         t.start()
-        
+
 
     # Check for tapdisk for a specific VDI - related to XOP-228
     def checkForTapDisk(self, vdi, tdOutput):
@@ -1677,7 +1677,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
             if re.search(vdi, t):
                 return True
         return False
-    
+
     def xenDesktopShutdown(self, vm, gold=None, force=False, detachVDI=True):
         if xenrt.TEC().lookup("CHECK_TAPDISKS", False, boolean=True):
             # Get the attached VDIs
@@ -1692,7 +1692,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
 
         # Shutdown VM
         vm.shutdown(force=force)
-        
+
         shutdownCompleteTime = xenrt.util.timenow(float=True)
         if xenrt.TEC().lookup("CHECK_TAPDISKS", False, boolean=True):
             # Check tapdisk stopped for all VDIs:
@@ -1703,7 +1703,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
 
         self.addTiming("TIME_VM_SHUTDOWN_%s:%.3f" % (vm.getName(), startTime))
         self.addTiming("TIME_VM_SHUTDOWNCOMPLETE_%s:%.3f" % (vm.getName(), shutdownCompleteTime))
-        
+
         if detachVDI and not xenrt.TEC().lookup("OPTION_USE_VDIRESET", False, boolean=True):
             # Detach base disk
             vbd = vm.getHost().minimalList("vbd-list", args="vm-uuid=%s userdevice=0" % vm.getUUID())[0]
@@ -1719,7 +1719,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
                 self.lock.release()
             else:
                 self.hosts[0].getCLIInstance().execute("vdi-destroy", "uuid=%s" % vdiToDestroy)
-                
+
 
             self.addTiming("TIME_VM_DISKDETACH_%s:%.3f" % (vm.getName(), diskDetachTime))
         else:
@@ -1727,7 +1727,7 @@ class _TCScaleVMXenDesktopLifecycle(_TCScaleVMLifecycle):
 
     def xenDesktopForceShutdown(self, vm, gold=None):
         self.xenDesktopShutdown(vm, force=True, detachVDI=False)
-    
+
     # Delete all of the old VDIs (simulating XD asynchronous deletion)
     def postIterationCleanup(self):
         for v in self.vdisToDestroy:
@@ -1793,12 +1793,8 @@ class TCScaleXenDesktopRpu(xenrt.TestCase):
             xenrt.TEC().logverbose("Host: %s has %d running guests [%s]" % (h.getName(), len(runningGuests), runningGuests))
             self.expectedRunningVMs += len(runningGuests)
         xenrt.TEC().logverbose("Pre-upgrade running VMs: %d" % (self.expectedRunningVMs))
-        
-        # Check that none of the VMs have CDs inserted into their drives.
-        cdList = self.pool.master.parameterList(command='cd-list', params=['name-label', 'vbd-uuids', 'uuid'])
-        insertedList = filter(lambda x:x['vbd-uuids'] != '', cdList)
-        vmUUIDsWithCdsInDrives = map(lambda x:self.pool.master.minimalList(command='vbd-list', params='vm-uuid', args='uuid=%s' % (x['vbd-uuids']))[0], insertedList)
-        map(lambda x:self.pool.master.getCLIInstance().execute('vm-cd-eject uuid=%s' % (x)), vmUUIDsWithCdsInDrives)
+        self.__ejectAllCDs()
+
 
     def run(self, arglist=None):
         self.newPool = self.pool.upgrade(poolUpgrade=self.upgrader)
@@ -1818,9 +1814,19 @@ class TCScaleXenDesktopRpu(xenrt.TestCase):
         xenrt.TEC().logverbose("Post-upgrade running VMs: %d" % (postUpgradeRunningGuests))
         if self.expectedRunningVMs != postUpgradeRunningGuests:
             xenrt.TEC().logverbose("Expected VMs in running state: %d, Actual: %d" % (self.expectedRunningVMs, postUpgradeRunningGuests))
-            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete") 
-        
-         
+            raise xenrt.XRTFailure("Not all VMs in running state after upgrade complete")
+
+    def __ejectAllCDs(self):
+        # Check that none of the VMs have CDs inserted into their drives.
+        cdList = self.pool.master.parameterList(command='cd-list', params=['name-label', 'vbd-uuids', 'uuid'])
+        insertedList = filter(lambda x:x['vbd-uuids'] != '', cdList)
+        vbdUuids = insertedList[0].get('vbd-uuids').split('; ')
+        vmUUIDsWithCdsInDrives = [self.pool.master.minimalList(command='vbd-list', params='vm-uuid', args='uuid=%s' % x) for x in vbdUuids]
+        flattenedList = [i for subList in vmUUIDsWithCdsInDrives for i in subList]
+        log("List of VM UUIDs with CDs inserted: %s" % flattenedList)
+        map(lambda x:self.pool.master.getCLIInstance().execute('vm-cd-eject uuid=%s' % (x)), flattenedList)
+        log("All CDs ejected")
+
 class TCScaleVMStart(_TCScaleVMLifecycle):
     # Concrete test case to start all of the VMs, Conventional Style
     def doOperation(self, vm, gold):
@@ -1830,7 +1836,7 @@ class TCScaleVMShutdown(_TCScaleVMXenDesktopLifecycle):
     # Concrete test case to shutdown all of the VMs, Conventional Style
     def doOperation(self, vm, gold):
         self.shutdown(vm)
-        
+
 class TCScaleVMReboot(_TCScaleVMXenDesktopLifecycle):
 
     # Concrete test case to reboot all of the VMs, Conventional Style
@@ -1853,21 +1859,21 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         self.affectedGuests = []
         self.guestsToIgnore = [] # any guests broken at the beginning of the test
         self.failedHosts = []    #failed host after boot
-        self.failedVMs = []   
+        self.failedVMs = []
         self.xapiDomainMismatch = ''
         self.interactive = False
         self.failedSRProbeHosts = []
-        
-         
+
+
     def prepare(self, arglist=None):
-    
+
         log("Sleep 10 minutes to stabilise the VMs")
         time.sleep(10*60)
-       
+
         log("Get the pool host and the master")
-        
+
         self.pool = self.getDefaultPool()
-        self.hosts = self.pool.getHosts() 
+        self.hosts = self.pool.getHosts()
         self.hostNames = [ host.getName() for host in self.hosts]
         self.host = self.pool.master
         self.numberOfHosts = len(self.hosts)
@@ -1877,7 +1883,7 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
                 l = string.split(arg, "=", 1)
                 if l[0] == "numberOfSlavesToReboot":
                     self.numberOfSlavesToReboot = int(l[1])
-        
+
         log("Check that all the hosts allocated to the sequence (resource hosts) are present in the pool")
 
         resourceHosts = xenrt.GEC().config.getWithPrefix("RESOURCE_HOST_")
@@ -1888,7 +1894,7 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             if len(resourceHosts) != len(self.hosts) or set(resourceHostNames) != set(poolHostNames):
                 raise xenrt.XRTError(
                     "Unexpected configuration: resource hosts list does not match the default pool members list",
-                    data=("%d hosts in resources: %s ; %d pool members: %s" 
+                    data=("%d hosts in resources: %s ; %d pool members: %s"
                             % (len(resourceHosts), resourceHostNames, self.numberOfHosts, self.hosts )
                         )
                     )
@@ -1896,13 +1902,13 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         log("get the VMs from resources (everything beginning with 'clone')")
         guestNames = [name for name in xenrt.TEC().registry.guestList() if "clone" in name]
         self.guests = [xenrt.TEC().registry.guestGet(name) for name in  guestNames]
-        
+
         log("get number of threads to use from seq file")
         threads = xenrt.TEC().lookup("NTHREADS", None)
         if threads is None:
             raise xenrt.XRTError("Could not read configuration variable THREADS")
-        self.threads = int(threads)        
-        
+        self.threads = int(threads)
+
         log("Check the guests, ignore and switch off any disfunctional ones")
         self.verifyGuestsAndHosts()
 
@@ -1910,65 +1916,65 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         self.setHostsToBoot()
         log("Hosts in the pool: %s"  % self.hosts)
         log("Hosts to boot: %s" % self.hostsToBoot)
-        
+
         log("filter out the VMS that are on the host to boot")
         for host in self.hostsToBoot:
             prefix = "clone%d." % self.hosts.index(host)
             self.affectedGuests += [vm for vm in self.guests if prefix in vm.getName()]
         log("Affected guests: %s" % self.affectedGuests)
-          
-        
+
+
     def verifyOrIgnore(self, vm, gold):
-        try: 
+        try:
             vm.verifyGuestFunctional(migrate=False)
         except Exception, e:
             self.ignoreGuest(vm)
-    
+
     def findPoweredOffGuests(self):
         return [xenrt.TEC().registry.guestGet(name) for name in self.host.minimalList("vm-list", params="name-label", args="power-state=halted") if "clone" in name]
-        
+
     def verifyGuestsAndHosts(self):
     # switch down guests that are not DOWN, then start all the guests
         log("verifyGuestsAndHosts: Switch off all running guests")
         vms = map(lambda x: xenrt.TEC().registry.guestGet(x), filter(lambda x: "clone" in x, xenrt.TEC().registry.guestList()))
         self.doVMOperations(vms, self.threads, func=self.verifyOrIgnore)
-        
-            
-    def doActionBeforeHostReboot(self): 
+
+
+    def doActionBeforeHostReboot(self):
         pass
-        
+
     def doActionAfterHostReboot(self):
         pass
-     
+
     def ignoreGuest(self, guest):
         if guest.getState() == "UP":
-            try: 
+            try:
                 self.xenDesktopShutdown(guest, detachVDI=False)
             except Exception, e:
                 log(e)
-                try: 
+                try:
                     guest.shutdown(force=True)
                 except Exception, e:
-                    log(e) 
+                    log(e)
                     pass
         warning('VM %s is broken - ignoring through the rest of the test' % guest.getName())
         self.guestsToIgnore.append(guest)
         self.guests.remove(guest)
-        
-        
+
+
     def doOperation(self, vm, gold):
-        # We define doOperation XenDesktop Start, it is not the core part of the test, 
+        # We define doOperation XenDesktop Start, it is not the core part of the test,
         # but it will be useful for bringing up the VMs after host reboots
         self.xenDesktopStart(vm, gold)
-        
+
     def postRun(self):
         # if xapi/domain mismatch was found, restart toolstack on each host
         testResult = self.getResult(code=True)
         if testResult == xenrt.RESULT_FAIL or testResult == xenrt.RESULT_ERROR:
             log('Test case failed, so restarting the toolstack on all hosts')
-            for host in self.hosts: 
+            for host in self.hosts:
                 host.restartToolstack()
-       
+
             xenrt.sleep(300)
 
         # power on guests if anything went wrong
@@ -1997,7 +2003,7 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         host.waitForEnabled(1200, desc="Wait for power-cycled host to become enabled")
         log("Sleep for 2 minutes for host to update xapi")
         xenrt.sleep(120)
-            
+
     def setHostsToBoot(self):
         raise xenrt.XRTError("Unimplemented")
 
@@ -2006,8 +2012,8 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         args = []
         nfs=xenrt.ExternalNFSShare()
         serverPath = nfs.base
-        server = nfs.address 
-         
+        server = nfs.address
+
         cli = host.getCLIInstance()
         args.append("host-uuid=%s" % (host.getMyHostUUID()))
         args.append("type=nfs")
@@ -2017,8 +2023,8 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             sr = cli.execute("sr-probe", string.join(args)).strip()
         except:
             xenrt.TEC().logverbose("SR Probe failed on host %s" % host.getName())
-            self.failedSRProbeHosts.append(host.getName()) 
-        
+            self.failedSRProbeHosts.append(host.getName())
+
     def blockSR(self):
 
         step("Blocking SR port on each host")
@@ -2038,7 +2044,7 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             macs=self.getHostMac(host, "Static")
             for mac in macs:
                 host.enableNetPort(mac)
-                
+
         # Set the Storage NICs to back to DHCP after enabling the net ports
         self.setStorageNICsToDHCP()
 
@@ -2054,9 +2060,9 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             redosrs = self.pool.master.minimalList("vdi-list", "sr-uuid", "name-label=\"Metadata redo-log\"")
             if len(redosrs) > 0:
                 self.pool.getCLIInstance().execute("pool-enable-redo-log sr-uuid=%s" % redosrs[0])
-                
-        
-    
+
+
+
     def setStorageNICsToDHCP(self):
         uuids=self.pool.master.minimalList("pif-list", "uuid", "management=false IP-configuration-mode=Static")
         if len(uuids) > 0:
@@ -2084,24 +2090,24 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
                 macs.append(m)
 
         return macs
-        
+
     def checkXapiMatchesDomains(self, host):
-    # For a given host, get a list of domains with list_domains 
+    # For a given host, get a list of domains with list_domains
     # and also a list guests with resident-on=host (by xapi).
     # Check that these match each other.
-    
+
         # domain list from list_domains:
         domains = host.listDomains() # this returns dictionnary with guest uuids as keys
         log('Xapi/list_domains mismatch check: Domains for host %s: %s' % (host.getName(), domains) )
-        
+
         # running guest list from xapi:
         runningGuestsNames =  host.listGuests(running=True)
-        runningGuests = [self.getGuest(guestName) for guestName in runningGuestsNames] 
+        runningGuests = [self.getGuest(guestName) for guestName in runningGuestsNames]
         log('Xapi/list_domains mismatch check: Running guests for host %s: %s' % (host.getName(), runningGuestsNames) )
-        
+
         # remove dom0 from the domain list
         del domains[host.getMyDomain0UUID()]
-        
+
         # check that xapi-found guests are listed in domains:
         for guest in runningGuests:
             # check that the guest that xapi thinks is running is indeed running:
@@ -2114,7 +2120,7 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
                 self.xapiDomainMismatch += ("Host %s: Guest %s (%s) seen as running in xapi, but corresponding domain not found in list_domains\n"
                         % (host.getName(), guest.getName(), uuid) )
                 self.lock.release()
-            
+
         # check that all domains found by list_domains (except for dom0) were listed by xapi
         if len(domains) > 0:
             self.lock.acquire()
@@ -2124,21 +2130,21 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
 
 
     def run(self,arglist):
-         
+
         #This will be used to block SR on every host and will be used in reboot everything test case
         self.doActionBeforeHostReboot()
-       
+
         step("Wait for 5 minutes to stabilise the pool")
         xenrt.sleep(300)
-        
+
         step("Rebooting hosts")
         pHostReboot = [ xenrt.PTask(self.hostReboot, host) for host in self.hostsToBoot ]
         xenrt.pfarm(pHostReboot)
-        
+
 
         #This will be used to unblock SR on every host and will be used in reboot everything test case
         self.doActionAfterHostReboot()
-        
+
         step("Check that xapi and list_domains have matching VM state")
         self.xapiDomainMismatch = ''
         pVerify = [ xenrt.PTask(self.checkXapiMatchesDomains, h) for h in self.hosts]
@@ -2146,31 +2152,31 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         if self.xapiDomainMismatch != '':
             raise xenrt.XRTFailure("After the powercycle, following xapi/list_domains inconsistencies were found:\n%s"
              % self.xapiDomainMismatch )
-        
+
         step("Checking the rebooted hosts")
         self.failedHosts = []
         pVerify = [ xenrt.PTask(self.verifyHost, h) for h in self.hostsToBoot]
         xenrt.pfarm(pVerify)
         if len(self.failedHosts) > 0:
             raise xenrt.XRTFailure("Failed hosts %s" % ",".join(self.failedHosts))
-        
+
         step("Checking other hosts")
         self.failedHosts = []
         pVerify = [ xenrt.PTask(self.verifyHost, h) for h in self.hosts if h not in self.hostsToBoot]
         xenrt.pfarm(pVerify)
         if len(self.failedHosts) > 0:
             raise xenrt.XRTFailure("Failed hosts %s" % ",".join(self.failedHosts))
-        
+
         step("Checking which VMs are DOWN")
         guestsOff = self.findPoweredOffGuests()
         log("Guests powered off: %s" % [g.getName() for g in guestsOff ] )
-        
+
         step("Check that all VMs that should be affected are down ")
         affectedGuestsNotOff = [vm for vm in self.affectedGuests if vm not in guestsOff]
         log("Affected guests (expected to be down): %s" % [g.getName() for g in self.affectedGuests])
         log("Affected guests that are not off: %s" % [ g.getName() for g in affectedGuestsNotOff ])
         if affectedGuestsNotOff:
-            raise xenrt.XRTFailure("Affected guests were expected to be DOWN after host reboot.", 
+            raise xenrt.XRTFailure("Affected guests were expected to be DOWN after host reboot.",
                 data="Existing hosts: %s. Following guests should be and are not DOWN:%s" % (self.hosts,[ vm.getName() for vm in affectedGuestsNotOff ]))
 
         step("Check if any guests outside of the rebooted hosts were affected by the reboot")
@@ -2178,10 +2184,10 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
         if affectedExternalGuests:
             raise xenrt.XRTFailure("Guests not residing on rebooted hosts were found DOWN after reboot",
                 data="Guests found unexpectedly DOWN: %s" % [ vm.getName() for vm in affectedExternalGuests])
-                
+
         step("Bring up all guests that are down - this will raise an exception if anything goes wrong")
         self.doVMOperations(guestsOff, self.threads)
-        
+
         step("Check all hosts once again, now that the VMs are up")
         pHostReboot = [ xenrt.PTask(self.verifyHost, host) for host in self.hostsToBoot ]
         xenrt.pfarm(pHostReboot)
@@ -2198,27 +2204,27 @@ class _Stability(_TCScaleVMXenDesktopLifecycle):
             raise xenrt.XRTFailure("The test worked, however following guests were broken and/or switched off at the beginning ",
             data = ("%s" % [g.getName() for g in guestsToIgnoreOriginal]) )
 
-    
+
     def postIterationCleanup(self):
         pass
-            
+
 class TCStbltyMasterReboot(_Stability):
     """Pool master reboot for a pool of 16 hosts and > 50 VMs/host"""
 
     def setHostsToBoot(self):
         self.hostsToBoot = [self.pool.master]
-    
+
 class TCStbltySlaveReboot(_Stability):
     """Pool slave reboot for a pool of 16 hosts and > 50 VMs/host"""
 
     def setHostsToBoot(self):
         # choose one host and make sure it's not the pool master
         self.hostsToBoot = [ self.pool.getSlaves()[0] ]
-            
+
 
 class TCStbltyMSlaveReboot(_Stability):
     """Multiple slaves reboot for a pool of 16 hosts and > 50 VMs/host"""
-    
+
     def setHostsToBoot(self):
         # reboot half of the slaves
         allSlaves = self.pool.getSlaves()[:]
@@ -2227,7 +2233,7 @@ class TCStbltyMSlaveReboot(_Stability):
 
 class TCStbltyAllHostReboot(_Stability):
     """Multiple slaves reboot for a pool of 16 hosts and > 50 VMs/host"""
-    
+
     def setHostsToBoot(self):
         # reboot all of the hosts
         self.hostsToBoot = self.pool.getHosts()
@@ -2245,39 +2251,39 @@ class TCStbltySRReboot(_Stability):
 
         self.failedGuest = []
         guestsOff = self.findPoweredOffGuests()
-        
+
         step('Block SR')
         self.blockSR()
-        
+
         step('Unblock SR')
         xenrt.sleep(300)
         self.unblockSR()
-       
-        step('Run SR probe or each host')        
+
+        step('Run SR probe or each host')
         for host in self.hosts:
             self.checkSRProbe(host)
-         
+
         if len(self.failedSRProbeHosts) > 0:
             raise xenrt.XRTFailure("Failed SR Probe on host %s" % ",".join(self.failedSRProbeHosts))
 
         step('Force shutdown all the VMs')
         self.doVMOperations(self.guests, self.threads, func=self.xenDesktopForceShutdown)
         if len(self.failedVMs) > 0:
-            log('VMs probably broken: %s' % ", ".join(self.failedVMs)) 
-            
+            log('VMs probably broken: %s' % ", ".join(self.failedVMs))
+
         step('Start all the VMs')
         self.doVMOperations(self.guests, self.threads, func=self.xenDesktopStart)
         if len(self.failedVMs) > 0:
             warning('These VMs seem to be broken after XenDestkop force reboot: %s' % ", ".join(self.failedVMs) )
-        
+
         step('Verify that all the hosts are up and running')
         pHost = [ xenrt.PTask(self.verifyHost, host) for host in self.hosts ]
         xenrt.pfarm(pHost)
         if len(self.failedHosts) > 0:
             raise xenrt.XRTFailure("Failed hosts %s" % ",".join(self.failedHosts))
-        
+
         step('Verify that all the VMs are up and running')
-        
+
         pVerifyVM = [ xenrt.PTask(self.verifyGuest, guest) for guest in self.guests]
         xenrt.pfarm(pVerifyVM)
 
@@ -2285,19 +2291,19 @@ class TCStbltySRReboot(_Stability):
             xenrt.XRTFailure("Failed VMs %s" % ",".join(self.failedGuest))
 
     def verifyGuest(self,guest):
- 
+
         try:
             guest.check()
         except xenrt.XRTFailure, e:
-            self.addTiming("Failed to Check VM %s: %s" % (guest.getName(),e))     
+            self.addTiming("Failed to Check VM %s: %s" % (guest.getName(),e))
             self.lock.acquire()
             self.failedGuest.append(guest.getName())
-            self.lock.release()  
+            self.lock.release()
 
 class TCStbltyAllReboot(_Stability):
     """All host reboot and block on every host"""
 
-    def doActionBeforeHostReboot(self): 
+    def doActionBeforeHostReboot(self):
 
         self.blockSR()
 
@@ -2308,7 +2314,7 @@ class TCStbltyAllReboot(_Stability):
         pbds=self.pool.master.minimalList("pbd-list", "uuid", "currently-attached=false")
         for p in pbds:
             self.pool.getCLIInstance().execute("pbd-plug uuid=%s" % p)
-            
+
 
 
     def setHostsToBoot(self):
@@ -2369,10 +2375,10 @@ class TCPerfDiskWorkLoad(_TCScaleVMXenDesktopLifecycle):
                      (xenrt.TEC().getLogdir()), 'a')
             f.write(str(writeTime))
             f.write(str(readTime))
-            f.close() 
+            f.close()
 
             xenrt.TEC().logverbose("______________________________________________________________________")
-            xenrt.TEC().logverbose("PERF: Write and Read time of 100 MB data for VM %s \n " % vm.getName()) 
+            xenrt.TEC().logverbose("PERF: Write and Read time of 100 MB data for VM %s \n " % vm.getName())
             xenrt.TEC().logverbose("PERF: Write time of 100 MB data for VM %s is \n " % vm.getName())
             xenrt.TEC().logverbose("%s" % str(writeTime))
             xenrt.TEC().logverbose("PERF: Read time of 100 MB data for VM %s is \n " % vm.getName())
@@ -2392,7 +2398,7 @@ class TCPerfDiskWorkLoad(_TCScaleVMXenDesktopLifecycle):
             self.lock.release()
 
     def readScriptWrapper(self,vm):
- 
+
         try:
             self.copyReadScript(vm)
         except Exception, e:
@@ -2482,7 +2488,7 @@ class TCPerfCPUWorkLoad(_TCScaleVMXenDesktopLifecycle):
         xenrt.pfarm(pWriteScript)
 
         #since cpu workload is a async call (xmlrpcStart) and in paralllel it will take somewhere around 30 mins thats why the sleep is quite high
-        xenrt.sleep(3600)   
+        xenrt.sleep(3600)
 
         for guest in self.guests:
             self.getCPUWorkLoadResult(guest)
@@ -2570,10 +2576,10 @@ class TC18494(_Scalability):
     VDIs = []
     def runTC(self, host):
         #we're testing for this size (in bytes), variable read in from sequence file
-        sizeToTest = int(float(host.lookup("LOCAL_DISK_TiB", "6")) *  2**40)        
+        sizeToTest = int(float(host.lookup("LOCAL_DISK_TiB", "6")) *  2**40)
         #total disk size in bytes
         disksize = 0
-        for ds in host.getLocalDiskSizes().values():            
+        for ds in host.getLocalDiskSizes().values():
             disksize += ds
         if disksize < sizeToTest:
             raise xenrt.XRTError("The local disk (%s bytes) is smaller than the size we are testing (%s bytes)." %
@@ -2603,7 +2609,7 @@ class TC18494(_Scalability):
             while diskToUse > 0:
                 if diskToUse >= vdiSize:
                     currentVdiSize = vdiSize
-                else: 
+                else:
                     currentVdiSize = diskToUse
                 log("Creating VDI of size %u bytes." % currentVdiSize)
                 vdiuuid = host.createVDI(currentVdiSize, localSr)
@@ -2613,7 +2619,7 @@ class TC18494(_Scalability):
         except xenrt.XRTFailure, e:
             raise xenrt.XRTError("Failed to create VDI while trying to fill up local disk %s" %
                                     (e))
-        
+
         # Create a guest which we'll use to clone (we hope that the default SR
         # is not the one we've just filled or all will go wrong!)
         guest = host.createGenericLinuxGuest()
@@ -2653,14 +2659,14 @@ class TC18494(_Scalability):
                     self.guests.append(currentGuest)
                     leftOnGuest = vbdsAvailable
                 except xenrt.XRTFailure, e:
-                    # This isn't a failure of the testcase, but does mean we 
+                    # This isn't a failure of the testcase, but does mean we
                     # can't fully test so raise an error (i.e. we need to use a
                     # better provisioned host!)
                     raise xenrt.XRTError("Failed to create VM %u (%s) required "
                                          "for testing maximum number of VDIs" %
                                          (vmCount+1,e))
 
-            try:            
+            try:
                 currentGuest.createDisk(vdiuuid=self.VDIs[i])
                 pluggedCount += 1
                 leftOnGuest -= 1
@@ -2721,7 +2727,7 @@ class TCStbltyWorkLoadBase(_Stability):
             f = file("%s/diskworkload_during_%s.log" %
                                     (xenrt.TEC().getLogdir(), self.WORKLOAD_FILENAME_SUFFIX), 'a')
             f.write(str(diskworkloadFile))
-            f.close() 
+            f.close()
         except Exception, e:
             raise xenrt.XRTError("Error retrieving disk workload log from VM %s: %s" %
                                                             (self.guestForWorkload.getName(),str(e)))
@@ -2879,27 +2885,27 @@ class TCScaleVMXenDesktop49Reboot(TCStbltyWorkLoadBase):
         self.xenDesktopStart(vm, gold)
 
 class _VBDScalability(_Scalability):
-    
+
     vdis = []
     VALIDATE = False
-     
+
     def runTC(self,host):
         self.cli = host.getCLIInstance()
         if self.MAX == True:
             maxVbds = int(host.lookup("MAX_VBDS_PER_HOST"))
         else:
             maxVbds = self.MAX
-         
+
         # Find the SR
         srs = host.getSRs(type=self.SR)
         if len(srs) == 0:
             raise xenrt.XRTError("Couldn't find a %s SR" % (self.SR))
-         
+
         maxVdis = int(host.lookup("MAX_VDIS_PER_SR_%s" % (self.SR)))
-         
-        srCount = 0 
-        vdiCount = 0 
-        vdiPerSrCount = 0 
+
+        srCount = 0
+        vdiCount = 0
+        vdiPerSrCount = 0
         while vdiCount < maxVbds and srCount<len(srs):
             try:
                 uuid = host.createVDI(sizebytes=10485760, sruuid=srs[srCount], name="VDI Scalability %u" %(vdiCount))
@@ -2911,52 +2917,52 @@ class _VBDScalability(_Scalability):
                     vdiPerSrCount = 0
             except xenrt.XRTFailure, e:
                 psize = int(host.getSRParam(srs[srCount],"physical-size"))
-                if psize > 0:              
+                if psize > 0:
                     spaceleft = psize - \
                                 int(host.getSRParam(srs[srCount],"physical-utilisation"))
-                    if spaceleft < 10485760:                
+                    if spaceleft < 10485760:
                         xenrt.TEC().warning("Ran out of space on SR, required "
                                              "10485760, had %u" % (spaceleft))
                         srCount = srCount+1
                         vdiPerSrCount = 0
-         
+
         if vdiCount < maxVbds :
             raise xenrt.XRTFailure("Asked to create %u VDIs, only managed "
                                         "to create %u" % (maxVbds,vdiCount))
         else:
             xenrt.TEC().value("numberVDIs",vdiCount)
-         
+
         for sr in srs:
-            # See how long an sr-scan takes       
+            # See how long an sr-scan takes
             try:
                 t = xenrt.util.Timer()
-                t.startMeasurement()            
+                t.startMeasurement()
                 self.cli.execute("sr-scan","uuid=%s" % (sr))
                 t.stopMeasurement()
                 xenrt.TEC().value("sr-scan",t.max())
             except xenrt.XRTFailure, e:
                 xenrt.TEC().warning("Exception while performing sr-scan: %s" % (e))
-         
+
         srCount = 0
         guest = host.createGenericLinuxGuest(sr = srs[srCount])
         self.uninstallOnCleanup(guest)
- 
+
         guest.preCloneTailor()
         guest.shutdown()
- 
+
         # Determine how many VBDs we can add to the guest
         vbddevices = host.genParamGet("vm",
                                        guest.getUUID(),
                                        "allowed-VBD-devices").split("; ")
         vbdsAvailable = len(vbddevices)
-         
+
         # Start adding VBDs and plugging VDIs into them, once we reach allowed
         # VBDs, make a new clone and continue
- 
+
         vmCount = 0
         pluggedCount = 0
         leftOnGuest = 0
-        i = 0 
+        i = 0
         while pluggedCount < maxVbds and i < vdiCount and srCount < len(srs):
             if leftOnGuest == 0:
                 try:
@@ -2968,7 +2974,7 @@ class _VBDScalability(_Scalability):
                     currentGuest = g
                     self.guests.append(currentGuest)
                     leftOnGuest = vbdsAvailable
-                     
+
                 except xenrt.XRTFailure, e:
                     psize = int(host.getSRParam(srs[srCount],"physical-size"))
                     if psize > 0:
@@ -2979,44 +2985,44 @@ class _VBDScalability(_Scalability):
                                                 "8589934592, had %u" % (spaceleft))
                             srCount = srCount+1
                             continue
- 
+
             try:
-                 
+
                 device = currentGuest.createDisk(vdiuuid=self.vdis[i],returnDevice=True)
                 xenrt.TEC().logverbose("Formatting VDI within VM.")
                 time.sleep(30)
-                 
+
                 currentGuest.execguest("mkfs.ext3 /dev/%s" % (device))
                 currentGuest.execguest("mount /dev/%s /mnt" % (device))
                 xenrt.TEC().logverbose("Creating some random data on VDI.")
                 currentGuest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8")
                 currentGuest.execguest("umount /mnt")
-                 
+
                 pluggedCount += 1
                 leftOnGuest -= 1
                 i = i+1
                 xenrt.TEC().logverbose("Plugged VBD %s" %(pluggedCount))
- 
+
             except xenrt.XRTFailure, e:
                 xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
                                      (pluggedCount+1,e))
                 break
- 
+
         if pluggedCount < maxVbds:
             raise xenrt.XRTFailure("Created %u VDIs, only able to create/plug "
-                                    "VBDs for %u on %u guests" % 
+                                    "VBDs for %u on %u guests" %
                                     (vdiCount,pluggedCount,vmCount))
- 
+
         if self.VALIDATE:
                 if self.runSubcase("lifecycleOperations", (), "LifecycleOperations", "LifecycleOperations") != xenrt.RESULT_PASS:
                     return
-   
+
     def parseArgument(self,param,value):
         if param == "max":
             self.MAX = value
         else:
             _Scalability.parseArgument(self,param,value)
-         
+
     def postRun2(self):
         # Delete the VDIs
         for vdi in self.vdis:
@@ -3024,11 +3030,11 @@ class _VBDScalability(_Scalability):
                 self.cli.execute("vdi-destroy uuid=%s" % (vdi))
             except:
                 xenrt.TEC().warning("Exception destroying VDI %s" % (vdi))
-     
+
 class TC21482(_VBDScalability):
 
     """Verify the supported maximum number of VBD's per Host can be created and attached (NFS)"""
- 
+
     SR = "nfs"
     MAX = True
     VALIDATE = True

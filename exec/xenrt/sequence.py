@@ -1250,7 +1250,7 @@ class PrepareNode:
         return pool
 
     def handleVlanNode(self, node, params):
-        xenrt.GEC().registry.vlanPut(expand(node.getAttribute("name"), xenrt.PrivateVLAN()))
+        xenrt.GEC().registry.vlanPut(expand(node.getAttribute("name"), params), xenrt.PrivateVLAN())
 
     def handleHostNode(self, node, params, id=0):
         host = {}        

@@ -406,7 +406,7 @@ class DeployerPlugin(object):
 
         if not self.hyperVMsi:
             # Install CloudPlatform packages
-            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            cloudInputDir = self.marvin.mgtSvr.getCCPInputs()
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
             xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)

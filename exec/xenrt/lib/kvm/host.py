@@ -339,7 +339,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
             self.execdom0("yum erase -y qemu-kvm")
             # Install CloudPlatform packages
-            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            cloudInputDir = xenrt.getCCPInputs(self.distro)
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
             xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)

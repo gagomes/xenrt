@@ -4469,7 +4469,7 @@ fi
 
         xenrt.TEC().logverbose("Finding IP address of new management interface...")
         data = self.execdom0("ifconfig xenbr%s" % (interface[-1]))
-        nip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (interface, nip))
 

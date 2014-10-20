@@ -9,7 +9,7 @@
 
   <xs:simpleType name="groupType">
     <xs:restriction base="xs:string">
-      <xs:pattern value=".{1,32}|.*\$.*"/>
+      <xs:pattern value=".{1,32}|.*$.*"/>
     </xs:restriction>
   </xs:simpleType>
   
@@ -45,7 +45,7 @@
 
   <xs:simpleType name="tcIdType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="TC-\d+|.*\$.*"/>
+      <xs:pattern value="TC-\d+|.*$.*"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -63,7 +63,7 @@
   
   <xs:simpleType name="tcNameType">
     <xs:restriction base="xs:string">
-      <xs:pattern value=".{1,32}|.*\$.*"/>
+      <xs:pattern value=".{1,32}|.*$.*"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -197,6 +197,16 @@
             </xs:element>
           </xs:choice>
           <xs:attribute name="name" use="optional" />
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:group name="vlan">
+    <xs:sequence>
+      <xs:element name="vlan" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" use="required"/>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
@@ -559,6 +569,7 @@
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="vlan" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>

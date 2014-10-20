@@ -6116,11 +6116,7 @@ exit 0
                                    "SECONDARY",
                                    "SUBNETMASK"],
                                    None)
-        else:
-            if not vlanname in vlannames.keys():
-                xenrt.TEC().logverbose("Known VLANs %s" % (vlannames.keys()))
-                raise xenrt.XRTError("VLAN %s not defined for host %s" %
-                                     (vlanname, self.getName()))
+        elif vlanname in vlannames.keys():
             vlanid = self.lookup(["NETWORK_CONFIG", "VLANS", vlanname, "ID"], None)
             if not vlanid:
                 raise xenrt.XRTError("Could not find ID for VLAN %s" % (vlanname))
@@ -6135,6 +6131,14 @@ exit 0
                                    vlanname,
                                    "SUBNETMASK"],
                                    None)
+        else:
+            vlanres = xenrt.GEC().registry.vlanGet(vlanname)
+            if not vlanres:
+                raise xenrt.XRTError("VLAN %s not found" % vlanname)
+            vlan = vlanres.getID()
+            subnet = None
+            netmask = None
+
         return (vlan, subnet, netmask)
 
     def availableVLANs(self):

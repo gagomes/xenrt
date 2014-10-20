@@ -949,6 +949,8 @@ class PrepareNode:
                 self.handleInstanceNode(n, params, template=True)
             elif n.localName == "instance":
                 self.handleInstanceNode(n, params, template=False)
+            elif n.localName == "vlan":
+                self.handleVlanNode(n, params)
         
         # Do the cloud nodes now the other hosts have been allocated
         for n in node.childNodes:
@@ -1246,6 +1248,9 @@ class PrepareNode:
                 h['basicNetwork'] = False
 
         return pool
+
+    def handleVlanNode(self, node, params):
+        xenrt.GEC().registry.vlanPut(expand(node.getAttribute("name"), xenrt.PrivateVLAN()))
 
     def handleHostNode(self, node, params, id=0):
         host = {}        

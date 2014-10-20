@@ -381,3 +381,16 @@ class Registry:
 
     def instanceGetAll(self):
         return self.objGetAll("instance")
+
+    def vlanPut(self, tag, resource):
+        self.objPut("vlan", tag, resource)
+
+    def vlanGet(self, tag):
+        return self.objGet("vlan", tag)
+
+    def vlanDelete(self, tag):
+        self.objDelete("vlan", tag)
+
+    def vlanGetAll(self):
+        return self.objGetAll("vlan")
+

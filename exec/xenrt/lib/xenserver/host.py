@@ -6745,7 +6745,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("New interface not UP after configuration")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for new interface")
 
@@ -6792,7 +6792,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Interface not UP")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for interface")
 
@@ -8453,9 +8453,9 @@ class MNRHost(Host):
             elif len(ipcfg) > 1:
                 xenrt.TEC().reason("Multiple IP addresses configured on device %s" % name)
             else:
-                m = re.match("inet addr:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "Bcast:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "Mask:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)", ipcfg[0])
+                m = re.match("inet ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
+                             "netmask ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
+                             "broadcast ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)", ipcfg[0])
 
             if not m:
                 xenrt.TEC().reason("Cannot determine interface configuration for %s" % name)

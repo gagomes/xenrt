@@ -276,9 +276,9 @@ def start_job(jobid):
             # apply patch
             rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
             if rc > 0:
-                errmsg = "Couldn't import custom patch %s" % (data["CUSTOM_PATCH"])
+                errmsg = "Could not import custom patch %s" % (data["CUSTOM_PATCH"])
         else:
-            errmsg = "Couldn't find custom patch %s" % (data["CUSTOM_PATCH"])
+            errmsg = "Could not find custom patch %s" % (data["CUSTOM_PATCH"])
             
         if len(errmsg) > 0:
             trace("%s\n" % (errmsg))

@@ -11825,8 +11825,8 @@ class NFSStorageRepository(StorageRepository):
         except:
             raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
                                    "does not exist" % (self.uuid))
-        nfs = string.split(host.execdom0("mount | grep \" "
-                                          "/var/run/sr-mount/%s \"" %
+        nfs = string.split(host.execdom0("mount | grep \""
+                                          "/run/sr-mount/%s \"" %
                                           (self.uuid)))[0]
         shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
         if nfs != shouldbe:

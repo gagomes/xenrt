@@ -9,17 +9,15 @@
     </variables>    
 
     <prepare>
-      <pool>
-        <host id="0">
-          <vm name="${DISTRO}">
-            <distro>${DISTRO}</distro>
-            <memory>${GUESTMEMORY}</memory>
-            <vcpus>${GUESTVCPUS}</vcpus>
-            <network device="0"/>
-            <postinstall action="installDrivers"/>
-          </vm>
-        </host>
-      </pool>
+      <host id="0">
+        <vm name="${DISTRO}">
+          <distro>${DISTRO}</distro>
+          <memory>${GUESTMEMORY}</memory>
+          <vcpus>${GUESTVCPUS}</vcpus>
+          <network device="0"/>
+          <postinstall action="installDrivers"/>
+        </vm>
+      </host>
     </prepare>
 
     <testsequence>

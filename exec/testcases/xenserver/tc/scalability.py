@@ -148,7 +148,7 @@ class _VMScalability(_Scalability):
         mem = 256
         if self.MEMORY > 256:
             mem = self.MEMORY
- 
+
         g0 = xenrt.lib.xenserver.guest.createVM(host,
                                                   self.vmtemplate+"-"+str(host.getName()),
                                                   distro,
@@ -415,7 +415,7 @@ class _VMScalability(_Scalability):
         if isUp:
             self.nbrOfGuestsUp = self.nbrOfGuestsUp + 1
         self.lock.release()
-        
+
         #recursively call itself until all guests are not checked
         self.checkGuestThread()
 
@@ -434,7 +434,7 @@ class _VMScalability(_Scalability):
 
         if self.CHECKREACHABLE and self.nbrOfGuestsAlive < self.nbrOfGuests:
             raise xenrt.XRTFailure("%d guests not reachable" % (self.nbrOfGuests-self.nbrOfGuestsAlive))
-            
+
         if self.CHECKHEALTH and self.nbrOfGuestsUp < self.nbrOfGuests:
             raise xenrt.XRTFailure("%d guests are not healthy" % (self.nbrOfGuests-self.nbrOfGuestsUp))
 

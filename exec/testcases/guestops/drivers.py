@@ -30,6 +30,7 @@ class TCVerifyDriversUptoDate(xenrt.TestCase):
         if not guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as up-to-date after installation")
 
+
 class TCVerifyDriversOutOfDate(xenrt.TestCase):
 
     def run(self, arglist=None):
@@ -47,6 +48,7 @@ class TCVerifyDriversOutOfDate(xenrt.TestCase):
 
         if guest.pvDriversUpToDate():
             raise xenrt.XRTFailure("PV Drivers are not reported as out-of-date")
+
 
 class TCDriverInstall(xenrt.TestCase):
 
@@ -124,6 +126,7 @@ class TCDriverInstall(xenrt.TestCase):
             time.sleep(120)
             guest.enableDriverVerifier()
 
+
 class TCDriverUpgrade(xenrt.TestCase):
 
     def __init__(self):
@@ -164,7 +167,6 @@ class TCDriverUpgrade(xenrt.TestCase):
             guest.installTools()
         guest.waitForAgent(60)
         guest.shutdown()
-
 
 
 class TCGPODoesNotBSOD(xenrt.TestCase):

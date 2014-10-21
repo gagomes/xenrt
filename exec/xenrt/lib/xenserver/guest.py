@@ -2780,7 +2780,7 @@ exit /B 1
             xenrt.TEC().logverbose("Using local SR %s" % (sruuid))
         return sruuid
 
-    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False):
+    def importVM(self, host, image, preserve=False, sr=None, metadata=False, imageIsOnHost=False, ispxeboot=False, vifs=[]):
         if sr:
             sruuid = sr
         else:
@@ -2812,8 +2812,11 @@ exit /B 1
         cli.execute("vm-param-set",
                     "uuid=%s name-label=\"%s\"" % (uuid, self.name))
         if not ispxeboot:
-            self.reparseVIFs()
-            self.vifs.sort()
+            if not vifs:
+                self.reparseVIFs()
+                self.vifs.sort()
+            else:
+                self.vifs = vifs
             self.recreateVIFs(newMACs=True)
         self.existing(host)
 
@@ -4188,6 +4191,8 @@ def createVMFromFile(host,
                      memory=None,
                      bootparams=None,
                      suffix=None,
+                     vifs=[],
+                     ips={},
                      *args,
                      **kwargs):
     if not isinstance(host, xenrt.GenericHost):
@@ -4197,7 +4202,8 @@ def createVMFromFile(host,
     else:
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
-    guest.importVM(host, xenrt.TEC().getFile(filename))
+    guest.ips = ips
+    guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
     if bootparams:
         bp = guest.getBootParams()
         if len(bp) > 0: bp += " "

@@ -439,7 +439,7 @@ class Guest(xenrt.GenericGuest):
         if not vifsdone:
             for v in self.vifs:
                 eth, bridge, mac, ip = v
-                self.createVIF(eth, bridge, mac)
+                self.createVIF(eth, bridge, mac, ip=ip)
 
         # Resize root disk if necessary
         if not rawHBAVDIs:
@@ -1998,6 +1998,9 @@ exit /B 1
 
         if plug:
             cli.execute("vif-plug","uuid=%s" % (uuid))
+
+        if self.ips.get(int(device)):
+            self.paramSet("other-config:xenrt-ip-eth%d" % int(device)) = self.ips.get(int(device))
 
         return "%s%s" % (self.vifstem, device)
 
@@ -4258,7 +4261,8 @@ def createVM(host,
              use_ipv6=False,
              dontstartinstall=False,
              installXenToolsInPostInstall=False,
-             suffix=None):
+             suffix=None,
+             ips={}):
 
     if not isinstance(host, xenrt.GenericHost):
         host = xenrt.TEC().registry.hostGet(host)
@@ -4281,6 +4285,7 @@ def createVM(host,
         if memory:
             g.setMemory(memory)
         g.createGuestFromTemplate(t, None)
+        g.ips = ips
         
         g.removeAllVIFs()
         if re.search("[vw]", distro):
@@ -4365,7 +4370,7 @@ def createVM(host,
         else:
             g.windows = False
             g.vifstem = g.VIFSTEMPV
-
+        g.ips = ips
         if vifs == xenrt.lib.xenserver.Guest.DEFAULT:
             vifs = [("0",
                      host.getPrimaryBridge(),

@@ -1406,6 +1406,7 @@ class PrepareNode:
 
         vm["guestname"] = expand(node.getAttribute("name"), params)
         vm["vifs"] = []       
+        vm["ips"] = {}       
         vm["disks"] = []
         vm["postinstall"] = []
         if suffixjob:
@@ -1444,7 +1445,10 @@ class PrepareNode:
                 elif x.localName == "network":
                     device = expand(x.getAttribute("device"), params)
                     bridge = expand(x.getAttribute("bridge"), params)
+                    ip = expand(x.getAttribute("ip"), params)
                     vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
+                    if ip:
+                        vm["ips"][int(device)] = ip
                 elif x.localName == "disk":
                     device = expand(x.getAttribute("device"), params)
                     size = expand(x.getAttribute("size"), params)

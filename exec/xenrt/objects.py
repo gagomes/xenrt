@@ -6686,6 +6686,7 @@ class GenericGuest(GenericPlace):
         self.vcpus = 1
         self.corespersocket = None
         self.vifs = []
+        self.ips = {}
         self.mainip = None
         self.reservedIP = reservedIP
         self.tailored = False

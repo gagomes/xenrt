@@ -20,6 +20,14 @@
           <VLAN network="TEST_VLAN" />
         </PHYSICAL>
       </NETWORK>
+      <vm name="deb">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <network device="1" bridge="TEST_VLAN" ip="172.16.0.1/24" />
+        <disk device="0" size="8" />
+      </vm>
     </host>
   </prepare>
 </xenrt>

@@ -439,7 +439,7 @@ class Guest(xenrt.GenericGuest):
         if not vifsdone:
             for v in self.vifs:
                 eth, bridge, mac, ip = v
-                self.createVIF(eth, bridge, mac)
+                self.createVIF(eth, bridge, mac, ip=ip)
 
         # Resize root disk if necessary
         if not rawHBAVDIs:
@@ -2000,9 +2000,25 @@ exit /B 1
             cli.execute("vif-plug","uuid=%s" % (uuid))
 
         if self.ips.get(int(device)):
-            self.paramSet("other-config:xenrt-ip-eth%d" % int(device), self.ips.get(int(device)))
+            self.paramSet("other-config:xenrt-ip-%s%d" % (self.VIFSTEM, int(device)), self.ips.get(int(device)))
 
         return "%s%s" % (self.vifstem, device)
+
+    def setStaticIPs(self):
+        ipSpec = []
+        doSet = False
+        for v in self.vifs:
+            (eth, bridge, mac, currentIp) = v
+            try:
+                (newIP, mask) = self.paramGet("other-config", paramKey="xenrt-ip-%s" % eth).split("/")
+                doSet = True
+            except:
+                newIP = None
+                mask = None
+            ipSpec.append((eth, newIP, mask))
+        if doSet:
+            self.getInstance().os.setIPs(ipSpec)
+
 
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",
@@ -4489,6 +4505,8 @@ def createVM(host,
         xenrt.TEC().registry.configPut(guestname, vcpus=vcpus,
                                        memory=memory,
                                        distro=distro)
+
+        g.setStaticIPs()
 
         for p in postinstall:
             if type(p) == tuple:

@@ -6696,6 +6696,7 @@ class GenericGuest(GenericPlace):
         self.managebridge = False
         self.use_ipv6 = False
         self.ipv4_disabled = False
+        self.instance = None
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6710,6 +6711,7 @@ class GenericGuest(GenericPlace):
         x.distro = self.distro
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
+        x.instance = self.instance
 
     def setHost(self, host):
         if host and host.replaced:
@@ -9428,16 +9430,18 @@ while True:
         self.reboot()
 
     def getInstance(self):
-        if self.windows or not self.arch:
-            osdistro = self.distro
-        else:
-            osdistro = "%s_%s" % (self.distro, self.arch)
+        if not self.instance:
+            if self.windows or not self.arch:
+                osdistro = self.distro
+            else:
+                osdistro = "%s_%s" % (self.distro, self.arch)
         
-        wrapper = xenrt.lib.generic.GuestWrapper(self)
-        instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
-        instance.os.tailor()
-        xenrt.TEC().registry.instancePut(self.name, self)
-        return instance
+            wrapper = xenrt.lib.generic.GuestWrapper(self)
+            self.instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
+            self.instance.os.tailor()
+            self.instance.os.populateFromExisting()
+            xenrt.TEC().registry.instancePut(self.name, self)
+        return self.instance
 
 class EventObserver(xenrt.XRTThread):
 

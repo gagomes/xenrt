@@ -17,6 +17,6 @@
   </prepare>
 
   <testsequence>
-    <testcase id="testcases.guestops.drivers.TCGPODoesNotBSOD"/>
+    <testcase id="guestops.drivers.TCGPODoesNotBSOD"/>
   </testsequence>
 </xenrt>

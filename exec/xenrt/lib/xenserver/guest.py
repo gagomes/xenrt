@@ -2000,7 +2000,7 @@ exit /B 1
             cli.execute("vif-plug","uuid=%s" % (uuid))
 
         if self.ips.get(int(device)):
-            self.paramSet("other-config:xenrt-ip-eth%d" % int(device)) = self.ips.get(int(device))
+            self.paramSet("other-config:xenrt-ip-eth%d" % int(device), self.ips.get(int(device)))
 
         return "%s%s" % (self.vifstem, device)
 

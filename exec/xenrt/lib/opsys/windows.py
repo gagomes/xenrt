@@ -115,9 +115,10 @@ class WindowsOS(OS):
     def preCloneTailor(self):
         return
 
-    def ensurePackageInstalled(self, *args):
+    def ensurePackageInstalled(self, *args, **kwargs):
         global packageList
         needReboot = False
+        packages = args
         for package in args:
             installer = None
             for p in packageList:
@@ -133,7 +134,7 @@ class WindowsOS(OS):
                 elif installer.REQUIRE_REBOOT:
                     needReboot = True
 
-        if needReboot:
+        if needReboot and kwargs.get("doDelayedReboot", True):
             self.reboot()
                 
 

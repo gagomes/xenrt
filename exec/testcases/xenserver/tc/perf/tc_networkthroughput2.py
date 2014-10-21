@@ -443,6 +443,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             # Get the assumed enumeration ID for this PIF
             pifdev = host.genParamGet("pif", pifuuid, "device")
             xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF with uuid %s is %s" % (pifuuid, pifdev))
+            if pifdev.startswith("bond"):
+                # Get the first bond-slave
+                bonduuid = host.genParamGet("pif", pifuuid, "bond-master-of")
+                slaveuuids = host.genParamGet("bond", bonduuid, "slaves").split("; ")
+                pifuuid = slaveuuids[0]
+                pifdev = host.genParamGet("pif", pifuuid, "device")
+                xenrt.TEC().logverbose("convertNetworkToAssumedid: bond uuid is %s; using first slave (uuid %s, device %s)" % (bonduuid, pifuuid, pifdev))
+
             assumedid = host.getNICEnumerationId(pifdev)
             xenrt.TEC().logverbose("convertNetworkToAssumedid: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
             return assumedid

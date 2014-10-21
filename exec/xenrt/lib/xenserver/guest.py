@@ -438,7 +438,7 @@ class Guest(xenrt.GenericGuest):
         if not vifsdone:
             for v in self.vifs:
                 eth, bridge, mac, ip = v
-                self.createVIF(eth, bridge, mac, ip=ip)
+                self.createVIF(eth, bridge, mac)
 
         # Resize root disk if necessary
         if not rawHBAVDIs:

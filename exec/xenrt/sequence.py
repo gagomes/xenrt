@@ -915,6 +915,7 @@ class PrepareNode:
         self.pools = []
         self.bridges = []
         self.srs = []
+        self.privatevlans = []
         self.cloudSpec = {}
         self.networksForHosts = {}
         self.networksForPools = {}
@@ -1250,7 +1251,7 @@ class PrepareNode:
         return pool
 
     def handleVlanNode(self, node, params):
-        xenrt.GEC().registry.vlanPut(expand(node.getAttribute("name"), params), xenrt.PrivateVLAN())
+        self.privatevlans.append(expand(node.getAttribute("name"), params))
 
     def handleHostNode(self, node, params, id=0):
         host = {}        
@@ -1529,6 +1530,8 @@ class PrepareNode:
                 i += 1
         
         try:
+            for v in self.privatevlans:
+                xenrt.GEC().registry.vlanPut(v, xenrt.PrivateVLAN())
             sharedGuestQueue = InstallWorkQueue()
             for v in self.vms:
                 if v.has_key("host") and v["host"] == "SHARED":

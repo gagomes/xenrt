@@ -171,13 +171,17 @@ class TCGPODoesNotBSOD(xenrt.TestCase):
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
-        guest = self.getGuest(host.listGuests()[0])
-        assertTrue(guest.windows, "Guest is not windows")
+        guest = self.getGuest("w")#host.listGuests()[0])
+        assertions.assertTrue(guest.windows, "Guest is not windows")
 
         self.__setGPO(guest)
-        guest.installDrivers()
-        guest.checkHealth()
+        #guest.installDrivers()
+        #guest.checkHealth()
 
     def __setGPO(self, guest):
-        pass
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall""")
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDs", "DWORD", 1)
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDsRetroactive", "DWORD", 0)
+        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs""", "1", "SZ", "USB\\Class_0e&SubClass_03&Prot_00")
+
 

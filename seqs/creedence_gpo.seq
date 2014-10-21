@@ -17,6 +17,6 @@
   </prepare>
 
   <testsequence>
-    <testcase id="testcases.xenserver.tc.guestops.TCGPODoesNotBSOD"/>
+    <testcase id="testcases.xenserver.tc.drivers.TCGPODoesNotBSOD"/>
   </testsequence>
 </xenrt>

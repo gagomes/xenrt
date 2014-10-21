@@ -11,6 +11,7 @@
 import string, time
 import xenrt
 import assertions
+from lazylog import log
 
 class TCVerifyDriversUptoDate(xenrt.TestCase):
 
@@ -171,17 +172,18 @@ class TCGPODoesNotBSOD(xenrt.TestCase):
 
     def run(self, arglist=None):
         host = self.getDefaultHost()
-        guest = self.getGuest("w")#host.listGuests()[0])
-        assertions.assertTrue(guest.windows, "Guest is not windows")
-
+        guest = self.getGuest(host.listGuests()[0])
         self.__setGPO(guest)
-        #guest.installDrivers()
-        #guest.checkHealth()
+        guest.installDrivers()
+        guest.checkHealth()
 
     def __setGPO(self, guest):
-        guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall""")
+        """
+        This is the registry key settings for the required Group Policy Object that will apply:
+        Configuration/Administrative Templates/System/Device Installation/Device Installation Restrictions – Enabled
+        Prevent installation of devices that match any of these Device IDs
+        and then set the value to restrict USB\Class_0e&SubClass_03&Prot_00
+        """
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDs", "DWORD", 1)
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDsRetroactive", "DWORD", 0)
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions\DenyDeviceIDs""", "1", "SZ", "USB\\Class_0e&SubClass_03&Prot_00")
-
-

@@ -178,10 +178,7 @@ class TCGPODoesNotBSOD(xenrt.TestCase):
 
     def __setGPO(self, guest):
         """
-        This is the registry key settings for the required Group Policy Object that will apply:
-        Configuration/Administrative Templates/System/Device Installation/Device Installation Restrictions – Enabled
-        Prevent installation of devices that match any of these Device IDs
-        and then set the value to restrict USB\Class_0e&SubClass_03&Prot_00
+        This is the registry key settings for the required Group Policy Object
         """
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDs", "DWORD", 1)
         guest.winRegAdd("HKLM", """SOFTWARE\Policies\Microsoft\Windows\DeviceInstall\Restrictions""", "DenyDeviceIDsRetroactive", "DWORD", 0)

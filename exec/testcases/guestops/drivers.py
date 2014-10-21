@@ -10,8 +10,7 @@
 
 import string, time
 import xenrt
-import assertions
-from lazylog import log
+
 
 class TCVerifyDriversUptoDate(xenrt.TestCase):
 

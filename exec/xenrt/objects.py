@@ -5159,7 +5159,11 @@ class GenericHost(GenericPlace):
                           "> /dev/null 2>&1 </dev/null &")
             xenrt.sleep(5)
         else:
-            self.execdom0("/sbin/reboot")
+            try:
+                self.execdom0("/sbin/reboot")
+            except xenrt.XRTFailure, e:
+                if e.reason != "SSH channel closed unexpectedly":
+                    raise e
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):

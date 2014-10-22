@@ -64,7 +64,7 @@ class TestMarvinConfig(XenRTUnitTestCase):
         smb.return_value = dummySmb
         dummyNs = Mock()
         dummyNs.managementIp = "10.3.1.1"
-        dummyNs.gatewayIp.return_value = "10.3.1.2"
+        dummyNs.subnetIp.return_value = "10.3.1.2"
         ns.return_value = dummyNs
         tec.return_value = self.dummytec
         gec.return_value = self.dummytec

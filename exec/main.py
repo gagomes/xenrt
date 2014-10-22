@@ -2477,7 +2477,14 @@ else:
         xenrt.TEC().comment("Using sequence file %s" % (usefilename))
     else:
         gec.harnessError()
-        sys.stderr.write("Could not find sequence file.")
+        strErr = "Could not find sequence file."
+        gec.logverbose(strErr)
+        try:
+            gec.dbconnect.jobUpdate("PREPARE_FAILED", strErr)
+        except:
+            pass
+
+        sys.stderr.write(strErr)
         sys.exit(1)
     seqfilebase = os.path.basename(usefilename)
     seqfileroot, seqfileext = os.path.splitext(seqfilebase)

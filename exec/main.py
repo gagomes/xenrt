@@ -2481,8 +2481,8 @@ else:
         gec.logverbose(strErr)
         try:
             gec.dbconnect.jobUpdate("PREPARE_FAILED", strErr)
-        except Exception, ex:
-            gec.logverbose(ex)
+        except:
+            pass
 
         sys.stderr.write(strErr)
         sys.exit(1)

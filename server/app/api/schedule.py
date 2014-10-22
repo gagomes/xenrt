@@ -264,7 +264,7 @@ class XenRTSchedule(XenRTAPIPage):
             if len(exp) > 0:
                 cur.execute("UPDATE tblMachines SET leaseTo = NULL, "
                             "comment = NULL, leaseFrom = NULL, leaseReason = NULL WHERE machine in (%s)" %
-                            [string.join(exp, ", ")])
+                            (string.join(exp, ", ")))
             db.commit()
             cur.close()
         except Exception, e:

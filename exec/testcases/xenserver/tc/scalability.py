@@ -195,7 +195,7 @@ class _VMScalability(_Scalability):
             xenrt.pfarm ([xenrt.PTask(self.optimizeDom0, host) for host in self.hosts])
 
         step("Getting existing guest information")
-        xenrt.pfarm ([xenrt.PTask(self.optimizeExistingGuests, host) for host in self.hosts])
+        self.optimizeExistingGuests(host)
 
         if self.HATEST:
             step("Enabling HA")
@@ -246,14 +246,18 @@ class _VMScalability(_Scalability):
             host.reboot(timeout=3600)
 
     def optimizeExistingGuests(self, host):
-        self.lock.acquire()
         for gname in host.listGuests():
             if self.vmtemplate not in gname and host.getGuest(gname):
                 g = host.getGuest(gname)
-                self.guests.append(g)
+                if g.getState() == "DOWN":
+                    try: 
+                        g.start()
+                    except:
+                        self.uninstallOnCleanup(g)
+                        pass
                 if g.getState() == "UP":
+                    self.guests.append(g)
                     self.currentNbrOfGuests = self.currentNbrOfGuests + 1
-        self.lock.release()
 
         if self.TRYMAX:
             for g in self.guests:
@@ -380,7 +384,7 @@ class _VMScalability(_Scalability):
                 for g in self.guests:
                     g.setHAPriority(order=2, protect=True, restart=False)
                     if not g.paramGet("ha-restart-priority") == "best-effort":
-                        raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName())) 
+                        raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
 
     def checkGuestThread(self):
         self.lock.acquire()

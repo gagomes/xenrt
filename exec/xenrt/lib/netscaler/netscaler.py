@@ -89,7 +89,7 @@ class NetScaler(object):
             i += 1
             self.__netScalerCliCommand("add vlan %d" % i)
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
-            dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % i-1][0]
+            dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % (i-1)][0]
             if ip:
                 self.__subnetips[n] = ip
                 subnet = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()

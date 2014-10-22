@@ -234,7 +234,7 @@ class XenRTAPIPage(XenRTPage):
         else:
             cur.execute("SELECT jobid, value FROM tblJobDetails WHERE jobid in (%s)"
                         " AND param = %%s" %
-                        (string.join(map(str, joblist), ",")), param)
+                        (string.join(map(str, joblist), ",")), (param))
         reply = {}
         while True:
             rc = cur.fetchone()
@@ -335,8 +335,8 @@ class XenRTAPIPage(XenRTPage):
         if key in app.constants.core_params:
             cur = db.cursor()
             try:
-                cur.execute("UPDATE tbljobs SET %s=%s WHERE jobid=%u;", 
-                            (key,value,id))
+                cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%u;" % (key), 
+                            (value,id))
                 if commit:
                     db.commit()
             finally:

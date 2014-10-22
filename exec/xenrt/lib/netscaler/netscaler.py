@@ -41,11 +41,11 @@ class NetScaler(object):
                 # Configure the VIFs
                 vpxGuest.removeAllVIFs()
 
-                mgmtNet = networks[0]
                 for n in networks:
                     vpxGuest.createVIF(bridge=n)
             else:
-                mgmtNet = vpxGuest.getNetworkNameForVIF("eth0")
+                networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
+            mgmtNet = networks[0]
 
             # Configure the management network for the VPX
             vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
@@ -78,7 +78,7 @@ class NetScaler(object):
         self.__vpxGuest = vpxGuest
         self.__version = None
         self.__managementIp = None
-        self.__gateways = {}
+        self.__subnetips = {}
         self.__mgmtNet = mgmtNet
         xenrt.TEC().logverbose('NetScaler VPX Version: %s' % (self.version))
 
@@ -91,15 +91,15 @@ class NetScaler(object):
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
             dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % i]
             if ip:
-                self.__gateways[n] = ip
+                self.__subnetips[n] = ip
                 subnet = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
             else:
-                self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
+                self.__subnetips[n] = xenrt.StaticIP4Addr(network=n).getAddr()
                 subnet = xenrt.getNetworkParam(n, "SUBNETMASK")
-            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], subnet))
-            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
-        self.__gateways[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
-        self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
+            self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[n], subnet))
+            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
+        self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
+        self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
         self.__netScalerCliCommand('save ns config')
 
     def __netScalerCliCommand(self, command):
@@ -169,10 +169,10 @@ class NetScaler(object):
             self.__managementIp = managementIp
         return self.__managementIp
 
-    def gatewayIp(self, network=None):
+    def subnetIp(self, network=None):
         if not network:
             network="NPRI"
-        return self.__gateways[network]
+        return self.__subnetips[network]
 
     def disableL3(self):
         self.__netScalerCliCommand("disable ns mode L3")
@@ -182,5 +182,5 @@ class NetScaler(object):
         self.__netScalerCliCommand("set rnat %s %s -natIP %s" % (
                     xenrt.getNetworkParam(privateNetwork, "SUBNET"),
                     xenrt.getNetworkParam(privateNetwork, "SUBNETMASK"),
-                    self.gatewayIp(network=publicNetwork)))
+                    self.subnetIp(network=publicNetwork)))
         self.__netScalerCliCommand('save ns config')

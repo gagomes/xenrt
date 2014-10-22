@@ -1983,7 +1983,10 @@ exit /B 1
             self.getInstance().os.setIPs(ipSpec)
 
     def setupNetscalerVPX(self):
-        xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
+        xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
+        xenrt.GEC().registry.dump()
+        netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
 
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",

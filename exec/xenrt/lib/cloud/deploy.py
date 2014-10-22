@@ -102,7 +102,7 @@ class DeployerPlugin(object):
             xenrt.GEC().registry.dump()
             xenrt.TEC().logverbose("XRT_NetscalerGateway")
             ns = xenrt.GEC().registry.objGet("netscaler", ref['XRT_NetscalerGateway'])
-            return ns.gatewayIp(ref.get("XRT_VlanName", "NPRI"))
+            return ns.subnetIp(ref.get("XRT_VlanName", "NPRI"))
         else:
             return xenrt.getNetworkParam(ref.get("XRT_VlanName", "NPRI"), "GATEWAY")
 

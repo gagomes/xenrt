@@ -81,7 +81,7 @@ class XenRTAPIPage(XenRTPage):
         cur.execute("""SELECT s.site, s.status, s.flags, s.descr, s.comment, s.ctrladdr,
                               s.adminid, s.maxjobs, s.sharedresources
                        FROM tblSites s WHERE s.site = %s""",
-                    (site))
+                    [site])
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -110,7 +110,7 @@ class XenRTAPIPage(XenRTPage):
 
     def list_jobs_for_site(self, site):
         cur = self.getDB().cursor()
-        cur.execute("SELECT jobid FROM tblmachines WHERE site=%s AND (status='scheduled' OR status='running');", (site))
+        cur.execute("SELECT jobid FROM tblmachines WHERE site=%s AND (status='scheduled' OR status='running');", [site])
         rc = cur.fetchall()
         return map(lambda x: x[0], rc)
 
@@ -126,7 +126,7 @@ class XenRTAPIPage(XenRTPage):
             dstatus = "default"
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", (machine))
+        cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", [machine])
         if cur.fetchone():
             u = []
             if site:
@@ -162,7 +162,7 @@ class XenRTAPIPage(XenRTPage):
                                               status, resources, flags, descr)
                      VALUES
             (%s, %s, %s, %s, %s, %s, %s, %s)"""
-            cur.execute(sql, (machine, site, cluster, dpool, dstatus, resources, flags, descr))
+            cur.execute(sql, [machine, site, cluster, dpool, dstatus, resources, flags, descr])
         db.commit()
         cur.close()
 
@@ -234,7 +234,7 @@ class XenRTAPIPage(XenRTPage):
         else:
             cur.execute("SELECT jobid, value FROM tblJobDetails WHERE jobid in (%s)"
                         " AND param = %%s" %
-                        (string.join(map(str, joblist), ",")), (param))
+                        (string.join(map(str, joblist), ",")), [param])
         reply = {}
         while True:
             rc = cur.fetchone()
@@ -283,7 +283,7 @@ class XenRTAPIPage(XenRTPage):
 
         cur = db.cursor()
         cur.execute("SELECT key, value FROM tblMachineData " +
-                    "WHERE machine = %s;", (machine))
+                    "WHERE machine = %s;", [machine])
         while 1:
             rc = cur.fetchone()
             if not rc:
@@ -302,7 +302,7 @@ class XenRTAPIPage(XenRTPage):
                         m.jobid, m.leasefrom, m.leasereason, m.leasepolicy
                  FROM tblMachines m WHERE m.machine = %s
                  """
-        cur.execute(sql, (machine))
+        cur.execute(sql, [machine])
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -317,7 +317,7 @@ class XenRTAPIPage(XenRTPage):
             jobstatus = app.constants.job_status_desc[status]
        
             cur = db.cursor()
-            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%u;", (jobstatus,id))
+            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%u;", [jobstatus,id])
             if commit:
                 db.commit()
 
@@ -336,7 +336,7 @@ class XenRTAPIPage(XenRTPage):
             cur = db.cursor()
             try:
                 cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%u;" % (key), 
-                            (value,id))
+                            [value,id])
                 if commit:
                     db.commit()
             finally:
@@ -346,14 +346,14 @@ class XenRTAPIPage(XenRTPage):
             try:
                 if not details.has_key(key):
                     cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%u,%s,%s);", (id, key, value))
+                                "VALUES (%u,%s,%s);", [id, key, value])
                 elif len(value) > 0:
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
-                                "jobid=%u AND param=%s;", (value,id,key))
+                                "jobid=%u AND param=%s;", [value,id,key])
                 else:
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%u "
-                                "AND param=%s;", (id, key))
+                                "AND param=%s;", [id, key])
                 db.commit()
             finally:
                 cur.close()

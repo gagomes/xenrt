@@ -220,7 +220,7 @@ class XenRTMStatus(XenRTMachinePage):
             status = form["status"]
             cur = db.cursor()
             cur.execute("UPDATE tblMachines SET status = %s WHERE machine = %s;",
-                        (status, machine))
+                        [status, machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -273,8 +273,8 @@ class XenRTMUnDefine(XenRTMachinePage):
         try:
             db = self.getDB()
             cur = db.cursor()
-            cur.execute("DELETE FROM tblMachines WHERE machine = %s;", (machine))
-            cur.execute("DELETE FROM tblMachineData WHERE machine = %s;", (machine))
+            cur.execute("DELETE FROM tblMachines WHERE machine = %s;", [machine])
+            cur.execute("DELETE FROM tblMachineData WHERE machine = %s;", [machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -310,7 +310,7 @@ class XenRTBorrow(XenRTMachinePage):
             if form.has_key("force"):
                 force = True
             cur = db.cursor()
-            cur.execute("SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = %s", (machine))
+            cur.execute("SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[2] and hours > rc[2]:
@@ -325,7 +325,7 @@ class XenRTBorrow(XenRTMachinePage):
             cur = db.cursor()
             cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
                         "WHERE machine = %s",
-                        (leaseTo, leaseFrom, userid, reason, machine))
+                        [leaseTo, leaseFrom, userid, reason, machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -347,14 +347,14 @@ class XenRTReturn(XenRTMachinePage):
             if form.has_key("USERID"):
                 userid = form["USERID"]
             cur = db.cursor()
-            cur.execute("SELECT comment FROM tblmachines WHERE machine = %s", (machine))
+            cur.execute("SELECT comment FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[0] and userid and rc[0].strip() != userid and not force:
                 return "ERROR: machine is not leased to you (use --force to override)"
             cur = db.cursor()
             cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
-                        "WHERE machine = %s", (machine))
+                        "WHERE machine = %s", [machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -481,13 +481,13 @@ class XenRTMUpdate(XenRTMachinePage):
         
         cur = db.cursor()
         cur.execute("SELECT value FROM tblMachineData WHERE machine= %s "
-                    "AND key = %s;", (machine, key))
+                    "AND key = %s;", [machine, key])
         rc = cur.fetchone()
         if not rc:
             if op == 0 or op == 1:
                 cur.execute("INSERT INTO tblMachineData (machine, key, value)"
                             " VALUES (%s, %s, %s);",
-                            (machine, key, value))
+                            [machine, key, value])
         else:
             prev = ""
             if rc[0]:
@@ -511,7 +511,7 @@ class XenRTMUpdate(XenRTMachinePage):
                 value = string.join(llnew, ",")
             cur.execute("UPDATE tblMachineData SET value = %s WHERE "
                         "machine = %s AND key = %s;",
-                        (value, machine, key))
+                        [value, machine, key])
         db.commit()
         cur.close()
 
@@ -579,7 +579,7 @@ class XenRTUtilisation(XenRTMachinePage):
                             "JobEnd') AND ts > ('epoch'::timestamptz + interval "
                             "'%u seconds') AND ts < ('epoch'::timestamptz + "
                             "interval '%u seconds') ORDER BY ts;",
-                            (machine,start,end))
+                            [machine,start,end])
 
                 started = False
                 st_time = 0

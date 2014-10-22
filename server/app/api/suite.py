@@ -67,7 +67,7 @@ class XenRTSuiteStatus(XenRTAPIPage):
             sql = "SELECT j.jobid, g.description, j.jobstatus from tbljobgroups g INNER JOIN tbljobs j ON j.jobid = g.jobid WHERE g.gid=%s"
             cur = db.cursor()
             try:
-                cur.execute(sql, ("SR" + suiterun))
+                cur.execute(sql, ["SR" + suiterun])
                 while True:
                     rc = cur.fetchone()
                     if not rc:

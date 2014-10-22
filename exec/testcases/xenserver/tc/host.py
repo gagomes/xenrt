@@ -1604,7 +1604,7 @@ class TC9989(xenrt.TestCase):
 
         # Make sure the snmpd service is reported as stopped
         data = self.host.execdom0("service snmpd status | cat")
-        if not "stopped" in data:
+        if not "inactive" in data:
             raise xenrt.XRTFailure("snmpd service is not stopped")
 
         # Make sure the snmpd process is not running
@@ -1613,8 +1613,8 @@ class TC9989(xenrt.TestCase):
             raise xenrt.XRTFailure("snmpd process is running")
 
         # Make sure the snmpd service is not enabled in chkconfig
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
+        data = self.host.execdom0("service snmpd status | cat")
+        if "enabled" in data:
             raise xenrt.XRTFailure("snmpd service is enabled in chkconfig")
 
 class _SNMPConfigTest(xenrt.TestCase):
@@ -1700,21 +1700,21 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("service snmpd start")
             xenrt.TEC().logverbose("Waiting 60s after starting snmpd (CA-70508)...")
             time.sleep(60)
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        data = self.host.execdom0("service snmpd status | cat")
+        if "disabled" in data:
+            self.host.execdom0("systemctl enable snmpd")
             self.wasenabled = False
 
         # Make sure the firewall allows SNMP through
-        self.host.execdom0("service iptables restart || true")
-        for port in [161, 162]:
-            self.host.execdom0("iptables -D RH-Firewall-1-INPUT -m state "
-                               "--state NEW -m udp -p udp --dport %u "
-                               "-j ACCEPT || true" % (port))
-            self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
-                               "--state NEW -m udp -p udp --dport %u "
-                               "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        #self.host.execdom0("service iptables restart || true")
+        #for port in [161, 162]:
+        #    self.host.execdom0("iptables -D RH-Firewall-1-INPUT -m state "
+        #                       "--state NEW -m udp -p udp --dport %u "
+        #                       "-j ACCEPT || true" % (port))
+        #    self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
+        #                       "--state NEW -m udp -p udp --dport %u "
+        #                       "-j ACCEPT" % (port))
+        #self.host.execdom0("service iptables save")
 
         # Find the community name
         for line in self.snmp_config_lines:
@@ -1760,7 +1760,7 @@ class TC9993(_SNMPConfigTest):
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.execdom0("systemctl disable snmpd")
 
 class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""

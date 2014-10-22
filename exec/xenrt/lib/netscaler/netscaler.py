@@ -89,13 +89,18 @@ class NetScaler(object):
             i += 1
             self.__netScalerCliCommand("add vlan %d" % i)
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
+            print ipSpec
             dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % i][0]
             if ip:
                 self.__subnetips[n] = ip
                 subnet = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
             else:
+                try:
+                    subnet = xenrt.getNetworkParam(n, "SUBNETMASK")
+                except:
+                    # Must be a private VLAN with no static IP defined
+                    continue
                 self.__subnetips[n] = xenrt.StaticIP4Addr(network=n).getAddr()
-                subnet = xenrt.getNetworkParam(n, "SUBNETMASK")
             self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[n], subnet))
             self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
         self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()

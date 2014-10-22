@@ -33,7 +33,6 @@ class XenRTDownload(XenRTAPIPage):
             self.request.response.content_disposition = "attachment; filename=\"%d.tar.bz2\"" % (id)
             return self.request.response
         except Exception, e:
-            traceback.print_exc()
             if isinstance(e, IOError):
                 # We can still report error to client at this point
                 return "ERROR File missing"

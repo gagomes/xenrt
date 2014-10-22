@@ -4247,6 +4247,7 @@ def createVMFromFile(host,
     vifs = parseSequenceVIFs(guest, host, vifs)
 
     guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
+    guest.reparseVIFs()
     if bootparams:
         bp = guest.getBootParams()
         if len(bp) > 0: bp += " "

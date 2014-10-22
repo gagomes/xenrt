@@ -5657,7 +5657,8 @@ class _TC11537:
             vm_to_clone.start()
             if num_vifs > 0:
                 self.createNVifsOnGuest(num_vifs, vm_to_clone)
-        except:
+        except Exception, e:
+            warning("VM clone operation failed : %s" % e)
             self.test_dead=True
              
 

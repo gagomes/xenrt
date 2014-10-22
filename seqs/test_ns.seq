@@ -6,7 +6,7 @@
   <scheduler>
     <resources>memory&gt;=8G</resources>
     <param>MACHINES_REQUIRED=1</param>
-    <flags>vlans,staticip</flags>
+    <flags>privvlan,staticip</flags>
   </scheduler>
   <prepare>
     <vlan name="CLIENT_VLAN" />

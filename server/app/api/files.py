@@ -98,8 +98,8 @@ class XenRTUpload(XenRTAPIPage):
         db = self.getDB()
         cur = db.cursor()
 
-        cur.execute("UPDATE tblResults SET uploaded = '%s' WHERE detailid = %u" %
-                    (uploaded, detailid))
+        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %u",
+                    [uploaded, detailid])
 
         db.commit()
 

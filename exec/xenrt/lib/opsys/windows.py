@@ -118,7 +118,6 @@ class WindowsOS(OS):
     def ensurePackageInstalled(self, *args, **kwargs):
         global packageList
         needReboot = False
-        packages = args
         for package in args:
             installer = None
             for p in packageList:

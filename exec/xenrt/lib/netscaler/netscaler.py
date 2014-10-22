@@ -46,6 +46,7 @@ class NetScaler(object):
             else:
                 networks = [vpxGuest.getNetworkNameForVIF(x[0]) for x in vpxGuest.vifs]
             mgmtNet = networks[0]
+            xenrt.TEC().logverbose("Setting up networks %s" % (", ".join(networks)))
 
             # Configure the management network for the VPX
             vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
@@ -87,6 +88,7 @@ class NetScaler(object):
         ipSpec = self.__vpxGuest.getIPSpec()
         for n in networks[1:]:
             i += 1
+            xenrt.TEC().logverbose("Creating VLAN %d for network %s" % (i, n))
             self.__netScalerCliCommand("add vlan %d" % i)
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
             dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % (i-1)][0]

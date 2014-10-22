@@ -101,7 +101,7 @@ class NetScaler(object):
                     continue
                 self.__subnetips[n] = xenrt.StaticIP4Addr(network=n).getAddr()
             self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[n], subnet))
-            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
+            self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__subnetips[n], subnet))
         self.__subnetips[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
         self.__netScalerCliCommand('add ip %s %s' % (self.__subnetips[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))
         self.__netScalerCliCommand('save ns config')

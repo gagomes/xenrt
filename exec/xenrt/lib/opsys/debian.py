@@ -175,6 +175,8 @@ class DebianBasedLinux(LinuxOS):
             fh.write(content)
         sftp.copyTo(f, "/etc/network/interfaces")
         self.execSSH("ifup -a")
+        # Check we haven't broken networking
+        self.execSSH("true")
 
 
 class DebianLinux(DebianBasedLinux):

@@ -2,6 +2,7 @@
 import xenrt
 import os
 import re
+import IPy
 from pprint import pformat
 
 __all__ = ["NetScaler"]
@@ -10,9 +11,12 @@ class NetScaler(object):
     """Class that provides an interface for creating, controlling and observing a NetScaler VPX"""
 
     @classmethod
-    def setupNetScalerVpx(cls, vpxName, networks=["NPRI"]):
+    def setupNetScalerVpx(cls, vpx, useVIFs=False, networks=["NPRI"]):
         """Takes a VM name (present in the registry) and returns a NetScaler object"""
-        vpxGuest = xenrt.TEC().registry.guestGet(vpxName)
+        if isinstance(vpx, basestring):
+            vpxGuest = xenrt.TEC().registry.guestGet(vpx)
+        else:
+            vpxGuest = vpx
         host = vpxGuest.host
         xenrt.TEC().logverbose('Using VPX Appliance: %s on host: %s - current state: %s' % (vpxGuest.getName(), host.getName(), vpxGuest.getState()))
         xenrt.TEC().logverbose("VPX Guest:\n" + pformat(vpxGuest.__dict__))
@@ -33,12 +37,15 @@ class NetScaler(object):
             if vpxGuest.getState() == 'UP':
                 vpxGuest.shutdown()
 
-            # Configure the VIFs
-            vpxGuest.removeAllVIFs()
+            if not useVIFs:
+                # Configure the VIFs
+                vpxGuest.removeAllVIFs()
 
-            mgmtNet = networks[0]
-            for n in networks:
-                vpxGuest.createVIF(bridge=n)
+                mgmtNet = networks[0]
+                for n in networks:
+                    vpxGuest.createVIF(bridge=n)
+            else:
+                mgmtNet = vpxGuest.getNetworkNameForVIF("eth0")
 
             # Configure the management network for the VPX
             vpxGuest.mainip = xenrt.StaticIP4Addr(network=mgmtNet).getAddr()
@@ -77,12 +84,19 @@ class NetScaler(object):
 
     def setup(self, networks):
         i = 1
+        ipSpec = self.__vpxGuest.getIPSpec()
         for n in networks[1:]:
             i += 1
             self.__netScalerCliCommand("add vlan %d" % i)
             self.__netScalerCliCommand("bind vlan %d -ifnum 1/%d" % (i, i))
-            self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
-            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
+            dev, ip, masklen = [x for x in ipSpec if x[0] == "eth%d" % i]
+            if ip:
+                self.__gateways[n] = ip
+                subnet = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
+            else:
+                self.__gateways[n] = xenrt.StaticIP4Addr(network=n).getAddr()
+                subnet = xenrt.getNetworkParam(n, "SUBNETMASK")
+            self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[n], subnet))
             self.__netScalerCliCommand('bind vlan %d -IPAddress %s %s' % (i, self.__gateways[n], xenrt.getNetworkParam(n, "SUBNETMASK")))
         self.__gateways[networks[0]] = xenrt.StaticIP4Addr(network=networks[0]).getAddr()
         self.__netScalerCliCommand('add ip %s %s' % (self.__gateways[networks[0]], xenrt.getNetworkParam(networks[0], "SUBNETMASK")))

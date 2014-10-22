@@ -1962,7 +1962,7 @@ exit /B 1
 
         return "%s%s" % (self.vifstem, device)
 
-    def setStaticIPs(self):
+    def getIPSpec(self):
         ipSpec = []
         doSet = False
         for v in self.vifs:
@@ -1974,9 +1974,16 @@ exit /B 1
                 newIP = None
                 mask = None
             ipSpec.append((eth, newIP, mask))
+        return ipSpec
+
+    def setStaticIPs(self):
+        ipSpec = self.getIPSpec()
+        doSet = [x for x in ipSpec if x[1]]
         if doSet:
             self.getInstance().os.setIPs(ipSpec)
 
+    def setupNetscalerVPX(self):
+        xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
 
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",
@@ -4182,7 +4189,39 @@ exit /B 1
         self.paramSet("platform:parallel", "none")
         self.start()
 
+    def getNetworkNameForVIF(self, vifname):
+        mac, ip, bridge = self.getVIF(vifname=vifname)
+        network = self.host.getNetworkUUID(bridge)
+        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
+
 #############################################################################
+
+def parseSequenceVIFs(guest, host, vifs):
+    update = []
+    for v in vifs:
+        device, bridge, mac, ip = v
+        device = "%s%s" % (guest.vifstem, device)
+        if not bridge:
+            bridge = host.getPrimaryBridge()
+        elif re.search(r"^[0-9]+$", bridge):
+            bridge = host.getBridgeWithMapping(int(bridge))
+        elif not host.getBridgeInterfaces(bridge):
+            br = host.parseListForOtherParam("network-list",
+                                                 "name-label",
+                                                  bridge,
+                                                 "bridge")
+            if br:
+                bridge = br
+            elif not host.getNetworkUUID(bridge):
+                bridge = None
+
+        if not bridge:
+            raise xenrt.XRTError("Failed to choose a bridge for createVM on "
+                                 "host !%s" % (host.getName()))
+        update.append([device, bridge, mac, ip])
+    return update
+
+
 
 def createVMFromFile(host,
                      guestname,
@@ -4203,6 +4242,8 @@ def createVMFromFile(host,
         displayname = guestname
     guest = host.guestFactory()(displayname, host=host)
     guest.ips = ips
+    vifs = parseSequenceVIFs(guest, host, vifs)
+
     guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
     if bootparams:
         bp = guest.getBootParams()
@@ -4279,29 +4320,7 @@ def createVM(host,
                      xenrt.randomMAC(),
                      None)]
 
-        update = []
-        for v in vifs:
-            device, bridge, mac, ip = v
-            device = "%s%s" % (g.vifstem, device)
-            if not bridge:
-                bridge = host.getPrimaryBridge()
-            elif re.search(r"^[0-9]+$", bridge):
-                bridge = host.getBridgeWithMapping(int(bridge))
-            elif not host.getBridgeInterfaces(bridge):
-                br = host.parseListForOtherParam("network-list",
-                                                     "name-label",
-                                                      bridge,
-                                                     "bridge")
-                if br:
-                    bridge = br
-                elif not host.getNetworkUUID(bridge):
-                    bridge = None
-
-            if not bridge:
-                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
-                                     "host !%s" % (host.getName()))
-            update.append([device, bridge, mac, ip])
-        g.vifs = update
+        g.vifs = parseSequenceVIFs(g, host, vifs)
         for v in g.vifs:
             eth, bridge, mac, ip = v
             g.createVIF(eth, bridge, mac)
@@ -4354,29 +4373,7 @@ def createVM(host,
                      xenrt.randomMAC(),
                      None)]
 
-        update = []
-        for v in vifs:
-            device, bridge, mac, ip = v
-            device = "%s%s" % (g.vifstem, device)
-            if not bridge:
-                bridge = host.getPrimaryBridge()
-            elif re.search(r"^[0-9]+$", bridge):
-                bridge = host.getBridgeWithMapping(int(bridge))
-            elif not host.getBridgeInterfaces(bridge):
-                br = host.parseListForOtherParam("network-list",
-                                                     "name-label",
-                                                      bridge,
-                                                     "bridge")
-                if br:
-                    bridge = br
-                elif not host.getNetworkUUID(bridge):
-                    bridge = None
-
-            if not bridge:
-                raise xenrt.XRTError("Failed to choose a bridge for createVM on "
-                                     "host !%s" % (host.getName()))
-            update.append([device, bridge, mac, ip])
-        vifs = update
+        vifs = parseSequenceVIFs(g, host, vifs)
 
         # The install method doesn't do this for us.
         if vcpus:

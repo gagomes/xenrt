@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
   </variables>
   <scheduler>
     <resources>memory&gt;=8G</resources>

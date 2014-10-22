@@ -272,6 +272,7 @@ class _XSAutoCertKit(xenrt.TestCase):
         try:
             self.pool.master.execdom0("rm -f /opt/xensource/packages/files/auto-cert-kit/test_run.conf")
 
+            optionstr = ""
             if self.tec.lookup("POF_ALL", False, boolean=True):
                 optionstr += " -d"
 

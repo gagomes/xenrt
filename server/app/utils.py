@@ -77,7 +77,7 @@ def parse_job(rc,cur):
         d['REMOVED'] = string.strip(rc[7])
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
-                "jobid = %u;", rc[0])
+                "jobid = %u;", (rc[0]))
     
     while 1:
         rd = cur.fetchone()
@@ -88,7 +88,7 @@ def parse_job(rc,cur):
             d[string.strip(rd[0])] = string.strip(rd[1])
     
     if d['JOBSTATUS'] == "running":
-        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", d['JOBID'])
+        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", (d['JOBID']))
         rd = cur.fetchone()
         if rd[0] > 0:
             d['PAUSED'] = "yes"

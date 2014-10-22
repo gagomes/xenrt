@@ -21,12 +21,12 @@ class XenRTSitePage(XenRTAPIPage):
                         createNew=False):
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("SELECT site FROM tblSites WHERE site = %s", site)
+        cur.execute("SELECT site FROM tblSites WHERE site = %s", (site))
         if not cur.fetchone():
             if not createNew:
                 raise Exception("Could not find site '%s'" % (site))
             # Need to create a new record
-            cur.execute("INSERT into tblSites (site) VALUES (%s)", site)
+            cur.execute("INSERT into tblSites (site) VALUES (%s)", (site))
         
         u = []
         if status:
@@ -163,7 +163,7 @@ class XenRTSUnDefine(XenRTSitePage):
         try:
             db = self.getDB()
             cur = db.cursor()
-            cur.execute("DELETE FROM tblSites WHERE site = %s;", site)
+            cur.execute("DELETE FROM tblSites WHERE site = %s;", (site))
             try:
                 # Remove the pseudohost
                 cur.execute("DELETE FROM tblMachines WHERE machine = %s;", ("_%s" % site))
@@ -287,7 +287,7 @@ class XenRTSUpdate(XenRTSitePage):
             raise Exception("Unknown operation %s" % (operation))
         
         cur = db.cursor()
-        cur.execute("SELECT flags FROM tblSites WHERE site = %s", site)
+        cur.execute("SELECT flags FROM tblSites WHERE site = %s", (site))
         rc = cur.fetchone()
         if not rc:
             raise Exception("Could not find site '%s'" % (site))

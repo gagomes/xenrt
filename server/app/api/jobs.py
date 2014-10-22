@@ -14,7 +14,7 @@ class XenRTJobPage(XenRTAPIPage):
 
         if wide != "no":
             cur.execute("SELECT options FROM tblJobs WHERE jobid = %u",
-                        id)
+                        (id))
             rc = cur.fetchone()
             if rc:
                 if rc[0]:
@@ -29,7 +29,7 @@ class XenRTJobPage(XenRTAPIPage):
 
         cur.execute("SELECT phase, test, result, detailid FROM tblresults " +
                     "WHERE jobid = %u",
-                    id)
+                    (id))
         while 1:
             rc = cur.fetchone()
             if not rc:
@@ -41,7 +41,7 @@ class XenRTJobPage(XenRTAPIPage):
             detailid = int(rc[3])
             if verbose != "no" or times:
                 cur2.execute("SELECT ts, key, value FROM tblDetails WHERE " +
-                             "detailid = %u ORDER BY ts;", detailid)
+                             "detailid = %u ORDER BY ts;", (detailid))
                 detailedtext = ""
                 started = None
                 finished = None
@@ -207,7 +207,7 @@ class XenRTList(XenRTJobPage):
 
             # Look up other variables
             cur2.execute("SELECT param, value FROM tblJobDetails WHERE jobid = "
-                         "%s AND param in ('DEPS', 'JOBDESC', 'TESTRUN_SR', 'MACHINE', 'STARTED');", d['JOBID'])
+                         "%s AND param in ('DEPS', 'JOBDESC', 'TESTRUN_SR', 'MACHINE', 'STARTED');", (d['JOBID']))
             while 1:
                 rd = cur2.fetchone()
                 if not rd:
@@ -215,7 +215,7 @@ class XenRTList(XenRTJobPage):
                 if rd[0] and rd[1]:
                     d[string.strip(rd[0])] = string.strip(rd[1])           
             if d['JOBSTATUS'] == "running":
-                cur2.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", d['JOBID'])
+                cur2.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", (d['JOBID']))
                 rd = cur2.fetchone()
                 if rd[0] > 0:
                     d['PAUSED'] = "yes"
@@ -549,7 +549,7 @@ class XenRTWarnings(XenRTJobPage):
                 jobids.append(form["jobid"])
             else:
                 cur.execute("SELECT jobid FROM tblJobGroups WHERE gid = %s",
-                            form["jobgroup"])
+                            (form["jobgroup"]))
                 while True:
                     rc = cur.fetchone()
                     if not rc:

@@ -81,7 +81,7 @@ class XenRTAPIPage(XenRTPage):
         cur.execute("""SELECT s.site, s.status, s.flags, s.descr, s.comment, s.ctrladdr,
                               s.adminid, s.maxjobs, s.sharedresources
                        FROM tblSites s WHERE s.site = %s""",
-                    site)
+                    (site))
         rc = cur.fetchone()
         cur.close()
         if not rc:
@@ -110,7 +110,7 @@ class XenRTAPIPage(XenRTPage):
 
     def list_jobs_for_site(self, site):
         cur = self.getDB().cursor()
-        cur.execute("SELECT jobid FROM tblmachines WHERE site=%s AND (status='scheduled' OR status='running');", site)
+        cur.execute("SELECT jobid FROM tblmachines WHERE site=%s AND (status='scheduled' OR status='running');", (site))
         rc = cur.fetchall()
         return map(lambda x: x[0], rc)
 
@@ -126,7 +126,7 @@ class XenRTAPIPage(XenRTPage):
             dstatus = "default"
         db = self.getDB()
         cur = db.cursor()
-        cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", machine)
+        cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", (machine))
         if cur.fetchone():
             u = []
             if site:
@@ -283,7 +283,7 @@ class XenRTAPIPage(XenRTPage):
 
         cur = db.cursor()
         cur.execute("SELECT key, value FROM tblMachineData " +
-                    "WHERE machine = %s;", machine)
+                    "WHERE machine = %s;", (machine))
         while 1:
             rc = cur.fetchone()
             if not rc:
@@ -302,7 +302,7 @@ class XenRTAPIPage(XenRTPage):
                         m.jobid, m.leasefrom, m.leasereason, m.leasepolicy
                  FROM tblMachines m WHERE m.machine = %s
                  """
-        cur.execute(sql, machine)
+        cur.execute(sql, (machine))
         rc = cur.fetchone()
         cur.close()
         if not rc:

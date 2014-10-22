@@ -1985,7 +1985,6 @@ exit /B 1
     def setupNetscalerVPX(self):
         netscaler = xenrt.lib.netscaler.NetScaler.setupNetScalerVpx(self, useVIFs=True)
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
-        xenrt.GEC().registry.dump()
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
 
     def getVIFUUID(self, name):

@@ -51,7 +51,7 @@ class XenRTSitePage(XenRTAPIPage):
             sqlset.append("%s = %%s" % field)
             vals.append(val)
         vals.append(site)
-        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (sqlset)
+        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
         cur.execute(sql, vals)
 
         db.commit()

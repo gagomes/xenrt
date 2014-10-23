@@ -1730,7 +1730,11 @@ done
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.disableAllFCPorts()
         if upgrade:
-            self.execdom0("/sbin/reboot")
+            try:
+                self.execdom0("/sbin/reboot")
+            except xenrt.XRTFailure, e:
+                if e.reason != "SSH channel closed unexpectedly":
+                    raise e
         else:
             self.machine.powerctl.cycle()
             

@@ -25,14 +25,12 @@
       </host>
       <host id="1" />
       <NETWORK>
-        <PHYSICAL network="NPRI" bond-mode="balance-slb">
+        <PHYSICAL network="NPRI">
           <VMS />
           <MANAGEMENT />
           <NIC />
-          <NIC />
         </PHYSICAL>
-        <PHYSICAL network="NSEC" bond-mode="balance-slb">
-          <NIC />
+        <PHYSICAL network="NSEC">
           <NIC />
           <STORAGE />
         </PHYSICAL>

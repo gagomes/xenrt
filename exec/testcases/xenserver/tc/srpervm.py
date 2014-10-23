@@ -40,4 +40,33 @@ class SetupSRs(xenrt.TestCase):
             sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
             i+=1
 
+class CopyVMs(xenrt.TestCase):
+    def run(self, arglist=[])
+       
+        wingold = self.getGuest("wingold")
+        wingold.setState("DOWN")
+        lingold = self.getGuest("lingold")
+        lingold.setState("DOWN")
+        host = self.getDefaultHost()
 
+        i = 0
+        while True:
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i)
+            if not srs:
+                break
+            sr = srs[0]
+
+            g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
+            xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
+            i += 1
+        
+        i = 0
+        while True:
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i)
+            if not srs:
+                break
+            sr = srs[0]
+
+            g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
+            xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
+            i += 1

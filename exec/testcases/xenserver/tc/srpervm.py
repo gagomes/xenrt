@@ -41,7 +41,7 @@ class SetupSRs(xenrt.TestCase):
             i+=1
 
 class CopyVMs(xenrt.TestCase):
-    def run(self, arglist=[])
+    def run(self, arglist=[]):
        
         wingold = self.getGuest("wingold")
         wingold.setState("DOWN")

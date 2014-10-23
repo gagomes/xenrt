@@ -291,7 +291,7 @@ class StorageArray(xenrt.resources.CentralResource):
             self.__bestEffort(self.__destroySingleLun, lun)
         self._luns = [] 
 
-    def release(self):
+    def release(self, atExit=False):
         """
         Required abstract implementation from the super class
         """
@@ -338,8 +338,8 @@ class NetAppStorageArray(StorageArray):
         self._setupInitiatorGroup()
 
     def __setupServer(self, targetIP, username, password):
-        self.__server = NaServer.NaServer(targetIP, 1, 0)
-        self.__server.set_admin_user(username, password)
+        self._server = NaServer.NaServer(targetIP, 1, 0)
+        self._server.set_admin_user(username, password)
 
     def createContainer(self):
         if(self._container != None):
@@ -348,7 +348,7 @@ class NetAppStorageArray(StorageArray):
 
         aggr = self.__targetArray.getAggr()
         size = self.__targetArray.getSize()
-        self._container = NetAppLunContainer(self.__server, aggr, size)
+        self._container = NetAppLunContainer(self._server, aggr, size)
         super(NetAppStorageArray, self).createContainer()
 
     def __checkInitiatorConfiguredElseWhere(self, wwpnList):
@@ -389,7 +389,7 @@ class NetAppStorageArray(StorageArray):
         for count in range(numberofLuns):
             lunSizeMB = 1024 * lunSizeGb
             lunPath = ("%s%d") % (partialLunPath, count)
-            newLun = NetAppLun(self.__server, lunPath, lunSizeMB, self.thinlyProvisioned)
+            newLun = NetAppLun(self._server, lunPath, lunSizeMB, self.thinlyProvisioned)
             self._luns.append(newLun)
             newLunIds.append(newLun.getId())
 
@@ -407,7 +407,7 @@ class NetAppStorageArray(StorageArray):
 
         return newLunIds
 
-    def release(self):
+    def release(self, atExit=False):
         self.__targetArray.release()
         super(NetAppStorageArray, self).release()
 
@@ -419,7 +419,7 @@ class NetAppFCStorageArray(NetAppStorageArray):
         super(NetAppFCStorageArray, self).__init__()
         
     def _setupInitiatorGroup(self):
-        self._initiatorGroup = NetAppFCInitiatorGroup(self.__server)
+        self._initiatorGroup = NetAppFCInitiatorGroup(self._server)
         self._initiatorGroup.create()
 
 class NetAppiSCSIStorageArray(NetAppStorageArray):
@@ -430,7 +430,7 @@ class NetAppiSCSIStorageArray(NetAppStorageArray):
         super(NetAppiSCSIStorageArray, self).__init__()
         
     def _setupInitiatorGroup(self):
-        self._initiatorGroup = NetAppiSCSIInitiatorGroup(self.__server)
+        self._initiatorGroup = NetAppiSCSIInitiatorGroup(self._server)
         self._initiatorGroup.create()
 
 class NetAppInitiatorGroupCommunicator(object):
@@ -478,13 +478,13 @@ class NetAppInitiatorGroup(StorageElement):
 
     def __init__(self, server):
         super(NetAppInitiatorGroup, self).__init__()
-        self.__server = server
+        self._server = server
 
     def create(self):
         """Creates a new initiator group."""
         initiatorGroupName = self._generateRandomName(self.SEED_IGROUP_NAME)
 
-        results = self.__server.invoke('igroup-create', 'initiator-group-name', initiatorGroupName, 
+        results = self._server.invoke('igroup-create', 'initiator-group-name', initiatorGroupName, 
                                         'initiator-group-type', self.PROTOCOL, 'os-type', self.__OS_TYPE)
 
         verbose = "An initiator group %s is created." % initiatorGroupName
@@ -501,10 +501,10 @@ class NetAppInitiatorGroup(StorageElement):
         @return: Initiator groups, keyed on iGroup name. If initiatorGroupName is not specified, information for all inititor groups are returned
         """
         if self.__name:
-            results = self.__server.invoke('igroup-list-info', 'initiator-group-name', self.__name)
+            results = self._server.invoke('igroup-list-info', 'initiator-group-name', self.__name)
         else:
             self.__name = "all"
-            results = self.__server.invoke('igroup-list-info')
+            results = self._server.invoke('igroup-list-info')
 
         verbose = "Listing initiators in %s group." % self.__name
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -517,7 +517,7 @@ class NetAppInitiatorGroup(StorageElement):
         # By default a group cannot be destroyed if there are existing lun maps defined for that group. 
         # This behaviour can be overridden with the use of force option.
 
-        results = self.__server.invoke('igroup-destroy', 'initiator-group-name', self.__name, 'force', force)
+        results = self._server.invoke('igroup-destroy', 'initiator-group-name', self.__name, 'force', force)
 
         verbose = "An initiator group %s is destroyed." % self.__name
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -526,7 +526,7 @@ class NetAppInitiatorGroup(StorageElement):
         """Adds initiator to an existing initiator group."""
         # force  (Boolean) [optional] = Forcibly add the initiator, disabling mapping and type conflict checks.
         # initiator (String) = WWPN or Alias of Initiator to add.
-        results = self.__server.invoke('igroup-add', 'initiator', initiator, 'initiator-group-name', self.__name, 'force', force)
+        results = self._server.invoke('igroup-add', 'initiator', initiator, 'initiator-group-name', self.__name, 'force', force)
 
         verbose = "An initiator %s is added to initiator group %s." % (initiator, self.__name)
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -535,7 +535,7 @@ class NetAppInitiatorGroup(StorageElement):
         """Removes node(s) from an initiator group."""
         # force  (Boolean) [optional] = Forcibly remove the initiator even if there are existing LUNs mapped to this initiator group
         # initiator (String) = WWPN or Alias of Initiator to add.
-        results = self.__server.invoke('igroup-remove', 'initiator', initiator, 'initiator-group-name', self.__name, 'force', force)
+        results = self._server.invoke('igroup-remove', 'initiator', initiator, 'initiator-group-name', self.__name, 'force', force)
 
         verbose = "An initiator %s is removed from the initiator group %s." % (initiator, self.__name)
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -552,11 +552,11 @@ class NetAppLunContainer(StorageArrayContainer):
     """
     Strategy class encapsulating for the NetApp Fibre Channel container group aka. Volume
     """
-    __SEED_VOL_NAME="NET_APP_FC_VOLUME"
+    __SEED_VOL_NAME="NET_APP_VOLUME"
     __name = None
 
     def __init__(self, server, aggregate, size):
-        self.__server = server
+        self._server = server
         self.__aggregate = aggregate
         self.__size = size   
 
@@ -564,7 +564,7 @@ class NetAppLunContainer(StorageArrayContainer):
         # Invoke ONTAP SDK API to create NetApp volume.
         # Make sure the volume does not reserve space. but how?
         self.__name = self._generateRandomName(self.__SEED_VOL_NAME)
-        results = self.__server.invoke('volume-create', 'containing-aggr-name', self.__aggregate, 'size', ("%sg" % self.__size), 'volume', self.__name )
+        results = self._server.invoke('volume-create', 'containing-aggr-name', self.__aggregate, 'size', ("%sg" % self.__size), 'volume', self.__name )
         verbose = "A NetApp Volume %s of size %sGB is created." % (self.__name, self.__size)
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
@@ -577,12 +577,12 @@ class NetAppLunContainer(StorageArrayContainer):
         # The ONTAP SDK API does not support to delete infinite volumes.
         # In case if it supported, we do not want to implement here. 
         # Make sure this is added to the job cleanup (see callback)
-        results = self.__server.invoke('volume-offline', 'name', self.__name)
+        results = self._server.invoke('volume-offline', 'name', self.__name)
 
         verbose = "The specified volume %s is being taken offline before destroying it." % self.__name
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
-        results = self.__server.invoke('volume-destroy', 'name', self.__name, 'force', force)
+        results = self._server.invoke('volume-destroy', 'name', self.__name, 'force', force)
 
         verbose = "The specified volume %s is destroyed." % self.__name
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -592,18 +592,18 @@ class NetAppLun(StorageArrayLun):
     Strategy class encapsulating for the NetApp Fibre Channel LUN
     """
     __OS_TYPE = "linux"
-    __server = None
+    _server = None
     __initiatorGroup = []
     __volumeGroup = None
     __path = None
 
     def __init__(self, server, path, sizeMB, thinlyProvisioned):
-        self.__server = server
+        self._server = server
         self.create(path, sizeMB, thinlyProvisioned)
 
     def create(self, path, sizeMB, thinlyProvisioned):
         self.__path = path
-        results = self.__server.invoke('lun-create-by-size',
+        results = self._server.invoke('lun-create-by-size',
                                         'ostype', self.__OS_TYPE, 
                                         'path', self.__path,
                                         'size', sizeMB * xenrt.MEGA,
@@ -621,13 +621,13 @@ class NetAppLun(StorageArrayLun):
         else:
             xenrt.TEC().logverbose("Preventing a LUN from being destroyed which is online and mapped.")
 
-        results = self.__server.invoke('lun-destroy', 'force', force, 'path', self.__path)
+        results = self._server.invoke('lun-destroy', 'force', force, 'path', self.__path)
 
         verbose = "The LUN at %s is destroyed" % self.__path
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
     def getId(self):
-        results = self.__server.invoke('lun-get-serial-number', 'path', self.__path)
+        results = self._server.invoke('lun-get-serial-number', 'path', self.__path)
 
         verbose = "The serial number of the specified LUN @ %s is obtained" % self.__path
         self._raiseApiFailure(NetAppStatus(results), verbose)
@@ -641,7 +641,7 @@ class NetAppLun(StorageArrayLun):
 
     def map(self, initiatorGroup, force):
         """Maps the LUN to all the initiators in the specified initiator group."""
-        results = self.__server.invoke('lun-map', 'initiator-group', initiatorGroup, 'path', self.__path, 'force', force) # lun-id is defaulted.
+        results = self._server.invoke('lun-map', 'initiator-group', initiatorGroup, 'path', self.__path, 'force', force) # lun-id is defaulted.
         verbose = "The LUN is mapped with the smallest lun id is added to initiator group %s." % initiatorGroup
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
@@ -650,7 +650,7 @@ class NetAppLun(StorageArrayLun):
         # initiator-group = string Initiator group to unmap from.
         # path = string Path of the LUN.
         xenrt.TEC().logverbose("Unmapping LUN for path %s..." % self.__path)
-        results = self.__server.invoke('lun-unmap', 'initiator-group', initiatorGroup, 'path', self.__path)
+        results = self._server.invoke('lun-unmap', 'initiator-group', initiatorGroup, 'path', self.__path)
         verbose = "The specified LUN %s is unmapped from initiator group %s." % (self.__path, initiatorGroup)
         self._raiseApiFailure(NetAppStatus(results), verbose)
         
@@ -684,7 +684,7 @@ class NetAppLun(StorageArrayLun):
         # path  string optional - Path of LUN. If specified, only the information of that LUN is returned.
         # volume-name  string optional - Name of a volume. If specified, only the information of the LUNs in that volume is returned.
         # please note that any one of the parameter can be used at a time.
-        results = self.__server.invoke('lun-list-info', 'path', self.__path)
+        results = self._server.invoke('lun-list-info', 'path', self.__path)
 
         xenrt.TEC().logverbose("Listing the LUN information for path %s..." % self.__path)
         verbose = "Listing the LUN information for path %s..." % self.__path
@@ -714,7 +714,7 @@ class NetAppLun(StorageArrayLun):
     def resize(self, sizeMB, force):
         """Changes the size of the lun."""
 
-        results = self.__server.invoke('lun-resize', 'force', force, 'path', self.__path, 'size', sizeMB * xenrt.MEGA)
+        results = self._server.invoke('lun-resize', 'force', force, 'path', self.__path, 'size', sizeMB * xenrt.MEGA)
 
         verbose = "Resizing LUN %s to %d Megabytes ..." % (self.__path, sizeMB * xenrt.MEGA)
         self._raiseApiFailure(NetAppStatus(results), verbose)

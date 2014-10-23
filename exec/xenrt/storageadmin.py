@@ -564,7 +564,12 @@ class NetAppLunContainer(StorageArrayContainer):
         # Invoke ONTAP SDK API to create NetApp volume.
         # Make sure the volume does not reserve space. but how?
         self.__name = self._generateRandomName(self.__SEED_VOL_NAME)
-        results = self._server.invoke('volume-create', 'containing-aggr-name', self.__aggregate, 'size', ("%sg" % self.__size), 'volume', self.__name )
+        results = self._server.invoke('volume-create',
+                                        'containing-aggr-name', self.__aggregate,
+                                        'size', ("%sg" % self.__size),
+                                        'volume', self.__name,
+                                        'space-reserve', 'file',
+                                        'percentage-snapshot-reserve', 0)
         verbose = "A NetApp Volume %s of size %sGB is created." % (self.__name, self.__size)
         self._raiseApiFailure(NetAppStatus(results), verbose)
 

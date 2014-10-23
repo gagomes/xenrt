@@ -433,6 +433,13 @@ class NetAppiSCSIStorageArray(NetAppStorageArray):
         self._initiatorGroup = NetAppiSCSIInitiatorGroup(self._server)
         self._initiatorGroup.create()
 
+    def getiSCSIIQN(self):
+        results = self._server.invoke('iscsi-node-get-name')
+        verbose = "Getting iSCSI Target IQN"
+        self._raiseApiFailure(NetAppStatus(results), verbose)
+        return results.child_get_string("node-name")
+
+
 class NetAppInitiatorGroupCommunicator(object):
     
     def parseListMessage(self, toParse):

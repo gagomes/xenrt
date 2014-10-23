@@ -26,16 +26,16 @@ class SetupSRs(xenrt.TestCase):
         [x.enableMultipathing() for x in pool.getHosts()]
         initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in pool.getHosts())
 
-        linuxLuns = linuxFiler.provisionLuns(linuxLunCount, 10, initiators)
-        windowsLuns = windowsFiler.provisionLuns(windowsLunCount, 30, initiators)
+        linuxFiler.provisionLuns(linuxLunCount, 10, initiators)
+        windowsFiler.provisionLuns(windowsLunCount, 30, initiators)
 
         i = 0
-        for lun in linuxLuns:
+        for lun in linuxFiler.getLuns():
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "LinuxSR_%d" % i)
             sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
             i+=1
         i = 0
-        for lun in windowsLuns:
+        for lun in windowsFiler.getLuns():
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "WindowsSR_%d" % i)
             sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
             i+=1

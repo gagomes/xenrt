@@ -36,7 +36,7 @@ class StorageArrayFactory(object):
     """
     Factory class to provide storage arrays
     """
-    def getStorageArray(self, vendor, storageType):
+    def getStorageArray(self, vendor, storageType, specify=None):
         """
         Get the required storage array 
         eg: array = StorageArrayFactory().getStorageArray(StorageArrayVendor.NetApp, StorageArrayType.FibreChannel)
@@ -47,9 +47,9 @@ class StorageArrayFactory(object):
         @param storageType: the required storage type
         """
         if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.FibreChannel:
-            return NetAppFCStorageArray()
+            return NetAppFCStorageArray(specify=specify)
         if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.iSCSI:
-            return NetAppiSCSIStorageArray()
+            return NetAppiSCSIStorageArray(specify=specify)
 
         raise xenrt.XRTError("There is no implementation for a storage array of this type and vendor" )
 
@@ -330,9 +330,9 @@ class NetAppStorageArray(StorageArray):
     """
     __PATH_NAME = "/vol"
 
-    def __init__(self):
+    def __init__(self, specify=None):
         super(NetAppStorageArray, self).__init__()
-        self.__targetArray = self.targetClass()
+        self.__targetArray = self.targetClass(specify=specify)
         self.__setupServer(self.__targetArray.getTarget(), self.__targetArray.getUsername(), self.__targetArray.getPassword())
         self.createContainer()
         self._setupInitiatorGroup()
@@ -414,9 +414,9 @@ class NetAppStorageArray(StorageArray):
 class NetAppFCStorageArray(NetAppStorageArray):
     LUN_PATH = "fclun"
     
-    def __init__(self):
+    def __init__(self, specify=None):
         self.targetClass = xenrt.FCHBATarget
-        super(NetAppFCStorageArray, self).__init__()
+        super(NetAppFCStorageArray, self).__init__(specify=specify)
         
     def _setupInitiatorGroup(self):
         self._initiatorGroup = NetAppFCInitiatorGroup(self._server)
@@ -425,9 +425,9 @@ class NetAppFCStorageArray(NetAppStorageArray):
 class NetAppiSCSIStorageArray(NetAppStorageArray):
     LUN_PATH = "iscsilun"
     
-    def __init__(self):
+    def __init__(self, specify=None):
         self.targetClass = xenrt.NetAppTarget
-        super(NetAppiSCSIStorageArray, self).__init__()
+        super(NetAppiSCSIStorageArray, self).__init__(specify=specify)
         
     def _setupInitiatorGroup(self):
         self._initiatorGroup = NetAppiSCSIInitiatorGroup(self._server)

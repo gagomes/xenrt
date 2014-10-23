@@ -32,12 +32,12 @@ class SetupSRs(xenrt.TestCase):
         i = 0
         for lun in linuxLuns:
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "LinuxSR_%d" % i)
-            sr.create(lun, noiqnset=True, subtype="lvm")
+            sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
             i+=1
         i = 0
         for lun in windowsLuns:
             sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "WindowsSR_%d" % i)
-            sr.create(lun, noiqnset=True, subtype="lvm")
+            sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
             i+=1
 
 

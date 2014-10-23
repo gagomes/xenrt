@@ -19,8 +19,8 @@ __all__ = ["StorageArrayFactory", "StorageArrayType", "StorageArrayVendor",
             "StorageArrayContainer", "StorageArrayInitiatorGroup",
             "StorageArrayLun", "StorageArray",
             "NetAppFCStorageArray", "NetAppFCInitiatorGroup", 
-            "NetAppiSCSIStorageArray", "NetAppiSCSIInitiatorGroup", 
-            "NetAppLunContainer", "NetAppLun" ]
+            "NetAppISCSIStorageArray", "NetAppISCSIInitiatorGroup", 
+            "NetAppLunContainer", "NetAppLun", "NetAppFCLun", "NetAppISCSILun" ]
 
 """
 Factory class for storage array
@@ -49,7 +49,7 @@ class StorageArrayFactory(object):
         if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.FibreChannel:
             return NetAppFCStorageArray(specify=specify)
         if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.iSCSI:
-            return NetAppiSCSIStorageArray(specify=specify)
+            return NetAppISCSIStorageArray(specify=specify)
 
         raise xenrt.XRTError("There is no implementation for a storage array of this type and vendor" )
 
@@ -389,7 +389,7 @@ class NetAppStorageArray(StorageArray):
         for count in range(numberofLuns):
             lunSizeMB = 1024 * lunSizeGb
             lunPath = ("%s%d") % (partialLunPath, count)
-            newLun = NetAppLun(self._server, lunPath, lunSizeMB, self.thinlyProvisioned)
+            newLun = self.lunClass(self._server, lunPath, lunSizeMB, self.thinlyProvisioned)
             self._luns.append(newLun)
             newLunIds.append(newLun.getId())
 
@@ -416,25 +416,24 @@ class NetAppFCStorageArray(NetAppStorageArray):
     
     def __init__(self, specify=None):
         self.targetClass = xenrt.FCHBATarget
+        self.lunClass = NetAppFCLun
         super(NetAppFCStorageArray, self).__init__(specify=specify)
         
     def _setupInitiatorGroup(self):
         self._initiatorGroup = NetAppFCInitiatorGroup(self._server)
         self._initiatorGroup.create()
 
-class NetAppiSCSIStorageArray(NetAppStorageArray):
+class NetAppISCSIStorageArray(NetAppStorageArray):
     LUN_PATH = "iscsilun"
     
     def __init__(self, specify=None):
         self.targetClass = xenrt.NetAppTarget
-        super(NetAppiSCSIStorageArray, self).__init__(specify=specify)
+        self.lunClass = NetAppISCSILun
+        super(NetAppISCSIStorageArray, self).__init__(specify=specify)
         
     def _setupInitiatorGroup(self):
-        self._initiatorGroup = NetAppiSCSIInitiatorGroup(self._server)
+        self._initiatorGroup = NetAppISCSIInitiatorGroup(self._server)
         self._initiatorGroup.create()
-
-    def getiSCSIIQN(self):
-        return self._initiatorGroup.getiSCSIIQN()
 
 class NetAppInitiatorGroupCommunicator(object):
     
@@ -547,15 +546,9 @@ class NetAppFCInitiatorGroup(NetAppInitiatorGroup):
     SEED_IGROUP_NAME = "NET_APP_FC_IGROUP"
     PROTOCOL = "fcp"
 
-class NetAppiSCSIInitiatorGroup(NetAppInitiatorGroup):
+class NetAppISCSIInitiatorGroup(NetAppInitiatorGroup):
     SEED_IGROUP_NAME = "NET_APP_ISCSI_IGROUP"
     PROTOCOL = "iscsi"
-
-    def getiSCSIIQN(self):
-        results = self._server.invoke('iscsi-node-get-name')
-        verbose = "Getting iSCSI Target IQN"
-        self._raiseApiFailure(NetAppStatus(results), verbose)
-        return results.child_get_string("node-name")
 
 class NetAppLunContainer(StorageArrayContainer):
     """
@@ -607,12 +600,10 @@ class NetAppLunContainer(StorageArrayContainer):
     
 class NetAppLun(StorageArrayLun):
     """
-    Strategy class encapsulating for the NetApp Fibre Channel LUN
+    Strategy class encapsulating for the NetApp LUN
     """
     __OS_TYPE = "linux"
     _server = None
-    __initiatorGroup = []
-    __volumeGroup = None
     __path = None
 
     def __init__(self, server, path, sizeMB, thinlyProvisioned):
@@ -755,3 +746,23 @@ class NetAppLun(StorageArrayLun):
         else:
             raise xenrt.XRTFailure("Unsupported SCSI ID for the test.")
         return serialNumber
+
+class NetAppFCLun(NetAppLun):
+    """Encapsulates a netapp FC LUN"""
+
+class NetAppISCSILun(NetAppLun):
+    """Encapsulates a netapp ISCSI LUN"""
+
+    def getISCSIIQN(self):
+        results = self._server.invoke('iscsi-node-get-name')
+        verbose = "Getting ISCSI Target IQN"
+        self._raiseApiFailure(NetAppStatus(results), verbose)
+        return results.child_get_string("node-name")
+
+    def getISCSILunObj(self):
+        obj = xenrt.ISCSIIndividualLun(None,
+                                       None,
+                                       scsiid = self.getId(),
+                                       server = self._server.server 
+                                       targetname = self.getISCSIIQN())
+        return obj

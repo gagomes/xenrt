@@ -11985,7 +11985,8 @@ class ISCSIStorageRepository(StorageRepository):
         dconf = {}
         dconf["target"] = lun.getServer()
         dconf["targetIQN"] = lun.getTargetName()
-        dconf["LUNid"] = lun.getLunID()
+        if lun.getLunID() != None:
+            dconf["LUNid"] = lun.getLunID()
         if lun.getID():
             dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()

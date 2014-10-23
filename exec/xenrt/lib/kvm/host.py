@@ -339,7 +339,7 @@ class KVMHost(xenrt.lib.libvirt.Host):
 
             self.execdom0("yum erase -y qemu-kvm")
             # Install CloudPlatform packages
-            cloudInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+            cloudInputDir = xenrt.getCCPInputs(self.distro)
             if not cloudInputDir:
                 raise xenrt.XRTError("No CLOUDINPUTDIR specified")
             xenrt.TEC().logverbose("Downloading %s" % cloudInputDir)
@@ -418,7 +418,7 @@ EOF
         except:
             xenrt.TEC().warning("Error when trying to identify agent version")
         if commit:
-            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            expectedCommit = xenrt.getCCPCommit(self.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("ACS/CCP agent commit %s does not match expected commit %s" % (commit, expectedCommit))
 

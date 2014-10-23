@@ -82,7 +82,9 @@ __all__ = ["timenow",
            "getDistroAndArch",
            "getMarvinFile",
            "dictToXML",
-           "getNetworkParam"
+           "getNetworkParam",
+           "getCCPInputs",
+           "getCCPCommit"
            ]
 
 def sleep(secs, log=True):
@@ -1433,3 +1435,25 @@ def getNetworkParam(network, param):
         param = "VLAN"
     path.append(param)
     return xenrt.TEC().lookup(path)
+
+def getCCPInputs(distro):
+    defaultInputs = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+    rh6Inputs = xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", None)
+    rh7Inputs = xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL7", None)
+    if rh6Inputs and distro.startswith("rhel6") or distro.startswith("centos6"):
+        return rh6Inputs
+    elif rh7Inputs and distro.startswith("rhel7") or distro.startswith("centos7"):
+        return rh7Inputs
+    else:
+        return defaultInputs
+
+def getCCPCommit(distro):
+    defaultCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+    rh6Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL6", None)
+    rh7Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL7", None)
+    if rh6Commit and distro.startswith("rhel6") or distro.startswith("centos6"):
+        return rh6Commit
+    elif rh7Commit and distro.startswith("rhel7") or distro.startswith("centos7"):
+        return rh7Commit
+    else:
+        return defaultCommit

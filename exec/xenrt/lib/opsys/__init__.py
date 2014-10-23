@@ -58,6 +58,9 @@ class OS(object):
     def getLogs(self, path):
         pass
 
+    def setIPs(self, ipSpec):
+        raise xenrt.XRTError("Not implemented")
+
 def registerOS(os):
     oslist.append(os)
 

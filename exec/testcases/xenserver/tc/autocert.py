@@ -20,6 +20,8 @@ class _XSAutoCertKit(xenrt.TestCase):
     OPTIONALFAILTCS = []
     EXPECTERROR = False
 
+    SINGLE_NIC = ""
+
     def installXSAutoCertKit(self,host):
 
         rpmInstalled = False
@@ -197,6 +199,12 @@ class _XSAutoCertKit(xenrt.TestCase):
         for h in self.pool.getHosts():
             self.installXSAutoCertKit(h)
 
+        # Proivde a switch for enabling XenRT to run the test kit on machines which only have
+        # a single NIC. This flag disables non-compatible tests and ensure the management network
+        # is used for all of the networking tests.
+        if self.tec.lookup("SINGLE_NIC", False, boolean=True):
+            self.SINGLE_NIC = "-o singlenic=true"
+
     def createNetworkConfFile(self):
         nets = {self.pool.master.getDefaultInterface(): "NPRI"}
         nics = self.pool.master.listSecondaryNICs()
@@ -265,16 +273,10 @@ class _XSAutoCertKit(xenrt.TestCase):
             self.pool.master.execdom0("rm -f /opt/xensource/packages/files/auto-cert-kit/test_run.conf")
 
             optionstr = ""
-            # Proivde a switch for enabling XenRT to run the test kit on machines which only have
-            # a single NIC. This flag disables non-compatible tests and ensure the management network
-            # is used for all of the networking tests.
-            if self.tec.lookup("SINGLE_NIC", False, boolean=True):
-                optionstr = "-o singlenic=true"
-
             if self.tec.lookup("POF_ALL", False, boolean=True):
                 optionstr += " -d"
 
-            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit; python ack_cli.py -n networkconf %s < /dev/null > ack_cli.log 2>&1 &" % optionstr)
+            self.pool.master.execdom0("cd /opt/xensource/packages/files/auto-cert-kit; python ack_cli.py -n networkconf %s %s < /dev/null > ack_cli.log 2>&1 &" % (self.SINGLE_NIC, optionstr))
         except Exception, e:
             raise xenrt.XRTError("There is an error while running XenServer Auto Cert Kit %s" % str(e))
        
@@ -361,6 +363,11 @@ class XSAutoCertKitOneNIC(_XSAutoCertKit):
     """Run the auto cert kit with only one NIC (expect failure)"""
     EXPECTERROR = True
 
+    def prepare(self, arglist):
+        _XSAutoCertKit.prepare(self, arglist)
+        # This TC expect to fail to launch with single nic config.
+        self.SINGLE_NIC = ""
+
     def createNetworkConfFile(self):
         vids = []
         for v in ["VR01", "VR02", "VR03", "VR04", "VR05", "VR06", "VR07", "VR08"]:
@@ -371,7 +378,7 @@ class XSAutoCertKitOneNIC(_XSAutoCertKit):
         config += "%s = 0,[%s]\n" % (self.pool.master.getDefaultInterface(), ",".join(vids))
 
         self.pool.master.execdom0("echo \"%s\" > /opt/xensource/packages/files/auto-cert-kit/networkconf" % config.strip())
-        
+
     def checkError(self):
         errorString = "at least 2 network interfaces"
         log = self.pool.master.execdom0("cat /opt/xensource/packages/files/auto-cert-kit/ack_cli.log", nolog=True)

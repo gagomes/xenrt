@@ -6120,11 +6120,7 @@ exit 0
                                    "SECONDARY",
                                    "SUBNETMASK"],
                                    None)
-        else:
-            if not vlanname in vlannames.keys():
-                xenrt.TEC().logverbose("Known VLANs %s" % (vlannames.keys()))
-                raise xenrt.XRTError("VLAN %s not defined for host %s" %
-                                     (vlanname, self.getName()))
+        elif vlanname in vlannames.keys():
             vlanid = self.lookup(["NETWORK_CONFIG", "VLANS", vlanname, "ID"], None)
             if not vlanid:
                 raise xenrt.XRTError("Could not find ID for VLAN %s" % (vlanname))
@@ -6139,6 +6135,14 @@ exit 0
                                    vlanname,
                                    "SUBNETMASK"],
                                    None)
+        else:
+            vlanres = xenrt.GEC().registry.vlanGet(vlanname)
+            if not vlanres:
+                raise xenrt.XRTError("VLAN %s not found" % vlanname)
+            vlan = vlanres.getID()
+            subnet = None
+            netmask = None
+
         return (vlan, subnet, netmask)
 
     def availableVLANs(self):
@@ -6686,6 +6690,7 @@ class GenericGuest(GenericPlace):
         self.vcpus = 1
         self.corespersocket = None
         self.vifs = []
+        self.ips = {}
         self.mainip = None
         self.reservedIP = reservedIP
         self.tailored = False
@@ -6695,6 +6700,7 @@ class GenericGuest(GenericPlace):
         self.managebridge = False
         self.use_ipv6 = False
         self.ipv4_disabled = False
+        self.instance = None
         xenrt.TEC().logverbose("Creating %s instance." % (self.__class__.__name__))
 
     def populateSubclass(self, x):
@@ -6709,6 +6715,7 @@ class GenericGuest(GenericPlace):
         x.distro = self.distro
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
+        x.instance = self.instance
 
     def setHost(self, host):
         if host and host.replaced:
@@ -9427,16 +9434,18 @@ while True:
         self.reboot()
 
     def getInstance(self):
-        if self.windows or not self.arch:
-            osdistro = self.distro
-        else:
-            osdistro = "%s_%s" % (self.distro, self.arch)
+        if not self.instance:
+            if self.windows or not self.arch:
+                osdistro = self.distro
+            else:
+                osdistro = "%s_%s" % (self.distro, self.arch)
         
-        wrapper = xenrt.lib.generic.GuestWrapper(self)
-        instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
-        instance.os.tailor()
-        xenrt.TEC().registry.instancePut(self.name, self)
-        return instance
+            wrapper = xenrt.lib.generic.GuestWrapper(self)
+            self.instance = xenrt.lib.generic.Instance(wrapper, self.name, osdistro, self.vcpus, self.memory)
+            self.instance.os.tailor()
+            self.instance.os.populateFromExisting()
+            xenrt.TEC().registry.instancePut(self.name, self)
+        return self.instance
 
 class EventObserver(xenrt.XRTThread):
 

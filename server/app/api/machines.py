@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app
 
-import traceback, StringIO, string, time, json
+import traceback, StringIO, string, time, json, sys
 
 class XenRTMachinePage(XenRTAPIPage):
     pass
@@ -218,10 +218,9 @@ class XenRTMStatus(XenRTMachinePage):
             db = self.getDB()
             machine = form["machine"]
             status = form["status"]
-            sql = "UPDATE tblMachines SET status = '%s' WHERE machine = '%s';" % \
-                  (status, machine)
-            cur = self.getDB().cursor()
-            cur.execute(sql)
+            cur = db.cursor()
+            cur.execute("UPDATE tblMachines SET status = %s WHERE machine = %s;",
+                        [status, machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -274,10 +273,8 @@ class XenRTMUnDefine(XenRTMachinePage):
         try:
             db = self.getDB()
             cur = db.cursor()
-            sql = "DELETE FROM tblMachines WHERE machine = '%s';" % (machine)
-            cur.execute(sql)
-            sql = "DELETE FROM tblMachineData WHERE machine = '%s';" % (machine)
-            cur.execute(sql)
+            cur.execute("DELETE FROM tblMachines WHERE machine = %s;", [machine])
+            cur.execute("DELETE FROM tblMachineData WHERE machine = %s;", [machine])
             db.commit()
             cur.close()        
             return "OK"
@@ -292,14 +289,14 @@ class XenRTBorrow(XenRTMachinePage):
             db = self.getDB()
             form = self.request.params
             userid = None
-            reason = "NULL"
+            reason = None
             force = False
             hours = 24
             machine = form["machine"]
             if form.has_key("USERID"):
                 userid = form["USERID"]
             if form.has_key("reason"):
-                reason = "'%s'" % app.utils.sqlescape(form["reason"])
+                reason = form["reason"]
             if form.has_key("hours"):
                 hours = int(form["hours"])
             leaseToTime = time.gmtime(time.time() + (hours * 3600))
@@ -312,9 +309,8 @@ class XenRTBorrow(XenRTMachinePage):
                 hours = (time.mktime(leaseToTime) - time.time()) / 3600
             if form.has_key("force"):
                 force = True
-            sql = "SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("SELECT comment, leaseTo, leasepolicy FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[2] and hours > rc[2]:
@@ -326,10 +322,10 @@ class XenRTBorrow(XenRTMachinePage):
                 return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
             if rc[1] and time.strptime(rc[1], "%Y-%m-%d %H:%M:%S") > leaseToTime and not force:
                 return "ERROR: machine already leased for longer (use --force to override)"
-            sql = "UPDATE tblMachines SET leaseTo = '%s', leasefrom = '%s', comment = '%s', leasereason = %s " \
-                  "WHERE machine = '%s'" % (leaseTo, leaseFrom, userid, reason, machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
+                        "WHERE machine = %s",
+                        [leaseTo, leaseFrom, userid, reason, machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -350,17 +346,15 @@ class XenRTReturn(XenRTMachinePage):
             userid = None
             if form.has_key("USERID"):
                 userid = form["USERID"]
-            sql = "SELECT comment FROM tblmachines WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("SELECT comment FROM tblmachines WHERE machine = %s", [machine])
             rc = cur.fetchone()
             cur.close()
             if rc[0] and userid and rc[0].strip() != userid and not force:
                 return "ERROR: machine is not leased to you (use --force to override)"
-            sql = "UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL " \
-              "WHERE machine = '%s'" % (machine)
             cur = db.cursor()
-            cur.execute(sql)
+            cur.execute("UPDATE tblMachines SET leaseTo = NULL, comment = NULL, leasefrom = NULL, leasereason = NULL "
+                        "WHERE machine = %s", [machine])
             db.commit()
             cur.close()        
             return "OK"        
@@ -486,14 +480,14 @@ class XenRTMUpdate(XenRTMachinePage):
             key = key[1:]
         
         cur = db.cursor()
-        cur.execute(("SELECT value FROM tblMachineData WHERE machine= '%s' " +
-                     "AND key = '%s';") % (machine, key))
+        cur.execute("SELECT value FROM tblMachineData WHERE machine= %s "
+                    "AND key = %s;", [machine, key])
         rc = cur.fetchone()
         if not rc:
             if op == 0 or op == 1:
                 cur.execute("INSERT INTO tblMachineData (machine, key, value)"
-                            " VALUES ('%s', '%s', '%s');" %
-                            (machine, key, value))
+                            " VALUES (%s, %s, %s);",
+                            [machine, key, value])
         else:
             prev = ""
             if rc[0]:
@@ -515,9 +509,9 @@ class XenRTMUpdate(XenRTMachinePage):
                 if op == 1 and match == 0:
                     llnew.append(value)
                 value = string.join(llnew, ",")
-            cur.execute(("UPDATE tblMachineData SET value = '%s' WHERE " +
-                         "machine = '%s' AND key = '%s';") %
-                        (value, machine, key))
+            cur.execute("UPDATE tblMachineData SET value = %s WHERE "
+                        "machine = %s AND key = %s;",
+                        [value, machine, key])
         db.commit()
         cur.close()
 
@@ -580,12 +574,12 @@ class XenRTUtilisation(XenRTMachinePage):
                 data['pool'] = pool
 
                 # Get the statistics for this machine
-                cur.execute(("SELECT extract(epoch FROM ts),etype,edata FROM tblevents " +
-                             "WHERE subject='%s' AND (etype='JobStart' OR etype='" +
-                             "JobEnd') AND ts > ('epoch'::timestamptz + interval " +
-                             "'%u seconds') AND ts < ('epoch'::timestamptz + " +
-                             "interval '%u seconds') ORDER BY ts;") % \
-                             (machine,start,end))
+                cur.execute("SELECT extract(epoch FROM ts),etype,edata FROM tblevents "
+                            "WHERE subject=%s AND (etype='JobStart' OR etype='"
+                            "JobEnd') AND ts > ('epoch'::timestamptz + interval "
+                            "'%u seconds') AND ts < ('epoch'::timestamptz + "
+                            "interval '%u seconds') ORDER BY ts;",
+                            [machine,start,end])
 
                 started = False
                 st_time = 0

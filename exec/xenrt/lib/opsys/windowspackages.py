@@ -183,7 +183,7 @@ class PowerShell30(WindowsPackage):
 
     def _installPackage(self):
         if self._os.windowsVersion() == "6.1":
-            self._os.ensurePackageInstalled(".NET 4")
+            self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
             if self._os.getArch() == "amd64":
                 exe = "Windows6.1-KB2506143-x64.msu"
             else:

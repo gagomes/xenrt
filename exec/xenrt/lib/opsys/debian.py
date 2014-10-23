@@ -1,4 +1,4 @@
-import xenrt, os.path, os, shutil
+import xenrt, os.path, os, shutil, IPy
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from abc import ABCMeta, abstractproperty
@@ -153,6 +153,31 @@ class DebianBasedLinux(LinuxOS):
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
+
+    def setIPs(self, ipSpec):
+        ifs = []
+        ifcfgs = []
+        for i in ipSpec:
+            (eth, ip, masklen) = i
+            ifs.append(eth)
+            if ip:
+                mask = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
+                ifcfgs.append("iface %s inet static\n\taddress %s\n\tnetmask %s\n" % (eth, ip, mask))
+            else:
+                ifcfgs.append("iface %s inet dhcp\n" % eth)
+
+        content = "auto lo %s\n\n" % " ".join(ifs)
+        content += "iface lo inet loopback\n\n"
+        content += "\n".join(ifcfgs)
+        sftp = self.sftpClient()
+        f = xenrt.TEC().tempFile()
+        with open(f, "w") as fh:
+            fh.write(content)
+        sftp.copyTo(f, "/etc/network/interfaces")
+        self.execSSH("ifup -a")
+        # Check we haven't broken networking
+        self.execSSH("true")
+
 
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)

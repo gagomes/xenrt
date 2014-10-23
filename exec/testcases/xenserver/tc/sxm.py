@@ -1012,7 +1012,11 @@ class LiveMigrate(xenrt.TestCase):
         srcHost = vm['src_host']
         destHost = vm['dest_host']
 
-        output = srcHost.execdom0('/opt/xensource/debug/sm mirror-list') 
+        if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):
+            output = srcHost.execdom0('sm-cli mirror-list')
+        else:
+            output = srcHost.execdom0('/opt/xensource/debug/sm mirror-list') 
+ 
         vdiInfo = output.splitlines()
         for item in vdiInfo:
             if 'dest_vdi' in item:

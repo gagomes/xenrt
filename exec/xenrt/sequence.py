@@ -915,6 +915,7 @@ class PrepareNode:
         self.pools = []
         self.bridges = []
         self.srs = []
+        self.privatevlans = []
         self.cloudSpec = {}
         self.networksForHosts = {}
         self.networksForPools = {}
@@ -949,6 +950,8 @@ class PrepareNode:
                 self.handleInstanceNode(n, params, template=True)
             elif n.localName == "instance":
                 self.handleInstanceNode(n, params, template=False)
+            elif n.localName == "vlan":
+                self.handleVlanNode(n, params)
         
         # Do the cloud nodes now the other hosts have been allocated
         for n in node.childNodes:
@@ -1247,6 +1250,9 @@ class PrepareNode:
 
         return pool
 
+    def handleVlanNode(self, node, params):
+        self.privatevlans.append(expand(node.getAttribute("name"), params))
+
     def handleHostNode(self, node, params, id=0):
         host = {}        
         host["pool"] = None
@@ -1401,6 +1407,7 @@ class PrepareNode:
 
         vm["guestname"] = expand(node.getAttribute("name"), params)
         vm["vifs"] = []       
+        vm["ips"] = {}       
         vm["disks"] = []
         vm["postinstall"] = []
         if suffixjob:
@@ -1439,7 +1446,10 @@ class PrepareNode:
                 elif x.localName == "network":
                     device = expand(x.getAttribute("device"), params)
                     bridge = expand(x.getAttribute("bridge"), params)
+                    ip = expand(x.getAttribute("ip"), params)
                     vm["vifs"].append([device, bridge, xenrt.randomMAC(), None])
+                    if ip:
+                        vm["ips"][int(device)] = ip
                 elif x.localName == "disk":
                     device = expand(x.getAttribute("device"), params)
                     size = expand(x.getAttribute("size"), params)
@@ -1491,7 +1501,7 @@ class PrepareNode:
 
         if not nohostprepare:
             # Get rid of the old CCP management servers, and the info about them
-            xenrt.TEC().logverbose("Resetting machines Cloudstack info")
+            xenrt.TEC().logverbose("Resetting machine info")
             i = 0
             cleanedGuests = []
             while True:
@@ -1514,11 +1524,14 @@ class PrepareNode:
                 try:
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSIP", ""])
                     xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "CSGUEST", ""])
+                    xenrt.GEC().dbconnect.jobctrl("mupdate", [hostname, "WINDOWS", ""])
                 except:
                     pass
                 i += 1
         
         try:
+            for v in self.privatevlans:
+                xenrt.GEC().registry.vlanPut(v, xenrt.PrivateVLAN())
             sharedGuestQueue = InstallWorkQueue()
             for v in self.vms:
                 if v.has_key("host") and v["host"] == "SHARED":

@@ -1490,7 +1490,13 @@ if installpackages:
             var, value = sv
             config.setVariable(var, value)
 
-    if xenrt.TEC().lookup("MARVIN_VERSION", None) or xenrt.TEC().lookup("CLOUDINPUTDIR", None) or xenrt.TEC().lookup("ACS_BRANCH", None) or xenrt.TEC().lookup("ACS_BUILD", None) or xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
+    if xenrt.TEC().lookup("MARVIN_VERSION", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL7", None) or \
+       xenrt.TEC().lookup("ACS_BRANCH", None) or \
+       xenrt.TEC().lookup("ACS_BUILD", None) or \
+       xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
         xenrt.util.command("pip install %s" % xenrt.getMarvinFile())
     else:
         print "CLOUDINPUTDIR not specified, so marvin is not required"
@@ -2471,7 +2477,14 @@ else:
         xenrt.TEC().comment("Using sequence file %s" % (usefilename))
     else:
         gec.harnessError()
-        sys.stderr.write("Could not find sequence file.")
+        strErr = "Could not find sequence file."
+        gec.logverbose(strErr)
+        try:
+            gec.dbconnect.jobUpdate("PREPARE_FAILED", strErr)
+        except:
+            pass
+
+        sys.stderr.write(strErr)
         sys.exit(1)
     seqfilebase = os.path.basename(usefilename)
     seqfileroot, seqfileext = os.path.splitext(seqfilebase)

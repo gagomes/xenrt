@@ -104,16 +104,22 @@ pylint-all:
 
 .PHONY: xmllint xmllint-all
 xmllint:
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
 	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
-	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f && \
+	xmllint --noout --schema $(XSD) $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
 	done
+	rm $(XSD)
 xmllint-all:
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
 	@for f in `find | grep -e '\.seq$$'`; do \
-	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f 2>&1 | grep -v " validates$$" && \
+	xmllint --noout --schema $(XSD) $$f 2>&1 | grep -v " validates$$" && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
 	done
+	rm $(XSD)
 
 .PHONY: clean
 clean:

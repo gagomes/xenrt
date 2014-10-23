@@ -108,6 +108,9 @@ class ManagementServer(object):
         self.place.execcmd('service %s-management start' % (self.cmdPrefix))
 
 
+    def getCCPInputs(self):
+        return xenrt.getCCPInputs(self.place.distro)
+
     def setupManagementServerDatabase(self):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             # Configure SELinux
@@ -224,7 +227,7 @@ class ManagementServer(object):
         except:
             xenrt.TEC().warning("Error when trying to identify management server version")
         if commit:
-            expectedCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+            expectedCommit = xenrt.getCCPCommit(self.place.distro)
             if expectedCommit and commit != expectedCommit:
                 raise xenrt.XRTError("Management server commit %s does not match expected commit %s" % (commit, expectedCommit))
 
@@ -255,7 +258,7 @@ class ManagementServer(object):
         if self.place.arch != 'x86-64':
             raise xenrt.XRTError('Cloud Management Server requires a 64-bit guest')
 
-        manSvrInputDir = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+        manSvrInputDir = self.getCCPInputs()
         if not manSvrInputDir:
             raise xenrt.XRTError('Location of management server build not specified')
 
@@ -333,7 +336,7 @@ class ManagementServer(object):
             except Exception, e:
                 xenrt.TEC().logverbose('Failed to get MS version from database: %s' % (str(e)))
 
-            installVersionStr = xenrt.TEC().lookup("CLOUDINPUTDIR", xenrt.TEC().lookup("ACS_BUILD", xenrt.TEC().lookup("ACS_BRANCH", None)))
+            installVersionStr = self.getCCPInputs() or xenrt.TEC().lookup("ACS_BUILD", xenrt.TEC().lookup("ACS_BRANCH", None))
             if installVersionStr:
                 installVersionMatches = filter(lambda x:x in installVersionStr, versionKeys)
 
@@ -396,7 +399,7 @@ class ManagementServer(object):
     def installCloudManagementServer(self):
         self.preManagementServerInstall()
 
-        if xenrt.TEC().lookup("CLOUDINPUTDIR", None) != None:
+        if self.getCCPInputs():
             self.installCloudPlatformManagementServer()
         elif xenrt.TEC().lookup('ACS_BRANCH', None) != None or xenrt.TEC().lookup("CLOUDRPMTAR", None) != None or xenrt.TEC().lookup("ACS_BUILD", None) != None:
             self.installCloudStackManagementServer()

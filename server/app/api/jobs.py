@@ -13,8 +13,8 @@ class XenRTJobPage(XenRTAPIPage):
         cur2 = self.getDB().cursor()
 
         if wide != "no":
-            cur.execute("SELECT options FROM tblJobs WHERE jobid = %u" %
-                        (id))
+            cur.execute("SELECT options FROM tblJobs WHERE jobid = %u",
+                        [id])
             rc = cur.fetchone()
             if rc:
                 if rc[0]:
@@ -27,9 +27,9 @@ class XenRTJobPage(XenRTAPIPage):
         else:
             pref = ""
 
-        cur.execute(("SELECT phase, test, result, detailid FROM tblresults " +
-                     "WHERE jobid = %u") %
-                    (id))
+        cur.execute("SELECT phase, test, result, detailid FROM tblresults " +
+                    "WHERE jobid = %u",
+                    [id])
         while 1:
             rc = cur.fetchone()
             if not rc:
@@ -40,8 +40,8 @@ class XenRTJobPage(XenRTAPIPage):
             text = text + line
             detailid = int(rc[3])
             if verbose != "no" or times:
-                cur2.execute(("SELECT ts, key, value FROM tblDetails WHERE " +
-                              "detailid = %u ORDER BY ts;") % (detailid))
+                cur2.execute("SELECT ts, key, value FROM tblDetails WHERE " +
+                             "detailid = %u ORDER BY ts;", [detailid])
                 detailedtext = ""
                 started = None
                 finished = None
@@ -179,12 +179,14 @@ class XenRTList(XenRTJobPage):
         db = self.getDB()
         cur = db.cursor()
         cur2 = db.cursor()
-        conditions = ["jobstatus = '%s'" % (jobstatus)]
+        params = []
+        conditions = ["jobstatus = %s"]
+        params.append(jobstatus)
         if activeonly:
             conditions.append("removed = ''")
         cur.execute("SELECT jobid, jobStatus, version, revision,  " 
                     "userId FROM tbljobs WHERE %s ORDER BY jobid DESC;" %
-                    (string.join(conditions, " AND ")))
+                    (string.join(conditions, " AND ")), params)
         reply = []
         while 1:
             rc = cur.fetchone()
@@ -205,7 +207,7 @@ class XenRTList(XenRTJobPage):
 
             # Look up other variables
             cur2.execute("SELECT param, value FROM tblJobDetails WHERE jobid = "
-                         "%s AND param in ('DEPS', 'JOBDESC', 'TESTRUN_SR', 'MACHINE', 'STARTED');" % (d['JOBID']))
+                         "%s AND param in ('DEPS', 'JOBDESC', 'TESTRUN_SR', 'MACHINE', 'STARTED');", [d['JOBID']])
             while 1:
                 rd = cur2.fetchone()
                 if not rd:
@@ -213,7 +215,7 @@ class XenRTList(XenRTJobPage):
                 if rd[0] and rd[1]:
                     d[string.strip(rd[0])] = string.strip(rd[1])           
             if d['JOBSTATUS'] == "running":
-                cur2.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';" % (d['JOBID']))
+                cur2.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", [d['JOBID']])
                 rd = cur2.fetchone()
                 if rd[0] > 0:
                     d['PAUSED'] = "yes"
@@ -350,35 +352,34 @@ class XenRTSubmit(XenRTJobPage):
 
         cur = db.cursor()
         cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
-        cur.execute(("INSERT INTO tbljobs (version,revision,options," +
-                     "jobstatus,userid,uploaded,removed) VALUES " +
-                     "('%s','%s','%s','%s','%s','%s','%s');") % \
-                     (c["VERSION"], c["REVISION"], c["OPTIONS"], c["JOBSTATUS"], \
-                      c["USERID"], c["UPLOADED"], c["REMOVED"]))
+        cur.execute("INSERT INTO tbljobs (version,revision,options,"
+                    "jobstatus,userid,uploaded,removed) VALUES "
+                    "(%s,%s,%s,%s,%s,%s,%s);",
+                    [c["VERSION"], c["REVISION"], c["OPTIONS"], c["JOBSTATUS"], \
+                     c["USERID"], c["UPLOADED"], c["REMOVED"]])
 
         # Lookup jobid
-        cur.execute("SELECT last_value FROM jobid_seq");
+        cur.execute("SELECT last_value FROM jobid_seq")
         rc = cur.fetchone()
         id = int(rc[0])
         db.commit() # Commit to release the lock
 
         for key in e.keys():
-            cur.execute(("INSERT INTO tbljobdetails (jobid,param,value) " +
-                         "VALUES (%u,'%s','%s');") % (id, key, e[key]))
+            cur.execute("INSERT INTO tbljobdetails (jobid,param,value) " +
+                        "VALUES (%u,%s,%s);", [id, key, e[key]])
 
         # If we have specifed a jobgroup and tag then update the jobgroup
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG"):
             jobgroup = params["JOBGROUP"]
             jobtag = params["JOBGROUPTAG"]
-            sql = "DELETE FROM tblJobGroups WHERE " \
-                  "gid = '%s' AND description = '%s'" % (jobgroup, jobtag)
             try:
-                cur.execute(sql)
+                cur.execute("DELETE FROM tblJobGroups WHERE "
+                            "gid = %s AND description = %s",
+                            [jobgroup, jobtag])
             except:
                 pass
-            sql = "INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
-                  "('%s', %u, '%s');" % (jobgroup, id, jobtag)
-            cur.execute(sql)
+            cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
+                        "(%s, %u, %s);", [jobgroup, id, jobtag])
 
         db.commit()
         cur.close()
@@ -503,14 +504,17 @@ class XenRTJobGroup(XenRTJobPage):
         else:
             desc = ""
 
+        params = []
         if command == "reset":
-            sql = "DELETE FROM tblJobGroups WHERE gid = '%s';" % (gid)
+            sql = "DELETE FROM tblJobGroups WHERE gid = %s;"
+            params.append(gid)
         elif command == "add":
             if not form.has_key("jobid"):
                 return "ERROR No jobid supplied"
             jobid = form['jobid']
             sql = "INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
-                  "('%s', %s, '%s');" % (gid, jobid, desc)
+                  "(%s, %s, %s);"
+            params += [gid, jobid, desc]
         else:
             return "ERROR Unknown command '%s'" % (command)
 
@@ -518,7 +522,7 @@ class XenRTJobGroup(XenRTJobPage):
         cur = db.cursor()
 
         try:
-            cur.execute(sql)
+            cur.execute(sql, params)
         except:
             return "ERROR database insert error"
 
@@ -544,8 +548,8 @@ class XenRTWarnings(XenRTJobPage):
             if form.has_key("jobid"):
                 jobids.append(form["jobid"])
             else:
-                cur.execute("SELECT jobid FROM tblJobGroups WHERE gid = '%s'" %
-                            (form["jobgroup"]))
+                cur.execute("SELECT jobid FROM tblJobGroups WHERE gid = %s",
+                            [form["jobgroup"]])
                 while True:
                     rc = cur.fetchone()
                     if not rc:
@@ -555,8 +559,8 @@ class XenRTWarnings(XenRTJobPage):
             for jobid in jobids:
                 cur.execute("SELECT detailid, value FROM tblDetails WHERE "
                             "  detailid IN (SELECT detailid FROM tblResults "
-                            "    WHERE jobid = %s) AND key = '%s'" %
-                            (jobid, fieldkey))
+                            "    WHERE jobid = %s) AND key = %s",
+                            [jobid, fieldkey])
                 while True:
                     rc = cur.fetchone()
                     if not rc:

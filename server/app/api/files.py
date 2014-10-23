@@ -33,7 +33,6 @@ class XenRTDownload(XenRTAPIPage):
             self.request.response.content_disposition = "attachment; filename=\"%d.tar.bz2\"" % (id)
             return self.request.response
         except Exception, e:
-            traceback.print_exc()
             if isinstance(e, IOError):
                 # We can still report error to client at this point
                 return "ERROR File missing"
@@ -99,8 +98,8 @@ class XenRTUpload(XenRTAPIPage):
         db = self.getDB()
         cur = db.cursor()
 
-        cur.execute("UPDATE tblResults SET uploaded = '%s' WHERE detailid = %u" %
-                    (uploaded, detailid))
+        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %u",
+                    [uploaded, detailid])
 
         db.commit()
 

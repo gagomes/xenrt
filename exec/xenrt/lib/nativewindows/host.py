@@ -75,6 +75,10 @@ class WindowsHost(xenrt.GenericHost):
                              productVersion=productVersion,
                              productRevision=productRevision)
         self.domainController=None
+        try:
+            xenrt.GEC().dbconnect.jobctrl("mupdate", [self.getName(), "WINDOWS", "yes"])
+        except:
+            pass
 
     def install(self):
         self.windows = True

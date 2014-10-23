@@ -608,11 +608,13 @@ def buildHostsFile(config,machines,testpeers,sharedhosts):
         addr = config.lookup(["HOST_CONFIGS", machine, "HOST_ADDRESS"], None)
         if addr:
             f.write("%s %s\n" % (addr,machine.replace("_","-")))
+            f.write("%s %s.xenrtcloud\n" % (addr,machine.replace("_","-")))
     if testpeers:
         for tp in testpeers:
             addr = testpeers[tp]["ADDRESS"]
             if addr:
                 f.write("%s %s\n" % (addr,tp))
+                f.write("%s %s.xenrtcloud\n" % (addr,tp))
 
     f.close()
 

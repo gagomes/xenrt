@@ -1,7 +1,7 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
 
-import traceback, StringIO, string, time, random, pgdb
+import traceback, StringIO, string, time, random, pgdb, sys
 
 import config, app
 
@@ -267,8 +267,8 @@ class XenRTSchedule(XenRTAPIPage):
                             (string.join(exp, ", ")))
             db.commit()
             cur.close()
-        except:
-            pass
+        except Exception, e:
+            print "WARNING: Could not run scm_check_leases - %s" % str(e)
 
     def schedule_on(self, outfh, job, machines):
         db = self.getDB()

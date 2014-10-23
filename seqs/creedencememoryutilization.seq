@@ -8,22 +8,22 @@
       <host id="0">
         <vm name="debian70">
           <distro>debian70</distro>
-          <memory>128</memory>
-          <vcpus>2</vcpus>
-          <network device="0" />
-          <disk device="0" size="8" />
-          <storage>NFS</storage>
-        </vm>
-        <vm name="rhel56">
-          <distro>rhel56</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
           <storage>NFS</storage>
         </vm>
-        <vm name="centos56">
-          <distro>centos56</distro>
+        <vm name="rhel65">
+          <distro>rhel65</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>NFS</storage>
+        </vm>
+        <vm name="centos65">
+          <distro>centos65</distro>
           <memory>512</memory>
           <vcpus>2</vcpus>
           <network device="0" />

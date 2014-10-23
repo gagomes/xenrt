@@ -4,9 +4,9 @@ import os,urllib,re,sys
 
 print os.environ
 
-seq = "creedenceautocertkit.seq"
-rev = "6.4.96-88836"
-inputs = "/usr/groups/xen/carbon/creedence/88836"
+seq = "creedenceautocertkithcl.seq"
+rev = "6.4.96-89059"
+inputs = "/usr/groups/xen/carbon/creedence/89143"
 
 if os.environ['No Bonding Tests'] == "true":
     noBond = "-D SINGLE_NIC=yes"

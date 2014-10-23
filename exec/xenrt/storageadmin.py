@@ -434,11 +434,7 @@ class NetAppiSCSIStorageArray(NetAppStorageArray):
         self._initiatorGroup.create()
 
     def getiSCSIIQN(self):
-        results = self._server.invoke('iscsi-node-get-name')
-        verbose = "Getting iSCSI Target IQN"
-        self._raiseApiFailure(NetAppStatus(results), verbose)
-        return results.child_get_string("node-name")
-
+        return self._initiatorGroup.getiSCSIIQN()
 
 class NetAppInitiatorGroupCommunicator(object):
     
@@ -554,6 +550,12 @@ class NetAppFCInitiatorGroup(NetAppInitiatorGroup):
 class NetAppiSCSIInitiatorGroup(NetAppInitiatorGroup):
     SEED_IGROUP_NAME = "NET_APP_ISCSI_IGROUP"
     PROTOCOL = "iscsi"
+
+    def getiSCSIIQN(self):
+        results = self._server.invoke('iscsi-node-get-name')
+        verbose = "Getting iSCSI Target IQN"
+        self._raiseApiFailure(NetAppStatus(results), verbose)
+        return results.child_get_string("node-name")
 
 class NetAppLunContainer(StorageArrayContainer):
     """

@@ -1478,7 +1478,7 @@ fi
 
 # Write a XenRT Insallation cookie
 echo '%s' > $ROOT/xenrt-installation-cookie 
-
+service sshd stop || true
 # Signal XenRT that we've finished
 mkdir /tmp/xenrttmpmount
 mount -t nfs %s /tmp/xenrttmpmount

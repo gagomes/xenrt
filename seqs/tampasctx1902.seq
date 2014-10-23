@@ -12,6 +12,7 @@
           <vcpus>2</vcpus>
           <network device="0" />
           <disk device="0" size="8" />
+          <postinstall action="preCloneTailor"/>
         </vm>
         <vm name="wingold">
           <distro>ws08r2sp1-x64</distro>
@@ -21,6 +22,7 @@
           <postinstall action="installDrivers" />
           <network device="0" />
           <disk device="0" size="24" />
+          <postinstall action="preCloneTailor"/>
         </vm>
       </host>
       <host id="1" />

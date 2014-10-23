@@ -1403,13 +1403,26 @@ def getDistroAndArch(distrotext):
     return (distro, arch)
 
 def getMarvinFile():
-    marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", "4.4")
-    if marvinversion == "4.3":
-        return "/usr/share/xenrt/marvin.tar.gz"
-    elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
-        return xenrt.TEC().getFile(marvinversion)
-    else:
-        return "/usr/share/xenrt/marvin-%s.tar.gz" % marvinversion
+    # Default to using the Goleta version of Marvin
+    marvinFile = "/usr/share/xenrt/marvin-4.4.tar.gz"
+
+    marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
+    if not marvinversion:
+        # The user has not specified the Marvin version to use
+        if re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
+           re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
+            marvinversion = "3.0."
+
+    if marvinversion:
+        if marvinversion.startswith("3."):
+            marvinFile = "/usr/share/xenrt/marvin-3.x.tar.gz"
+        elif marvinversion == "4.3":
+            marvinFile = "/usr/share/xenrt/marvin.tar.gz"
+        elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
+            marvinFile = xenrt.TEC().getFile(marvinversion)
+
+    xenrt.TEC().comment('Using Marvin Version: %s' % (marvinFile))
+    return marvinFile
 
 def dictToXML(d, indent):
     out = ""

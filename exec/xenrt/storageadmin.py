@@ -47,7 +47,9 @@ class StorageArrayFactory(object):
         @param storageType: the required storage type
         """
         if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.FibreChannel:
-            return NetAppStorageArray()
+            return NetAppFCStorageArray()
+        if vendor ==  StorageArrayVendor.NetApp and storageType == StorageArrayType.iSCSI:
+            return NetAppiSCSIStorageArray()
 
         raise xenrt.XRTError("There is no implementation for a storage array of this type and vendor" )
 

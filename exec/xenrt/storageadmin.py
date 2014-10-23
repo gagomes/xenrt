@@ -763,6 +763,6 @@ class NetAppISCSILun(NetAppLun):
         obj = xenrt.ISCSIIndividualLun(None,
                                        None,
                                        scsiid = self.getId(),
-                                       server = self._server.server 
+                                       server = self._server.server,
                                        targetname = self.getISCSIIQN())
         return obj

@@ -590,6 +590,7 @@ infrastructure-uninstall: network-uninstall \
 .PHONY: marvin
 marvin:
 	$(info Installing marvin)
+	wget -O $(SHAREDIR)/marvin-3.x.tar.gz http://repo-ccp.citrix.com/releases/Marvin/3.0.x/Marvin-66.tar.gz
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz

@@ -568,9 +568,13 @@ class NetAppLunContainer(StorageArrayContainer):
                                         'containing-aggr-name', self.__aggregate,
                                         'size', ("%sg" % self.__size),
                                         'volume', self.__name,
-                                        'space-reserve', 'file',
-                                        'percentage-snapshot-reserve', 0)
+                                        'space-reserve', 'file')
         verbose = "A NetApp Volume %s of size %sGB is created." % (self.__name, self.__size)
+        self._raiseApiFailure(NetAppStatus(results), verbose)
+        results = self._server.invoke('snapshot-set-reserve',
+                                        'percentage', 0,
+                                        'volume', self.__name)
+        verbose = "Volume %s snapshot reserve set to 0." % (self.__name)
         self._raiseApiFailure(NetAppStatus(results), verbose)
 
         return self.__name

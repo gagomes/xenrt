@@ -58,6 +58,7 @@ class CopyVMs(xenrt.TestCase):
 
             g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
+            g.start(specifyOn=False)
             i += 1
         
         i = 0
@@ -68,5 +69,8 @@ class CopyVMs(xenrt.TestCase):
             sr = srs[0]
 
             g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
+            g.start(specifyOn=False)
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
             i += 1
+
+        self.pause("Environment set up")

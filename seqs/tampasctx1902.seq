@@ -1,0 +1,53 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="lingold">
+          <distro>rhel65</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+        </vm>
+        <vm name="wingold">
+          <distro>ws08r2sp1-x64</distro>
+          <arch>x86-64</arch>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+        </vm>
+      </host>
+      <host id="1" />
+      <NETWORK>
+        <PHYSICAL network="NPRI" bond-mode="balance-slb">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <NIC />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC" bond-mode="balance-slb">
+          <NIC />
+          <NIC />
+          <STORAGE />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Setup">
+      <testcase id="xenserver.tc.srpervm.SetupSRs">
+        <arg>linuxluns=2</arg>
+        <arg>windowsluns=2</arg>
+      </testcase>
+      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+    </serial>
+  </testsequence>
+
+</xenrt>

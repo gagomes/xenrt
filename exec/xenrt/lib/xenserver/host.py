@@ -603,6 +603,11 @@ class Host(xenrt.GenericHost):
         objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
         return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
 
+    def getPool(self):
+        if not self.pool:
+            poolFactory(self.productVersion)(self)
+        return self.pool
+
     def populateSubclass(self, x):
         xenrt.GenericHost.populateSubclass(self, x)
         x.bootLun = self.bootLun

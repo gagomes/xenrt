@@ -379,9 +379,9 @@ class FIOLinux(LinuxWorkload):
             self.guest.execguest("yum install -y zlib-devel")
         else:
             raise xenrt.XRTError("Guest is not supported")
-        self.guest.execguest("cd %s && ./configure" % self.workdir)
-        self.guest.execguest("cd %s && make" % self.workdir)
-        self.guest.execguest("cd %s && make install" % self.workdir)
+        self.guest.execguest("cd %s/src && ./configure" % self.workdir)
+        self.guest.execguest("cd %s/src && make" % self.workdir)
+        self.guest.execguest("cd %s/src && make install" % self.workdir)
         inifile = """[workload]
 rw=randrw
 size=512m

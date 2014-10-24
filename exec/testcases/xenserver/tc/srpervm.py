@@ -13,8 +13,8 @@ class SetupSRs(xenrt.TestCase):
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
 
-        linuxLunCount = int(args.get("linuxluns", "10"))
-        windowsLunCount = int(args.get("windowsluns", "10"))
+        linuxLunCount = int(args.get("linuxvms", "10")) * 3
+        windowsLunCount = int(args.get("windowsvms", "10")) * 3
 
         windowsFilerName = args.get("windowsfiler", None)
         linuxFilerName = args.get("linuxfiler", None)
@@ -59,8 +59,20 @@ class CopyVMs(xenrt.TestCase):
 
             g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i+1)
+            if not srs:
+                break
+            sr = srs[0]
+            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+            
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i+2)
+            if not srs:
+                break
+            sr = srs[0]
+            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+
             g.start(specifyOn=False)
-            i += 1
+            i += 3
         
         i = 0
         while True:
@@ -70,23 +82,38 @@ class CopyVMs(xenrt.TestCase):
             sr = srs[0]
 
             g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
-            g.start(specifyOn=False)
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
-            i += 1
+            
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i+1)
+            if not srs:
+                break
+            sr = srs[0]
+            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+            
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i+2)
+            if not srs:
+                break
+            sr = srs[0]
+            g.createDisk(8*xenrt.GIGA, sruuid=sr)
 
+            g.start(specifyOn=False)
+            i += 3
 class TCMonitorLowMem(xenrt.TestCase):
 
     def startWindowsWorkload(self, guest):
         workload = testcases.benchmarks.workloads.FIOWindows(guest)
+        self.workloads.append(workload)
         workload.start()
     
     def startLinuxWorkload(self, guest):
         workload = testcases.benchmarks.workloads.FIOLinux(guest)
+        self.workloads.append(workload)
         workload.start()
 
     def prepare(self, arglist=[]):
         winguests = []
         linguests = []
+        self.workloads = []
         i = 0
         while True:
             g = self.getGuest("winclone-%d" % i)
@@ -111,11 +138,15 @@ class TCMonitorLowMem(xenrt.TestCase):
         args = self.parseArgsKeyValue(arglist)
 
         minutes = int(args.get("minutes", "10"))
+        interval = int(args.get("checkinterval", "1"))
 
         pool = self.getDefaultHost().getPool()
         for i in xrange(minutes):
             for h in pool.getHosts():
                 lowmem = h.execdom0("echo 3 > /proc/sys/vm/drop_caches && grep LowFree /proc/meminfo | cut -d ':' -f 2").strip()
                 xenrt.TEC().logverbose("Low Memory on %s: %s" % (h.getName(), lowmem))
-            xenrt.sleep(60)
+            xenrt.sleep(60*interval)
 
+    def postRun(self):
+        for w in self.workloads:
+            w.stop()

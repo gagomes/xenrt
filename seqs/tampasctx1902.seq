@@ -25,13 +25,6 @@
           <postinstall action="preCloneTailor"/>
         </vm>
       </host>
-      <host id="1" />
-      <host id="2" />
-      <host id="3" />
-      <host id="4" />
-      <host id="5" />
-      <host id="6" />
-      <host id="7" />
       <NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />
@@ -51,9 +44,9 @@
   <testsequence>
     <serial group="Setup">
       <testcase id="xenserver.tc.srpervm.SetupSRs">
-        <arg>linuxluns=50</arg>
+        <arg>linuxvms=17</arg>
         <arg>linuxfiler=fas3050b</arg>
-        <arg>windowsluns=50</arg>
+        <arg>windowsvms=16</arg>
         <arg>windowsfiler=fas3050a</arg>
       </testcase>
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
@@ -61,6 +54,7 @@
     <serial group="LowMem">
       <testcase id="xenserver.tc.srpervm.TCMonitorLowMem" >
         <arg>minutes=60</arg>
+        <arg>checkinterval=10</arg>
       </testcase>
     </serial>
   </testsequence>

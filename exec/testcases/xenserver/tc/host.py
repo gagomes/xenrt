@@ -1665,7 +1665,7 @@ class TC9991(_SNMPConfigTest):
             r = re.match(r'view\s+\S+\s+included\s+(\S+)', line)
             if r:
                 subtree = r.group(1)
-                if subtree not in self.MIB_II_SUBTREES:
+                if subtree not in self.MIB_II_SUBTREES and subtree != ".1":
                     unsupported_subtrees.append(subtree)
 
         if unsupported_subtrees:

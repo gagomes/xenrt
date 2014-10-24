@@ -687,9 +687,9 @@ class FIOWindows(Workload):
         inifile = """[workload]
 rw=randrw
 size=512m
-directory=c:\\fiodata
 runtime=1382400
 time_based
+numjobs=4
 """
         self.guest.xmlrpcWriteFile("c:\\workload.fio", inifile) 
 

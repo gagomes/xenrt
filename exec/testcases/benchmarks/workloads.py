@@ -666,6 +666,33 @@ class IOMeter(Workload):
         except:
             xenrt.TEC().comment("Error disabling firewall")
 
+class FIOWindows(Workload):
+    def __init__(self, guest):
+        Workload.__init__(self, guest)
+        self.name = "fio"
+        self.tarball = "fiowin.tgz"
+        self.process = "fio.exe"
+        if self.guest.distro.endswith("x64"):
+            arch = "x64"
+        else:
+            arch = "x86"
+        self.cmdline = "%%s\\%s\\fio.exe c:\\workload.fio" % arch
+
+    def install(self, startOnBoot=False):
+        Workload.install(self, startOnBoot)
+        try:
+            self.guest.xmlrpcExec("mkdir c:\\fiodata")
+        except:
+            pass
+        inifile = """[workload]
+rw=randrw
+size=512m
+directory=c:\\fiodata
+runtime=1382400
+time_based
+"""
+        self.guest.xmlrpcWriteFile("c:\\workload.fio", inifile) 
+
 class WindowsExperienceIndex(Workload):
 
     """ Run WinSAT/WEI and obtain result in xml format. """    

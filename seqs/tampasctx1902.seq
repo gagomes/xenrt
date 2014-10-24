@@ -3,7 +3,6 @@
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
   </variables>
   <prepare>
-    <pool id="0">
       <host id="0">
         <vm name="lingold">
           <distro>rhel65</distro>
@@ -24,7 +23,6 @@
           <disk device="0" size="24" />
           <postinstall action="preCloneTailor"/>
         </vm>
-      </host>
       <NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />
@@ -38,7 +36,7 @@
           <STORAGE />
         </PHYSICAL>
       </NETWORK>
-    </pool>
+      </host>
   </prepare>
 
   <testsequence>

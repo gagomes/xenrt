@@ -104,8 +104,8 @@ class TCMonitorLowMem(xenrt.TestCase):
             linguests.append(g)
             i+=1
 
-        pWindows = map(lambda x: xenrt.PTask(self.startWindowsWorkload, winguests)
-        pLinux = map(lambda x: xenrt.PTask(self.startLinuxWorkload, linguests)
+        pWindows = map(lambda x: xenrt.PTask(self.startWindowsWorkload, winguests))
+        pLinux = map(lambda x: xenrt.PTask(self.startLinuxWorkload, linguests))
         xenrt.pfarm(pWindows)
         xenrt.pfarm(pLinux)
 

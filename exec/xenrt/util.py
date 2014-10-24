@@ -1158,8 +1158,8 @@ def pfarm(tasks, start=True, interval=0, wait=True, value=True, exception=True):
         return jobs
     else:
         for j in jobs:
-            time.sleep(interval)
             j.start()
+            time.sleep(interval)
         if not wait:
             return jobs
         else:

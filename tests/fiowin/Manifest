@@ -1,5 +1,4 @@
 # Status: distributable
-45d21c4ca3906961061766d5  ./src/.gitignore
 393a5ca445f6965873eca0259a17f833  ./src/COPYING
 16c20f25382d78899971287fa46436f8  ./src/FIO-VERSION-GEN
 4544eb09c69c6e0d6a0fdd078accea35  ./src/GFIO-TODO

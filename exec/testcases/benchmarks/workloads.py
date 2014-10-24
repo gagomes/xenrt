@@ -369,7 +369,7 @@ class FIOLinux(LinuxWorkload):
         self.name = "FIOLinux"
         self.tarball = "fiowin.tgz"
         self.process = "fio"
-        self.cmdline = "/usr/local/bin/fio /root/workload.fio 2>&1 > /dev/null < /dev/null &" 
+        self.cmdline = "at now -f /root/startfio.sh" 
 
     def install(self, startOnBoot=False):
         LinuxWorkload.install(self, startOnBoot)
@@ -393,6 +393,8 @@ numjobs=4
         sftp = self.guest.sftpClient()
         file("%s/workload.fio" % (t.path()), "w").write(inifile)
         sftp.copyTo("%s/workload.fio" % (t.path()), "/root/workload.fio")
+        self.guest.execguest("echo 'fio /root/workload.fio' > /root/startfio.sh")
+        self.guest.execguest("chmod a+x /root/startfio.sh")
         
 
 class Burnintest(Workload):

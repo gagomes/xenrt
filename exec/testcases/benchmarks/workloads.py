@@ -40,6 +40,7 @@ class Workload:
         self.workdir = None
         self.rpcref = None
         self.startOnBoot = False
+        self.installed = False
 
     def install(self, startOnBoot=False):
         if self.skip:
@@ -153,6 +154,8 @@ class LinuxWorkload(Workload):
         self.guest.execguest("killall %s" % (self.process))
 
     def install(self, startOnBoot=False):
+        if self.installed:
+            return
         if self.skip:
             xenrt.TEC().logverbose("Skipping workload %s." % (self.name))
             return
@@ -176,6 +179,7 @@ class LinuxWorkload(Workload):
             self.guest.runOnStartup(string.replace(self.cmdline,
                                                    "%s",
                                                    self.workdir))
+        self.installed = True
 
     def start(self):
         if self.skip:
@@ -363,23 +367,21 @@ class FIOLinux(LinuxWorkload):
     def __init__(self, guest):
         LinuxWorkload.__init__(self, guest)
         self.name = "FIOLinux"
+        self.tarball = "fiowin.tgz"
         self.process = "fio"
         self.cmdline = "/usr/local/bin/fio /root/workload.fio 2>&1 > /dev/null < /dev/null &" 
 
     def install(self, startOnBoot=False):
-        self.guest.execguest("wget '%s/fiowin.tgz' -O /root/fiowin.tgz" %
-                     xenrt.TEC().lookup("TEST_TARBALL_BASE"))
-        self.guest.execguest("rm -rf /root/fiowin")
-        self.guest.execguest("tar -xvzf /root/fiowin.tgz")
+        LinuxWorkload.install(self, startOnBoot)
         if self.guest.execguest("test -e /etc/debian_version", retval="code") == 0:
             self.guest.execguest("apt-get install -y --force-yes zlib-dev")
         elif self.guest.execguest("test -e /etc/redhat-release", retval="code") == 0:
             self.guest.execguest("yum install -y zlib-devel")
         else:
             raise xenrt.XRTError("Guest is not supported")
-        self.guest.execguest("cd /root/fiowin/src && ./configure")
-        self.guest.execguest("cd /root/fiowin/src && make")
-        self.guest.execguest("cd /root/fiowin/src && make install")
+        self.guest.execguest("cd %s && ./configure" % self.workdir)
+        self.guest.execguest("cd %s && make" % self.workdir)
+        self.guest.execguest("cd %s && make install" % self.workdir)
         inifile = """[workload]
 rw=randrw
 size=512m

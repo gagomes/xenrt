@@ -110,8 +110,12 @@ class TCMonitorLowMem(xenrt.TestCase):
         xenrt.pfarm(pLinux)
 
     def run(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+
+        minutes = int(args.get("minutes", "10"))
+
         pool = self.getDefaultHost().getPool()
-        for i in xrange(10):
+        for i in xrange(minutes):
             for h in pool.getHosts():
                 lowmem = h.execdom0("echo 3 > /proc/sys/vm/drop_caches && grep LowFree /proc/meminfo | cut -d ':' -f 2").strip()
                 xenrt.TEC().logverbose("Low Memory on %s: %s" % (h.getName(), lowmem))

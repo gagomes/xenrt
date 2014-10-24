@@ -106,8 +106,8 @@ class TCMonitorLowMem(xenrt.TestCase):
 
         pWindows = map(lambda x: xenrt.PTask(self.startWindowsWorkload, x), winguests)
         pLinux = map(lambda x: xenrt.PTask(self.startLinuxWorkload, x), linguests)
-        xenrt.pfarm(pWindows)
-        xenrt.pfarm(pLinux)
+        xenrt.pfarm(pWindows, interval=10)
+        xenrt.pfarm(pLinux, interval=10)
 
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)

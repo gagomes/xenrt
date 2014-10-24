@@ -59,13 +59,13 @@ class CopyVMs(xenrt.TestCase):
 
             g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
-            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i+1)
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % (i+1))
             if not srs:
                 break
             sr = srs[0]
             g.createDisk(8*xenrt.GIGA, sruuid=sr)
             
-            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i+2)
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % (i+2))
             if not srs:
                 break
             sr = srs[0]
@@ -84,13 +84,13 @@ class CopyVMs(xenrt.TestCase):
             g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
             
-            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i+1)
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % (i+1))
             if not srs:
                 break
             sr = srs[0]
             g.createDisk(8*xenrt.GIGA, sruuid=sr)
             
-            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i+2)
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % (i+2))
             if not srs:
                 break
             sr = srs[0]

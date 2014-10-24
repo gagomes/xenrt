@@ -74,8 +74,6 @@ class CopyVMs(xenrt.TestCase):
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
             i += 1
 
-        self.pause("Environment set up")
-
 class TCMonitorLowMem(xenrt.TestCase):
 
     def startWindowsWorkload(self, guest):

@@ -52,7 +52,9 @@
     <serial group="Setup">
       <testcase id="xenserver.tc.srpervm.SetupSRs">
         <arg>linuxluns=50</arg>
+        <arg>linuxfiler=fas3050b</arg>
         <arg>windowsluns=50</arg>
+        <arg>windowsfiler=fas3050a</arg>
       </testcase>
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>

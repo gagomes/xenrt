@@ -361,6 +361,7 @@ class LinuxSysbench(LinuxWorkload):
 
 class FIOLinux(LinuxWorkload):
     def __init__(self, guest):
+        LinuxWorkload.__init__(self, guest)
         self.name = "FIOLinux"
         self.tarball = "fiowin.tgz"
         self.process = "fio"

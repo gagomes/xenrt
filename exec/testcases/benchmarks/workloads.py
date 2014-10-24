@@ -359,6 +359,36 @@ class LinuxSysbench(LinuxWorkload):
         self.guest.execguest("cd %s && make" % (self.workdir))
         self.guest.execguest("cd %s && make install" % (self.workdir))
 
+class FIOLinux(LinuxWorkload):
+    def __init__(self, guest):
+        self.name = "FIOLinux"
+        self.tarball = "fiowin.tgz"
+        self.process = "fio"
+        self.cmdline = "/usr/local/bin/fio /root/workload.fio 2>&1 > /dev/null < /dev/null &" 
+
+    def install(self, startOnBoot=False):
+        if self.guest.execguest("test -e /etc/debian_version", retval="code") == 0:
+            self.guest.execguest("apt-get install -y --force-yes zlib-dev")
+        elif self.guest.execguest("test -e /etc/redhat-release", retval="code") == 0:
+            self.guest.execguest("yum install -y zlib-devel")
+        else:
+            raise xenrt.XRTError("Guest is not supported")
+        self.guest.execguest("cd %s && ./configure" % self.workdir)
+        self.guest.execguest("cd %s && make" % self.workdir)
+        self.guest.execguest("cd %s && make install" % self.workdir)
+        inifile = """[workload]
+rw=randrw
+size=512m
+runtime=1382400
+time_based
+numjobs=4
+"""
+        t = xenrt.TempDirectory()
+        sftp = self.guest.sftpClient()
+        file("%s/workload.fio" % (t.path()), "w").write(inifile)
+        sftp.copyTo("%s/workload.fio" % (t.path()), "/root/workload.fio")
+        
+
 class Burnintest(Workload):
     
     def __init__(self, guest):
@@ -679,10 +709,6 @@ class FIOWindows(Workload):
 
     def install(self, startOnBoot=False):
         Workload.install(self, startOnBoot)
-        try:
-            self.guest.xmlrpcExec("mkdir c:\\fiodata")
-        except:
-            pass
         inifile = """[workload]
 rw=randrw
 size=512m

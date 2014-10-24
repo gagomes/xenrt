@@ -7,6 +7,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
 import xenrt
+import testcases.benchmarks.workloads
 
 class SetupSRs(xenrt.TestCase):
     def run(self, arglist=[]):
@@ -74,3 +75,31 @@ class CopyVMs(xenrt.TestCase):
             i += 1
 
         self.pause("Environment set up")
+
+def TCMonitorLowMem(xenrt.TestCase):
+    def prepare(self, arglist=[]):
+        i = 0
+        while True:
+            g = self.getGuest("winclone-%d" % i)
+            if not g:
+                return
+            workload = testcases.benchmarks.workloads.FIOWindows(g)
+            workload.install()
+            workload.start()
+        i = 0
+        while True:
+            g = self.getGuest("linclone-%d" % i)
+            if not g:
+                return
+            workload = testcases.benchmarks.workloads.FIOLinux(g)
+            workload.install()
+            workload.start()
+
+    def run(self, arglist=[]):
+        pool = self.getDefaultHost().getPool()
+        for i in xrange(10):
+            for h in pool.getHosts():
+                lowmem = h.execdom0("echo 3 > /proc/sys/vm/drop_caches && grep LowFree /proc/meminfo | cut -d ':' -f 2").strip()
+                xenrt.TEC().logverbose("Low Memory on %s: %s" % (h.getName(), lowmem))
+            xenrt.sleep(60)
+

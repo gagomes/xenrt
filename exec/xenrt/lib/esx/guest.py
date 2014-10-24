@@ -109,6 +109,15 @@ class Guest(xenrt.lib.libvirt.Guest):
                 pass
             raise
 
+    def _getMainIP(self):
+        return self.host.execdom0("vim-cmd vmsvc/get.guest %s | grep -m 1 'ipAddress = \\\"' | awk -F\\\" '{print $2}'" % (self._esxGetVMID())).strip()
+
+    def _ipAddrOfMacAddr(self, mac):
+        mac = xenrt.normaliseMAC(mac)
+
+        # Return the first IPv4 address after the MAC address is mentioned (and before another MAC address is mentioned)
+        return self.host.execdom0("vim-cmd vmsvc/get.guest %s | grep -e 'ipAddress = \"' -e 'macAddress = \"' | sed 's/^\s*//' | awk 'BEGIN{state=0} {if ($1 == \"macAddress\" && tolower($3) ~ /%s/) { state=1 } else if ($1 == \"macAddress\") {state=2} else if (state==1 && $1 == \"ipAddress\" && $3 ~ /[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/) { print $3; exit};}' | awk -F\\\" '{print $2}'" % (self._esxGetVMID(), mac)).strip()
+
     def getVIFs(self):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)
@@ -119,7 +128,7 @@ class Guest(xenrt.lib.libvirt.Guest):
                 bridge = node.getElementsByTagName("source")[0].getAttribute("bridge")
                 nic = "eth%d" % (dev)
                 mac = node.getElementsByTagName("mac")[0].getAttribute("address")
-                ip = None
+                ip = self._ipAddrOfMacAddr(mac)
                 reply[nic] = (mac, ip, bridge)
                 dev = dev+1
         xmldom.unlink()

@@ -40,7 +40,6 @@ class Workload:
         self.workdir = None
         self.rpcref = None
         self.startOnBoot = False
-        self.installed = False
 
     def install(self, startOnBoot=False):
         if self.skip:
@@ -154,8 +153,6 @@ class LinuxWorkload(Workload):
         self.guest.execguest("killall %s" % (self.process))
 
     def install(self, startOnBoot=False):
-        if self.installed:
-            return
         if self.skip:
             xenrt.TEC().logverbose("Skipping workload %s." % (self.name))
             return
@@ -179,7 +176,6 @@ class LinuxWorkload(Workload):
             self.guest.runOnStartup(string.replace(self.cmdline,
                                                    "%s",
                                                    self.workdir))
-        self.installed = True
 
     def start(self):
         if self.skip:

@@ -77,25 +77,37 @@ class CopyVMs(xenrt.TestCase):
         self.pause("Environment set up")
 
 class TCMonitorLowMem(xenrt.TestCase):
+
+    def startWindowsWorkload(self, guest):
+        workload = testcases.benchmarks.workloads.FIOWindows(guest)
+        workload.start()
+    
+    def startLinuxWorkload(self, guest):
+        workload = testcases.benchmarks.workloads.FIOLinux(guest)
+        workload.start()
+
     def prepare(self, arglist=[]):
+        winguests = []
+        linguests = []
         i = 0
         while True:
             g = self.getGuest("winclone-%d" % i)
             if not g:
                 break
-            workload = testcases.benchmarks.workloads.FIOWindows(g)
-            workload.install()
-            workload.start()
+            winguests.append(g)
             i+=1
         i = 0
         while True:
             g = self.getGuest("linclone-%d" % i)
             if not g:
                 break
-            workload = testcases.benchmarks.workloads.FIOLinux(g)
-            workload.install()
-            workload.start()
+            linguests.append(g)
             i+=1
+
+        pWindows = map(lambda x: xenrt.PTask(self.startWindowsWorkload, winguests)
+        pLinux = map(lambda x: xenrt.PTask(self.startLinuxWorkload, linguests)
+        xenrt.pfarm(pWindows)
+        xenrt.pfarm(pLinux)
 
     def run(self, arglist=[]):
         pool = self.getDefaultHost().getPool()

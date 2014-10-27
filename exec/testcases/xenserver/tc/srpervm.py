@@ -10,36 +10,47 @@ import xenrt
 import testcases.benchmarks.workloads
 
 class SetupSRs(xenrt.TestCase):
+
+    def createSR(self, lun, name):
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master, name)
+        sr.create(lun, noiqnset=True, subtype="lvm")
+        if self.ringsize != None:
+            sr.paramSet("other-config:blkback-mem-pool-size-rings", self.ringsize)
+
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
 
-        linuxLunCount = int(args.get("linuxvms", "10")) * 3
-        windowsLunCount = int(args.get("windowsvms", "10")) * 3
+        linuxLunCount = int(args.get("linuxvms", "10"))
+        windowsLunCount = int(args.get("windowsvms", "10"))
 
         windowsFilerName = args.get("windowsfiler", None)
         linuxFilerName = args.get("linuxfiler", None)
+        self.ringsize = args.get("ringsize", None)
 
-        linuxFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
-        windowsFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=windowsFilerName)
+        linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
+        linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
+        windowsRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=windowsFilerName)
+        windowsDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=windowsFilerName)
 
 
-        pool = self.getDefaultHost().getPool()
-        [x.enableMultipathing() for x in pool.getHosts()]
-        initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in pool.getHosts())
+        self.pool = self.getDefaultHost().getPool()
+        [x.enableMultipathing() for x in self.pool.getHosts()]
+        initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in self.pool.getHosts())
 
-        linuxFiler.provisionLuns(linuxLunCount, 10, initiators)
-        windowsFiler.provisionLuns(windowsLunCount, 30, initiators)
+        linuxRootFiler.provisionLuns(linuxLunCount, 10, initiators)
+        linuxDataFiler.provisionLuns(linuxLunCount * 2, 5, initiators)
+        windowsRootFiler.provisionLuns(windowsLunCount, 30, initiators)
+        windowsDataFiler.provisionLuns(windowsLunCount * 2, 5, initiators)
 
-        i = 0
-        for lun in linuxFiler.getLuns():
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "LinuxSR_%d" % i)
-            sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
-            i+=1
-        i = 0
-        for lun in windowsFiler.getLuns():
-            sr = xenrt.lib.xenserver.ISCSIStorageRepository(pool.master, "WindowsSR_%d" % i)
-            sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
-            i+=1
+        for i in range(linuxLunCount):
+            self.createSR(linuxRootFiler.getLuns()[i].getISCSILunObj(), "LinuxRootSR_%d" % i)
+            self.createSR(linuxDataFiler.getLuns()[i*2].getISCSILunObj(), "LinuxDataSR_A%d" % i)
+            self.createSR(linuxDataFiler.getLuns()[i*2+1].getISCSILunObj(), "LinuxDataSR_B%d" % i)
+            
+        for i in range(windowsLunCount):
+            self.createSR(windowsRootFiler.getLuns()[i].getISCSILunObj(), "WindowsRootSR_%d" % i)
+            self.createSR(windowsDataFiler.getLuns()[i*2].getISCSILunObj(), "WindowsDataSR_A%d" % i)
+            self.createSR(windowsDataFiler.getLuns()[i*2+1].getISCSILunObj(), "WindowsDataSR_B%d" % i)
 
 class CopyVMs(xenrt.TestCase):
     def run(self, arglist=[]):
@@ -52,31 +63,26 @@ class CopyVMs(xenrt.TestCase):
 
         i = 0
         while True:
-            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % i)
+            srs = host.minimalList("sr-list", args="name-label=\"LinuxRootSR_%d\"" % i)
             if not srs:
                 break
             sr = srs[0]
 
             g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
-            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % (i+1))
-            if not srs:
-                break
-            sr = srs[0]
-            g.createDisk(8*xenrt.GIGA, sruuid=sr)
             
-            srs = host.minimalList("sr-list", args="name-label=\"LinuxSR_%d\"" % (i+2))
-            if not srs:
-                break
-            sr = srs[0]
-            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+            sr = host.minimalList("sr-list", args="name-label=\"LinuxDataSR_A%d\"" % (i))[0]
+            g.createDisk(4*xenrt.GIGA, sruuid=sr)
+            
+            sr = host.minimalList("sr-list", args="name-label=\"LinuxDataSR_B%d\"" % (i))[0]
+            g.createDisk(4*xenrt.GIGA, sruuid=sr)
 
             g.start(specifyOn=False)
-            i += 3
+            i += 1
         
         i = 0
         while True:
-            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % i)
+            srs = host.minimalList("sr-list", args="name-label=\"WindowsRootSR_%d\"" % i)
             if not srs:
                 break
             sr = srs[0]
@@ -84,20 +90,15 @@ class CopyVMs(xenrt.TestCase):
             g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
             
-            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % (i+1))
-            if not srs:
-                break
-            sr = srs[0]
-            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+            sr = host.minimalList("sr-list", args="name-label=\"WindowsDataSR_A%d\"" % (i))[0]
+            g.createDisk(4*xenrt.GIGA, sruuid=sr)
             
-            srs = host.minimalList("sr-list", args="name-label=\"WindowsSR_%d\"" % (i+2))
-            if not srs:
-                break
-            sr = srs[0]
-            g.createDisk(8*xenrt.GIGA, sruuid=sr)
+            sr = host.minimalList("sr-list", args="name-label=\"WindowsDataSR_B%d\"" % (i))[0]
+            g.createDisk(4*xenrt.GIGA, sruuid=sr)
 
             g.start(specifyOn=False)
-            i += 3
+            i += 1
+
 class TCMonitorLowMem(xenrt.TestCase):
 
     def startWindowsWorkload(self, guest):

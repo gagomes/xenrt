@@ -1706,15 +1706,15 @@ class TC9993(_SNMPConfigTest):
             self.wasenabled = False
 
         # Make sure the firewall allows SNMP through
-        #self.host.execdom0("service iptables restart || true")
-        #for port in [161, 162]:
-        #    self.host.execdom0("iptables -D RH-Firewall-1-INPUT -m state "
-        #                       "--state NEW -m udp -p udp --dport %u "
-        #                       "-j ACCEPT || true" % (port))
-        #    self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
-        #                       "--state NEW -m udp -p udp --dport %u "
-        #                       "-j ACCEPT" % (port))
-        #self.host.execdom0("service iptables save")
+        self.host.execdom0("service iptables restart || true")
+        for port in [161, 162]:
+            self.host.execdom0("iptables -D RH-Firewall-1-INPUT -m state "
+                               "--state NEW -m udp -p udp --dport %u "
+                               "-j ACCEPT || true" % (port))
+            self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
+                               "--state NEW -m udp -p udp --dport %u "
+                               "-j ACCEPT" % (port))
+        self.host.execdom0("/usr/libexec/iptables/iptables.init save")
 
         # Find the community name
         for line in self.snmp_config_lines:

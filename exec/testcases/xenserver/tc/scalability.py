@@ -250,7 +250,6 @@ class _VMScalability(_Scalability):
             if self.vmtemplate not in gname and host.getGuest(gname):
                 g = host.getGuest(gname)
                 self.guests.append(g)
-                self.currentNbrOfGuests = self.currentNbrOfGuests + 1
 
         if self.TRYMAX:
             for g in self.guests:
@@ -354,7 +353,7 @@ class _VMScalability(_Scalability):
         self.createVmCloneThread(host, tailor_guest=tailor_guest)
 
     def createVmClones(self, tailor_guest=None):
-
+        self.currentNbrOfGuests = len(self.guests)
         self.nbrOfFailThresholds = len(self.hosts)
         self.nbrOfFails = 0
         self.failedGuests = []

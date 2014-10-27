@@ -1548,7 +1548,7 @@ class Experiment_vmrun(Experiment):
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
 
-            seq = "<pool><host installsr=\"%s\"/>%s%s</pool>" % (localsr,sharedsr, networkcfg)
+            seq = "<host installsr=\"%s\">%s%s</host>" % (localsr,sharedsr, networkcfg)
             #seq = "<pool><host/></pool>"
             pool_xmlnode = xml.dom.minidom.parseString(seq)
             prepare = PrepareNode(pool_xmlnode, pool_xmlnode, {}) 

@@ -8791,6 +8791,10 @@ class GenericGuest(GenericPlace):
                 self.host.execdom0("xenstore-chmod /local/domain/%s/memory/target n0 n%s" %
                                    (self.getDomid(),self.getDomid()))
 
+    def reparseVIFs(self):
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+
     def deviceToNetworkName(self,device):
 
         nics = self.getVIFs()

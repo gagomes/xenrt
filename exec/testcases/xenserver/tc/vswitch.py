@@ -5711,8 +5711,8 @@ class _TC11537:
             return (0, nbrOfGuests)
 
         # guestsPerHost is the solution to equation: N_guests = (N_hosts-1) * x + 0.5x
-        guestsPerHost = round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) )
-        nbrOfGuestsOnLastHost = nbrOfGuests - guestsPerHost*(nbrOfHosts - 1)
+        guestsPerHost = int(round( ( nbrOfGuests /(nbrOfHosts - 0.5) ) ))
+        nbrOfGuestsOnLastHost = int(nbrOfGuests - guestsPerHost*(nbrOfHosts - 1))
 
         return (guestsPerHost, nbrOfGuestsOnLastHost)
 

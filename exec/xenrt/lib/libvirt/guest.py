@@ -746,13 +746,14 @@ class Guest(xenrt.GenericGuest):
                    plug=True, vdiuuid=None, returnVBD=False,
                    returnDevice=False,
                    smconfig=None, name=None, format=None,
-                   address=None):
+                   controllerType=None, controllerModel=None):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
         sizebytes - size in bytes or a string such as 5000MiB or 5GiB
         sruuid - UUID of SR to create disk on
-        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc)
+        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc, or 0 maps
+                     to "sdp" if controller==1)
         bootable - currently unused. To ensure that this disk will be booted from,
                    plug the VDI as userdevice 0 and call self._setBoot(self._getDiskDevicePrefix())
         plug - whether to attach to the guest
@@ -762,7 +763,8 @@ class Guest(xenrt.GenericGuest):
         smconfig - unused
         name - name of the disk, defaults to a random name
         format - disk format, defaults to self.DEFAULT_DISK_FORMAT
-        address - optional (controller, bus, target, unit) tuple for the VBD
+        controllerType - the bus on which to put the disk (e.g. scsi), defaults to type of bus 0
+        controllerModel - model of the controller (e.g. lsilogic)
         Returns the device number (e.g. a return value of 3 specifies the VDI was attached to hdd)
         """
         # there is no such thing as a VDI uuid in libvirt.
@@ -776,11 +778,6 @@ class Guest(xenrt.GenericGuest):
 #            sruuid = self.getHost().lookupDefaultSR()
         if not sruuid:
             sruuid = self.getHost().lookupDefaultSR()
-
-        if userdevice is None:
-            userdevicename = self._getNextBlockDevice()
-        else:
-            userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+ord('a'))
 
         if not format:
             format = self.DEFAULT_DISK_FORMAT
@@ -799,7 +796,7 @@ class Guest(xenrt.GenericGuest):
 
         if plug:
             # Create the VBD.
-            self._createVBD(sruuid, vdiname, format, userdevicename, address)
+            userdevicename = self._createVBD(sruuid, vdiname, format, userdevice, controllerType, controllerModel)
 
         if existingVDI:
             xenrt.TEC().logverbose("Added existing VDI %s as %s." %
@@ -808,7 +805,7 @@ class Guest(xenrt.GenericGuest):
             xenrt.TEC().logverbose("Added %s of size %s using SR %s." %
                                    (userdevicename, sizebytes, sruuid))
 
-        return userdevice
+        return userdevicename
 
     def createController(self, typ='scsi', model='lsilogic'):
         # Find an unused index for controllers of this type
@@ -895,12 +892,15 @@ class Guest(xenrt.GenericGuest):
         xmldom.unlink()
         return reply
 
+    def _baseDeviceForBus(self, busid=0):
+        return (ord('p')-ord('a'))*busid + ord('a')
+
     def _getNextBlockDevice(self, prefix=None, controllerIndex=0):
         if prefix is None:
             prefix = self._getDiskDevicePrefix()
 
         # TODO we should go to double letters for controllerIndex > 1
-        base = (ord('p')-ord('a'))*controllerIndex + ord('a')
+        base = self._baseDeviceForBus(busid=controllerIndex)
         maxchar = base-1
 
         xmlstr = self._getXML()

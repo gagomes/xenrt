@@ -32,22 +32,56 @@ class Guest(xenrt.lib.libvirt.Guest):
     def _getNetworkDeviceModel(self):
         return "e1000"
 
-    def _createVBD(self, sruuid, vdiname, format, userdevicename, address=None):
+    def _createVBD(self, sruuid, vdiname, format, userdevice=None, controllerType='scsi', controllerModel='lsilogic'):
         srobj = self.host.srs[self.host.getSRName(sruuid)]
 
-        if address is None:
-            addressstr = ""
-        else:
-            (controller, bus, target, unit) = address
-            addressstr = "<address type='drive' controller='%d' bus='%d' target='%d' unit='%d'/>" % (controller, bus, target, unit)
+        if not controllerType:
+            controllerType = self._getDiskDeviceBus()
 
+        xmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(xmlstr)
+
+        # Find an existing controller with this type and model
+        controllerIndex = None
+        highestIndex = 0
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute("type") == controllerType:
+                index = int(node.getAttribute("index"))
+                if controllerModel is None or node.getAttribute("model") == controllerModel:
+                    # It matches what we want; use this one
+                    controllerIndex = index
+                    break
+                else:
+                    # Keep track of the highest index for a bus of this type we've seen so far
+                    if index > highestIndex:
+                        highestIndex = index
+
+        # Create a new controller if necessary
+        if controllerIndex is None:
+            xenrt.TEC().logverbose("The new disk requires a new %s controller %s (model=%s)" % (controllerType, controllerIndex, controllerModel))
+            # (Note this needs to be done at the same time as adding the disk,
+            # since controllers without any disks silently disappear.)
+            controllerIndex = highestIndex + 1
+            contxmlstr = "<controller type='%s' index='%s' model='%s'/>" % (controllerType, controllerIndex, controllerModel)
+        else:
+            xenrt.TEC().logverbose("The new disk can use %s controller %s" % (controllerType, controllerIndex))
+            contxmlstr = ""
+
+        if userdevice is None:
+            userdevicename = self._getNextBlockDevice(controllerIndex=controllerIndex)
+        else:
+            userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+self._baseDeviceForBus(busid=controllerIndex))
+
+        # Now create the disk (and possibly a controller)
         vbdxmlstr = """
         <disk type='file' device='disk'>
             <source file='%s'/>
             <target dev='%s' bus='%s'/>
-            %s
-        </disk>""" % (srobj.getVDIPath(vdiname), userdevicename, self._getDiskDeviceBus(), addressstr)
+        </disk>
+        %s""" % (srobj.getVDIPath(vdiname), userdevicename, controllerType, contxmlstr)
         self._attachDevice(vbdxmlstr, hotplug=True)
+
+        return userdevicename
 
     def _detectDistro(self):
         # we put the "distro" in the "template" field
@@ -258,20 +292,18 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.shutdown(force=force)
 
         # 1. Attach a dummy VDI on a PVSCSI controller
-        newControllerIndex = self.createController(typ='scsi', model='vmpvscsi')
-        dummyDiskId = self.createDisk(sizebytes=256*xenrt.MEGA, address=(newControllerIndex,0,0,0))
+        dummyDiskId = self.createDisk(sizebytes=256*xenrt.MEGA, controllerType='scsi', controllerModel='vmpvscsi')
 
         # 2. Boot the VM so that Windows installs the PVSCSI driver
         self.start()
         xenrt.sleep(30)
         self.shutdown(force=force)
 
-        # 3. Delete the dummy VDI and PVSCSI controller
+        # 3. Delete the dummy VDI (and the PVSCSI controller will disappear)
         self.removeDisk(dummyDiskId)
-        self.removeController(typ='scsi', index=newControllerIndex)
 
         # 4. Convert the main SCSI controller to PVSCSI
-        self.changeControllerDriver('vmpvscsi', typ='scsi', index=newControllerIndex)
+        self.changeControllerDriver('vmpvscsi', typ='scsi', index=0)
 
         self.start()
 

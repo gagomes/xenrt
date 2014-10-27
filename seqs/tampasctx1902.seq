@@ -46,6 +46,7 @@
         <arg>linuxfiler=fas3050b</arg>
         <arg>windowsvms=16</arg>
         <arg>windowsfiler=fas3050a</arg>
+        <arg>ringsize=1</arg>
       </testcase>
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>

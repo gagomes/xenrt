@@ -448,8 +448,14 @@ class TCNetworkThroughputPointToPoint(libperf.PerfTestCase):
             return assumedid
 
         elif isinstance(host, xenrt.lib.native.NativeLinuxHost):
-            nics = host.listSecondaryNICs(network=network)
-            xenrt.TEC().logverbose("convertNetworkToAssumedid (native linux host): network '%s' corresponds to NICs %s" % (network, nics))
+            # NET_A -> eth0         recorded in /var/xenrtnetname
+            #       -> MAC          ip addr
+            #       -> assumedid    h.listSecondaryNICs()
+            eth = host.execcmd("grep '^%s	' /var/xenrtnetname" % (network)).strip().split("	")[1]
+            mac = host.execcmd("ip addr show dev %s | fgrep link/ether | awk '{print $2}'" % (eth)).strip()
+
+            nics = host.listSecondaryNICs(macaddr=mac)
+            xenrt.TEC().logverbose("convertNetworkToAssumedid (native linux host): network '%s' corresponds to NICs with assumedids %s" % (network, nics))
 
             assert len(nics) > 0
             # Use the first device on this network

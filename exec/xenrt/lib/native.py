@@ -395,6 +395,9 @@ class NativeLinuxHost(xenrt.GenericHost):
                 xenrt.TEC().logverbose("Processing eth%s: %s" % (eth, p))
                 #make sure it is up
 
+                # Record the friendlynetname for this NIC
+                self.execcmd("echo '%s	eth%s' >> /var/xenrtnetname" % (friendlynetname, eth))
+
                 if mgmt or storage:
                     #use the ip of the mgtm nic on the list as the default ip of the host
                     if mgmt:

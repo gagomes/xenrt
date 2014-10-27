@@ -243,7 +243,11 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.winRegAdd("HKCU", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\Explorer", "NoDriveTypeAutorun", "DWORD", 0xFF)
         self.host.execdom0("vim-cmd vmsvc/tools.install %s" % (self._esxGetVMID()))
         xenrt.sleep(30)
-        self.xmlrpcExec("D:\\setup.exe /S /v\"/qn REBOOT=R\"")
+        code = self.xmlrpcExec("start /wait D:\\setup.exe /S /v\"/qn REBOOT=R\"", returnrc=True)
+
+        if code == 3010: # ERROR_SUCCESS_REBOOT_REQUIRED
+            xenrt.TEC().logverbose("VMware tools installer indicated the need to reboot")
+            self.reboot()
 
         # Switch devices over to use PV drivers automatically
         self.usePVdrivers()

@@ -249,15 +249,8 @@ class _VMScalability(_Scalability):
         for gname in host.listGuests():
             if self.vmtemplate not in gname and host.getGuest(gname):
                 g = host.getGuest(gname)
-                if g.getState() == "DOWN":
-                    try: 
-                        g.start()
-                    except:
-                        self.uninstallOnCleanup(g)
-                        pass
-                if g.getState() == "UP":
-                    self.guests.append(g)
-                    self.currentNbrOfGuests = self.currentNbrOfGuests + 1
+                self.guests.append(g)
+                self.currentNbrOfGuests = self.currentNbrOfGuests + 1
 
         if self.TRYMAX:
             for g in self.guests:

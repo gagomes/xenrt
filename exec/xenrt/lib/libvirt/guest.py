@@ -895,17 +895,26 @@ class Guest(xenrt.GenericGuest):
         xmldom.unlink()
         return reply
 
-    def _getNextBlockDevice(self, prefix=None):
+    def _getNextBlockDevice(self, prefix=None, controllerIndex=0):
         if prefix is None:
             prefix = self._getDiskDevicePrefix()
-        maxchar = ord('a')-1
-        for hdmatch in re.finditer(r"""<target[^>]*dev=['"]%s(\w)""" % prefix,
-                                   self._getXML()):
-            hdchar = hdmatch.group(1)
-            if ord(hdchar) > maxchar:
-                maxchar = ord(hdchar)
-        userdevice = maxchar+1-ord('a')
-        return prefix + chr(userdevice+ord('a'))
+
+        # TODO we should go to double letters for controllerIndex > 1
+        base = (ord('p')-ord('a'))*controllerIndex + ord('a')
+        maxchar = base-1
+
+        xmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(xmlstr)
+        # Find all disks on this controller
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
+            c = node.getElementsByTagName("address")[0].getAttribute("controller")
+            if controllerIndex == c:
+                dev = node.getElementsByTagName("target")[0].getAttribute("dev")
+                hdchar = dev.strip(prefix)
+                if ord(hdchar) > maxchar:
+                    maxchar = ord(hdchar)
+        userdevice = maxchar+1-base
+        return prefix + chr(userdevice+base)
 
     def _setBoot(self, devicetype):
         """See http://libvirt.org/formatdomain.html#elementsOSBIOS.

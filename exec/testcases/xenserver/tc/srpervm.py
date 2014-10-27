@@ -35,6 +35,9 @@ class SetupSRs(xenrt.TestCase):
 
         self.pool = self.getDefaultHost().getPool()
         [x.enableMultipathing() for x in self.pool.getHosts()]
+
+        [x.execdom0("cd /opt/xensource/sm && wget -O - http://files.uk.xensource.com/usr/groups/xenrt/sm-lowmem.patch | patch p1") for x in self.pool.getHosts()]
+
         initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in self.pool.getHosts())
 
         linuxRootFiler.provisionLuns(linuxLunCount, 10, initiators)

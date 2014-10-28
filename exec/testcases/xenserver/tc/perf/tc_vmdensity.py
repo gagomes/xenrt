@@ -497,7 +497,7 @@ class DummyEvent(Util):
 
 @xenrt.irregularName
 def APIEvent(experiment):
-    lib = xenrt.productLib(host=self.tc.getDefaultHost())
+    lib = xenrt.productLib(host=experiment.tc.getDefaultHost())
     if lib == xenrt.lib.xenserver:
         xenrt.TEC().logverbose("Using xapi event listener")
         return XapiEvent(experiment)

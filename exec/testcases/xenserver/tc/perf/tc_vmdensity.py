@@ -17,7 +17,7 @@ import os.path
 import random
 import urllib2, shutil, os, os.path
 import xmlrpclib
-import XenAPI
+import XenAPI, libvirt
 
 class Util:
     # try some function up to x times
@@ -364,6 +364,150 @@ class XapiEvent(Util):
 
         self.in_loop = False
         xenrt.TEC().logverbose("END:XapiEvent.processEvents")
+
+
+
+class VirtEvent(Util):
+    guest_state = {}
+
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.host = self.experiment.tc.getDefaultHost()
+        thread.start_new_thread(self.listen,())
+        xenrt.TEC().logverbose("VirtEvent: finished __init__")
+
+    @classmethod
+    def isSupported(cls, experiment):
+        return experiment.tc.getDefaultHost().__class__ not in [xenrt.lib.libvirt.ESXHost]
+
+    def listen(self):
+        while True:
+            try: #work around ca-80933
+ 
+                virConn = self.tryupto(self.host._openVirConn, times=5, sleep=5) 
+                try:
+                    self.processEvents(virConn)
+                #except Exception, e:
+                #    xenrt.TEC().logverbose("XapiEvent: listen except: %s" % e)
+                #    raise
+                finally:
+                    virConn.close()
+
+            except:
+                import traceback
+                xenrt.TEC().logverbose("VirtEvent.listen: Exception: %s" % traceback.format_exc())
+
+
+    def reset(self):
+        self.guest_state = {}
+
+    def callback(self, virConn, virDomain, event, detail, data):
+        if self.complete:
+            return
+        try:
+            state = None
+            if event == libvirt.VIR_DOMAIN_EVENT_STARTED:
+                state = "UP"
+            elif event == libvirt.VIR_DOMAIN_EVENT_SUSPENDED:
+                state = "SUSPENDED"
+            elif event == libvirt.VIR_DOMAIN_EVENT_RESUMED:
+                state = "UP"
+            elif event == libvirt.VIR_DOMAIN_EVENT_STOPPED:
+                state = "DOWN"
+            elif event == libvirt.VIR_DOMAIN_EVENT_SHUTDOWN:
+                state = "DOWN"
+
+            xenrt.TEC().logverbose("VirtEvent: received event" + ((", new state is %s" % state) if state else ""))
+            if state:
+                self.guest_state[virDomain.UUIDString()] = state
+        except:
+            xenrt.TEC().logverbose("** fatal exception: %s" % traceback.format_exc())
+            self.complete = True
+            self.error = True
+
+    def processEvents(self, virConn):
+        xenrt.TEC().logverbose("START:VirtEvent.processEvents")
+
+        def register():
+            xenrt.TEC().logverbose("VirtEvent: registering for events")
+            self.eventsID = virConn.domainEventRegister(self.callback, None)
+            # look at current state
+            for guestName in self.host.listGuests():
+                guest = self.host.guestFactory()(guestName, host=self.host)
+                guest.virDomain = guest.virConn.lookupByName(guest.name)
+                self.guest_state[guest.getUUID()] = guest.getState()
+ 
+        register()
+        self.complete = False
+        self.in_loop = True
+        while not self.complete:
+            time.sleep(1)
+
+        self.in_loop = False
+
+        xenrt.TEC().logverbose("END:VirtEvent.processEvents")
+
+    def hasEvent(self, vm, key, value):
+        if key == "power_state":
+            if vm in self.guest_state:
+                return (value == "Running" and self.guest_state[vm] == "UP") or \
+                       (value == "Halted" and self.guest_state[vm] == "DOWN")
+        else:
+            raise xenrt.XRTError("VirtEvent doesn't know about %s events" % key)
+
+    def waitFor(self, vm, key, value):
+        xenrt.TEC().logverbose("VirtEvent: waiting for event on vm=%s,key=%s,value=%s" % (vm,key,value))
+        if not self.in_loop:
+            raise xenrt.XRTFailure("VirtEvent: waitFor: VirtEvent not listening: not in loop")
+        found = False
+        while not found:
+            found = self.hasEvent(vm,key,value)
+            if not found:
+                time.sleep(0.1)
+        xenrt.TEC().logverbose("found event vm=%s,key=%s,value=%s" % (vm,key,value))
+
+class DummyEvent(Util):
+    def __init__(self, experiment):
+        self.experiment = experiment
+        self.host = self.experiment.tc.getDefaultHost()
+
+    def reset(self):
+        self.guest_state = {}
+
+    def hasEvent(self, vmuuid, key, value):
+        guestname = self.host.virConn.lookupByUUIDString(vmuuid).name()
+        guest = self.host.guests[guestname]
+        if key == "power_state":
+            gueststate = guest.getState()
+            return (value == "Running" and gueststate == "UP") or \
+                   (value == "Halted" and gueststate == "DOWN")
+        else:
+            raise xenrt.XRTError("DummyEvent doesn't know about %s events" % key)
+
+    def waitFor(self, vmuuid, key, value):
+        xenrt.TEC().logverbose("DummyEvent: waiting for event on vm=%s,key=%s,value=%s" % (vmuuid,key,value))
+        found = False
+        while not found:
+            found = self.hasEvent(vmuuid,key,value)
+            if not found:
+                # we run the risk of flooding the server with "get guest info" requests
+                # this makes for relatively poor granularity but there's not much we can do
+                time.sleep(0.5)
+        xenrt.TEC().logverbose("found event vm=%s,key=%s,value=%s" % (vmuuid,key,value))
+
+@xenrt.irregularName
+def APIEvent(experiment):
+    lib = xenrt.productLib(host=self.tc.getDefaultHost())
+    if lib == xenrt.lib.xenserver:
+        xenrt.TEC().logverbose("Using xapi event listener")
+        return XapiEvent(experiment)
+    elif lib == xenrt.lib.esx or lib == xenrt.lib.kvm:
+        if VirtEvent.isSupported(experiment):
+            xenrt.TEC().logverbose("Using libvirt event listener")
+            return VirtEvent(experiment)
+
+    xenrt.TEC().logverbose("Using dummy event listener")
+    return DummyEvent(experiment)
 
 
 class GuestEvent:
@@ -2195,7 +2339,7 @@ MachinePassword=%s
         else: 
             self.tryupto(install_pool)
 
-        self.xapi_event = XapiEvent(self)
+        self.xapi_event = APIEvent(self)
         install_guests()
 
         host = self.tc.getDefaultHost()
@@ -2423,11 +2567,18 @@ MachinePassword=%s
                 #cli = guest.host.getCLIInstance()
                 #do not use guest.start(), it contains several time.sleep that we don't want
                 #Should the vm-start on a specific host ?
-                if get_vm_host_name(value):
-                    guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
-                                        timeout=900+30*self.tc.THRESHOLD)
+
+                if isinstance(host, xenrt.lib.xenserver.Host):
+                    #xenserver
+                    if get_vm_host_name(value):
+                        guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),
+                                            timeout=900+30*self.tc.THRESHOLD)
+                    else:
+                        guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+
                 else:
-                    guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid, timeout=900+30*self.tc.THRESHOLD)
+                    #not xenserver
+                    guest.lifecycleOperation("vm-start")
 
                 self.xapi_event.waitFor(guest.uuid,"power_state","Running")
 
@@ -2803,116 +2954,6 @@ class Experiment_vmrun_rds(Experiment_vmrun_cron):
     def do_VMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMS value=[%s]" % str(value))
         #do nothing.
-
-class Experiment_vbdscal(Experiment_vmrun):
-# Experiment with VBD scalability
-    #d_order = ['RUNS','VMTYPES','MACHINES','DOM0RAM','XENSCHED','VMPARAMS','XSVERSIONS','VMS']
-    d_order = ['RUNS','VMDISKS','VMTYPES','DOM0RAM','VMRAM','VMVIFS','XSVERSIONS','VMS']
-    def getDimensions(self, filters=None):
-        #return dict(
-            #Experiment.getDimensions(self,{'XSVERSIONS':(lambda x:x in self.tc.XSVERSIONS)}).items()
-        #)
-        ds = Experiment.getDimensions(self)
-        ds['XSVERSIONS'] = self.tc.XSVERSIONS
-#        ds['MACHINES'] = self.tc.MACHINES
-        ds['VMS'] = self.tc.VMS
-        ds['RUNS'] = self.tc.RUNS
-        ds['VMTYPES'] = self.tc.VMTYPES
-        ds['DOM0RAM'] = self.tc.DOM0RAM
-#        ds['XENSCHED'] = self.tc.XENSCHED
-#        ds['VMPARAMS'] = self.tc.VMPARAMS
-        ds['VMDISKS'] = self.tc.VMDISKS
-        ds['VMRAM'] = self.tc.VMRAM
-        ds['VMVIFS'] = self.tc.VMVIFS
-        return ds
-
-    def __init__(self,tc):
-        Experiment.__init__(self,tc)
-        self.measurement_1 = Measurement_elapsedtime(self)
-        self.measurement_dd = Measurement_dd(self)
-        self.vm_load_1 = VMLoad_cpu_loop(self,[])
-        self.guest_events = {
-            GuestEvent_VMReady.EVENT:GuestEvent_VMReady(self),
-            GuestEvent_VMLogin.EVENT:GuestEvent_VMLogin(self)}
-        self.ip_to_guest = {}
-
-    #updated in do_VMTYPES()
-    distro = "None"
-    vmparams = []
-    vmdisks = []
-    vmram = None 
-
-    def post_install_model_guest(self,guest):
-        #install dd for later use
-        ddexe = xenrt.util.getHTTP("http://www.uk.xensource.com/~marcusg/xenrt/dd.exe")
-        guest.xmlrpcWriteFile("C:\\dd.exe",ddexe) 
-
-    #this event handles change of values of dimension VMS
-    def do_VMS(self, value, coord):
-        #TODO: add a is_initial_value parameter sent by the framework,
-        #so that it is not necessary to guess what the first possible value is
-        #in the checks below
-
-        if value == 1:
-            self.do_VMS_ERR_load_failed = False
-        if self.do_VMS_ERR_load_failed:
-            return #ignore this dimension
-
-        guest = self.guests[value]
-            
-        #vm is already running, do some load on it and measure
-
-        #only measure at the initial value or if the base measurement
-        #still exists to compare against
-        if value == 1 or self.measurement_1.base_measurement:
-            xenrt.TEC().logverbose("DEBUG: VMS value=[%s]" % value)
-
-            #self.measurement_1.start(coord)
-            self.measurement_dd.start(coord)
-
-            #guest.start() #vm-start + automatic login
-            #guest.check()
-
-            #cli = guest.host.getCLIInstance()
-            guest.host.execdom0("xe vm-start uuid=%s" % guest.uuid,timeout=900)
-            vifname, bridge, mac, c = guest.vifs[0]
-            if not self.measurement_1.base_measurement:
-                timeout = 300
-            else:
-                timeout = 300 + self.measurement_1.base_measurement * self.tc.THRESHOLD
-            guest.mainip = guest.getHost().arpwatch(bridge, mac, timeout=timeout)
-            self.ip_to_guest[guest.mainip] = guest
-            received_event = self.guest_events[GuestEvent_VMLogin.EVENT].receive(guest)
-            if not received_event:
-                raise xenrt.XRTFailure("did not receive login event for vm %s (ip %s)" % (guest,guest.mainip))
-
-            #and then measure the load, eg. time for login to finish
-            #result = self.measurement_1.stop(coord,guest)
-
-            guest.waitforxmlrpc(500, desc="Daemon", sleeptime=5, reallyImpatient=False)
-
-            result = self.measurement_dd.stop(coord,guest)
-
-            #run vm load on vm $value without stopping, eg. cpu loop
-            try:
-                #self.tryupto(lambda: self.vm_load_1.start(guest),times=3)
-                #self.vm_load_1.stop(guest)
-                pass
-            except: #flag this important problem
-                self.do_VMS_ERR_load_failed = True
-                xenrt.TEC().logverbose("======> VM load failed to start for VM %s! Aborting this sequence of VMs!" % value)
-                raise #re-raise the exception
-        
-            #store the initial base measurement value to compare against later
-            #when detecting if latest measurement is too different
-            if value == 1:
-                self.measurement_1.base_measurement = result
-                xenrt.TEC().logverbose("Base measurement: %s" % (self.measurement_1.base_measurement))
-            else:
-                #is the current measurement 10x higher than the initial one?
-                if result > self.tc.THRESHOLD * self.measurement_1.base_measurement:
-                    #stop measuring remaining VMs until base measurement is made again
-                    self.measurement_1.base_measurement = None
 
 
 class TCVMDensity(libperf.PerfTestCase):

@@ -16,6 +16,7 @@ class SetupSRs(xenrt.TestCase):
         sr.create(lun, noiqnset=True, subtype="lvm")
         if self.ringsize != None:
             sr.paramSet("other-config:blkback-mem-pool-size-rings", self.ringsize)
+            sr.paramSet("other-config:mem-pool-size-rings", self.ringsize)
 
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)

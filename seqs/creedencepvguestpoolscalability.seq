@@ -22,7 +22,7 @@
     <serial group="VMPoolScaledDown">
       <testcase id="testcases.xenserver.tc.scalability.TC23327" name="TC23327">
         <arg>dom0mem=8192</arg>
-        <arg>postrun=nocleanup</arg>
+        <arg>postrun=cleanup</arg>
       </testcase>
     </serial>
   </testsequence>

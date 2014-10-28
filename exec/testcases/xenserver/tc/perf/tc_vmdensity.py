@@ -1722,22 +1722,23 @@ class Experiment_vmrun(Experiment):
                     if str(dom0cpunr)!=str(_dom0cpunr):
                         raise xenrt.XRTFailure("dom0cpunr: %s!=%s" % (dom0cpunr,_dom0cpunr))
 
-            #double-check dom0 ram settings
-            dom0_uuid = host.execdom0("xe vm-list is-control-domain=true --minimal").strip()
-            mem_static_max = host.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
-            mem_actual = host.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
-            if mem_static_max != mem_actual:
-                raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
-            mem_dyn_min = host.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
-            if mem_static_max != mem_dyn_min:
-                raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
-            if self.dom0ram == None: #if none provided, use actual
-                self.dom0ram = int(mem_actual) / 1024 / 1024
-            xenrt.TEC().logverbose("dom0ram=%s, mem_static_max=%s, mem_actual=%s, mem_dyn_min=%s" % (self.dom0ram,mem_static_max,mem_actual,mem_dyn_min))
-            dom0ram_bytes_max = (self.dom0ram+256)*1024*1024
-            dom0ram_bytes_min = (self.dom0ram-256)*1024*1024
-            if int(mem_actual) < int(dom0ram_bytes_min) or int(mem_actual) > int(dom0ram_bytes_max):
-                raise xenrt.XRTFailure("mem_actual %s not in expected dom0ram range %s -- %s" % (mem_actual,dom0ram_bytes_min,dom0ram_bytes_max))
+            if isinstance(host, xenrt.lib.xenserver.Host):
+                #double-check dom0 ram settings
+                dom0_uuid = host.execdom0("xe vm-list is-control-domain=true --minimal").strip()
+                mem_static_max = host.execdom0("xe vm-param-get uuid=%s param-name=memory-static-max" % dom0_uuid).strip()
+                mem_actual = host.execdom0("xe vm-param-get uuid=%s param-name=memory-actual" % dom0_uuid).strip()
+                if mem_static_max != mem_actual:
+                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_actual=%s" % (mem_static_max,mem_actual))
+                mem_dyn_min = host.execdom0("xe vm-param-get uuid=%s param-name=memory-dynamic-min" % dom0_uuid).strip()
+                if mem_static_max != mem_dyn_min:
+                    raise xenrt.XRTFailure("dom0 mem_static_max=%s != mem_dyn_min=%s" % (mem_static_max,mem_dyn_min))
+                if self.dom0ram == None: #if none provided, use actual
+                    self.dom0ram = int(mem_actual) / 1024 / 1024
+                xenrt.TEC().logverbose("dom0ram=%s, mem_static_max=%s, mem_actual=%s, mem_dyn_min=%s" % (self.dom0ram,mem_static_max,mem_actual,mem_dyn_min))
+                dom0ram_bytes_max = (self.dom0ram+256)*1024*1024
+                dom0ram_bytes_min = (self.dom0ram-256)*1024*1024
+                if int(mem_actual) < int(dom0ram_bytes_min) or int(mem_actual) > int(dom0ram_bytes_max):
+                    raise xenrt.XRTFailure("mem_actual %s not in expected dom0ram range %s -- %s" % (mem_actual,dom0ram_bytes_min,dom0ram_bytes_max))
 
             #double-check we have the expected scheduler passed to xen during boot
             if self.xenparams != "":

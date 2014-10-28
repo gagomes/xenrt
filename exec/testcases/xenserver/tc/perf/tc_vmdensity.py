@@ -378,7 +378,7 @@ class VirtEvent(Util):
 
     @classmethod
     def isSupported(cls, experiment):
-        return experiment.tc.getDefaultHost().__class__ not in [xenrt.lib.libvirt.ESXHost]
+        return experiment.tc.getDefaultHost().__class__ not in [xenrt.lib.esx.ESXHost]
 
     def listen(self):
         while True:

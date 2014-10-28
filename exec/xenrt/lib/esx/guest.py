@@ -306,6 +306,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.changeControllerDriver('vmpvscsi', typ='scsi', index=0)
 
         self.start()
+        self.reboot()
 
     def changeToVMXNet3(self, force=False):
         self.shutdown(force=force)

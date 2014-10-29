@@ -1899,7 +1899,7 @@ class Experiment_vmrun(Experiment):
                 defaultSR = pool.master.lookupDefaultSR()
             else:
                 defaultSR = host.lookupDefaultSR()
-            vm_template = xenrt.lib.xenserver.getTemplate(host, self.distro, arch=None)
+            vm_template = host.getTemplate(self.distro, arch=None)
 
             xenrt.TEC().logverbose("Installing VM for experiment...")
             vm_name="VM-DENSITY-%s" % self.distro #xenrt.randomGuestName()

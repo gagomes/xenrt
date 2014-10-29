@@ -1895,7 +1895,10 @@ class Experiment_vmrun(Experiment):
 
             pool = self.tc.getDefaultPool()
             host = self.tc.getDefaultHost()
-            defaultSR = pool.master.lookupDefaultSR()
+            if pool is not None:
+                defaultSR = pool.master.lookupDefaultSR()
+            else:
+                defaultSR = host.lookupDefaultSR()
             vm_template = xenrt.lib.xenserver.getTemplate(host, self.distro, arch=None)
 
             xenrt.TEC().logverbose("Installing VM for experiment...")

@@ -5,8 +5,8 @@ from mock import Mock
 
 class TestLicencedFeatures(XenRTUnitTestCase):
 
-    __UI_FEATURES = [Hotfixing(), ExportPoolResourceList()]
-    __SERVER_SIDE_FEATURES = [WorkloadBalancing(), ReadCaching(), VirtualGPU()]
+    __UI_FEATURES = [Hotfixing(), ExportPoolResourceList(), WorkloadBalancing()]
+    __SERVER_SIDE_FEATURES = [ReadCaching(), VirtualGPU()]
 
     def testUIFlaggableStatesIndicateEnableCannotBeChecked(self):
         for feature in self.__UI_FEATURES:

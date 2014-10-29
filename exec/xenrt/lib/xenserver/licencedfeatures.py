@@ -65,11 +65,40 @@ class WorkloadBalancing(LicencedFeature):
     def featureFlagName(self):
         return "restrict_wlb"
 
+    @property
+    def stateCanBeChecked(self):
+        return False
 
 class ReadCaching(LicencedFeature):
 
     def isEnabled(self):
-        raise NotImplementedError()
+        """Checks all VBDs to see if read caching is disabled.
+        If all VBDs have read caching disabled, returns True.
+        If any VBDs with read caching enabled, returns False.
+        If there are no VBDs, returns True.
+        """
+        readCacheDump = self.execdom0("tap-ctl list | cat")
+
+        # If no VBD, have no way of knowing if it is enabled.
+        if readCacheDump is "":
+            # Some exception.
+            pass
+
+        if readCacheDump[0].split(" ")[-1].split("=")[0] is not "read_caching":
+            # This version of Creedence does not implement hook for read caching.
+            # Some exception.
+            pass
+
+        results = []
+        for line in readCacheDump.split("\n"):
+            results.append(line.split(" ")[-1].split("=")[-1])
+
+        # List of 1s and 0s
+        # 0 = Disabled, 1 = Enabled.
+        for i in results:
+            if i is "1":
+                return False
+        return True
 
     @property
     def featureFlagName(self):

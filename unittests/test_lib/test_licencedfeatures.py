@@ -18,7 +18,7 @@ class TestLicencedFeatures(XenRTUnitTestCase):
 
     def testUIFeaturesIsEnabledThrows(self):
         for feature in self.__UI_FEATURES:
-            self.assertRaises(NotImplementedError, feature.isEnabled)
+            self.assertRaises(NotImplementedError, feature.isEnabled, None)
 
 
 class TestLicencedHostFeatureFlags(XenRTUnitTestCase):
@@ -88,3 +88,20 @@ class TestLicencedPoolFeatureFlags(XenRTUnitTestCase):
         host = self.__createMockPool(fakeOutput)
         vgpu = VirtualGPU()
         self.assertFalse(vgpu.poolFeatureFlagValue(host))
+
+
+class TestReadCachingEnablement(XenRTUnitTestCase):
+    def __createMockHost(self, fakeOutput):
+        host = Mock()
+        host.execdom0 = Mock(return_value=fakeOutput)
+        return host
+
+    def testTapCtlWithNoVBDs(self):
+        host = self.__createMockHost("")
+        rc = ReadCaching()
+        self.assertFalse(rc.isEnabled(host))
+
+    def testTapCtlWithNoRelevantData(self):
+        host = self.__createMockHost("Jibber: 1, JibberJibber=1, Blah Blah= 0 1 1 1 2 1")
+        rc = ReadCaching()
+        self.assertFalse(rc.isEnabled(host))

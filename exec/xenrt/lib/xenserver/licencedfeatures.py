@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta, abstractproperty, abstractmethod
 import re
 
 class LicencedFeature(object):
@@ -7,8 +7,8 @@ class LicencedFeature(object):
     """
     __metaclass__ = ABCMeta
 
-    @abstractproperty
-    def isEnabled(self):
+    @abstractmethod
+    def isEnabled(self, host):
         """
         Is the feature programmatically enabled on the server side
         @rtype boolean
@@ -58,7 +58,7 @@ class LicencedFeature(object):
 
 class WorkloadBalancing(LicencedFeature):
 
-    def isEnabled(self):
+    def isEnabled(self, host):
         raise NotImplementedError()
 
     @property
@@ -71,34 +71,13 @@ class WorkloadBalancing(LicencedFeature):
 
 class ReadCaching(LicencedFeature):
 
-    def isEnabled(self):
-        """Checks all VBDs to see if read caching is disabled.
-        If all VBDs have read caching disabled, returns True.
-        If any VBDs with read caching enabled, returns False.
-        If there are no VBDs, returns True.
-        """
-        readCacheDump = self.execdom0("tap-ctl list | cat")
-
-        # If no VBD, have no way of knowing if it is enabled.
-        if readCacheDump is "":
-            # Some exception.
-            pass
-
-        if readCacheDump[0].split(" ")[-1].split("=")[0] is not "read_caching":
-            # This version of Creedence does not implement hook for read caching.
-            # Some exception.
-            pass
-
-        results = []
-        for line in readCacheDump.split("\n"):
-            results.append(line.split(" ")[-1].split("=")[-1])
-
-        # List of 1s and 0s
-        # 0 = Disabled, 1 = Enabled.
-        for i in results:
-            if i is "1":
-                return False
-        return True
+    def isEnabled(self, host):
+        readCacheDump = host.execdom0("tap-ctl list | cat")
+        regex = "read_caching=(?P<flagValue>\w+)"
+        match = re.search(regex, readCacheDump)
+        if match:
+            return match.group("flagValue").strip() == "1"
+        return False
 
     @property
     def featureFlagName(self):
@@ -107,7 +86,7 @@ class ReadCaching(LicencedFeature):
 
 class VirtualGPU(LicencedFeature):
 
-    def isEnabled(self):
+    def isEnabled(self, host):
         raise NotImplementedError()
 
     @property
@@ -117,7 +96,7 @@ class VirtualGPU(LicencedFeature):
 
 class Hotfixing(LicencedFeature):
 
-    def isEnabled(self):
+    def isEnabled(self, host):
         raise NotImplementedError()
 
     @property
@@ -131,7 +110,7 @@ class Hotfixing(LicencedFeature):
 
 class ExportPoolResourceList(LicencedFeature):
 
-    def isEnabled(self):
+    def isEnabled(self, host):
         raise NotImplementedError()
 
     @property

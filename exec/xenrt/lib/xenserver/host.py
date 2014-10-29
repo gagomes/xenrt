@@ -11127,6 +11127,9 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
+    def licenceSKUs(self):
+        return [XenServerLicenceSKU.PerSocketEnterprise, XenServerLicenceSKU.PerUserEnterprise]
+
 #############################################################################
 class SarasotaHost(CreedenceHost):
     USE_CCISS = False

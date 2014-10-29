@@ -238,24 +238,17 @@ class Guest(xenrt.lib.libvirt.Guest):
         domain += "</domain>"
         self._defineXML(domain)
 
-    def installDrivers(self, source=None, testsign=None, extrareboot=False):
-        # FIXME: this method is not tested and probably needs tweaking to work
-
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False):
         # no autorun
         self.winRegAdd("HKCU", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\Explorer", "NoDriveTypeAutorun", "DWORD", 0xFF)
         self.host.execdom0("vim-cmd vmsvc/tools.install %s" % (self._esxGetVMID()))
         xenrt.sleep(30)
         self.xmlrpcExec("D:\\setup.exe /S /v\"/qn REBOOT=R\"")
-        self.shutdown()
 
-        # change everything to use PV
-        oldxmlstr = self._getXML()
-        newxmlstr = re.sub(r"(<controller type='scsi' .*) model='.*'/>", r"\1 model='vmpvscsi'/>", oldxmlstr)
-        self._redefineXML(newxmlstr)
+        # Switch devices over to use PV drivers automatically
+        self.usePVdrivers()
 
         self.start()
-        
-        self.enlightenedDrivers = True
 
     def changeToPVSCSI(self, force=False):
         self.shutdown(force=force)
@@ -308,7 +301,13 @@ class Guest(xenrt.lib.libvirt.Guest):
         else:
             raise xenrt.XRTError("No support for downloading kernel headers of %s" % (self.getName()))
 
-    def installTools(self, source=None, reboot=True, updateKernel=True):
+    def usePVdrivers(self, force=False):
+        self.changeToVMXNet3(force=force)
+        self.changeToPVSCSI(force=force)
+
+        self.enlightenedDrivers = True
+
+    def installTools(self, source=None, reboot=False, updateKernel=True):
         self.insertToolsCD()
 
         # Assume that the CD drive is at /dev/sr0 in the VM
@@ -344,6 +343,9 @@ class Guest(xenrt.lib.libvirt.Guest):
         xenrt.TEC().logverbose("installed vmware tools version %s" % (version))
 
         # TODO eject the CD?
+
+        # Switch devices over to use PV drivers automatically
+        self.usePVdrivers(force=False)
 
     def enablePXE(self, pxe=True):
         pass

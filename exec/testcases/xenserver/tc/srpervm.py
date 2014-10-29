@@ -14,10 +14,7 @@ class SetupSRs(xenrt.TestCase):
     def createSR(self, lun, name):
         sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master, name)
         sr.create(lun, noiqnset=True, subtype="lvm")
-        if self.ringsize != None:
-            sr.paramSet("other-config:blkback-mem-pool-size-rings", self.ringsize)
-            sr.paramSet("other-config:mem-pool-size-rings", self.ringsize)
-
+    
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
 
@@ -26,7 +23,6 @@ class SetupSRs(xenrt.TestCase):
 
         windowsFilerName = args.get("windowsfiler", None)
         linuxFilerName = args.get("linuxfiler", None)
-        self.ringsize = args.get("ringsize", None)
 
         linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
         linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
@@ -36,9 +32,7 @@ class SetupSRs(xenrt.TestCase):
 
         self.pool = self.getDefaultHost().getPool()
         [x.enableMultipathing() for x in self.pool.getHosts()]
-
-        [x.execdom0("cd /opt/xensource/sm && wget -O - http://files.uk.xensource.com/usr/groups/xenrt/sm-lowmem.patch | patch -p1") for x in self.pool.getHosts()]
-
+        
         initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in self.pool.getHosts())
 
         linuxRootFiler.provisionLuns(linuxLunCount, 10, initiators)
@@ -55,6 +49,20 @@ class SetupSRs(xenrt.TestCase):
             self.createSR(windowsRootFiler.getLuns()[i].getISCSILunObj(), "WindowsRootSR_%d" % i)
             self.createSR(windowsDataFiler.getLuns()[i*2].getISCSILunObj(), "WindowsDataSR_A%d" % i)
             self.createSR(windowsDataFiler.getLuns()[i*2+1].getISCSILunObj(), "WindowsDataSR_B%d" % i)
+
+class ReconfigureRingSize(xenrt.TestCase):
+    def run(self, arglist=[]):
+        args = self.parseArgsKeyValue(arglist)
+        host = self.getDefaultHost()
+        pool = host.getPool()
+        if args.get("applyfix", None) == "yes":
+            [x.execdom0("cd /opt/xensource/sm && wget -O - http://files.uk.xensource.com/usr/groups/xenrt/sm-lowmem.patch | patch -p1") for x in pool.getHosts()]
+        
+        srs = host.minimalList("sr-list", args="type=lvmoiscsi")
+        for s in srs:
+            host.genParamSet("sr", s, "other-config:mem-pool-size-rings", args['ringsize']) 
+            host.genParamSet("sr", s, "other-config:blkback-mem-pool-size-rings", args['ringsize']) 
+    
 
 class CopyVMs(xenrt.TestCase):
     def run(self, arglist=[]):
@@ -146,7 +154,7 @@ class TCMonitorLowMem(xenrt.TestCase):
         interval = int(args.get("checkinterval", "1"))
 
         pool = self.getDefaultHost().getPool()
-        for i in xrange(minutes):
+        for i in xrange(minutes/interval):
             for h in pool.getHosts():
                 lowmem = h.execdom0("echo 3 > /proc/sys/vm/drop_caches && grep LowFree /proc/meminfo | cut -d ':' -f 2").strip()
                 xenrt.TEC().logverbose("Low Memory on %s: %s" % (h.getName(), lowmem))
@@ -155,3 +163,14 @@ class TCMonitorLowMem(xenrt.TestCase):
     def postRun(self):
         for w in self.workloads:
             w.stop()
+
+class RebootAllVMs(xenrt.TestCase):
+    def run(self, arglist=[]):
+        for os in ["win", "lin"]:
+            i = 0
+            while True:
+                g = self.getGuest("%sclone-%d" % (os, i))
+                if not g:
+                    break
+                g.reboot()
+                i += 1

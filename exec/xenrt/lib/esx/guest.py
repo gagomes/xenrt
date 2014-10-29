@@ -386,3 +386,10 @@ class Guest(xenrt.lib.libvirt.Guest):
 
     def enablePXE(self, pxe=True):
         pass
+
+    def xmlrpcTailor(self):
+        xenrt.lib.libvirt.Guest.xmlrpcTailor(self)
+
+        # Also disable automatic sleep
+        for sleepType in ["monitor", "disk", "standby", "hibernate"]:
+            self.xmlrpcExec("powercfg -change -%s-timeout-ac 0" % (sleepType))

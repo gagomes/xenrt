@@ -59,6 +59,7 @@ class ReconfigureRingSize(xenrt.TestCase):
             [x.execdom0("cd /opt/xensource/sm && wget -O - http://files.uk.xensource.com/usr/groups/xenrt/sm-lowmem.patch | patch -p1") for x in pool.getHosts()]
         
         srs = host.minimalList("sr-list", args="type=lvmoiscsi")
+        srs.extend(host.minimalList("sr-list", args="type=lvmohba"))
         for s in srs:
             host.genParamSet("sr", s, "other-config:mem-pool-size-rings", args['ringsize']) 
             host.genParamSet("sr", s, "other-config:blkback-mem-pool-size-rings", args['ringsize']) 

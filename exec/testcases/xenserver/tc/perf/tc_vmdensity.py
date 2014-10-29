@@ -498,6 +498,7 @@ class DummyEvent(Util):
 @xenrt.irregularName
 def APIEvent(experiment):
     lib = xenrt.productLib(host=experiment.tc.getDefaultHost())
+    xenrt.TEC().logverbose("lib=%s" % (lib,))
     if lib == xenrt.lib.xenserver:
         xenrt.TEC().logverbose("Using xapi event listener")
         return XapiEvent(experiment)
@@ -1894,7 +1895,6 @@ class Experiment_vmrun(Experiment):
 
             pool = self.tc.getDefaultPool()
             host = self.tc.getDefaultHost()
-            cli = host.getCLIInstance()
             defaultSR = pool.master.lookupDefaultSR()
             vm_template = xenrt.lib.xenserver.getTemplate(host, self.distro, arch=None)
 

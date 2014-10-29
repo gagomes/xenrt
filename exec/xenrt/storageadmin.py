@@ -408,8 +408,8 @@ class NetAppStorageArray(StorageArray):
         return newLunIds
 
     def release(self, atExit=False):
-        self.__targetArray.release()
-        super(NetAppStorageArray, self).release()
+        self.__targetArray.release(atExit=atExit)
+        super(NetAppStorageArray, self).release(atExit=atExit)
 
 class NetAppFCStorageArray(NetAppStorageArray):
     LUN_PATH = "fclun"

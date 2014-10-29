@@ -86,7 +86,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -106,7 +106,7 @@ pylint-all:
 xmllint:
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	xmllint --noout --schema $(XSD) $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \

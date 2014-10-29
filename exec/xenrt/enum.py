@@ -6,7 +6,7 @@
 
 import xenrt
 
-__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod"]
+__all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod", "XenServerPaidFeatures", "XenServerLicenceSKU"]
 
 class Enum(object):
     pass
@@ -46,3 +46,19 @@ class InstallMethod(Enum):
 class IsoRepository(Enum):
     Windows = "windows"
     Linux = "linux"
+
+
+class XenServerPaidFeatures(Enum):
+    WorkloadBalancing = "WorkloadBalancing"
+    ReadCaching = "ReadCaching"
+    VirtualGPU = "VirtualGPU"
+    Hotfixing = "Hotfixing"
+
+
+class XenServerLicenceSKU(Enum):
+    PerSocketEnterprise = "PerSocketEnterprise"
+    PerUserEnterprise = "PerUserEnterprise"
+    XenDesktopPlatinum = "XenDesktopPlatinum"
+    PerSocketStandard = "PerSocketStandard"
+    PerUserStandard = "PerUserStandard"
+    Free = "Free"

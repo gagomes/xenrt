@@ -11127,7 +11127,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def licenceSKUs(self):
+    def licenceSKUs(self, xenserverOnly=False):
         return [XenServerLicenceSKU.PerSocketEnterprise, XenServerLicenceSKU.PerUserEnterprise]
 
 #############################################################################

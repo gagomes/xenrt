@@ -84,6 +84,7 @@ def createVM(host,
         if not bridge:
             raise xenrt.XRTError("Failed to choose a bridge for createVM on "
                                  "host !%s" % (host.getName()))
+        bridge = host.getBridgeByName(bridge)
         update.append([device, bridge, mac, ip])
     vifs = update
 
@@ -716,8 +717,12 @@ class Guest(xenrt.GenericGuest):
             self.xmlrpcShutdown()
         self.poll("DOWN", timeout=360)
 
-    def removeDisk(self, userdevice, keepvdi=False):
-        userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
+    # The normal interface for removeDisk only provides userdevice (0), but we
+    # allow the optional use of userdevicename ('sda') here for convenience.
+    def removeDisk(self, userdevice=None, keepvdi=False, userdevicename=None):
+        if not userdevicename:
+            assert type(userdevice) == int
+            userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
 
         oldxmlstr = self._getXML()
         oldxmldom = xml.dom.minidom.parseString(oldxmlstr)
@@ -745,13 +750,15 @@ class Guest(xenrt.GenericGuest):
                    userdevice=None, bootable=False,
                    plug=True, vdiuuid=None, returnVBD=False,
                    returnDevice=False,
-                   smconfig=None, name=None, format=None):
+                   smconfig=None, name=None, format=None,
+                   controllerType=None, controllerModel=None):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
         sizebytes - size in bytes or a string such as 5000MiB or 5GiB
         sruuid - UUID of SR to create disk on
-        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc)
+        userdevice - user-specified device number (e.g. 0 maps to "sda", 3 to "sdd" etc, or 0 maps
+                     to "sdp" if controller==1)
         bootable - currently unused. To ensure that this disk will be booted from,
                    plug the VDI as userdevice 0 and call self._setBoot(self._getDiskDevicePrefix())
         plug - whether to attach to the guest
@@ -761,6 +768,8 @@ class Guest(xenrt.GenericGuest):
         smconfig - unused
         name - name of the disk, defaults to a random name
         format - disk format, defaults to self.DEFAULT_DISK_FORMAT
+        controllerType - the bus on which to put the disk (e.g. scsi), defaults to type of bus 0
+        controllerModel - model of the controller (e.g. lsilogic)
         Returns the device number (e.g. a return value of 3 specifies the VDI was attached to hdd)
         """
         # there is no such thing as a VDI uuid in libvirt.
@@ -774,11 +783,6 @@ class Guest(xenrt.GenericGuest):
 #            sruuid = self.getHost().lookupDefaultSR()
         if not sruuid:
             sruuid = self.getHost().lookupDefaultSR()
-
-        if userdevice is None:
-            userdevicename = self._getNextBlockDevice()
-        else:
-            userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+ord('a'))
 
         if not format:
             format = self.DEFAULT_DISK_FORMAT
@@ -797,7 +801,7 @@ class Guest(xenrt.GenericGuest):
 
         if plug:
             # Create the VBD.
-            self._createVBD(sruuid, vdiname, format, userdevicename)
+            userdevicename = self._createVBD(sruuid, vdiname, format, userdevice, controllerType, controllerModel)
 
         if existingVDI:
             xenrt.TEC().logverbose("Added existing VDI %s as %s." %
@@ -806,7 +810,57 @@ class Guest(xenrt.GenericGuest):
             xenrt.TEC().logverbose("Added %s of size %s using SR %s." %
                                    (userdevicename, sizebytes, sruuid))
 
-        return userdevice
+        return userdevicename
+
+    def createController(self, typ='scsi', model='lsilogic'):
+        # Find an unused index for controllers of this type
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        highestindex = 0
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                index = int(node.getAttribute('index'))
+                if index > highestindex:
+                    highestindex = index
+
+        newindex = highestindex + 1
+
+        # Create the new controller
+        contxmlstr = "<controller type='%s' index='%s' model='%s'/>" % (typ, newindex, model)
+        self._attachDevice(contxmlstr, hotplug=True)
+
+        # Return the index
+        return newindex
+
+    def removeController(self, typ='scsi', index=0):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('index') == index:
+                node.parentNode.removeChild(node)
+                node.unlink()
+
+        self._redefineXML(xmldom.toxml())
+
+    def changeControllerDriver(self, newDriver, typ='scsi', index=None):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers to find the one(s) we want
+        found = False
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                if index is None or int(node.getAttribute('index')) == index:
+                    node.setAttribute('model', newDriver)
+                    found = True
+
+        if not found:
+            xenrt.TEC().warning("changeControllerDriver couldn't find a controller of type '%s' with index '%s'" % (typ, index))
+
+        self._redefineXML(xmldom.toxml())
 
     def createVIF(self, eth, bridge, mac):
         model = self._getNetworkDeviceModel()
@@ -830,30 +884,42 @@ class Guest(xenrt.GenericGuest):
         xmlstr = self._getXML()
         xmldom = xml.dom.minidom.parseString(xmlstr)
         reply = {}
+        id = 0
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("interface"):
             if node.getAttribute("type") == "bridge":
                 bridge = node.getElementsByTagName("source")[0].getAttribute("bridge")
-                brinfo = self.host.execdom0("brctl show %s" % bridge)
-                r = re.search("(nic\d+|eth\d+)", brinfo)
-                if r:
-                    nic = r.group(1)
-                    mac = node.getElementsByTagName("mac")[0].getAttribute("address")
-                    ip = None
-                    reply[nic] = (mac, ip, bridge)
+                nic = self.VIFSTEM + str(id)
+                mac = node.getElementsByTagName("mac")[0].getAttribute("address")
+                ip = None
+                reply[nic] = (mac, ip, bridge)
+                id += 1
         xmldom.unlink()
         return reply
 
-    def _getNextBlockDevice(self, prefix=None):
+    def _baseDeviceForBus(self, busid=0):
+        return (ord('p')-ord('a'))*busid + ord('a')
+
+    def _getNextBlockDevice(self, prefix=None, controllerType='scsi', controllerIndex=0):
         if prefix is None:
             prefix = self._getDiskDevicePrefix()
-        maxchar = ord('a')-1
-        for hdmatch in re.finditer(r"""<target[^>]*dev=['"]%s(\w)""" % prefix,
-                                   self._getXML()):
-            hdchar = hdmatch.group(1)
-            if ord(hdchar) > maxchar:
-                maxchar = ord(hdchar)
-        userdevice = maxchar+1-ord('a')
-        return prefix + chr(userdevice+ord('a'))
+
+        # TODO we should go to double letters for controllerIndex > 1
+        base = self._baseDeviceForBus(busid=controllerIndex)
+        maxchar = base-1
+
+        xmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(xmlstr)
+        # Find all disks on this controller
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
+            bus = node.getElementsByTagName("target")[0].getAttribute("bus")
+            c = int(node.getElementsByTagName("address")[0].getAttribute("controller"))
+            if controllerType == bus and controllerIndex == c:
+                dev = node.getElementsByTagName("target")[0].getAttribute("dev")
+                hdchar = dev.strip(prefix)
+                if ord(hdchar) > maxchar:
+                    maxchar = ord(hdchar)
+        userdevice = maxchar+1-base
+        return prefix + chr(userdevice+base)
 
     def _setBoot(self, devicetype):
         """See http://libvirt.org/formatdomain.html#elementsOSBIOS.
@@ -936,7 +1002,7 @@ class Guest(xenrt.GenericGuest):
                 break
         else:
             # no existing cdrom drive; create a block device name
-            device = self._getNextBlockDevice("hd")
+            device = self._getNextBlockDevice("hd", controllerType="ide")
             targetxml = "<target dev=\"%s\"/>" % device
             changeCDFunction = self._attachDevice
         oldxmldom.unlink()

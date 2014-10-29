@@ -221,12 +221,12 @@ class _XSAutoCertKit(xenrt.TestCase):
         for s in self.pool.getSlaves():
             nics = s.listSecondaryNICs()
             slavenets = {s.getDefaultInterface(): "NPRI"}
-            xenrt.TEC().logverbose("Found slave NICs: %s" % slavenets)
             for n in nics:
                 netname = s.getNICNetworkName(n)
                 if netname in ["NPRI", "NSEC", "IPRI", "ISEC"]:
                     slavenets[s.getSecondaryNIC(n)] = netname
-                    
+            xenrt.TEC().logverbose("Found slave NICs: %s from %s" % (slavenets, s.getName()))
+            
             for n in nets.keys():
                 if n not in slavenets.keys() or nets[n] != slavenets[n]:
                     xenrt.TEC().logverbose("Dropping net %s: %s" % (n, nets[n]))

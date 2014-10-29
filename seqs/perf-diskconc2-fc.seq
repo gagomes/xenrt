@@ -3,10 +3,13 @@
       <PREPARE_WORKERS>1</PREPARE_WORKERS>
       <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
       <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+      <USE_MULTIPATH>yes</USE_MULTIPATH>
     </variables>
 
     <prepare>
-      <host/>
+      <host>
+        <storage type="fc" name="fcsr" default="true"/>
+      </host>
     </prepare>
 
     <testsequence>

@@ -899,7 +899,7 @@ class Guest(xenrt.GenericGuest):
     def _baseDeviceForBus(self, busid=0):
         return (ord('p')-ord('a'))*busid + ord('a')
 
-    def _getNextBlockDevice(self, prefix=None, controllerIndex=0):
+    def _getNextBlockDevice(self, prefix=None, controllerType='scsi', controllerIndex=0):
         if prefix is None:
             prefix = self._getDiskDevicePrefix()
 
@@ -911,8 +911,9 @@ class Guest(xenrt.GenericGuest):
         xmldom = xml.dom.minidom.parseString(xmlstr)
         # Find all disks on this controller
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
-            c = node.getElementsByTagName("address")[0].getAttribute("controller")
-            if controllerIndex == c:
+            bus = node.getElementsByTagName("target")[0].getAttribute("bus")
+            c = int(node.getElementsByTagName("address")[0].getAttribute("controller"))
+            if controllerType == bus and controllerIndex == c:
                 dev = node.getElementsByTagName("target")[0].getAttribute("dev")
                 hdchar = dev.strip(prefix)
                 if ord(hdchar) > maxchar:
@@ -1001,7 +1002,7 @@ class Guest(xenrt.GenericGuest):
                 break
         else:
             # no existing cdrom drive; create a block device name
-            device = self._getNextBlockDevice("hd")
+            device = self._getNextBlockDevice("hd", controllerType="ide")
             targetxml = "<target dev=\"%s\"/>" % device
             changeCDFunction = self._attachDevice
         oldxmldom.unlink()

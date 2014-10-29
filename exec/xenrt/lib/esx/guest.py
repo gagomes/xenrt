@@ -68,7 +68,7 @@ class Guest(xenrt.lib.libvirt.Guest):
             contxmlstr = ""
 
         if userdevice is None:
-            userdevicename = self._getNextBlockDevice(controllerIndex=controllerIndex)
+            userdevicename = self._getNextBlockDevice(controllerType=controllerType, controllerIndex=controllerIndex)
         else:
             userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+self._baseDeviceForBus(busid=controllerIndex))
 

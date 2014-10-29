@@ -745,7 +745,8 @@ class Guest(xenrt.GenericGuest):
                    userdevice=None, bootable=False,
                    plug=True, vdiuuid=None, returnVBD=False,
                    returnDevice=False,
-                   smconfig=None, name=None, format=None):
+                   smconfig=None, name=None, format=None,
+                   address=None):
         """Creates a disk and attaches it to the guest.
         This method should be called when the guest is shut down.
 
@@ -761,6 +762,7 @@ class Guest(xenrt.GenericGuest):
         smconfig - unused
         name - name of the disk, defaults to a random name
         format - disk format, defaults to self.DEFAULT_DISK_FORMAT
+        address - optional (controller, bus, target, unit) tuple for the VBD
         Returns the device number (e.g. a return value of 3 specifies the VDI was attached to hdd)
         """
         # there is no such thing as a VDI uuid in libvirt.
@@ -797,7 +799,7 @@ class Guest(xenrt.GenericGuest):
 
         if plug:
             # Create the VBD.
-            self._createVBD(sruuid, vdiname, format, userdevicename)
+            self._createVBD(sruuid, vdiname, format, userdevicename, address)
 
         if existingVDI:
             xenrt.TEC().logverbose("Added existing VDI %s as %s." %
@@ -807,6 +809,56 @@ class Guest(xenrt.GenericGuest):
                                    (userdevicename, sizebytes, sruuid))
 
         return userdevice
+
+    def createController(self, typ='scsi', model='lsilogic'):
+        # Find an unused index for controllers of this type
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        highestindex = 0
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                index = int(node.getAttribute('index'))
+                if index > highestindex:
+                    highestindex = index
+
+        newindex = highestindex + 1
+
+        # Create the new controller
+        contxmlstr = "<controller type='%s' index='%s' model='%s'/>" % (typ, newindex, model)
+        self._attachDevice(contxmlstr, hotplug=True)
+
+        # Return the index
+        return newindex
+
+    def removeController(self, typ='scsi', index=0):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('index') == index:
+                node.parentNode.removeChild(node)
+                node.unlink()
+
+        self._redefineXML(xmldom.toxml())
+
+    def changeControllerDriver(self, newDriver, typ='scsi', index=None):
+        oldxmlstr = self._getXML()
+        xmldom = xml.dom.minidom.parseString(oldxmlstr)
+
+        # iterate over all existing controllers to find the one(s) we want
+        found = False
+        for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("controller"):
+            if node.getAttribute('type') == typ:
+                if index is None or int(node.getAttribute('index')) == index:
+                    node.setAttribute('model', newDriver)
+                    found = True
+
+        if not found:
+            xenrt.TEC().warning("changeControllerDriver couldn't find a controller of type '%s' with index '%s'" % (typ, index))
+
+        self._redefineXML(xmldom.toxml())
 
     def createVIF(self, eth, bridge, mac):
         model = self._getNetworkDeviceModel()

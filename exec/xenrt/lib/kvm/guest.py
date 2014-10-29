@@ -46,7 +46,8 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True
 
-    def _createVBD(self, sruuid, vdiname, format, userdevicename):
+    def _createVBD(self, sruuid, vdiname, format, userdevicename, address=None):
+        # Currently, address is ignored
         srobj = self.host.srs[self.host.getSRName(sruuid)]
         vbdxmlstr = """
         <disk type='file' device='disk'>

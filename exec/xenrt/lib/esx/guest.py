@@ -32,13 +32,21 @@ class Guest(xenrt.lib.libvirt.Guest):
     def _getNetworkDeviceModel(self):
         return "e1000"
 
-    def _createVBD(self, sruuid, vdiname, format, userdevicename):
+    def _createVBD(self, sruuid, vdiname, format, userdevicename, address=None):
         srobj = self.host.srs[self.host.getSRName(sruuid)]
+
+        if address is None:
+            addressstr = ""
+        else:
+            (controller, bus, target, unit) = address
+            addressstr = "<address type='drive' controller='%d' bus='%d' target='%d' unit='%d'/>" % (controller, bus, target, unit)
+
         vbdxmlstr = """
         <disk type='file' device='disk'>
             <source file='%s'/>
             <target dev='%s' bus='%s'/>
-        </disk>""" % (srobj.getVDIPath(vdiname), userdevicename, self._getDiskDeviceBus())
+            %s
+        </disk>""" % (srobj.getVDIPath(vdiname), userdevicename, self._getDiskDeviceBus(), addressstr)
         self._attachDevice(vbdxmlstr, hotplug=True)
 
     def _detectDistro(self):
@@ -248,6 +256,27 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.start()
         
         self.enlightenedDrivers = True
+
+    def changeToPVSCSI(self, force=False):
+        self.shutdown(force=force)
+
+        # 1. Attach a dummy VDI on a PVSCSI controller
+        newControllerIndex = self.createController(typ='scsi', model='vmpvscsi')
+        dummyDiskId = self.createDisk(sizebytes=256*xenrt.MEGA, address=(newControllerIndex,0,0,0))
+
+        # 2. Boot the VM so that Windows installs the PVSCSI driver
+        self.start()
+        xenrt.sleep(30)
+        self.shutdown(force=force)
+
+        # 3. Delete the dummy VDI and PVSCSI controller
+        self.removeDisk(dummyDiskId)
+        self.removeController(typ='scsi', index=newControllerIndex)
+
+        # 4. Convert the main SCSI controller to PVSCSI
+        self.changeControllerDriver('vmpvscsi', typ='scsi', index=newControllerIndex)
+
+        self.start()
 
     def changeToVMXNet3(self, force=False):
         self.shutdown(force=force)

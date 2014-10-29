@@ -1905,11 +1905,14 @@ class Experiment_vmrun(Experiment):
             vm_name="VM-DENSITY-%s" % self.distro #xenrt.randomGuestName()
             host_guests = host.listGuests()
 
+            lib = xenrt.productLib(host=host)
+            xenrt.TEC().logverbose("lib=%s" % (lib,))
+
             #seq = "<vm name=\"%s\"><distro>%s</distro></vm>" % (vm_name,self.distro)
             #guest_xmlnode = xml.dom.minidom.parseString(seq)
             #prepare = PrepareNode(guest_xmlnode, guess_xmlnode, {})
             #prepare.handleVMNode(node, {})
-   
+
             if vm_name in host_guests:
                 #model vm already installed in host: reuse it
                 g0 = host.guestFactory()(vm_name, None)
@@ -1939,19 +1942,19 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "nopvdrivers" not in self.vmpostinstall:
                         postinstall+=['installDrivers']
-                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR)
                     #g0.check()
                     #g0.installDrivers()
                     ##g0.installTools()
-                    
+
                 else: #non-windows iso image for installation
                     postinstall=[]
                     if "convertHVMtoPV" in self.vmpostinstall:
                         postinstall+=['convertHVMtoPV']
-                    g0=xenrt.lib.xenserver.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
-                    
+
                 g0.check()
 
                 if self.distro[0]=="w":

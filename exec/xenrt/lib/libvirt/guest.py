@@ -716,8 +716,12 @@ class Guest(xenrt.GenericGuest):
             self.xmlrpcShutdown()
         self.poll("DOWN", timeout=360)
 
-    def removeDisk(self, userdevice, keepvdi=False):
-        userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
+    # The normal interface for removeDisk only provides userdevice (0), but we
+    # allow the optional use of userdevicename ('sda') here for convenience.
+    def removeDisk(self, userdevice=None, keepvdi=False, userdevicename=None):
+        if not userdevicename:
+            assert type(userdevice) == int
+            userdevicename = self._getDiskDevicePrefix() + chr(int(userdevice)+ord('a'))
 
         oldxmlstr = self._getXML()
         oldxmldom = xml.dom.minidom.parseString(oldxmlstr)

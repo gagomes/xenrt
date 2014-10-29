@@ -292,7 +292,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.shutdown(force=force)
 
         # 1. Attach a dummy VDI on a PVSCSI controller
-        dummyDiskId = self.createDisk(sizebytes=256*xenrt.MEGA, controllerType='scsi', controllerModel='vmpvscsi')
+        dummyDiskPos = self.createDisk(sizebytes=256*xenrt.MEGA, controllerType='scsi', controllerModel='vmpvscsi')
 
         # 2. Boot the VM so that Windows installs the PVSCSI driver
         self.start()
@@ -300,7 +300,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.shutdown(force=force)
 
         # 3. Delete the dummy VDI (and the PVSCSI controller will disappear)
-        self.removeDisk(dummyDiskId)
+        self.removeDisk(userdevicename=dummyDiskPos)
 
         # 4. Convert the main SCSI controller to PVSCSI
         self.changeControllerDriver('vmpvscsi', typ='scsi', index=0)

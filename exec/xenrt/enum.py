@@ -53,6 +53,7 @@ class XenServerPaidFeatures(Enum):
     ReadCaching = "ReadCaching"
     VirtualGPU = "VirtualGPU"
     Hotfixing = "Hotfixing"
+    ExportPoolResourceList = "ExportPoolResourceList"
 
 
 class XenServerLicenceSKU(Enum):

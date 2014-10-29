@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractproperty
-
+import re
 
 class LicencedFeature(object):
     """
@@ -23,13 +23,29 @@ class LicencedFeature(object):
         """
         pass
 
-    @property
-    def featureFlagValue(self):
+    def hostFeatureFlagValue(self, host):
         """
-        What is the value of feature flag
+        What is the value of the host's feature flag
         @rtype boolean
         """
-        pass
+        cli = host.getCLIInstance()
+        data = cli.execute("host-license-view","host-uuid=%s" % (host.getMyHostUUID()))
+        return self.__searchForRestriction(data)
+
+    def __searchForRestriction(self, data):
+        regex = "%s: (?P<flagValue>\w+)" % self.featureFlagName
+        match = re.search(regex, data)
+        if match:
+            return match.group("flagValue").strip() == "true"
+        return False
+
+    def poolFeatureFlagValue(self, pool):
+        """
+        What is the value of the host's feature flag
+        @rtype boolean
+        """
+        poolParams = pool.getPoolParam("restrictions")
+        return self.__searchForRestriction(poolParams)
 
     @property
     def stateCanBeChecked(self):
@@ -45,8 +61,9 @@ class WorkloadBalancing(LicencedFeature):
     def isEnabled(self):
         raise NotImplementedError()
 
+    @property
     def featureFlagName(self):
-        raise NotImplementedError()
+        return "restrict_wlb"
 
 
 class ReadCaching(LicencedFeature):
@@ -54,8 +71,9 @@ class ReadCaching(LicencedFeature):
     def isEnabled(self):
         raise NotImplementedError()
 
+    @property
     def featureFlagName(self):
-        raise NotImplementedError()
+        return "restrict_read_caching"
 
 
 class VirtualGPU(LicencedFeature):
@@ -63,8 +81,9 @@ class VirtualGPU(LicencedFeature):
     def isEnabled(self):
         raise NotImplementedError()
 
+    @property
     def featureFlagName(self):
-        raise NotImplementedError()
+        return "restrict_vgpu"
 
 
 class Hotfixing(LicencedFeature):
@@ -72,8 +91,9 @@ class Hotfixing(LicencedFeature):
     def isEnabled(self):
         raise NotImplementedError()
 
+    @property
     def featureFlagName(self):
-        raise NotImplementedError()
+        return "restrict_hotfix_apply"
 
     @property
     def stateCanBeChecked(self):
@@ -85,8 +105,9 @@ class ExportPoolResourceList(LicencedFeature):
     def isEnabled(self):
         raise NotImplementedError()
 
+    @property
     def featureFlagName(self):
-        raise NotImplementedError()
+        return "restrict_export_resource_data"
 
     @property
     def stateCanBeChecked(self):

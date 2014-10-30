@@ -346,6 +346,13 @@ class TC20937(TC10626):
 
     SR_TYPE = "file"
 
+
+class TC23334(TC10626):
+    """Creation, operation and destruction of a file SR with a name containing non-ASCII characters"""
+
+    NFS_VERSION = 4
+
+
 class TC20948(NFSSRSanityTest):
     """NFS SR (with no sub directory) Sanity Test"""
 

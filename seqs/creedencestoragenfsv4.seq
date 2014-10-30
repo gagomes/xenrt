@@ -35,7 +35,7 @@
       <testcase id="xenserver.tc.snapshot.TC8117" prio="3"/>-->
     </serial>
     <testcase id="xenserver.tc.impexp.TC10629" prio="3"/>
-    <!-- Needs work <testcase id="xenserver.tc.storage.TC10626" prio="3"/> -->
+    <testcase id="xenserver.tc.storage.TC23334" prio="3"/>
     
     <!--Add tests before this -->
     <testcase id="xenserver.tc.storage.TC21718" prio="3"/>

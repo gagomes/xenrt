@@ -1,4 +1,4 @@
-from xenrt.lib.xenserver.licensedfeatures import WorkloadBalancing, ReadCaching, VirtualGPU, Hotfixing, ExportPoolResourceList
+from xenrt.lib.xenserver.licensedfeatures import WorkloadBalancing, ReadCaching, VirtualGPU, Hotfixing, ExportPoolResourceList, GPUPassthrough
 from testing import XenRTUnitTestCase
 from mock import Mock
 
@@ -6,7 +6,7 @@ from mock import Mock
 class TestLicencedFeatures(XenRTUnitTestCase):
 
     __UI_FEATURES = [Hotfixing(), ExportPoolResourceList(), WorkloadBalancing()]
-    __SERVER_SIDE_FEATURES = [ReadCaching(), VirtualGPU()]
+    __SERVER_SIDE_FEATURES = [ReadCaching(), VirtualGPU(), GPUPassthrough()]
 
     def testUIFlaggableStatesIndicateEnableCannotBeChecked(self):
         for feature in self.__UI_FEATURES:

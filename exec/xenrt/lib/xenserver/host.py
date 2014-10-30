@@ -11159,7 +11159,8 @@ class CreedenceHost(ClearwaterHost):
     def licensedFeatures(self):
         return  [licensedfeatures.WorkloadBalancing(), licensedfeatures.ReadCaching(),
                  licensedfeatures.VirtualGPU(), licensedfeatures.Hotfixing(),
-                 licensedfeatures.ExportPoolResourceList()]
+                 licensedfeatures.ExportPoolResourceList(),
+                 licensedfeatures.GPUPassthrough()]
 
 #############################################################################
 class SarasotaHost(CreedenceHost):

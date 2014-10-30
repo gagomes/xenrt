@@ -2,7 +2,8 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 import re
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
-           "VirtualGPU", "Hotfixing", "ExportPoolResourceList"]
+           "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
+           "GPUPassthrough"]
 
 
 class LicensedFeature(object):
@@ -109,20 +110,18 @@ class ReadCaching(LicensedFeature):
 class VirtualGPU(LicensedFeature):
 
     def isEnabled(self, host):
-        vgpuVms = [g for g in host.guests.values() if g.hasvGPU()]
-        if len(vgpuVms) < 1:
-            raise LookupError("No vGPU enabled VMs found")
-
-        runningVMS = [vm for vm in vgpuVMs if vm.getState() == "UP"]
-        if len(runningVMS) < 1:
-            raise LookupError("No vGPU enabled VMs were found running")
-
-        [vm.reboot() for vm in runningVMS]
-        return [vm.getState() == "UP" for vm in runningVMS]
+        [vm.reboot() for vm in host.guests.values()]
+        return [vm.getState() == "UP" for vm in host.guests.values()]
 
     @property
     def featureFlagName(self):
         return "restrict_vgpu"
+
+
+class GPUPassthrough(VirtualGPU):
+    @property
+    def featureFlagName(self):
+        return "restrict_gpu"
 
 
 class Hotfixing(LicensedFeature):

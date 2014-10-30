@@ -1,9 +1,12 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 import re
 
-__all__ = ["WorkloadBalancing", "ReadCaching", "VirtualGPU", "Hotfixing", "ExportPoolResourceList"]
+__all__ = ["WorkloadBalancing", "ReadCaching",
+           "VirtualGPU", "Hotfixing", "ExportPoolResourceList"]
+
 
 class LicensedFeature(object):
+
     """
     Class to check the licensing and actual state of a sepcific feature
     """
@@ -31,7 +34,8 @@ class LicensedFeature(object):
         @rtype boolean
         """
         cli = host.getCLIInstance()
-        data = cli.execute("host-license-view","host-uuid=%s" % (host.getMyHostUUID()))
+        data = cli.execute("host-license-view",
+                           "host-uuid=%s" % (host.getMyHostUUID()))
         return self._searchForFlag(data, self.featureFlagName)
 
     def _searchForFlag(self, data, flag):
@@ -57,7 +61,8 @@ class LicensedFeature(object):
     @property
     def stateCanBeChecked(self):
         """
-        Can the enabled state be checked? Maybe false is this is a flagged UI feature
+        Can the enabled state be checked? Maybe false is this
+        is a flagged UI feature
         @rtype boolean
         """
         return True
@@ -76,6 +81,7 @@ class WorkloadBalancing(LicensedFeature):
     def stateCanBeChecked(self):
         return False
 
+
 class ReadCaching(LicensedFeature):
 
     __TAP_CTRL_FLAG = "read_caching"
@@ -89,8 +95,10 @@ class ReadCaching(LicensedFeature):
         pidAndMinors = self.__fetchPidAndMinor(host)
         output = []
         for pid, minor in pidAndMinors:
-            readCacheDump = host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
-            output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
+            readCacheDump = host.execdom0(
+                "tap-ctl stats -p %s -m %s" % (pid, minor))
+            output.append(
+                self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
         return output
 
     @property
@@ -101,8 +109,16 @@ class ReadCaching(LicensedFeature):
 class VirtualGPU(LicensedFeature):
 
     def isEnabled(self, host):
-        #vm .hasvGPU
-        raise NotImplementedError()
+        vgpuVms = [g for g in host.guests.values() if g.hasvGPU()]
+        if len(vgpuVms) < 1:
+            raise LookupError("No vGPU enabled VMs found")
+
+        runningVMS = [vm for vm in vgpuVMs if vm.getState() == "UP"]
+        if len(runningVMS) < 1:
+            raise LookupError("No vGPU enabled VMs were found running")
+
+        [vm.reboot() for vm in runningVMS]
+        return [vm.getState() == "UP" for vm in runningVMS]
 
     @property
     def featureFlagName(self):

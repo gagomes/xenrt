@@ -91,29 +91,51 @@ class TestLicencedPoolFeatureFlags(XenRTUnitTestCase):
 
 
 class TestReadCachingEnablement(XenRTUnitTestCase):
-    def __createMockHost(self, fakeOutput):
+
+    __TAP_CTRL_LIST = """pid=%s minor=%s state=0 args=vhd:/dev/VG_XenStorage-blah-blah"""
+    __STAT_CMD = "tap-ctl stats -p %s -m %s"
+
+    def __createMockHost(self, dataList):
+
+        tapList = []
+        calls = {}
+        for pid, minor, statOutput in dataList:
+            tapList.append(self.__TAP_CTRL_LIST % (pid, minor))
+            calls[self.__STAT_CMD % (pid, minor)] = statOutput
+
+        calls["tap-ctl list | cat"]='\n'.join(tapList)
         host = Mock()
-        host.execdom0 = Mock(return_value=fakeOutput)
+        host.execdom0 = Mock()
+        host.execdom0.side_effect = lambda x: calls[x]
         return host
 
     def testTapCtlWithNoData(self):
-        host = self.__createMockHost("")
+        host = self.__createMockHost([])
         rc = ReadCaching()
-        self.assertFalse(rc.isEnabled(host))
+        self.assertEqual([], rc.isEnabled(host))
 
     def testTapCtlWithNoRelevantData(self):
-        host = self.__createMockHost("""{"nbd_mirror_failed": 0, "reqs_oustanding": 0}""")
+        host = self.__createMockHost([("1", "2", """{"nbd_mirror_failed": 0, "reqs_oustanding": 0}""")])
         rc = ReadCaching()
-        self.assertFalse(rc.isEnabled(host))
+        self.assertEqual([False], rc.isEnabled(host))
 
     def testTapCtlWithExpectedOutputNoReadCache(self):
-        fakeOutput = """{ "name": "vhd:/var/run/sr-mount/0c1bdf63-a87e-99d2-8646-654203ad2adf/473963eb-f87a-4f46-9a1e-1ab74a164f7f.vhd", "secs": [ 1088, 0 ], "images": [ { "name": "/var/run/sr-mount/0c1bdf63-a87e-99d2-8646-654203ad2adf/473963eb-f87a-4f46-9a1e-1ab74a164f7f.vhd", "hits": [ 1088, 0 ], "fail": [ 0, 0 ], "driver": { "type": 4, "name": "vhd", "status": null } } ], "tap": { "minor": 4, "reqs": [ 15, 15 ], "kicks": [ 13, 11 ] }, "xenbus": { "pool": "td-xenio-default", "domid": 4, "devid": 51728, "reqs": [ 65, 65 ], "kicks": [ 66, 65 ], "errors": { "msg": 0, "map": 0, "vbd": 0, "img": 0 } }, "FIXME_enospc_redirect_count": 0, "nbd_mirror_failed": 0, "reqs_oustanding": 0, "read_caching": "false" }"""
-        host = self.__createMockHost(fakeOutput)
+        data = [("1", "2", """{"reqs_oustanding": 0, "read_caching": "false" }"""),
+                ("2", "3", """{"reqs_oustanding": 0, "read_caching": "false" }""")]
+        host = self.__createMockHost(data)
         rc = ReadCaching()
-        self.assertFalse(rc.isEnabled(host))
+        self.assertEqual([False, False], rc.isEnabled(host))
 
-    def testTapCtlWithExpectedOutputWithReadCache(self):
-        fakeOutput = """{ "name": "vhd:/var/run/sr-mount/0c1bdf63-a87e-99d2-8646-654203ad2adf/473963eb-f87a-4f46-9a1e-1ab74a164f7f.vhd", "secs": [ 1088, 0 ], "images": [ { "name": "/var/run/sr-mount/0c1bdf63-a87e-99d2-8646-654203ad2adf/473963eb-f87a-4f46-9a1e-1ab74a164f7f.vhd", "hits": [ 1088, 0 ], "fail": [ 0, 0 ], "driver": { "type": 4, "name": "vhd", "status": null } } ], "tap": { "minor": 4, "reqs": [ 15, 15 ], "kicks": [ 13, 11 ] }, "xenbus": { "pool": "td-xenio-default", "domid": 4, "devid": 51728, "reqs": [ 65, 65 ], "kicks": [ 66, 65 ], "errors": { "msg": 0, "map": 0, "vbd": 0, "img": 0 } }, "FIXME_enospc_redirect_count": 0, "nbd_mirror_failed": 0, "reqs_oustanding": 0, "read_caching": "true" }"""
-        host = self.__createMockHost(fakeOutput)
+    def testTapCtlWithExpectedOutputReadCachePartial(self):
+        data = [("1", "2", """{"reqs_oustanding": 0, "read_caching": "false" }"""),
+                ("2", "3", """{"reqs_oustanding": 0, "read_caching": "true" }""")]
+        host = self.__createMockHost(data)
         rc = ReadCaching()
-        self.assertTrue(rc.isEnabled(host))
+        self.assertEqual([False, True], rc.isEnabled(host))
+
+    def testTapCtlWithExpectedOutputReadCacheEnabled(self):
+        data = [("1", "2", """{"reqs_oustanding": 0, "read_caching": "true" }"""),
+                ("2", "3", """{"reqs_oustanding": 0, "read_caching": "true" }""")]
+        host = self.__createMockHost(data)
+        rc = ReadCaching()
+        self.assertEqual([True, True], rc.isEnabled(host))

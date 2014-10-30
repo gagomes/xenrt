@@ -13,7 +13,7 @@ class LicensedFeature(object):
     def isEnabled(self, host):
         """
         Is the feature programmatically enabled on the server side
-        @rtype boolean
+        @rtype boolean list
         """
         pass
 
@@ -80,10 +80,18 @@ class ReadCaching(LicensedFeature):
 
     __TAP_CTRL_FLAG = "read_caching"
 
+    def __fetchPidAndMinor(self, host):
+        regex = re.compile("""{0}=(\w+) {1}=(\w+)""".format("pid", "minor"))
+        data = host.execdom0("tap-ctl list | cat")
+        return regex.findall(data)
+
     def isEnabled(self, host):
-        pid = "20806" # Need to get this value
-        readCacheDump = host.execdom0("tap-ctl stats -p %s -m 4" % pid)
-        return self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG)
+        pidAndMinors = self.__fetchPidAndMinor(host)
+        output = []
+        for pid, minor in pidAndMinors:
+            readCacheDump = host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
+            output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
+        return output
 
     @property
     def featureFlagName(self):

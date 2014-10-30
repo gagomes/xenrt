@@ -2048,25 +2048,26 @@ class Experiment_vmrun(Experiment):
                 xenrt.TEC().logverbose("Creating model guest is done. Shutting down the VM.")
                 g0.shutdown()
 
-                # post-install post-shutdown    
-                if self.distro[0]=="w":
-                    for pi in self.vmpostinstall:
-                        xenrt.TEC().logverbose("executing vmpostshutdown action=%s" % pi)
-                        if "nousb" in pi:
-                            # These commands are mutually exclusive and was changed in build 69008
-                            # Old command
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g0.uuid)
-                            # New command
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:usb=false" % g0.uuid)
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:usb_tablet=false" % g0.uuid)
-                        if "noparallel" in pi:
-                            g0.host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g0.uuid)
-                        if "noserial" in pi:
-                            g0.host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g0.uuid)
-                        if "nocdrom" in pi:
-                            vbds = g0.listVBDUUIDs("CD")
-                            for vbd in vbds:
-                                g0.host.execdom0("xe vbd-destroy uuid=%s" % vbd)
+                # post-install post-shutdown
+                if isinstance(host, xenrt.lib.xenserver.Host):
+                    if self.distro[0]=="w":
+                        for pi in self.vmpostinstall:
+                            xenrt.TEC().logverbose("executing vmpostshutdown action=%s" % pi)
+                            if "nousb" in pi:
+                                # These commands are mutually exclusive and was changed in build 69008
+                                # Old command
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:nousb=true" % g0.uuid)
+                                # New command
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:usb=false" % g0.uuid)
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:usb_tablet=false" % g0.uuid)
+                            if "noparallel" in pi:
+                                g0.host.execdom0("xe vm-param-set uuid=%s platform:parallel=none" % g0.uuid)
+                            if "noserial" in pi:
+                                g0.host.execdom0("xe vm-param-set uuid=%s other-config:hvm_serial=none" % g0.uuid)
+                            if "nocdrom" in pi:
+                                vbds = g0.listVBDUUIDs("CD")
+                                for vbd in vbds:
+                                    g0.host.execdom0("xe vbd-destroy uuid=%s" % vbd)
 
             return g0
 

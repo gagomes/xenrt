@@ -1122,7 +1122,7 @@ class TC8123(_TC8122):
 
     def prepareSR(self):
         # Set up an NFS SR
-        nfs = self.createExternalNFSSHare()
+        nfs = self.createExternalNFSShare()
         nfsm = nfs.getMount()
         r = re.search(r"([0-9\.]+):(\S+)", nfsm)
         if not r:
@@ -1138,7 +1138,7 @@ class TC8123(_TC8122):
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.NFSStorageRepository
 
-    def createExternalNFSSHare(self):
+    def createExternalNFSShare(self):
         return xenrt.ExternalNFSShare()
 
 class TC20929(_TC8122):

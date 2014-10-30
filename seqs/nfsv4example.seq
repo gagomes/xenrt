@@ -7,7 +7,7 @@
   <scheduler>
     <resources>memory&gt;=4G</resources>
     <param>MACHINES_REQUIRED=1</param>
-    <flags>nfs</flags>
+    <flags>nfs4</flags>
   </scheduler>
   <prepare>
     <host id="0">

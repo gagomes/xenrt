@@ -232,7 +232,7 @@ class Guest(xenrt.lib.libvirt.Guest):
             self.vcpus -= (self.vcpus % 2)
             xenrt.warning("ESX: VCPUs must be a multiple of 2 (or 1). Rounding to %d VCPUs" % self.memory)
         if rootdisk == self.DEFAULT or rootdisk is None:
-            rootdisk = 8*xenrt.GIGA
+            rootdisk = 16*xenrt.GIGA
 
         # create disks
         # FIXME: hard-coded

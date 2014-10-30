@@ -48,24 +48,24 @@ class CreedenceLicence(Licence):
         if self.sku == XenServerLicenceSKU.PerUserEnterprise or \
            self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise :
             return "enterprise-per-user"
-        if self.sku == XenServerLicenceseSKU.PerSocketEnterprise or \
-           self.sku == XenServerLicence.PerSocket:
+        if self.sku == XenServerLicenceSKU.PerSocketEnterprise or \
+           self.sku == XenServerLicenceSKU.PerSocket:
             return "enterprise-per-socket"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
             return "xendesktop-platinum"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "standard-per-socket"
-        if self.sku == XenServerLicences.PerUserStandard or \
-           self.sku == XenServerLicence.PerConcurrentUserStandard:
+        if self.sku == XenServerLicenceSKU.PerUserStandard or \
+           self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
             return "standard-per-user"
-        if self.sku == XenServerLicence.Free:
+        if self.sku == XenServerLicenceSKU.Free:
             return "free"
         raise ValueError("No edition found for the SKU %s" % self.sku)
 
     def getLicenceFileName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
             return "licence.lic"
-        if self.sku == XenServerLicenceseSKU.PerUserEnterprise:
+        if self.sku == XenServerLicenceSKU.PerUserEnterprise:
             return "licence.lic"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "licence.lic"
@@ -73,20 +73,20 @@ class CreedenceLicence(Licence):
             return "licence.lic"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "licence.lic"
-        if self.sku == XenServerLicences.PerUserStandard:
+        if self.sku == XenServerLicenceSKU.PerUserStandard:
             return "licence.lic"
-        if self.sku == XenServerLicence.PerConcurrentUserStandard:
+        if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
             return "licence.lic"
-        if self.sku == XenServerLicence.Free:
+        if self.sku == XenServerLicenceSKU.Free:
             return "licence.lic"
-        if self.sku == XenServerLicence.PerSocket:
+        if self.sku == XenServerLicenceSKU.PerSocket:
             return "licence.lic"
         raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
             return "XSC_CCD"
-        if self.sku == XenServerLicenceseSKU.PerUserEnterprise:
+        if self.sku == XenServerLicenceSKU.PerUserEnterprise:
             return "XSC_CCD"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "XSC_CCD"
@@ -94,12 +94,12 @@ class CreedenceLicence(Licence):
             return "XSC_CCD"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "XSC_CCD"
-        if self.sku == XenServerLicences.PerUserStandard:
+        if self.sku == XenServerLicenceSKU.PerUserStandard:
             return "XSC_CCD"
-        if self.sku == XenServerLicence.PerConcurrentUserStandard:
+        if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
             return "XSC_CCD"
-        if self.sku == XenServerLicence.Free:
+        if self.sku == XenServerLicenceSKU.Free:
             return "XSC_CCD"
-        if self.sku == XenServerLicence.PerSocket:
+        if self.sku == XenServerLicenceSKU.PerSocket:
             return "XSC_CCD"
         raise ValueError("No license server name found for the SKU %s" % self.sku)

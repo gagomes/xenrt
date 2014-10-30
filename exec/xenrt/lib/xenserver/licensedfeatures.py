@@ -1,7 +1,9 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 import re
 
-class LicencedFeature(object):
+__all__ = ["WorkloadBalancing", "ReadCaching", "VirtualGPU", "Hotfixing", "ExportPoolResourceList"]
+
+class LicensedFeature(object):
     """
     Class to check the licensing and actual state of a sepcific feature
     """
@@ -30,13 +32,18 @@ class LicencedFeature(object):
         """
         cli = host.getCLIInstance()
         data = cli.execute("host-license-view","host-uuid=%s" % (host.getMyHostUUID()))
-        return self.__searchForRestriction(data)
+        return self._searchForFlag(data, self.featureFlagName)
 
-    def __searchForRestriction(self, data):
-        regex = "%s: (?P<flagValue>\w+)" % self.featureFlagName
+    def _searchForFlag(self, data, flag):
+        """ Regex here matches:
+            "my_flag": "my_data" <-TapCtl Formatted JSON
+            my_flag: my_data <- xapi formatted
+            and mixtures of the two
+        """
+        regex = """[\"]*%s[\"]*: (?P<flagValue>[\w\"]+)""" % flag
         match = re.search(regex, data)
         if match:
-            return match.group("flagValue").strip() == "true"
+            return match.group("flagValue").strip().replace('\"', '') == "true"
         return False
 
     def poolFeatureFlagValue(self, pool):
@@ -45,7 +52,7 @@ class LicencedFeature(object):
         @rtype boolean
         """
         poolParams = pool.getPoolParam("restrictions")
-        return self.__searchForRestriction(poolParams)
+        return self._searchForFlag(poolParams, self.featureFlagName)
 
     @property
     def stateCanBeChecked(self):
@@ -56,7 +63,7 @@ class LicencedFeature(object):
         return True
 
 
-class WorkloadBalancing(LicencedFeature):
+class WorkloadBalancing(LicensedFeature):
 
     def isEnabled(self, host):
         raise NotImplementedError()
@@ -69,24 +76,24 @@ class WorkloadBalancing(LicencedFeature):
     def stateCanBeChecked(self):
         return False
 
-class ReadCaching(LicencedFeature):
+class ReadCaching(LicensedFeature):
+
+    __TAP_CTRL_FLAG = "read_caching"
 
     def isEnabled(self, host):
-        readCacheDump = host.execdom0("tap-ctl list | cat")
-        regex = "read_caching=(?P<flagValue>\w+)"
-        match = re.search(regex, readCacheDump)
-        if match:
-            return match.group("flagValue").strip() == "1"
-        return False
+        pid = "20806" # Need to get this value
+        readCacheDump = host.execdom0("tap-ctl stats -p %s -m 4" % pid)
+        return self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG)
 
     @property
     def featureFlagName(self):
         return "restrict_read_caching"
 
 
-class VirtualGPU(LicencedFeature):
+class VirtualGPU(LicensedFeature):
 
     def isEnabled(self, host):
+        #vm .hasvGPU
         raise NotImplementedError()
 
     @property
@@ -94,7 +101,7 @@ class VirtualGPU(LicencedFeature):
         return "restrict_vgpu"
 
 
-class Hotfixing(LicencedFeature):
+class Hotfixing(LicensedFeature):
 
     def isEnabled(self, host):
         raise NotImplementedError()
@@ -108,7 +115,7 @@ class Hotfixing(LicencedFeature):
         return False
 
 
-class ExportPoolResourceList(LicencedFeature):
+class ExportPoolResourceList(LicensedFeature):
 
     def isEnabled(self, host):
         raise NotImplementedError()

@@ -1,23 +1,105 @@
 from xenrt.enum import XenServerLicenceSKU
+from abc import ABCMeta, abstractmethod
 
-class CreedenceLicence(object):
+__all__ = ["CreedenceLicence"]
 
-    def getEdition(self, sku):
-        """ Rune for xapi"""
-        if sku = enum value:
-            return "edition"
+class Licence(object):
+    __metaclass__ = ABCMeta
 
-    def getLicenceFileName(self, sku):
-        if sku = enum value:
-            return "filenmae.lic"
+    def __init__(self, sku):
+        self.__sku = sku
 
-    def getLicenceName(self, sku):
-        if sku = enum value:
-            return "CXS_STD"
+    @property
+    def sku(self):
+        """
+        The SKU
+        @rtype string (from XenServerLicenceSKU enum)
+        """
+        return self.__sku
+
+    @abstractmethod
+    def getEdition(self):
+        """
+        Edition used by xapi for the given sku
+        @rtype string
+        """
+        pass
+
+    @abstractmethod
+    def getLicenceFileName(self):
+        """
+        File name for the given SKU
+        @rtype string
+        """
+        pass
+
+    @abstractmethod
+    def getLicenceName(self):
+        """
+        License servers understanding of a given SKU
+        @rtype string
+        """
+        pass
 
 
-class LicenseProvider(object):
-    def licence(self, host):
-        if host.productVersion == "Creedence":
-            return CreedenceLicence()
-        raise ValueError("Variosn does not exist")
+class CreedenceLicence(Licence):
+
+    def getEdition(self):
+        if self.sku == XenServerLicenceSKU.PerUserEnterprise or \
+           self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise :
+            return "enterprise-per-user"
+        if self.sku == XenServerLicenceseSKU.PerSocketEnterprise or \
+           self.sku == XenServerLicence.PerSocket:
+            return "enterprise-per-socket"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
+            return "xendesktop-platinum"
+        if self.sku == XenServerLicenceSKU.PerSocketStandard:
+            return "standard-per-socket"
+        if self.sku == XenServerLicences.PerUserStandard or \
+           self.sku == XenServerLicence.PerConcurrentUserStandard:
+            return "standard-per-user"
+        if self.sku == XenServerLicence.Free:
+            return "free"
+        raise ValueError("No edition found for the SKU %s" % self.sku)
+
+    def getLicenceFileName(self):
+        if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
+            return "licence.lic"
+        if self.sku == XenServerLicenceseSKU.PerUserEnterprise:
+            return "licence.lic"
+        if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
+            return "licence.lic"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
+            return "licence.lic"
+        if self.sku == XenServerLicenceSKU.PerSocketStandard:
+            return "licence.lic"
+        if self.sku == XenServerLicences.PerUserStandard:
+            return "licence.lic"
+        if self.sku == XenServerLicence.PerConcurrentUserStandard:
+            return "licence.lic"
+        if self.sku == XenServerLicence.Free:
+            return "licence.lic"
+        if self.sku == XenServerLicence.PerSocket:
+            return "licence.lic"
+        raise ValueError("No license file name found for the SKU %s" % self.sku)
+
+    def getLicenceName(self):
+        if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
+            return "XSC_CCD"
+        if self.sku == XenServerLicenceseSKU.PerUserEnterprise:
+            return "XSC_CCD"
+        if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
+            return "XSC_CCD"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
+            return "XSC_CCD"
+        if self.sku == XenServerLicenceSKU.PerSocketStandard:
+            return "XSC_CCD"
+        if self.sku == XenServerLicences.PerUserStandard:
+            return "XSC_CCD"
+        if self.sku == XenServerLicence.PerConcurrentUserStandard:
+            return "XSC_CCD"
+        if self.sku == XenServerLicence.Free:
+            return "XSC_CCD"
+        if self.sku == XenServerLicence.PerSocket:
+            return "XSC_CCD"
+        raise ValueError("No license server name found for the SKU %s" % self.sku)

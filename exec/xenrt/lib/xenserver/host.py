@@ -18,8 +18,11 @@ import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
 import xenrt.lib.xenserver.jobtests
+from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
+from xenrt.lib.xenserver.licensing import CreedenceLicence
+from xenrt.enum import XenServerLicenceSKU
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -11127,8 +11130,36 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def licenceSKUs(self, xenserverOnly=False):
-        return [XenServerLicenceSKU.PerSocketEnterprise, XenServerLicenceSKU.PerUserEnterprise]
+    def validLicenses(self, xenserverOnly=False):
+        """
+        option: xenserverOnly - return the SKUs for just XenServer
+        """
+        xsOnlySKUs = [XenServerLicenceSKU.PerSocketEnterprise,
+                        XenServerLicenceSKU.PerUserEnterprise,
+                        XenServerLicenceSKU.PerConcurrentUserEnterprise,
+                        XenServerLicenceSKU.PerSocketStandard,
+                        XenServerLicenceSKU.PerUserStandard,
+                        XenServerLicenceSKU.PerConcurrentUserStandard,
+                        XenServerLicenceSKU.Free,
+                        XenServerLicenceSKU.PerSocket]
+
+        allSKUs = [XenServerLicenceSKU.PerSocketEnterprise,
+                    XenServerLicenceSKU.PerUserEnterprise,
+                    XenServerLicenceSKU.PerConcurrentUserEnterprise,
+                    XenServerLicenceSKU.XenDesktopPlatinum,
+                    XenServerLicenceSKU.PerSocketStandard,
+                    XenServerLicenceSKU.PerUserStandard,
+                    XenServerLicenceSKU.PerConcurrentUserStandard,
+                    XenServerLicenceSKU.Free,
+                    XenServerLicenceSKU.PerSocket]
+
+        skus = xsOnlySKUs if xenserverOnly else allSKUs
+        return [CreedenceLicence(s) for s in skus]
+
+    def licensedFeatures(self):
+        return  [licensedfeatures.WorkloadBalancing(), licensedfeatures.ReadCaching(),
+                 licensedfeatures.VirtualGPU(), licensedfeatures.Hotfixing(),
+                 licensedfeatures.ExportPoolResourceList()]
 
 #############################################################################
 class SarasotaHost(CreedenceHost):

@@ -119,6 +119,7 @@ class VirtualGPU(LicensedFeature):
 
 
 class GPUPassthrough(VirtualGPU):
+
     @property
     def featureFlagName(self):
         return "restrict_gpu"

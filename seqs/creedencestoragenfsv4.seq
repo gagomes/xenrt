@@ -18,7 +18,7 @@
   </prepare>
 
   <testsequence group="NFS">
-    <!-- Needs work <testcase id="xenserver.tc.storage.TC8123"/> -->
+    <testcase id="xenserver.tc.storage.TC23335"/>
     <serial group="VDICreate">
       <testcase id="xenserver.tc.storage.TC8523" prio="3"/>
     </serial>

@@ -1141,6 +1141,16 @@ class TC8123(_TC8122):
     def createExternalNFSShare(self):
         return xenrt.ExternalNFSShare()
 
+
+class TC23335(TC8123):
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.NFSv4StorageRepository
+
+    def createExternalNFSShare(self):
+        return xenrt.ExternalNFSShare(version="4")
+
+
 class TC20929(_TC8122):
     """Ensure that VHD chain limit is enforced on filesr"""
 

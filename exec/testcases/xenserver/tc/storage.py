@@ -1122,18 +1122,24 @@ class TC8123(_TC8122):
 
     def prepareSR(self):
         # Set up an NFS SR
-        nfs = xenrt.ExternalNFSShare()
+        nfs = self.createExternalNFSSHare()
         nfsm = nfs.getMount()
         r = re.search(r"([0-9\.]+):(\S+)", nfsm)
         if not r:
             raise xenrt.XRTError("Unable to parse NFS paths %s" % (nfsm))
-        sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "NFS SR")
+        sr = self.getStorageRepositoryClass()(self.host, "NFS SR")
         if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
             sr.create(r.group(1), r.group(2))
         else:
             sr.create(r.group(1), r.group(2), nosubdir=True) # NFS SR with no sub directory
         self.sr = sr.uuid
         self.host.addSR(sr)
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.NFSStorageRepository
+
+    def createExternalNFSSHare(self):
+        return xenrt.ExternalNFSShare()
 
 class TC20929(_TC8122):
     """Ensure that VHD chain limit is enforced on filesr"""

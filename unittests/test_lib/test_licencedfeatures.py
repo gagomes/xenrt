@@ -103,7 +103,7 @@ class TestReadCachingEnablement(XenRTUnitTestCase):
             tapList.append(self.__TAP_CTRL_LIST % (pid, minor))
             calls[self.__STAT_CMD % (pid, minor)] = statOutput
 
-        calls["tap-ctl list | cat"]='\n'.join(tapList)
+        calls["tap-ctl list | cat"] = '\n'.join(tapList)
         host = Mock()
         host.execdom0 = Mock()
         host.execdom0.side_effect = lambda x: calls[x]

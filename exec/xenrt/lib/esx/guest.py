@@ -286,8 +286,6 @@ class Guest(xenrt.lib.libvirt.Guest):
         # Switch devices over to use PV drivers automatically
         self.usePVdrivers()
 
-        self.start()
-
     def changeToPVSCSI(self, force=False):
         self.shutdown(force=force)
 

@@ -96,10 +96,8 @@ class ReadCaching(LicensedFeature):
         pidAndMinors = self.__fetchPidAndMinor(host)
         output = []
         for pid, minor in pidAndMinors:
-            readCacheDump = host.execdom0(
-                "tap-ctl stats -p %s -m %s" % (pid, minor))
-            output.append(
-                self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
+            readCacheDump = host.execdom0("tap-ctl stats -p %s -m %s" % (pid, minor))
+            output.append(self._searchForFlag(readCacheDump, self.__TAP_CTRL_FLAG))
         return output
 
     @property

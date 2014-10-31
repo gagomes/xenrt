@@ -123,7 +123,6 @@ class _VMScalability(_Scalability):
         self.masterGuest = {}
         self.pool = self.getDefaultPool()
         self.currentNbrOfGuests = 0
-        self.currentNbrOfGuestsOnHost = {}
         if self.POOLED and not self.pool:
             raise xenrt.XRTError("Expected Pool orchestration missing")
 
@@ -312,7 +311,6 @@ class _VMScalability(_Scalability):
                 pass
 
         self.masterGuest[host] = guest
-        self.currentNbrOfGuestsOnHost[host] = len(host.listGuests(running=True))
 
     def createVmCloneThread(self, host, tailor_guest=None):
         if (self.max != 0 and self.currentNbrOfGuests >= self.max) or self.nbrOfFails > self.nbrOfFailThresholds:
@@ -321,8 +319,7 @@ class _VMScalability(_Scalability):
         self.lock.acquire()
         self.currentNbrOfGuests = self.currentNbrOfGuests + 1
         guestNbr = self.currentNbrOfGuests
-        self.currentNbrOfGuestsOnHost[host] = self.currentNbrOfGuestsOnHost[host] + 1
-        guestOnHostNbr = self.currentNbrOfGuestsOnHost[host]
+        guestOnHostNbr = len(host.listGuests(running=True)) + 1
         self.lock.release()
 
         g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + str(guestOnHostNbr)+"-" + self.DISTRO +"-on-" + str(host.getName()))
@@ -332,7 +329,7 @@ class _VMScalability(_Scalability):
             tailor_guest(g)
         if self.max == 0:
             try:
-                g.start()
+                g.start(specifyOn = False)
                 if self.HATEST:
                     g.setHAPriority(order=2, protect=True, restart=False)
                     if not g.paramGet("ha-restart-priority") == "best-effort":
@@ -448,7 +445,7 @@ class _VMScalability(_Scalability):
             if operation == "shutdown":
                 g.shutdown()
             elif operation == "start":
-                g.start()
+                g.start(specifyOn = False)
             passed = True
         except:
             if iterationNbr == None:

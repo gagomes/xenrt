@@ -41,6 +41,12 @@ class Licence(object):
         """
         pass
 
+    def __str__(self):
+        return "SKU: %s; Edition: %s; FileName: %s; LicenceServerName: %s" % (self.sku,
+                                                                              self.getEdition(),
+                                                                              self.getLicenceFileName(),
+                                                                              self.getLicenceName())
+
 
 class CreedenceLicence(Licence):
 

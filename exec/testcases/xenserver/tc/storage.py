@@ -61,7 +61,7 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
         pass
 
 
-class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
+class _LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
     def _getExportsLine(self):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 
@@ -92,7 +92,7 @@ def linuxBasedNFSExport(revision, path):
     if revision == 3:
         return LinuxHostedNFSv3Export(path)
     elif revision == 4:
-        return LinuxHostedNFSv4Export(path)
+        return _LinuxHostedNFSv4Export(path)
     else:
         raise ValueError('Invalid value for revision')
 

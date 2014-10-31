@@ -163,6 +163,7 @@ class SRSanityTestTemplate(xenrt.TestCase):
     TARGET_USE_EXTRA_VBD = False
     TARGET_USE_EXTRA_VBD_SIZE = 32768
     CHECK_FOR_OPEN_ISCSI = False
+    NFS_VERSION = 3
 
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
@@ -275,7 +276,6 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
-    NFS_VERSION = 3
 
     def createSR(self,host,guest):
         nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr'])
@@ -728,6 +728,12 @@ class TC7368(SRSanityTestTemplate):
             raise xenrt.XRTFailure("Second SR missing after forget of the "
                                    "first SR")
         self.checkSRs()
+
+
+class TC23336(TC7368):
+
+    NFS_VERSION = 4
+
 
 class TC7369(SRSanityTestTemplate):
     """Create an iSCSI SR on a target requiring CHAP authentication"""

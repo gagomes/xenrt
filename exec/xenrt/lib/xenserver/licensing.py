@@ -3,6 +3,7 @@ from abc import ABCMeta, abstractmethod
 
 __all__ = ["CreedenceLicence"]
 
+
 class Licence(object):
     __metaclass__ = ABCMeta
 
@@ -52,7 +53,7 @@ class CreedenceLicence(Licence):
 
     def getEdition(self):
         if self.sku == XenServerLicenceSKU.PerUserEnterprise or \
-           self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise :
+           self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "enterprise-per-user"
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise or \
            self.sku == XenServerLicenceSKU.PerSocket:

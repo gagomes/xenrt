@@ -20,7 +20,7 @@ class AbstractLinuxHostedNFSExport(object):
         if not path.startswith('/'):
             raise ValueError('absolute path expected')
 
-    def getExportsLine(self):
+    def _getExportsLine(self):
         raise NotImplementedError('This is an abstract class')
 
     def getCommandsToPrepareSharedDirectory(self):
@@ -41,14 +41,14 @@ class AbstractLinuxHostedNFSExport(object):
 
         # Create a dir and export it
         self.prepareSharedDirectory(guest)
-        guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
+        guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
 
 class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
-    def getExportsLine(self):
+    def _getExportsLine(self):
         return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
 
     def getCommandsToPrepareSharedDirectory(self):
@@ -62,7 +62,7 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
 
 
 class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
-    def getExportsLine(self):
+    def _getExportsLine(self):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 
     def getCommandsToPrepareSharedDirectory(self):

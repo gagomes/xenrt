@@ -46,10 +46,10 @@
   </prepare>
 
   <testsequence group="HFX-Apply">
-      <testcase id="cloud.tc.update.TCCloudUpdate" name="ProcCheck" tc="TC-80001" sku="Basic/${PRODUCT_VERSION}">
+      <testcase id="cloud.tc.update.TCCloudUpdate" name="ProcCheck" tc="TC-23337" sku="chk/Basic/${PRODUCT_VERSION}">
           <arg>noupdate=true</arg>
       </testcase>
-      <testcase id="cloud.tc.update.TCCloudUpdate" name="ApplyHFX" tc="TC-80002" sku="Basic/${PRODUCT_VERSION}">
+      <testcase id="cloud.tc.update.TCCloudUpdate" name="ApplyHFX" tc="TC-23337" sku="hfx/Basic/${PRODUCT_VERSION}">
       </testcase>
   </testsequence>
 </xenrt>

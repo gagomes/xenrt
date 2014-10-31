@@ -5,7 +5,7 @@
   <prepare>
       <host id="0">
         <vm name="lingold">
-          <distro>debian70</distro>
+          <distro>debian60</distro>
           <arch>x86-64</arch>
           <memory>512</memory>
           <vcpus>2</vcpus>

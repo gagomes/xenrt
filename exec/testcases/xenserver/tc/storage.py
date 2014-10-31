@@ -14,7 +14,7 @@ import xenrt
 from xenrt.lazylog import *
 
 
-class _AbstractLinuxHostedNFSExport(object):
+class _AbstractLinuxHostedNFSServer(object):
     def __init__(self, path):
         self.path = path
         if not path.startswith('/'):
@@ -47,7 +47,7 @@ class _AbstractLinuxHostedNFSExport(object):
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
 
-class _LinuxHostedNFSv3Export(_AbstractLinuxHostedNFSExport):
+class _LinuxHostedNFSv3Export(_AbstractLinuxHostedNFSServer):
     def _getExportsLine(self):
         return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
 
@@ -61,7 +61,7 @@ class _LinuxHostedNFSv3Export(_AbstractLinuxHostedNFSExport):
         pass
 
 
-class _LinuxHostedNFSv4Export(_AbstractLinuxHostedNFSExport):
+class _LinuxHostedNFSv4Export(_AbstractLinuxHostedNFSServer):
     def _getExportsLine(self):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 

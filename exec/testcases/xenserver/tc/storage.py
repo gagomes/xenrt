@@ -23,14 +23,14 @@ class AbstractLinuxHostedNFSExport(object):
     def _getExportsLine(self):
         raise NotImplementedError('This is an abstract class')
 
-    def getCommandsToPrepareSharedDirectory(self):
+    def _getCommandsToPrepareSharedDirectory(self):
         raise NotImplementedError('This is an abstract class')
 
     def getStorageRepositoryClass(self):
         raise NotImplementedError('This is an abstract class')
 
     def prepareSharedDirectory(self, guest):
-        for command in self.getCommandsToPrepareSharedDirectory():
+        for command in self._getCommandsToPrepareSharedDirectory():
             guest.execguest(command)
 
     def createNFSExportOnGuest(self, guest):
@@ -51,7 +51,7 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
     def _getExportsLine(self):
         return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
 
-    def getCommandsToPrepareSharedDirectory(self):
+    def _getCommandsToPrepareSharedDirectory(self):
         return ["mkdir %s" % self.path]
 
     def getStorageRepositoryClass(self):
@@ -65,7 +65,7 @@ class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
     def _getExportsLine(self):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 
-    def getCommandsToPrepareSharedDirectory(self):
+    def _getCommandsToPrepareSharedDirectory(self):
         return [
             "mkdir /nfsv4-root",
             "mkdir /nfsv4-root%s" % self.path,

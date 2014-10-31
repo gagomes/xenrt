@@ -29,7 +29,7 @@ class AbstractLinuxHostedNFSExport(object):
     def getStorageRepositoryClass(self):
         raise NotImplementedError('This is an abstract class')
 
-    def prepareSharedDirectory(self, guest):
+    def _prepareSharedDirectory(self, guest):
         for command in self._getCommandsToPrepareSharedDirectory():
             guest.execguest(command)
 
@@ -40,7 +40,7 @@ class AbstractLinuxHostedNFSExport(object):
         )
 
         # Create a dir and export it
-        self.prepareSharedDirectory(guest)
+        self._prepareSharedDirectory(guest)
         guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")

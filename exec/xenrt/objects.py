@@ -3232,7 +3232,7 @@ DHCPServer = 1
             if self.windows:
                 self.xmlrpcExec("netsh firewall set opmode DISABLE")
             else:
-                self.execcmd("/etc/init.d/iptables stop")
+                self.execcmd("service iptables stop")
         except Exception, e:
             xenrt.TEC().warning("Exception disabling firewall: %s" %
                                 (str(e)))
@@ -4772,7 +4772,7 @@ class GenericHost(GenericPlace):
             self.findPassword()
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
-                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && service iptables save")
+                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && /usr/libexec/iptables/iptables.init save")
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")

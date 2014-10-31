@@ -702,25 +702,16 @@ class TC7368(SRSanityTestTemplate):
     """Create two NFS SRs on the same NFS server"""
 
     def createSR(self,host,guest):
-        # Set up NFS
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr0', '/sr1'])
 
-        # Create a dir and export it
-        guest.execguest("mkdir /sr0")
-        guest.execguest("echo '/sr0 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " > /etc/exports")
-        guest.execguest("mkdir /sr1")
-        guest.execguest("echo '/sr1 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " >> /etc/exports")
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+        nfsServer.createNFSExportOnGuest(guest)
+
+        nfsServer.prepareDomZero(host)
 
         # Create the SRs on the host
-        sr0 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs0")
+        sr0 = nfsServer.getStorageRepositoryClass()(host,"test-nfs0")
         sr0.create(guest.getIP(),"/sr0")
-        sr1 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs1")
+        sr1 = nfsServer.getStorageRepositoryClass()(host,"test-nfs1")
         sr1.create(guest.getIP(),"/sr1")
 
         return [sr0.uuid, sr1.uuid]

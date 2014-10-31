@@ -52,7 +52,7 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
         return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
 
     def _getCommandsToPrepareSharedDirectory(self):
-        return ["mkdir %s" % self.path]
+        return ["mkdir -p %s" % self.path]
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSStorageRepository
@@ -67,8 +67,8 @@ class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
 
     def _getCommandsToPrepareSharedDirectory(self):
         return [
-            "mkdir /nfsv4-root",
-            "mkdir /nfsv4-root%s" % self.path,
+            "mkdir -p /nfsv4-root",
+            "mkdir -p /nfsv4-root%s" % self.path,
             "chmod o+w /nfsv4-root%s" % self.path,
         ]
 

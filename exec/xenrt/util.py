@@ -1411,8 +1411,8 @@ def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
     if not marvinversion:
         # The user has not specified the Marvin version to use
-        if re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
-           re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
+        if re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
+           re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
             marvinversion = "3.0."
 
     if marvinversion:

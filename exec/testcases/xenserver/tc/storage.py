@@ -270,18 +270,18 @@ class NFSSRSanityTest(SRSanityTestTemplate):
     NFS_VERSION = 3
 
     def createSR(self,host,guest):
-        nfsExport = linuxBasedNFSServer(self.NFS_VERSION, '/sr')
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, '/sr')
 
-        nfsExport.createNFSExportOnGuest(guest)
+        nfsServer.createNFSExportOnGuest(guest)
 
-        nfsExport.prepareDomZero(host)
+        nfsServer.prepareDomZero(host)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = nfsExport.getStorageRepositoryClass()(host, self.SRNAME)
+            sr = nfsServer.getStorageRepositoryClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:

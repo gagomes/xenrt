@@ -47,7 +47,7 @@ class _AbstractLinuxHostedNFSServer(object):
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
 
-class _LinuxHostedNFSv3Export(_AbstractLinuxHostedNFSServer):
+class _LinuxHostedNFSv3Server(_AbstractLinuxHostedNFSServer):
     def _getExportsLine(self):
         return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
 
@@ -90,7 +90,7 @@ class _LinuxHostedNFSv4Export(_AbstractLinuxHostedNFSServer):
 
 def linuxBasedNFSExport(revision, path):
     if revision == 3:
-        return _LinuxHostedNFSv3Export(path)
+        return _LinuxHostedNFSv3Server(path)
     elif revision == 4:
         return _LinuxHostedNFSv4Export(path)
     else:

@@ -68,6 +68,67 @@ class StorageRepository(xenrt.lib.libvirt.StorageRepository):
         randname = xenrt.randomGuestName()
         return "%s/%s.%s" % (randname, randname, format)
 
+    # Implement linked-clones using thin provisioning
+    # e.g. srcvdiname='vm-template/vm-template.vmdk', destvdiname='localb-0/localb-0.vmdk'
+    def cloneVDI(self, srcvdiname, destvdiname=None):
+        if destvdiname is None:
+            destvdiname = self.generateCloneName(srcvdiname, forcebranch=True)
+
+        xenrt.TEC().logverbose("Thin-cloning '%s' to '%s'" % (srcvdiname, destvdiname))
+
+        # Extract VM names and VDI names
+        try:
+            [srcvmname, srcvdi] = srcvdiname.split('/')
+            srcvdistem = srcvdi.split('.')[0]
+        except ValueError:
+            raise ValueError("source VDI doesn't have expected format '<directory>/<file>'")
+
+        try:
+            [destvmname, destvdi] = destvdiname.split('/')
+            destvdistem = destvdi.split('.')[0]
+        except ValueError:
+            raise ValueError("destination VDI doesn't have expected format '<directory>/<file>'")
+
+        srcsrpath = "/vmfs/volumes/%s" % (self.name)
+        destsrpath = srcsrpath # we assume the clone is going into the same datastore
+
+        # Find out the domid of the VM to which this VDI belongs
+        domid = self.host.execcmd("vim-cmd vmsvc/getallvms | grep '^[0-9]*\s\s*%s\s\s*' | awk '{print $1}'" % (srcvmname)).strip()
+
+        # 0. Temporarily detach all the VM's other disks, so they aren't snapshotted
+        # TODO
+
+        # 1. If the disk is already a snapshot, use that. Otherwise, take a new snapshot and use that.
+        if self.host.execcmd("fgrep parentFileNameHint= %s/%s" % (srcsrpath, srcvdiname), retval="code") == 0:
+            xenrt.TEC().logverbose("disk %s/%s is already a snapshot so use it directly" % (srcsrpath, srcvdiname))
+            # (note: if the VM was booted since taking the first snapshot, it won't be empty, so this won't be a true thin-clone)
+            srcvmdkname  = "%s.vmdk"       % (srcvdistem)
+            srcdeltaname = "%s-delta.vmdk" % (srcvdistem)
+        else:
+            xenrt.TEC().logverbose("disk %s/%s is not a snapshot so we need to snapshot it" % (srcsrpath, srcvdiname))
+            self.host.execcmd("vim-cmd vmsvc/snapshot.create %s %s-snap1" % (domid, srcvmname))
+            # TODO I don't know a reliable way of getting the VMDK file of a given snapshot, so we guess the filename
+            srcvmdkname  = "%s-000001.vmdk"       % (srcvdistem)
+            srcdeltaname = "%s-000001-delta.vmdk" % (srcvdistem)
+
+        # 2. Copy the snapshot and make the parent path fully-qualified
+        srcvmdk       = "%s/%s/%s"                   % (srcsrpath,  srcvmname,  srcvmdkname)
+        srcdeltavmdk  = "%s/%s/%s"                   % (srcsrpath,  srcvmname,  srcdeltaname)
+        destdeltaname = "%s-delta.vmdk"              % (destvdistem)
+        destdir       = "%s/%s"                      % (destsrpath, destvmname)
+        destvmdk      = "%s/%s/%s"                   % (destsrpath, destvmname, destvdi)
+        destdeltavmdk = "%s/%s/%s"                   % (destsrpath, destvmname, destdeltaname)
+        self.host.execcmd("mkdir -p %s" % (destdir))
+        self.host.execcmd("cp %s %s" % (srcvmdk, destvmdk))
+        self.host.execcmd("cp %s %s" % (srcdeltavmdk, destdeltavmdk))
+        self.host.execcmd("sed -i 's!parentFileNameHint=\"!parentFileNameHint=\"%s/%s/!' %s" % (srcsrpath, srcvmname, destvmdk))
+        self.host.execcmd("sed -i 's/%s/%s/' %s" % (srcdeltaname, destdeltaname, destvmdk))
+
+        # 5. Re-attach all the VM's other disks
+        # TODO
+
+        return self.getVDIPath("%s/%s" % (destvmname, destvdi))
+
 class ISOStorageRepository(xenrt.lib.libvirt.ISOStorageRepository, StorageRepository):
     pass
 

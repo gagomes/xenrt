@@ -322,7 +322,7 @@ class _VMScalability(_Scalability):
         guestOnHostNbr = len(host.listGuests(running=True)) + 1
         self.lock.release()
 
-        g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + str(guestOnHostNbr)+"-" + self.DISTRO +"-on-" + str(host.getName()))
+        g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + self.DISTRO )
         self.guests.append(g)
         host.addGuest(g)
         if tailor_guest:

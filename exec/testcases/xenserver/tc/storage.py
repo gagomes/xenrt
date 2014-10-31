@@ -88,7 +88,7 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
                 'NFSv4 expects hostname to resolve to an address')
 
 
-def linuxBasedNFSExport(revision, path):
+def linuxBasedNFSServer(revision, path):
     if revision == 3:
         return _LinuxHostedNFSv3Server(path)
     elif revision == 4:
@@ -270,7 +270,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
     NFS_VERSION = 3
 
     def createSR(self,host,guest):
-        nfsExport = linuxBasedNFSExport(self.NFS_VERSION, '/sr')
+        nfsExport = linuxBasedNFSServer(self.NFS_VERSION, '/sr')
 
         nfsExport.createNFSExportOnGuest(guest)
 

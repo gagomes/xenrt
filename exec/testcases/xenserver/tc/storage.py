@@ -15,10 +15,11 @@ from xenrt.lazylog import *
 
 
 class _AbstractLinuxHostedNFSServer(object):
-    def __init__(self, path):
-        self.path = path
-        if not path.startswith('/'):
-            raise ValueError('absolute path expected')
+    def __init__(self, paths):
+        self.paths = paths
+        for path in self.paths:
+            if not path.startswith('/'):
+                raise ValueError('absolute path expected')
 
     def _getExportsLine(self):
         raise NotImplementedError('This is an abstract class')
@@ -49,10 +50,14 @@ class _AbstractLinuxHostedNFSServer(object):
 
 class _LinuxHostedNFSv3Server(_AbstractLinuxHostedNFSServer):
     def _getExportsLine(self):
-        return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
+        exportLines = []
+        for path in self.paths:
+            exportLines.append(
+                '%s *(sync,rw,no_root_squash,no_subtree_check)' % path)
+        return '\n'.join(exportLines)
 
     def _getCommandsToPrepareSharedDirectory(self):
-        return ["mkdir -p %s" % self.path]
+        return ["mkdir -p %s" % path for path in self.paths]
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSStorageRepository
@@ -66,11 +71,14 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 
     def _getCommandsToPrepareSharedDirectory(self):
-        return [
-            "mkdir -p /nfsv4-root",
-            "mkdir -p /nfsv4-root%s" % self.path,
-            "chmod o+w /nfsv4-root%s" % self.path,
-        ]
+        prepareCommands = []
+        for path in self.paths:
+            prepareCommands += [
+                "mkdir -p /nfsv4-root",
+                "mkdir -p /nfsv4-root%s" % path,
+                "chmod o+w /nfsv4-root%s" % path,
+            ]
+        return prepareCommands
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSv4StorageRepository
@@ -88,11 +96,11 @@ class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
                 'NFSv4 expects hostname to resolve to an address')
 
 
-def linuxBasedNFSServer(revision, path):
+def linuxBasedNFSServer(revision, paths):
     if revision == 3:
-        return _LinuxHostedNFSv3Server(path)
+        return _LinuxHostedNFSv3Server(paths)
     elif revision == 4:
-        return _LinuxHostedNFSv4Server(path)
+        return _LinuxHostedNFSv4Server(paths)
     else:
         raise ValueError('Invalid value for revision')
 
@@ -270,7 +278,7 @@ class NFSSRSanityTest(SRSanityTestTemplate):
     NFS_VERSION = 3
 
     def createSR(self,host,guest):
-        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, '/sr')
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr'])
 
         nfsServer.createNFSExportOnGuest(guest)
 

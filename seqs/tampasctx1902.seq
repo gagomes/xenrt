@@ -41,7 +41,7 @@
 
   <testsequence>
     <serial group="Setup">
-      <testcase id="xenserver.tc.srpervm.SetupSRs">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
         <arg>linuxvms=17</arg>
         <arg>linuxfiler=fas3050b</arg>
         <arg>windowsvms=16</arg>

@@ -1359,7 +1359,7 @@ class Guest(xenrt.GenericGuest):
 
         # create new mac addresses
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("mac"):
-            node.parentNode.removeChild(node)
+            node.setAttribute("address", xenrt.randomMAC())
 
         # clone the domain
         xmldom.getElementsByTagName("name")[0].childNodes[0].data = newname

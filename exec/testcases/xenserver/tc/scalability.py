@@ -20,7 +20,6 @@ class _Scalability(xenrt.TestCase):
         xenrt.TestCase.__init__(self, tcid)
         self.host = None
         self.guests = []
-        self.SR = None
         self.lock = threading.Lock()
 
     def run(self,arglist):
@@ -123,7 +122,6 @@ class _VMScalability(_Scalability):
         self.masterGuest = {}
         self.pool = self.getDefaultPool()
         self.currentNbrOfGuests = 0
-        self.currentNbrOfGuestsOnHost = {}
         if self.POOLED and not self.pool:
             raise xenrt.XRTError("Expected Pool orchestration missing")
 
@@ -312,7 +310,6 @@ class _VMScalability(_Scalability):
                 pass
 
         self.masterGuest[host] = guest
-        self.currentNbrOfGuestsOnHost[host] = len(host.listGuests(running=True))
 
     def createVmCloneThread(self, host, tailor_guest=None):
         if (self.max != 0 and self.currentNbrOfGuests >= self.max) or self.nbrOfFails > self.nbrOfFailThresholds:
@@ -321,18 +318,17 @@ class _VMScalability(_Scalability):
         self.lock.acquire()
         self.currentNbrOfGuests = self.currentNbrOfGuests + 1
         guestNbr = self.currentNbrOfGuests
-        self.currentNbrOfGuestsOnHost[host] = self.currentNbrOfGuestsOnHost[host] + 1
-        guestOnHostNbr = self.currentNbrOfGuestsOnHost[host]
+        guestOnHostNbr = len(host.listGuests(running=True)) + 1
         self.lock.release()
 
-        g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + str(guestOnHostNbr)+"-" + self.DISTRO +"-on-" + str(host.getName()))
+        g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + self.DISTRO )
         self.guests.append(g)
         host.addGuest(g)
         if tailor_guest:
             tailor_guest(g)
         if self.max == 0:
             try:
-                g.start()
+                g.start(specifyOn = False)
                 if self.HATEST:
                     g.setHAPriority(order=2, protect=True, restart=False)
                     if not g.paramGet("ha-restart-priority") == "best-effort":
@@ -362,7 +358,7 @@ class _VMScalability(_Scalability):
 
         #To reduce the Xenserver load, due to XenRT interference, it is better to start the guests after creating all the Clones
         if self.max != 0:
-            nbrOfThreads = 5*len(self.hosts)
+            nbrOfThreads = min(5*len(self.hosts),25)
             xenrt.TEC().logverbose("Starting all Guests")
             self.guestsPendingOperation = [g for g in self.guests]
             self.nbrOfPassedGuests = 0
@@ -416,7 +412,7 @@ class _VMScalability(_Scalability):
         self.checkGuestThread()
 
     def checkGuests(self):
-        nbrOfThreads = 5*len(self.hosts)
+        nbrOfThreads = min(5*len(self.hosts),25)
 
         self.guestsNotChecked = [g for g in self.guests]
         self.nbrOfGuestsAlive = 0
@@ -448,7 +444,7 @@ class _VMScalability(_Scalability):
             if operation == "shutdown":
                 g.shutdown()
             elif operation == "start":
-                g.start()
+                g.start(specifyOn = False)
             passed = True
         except:
             if iterationNbr == None:
@@ -465,7 +461,7 @@ class _VMScalability(_Scalability):
         self.guestOperationThread(operation, iterationNbr)
 
     def loopingTest(self):
-        nbrOfThreads = 5*len(self.hosts)
+        nbrOfThreads = min(5*len(self.hosts),25)
 
         xenrt.TEC().logverbose("Shutting down all Guests")
         self.guestsPendingOperation = [g for g in self.guests]

@@ -46,14 +46,23 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
             # assume Linux OS with kernel >= 2.6.25, which has virtio PV drivers
             self.enlightenedDrivers = True
 
-    def _createVBD(self, sruuid, vdiname, format, userdevicename):
+    def _createVBD(self, sruuid, vdiname, format, userdevice, controllerType='ide', controllerModel=None):
+        if not controllerType:
+            controllerType = self._getDiskDeviceBus()
+
+        if userdevice is None:
+            userdevicename = self._getNextBlockDevice()
+        else:
+            userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+self._baseDeviceForBus())
+
+        # Currently, address is ignored
         srobj = self.host.srs[self.host.getSRName(sruuid)]
         vbdxmlstr = """
         <disk type='file' device='disk'>
             <driver name='qemu' type='%s' cache='none'/>
             <source file='%s'/>
             <target dev='%s' bus='%s'/>
-        </disk>""" % (format, srobj.getVDIPath(vdiname), userdevicename, self._getDiskDeviceBus())
+        </disk>""" % (format, srobj.getVDIPath(vdiname), userdevicename, controllerType)
         self._attachDevice(vbdxmlstr, hotplug=True)
 
     def createGuestFromTemplate(self,

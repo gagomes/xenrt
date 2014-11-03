@@ -4829,7 +4829,7 @@ class GenericHost(GenericPlace):
             return None
         return brs
 
-    def listSecondaryNICs(self, network=None, rspan=False, speed=None):
+    def listSecondaryNICs(self, network=None, rspan=False, speed=None, macaddr=None):
         """Return a list of "assumed" IDs (integers) of secondary NICs for this
         host as defined in the per-machine config."""
         reply = []
@@ -4845,7 +4845,8 @@ class GenericHost(GenericPlace):
                 if network == None or network == nw or network == "ANY":
                     if (not rspan) or rs:
                         if speed == None or speed == sp or (speed == "1G" and not sp):
-                            reply.append(i)
+                            if macaddr == None or xenrt.util.normaliseMAC(macaddr) == xenrt.util.normaliseMAC(mac):
+                                reply.append(i)
             else:
                 break
             i = i + 1

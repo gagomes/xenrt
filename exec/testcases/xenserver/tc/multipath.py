@@ -4827,7 +4827,7 @@ class TCValidatePathCount(_TC8159):
         
         totalPaths = len(host.getMultipathInfo()[self.scsiid])
         activePaths = len(host.getMultipathInfo(onlyActive=True)[self.scsiid])
-        expectedPaths = [activePaths-1, totalPaths]
+        expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
         
         step("Drop one path by disabling port")
         host.disableFCPort(1)

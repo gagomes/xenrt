@@ -123,7 +123,7 @@ class XenRTAPIPage(XenRTPage):
         if status:
             dstatus = status
         else:
-            dstatus = "default"
+            dstatus = "idle"
         db = self.getDB()
         cur = db.cursor()
         cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", [machine])

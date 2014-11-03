@@ -1,12 +1,11 @@
 <?xml version="1.0"?>
-<!-- netthru_vm2bare_1vif_interhost_xsbare_eth1static_10gb_minimal.seq
+<!-- netthru_vm2vm_1vif_interhost_xsxs_eth1static_minimal.seq
 
   This sequence contains network throughput experiments between
-  a VM in XenServer and bare metal hosts.
+  two VMs in two distinct XenServer hosts.
 
-  The VM has two VIFs, with eth1 on a 10 Gb/s network (NET_A).
-  The host also has eth1 on NET_A.
-  We use eth1 for the iperf session.
+  The VMs each have two VIFs, with eth1 on a 10 Gb/s network (NET_A).
+  We use eth1 on both VMs for the iperf session.
 
 -->
 <xenrt>
@@ -16,7 +15,7 @@
   </variables>
 
   <prepare>
-
+    <!--no pool here, the hosts can have different cpus-->
     <host id="0">
       <NETWORK>
         <PHYSICAL name="NET_MGMT">
@@ -28,18 +27,19 @@
         </PHYSICAL>
       </NETWORK>
 
-      <vm name="debian60-0-1v">
-        <distro>debian60</distro>
-        <network device="0" bridge="NET_MGMT"/>
-        <network device="1" bridge="NET_A"/>
-        <vcpus>2</vcpus>
-        <memory>2048</memory>
-        <postinstall action="pause"/><!-- do not interfere with other vms  -->
-      </vm>
-    </host>
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_MGMT"/>
+          <network device="1" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="installTools"/>
+          <postinstall action="changeToVMXNet3"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
 
-    <!-- a baremetal machine -->
-    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
+    </host>
+    <host id="1">
       <NETWORK>
         <PHYSICAL name="NET_MGMT">
           <MANAGEMENT/>
@@ -49,8 +49,19 @@
           <NIC/>
         </PHYSICAL>
       </NETWORK>
-    </host>
 
+        <vm name="debian60-1-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_MGMT"/>
+          <network device="1" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="installTools"/>
+          <postinstall action="changeToVMXNet3"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+
+    </host>
   </prepare>
 
   <testsequence>
@@ -61,8 +72,8 @@
         <arg>endpoint0=debian60-0-1v</arg>
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
-        <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=NET_A</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>endpoint1dev=1</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>
@@ -72,8 +83,8 @@
         <arg>endpoint0=debian60-0-1v</arg>
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
-        <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=NET_A</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+        <arg>endpoint1dev=1</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>

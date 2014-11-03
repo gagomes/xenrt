@@ -1637,19 +1637,20 @@ class FCHBATarget(ManagedStorageResource):
     </FC_PROVIDER>
     """
 
-    def __init__(self):
-        xenrt.TEC().logverbose("About to attempt to lock FC Target - current central resource status:")
-        self.logList()
-        serverdict = xenrt.TEC().lookup("FC_PROVIDER", None)
-        if not serverdict:
-            raise xenrt.XRTError("No FC_PROVIDER defined")
-        servers = serverdict.keys()
-        names = []
-        for s in servers:
-            names.append(s)
+    def __init__(self, specify=None):
+        if not specify:
+            serverdict = xenrt.TEC().lookup("FC_PROVIDER", None)
+            if not serverdict:
+                raise xenrt.XRTError("No FC_PROVIDER defined")
+            servers = serverdict.keys()
+            names = []
+            for s in servers:
+                names.append(s)
+            # Find one of the targets that is available
+            name = random.choice(names)
+        else:
+            name = specify
         CentralResource.__init__(self, held=False)
-        # Find one of the targets that is available
-        name = random.choice(names)
         self.name = name
         # Get details of this resource from the config
         self.DeviceID = xenrt.TEC().lookup(["FC_PROVIDER",
@@ -2011,31 +2012,33 @@ class NetAppTarget(ManagedStorageResource):
         </NETAPP_FILERS>
     """
 
-    def __init__(self, minsize=100, maxsize=1000000):
+    def __init__(self, minsize=100, maxsize=1000000, specify=None):
         """minsize is in GB"""
-        xenrt.TEC().logverbose("About to attempt to lock Netapp Target - current central resource status:")
-        self.logList()
-        # Find a suitable target
-        serverdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
-        if not serverdict:
-            raise xenrt.XRTError("No NETAPP_FILERS defined")
-        servers = serverdict.keys()
-        if len(servers) == 0:
-            raise xenrt.XRTError("No NETAPP_FILERS defined")
-        names = []
-        for s in servers:
-            xsize = int(xenrt.TEC().lookup(["NETAPP_FILERS", s, "SIZE"], 0))
-            if xsize < minsize:
-                continue
-            if xsize > maxsize:
-                continue
-            names.append(s)
-        if len(names) == 0:
-            raise xenrt.XRTError("Could not find a suitable target "
-                                 "(size>%uG)" % (minsize))
+        if not specify:
+            # Find a suitable target
+            serverdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
+            if not serverdict:
+                raise xenrt.XRTError("No NETAPP_FILERS defined")
+            servers = serverdict.keys()
+            if len(servers) == 0:
+                raise xenrt.XRTError("No NETAPP_FILERS defined")
+            names = []
+            for s in servers:
+                xsize = int(xenrt.TEC().lookup(["NETAPP_FILERS", s, "SIZE"], 0))
+                if xsize < minsize:
+                    continue
+                if xsize > maxsize:
+                    continue
+                names.append(s)
+            if len(names) == 0:
+                raise xenrt.XRTError("Could not find a suitable target "
+                                     "(size>%uG)" % (minsize))
+            # Find one of the targets that is available
+            name = random.choice(names)
+        else:
+            name = specify
         CentralResource.__init__(self, held=False)
-        # Find one of the targets that is available
-        name = random.choice(names)
+        
         self.name = name
         # Get details of this resource from the config
         self.target = xenrt.TEC().lookup(["NETAPP_FILERS",

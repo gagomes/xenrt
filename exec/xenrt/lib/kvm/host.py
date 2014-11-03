@@ -178,8 +178,12 @@ class KVMHost(xenrt.lib.libvirt.Host):
     def getPrimaryBridge(self):
         return self.getBridge(self.getDefaultInterface())
 
-    def createNetwork(self, name="bridge"):
-        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (self.getDefaultInterface(), name))
+    def getBridgeByName(self, name):
+        return (self.execvirt("virsh net-info %s | grep 'Bridge' | tr -s ' ' | cut -d ' ' -f 2" % name)).strip()
+
+    def createNetwork(self, name="bridge", iface=None):
+        if iface is None: iface = self.getDefaultInterface()
+        self.execvirt("virsh iface-bridge %s %s --no-stp 10" % (iface, name))
 
     def removeNetwork(self, bridge=None, nwuuid=None):
         if bridge:
@@ -238,15 +242,17 @@ class KVMHost(xenrt.lib.libvirt.Host):
                 pri_bridge = self.getBridge(pri_eth)
                 has_virsh_pri_bridge = self.execcmd("virsh iface-list|grep %s|wc -l" % (pri_bridge,)).strip() != "0"
                 if not has_virsh_pri_bridge:
-                    self.createNetwork(name=pri_bridge)
-                    host.execvirt("virsh net-destroy %s" % (previous_bridge,))
-                    host.execvirt("virsh net-undefine %s" % (previous_bridge,))
-                    networkConfig  = "<network>"
-                    networkConfig += "<name>%s</name>" % (pri_bridge,)
-                    networkConfig += "<forward mode='bridge'/>"
-                    networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
-                    networkConfig += "</network>"
-                    host.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+                    self.createNetwork(name=pri_bridge, iface=pri_eth)
+                else:
+                    self.execvirt("virsh net-undefine %s" % (previous_bridge,))
+                networkConfig  = "<network>"
+                networkConfig += "<name>%s</name>" % (friendlynetname,)
+                networkConfig += "<forward mode='bridge'/>"
+                networkConfig += "<bridge name='%s'/>" % (pri_bridge,)
+                networkConfig += "</network>"
+                self.execvirt("virsh net-define /dev/stdin <<< \"%s\"" % (networkConfig, ))
+
+                # xenrt.GEC().registry.objPut("libvirt", friendlynetname, pri_bridge)
 
                 if mgmt:
                     #use the ip of the mgtm nic on the list as the default ip of the host
@@ -272,15 +278,13 @@ class KVMHost(xenrt.lib.libvirt.Host):
                     else:
                         raise xenrt.XRTError("Wrong new IP %s for host %s on %s" % (newip, self, pri_bridge))
 
-                if jumbo == True:
+                if jumbo != False:
+                    mtu = (jumbo == True) and "9000" or jumbo #jumbo can be an int string value
                     #enable jumbo frames immediately
-                    self.execcmd("ifconfig %s mtu 9000" % (pri_eth,))
+                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, mtu))
                     #make it permanent
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"9000\"/; t; s/^/MTU=\"9000\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (pri_eth,))
-                    requiresReboot = False
-                elif jumbo != False: #ie jumbo is a string
-                    self.execcmd("ifconfig %s mtu %s" % (pri_eth, jumbo))
-                    self.execcmd("sed -i 's/MTU=.*$/MTU=\"%s\"/; t; s/^/MTU=\"%s\"/' /etc/sysconfig/network-scripts/ifcfg-%s" % (jumbo,jumbo,pri_eth))
+                    pri_eth_path = "/etc/sysconfig/network-scripts/ifcfg-%s" % pri_eth
+                    self.execcmd("if $(grep -q MTU= %s); then sed -i 's/^MTU=.*$/MTU=%s/g' %s; else echo MTU=%s >> %s; fi" % (pri_eth_path, mtu, pri_eth_path, mtu, pri_eth_path))
                     requiresReboot = False
 
             if len(nicList) > 1:

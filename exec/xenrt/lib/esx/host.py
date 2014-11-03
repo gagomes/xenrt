@@ -403,6 +403,9 @@ reboot
             if len(nicList) == 1  and len(vlanList) == 0:
                 pri_eth = self.getNICPIF(nicList[0])
 
+                if pri_eth == '':
+                    raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
+
                 # Set up new vSwitch if necessary
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
                 pri_bridge = self.getBridge(pri_eth)

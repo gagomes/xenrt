@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- NFS storage tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <TESTRUN_TCSKU>nfsv4</TESTRUN_TCSKU>
+  </variables>
+
+  <scheduler>
+    <flags>nfs4</flags>
+  </scheduler>
+
+  <prepare>
+    <host>
+      <storage type="nfs" name="nfssr" default="true" options="v4"/>
+    </host>
+  </prepare>
+
+  <testsequence group="NFS">
+    <testcase id="xenserver.tc.storage.TC23335"/>
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC8523" prio="3"/>
+    </serial>
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC8503" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8504" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8505" prio="3"/>
+      <testcase id="xenserver.tc.storage.TC8507" prio="3"/>
+    </serial>
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC7863" prio="3"/>
+      <!-- Remove VSS snapshots on Tampa for now -->
+      <!--<testcase id="xenserver.tc.snapshot.TC8114" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC8117" prio="3"/>-->
+    </serial>
+    <testcase id="xenserver.tc.impexp.TC10629" prio="3"/>
+    <testcase id="xenserver.tc.storage.TC23334" prio="3"/>
+
+    <!--Add tests before this -->
+    <testcase id="xenserver.tc.storage.TC21718" prio="3"/>
+  </testsequence>
+
+</xenrt>

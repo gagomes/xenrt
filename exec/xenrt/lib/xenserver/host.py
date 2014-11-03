@@ -610,6 +610,11 @@ class Host(xenrt.GenericHost):
         objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
         return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
 
+    def getPool(self):
+        if not self.pool:
+            poolFactory(self.productVersion)(self)
+        return self.pool
+
     def populateSubclass(self, x):
         xenrt.GenericHost.populateSubclass(self, x)
         x.bootLun = self.bootLun
@@ -12042,7 +12047,8 @@ class ISCSIStorageRepository(StorageRepository):
         dconf = {}
         dconf["target"] = lun.getServer()
         dconf["targetIQN"] = lun.getTargetName()
-        dconf["LUNid"] = lun.getLunID()
+        if lun.getLunID() != None:
+            dconf["LUNid"] = lun.getLunID()
         if lun.getID():
             dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()

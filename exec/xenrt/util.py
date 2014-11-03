@@ -482,6 +482,8 @@ def randomMAC():
     """Return a random MAC in the locally administered range, avoiding Cloudstack MACs (starting with 02, 06)"""
     # Start at 2, to avoid cloudstack IPs 
     o1 = (random.randint(2, 63) << 2) | 2
+    # Avoid tap device MAC range setup by libvirt i.e. 0xFE
+    if o1 == 0xFE: return randomMAC()
     o2 = random.randint(0, 255)
     o3 = random.randint(0, 255)
     o4 = random.randint(0, 255)
@@ -1158,8 +1160,8 @@ def pfarm(tasks, start=True, interval=0, wait=True, value=True, exception=True):
         return jobs
     else:
         for j in jobs:
-            time.sleep(interval)
             j.start()
+            time.sleep(interval)
         if not wait:
             return jobs
         else:
@@ -1409,8 +1411,8 @@ def getMarvinFile():
     marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
     if not marvinversion:
         # The user has not specified the Marvin version to use
-        if re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
-           re.search('3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
+        if re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
+           re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
             marvinversion = "3.0."
 
     if marvinversion:

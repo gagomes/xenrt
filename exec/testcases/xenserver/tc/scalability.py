@@ -359,7 +359,7 @@ class _VMScalability(_Scalability):
 
         #To reduce the Xenserver load, due to XenRT interference, it is better to start the guests after creating all the Clones
         if self.max != 0:
-            nbrOfThreads = 5*len(self.hosts)
+            nbrOfThreads = min(5*len(self.hosts),25)
             xenrt.TEC().logverbose("Starting all Guests")
             self.guestsPendingOperation = [g for g in self.guests]
             self.nbrOfPassedGuests = 0
@@ -413,7 +413,7 @@ class _VMScalability(_Scalability):
         self.checkGuestThread()
 
     def checkGuests(self):
-        nbrOfThreads = 5*len(self.hosts)
+        nbrOfThreads = min(5*len(self.hosts),25)
 
         self.guestsNotChecked = [g for g in self.guests]
         self.nbrOfGuestsAlive = 0
@@ -462,7 +462,7 @@ class _VMScalability(_Scalability):
         self.guestOperationThread(operation, iterationNbr)
 
     def loopingTest(self):
-        nbrOfThreads = 5*len(self.hosts)
+        nbrOfThreads = min(5*len(self.hosts),25)
 
         xenrt.TEC().logverbose("Shutting down all Guests")
         self.guestsPendingOperation = [g for g in self.guests]

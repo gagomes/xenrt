@@ -236,7 +236,7 @@ class TestHostLicenceBehaviourForCreedence(XenRTUnitTestCase):
 
     def testAllSKUsReturnListOfLicences(self, tec):
         host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        self.assertEqual(8, len(host.validLicenses(True)))
+        self.assertEqual(3, len(host.validLicenses(True)))
 
     def testListOfLicencesAreCreedenceOnes(self, tec):
         host = xenrt.lib.xenserver.host.CreedenceHost(None, None)

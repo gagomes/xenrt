@@ -98,7 +98,7 @@ def hostFactory(hosttype):
 def poolFactory(mastertype):
     if mastertype in ("Clearwater", "Sarasota"):
         return xenrt.lib.xenserver.ClearwaterPool
-    else if mastertype in ("Creedence"):
+    elif mastertype in ("Creedence"):
         return xenrt.lib.xenserver.CreedencePool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
@@ -11171,7 +11171,7 @@ class CreedenceHost(ClearwaterHost):
 
         xenrt.TEC().logverbose("Edition is same on host as expected") 
 
-    def license(self,edition = "free",v6server):
+    def license(self,v6server, edition="free"):
 
         cli = self.getCLIInstance()
 

@@ -20,7 +20,6 @@ class _Scalability(xenrt.TestCase):
         xenrt.TestCase.__init__(self, tcid)
         self.host = None
         self.guests = []
-        self.SR = None
         self.lock = threading.Lock()
 
     def run(self,arglist):

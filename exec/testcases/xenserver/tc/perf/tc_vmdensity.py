@@ -2575,7 +2575,7 @@ MachinePassword=%s
                 #do not use guest.start(), it contains several time.sleep that we don't want
                 #Should the vm-start on a specific host ?
 
-                if isinstance(host, xenrt.lib.xenserver.Host):
+                if isinstance(guest.host, xenrt.lib.xenserver.Host):
                     #xenserver
                     if get_vm_host_name(value):
                         guest.host.execdom0("xe vm-start uuid=%s on=%s" % (guest.uuid, get_vm_host_name(value)),

@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
   </variables>
   <prepare>
       <host id="0">

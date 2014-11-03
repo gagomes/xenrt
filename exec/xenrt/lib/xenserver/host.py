@@ -11176,6 +11176,10 @@ class CreedenceHost(ClearwaterHost):
 
         xenrt.TEC().logverbose("Edition is same on host as expected") 
 
+    def licenseApply(self,v6server,licenseObj):
+
+        self.license(v6server,edition=licenseObj.getEdition()
+
     def license(self,v6server, edition="free"):
 
         cli = self.getCLIInstance()
@@ -14123,22 +14127,8 @@ class CreedencePool(ClearwaterPool):
         """
         option: xenserverOnly - return the SKUs for just XenServer
         """
-        xsOnlySKUs = [XenServerLicenceSKU.PerSocketEnterprise,
-                        XenServerLicenceSKU.PerSocketStandard,
-                        XenServerLicenceSKU.PerSocket]
 
-        allSKUs = [XenServerLicenceSKU.PerSocketEnterprise,
-                    XenServerLicenceSKU.PerUserEnterprise,
-                    XenServerLicenceSKU.PerConcurrentUserEnterprise,
-                    XenServerLicenceSKU.XenDesktopPlatinum,
-                    XenServerLicenceSKU.PerSocketStandard,
-                    XenServerLicenceSKU.PerUserStandard,
-                    XenServerLicenceSKU.PerConcurrentUserStandard,
-                    XenServerLicenceSKU.Free,
-                    XenServerLicenceSKU.PerSocket]
-
-        skus = xsOnlySKUs if xenserverOnly else allSKUs
-        return [CreedenceLicence(s) for s in skus]
+        self.master.validLicenses(xenserverOnly=xenserverOnly)
 
 #############################################################################
 

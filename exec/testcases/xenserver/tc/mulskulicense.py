@@ -12,7 +12,6 @@ import string, re, time, traceback, sys, copy
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 
 class LicenseBase(xenrt.TestCase):
-    __metaclass__ = ABCMeta
     __LicenseServerName = 'LicenseServer'
 
     def prepare(self,arglist):
@@ -31,7 +30,6 @@ class LicenseBase(xenrt.TestCase):
         self.__validXSLicenseObj = self.systemObj.validLicenses(xenserverOnly=True)
         self.__LicenseServer()
 
-    @abstractmethod
     def preLicenseHook(self):
         """
         Is the function that will be used to modify the host just before licenses is applied
@@ -114,22 +112,23 @@ class LicenseBase(xenrt.TestCase):
     def verifyLicenseServer(self,edition):
 
         if not self.__isXSEdition(edition):
+            xenrt.TEC().logverbose("XD license is applied so no need to verify the license server")
             return
 
         tmp,currentLicinuse = self.v6.getLicenseInUse(self.__getLicenseName(edition))
 
         if not self.systemObj.getNoOfSockets() + self.licenseinUse  == currentLicinuse:
-            raise xenrt.XRTFailure("No of Licenses in use: %d, no of socket in whole pool: %d" % (currentLicinuse, self.systemObj.getNoOfSockets()))
+            raise xenrt.XRTFailure("No. of Licenses in use: %d, No. of socket in whole pool: %d" % (currentLicinuse, self.systemObj.getNoOfSockets()))
 
         xenrt.TEC().logverbose("License server verified and correct no of licenses checked out")
 
-    def verifySystemLicenseState(self,edition,skipHostLevelCheck=False):
+    def verifySystemLicenseState(self,edition='free',skipHostLevelCheck=False):
  
         if not self.isHostObj:
             self.systemObj.checkLicenseState(edition=edition)
             if not skipHostLevelCheck:
                 for host in self.hosts: 
-                    host.checHostLicenseState(edition=edition)
+                    host.checkHostLicenseState(edition=edition)
         else:
             self.systemObj.checkHostLicenseState(edition=edition)
 
@@ -190,8 +189,8 @@ class LicenseBase(xenrt.TestCase):
 
             self.verifyLicenseServer(edition)
 
-            #self.systemObj.releaseLicense()
+            self.systemObj.releaseLicense()
  
-            self.verifySystemLicenseState(edition=edition,v6server=self.v6)
+            self.verifySystemLicenseState()
 
             self.verifyLicenseServer(edition)

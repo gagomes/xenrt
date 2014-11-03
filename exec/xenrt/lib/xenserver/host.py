@@ -64,6 +64,7 @@ __all__ = ["Host",
            "BostonPool",
            "TampaPool",
            "ClearwaterPool",
+           "CreedencePool",
            "RollingPoolUpdate",
            "Tile",
            "IOvirt",
@@ -95,8 +96,10 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Creedence", "Sarasota"):
+    if mastertype in ("Clearwater", "Sarasota"):
         return xenrt.lib.xenserver.ClearwaterPool
+    else if mastertype in ("Creedence"):
+        return xenrt.lib.xenserver.CreedencePool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
     elif mastertype in ("MNR", "Cowley", "Oxford"):
@@ -11135,12 +11138,7 @@ class CreedenceHost(ClearwaterHost):
         option: xenserverOnly - return the SKUs for just XenServer
         """
         xsOnlySKUs = [XenServerLicenceSKU.PerSocketEnterprise,
-                        XenServerLicenceSKU.PerUserEnterprise,
-                        XenServerLicenceSKU.PerConcurrentUserEnterprise,
                         XenServerLicenceSKU.PerSocketStandard,
-                        XenServerLicenceSKU.PerUserStandard,
-                        XenServerLicenceSKU.PerConcurrentUserStandard,
-                        XenServerLicenceSKU.Free,
                         XenServerLicenceSKU.PerSocket]
 
         allSKUs = [XenServerLicenceSKU.PerSocketEnterprise,
@@ -11161,6 +11159,34 @@ class CreedenceHost(ClearwaterHost):
                  licensedfeatures.VirtualGPU(), licensedfeatures.Hotfixing(),
                  licensedfeatures.ExportPoolResourceList(),
                  licensedfeatures.GPUPassthrough()]
+
+    def checkHostLicenseState(self, edition):
+
+        details = self.getLicenseDetails()
+
+        if not details.has_key("edition"):
+            raise xenrt.XRTFailure("Host %s doesnt have any license edition" % (self.getName()))
+        if not (edition == details["edition"]):
+            raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
+
+        xenrt.TEC().logverbose("Edition is same on host as expected") 
+
+    def license(self,edition = "free",v6server):
+
+        cli = self.getCLIInstance()
+
+        args = []
+
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+        args.append("edition=%s" % (edition))
+
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("host-apply-edition", string.join(args))
+
+        self.checkHostLicenseState(edition)
 
 #############################################################################
 class SarasotaHost(CreedenceHost):
@@ -14063,6 +14089,50 @@ class ClearwaterPool(TampaPool):
         cli.execute("pool-apply-edition", string.join(args))
 
         self.checkLicenseState(edition)
+
+#############################################################################
+
+class CreedencePool(ClearwaterPool):
+    """A pool of Creedence Hosts """
+
+    def hostFactory(self):
+        return xenrt.lib.xenserver.CreedenceHost
+
+    def license(self,edition = "free", v6server = None):
+
+        args = []
+        cli = self.master.getCLIInstance()
+        args.append("uuid=%s" % (self.getUUID()))
+        args.append("edition=%s" % (edition))
+
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("pool-apply-edition", string.join(args))
+
+        self.checkLicenseState(edition)
+
+    def validLicenses(self, xenserverOnly=False):
+        """
+        option: xenserverOnly - return the SKUs for just XenServer
+        """
+        xsOnlySKUs = [XenServerLicenceSKU.PerSocketEnterprise,
+                        XenServerLicenceSKU.PerSocketStandard,
+                        XenServerLicenceSKU.PerSocket]
+
+        allSKUs = [XenServerLicenceSKU.PerSocketEnterprise,
+                    XenServerLicenceSKU.PerUserEnterprise,
+                    XenServerLicenceSKU.PerConcurrentUserEnterprise,
+                    XenServerLicenceSKU.XenDesktopPlatinum,
+                    XenServerLicenceSKU.PerSocketStandard,
+                    XenServerLicenceSKU.PerUserStandard,
+                    XenServerLicenceSKU.PerConcurrentUserStandard,
+                    XenServerLicenceSKU.Free,
+                    XenServerLicenceSKU.PerSocket]
+
+        skus = xsOnlySKUs if xenserverOnly else allSKUs
+        return [CreedenceLicence(s) for s in skus]
 
 #############################################################################
 

@@ -14104,7 +14104,7 @@ class CreedencePool(ClearwaterPool):
     def hostFactory(self):
         return xenrt.lib.xenserver.CreedenceHost
 
-    def license(self,edition = "free", v6server = None):
+    def license(self, v6server, edition="free"):
 
         args = []
         cli = self.master.getCLIInstance()

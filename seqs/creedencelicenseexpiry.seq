@@ -1,0 +1,30 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="linux">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry"/>
+  </testsequence>
+
+</xenrt>
+

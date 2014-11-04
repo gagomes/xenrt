@@ -5,6 +5,14 @@ import random
 
 
 class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
+    """Class for performing updates (upgrades or HFX install) on a
+       pool of CloudPlatform managed XenServers"""
+
+    def _logXenServerHfxStatus(self, host):
+        patchList = host.parameterList('patch-list', params=['name-label', 'name-description'])
+        patchList.sort(key=lambda x:x['name-label'])
+        xenrt.TEC().logverbose('HFX Status for Host: %s\n' % (host.name) + pformat(patchList))
+
     def preMasterUpdate(self):
         self.upgradeHook.call(self.newPool.master, True, True)
         xenrt.lib.xenserver.host.RollingPoolUpdate.preMasterUpdate(self)
@@ -31,15 +39,21 @@ class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
 
         # Ignore hotfix options when running the lib upgrade code
         xenrt.TEC().config.setVariable('OPTION_NO_AUTO_PATCH', True)
+        self._logXenServerHfxStatus(host)
         if self.patch:
             xenrt.TEC().logverbose('Testing applying patch: %s on version: %s' % (self.patch, host.productVersion))
             self.upgrade = False
             self.skipApplyRequiredPatches = True
+        elif not self.upgrade:
+            # No patch has been specified and upgrade is not set.  Apply all released patches
+            xenrt.TEC().logverbose('Testing released HFX apply for version: %s' % (host.productVersion))
+            xenrt.TEC().config.setVariable('APPLY_ALL_RELEASED_HFXS', True)
         else:
             xenrt.TEC().logverbose('Testing upgrading from version: %s to version: %s' % (host.productVersion, self.newVersion))
 
         xenrt.TEC().logverbose('CloudRollingUpdate member state:\n' + pformat(self.__dict__))
         xenrt.lib.xenserver.host.RollingPoolUpdate.doUpdateHost(self, host)
+        self._logXenServerHfxStatus(host)
 
 class TCCloudUpdate(xenrt.TestCase):
 
@@ -49,8 +63,17 @@ class TCCloudUpdate(xenrt.TestCase):
         return template.displaytext.replace("_","-")
 
     def _logCapacity(self):
-        capacity = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zoneid, type=8)[0]
-        xenrt.TEC().logverbose('CCP Address Capacity - Total: %d, Used: %d' % (capacity.capacitytotal, capacity.capacityused))
+        zones = self.cloud.marvin.cloudApi.listZones(id=self.zoneid)
+        xenrt.xrtAssert(len(zones) == 1, 'There must be 1 and only 1 zone for the stored zone ID')
+        capacityTypeId = 8
+        if zones[0].networktype == 'Advanced':
+            capacityTypeId = 4
+
+        capacityList = self.cloud.marvin.cloudApi.listCapacity(zoneid=self.zoneid, type=capacityTypeId)
+        if capacityList == None or len(capacityList) != 1:
+            xenrt.TEC().logverbose('Unable to read CCP capacity')
+
+        xenrt.TEC().logverbose('CCP Address Capacity - Total: %d, Used: %d' % (capacityList[0].capacitytotal, capacityList[0].capacityused))
 
     def prepare(self, arglist):
         self.templates = []

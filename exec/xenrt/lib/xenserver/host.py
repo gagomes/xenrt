@@ -298,7 +298,10 @@ def createHost(id=0,
                 licenseServer = guest.getV6LicenseServer(useEarlyRelease=False, install=False)
             host.license(edition=license, usev6testd=False, v6server=licenseServer)
         elif type(license) == type(""):
-            host.license(sku=license)
+            if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+                host.license(edition =license)
+            else :    
+                host.license(sku=license)
         else:
             host.license()
 
@@ -11131,6 +11134,42 @@ class CreedenceHost(ClearwaterHost):
 
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
+        
+    def license(self ,v6server=None,edition="free",usev6testd=True):
+
+        cli = self.getCLIInstance()
+
+        args = []
+
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+        args.append("edition=%s" % (edition))       
+        
+        if  usev6testd and not v6server:
+            # Make sure the v6testd is in use
+            # Try to get it from xe-phase-1
+            if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
+                             retval="code") != 0:
+                self.execdom0("mv -f /opt/xensource/libexec/v6d "
+                              "/opt/xensource/libexec/v6d.orig")
+                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                if rpm:
+                    sftp = self.sftpClient()
+                    try:
+                        sftp.copyTo(rpm, "/tmp/v6-test.rpm")
+                    finally:
+                        sftp.close()
+                    self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                else:
+                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
+                                  "/opt/xensource/libexec/v6d" %
+                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                self.execdom0("service v6d restart")
+
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("host-apply-edition", string.join(args))
 
 #############################################################################
 class SarasotaHost(CreedenceHost):

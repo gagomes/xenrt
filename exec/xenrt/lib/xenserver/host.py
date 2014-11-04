@@ -11178,7 +11178,7 @@ class CreedenceHost(ClearwaterHost):
 
     def licenseApply(self,v6server,licenseObj):
 
-        self.license(v6server,edition=licenseObj.getEdition()
+        self.license(v6server,edition=licenseObj.getEdition())
 
     def license(self,v6server, edition="free"):
 

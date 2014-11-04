@@ -1753,8 +1753,8 @@ class _ResetOnBootBase(_Cache):
         xenrt.TEC().logverbose("Found Gold VM %s (%s)"  % (self.goldVM.getName(), self.goldVM.getUUID()))
         
         # Setting up license. This is not required for Clearwater but for trunk.
-        for h in self.pool.getHosts():
-            h.license(edition='platinum')
+        #for h in self.pool.getHosts():
+            #h.license(edition='platinum')
 
     def prepare(self, arglist=None):
         self.settingUpTestEnvironment()

@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import string, re, time, random, traceback, sys, copy
+import string, re, time, traceback, sys, copy, random
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 
 class LicenseBase(xenrt.TestCase, object):
@@ -302,11 +302,15 @@ class TCCWNewLicenseServer(clearwaterUpgrade):
  
         self.releaseLicense(self.expectedEditionAfterUpg)
 
-class TCLicenseExpireBase(LicenseBase):
 
-    def expireGraceLicense(self):
+class LicenseExpireBase(LicenseBase):
+    """
+    TC for Creedence (and later) license expiration test.
+    """
+    EDITIONS = ["enterprise-per-user", "enterprise-per-socket"]
+
+    def expireLicenseTest(self):
         """Select a host and force expire the license of the host."""
-
         if self.isHostObj:
             host = self.systemObj
         else:
@@ -322,6 +326,18 @@ class TCLicenseExpireBase(LicenseBase):
         expiretarget = time.gmtime(licinfo["expiry"])
         host.execdom0("date -u %s" % time.strftime("%m%d%H%M%Y.%S",expiretarget))
 
+        return host
+            
+
+    def __forceExpireLicense(self, host):
+        """ Set next day of expiration date"""
+        
+        licinfo = host.getLicenseDetails()
+        host.execdom0("/etc/init.d/ntpd stop")
+        expiretarget = time.gmtime(licinfo["expiry"])
+        self.host.execdom0("date -u %s" %
+                           (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
+
         # Give some time to actually expire the license.
         xenrt.sleep(60)
 
@@ -332,9 +348,35 @@ class TCLicenseExpireBase(LicenseBase):
         xenrt.sleep(30)
 
     def run(self, arglist=[]):
-        pass
 
-class TCGraceLicenseBase(TCLicenseExpireBase):
+        self.preLicenseHook()
+
+        for edition in self.EDITIONS:
+            if edition == "free":
+                # free lincese does not require expiry test.
+                continue
+            # Assign license and verify it.
+            self.v6.addLicense(self._getLicenseFileName(edition))
+            self.systemObj.license(edition=edition, v6server=self.v6)
+            self.verifySystemLicenseState(edition=edition)
+            self.verifyLicenseServer(edition)
+
+            # Expiry test
+            host = self.expireLicenseTest()
+            host.checkHostLicenseState("free")
+            if not self.isHostObj:
+                self.verifySystemLicenseState(edition, True)
+            self.resetTimer(host)
+            # End of expiry test
+
+            self.systemObj.releaseLicense()
+            self.verifySystemLicenseState()
+            self.verifyLicenseServer(edition)
+
+class TCLicenseExpiry(LicenseExpireBase):
+    pass
+
+class TCGraceLicenseBase(LicenseExpireBase):
 
     def initiateGraceLicense(self):
         """Shutdown license server and restart host v6d server"""
@@ -386,7 +428,7 @@ class TCGraceLicenseBase(TCLicenseExpireBase):
                 self.checkGrace(host)
 
             # Now expire one of the host license such that it cross the grace period.
-            host = self.expireGraceLicense()
+            host = self.expireLicenseTest()
 
             # Check whether the hosts license expired.
             self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
@@ -397,3 +439,4 @@ class TCGraceLicenseBase(TCLicenseExpireBase):
             # At this point we do not know what is the license state.
             # Goes back to grace license again ? Or the original license?.
             # Not sure whther to release the license and verify the state again.
+

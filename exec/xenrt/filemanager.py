@@ -211,6 +211,12 @@ class FileManager(object):
             os.makedirs(dirname)
         return "%s/%s" % (dirname, self._filename(filename))
 
+    def removeFromCache(self, filename):
+        sharedLocation = self._sharedCacheLocation(filename)
+        if os.path.exists(sharedLocation):
+            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
+            shutil.rmtree(sharedLocation) 
+
     def _availableInCache(self, filename):
         # First try the per-job cache
         perJobLocation = self._perJobCacheLocation(filename)

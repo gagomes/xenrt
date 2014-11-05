@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import string, re, time, traceback, sys, copy
+import string, re, time, random, traceback, sys, copy
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 
 class LicenseBase(xenrt.TestCase, object):
@@ -300,4 +300,98 @@ class TCCWNewLicenseServer(clearwaterUpgrade):
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
 
+class TCLicenseExpireBase(LicenseBase):
 
+    def expireGraceLicense(self):
+        """Select a host and force expire the license of the host."""
+
+        if self.isHostObj:
+            host = self.systemObj
+        else:
+            host = random.choice(self.systemObj.getHosts())
+
+        self.__forceExpireLicense(host)
+
+    def __forceExpireLicense(self, host):
+        """ Set next day of expiration date"""
+
+        licinfo = host.getLicenseDetails()
+        host.execdom0("/etc/init.d/ntpd stop")
+        expiretarget = time.gmtime(licinfo["expiry"])
+        host.execdom0("date -u %s" % time.strftime("%m%d%H%M%Y.%S",expiretarget))
+
+        # Give some time to actually expire the license.
+        xenrt.sleep(60)
+
+    def resetTimer(self, host):
+        """ Restart NTP daemon, so that timer of host reset on time."""
+        host.execdom0("/etc/init.d/ntpd start")
+        # Give some time to resync timer.
+        xenrt.sleep(30)
+
+    def run(self, arglist=[]):
+        pass
+
+class TCGraceLicenseBase(TCLicenseExpireBase):
+
+    def initiateGraceLicense(self):
+        """Shutdown license server and restart host v6d server"""
+
+        # Shutdown the License Server.
+        self.v6.stop()
+        # Restart v6d service on hosts.
+        for host in self.hosts:
+            host.execdom0("service v6d restart")
+
+    def revertGraceLicense(self):
+        """Start license server and restart host v6d server"""
+
+        # Start the license server.
+        self.v6.start()
+        # Restart v6d service on hosts.
+        for host in self.hosts:
+            host.execdom0("service v6d restart")
+
+    def run(self, arglist=[]):
+
+        self.preLicenseHook()
+
+        for edition in self.editions:
+            if edition == "free":
+                # Free lincese does not require grace license test.
+                continue
+
+            # Assign license and verify it.
+            license = self.getLicenseObj(edition)
+            self.applyLicense(license)
+
+            self.initiateGraceLicense()
+
+            # Check whether the hosts obtained grace licenses.
+            for host in self.hosts:
+                self.checkGrace(host)
+
+            self.revertGraceLicense()
+
+            # Check whether the hosts regained the original licenses.
+            self.verifySystemLicenseState(edition=edition)
+            self.verifyLicenseServer(edition)
+
+            self.initiateGraceLicense()
+
+            # Check whether the hosts obtained grace licenses.
+            for host in self.hosts:
+                self.checkGrace(host)
+
+            # Now expire one of the host license such that it cross the grace period.
+            host = self.expireGraceLicense()
+
+            # Check whether the hosts license expired.
+            self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
+            
+            # Now reset the timer.
+            self.resetTimer(host) 
+            
+            # At this point we do not know what is the license state.
+            # Goes back to grace license again ? Or the original license?.
+            # Not sure whther to release the license and verify the state again.

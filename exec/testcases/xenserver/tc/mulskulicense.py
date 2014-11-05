@@ -71,19 +71,19 @@ class LicenseBase(xenrt.TestCase, object):
     def upgradePool(self):
 
         # Update our internal pool object before starting the upgrade 
-        newP = xenrt.lib.xenserver.poolFactory(xenrt.TEC().lookup("PRODUCT_VERSION", None))(self.systemObj.master)
-        self.systemObj.populateSubclass(newP)
+        newP = xenrt.lib.xenserver.poolFactory(xenrt.TEC().lookup("PRODUCT_VERSION", None))(self.__sysObj.master)
+        self.__sysObj.populateSubclass(newP)
 
         #Perform Rolling Pool Upgrade
-        xenrt.TEC().logverbose("Performing rolling pool upgrade of %s" % (self.systemObj.getName()))
-        self.systemObj = newP.upgrade(rolling=True)
+        xenrt.TEC().logverbose("Performing rolling pool upgrade of %s" % (self.__sysObj.getName()))
+        self.__sysObj = newP.upgrade(rolling=True)
 
         # Upgrade PV tools in guests
-        if self.systemObj.master.listGuests() != [] :
+        if self.__sysObj.master.listGuests() != [] :
             xenrt.TEC().logverbose("Found guests in pool hence Upgrading PV tools.....")
-            for g in self.systemObj.master.listGuests():
+            for g in self.__sysObj.master.listGuests():
                 # The guest will have been migrated during the RPU...
-                poolguest = self.systemObj.master.getGuest(g)
+                poolguest = self.__sysObj.master.getGuest(g)
                 xenrt.TEC().logverbose("Finding and upgrading VM %s" % (poolguest.getName()))
                 poolguest.findHost()
                 if poolguest.windows:
@@ -299,6 +299,8 @@ class TCCWNewLicenseServer(clearwaterUpgrade):
                 pass
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+ 
+        self.releaseLicense(self.expectedEditionAfterUpg)
 
 class TCLicenseExpireBase(LicenseBase):
 

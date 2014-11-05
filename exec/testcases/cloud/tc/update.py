@@ -11,7 +11,7 @@ class CloudRollingUpdate(xenrt.lib.xenserver.host.RollingPoolUpdate):
     def _logXenServerHfxStatus(self, host):
         patchList = host.parameterList('patch-list', params=['name-label', 'name-description'])
         patchList.sort(key=lambda x:x['name-label'])
-        xenrt.TEC().logverbose('HFX Status for Host: %s\n' % (host.name) + pformat(patchList))
+        xenrt.TEC().logverbose('HFX Status for Host: %s\n' % (host.getName()) + pformat(patchList))
 
     def preMasterUpdate(self):
         self.upgradeHook.call(self.newPool.master, True, True)

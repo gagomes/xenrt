@@ -11,13 +11,16 @@
 import string, re, time, traceback, sys, copy
 import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
 
-class LicenseBase(xenrt.TestCase):
-    LicenseServerName = 'LicenseServer'
+class LicenseBase(xenrt.TestCase, object):
 
     def prepare(self,arglist):
 
         self.__parseArgs(arglist)
 
+        self.hosts = []
+        self.newLicenseServerName = 'LicenseServer'
+        self.oldLicenseEdition = None
+        self.oldLicenseServerName = None
         if self.getDefaultPool():
             self.__sysObj =  self.getDefaultPool()
             self.hosts = self.getDefaultPool().getHosts() 
@@ -25,10 +28,11 @@ class LicenseBase(xenrt.TestCase):
         else:
             self.__sysObj = self.getDefaultHost()
             self.__isHostObj = True
+            self.hosts.append(self.__sysObj)
 
         self.__validLicenseObj = self.systemObj.validLicenses()
         self.__validXSLicenseObj = self.systemObj.validLicenses(xenserverOnly=True)
-        self.licenseServer()
+        self.v6 = self.licenseServer(self.newLicenseServerName)
 
     def preLicenseHook(self):
         """
@@ -64,7 +68,7 @@ class LicenseBase(xenrt.TestCase):
         """
         return self.__isHostObj
  
-    def upgradeHost(self):
+    def upgradePool(self):
 
         # Update our internal pool object before starting the upgrade 
         newP = xenrt.lib.xenserver.poolFactory(xenrt.TEC().lookup("PRODUCT_VERSION", None))(self.systemObj.master)
@@ -88,14 +92,12 @@ class LicenseBase(xenrt.TestCase):
                     poolguest.installTools()
                 poolguest.check()
 
-    def licenseServer(self,name=LicenseServerName):
+    def licenseServer(self,name):
 
-        self.v6 = self.getGuest(name).getV6LicenseServer()
-        self.v6.removeAllLicenses()
+        v6 = self.getGuest(name).getV6LicenseServer()
+        v6.removeAllLicenses()
 
-    def upgradeLicenseServer(self,name):
-
-        self.licenseServer(name)
+        return v6
 
     def __parseArgs(self,arglist):
 
@@ -105,8 +107,14 @@ class LicenseBase(xenrt.TestCase):
                 for edition in self.editions:
                     if not self.__checkForValidEdition(edition=edition):
                         raise xenrt.XRTFailure("Incorrect edition given")
-            if arg.startswith('licenseserver'):
-                self.LicenseServerName = arg.split('=')[1]
+            if arg.startswith('newlicenseserver'):
+                self.newLicenseServerName = arg.split('=')[1]
+            if arg.startswith('oldlicenseserver'):
+                self.oldLicenseServerName = arg.split('=')[1]
+            if arg.startswith('oldlicenseedition'):
+                self.oldLicenseEdition = arg.split('=')[1]
+            if arg.startswith('expectededition'):
+                self.expectedEditionAfterUpg = arg.split('=')[1]
 
     def verifyLicenseServer(self,edition,reset=False):
 
@@ -200,6 +208,17 @@ class LicenseBase(xenrt.TestCase):
 
         self.verifyLicenseServer(edition,reset=True)
 
+    def checkGrace(self,host):
+  
+        licenseInfo = host.getLicenseDetails()
+        if not 'grace' in licenseInfo['grace']:
+            raise xenrt.XRTFailure('Host has not got grace license')
+
+        expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
+
+        if (expiry > (xenrt.timenow() + 30*25*3600 + 1)):
+            raise xenrt.XRTFailure("Host has got license expiry date more than 30 days from current time, it has got expiry date: %s " % expiry)
+
     def run(self,arglist=None):
 
         self.preLicenseHook()
@@ -209,3 +228,76 @@ class LicenseBase(xenrt.TestCase):
             self.applyLicense(self.getLicenseObj(edition)) 
 
             self.releaseLicense(edition)
+
+class clearwaterUpgrade(LicenseBase):
+
+    def preLicenseHook(self):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)     
+            v6.addLicense(self.oldLicenseEdition)       
+            for host in self.hosts:
+                host.templicense(edition=self.oldLicenseEdition,v6server=v6)
+
+        if self.isHostObj:
+            self.systemObj.upgrade()
+        else:
+            self.upgradePool()
+
+class TCCWOldLicenseServerExp(clearwaterUpgrade):
+
+    def preLicenseHook(self):
+
+        super(TCCWOldLicenseServerExp, self).preLicenseHook()
+
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+        
+        for host in self.hosts:
+            self.checkGrace(host)
+
+        #Expire the host 
+
+class TCCWOldLicenseServerUpg(clearwaterUpgrade):
+
+    def preLicenseHook(self):
+
+        super(TCCWOldLicenseServerUpg, self).preLicenseHook()
+
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+
+        for host in self.hosts:
+            self.checkGrace(host)
+
+        self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+
+        self.releaseLicense(self.expectedEditionAfterUpg)
+
+class TCCWNewLicenseServer(clearwaterUpgrade):
+
+    def preLicenseHook(self):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)
+            v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.templicense(edition=self.oldLicenseEdition,v6server=v6)
+
+            self.v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
+
+        if self.isHostObj:
+            self.systemObj.upgrade()
+        else:
+            self.upgradePool()
+ 
+        for host in self.hosts:
+            try:
+                self.checkGrace(host)
+                raise xenrt.XRTFailure("Host has got grace license")
+            except Exception as e:
+                pass
+
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+
+

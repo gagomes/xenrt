@@ -376,9 +376,10 @@ class LicenseExpireBase(LicenseBase):
 class TCLicenseExpiry(LicenseExpireBase):
     pass
 
-class TCGraceLicenseBase(LicenseExpireBase):
+class GraceLicenseBase(LicenseExpireBase):
+    """Base class to verify the grace license tests"""
 
-    def initiateGraceLicense(self):
+    def initiateGraceLicenseTest(self):
         """Shutdown license server and restart host v6d server"""
 
         # Shutdown the License Server.
@@ -387,7 +388,7 @@ class TCGraceLicenseBase(LicenseExpireBase):
         for host in self.hosts:
             host.execdom0("service v6d restart")
 
-    def revertGraceLicense(self):
+    def revertGraceLicenseTest(self):
         """Start license server and restart host v6d server"""
 
         # Start the license server.
@@ -409,19 +410,19 @@ class TCGraceLicenseBase(LicenseExpireBase):
             license = self.getLicenseObj(edition)
             self.applyLicense(license)
 
-            self.initiateGraceLicense()
+            self.initiateGraceLicenseTest()
 
             # Check whether the hosts obtained grace licenses.
             for host in self.hosts:
                 self.checkGrace(host)
 
-            self.revertGraceLicense()
+            self.revertGraceLicenseTest()
 
             # Check whether the hosts regained the original licenses.
             self.verifySystemLicenseState(edition=edition)
             self.verifyLicenseServer(edition)
 
-            self.initiateGraceLicense()
+            self.initiateGraceLicenseTest()
 
             # Check whether the hosts obtained grace licenses.
             for host in self.hosts:
@@ -440,3 +441,6 @@ class TCGraceLicenseBase(LicenseExpireBase):
             # Goes back to grace license again ? Or the original license?.
             # Not sure whther to release the license and verify the state again.
 
+class TC23338(GraceLicenseBase):
+    """Verify the grace license and its expiry in Creedence hosts"""
+    pass

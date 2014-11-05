@@ -99,23 +99,26 @@ class LicenseBase(xenrt.TestCase):
 
     def __parseArgs(self,arglist):
 
-        self.args = {}
-
         for arg in arglist:
             if arg.startswith('edition'):
-                self.args['edition'] = arg.split('=')[1]
-                if not self.__checkForValidEdition(edition=self.args['edition']):
-                    raise xenrt.XRTFailure("Incorrect edition given")
+                self.editions = arg.split('=')[1].split(',')
+                for edition in self.editions:
+                    if not self.__checkForValidEdition(edition=edition):
+                        raise xenrt.XRTFailure("Incorrect edition given")
             if arg.startswith('licenseserver'):
-                self.args['licenseserver'] = arg.split('=')[1]
+                self.LicenseServerName = arg.split('=')[1]
 
-    def verifyLicenseServer(self,edition):
+    def verifyLicenseServer(self,edition,reset=False):
 
         if not self.__isXSEdition(edition):
             xenrt.TEC().logverbose("XD license is applied so no need to verify the license server")
             return
 
         tmp,currentLicinuse = self.v6.getLicenseInUse(self._getLicenseName(edition))
+
+        if reset:
+            if self.licenseinUse != currentLicinuse: 
+                raise xenrt.XRTFailure("Not all the licenses are not returned to license server, current licenses in use %d" % (currentLicinuse))
 
         if not self.systemObj.getNoOfSockets() + self.licenseinUse  == currentLicinuse:
             raise xenrt.XRTFailure("No. of Licenses in use: %d, No. of socket in whole pool: %d" % (currentLicinuse, self.systemObj.getNoOfSockets()))
@@ -135,7 +138,7 @@ class LicenseBase(xenrt.TestCase):
     def __checkForValidEdition(self,edition):
 
         isValidEdition = False
-        validEditions = self.validLicenses
+        validEditions = self.validLicenses()
 
         for validEdition in validEditions:
             if edition == validEdition.getEdition():
@@ -170,27 +173,39 @@ class LicenseBase(xenrt.TestCase):
             if edition == validEdition.getEdition():
                 return validEdition.getLicenseFileName()
 
+    def getLicenseObj(self,edition):
+
+        validEditions = self.validLicenses()
+
+        for validEdition in validEditions:
+            if edition == validEdition.getEdition():
+                return validEdition
+
     def addLicenses(self,edition):
 
         self.v6.addLicense(self._getLicenseFileName(edition))
         self.licenseinUse = self.v6.getLicenseInUse(self._getLicenseName(edition))
+
+    def applyLicense(self,license):
+
+        self.v6.addLicense(license.getLicenseFileName())
+
+        self.systemObj.licenseApply(self.v6,license)
+ 
+        self.verifyLicenseServer(edition=license.getEdition())
+
+    def releaseLicense(self,edition):
+
+        self.systemObj.license(None)
+
+        self.verifyLicenseServer(edition,reset=True)
 
     def run(self,arglist=None):
 
         self.preLicenseHook()
 
         for edition in self.editions:
- 
-            self.v6.addLicense(self._getLicenseFileName(edition))
 
-            self.systemObj.license(edition=edition,v6server=self.v6)
-           
-            self.verifySystemLicenseState(edition=edition)
+            self.applyLicense(self.getLicenseObj(edition)) 
 
-            self.verifyLicenseServer(edition)
-
-            self.systemObj.releaseLicense()
- 
-            self.verifySystemLicenseState()
-
-            self.verifyLicenseServer(edition)
+            self.releaseLicense(edition)

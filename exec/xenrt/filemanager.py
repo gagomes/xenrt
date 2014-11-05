@@ -215,7 +215,15 @@ class FileManager(object):
         sharedLocation = self._sharedCacheLocation(filename)
         if os.path.exists(sharedLocation):
             xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
-            shutil.rmtree(sharedLocation) 
+            os.unlink(sharedLocation)
+            return
+        # Now try a resolved file name
+        fnr = FileNameResolver(filename, False)
+        url = fnr.url
+        sharedLocation = self._sharedCacheLocation(url)
+        if os.path.exists(sharedLocation):
+            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
+            os.unlink(sharedLocation) 
 
     def _availableInCache(self, filename):
         # First try the per-job cache

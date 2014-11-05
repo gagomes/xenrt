@@ -11946,13 +11946,13 @@ class ISCSIStorageRepository(StorageRepository):
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
                     i = i + 1
                 params["INITIATORS"] = i
-            hwtype = xenrt.TEC().lookup("ISCSI_HW_TYPE", None)
+            ttype = xenrt.TEC().lookup("ISCSI_TYPE", None)
             lun = xenrt.lib.xenserver.ISCSILun(minsize=minsize,
                                                maxsize=maxsize,
                                                params=params,
                                                jumbo=jumbo,
                                                mpprdac=mpp_rdac,
-                                               hwtype = hwtype)
+                                               ttype = ttype)
         self.lun = lun
         self.subtype = subtype
         self.noiqnset = noiqnset

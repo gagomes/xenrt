@@ -18,9 +18,8 @@
 
   <testsequence>
 
-    <serial group="SingleSkuHost">
+    <serial group="LicenseHost">
       <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="TC18972" tc="TC-18972">
-        <arg></arg>
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
 

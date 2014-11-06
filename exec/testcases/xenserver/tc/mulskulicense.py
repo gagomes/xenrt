@@ -302,6 +302,98 @@ class TCCWNewLicenseServer(clearwaterUpgrade):
  
         self.releaseLicense(self.expectedEditionAfterUpg)
 
+class TampaUpgrade(LicenseBase):
+
+    def preLicenseHook(self):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)     
+            v6.addLicense(self.oldLicenseEdition)       
+            for host in self.hosts:
+                host.license(edition=self.oldLicenseEdition,v6server=v6)
+
+        if self.isHostObj:
+            self.systemObj.upgrade()
+        else:
+            self.upgradePool()
+            
+class TCTPOldLicenseServerExp(TampaUpgrade):
+#U3.2 , C7 ,max 4 testcase
+    def preLicenseHook(self):
+
+        super(TCCWOldLicenseServerExp, self).preLicenseHook()
+        
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+          
+        #verfiy that the host is in expired state  as the license server is not upgraded 
+        self.verifySystemLicenseState()
+            
+class TCTPNewLicenseServer(TampaUpgrade):
+#U3.1 , C8 ,max 5 testcases
+
+    def preLicenseHook(self):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)
+            v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.license(edition=self.oldLicenseEdition,v6server=v6)
+
+            self.v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+            
+            #Ensure that creedence licenses are available in new license server prior to host upgrade        
+            for edition in self.editions:
+                self.v6.addLicense(self._getLicenseFileName(edition))
+
+        if self.isHostObj:
+            self.systemObj.upgrade()
+        else:
+            self.upgradePool()
+ 
+        for host in self.hosts:
+            try:
+                self.checkGrace(host)
+                raise xenrt.XRTFailure("Host has got grace license")
+            except Exception as e:
+                pass
+        
+        #The host will be in licensed state depending upon its previous license
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+ 
+        self.releaseLicense(self.expectedEditionAfterUpg)
+        
+class TCTPNewLicenseServerNoLicenseFiles(TampaUpgrade):
+#U3.3 , C9 
+    def preLicenseHook(self):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)
+            v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.license(edition=self.oldLicenseEdition,v6server=v6)
+
+            self.v6.addLicense(self.oldLicenseEdition)
+            for host in self.hosts:
+                host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+                
+        if self.isHostObj:
+            self.systemObj.upgrade()
+        else:
+            self.upgradePool()
+            
+        #verfiy that the host is in expired state  as the license server is not upgraded 
+        self.verifySystemLicenseState()
+        
+        #Now upload creedence license files into license server      
+        for edition in self.editions:
+            self.v6.addLicense(self._getLicenseFileName(edition))
+            
+        #The host gets the license depending upon its previous license
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
+        self.releaseLicense(self.expectedEditionAfterUpg)
+
 
 class LicenseExpireBase(LicenseBase):
     """

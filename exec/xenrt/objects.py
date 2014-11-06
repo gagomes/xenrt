@@ -4175,6 +4175,20 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
             self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
         return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
 
+    def getWindowsHostName(self):
+        return self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
+
+    def rename(self, name):
+        if self.windows:
+            curName = self.getWindowsHostName()
+            self.xmlrpcExec("wmic ComputerSystem where Name=\"%s\" call Rename Name=\"%s\"" % (curName, name))
+            self.winRegAdd("HKLM",
+                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
+                           "DefaultDomainName",
+                           "SZ",
+                            name)
+            self.reboot()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)

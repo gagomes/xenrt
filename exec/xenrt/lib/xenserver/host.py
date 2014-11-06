@@ -11139,11 +11139,10 @@ class CreedenceHost(ClearwaterHost):
         self.vswitchAppCtl("coverage/show")
 
     def license(self, v6server=None, sku="free", usev6testd=True):
-		"""
-		In order to keep backwards compatability "sku" arg is called sku
-		but really it needs the edition to be passed in
-		"""
-
+        """
+        In order to keep backwards compatability "sku" arg is called sku
+        but really it needs the edition to be passed in
+        """
         cli = self.getCLIInstance()
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
@@ -11177,7 +11176,7 @@ class CreedenceHost(ClearwaterHost):
             args.append("license-server-port=%s" % (v6server.getPort()))
 
         cli.execute("host-apply-edition", string.join(args))
-	    self.checkHostLicenseState(edition)
+        self.checkHostLicenseState(edition)
 
     def validLicenses(self, xenserverOnly=False):
         """

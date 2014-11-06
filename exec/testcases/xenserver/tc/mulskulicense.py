@@ -189,14 +189,14 @@ class LicenseBase(xenrt.TestCase, object):
             if edition == validEdition.getEdition():
                 return validEdition
 
-    def addLicenses(self,edition):
+    def addLicenses(self,license):
 
-        self.v6.addLicense(self._getLicenseFileName(edition))
-        self.licenseinUse = self.v6.getLicenseInUse(self._getLicenseName(edition))
+        self.v6.addLicense(license.getLicenceFileName())
+        self.licenseinUse = self.v6.getLicenseInUse(license.getLicenceName())
 
     def applyLicense(self,license):
 
-        self.v6.addLicense(license.getLicenceFileName())
+        self.addLicenses(license)
 
         self.systemObj.licenseApply(self.v6,license)
  

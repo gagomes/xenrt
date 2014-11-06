@@ -146,7 +146,7 @@ class LicenseBase(xenrt.TestCase, object):
     def __checkForValidEdition(self,edition):
 
         isValidEdition = False
-        validEditions = self.validLicenses()
+        validEditions = self.validLicenses
 
         for validEdition in validEditions:
             if edition == validEdition.getEdition():
@@ -175,7 +175,7 @@ class LicenseBase(xenrt.TestCase, object):
 
     def _getLicenseFileName(self,edition):
      
-        validEditions = self.validLicenses()
+        validEditions = self.validLicenses
 
         for validEdition in validEditions:
             if edition == validEdition.getEdition():
@@ -183,7 +183,7 @@ class LicenseBase(xenrt.TestCase, object):
 
     def getLicenseObj(self,edition):
 
-        validEditions = self.validLicenses()
+        validEditions = self.validLicenses
 
         for validEdition in validEditions:
             if edition == validEdition.getEdition():

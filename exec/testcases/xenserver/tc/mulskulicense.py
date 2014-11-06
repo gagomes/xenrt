@@ -31,6 +31,8 @@ class LicenseBase(xenrt.TestCase, object):
 
         self.__validLicenseObj = self.systemObj.validLicenses()
         self.__validXSLicenseObj = self.systemObj.validLicenses(xenserverOnly=True)
+        xenrt.TEC().logverbose("All valid editions: %s" % self.__validLicenseObj)
+        xenrt.TEC().logverbose("XS valid editions: %s" % self.__validXSLicenseObj)
         self.__parseArgs(arglist)
         self.v6 = self.licenseServer(self.newLicenseServerName)
 
@@ -231,7 +233,7 @@ class LicenseBase(xenrt.TestCase, object):
 
             self.releaseLicense(edition)
 
-class clearwaterUpgrade(LicenseBase):
+class ClearwaterUpgrade(LicenseBase):
 
     def preLicenseHook(self):
 
@@ -250,7 +252,7 @@ class clearwaterUpgrade(LicenseBase):
 
         self.preLicenseHook()
 
-class TCCWOldLicenseServerExp(clearwaterUpgrade):
+class TCCWOldLicenseServerExp(ClearwaterUpgrade):
 
     def preLicenseHook(self):
 
@@ -263,7 +265,7 @@ class TCCWOldLicenseServerExp(clearwaterUpgrade):
 
         #Expire the host 
 
-class TCCWOldLicenseServerUpg(clearwaterUpgrade):
+class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
 
     def preLicenseHook(self):
 
@@ -280,7 +282,7 @@ class TCCWOldLicenseServerUpg(clearwaterUpgrade):
 
         self.releaseLicense(self.expectedEditionAfterUpg)
 
-class TCCWNewLicenseServer(clearwaterUpgrade):
+class TCCWNewLicenseServer(ClearwaterUpgrade):
 
     def preLicenseHook(self):
 

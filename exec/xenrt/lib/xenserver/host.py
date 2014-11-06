@@ -14155,7 +14155,7 @@ class CreedencePool(ClearwaterPool):
         option: xenserverOnly - return the SKUs for just XenServer
         """
 
-        self.master.validLicenses(xenserverOnly=xenserverOnly)
+        return self.master.validLicenses(xenserverOnly=xenserverOnly)
 
 #############################################################################
 

@@ -71,13 +71,13 @@ class CreedenceLicence(Licence):
 
     def getLicenceFileName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
-            return "licence.lic"
+            return "valid-persocket"
         if self.sku == XenServerLicenceSKU.PerUserEnterprise:
             return "licence.lic"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "licence.lic"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
-            return "licence.lic"
+            return "valid-xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "licence.lic"
         if self.sku == XenServerLicenceSKU.PerUserStandard:
@@ -92,13 +92,13 @@ class CreedenceLicence(Licence):
 
     def getLicenceName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
-            return "XSC_CCD"
+            return "CXS_STD_CCS"
         if self.sku == XenServerLicenceSKU.PerUserEnterprise:
             return "XSC_CCD"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "XSC_CCD"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
-            return "XSC_CCD"
+            return "XDS_STD_CCS"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "XSC_CCD"
         if self.sku == XenServerLicenceSKU.PerUserStandard:

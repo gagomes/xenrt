@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <host id="0">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+      <host id="1">
+      </host>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="SingleSkuHost">
+      <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="TC18972" tc="TC-18972">
+        <arg></arg>
+        <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -23,7 +23,12 @@
   </prepare>
 
   <testsequence>
-      <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry"/>
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry" name="LicenseExpiry" tc="TC-23339">
+        <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
+      </testcase>
+      <testcase id="xenserver.tc.mulskulicense.TC23338" name="GraceLicense" tc=TC-23338>
+        <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
+      </testcase>
   </testsequence>
 
 </xenrt>

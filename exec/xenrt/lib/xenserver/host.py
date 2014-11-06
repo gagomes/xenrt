@@ -14132,7 +14132,7 @@ class CreedencePool(ClearwaterPool):
     def hostFactory(self):
         return xenrt.lib.xenserver.CreedenceHost
 
-    def license(self, v6server, edition="free"):
+    def license(self,v6server=None, sku="enterprise-per-socket", usev6testd=True):
 
         args = []
         cli = self.master.getCLIInstance()
@@ -14146,6 +14146,9 @@ class CreedencePool(ClearwaterPool):
         cli.execute("pool-apply-edition", string.join(args))
 
         self.checkLicenseState(edition)
+
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
 
     def validLicenses(self, xenserverOnly=False):
         """

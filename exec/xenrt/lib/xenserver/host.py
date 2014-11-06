@@ -298,10 +298,7 @@ def createHost(id=0,
                 licenseServer = guest.getV6LicenseServer(useEarlyRelease=False, install=False)
             host.license(edition=license, usev6testd=False, v6server=licenseServer)
         elif type(license) == type(""):
-            if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
-                host.license(edition =license)
-            else :    
-                host.license(sku=license)
+            host.license(sku=license)
         else:
             host.license()
 
@@ -11134,16 +11131,13 @@ class CreedenceHost(ClearwaterHost):
 
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
-        
-    def license(self ,v6server=None,edition="free",usev6testd=True):
+
+    def license(self, v6server=None, sku="free", usev6testd=True):
 
         cli = self.getCLIInstance()
-
         args = []
-
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
-        args.append("edition=%s" % (edition))       
-        
+
         if  usev6testd and not v6server:
             # Make sure the v6testd is in use
             # Try to get it from xe-phase-1
@@ -11165,6 +11159,9 @@ class CreedenceHost(ClearwaterHost):
                               (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
                 self.execdom0("service v6d restart")
 
+            sku = "per-socket"
+
+        args.append("edition=%s" % sku)
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))

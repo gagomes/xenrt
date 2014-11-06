@@ -14,7 +14,11 @@
         <vm name="LicenseServer">
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer"/>
-        </vm>        
+        </vm>
+        <vm name="oldLicenseServer">
+          <file>%OLD_LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
       </host>
  </preprepare>
 
@@ -30,10 +34,25 @@
   <testsequence>
    <serial group="LicensedTampaUpgrade" blocker="yes">      
       <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="TC19085" tc="TC-19085">
-        <arg>system=host</arg>
-        <arg>edition=per-socket</arg>
+        <arg>expectededition=enterprise-per-socket</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicenseedition=per-socket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
       </testcase>  
-      <action action="prepare"/> 
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="TC19085" tc="TC-19085">
+        <arg>expectededition=enterprise-per-socket</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicenseedition=per-socket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="TC19085" tc="TC-19085">
+        <arg>expectededition=enterprise-per-socket</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicenseedition=per-socket</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+      </testcase> 
    </serial>   
     
   </testsequence>

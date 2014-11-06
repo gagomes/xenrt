@@ -13,6 +13,9 @@ import xenrt
 
 class LicenseBase(xenrt.TestCase, object):
 
+    def __init__(self):
+        self.editions = None
+
     def prepare(self,arglist):
 
         self.hosts = []
@@ -394,11 +397,10 @@ class TCTPNewLicenseServerNoLicenseFiles(TampaUpgrade):
         self.releaseLicense(self.expectedEditionAfterUpg)
 
 
-class LicenseExpireBase(LicenseBase):
+class LicenseExpiryBase(LicenseBase):
     """
     TC for Creedence (and later) license expiration test.
     """
-    EDITIONS = ["enterprise-per-user", "enterprise-per-socket"]
 
     def expireLicenseTest(self):
         """Select a host and force expire the license of the host."""
@@ -428,10 +430,17 @@ class LicenseExpireBase(LicenseBase):
         xenrt.sleep(30)
 
     def run(self, arglist=[]):
+        pass
+
+
+class TCLicenseExpiry(LicenseExpiryBase):
+    """ Expiry test case """
+
+    def run(self, arglist=[]):
 
         self.preLicenseHook()
 
-        for edition in self.EDITIONS:
+        for edition in self.editions:
             if edition == "free":
                 # free lincese does not require expiry test.
                 continue
@@ -453,10 +462,7 @@ class LicenseExpireBase(LicenseBase):
             self.verifySystemLicenseState()
             self.verifyLicenseServer(edition)
 
-class TCLicenseExpiry(LicenseExpireBase):
-    pass
-
-class GraceLicenseBase(LicenseExpireBase):
+class GraceLicenseBase(LicenseExpiryBase):
     """Base class to verify the grace license tests"""
 
     def initiateGraceLicenseTest(self):

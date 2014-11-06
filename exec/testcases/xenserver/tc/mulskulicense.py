@@ -9,7 +9,7 @@
 #
 
 import string, re, time, traceback, sys, copy, random
-import xenrt, xenrt.lib.xenserver, xenrt.lib.xenserver.cli
+import xenrt
 
 class LicenseBase(xenrt.TestCase, object):
 
@@ -412,22 +412,11 @@ class LicenseExpireBase(LicenseBase):
 
     def __forceExpireLicense(self, host):
         """ Set next day of expiration date"""
-
-        licinfo = host.getLicenseDetails()
-        host.execdom0("/etc/init.d/ntpd stop")
-        expiretarget = time.gmtime(licinfo["expiry"])
-        host.execdom0("date -u %s" % time.strftime("%m%d%H%M%Y.%S",expiretarget))
-
-        return host
-            
-
-    def __forceExpireLicense(self, host):
-        """ Set next day of expiration date"""
         
         licinfo = host.getLicenseDetails()
         host.execdom0("/etc/init.d/ntpd stop")
         expiretarget = time.gmtime(licinfo["expiry"])
-        self.host.execdom0("date -u %s" %
+        host.execdom0("date -u %s" %
                            (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
 
         # Give some time to actually expire the license.

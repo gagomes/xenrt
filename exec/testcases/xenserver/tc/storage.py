@@ -14,23 +14,24 @@ import xenrt
 from xenrt.lazylog import *
 
 
-class AbstractLinuxHostedNFSExport(object):
-    def __init__(self, path):
-        self.path = path
-        if not path.startswith('/'):
-            raise ValueError('absolute path expected')
+class _AbstractLinuxHostedNFSServer(object):
+    def __init__(self, paths):
+        self.paths = paths
+        for path in self.paths:
+            if not path.startswith('/'):
+                raise ValueError('absolute path expected')
 
-    def getExportsLine(self):
+    def _getExportsLine(self):
         raise NotImplementedError('This is an abstract class')
 
-    def getCommandsToPrepareSharedDirectory(self):
+    def _getCommandsToPrepareSharedDirectory(self):
         raise NotImplementedError('This is an abstract class')
 
     def getStorageRepositoryClass(self):
         raise NotImplementedError('This is an abstract class')
 
-    def prepareSharedDirectory(self, guest):
-        for command in self.getCommandsToPrepareSharedDirectory():
+    def _prepareSharedDirectory(self, guest):
+        for command in self._getCommandsToPrepareSharedDirectory():
             guest.execguest(command)
 
     def createNFSExportOnGuest(self, guest):
@@ -40,19 +41,23 @@ class AbstractLinuxHostedNFSExport(object):
         )
 
         # Create a dir and export it
-        self.prepareSharedDirectory(guest)
-        guest.execguest("echo '%s' > /etc/exports" % self.getExportsLine())
+        self._prepareSharedDirectory(guest)
+        guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
         guest.execguest("/etc/init.d/portmap start")
         guest.execguest("/etc/init.d/nfs-common start || true")
         guest.execguest("/etc/init.d/nfs-kernel-server start || true")
 
 
-class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
-    def getExportsLine(self):
-        return '%s *(sync,rw,no_root_squash,no_subtree_check)' % self.path
+class _LinuxHostedNFSv3Server(_AbstractLinuxHostedNFSServer):
+    def _getExportsLine(self):
+        exportLines = []
+        for path in self.paths:
+            exportLines.append(
+                '%s *(sync,rw,no_root_squash,no_subtree_check)' % path)
+        return '\n'.join(exportLines)
 
-    def getCommandsToPrepareSharedDirectory(self):
-        return ["mkdir %s" % self.path]
+    def _getCommandsToPrepareSharedDirectory(self):
+        return ["mkdir -p %s" % path for path in self.paths]
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSStorageRepository
@@ -61,16 +66,19 @@ class LinuxHostedNFSv3Export(AbstractLinuxHostedNFSExport):
         pass
 
 
-class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
-    def getExportsLine(self):
+class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
+    def _getExportsLine(self):
         return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
 
-    def getCommandsToPrepareSharedDirectory(self):
-        return [
-            "mkdir /nfsv4-root",
-            "mkdir /nfsv4-root%s" % self.path,
-            "chmod o+w /nfsv4-root%s" % self.path,
-        ]
+    def _getCommandsToPrepareSharedDirectory(self):
+        prepareCommands = []
+        for path in self.paths:
+            prepareCommands += [
+                "mkdir -p /nfsv4-root",
+                "mkdir -p /nfsv4-root%s" % path,
+                "chmod o+w /nfsv4-root%s" % path,
+            ]
+        return prepareCommands
 
     def getStorageRepositoryClass(self):
         return xenrt.lib.xenserver.host.NFSv4StorageRepository
@@ -88,11 +96,11 @@ class LinuxHostedNFSv4Export(AbstractLinuxHostedNFSExport):
                 'NFSv4 expects hostname to resolve to an address')
 
 
-def linuxBasedNFSExport(revision, path):
+def linuxBasedNFSServer(revision, paths):
     if revision == 3:
-        return LinuxHostedNFSv3Export(path)
+        return _LinuxHostedNFSv3Server(paths)
     elif revision == 4:
-        return LinuxHostedNFSv4Export(path)
+        return _LinuxHostedNFSv4Server(paths)
     else:
         raise ValueError('Invalid value for revision')
 
@@ -155,6 +163,7 @@ class SRSanityTestTemplate(xenrt.TestCase):
     TARGET_USE_EXTRA_VBD = False
     TARGET_USE_EXTRA_VBD_SIZE = 32768
     CHECK_FOR_OPEN_ISCSI = False
+    NFS_VERSION = 3
 
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
@@ -267,21 +276,20 @@ class NFSSRSanityTest(SRSanityTestTemplate):
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
-    NFS_VERSION = 3
 
     def createSR(self,host,guest):
-        nfsExport = linuxBasedNFSExport(self.NFS_VERSION, '/sr')
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr'])
 
-        nfsExport.createNFSExportOnGuest(guest)
+        nfsServer.createNFSExportOnGuest(guest)
 
-        nfsExport.prepareDomZero(host)
+        nfsServer.prepareDomZero(host)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = nfsExport.getStorageRepositoryClass()(host, self.SRNAME)
+            sr = nfsServer.getStorageRepositoryClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:
@@ -694,25 +702,16 @@ class TC7368(SRSanityTestTemplate):
     """Create two NFS SRs on the same NFS server"""
 
     def createSR(self,host,guest):
-        # Set up NFS
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr0', '/sr1'])
 
-        # Create a dir and export it
-        guest.execguest("mkdir /sr0")
-        guest.execguest("echo '/sr0 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " > /etc/exports")
-        guest.execguest("mkdir /sr1")
-        guest.execguest("echo '/sr1 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " >> /etc/exports")
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+        nfsServer.createNFSExportOnGuest(guest)
+
+        nfsServer.prepareDomZero(host)
 
         # Create the SRs on the host
-        sr0 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs0")
+        sr0 = nfsServer.getStorageRepositoryClass()(host,"test-nfs0")
         sr0.create(guest.getIP(),"/sr0")
-        sr1 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs1")
+        sr1 = nfsServer.getStorageRepositoryClass()(host,"test-nfs1")
         sr1.create(guest.getIP(),"/sr1")
 
         return [sr0.uuid, sr1.uuid]
@@ -729,6 +728,12 @@ class TC7368(SRSanityTestTemplate):
             raise xenrt.XRTFailure("Second SR missing after forget of the "
                                    "first SR")
         self.checkSRs()
+
+
+class TC23336(TC7368):
+
+    NFS_VERSION = 4
+
 
 class TC7369(SRSanityTestTemplate):
     """Create an iSCSI SR on a target requiring CHAP authentication"""

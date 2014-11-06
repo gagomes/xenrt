@@ -642,6 +642,7 @@ try:
             aux = True
         elif flag == "--remove-filecache":
             removefilecache = value
+            verbose=True
             aux = True
         elif flag == "--generate-docs":
             docgen = True
@@ -1614,8 +1615,8 @@ if cleanupfilecache:
 
 if removefilecache:
     xenrt.TEC().logverbose("Removing %s from shared cache..." % removefilecache)
-    rfm = xenrt.filemanager.RemoteFileManager()
-    rfm.removeFromSharedCache(removefilecache)
+    fm = xenrt.filemanager.getFileManager()
+    fm.removeFromCache(removefilecache)
 
 
 if docgen:

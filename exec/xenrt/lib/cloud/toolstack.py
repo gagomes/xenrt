@@ -687,8 +687,10 @@ class CloudStack(object):
         else:
             zoneid = self.getDefaultZone().id
         with xenrt.GEC().getLock("CCP_ISO_DOWNLOAD-%s-%s" % (distro, zone)):
-            isos = [x for x in self.cloudApi.listIsos(isofilter="all") if x.displaytext == isoName and x.zoneid == zoneid]
-            if not isos:
+            isoList = self.cloudApi.listIsos(isofilter="all")
+            if isinstance(isoList, list) and len(filter(lambda x:x.displaytext == isoName and x.zoneid == zoneid, isoList)) == 1:
+                xenrt.TEC().logverbose('Found existing ISO: %s' % (isoList[0].displaytext))
+            else:
                 xenrt.TEC().logverbose("ISO is not present, registering")
                 if isoRepo == xenrt.IsoRepository.Windows:
                     url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)

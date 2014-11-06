@@ -5,8 +5,7 @@
   </variables>
 
   <prepare>
-    <host>
-    </host>
+    <host license="enterprise-per-socket"/>
   </prepare>
 
   <testsequence>

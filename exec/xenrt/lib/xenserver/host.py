@@ -11138,6 +11138,47 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
+    def license(self, v6server=None, sku="free", usev6testd=True):
+		"""
+		In order to keep backwards compatability "sku" arg is called sku
+		but really it needs the edition to be passed in
+		"""
+
+        cli = self.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+
+        if  usev6testd and not v6server:
+            # Make sure the v6testd is in use
+            # Try to get it from xe-phase-1
+            if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
+                             retval="code") != 0:
+                self.execdom0("mv -f /opt/xensource/libexec/v6d "
+                              "/opt/xensource/libexec/v6d.orig")
+                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                if rpm:
+                    sftp = self.sftpClient()
+                    try:
+                        sftp.copyTo(rpm, "/tmp/v6-test.rpm")
+                    finally:
+                        sftp.close()
+                    self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                else:
+                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
+                                  "/opt/xensource/libexec/v6d" %
+                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                self.execdom0("service v6d restart")
+
+            sku = "per-socket"
+
+        args.append("edition=%s" % sku)
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("host-apply-edition", string.join(args))
+	    self.checkHostLicenseState(edition)
+
     def validLicenses(self, xenserverOnly=False):
         """
         option: xenserverOnly - return the SKUs for just XenServer
@@ -11176,26 +11217,10 @@ class CreedenceHost(ClearwaterHost):
 
         xenrt.TEC().logverbose("Edition is same on host as expected") 
 
-    def licenseApply(self,v6server,licenseObj):
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
 
-        self.license(v6server,edition=licenseObj.getEdition())
-
-    def license(self,v6server, edition="free"):
-
-        cli = self.getCLIInstance()
-
-        args = []
-
-        args.append("host-uuid=%s" % (self.getMyHostUUID()))
-        args.append("edition=%s" % (edition))
-
-        if v6server:
-            args.append("license-server-address=%s" % (v6server.getAddress()))
-            args.append("license-server-port=%s" % (v6server.getPort()))
-
-        cli.execute("host-apply-edition", string.join(args))
-
-        self.checkHostLicenseState(edition)
+        
 
 #############################################################################
 class SarasotaHost(CreedenceHost):
@@ -11972,11 +11997,13 @@ class ISCSIStorageRepository(StorageRepository):
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
                     i = i + 1
                 params["INITIATORS"] = i
+            ttype = xenrt.TEC().lookup("ISCSI_TYPE", None)
             lun = xenrt.lib.xenserver.ISCSILun(minsize=minsize,
                                                maxsize=maxsize,
                                                params=params,
                                                jumbo=jumbo,
-                                               mpprdac=mpp_rdac)
+                                               mpprdac=mpp_rdac,
+                                               ttype = ttype)
         self.lun = lun
         self.subtype = subtype
         self.noiqnset = noiqnset

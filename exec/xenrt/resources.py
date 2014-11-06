@@ -888,11 +888,14 @@ class _ISCSILunBase(CentralResource):
             if ttype and ttype != xtype:
                 continue
             
+            if not ttype and xtype.endswith("-reserved"):
+                # Only use flash-reserved if we ask for it
+                continue
+            
             # Check the suitable hardware type
             htype = xenrt.TEC().lookup([keyname, s, "HWTYPE"], "unknown")
             if hwtype and hwtype != htype:
                 continue
-            
             # Check we have enough initiator names defined
             if params.has_key("INITIATORS"):
                 want = int(params["INITIATORS"])

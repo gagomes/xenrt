@@ -1,0 +1,40 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446/"/>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>    
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446/</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>Clearwater</OLD_PRODUCT_VERSION>    
+  </variables>
+
+ <preprepare>
+      <host id="0">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>        
+      </host>
+ </preprepare>
+
+  <prepare>     
+        <pool id="0">
+        <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"> 
+        </host>        
+        <host id="2" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>
+        <storage type="nfs" name="nfssr" default="true"/>
+       </pool> 
+  </prepare>
+
+  <testsequence>
+   <serial group="LicensedTampaUpgrade" blocker="yes">      
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="TC19085" tc="TC-19085">
+        <arg>system=host</arg>
+        <arg>edition=per-socket</arg>
+      </testcase>  
+      <action action="prepare"/> 
+   </serial>   
+    
+  </testsequence>
+</xenrt>

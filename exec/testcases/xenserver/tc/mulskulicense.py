@@ -26,7 +26,7 @@ class LicenseBase(xenrt.TestCase, object):
             self.hosts = self.getDefaultPool().getHosts() 
             self.__isHostObj = False
         else:
-            self.__sysObj = self.getDefaultHost()
+            self.__sysObj = self.getHost("RESOURCE_HOST_1")
             self.__isHostObj = True
             self.hosts.append(self.__sysObj)
 
@@ -321,7 +321,7 @@ class TCTPOldLicenseServerExp(TampaUpgrade):
 #U3.2 , C7 ,max 4 testcase
     def preLicenseHook(self):
 
-        super(TCCWOldLicenseServerExp, self).preLicenseHook()
+        super(TCTPOldLicenseServerExp, self).preLicenseHook()
         
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
           

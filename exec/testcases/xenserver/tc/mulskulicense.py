@@ -192,7 +192,7 @@ class LicenseBase(xenrt.TestCase, object):
     def addLicenses(self,license):
 
         self.v6.addLicense(license.getLicenceFileName())
-        self.licenseinUse = self.v6.getLicenseInUse(license.getLicenceName())
+        tmp,self.licenseinUse = self.v6.getLicenseInUse(license.getLicenceName())
 
     def applyLicense(self,license):
 

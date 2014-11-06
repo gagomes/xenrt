@@ -127,6 +127,8 @@ class LicenseBase(xenrt.TestCase, object):
         if reset:
             if self.licenseinUse != currentLicinuse: 
                 raise xenrt.XRTFailure("Not all the licenses are not returned to license server, current licenses in use %d" % (currentLicinuse))
+            xenrt.TEC().logverbose("License server verified and correct no of licenses checked out")
+            return
 
         if not ((self.systemObj.getNoOfSockets() + self.licenseinUse)  == currentLicinuse):
             raise xenrt.XRTFailure("No. of Licenses in use: %d, No. of socket in whole pool: %d" % (currentLicinuse, self.systemObj.getNoOfSockets()))

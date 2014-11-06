@@ -13,11 +13,9 @@ import xenrt
 
 class LicenseBase(xenrt.TestCase, object):
 
-    def __init__(self):
-        self.editions = None
-
     def prepare(self,arglist):
 
+        self.editions = None
         self.hosts = []
         self.newLicenseServerName = 'LicenseServer'
         self.oldLicenseEdition = None

@@ -432,7 +432,6 @@ class LicenseExpiryBase(LicenseBase):
     def run(self, arglist=[]):
         pass
 
-
 class TCLicenseExpiry(LicenseExpiryBase):
     """ Expiry test case """
 
@@ -462,7 +461,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
             self.verifySystemLicenseState()
             self.verifyLicenseServer(edition)
 
-class GraceLicenseBase(LicenseExpiryBase):
+class LicenseGraceBase(LicenseExpiryBase):
     """Base class to verify the grace license tests"""
 
     def initiateGraceLicenseTest(self):
@@ -482,6 +481,12 @@ class GraceLicenseBase(LicenseExpiryBase):
         # Restart v6d service on hosts.
         for host in self.hosts:
             host.execdom0("service v6d restart")
+
+    def run(self, arglist=[]):
+        pass
+
+class TCLicenseGraceBase(LicenseGraceBase):
+    """Verify the grace license and its expiry in Creedence hosts"""
 
     def run(self, arglist=[]):
 
@@ -525,8 +530,4 @@ class GraceLicenseBase(LicenseExpiryBase):
             
             # At this point we do not know what is the license state.
             # Goes back to grace license again ? Or the original license?.
-            # Not sure whther to release the license and verify the state again.
-
-class TC23338(GraceLicenseBase):
-    """Verify the grace license and its expiry in Creedence hosts"""
-    pass
+            # Not sure whether to release the license and verify the state again.

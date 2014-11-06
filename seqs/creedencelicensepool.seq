@@ -1,5 +1,7 @@
 <xenrt>
 
+  <!-- Verify license tests on a pool of Creedence hosts -->
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>
@@ -23,12 +25,19 @@
   </prepare>
 
   <testsequence>
+
+    <serial group="PoolLicense">
+
       <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry" name="LicenseExpiry" tc="TC-23339">
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
-      <testcase id="xenserver.tc.mulskulicense.TC23338" name="GraceLicense" tc="TC-23338">
+
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseGraceBase" name="LicenseGrace" tc="TC-23338">
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
+
+    </serial>
+
   </testsequence>
 
 </xenrt>

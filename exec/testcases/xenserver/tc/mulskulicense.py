@@ -15,8 +15,6 @@ class LicenseBase(xenrt.TestCase, object):
 
     def prepare(self,arglist):
 
-        self.__parseArgs(arglist)
-
         self.hosts = []
         self.newLicenseServerName = 'LicenseServer'
         self.oldLicenseEdition = None
@@ -32,6 +30,7 @@ class LicenseBase(xenrt.TestCase, object):
 
         self.__validLicenseObj = self.systemObj.validLicenses()
         self.__validXSLicenseObj = self.systemObj.validLicenses(xenserverOnly=True)
+        self.__parseArgs(arglist)
         self.v6 = self.licenseServer(self.newLicenseServerName)
 
     def preLicenseHook(self):
@@ -204,7 +203,7 @@ class LicenseBase(xenrt.TestCase, object):
 
     def releaseLicense(self,edition):
 
-        self.systemObj.license(None)
+        self.systemObj.license(v6server=None,sku='free',usev6testd=False)
 
         self.verifyLicenseServer(edition,reset=True)
 

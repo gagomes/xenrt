@@ -245,6 +245,10 @@ class clearwaterUpgrade(LicenseBase):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
+    
+    def run(self,arglist=None):
+
+        self.preLicenseHook()
 
 class TCCWOldLicenseServerExp(clearwaterUpgrade):
 
@@ -270,6 +274,8 @@ class TCCWOldLicenseServerUpg(clearwaterUpgrade):
         for host in self.hosts:
             self.checkGrace(host)
 
+        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
+
         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
 
         self.releaseLicense(self.expectedEditionAfterUpg)
@@ -287,6 +293,8 @@ class TCCWNewLicenseServer(clearwaterUpgrade):
             self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
+
+        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
 
         if self.isHostObj:
             self.systemObj.upgrade()
@@ -318,6 +326,10 @@ class TampaUpgrade(LicenseBase):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
+
+    def run(self,arglist=None):
+
+        self.preLicenseHook()
             
 class TCTPOldLicenseServerExp(TampaUpgrade):
 #U3.2 , C7 ,max 4 testcase

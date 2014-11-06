@@ -556,17 +556,7 @@ class Guest(xenrt.GenericGuest):
                 self.installTools()
         if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if distro and 'ubuntu1404' in distro:
-                _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
-                _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
-                                    "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
-                if '64' in self.arch:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
-                else:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-            elif distro and 'oel7' in distro:
+            if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",

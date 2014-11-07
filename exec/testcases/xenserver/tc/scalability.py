@@ -312,41 +312,40 @@ class _VMScalability(_Scalability):
         self.masterGuest[host] = guest
 
     def createVmCloneThread(self, host, tailor_guest=None):
-        if (self.max != 0 and self.currentNbrOfGuests >= self.max) or self.nbrOfFails > self.nbrOfFailThresholds:
-            return
+        while self.nbrOfFails <= self.nbrOfFailThresholds:
+            if (self.max != 0 and self.currentNbrOfGuests >= self.max):
+                return
 
-        self.lock.acquire()
-        self.currentNbrOfGuests = self.currentNbrOfGuests + 1
-        guestNbr = self.currentNbrOfGuests
-        guestOnHostNbr = len(host.listGuests(running=True)) + 1
-        self.lock.release()
+            self.lock.acquire()
+            self.currentNbrOfGuests = self.currentNbrOfGuests + 1
+            guestNbr = self.currentNbrOfGuests
+            guestOnHostNbr = len(host.listGuests(running=True)) + 1
+            self.lock.release()
 
-        g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + self.DISTRO )
-        self.guests.append(g)
-        host.addGuest(g)
-        if tailor_guest:
-            tailor_guest(g)
-        if self.max == 0:
-            try:
-                g.start(specifyOn = False)
-                if self.HATEST:
-                    g.setHAPriority(order=2, protect=True, restart=False)
-                    if not g.paramGet("ha-restart-priority") == "best-effort":
-                        raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
-            except xenrt.XRTFailure, e:
-                xenrt.TEC().warning("Failed to start VM %u: %s" % (guestNbr, e))
-                self.nbrOfFails= self.nbrOfFails+1
-                self.failedGuests.append(g)
+            g = self.masterGuest[host].cloneVM(name=str(guestNbr)+"_" + self.DISTRO )
+            self.guests.append(g)
+            host.addGuest(g)
+            if tailor_guest:
+                tailor_guest(g)
+            if self.max == 0:
                 try:
-                    g.uninstall()
-                    self.guests.remove(g)
-                    host.removeGuest(g)
-                except:
-                    pass
-                #adding sleep to prevent this thread from creating more failures immediately.
-                xenrt.sleep(120)
-
-        self.createVmCloneThread(host, tailor_guest=tailor_guest)
+                    g.start(specifyOn = False)
+                    if self.HATEST:
+                        g.setHAPriority(order=2, protect=True, restart=False)
+                        if not g.paramGet("ha-restart-priority") == "best-effort":
+                            raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
+                except xenrt.XRTFailure, e:
+                    xenrt.TEC().warning("Failed to start VM %u: %s" % (guestNbr, e))
+                    self.nbrOfFails= self.nbrOfFails+1
+                    self.failedGuests.append(g)
+                    try:
+                        g.uninstall()
+                        self.guests.remove(g)
+                        host.removeGuest(g)
+                    except:
+                        pass
+                    #adding sleep to prevent this thread from creating more failures immediately.
+                    xenrt.sleep(120)
 
     def createVmClones(self, tailor_guest=None):
         self.currentNbrOfGuests = len(self.guests)
@@ -375,41 +374,39 @@ class _VMScalability(_Scalability):
                         raise xenrt.XRTFailure("Guest %s not marked as protected after setting priority" % (g.getName()))
 
     def checkGuestThread(self):
-        self.lock.acquire()
-        if len(self.guestsNotChecked)== 0:
+        while True:
+            self.lock.acquire()
+            if len(self.guestsNotChecked)== 0:
+                self.lock.release()
+                return
+            g = self.guestsNotChecked.pop()
             self.lock.release()
-            return
-        g = self.guestsNotChecked.pop()
-        self.lock.release()
 
-        isAlive = False
-        isUp = False
+            isAlive = False
+            isUp = False
 
-        if self.CHECKREACHABLE:
-            try:
-                g.checkReachable()
-            except:
-                xenrt.TEC().warning("Guest %s not reachable" % (g.getName()))
-            else:
-                isAlive = True
+            if self.CHECKREACHABLE:
+                try:
+                    g.checkReachable()
+                except:
+                    xenrt.TEC().warning("Guest %s not reachable" % (g.getName()))
+                else:
+                    isAlive = True
 
-        if self.CHECKHEALTH:
-            try:
-                if g.getState() == "UP":
-                    g.checkHealth(noreachcheck=True) #noreachcheck=True will ensure the VNC Snapshot is taken and checked
-                    isUp = True
-            except:
-                xenrt.TEC().warning("Guest %s not up" % (g.getName()))
+            if self.CHECKHEALTH:
+                try:
+                    if g.getState() == "UP":
+                        g.checkHealth(noreachcheck=True) #noreachcheck=True will ensure the VNC Snapshot is taken and checked
+                        isUp = True
+                except:
+                    xenrt.TEC().warning("Guest %s not up" % (g.getName()))
 
-        self.lock.acquire()
-        if isAlive:
-            self.nbrOfGuestsAlive = self.nbrOfGuestsAlive + 1
-        if isUp:
-            self.nbrOfGuestsUp = self.nbrOfGuestsUp + 1
-        self.lock.release()
-
-        #recursively call itself until all guests are not checked
-        self.checkGuestThread()
+            self.lock.acquire()
+            if isAlive:
+                self.nbrOfGuestsAlive = self.nbrOfGuestsAlive + 1
+            if isUp:
+                self.nbrOfGuestsUp = self.nbrOfGuestsUp + 1
+            self.lock.release()
 
     def checkGuests(self):
         nbrOfThreads = min(5*len(self.hosts),25)
@@ -431,34 +428,32 @@ class _VMScalability(_Scalability):
             raise xenrt.XRTFailure("%d guests are not healthy" % (self.nbrOfGuests-self.nbrOfGuestsUp))
 
     def guestOperationThread(self, operation, iterationNbr = None):
-        self.lock.acquire()
-        if len(self.guestsPendingOperation)== 0:
+        while True:
+            self.lock.acquire()
+            if len(self.guestsPendingOperation)== 0:
+                self.lock.release()
+                return
+            g = self.guestsPendingOperation.pop()
             self.lock.release()
-            return
-        g = self.guestsPendingOperation.pop()
-        self.lock.release()
 
-        passed = False
+            passed = False
 
-        try:
-            if operation == "shutdown":
-                g.shutdown()
-            elif operation == "start":
-                g.start(specifyOn = False)
-            passed = True
-        except:
-            if iterationNbr == None:
-                xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
-            else:
-                xenrt.TEC().warning("LOOP %s: Guest %s failed to %s" % (iterationNbr, g.getName(), operation))
+            try:
+                if operation == "shutdown":
+                    g.shutdown()
+                elif operation == "start":
+                    g.start(specifyOn = False)
+                passed = True
+            except:
+                if iterationNbr == None:
+                    xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
+                else:
+                    xenrt.TEC().warning("LOOP %s: Guest %s failed to %s" % (iterationNbr, g.getName(), operation))
 
-        self.lock.acquire()
-        if passed:
-            self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
-        self.lock.release()
-
-        #recursively call itself until all guests are operated.
-        self.guestOperationThread(operation, iterationNbr)
+            self.lock.acquire()
+            if passed:
+                self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
+            self.lock.release()
 
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)
@@ -3025,6 +3020,7 @@ class TCScaleVMXenDesktop49Reboot(TCStbltyWorkLoadBase):
 
 class _VBDScalability(_Scalability):
 
+    SR = None
     vdis = []
     VALIDATE = False
 

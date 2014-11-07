@@ -268,6 +268,12 @@ class LicenseBase(xenrt.TestCase, object):
 
             self.releaseLicense(edition)
 
+    def postRun(self):
+        for edition in self.editions:
+            self.releaseLicense(edition)
+        xenrt.TestCase.postRun(self)
+
+
 class ClearwaterUpgrade(LicenseBase):
     UPGRADE  = True
 
@@ -518,6 +524,47 @@ class LicenseExpiryBase(LicenseBase):
         # Give some time to actually expire the license.
         xenrt.sleep(60)
 
+    def checkLicenseExpired(self, host, edition, raiseException=False):
+        """ Checking License is expired by checking feature availability.
+        Checking date is pointless as TC expires license by changing date."""
+
+        try:
+            host.checkHostLicenseState(edition)
+        except xenrt.XRTException, e:
+            if raiseException:
+                raise e
+            else:
+                xenrt.TEC().logverbose("ERROR: %s" % str(e))
+                return False
+
+        licdet = host.getLicenseDetails()
+        if not "restrict_wlb" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_wlb is not in the license detail.")
+            return False
+        if licdet["restrict_wlb"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_wlb is false after license is expired.")
+            return False
+        if not "restrict_read_caching" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_read_caching is not in the license detail.")
+            return False
+        if licdet["restrict_read_caching"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_read_caching is false after license is expired.")
+            return False
+        if not "restrict_vgpu" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_vgpu is not in the license detail.")
+            return False
+        if licdet["restrict_vgpu"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_vgpu is false after license is expired.")
+            return False
+
+        return True
+
     def resetTimer(self, host=None):
         """ Restart NTP daemon, so that timer of host reset on time."""
         
@@ -562,12 +609,11 @@ class TCLicenseExpiry(LicenseExpiryBase):
 
         # Expiry test
         host = self.expireLicense()
-        host.checkHostLicenseState("free")
-        if not self.isHostObj:
-            self.verifySystemLicenseState(edition, True)
-        self.resetTimer(host)
-        # End of expiry test
+        if not self.checkLicenseExpired(host, edition):
+            raise xenrt.XRTFailure("License is not expired properly.")
 
+        # Cleaning up.
+        self.resetTimer(host)
         self.releaseLicense(edition)
         
     def run(self, arglist=[]):

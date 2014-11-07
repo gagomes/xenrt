@@ -4166,7 +4166,8 @@ fi
         data = cli.execute("host-license-view", "host-uuid=%s" %
                                                 (self.getMyHostUUID()))
         params = ["sku_type", "version", "serialnumber", "expiry", "name",
-                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply"]
+                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply",
+                  "restrict_read_caching", "restrict_wlb", "restrict_vgpu"]
         returnData = {}
         for p in params:
             r = re.search(r"%s.*: (.*)" % (p), data)
@@ -4187,7 +4188,7 @@ fi
                 except:
                     pass
             finally:
-                self.logoutAPISession(session)            
+                self.logoutAPISession(session)
 
         return returnData
 

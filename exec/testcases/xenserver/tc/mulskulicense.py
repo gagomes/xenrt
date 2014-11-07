@@ -403,7 +403,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
  
         self.releaseLicense(self.expectedEditionAfterUpg)
         
-class TCTPNewLicenseServerNoLicenseFiles(TampaUpgrade):
+class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
 #U3.3 , C9 
     def preLicenseHook(self):
 

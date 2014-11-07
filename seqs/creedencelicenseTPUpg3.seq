@@ -32,21 +32,21 @@
 
   <testsequence>
    <serial group="TampaUpgNewLicSerButNoLicFiles" blocker="yes">      
-      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC23346" tc="TC-23346">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=advanced</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>  
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC23347" tc="TC-23347">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=platinum</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC23348" tc="TC-23348">
         <arg>expectededition=free</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=enterprise-xd</arg>

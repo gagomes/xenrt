@@ -10603,7 +10603,9 @@ class V6LicenseServer:
             self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
             xenrt.sleep(5)
 
-            #Add the root to lmadmin group so the root has priviledges to lmreread
+            #Add the root to lmadmin group so the root has priviledges to lmreread                       
+            self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
+            xenrt.sleep(5)
             self.place.writeToConsole("sed -i 's/lmadmin:x:500:/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
 

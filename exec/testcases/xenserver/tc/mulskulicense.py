@@ -116,6 +116,8 @@ class LicenseBase(xenrt.TestCase, object):
         xenrt.TEC().logverbose("Performing rolling pool upgrade of %s" % (self.__sysObj.getName()))
         self.__sysObj = newP.upgrade(rolling=True)
 
+        self.hosts = self.__sysObj.getHosts()
+
         # Upgrade PV tools in guests
         if self.__sysObj.master.listGuests() != [] :
             xenrt.TEC().logverbose("Found guests in pool hence Upgrading PV tools.....")
@@ -280,6 +282,8 @@ class ClearwaterUpgrade(LicenseBase):
 
         if self.isHostObj:
             self.systemObj.upgrade()
+            self.hosts=[]
+            self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
 
@@ -328,11 +332,11 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
 
             if self.oldLicenseEdition != 'free':
                 self.addCWLicenseFiles(v6)
+                self.addCWLicenseFiles(self.v6)
 
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
-            self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
 
@@ -340,6 +344,8 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
 
         if self.isHostObj:
             self.systemObj.upgrade()
+            self.hosts=[]
+            self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
         self.updateLicenseObjs() 
@@ -365,7 +371,7 @@ class TampaUpgrade(LicenseBase):
                 self.addTPLicenseFiles(v6)
  
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=v6)            
+                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)            
                 details = host.getLicenseDetails()
                 wlbprevstatus = details["restrict_wlb"]
                 if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
@@ -375,6 +381,8 @@ class TampaUpgrade(LicenseBase):
 
         if self.isHostObj:
             self.systemObj.upgrade()
+            self.hosts=[]
+            self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
         
@@ -405,13 +413,13 @@ class TCTPNewLicenseServer(TampaUpgrade):
             v6 = self.licenseServer(self.oldLicenseServerName)
             if self.oldLicenseEdition != 'free':
                 self.addTPLicenseFiles(v6)
+                self.addTPLicenseFiles(self.v6)
 
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=v6)
+                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
 
-            self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
                 details = host.getLicenseDetails()
                 wlbprevstatus = details["restrict_wlb"]
                 if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
@@ -425,6 +433,8 @@ class TCTPNewLicenseServer(TampaUpgrade):
 
         if self.isHostObj:
             self.systemObj.upgrade()
+            self.hosts=[]
+            self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
  
@@ -449,13 +459,13 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
             v6 = self.licenseServer(self.oldLicenseServerName)
             if self.oldLicenseEdition != 'free':
                 self.addTPLicenseFiles(v6)
+                self.addTPLicenseFiles(self.v6)
 
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=v6)
+                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
 
-            self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
                 details = host.getLicenseDetails()
                 wlbprevstatus = details["restrict_wlb"]
                 if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
@@ -465,6 +475,8 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
                 
         if self.isHostObj:
             self.systemObj.upgrade()
+            self.hosts=[]
+            self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
         self.updateLicenseObjs() 

@@ -318,7 +318,7 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
- 
+        self.updateLicenseObjs() 
         for host in self.hosts:
             try:
                 self.checkGrace(host)
@@ -331,6 +331,7 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
         self.releaseLicense(self.expectedEditionAfterUpg)
 
 class TampaUpgrade(LicenseBase):
+    UPGRADE = True
 
     def preLicenseHook(self):
 
@@ -350,7 +351,8 @@ class TampaUpgrade(LicenseBase):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
-            
+        
+        self.updateLicenseObjs()    
     def run(self,arglist=None):
     
         self.preLicenseHook()
@@ -407,6 +409,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
         else:
             self.upgradePool()
  
+        self.updateLicenseObjs()
         for host in self.hosts:
             try:
                 self.checkGrace(host)
@@ -443,7 +446,7 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
-            
+        self.updateLicenseObjs() 
         #verfiy that the host is in expired state  as the creedence licenses are not available 
         self.verifySystemLicenseState()
         

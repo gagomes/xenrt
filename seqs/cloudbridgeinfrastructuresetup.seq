@@ -1,34 +1,27 @@
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
   </variables>
 
   <prepare>
-    <pool>
-      <host id="0">
-        <vm name="myVM0">
-          <distro>rhel61</distro>
-          <memory>1024</memory>
-          <vcpus>1</vcpus>
-          <disk device="0" size="10"/>
-          <network device="0"/>
-        </vm>
-        <vm name="myVM1">
-          <distro>rhel61</distro>
-          <memory>1024</memory>
-          <vcpus>1</vcpus>
-          <disk device="0" size="10"/>
-          <network device="0"/>
-       </vm>
-      </host>
-      <host id="1"/>
-    </pool>
+    <host id="0">
+      <vm name="Windows Server 2008 R2">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <postinstall action="installPowerShell" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
   </prepare>
 
   <testsequence>
-    <!-- reference test-cases to be included in the sequence here: -->
-    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
-    <testcase id="testcases.xenserver.tc.agent.TCnnnn"/>
-    
+    <testcase id="testcases.cloudbridge.infrastructuresetup._CloudBridge">
+      <arg>AUTHSERVER=Windows Server 2008 R2</arg>
+    </testcase>
   </testsequence>
 </xenrt>

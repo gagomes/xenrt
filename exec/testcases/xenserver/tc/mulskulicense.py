@@ -598,43 +598,43 @@ class TCLicenseGrace(LicenseGraceBase):
 
     def licenseGraceTest(self, edition):
 
-            # Assign license and verify it.
-            self.applyLicense(self.getLicenseObj(edition))
+        # Assign license and verify it.
+        self.applyLicense(self.getLicenseObj(edition))
 
-            # Force the host to have grace license.
-            self.initiateGraceLicense()
+        # Force the host to have grace license.
+        self.initiateGraceLicense()
 
-            # Check whether the hosts obtained grace licenses.
-            for host in self.hosts:
-                self.checkGrace(host)
+        # Check whether the hosts obtained grace licenses.
+        for host in self.hosts:
+            self.checkGrace(host)
 
-            # Force the hosts to regain its orignal licenses.
-            self.revertGraceLicense()
+        # Force the hosts to regain its orignal licenses.
+        self.revertGraceLicense()
 
-            # Check whether the hosts regained the original licenses.
-            self.verifySystemLicenseState(edition=edition)
-            self.verifyLicenseServer(edition)
+        # Check whether the hosts regained the original licenses.
+        self.verifySystemLicenseState(edition=edition)
+        self.verifyLicenseServer(edition)
 
-            # Again force the host to have grace license.
-            self.initiateGraceLicense()
+        # Again force the host to have grace license.
+        self.initiateGraceLicense()
 
-            # Check whether the hosts obtained grace licenses.
-            for host in self.hosts:
-                self.checkGrace(host)
+        # Check whether the hosts obtained grace licenses.
+        for host in self.hosts:
+            self.checkGrace(host)
 
-            # Now expire one of the host license such that it cross the grace period.
-            host = self.expireLicense()
+        # Now expire one of the host license such that it cross the grace period.
+        host = self.expireLicense()
 
-            # Check whether the hosts license expired.
-            self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
-            
-            # Now reset the timer.
-            self.resetTimer(host) 
-            
-            # At this point we do not know what is the license state.
-            # Goes back to grace license again ? Or the original license?.
-            # Not sure whether to release the license and verify the state again.
-            self.releaseLicense(edition)
+        # Check whether the hosts license expired.
+        self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
+        
+        # Now reset the timer.
+        self.resetTimer(host) 
+        
+        # At this point we do not know what is the license state.
+        # Goes back to grace license again ? Or the original license?.
+        # Not sure whether to release the license and verify the state again.
+        self.releaseLicense(edition)
 
     def run(self, arglist=[]):
 

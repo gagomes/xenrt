@@ -1,0 +1,34 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="myVM0">
+          <distro>rhel61</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+        </vm>
+        <vm name="myVM1">
+          <distro>rhel61</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10"/>
+          <network device="0"/>
+       </vm>
+      </host>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- reference test-cases to be included in the sequence here: -->
+    <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
+    <testcase id="testcases.xenserver.tc.agent.TCnnnn"/>
+    
+  </testsequence>
+</xenrt>

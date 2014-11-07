@@ -458,8 +458,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
                 # free lincese does not require expiry test.
                 continue
             # Assign license and verify it.
-            self.v6.addLicense(self._getLicenseFileName(edition))
-            self.systemObj.license(edition=edition, v6server=self.v6)
+            self.applyLicense(self.getLicenseObj(edition)) 
             self.verifySystemLicenseState(edition=edition)
             self.verifyLicenseServer(edition)
 
@@ -471,9 +470,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
             self.resetTimer(host)
             # End of expiry test
 
-            self.systemObj.releaseLicense()
-            self.verifySystemLicenseState()
-            self.verifyLicenseServer(edition)
+            self.releaseLicense(edition)
 
 class LicenseGraceBase(LicenseExpiryBase):
     """Base class to verify the grace license tests"""

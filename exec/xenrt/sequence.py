@@ -923,12 +923,22 @@ class PrepareNode:
         self.controllersForPools = {}
         self.preparecount = 0
 
+        handled = False
+        for n in node.childNodes:
+            if n.nodeType == n.TEXT_NODE and n.data.strip():
+                self.handleJSON(json.loads(n.data))
+                handled = True
+
+        if not handled:
+            self.handleXML(node, params)
+
+    def handleXML(self, node, params):
         # Ignore cloud nodes on the first pass
         for n in node.childNodes:
             if n.localName == "pool":
-                self.handlePoolNode(n, params)
+                self.handlePoolNodeXML(n, params)
             elif n.localName == "host":
-                self.handleHostNode(n, params)
+                self.handleHostNodeXML(n, params)
             elif n.localName == "sharedhost":
                 self.handleSharedHostNode(n, params)
             elif n.localName == "allhosts":
@@ -942,7 +952,7 @@ class PrepareNode:
                 else:
                     stop = None
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
-                    host = self.handleHostNode(n, params, id=i)
+                    host = self.handleHostNodeXML(n, params, id=i)
                     if i == stop:
                         break
                     i = i + 1
@@ -957,6 +967,12 @@ class PrepareNode:
         for n in node.childNodes:
             if n.localName == "cloud":
                 self.handleCloudNode(n, params)
+
+    def handleJSON(self, data):
+        for x in data.get("pools", []):
+            self.handlePoolNodeJSON(x)
+        for x in data.get("hosts", []):
+            self.handleHostNodeJSON(x)
 
     def __minAvailable(self, allocated):
         i = 0
@@ -973,9 +989,12 @@ class PrepareNode:
     def __minAvailablePool(self):
         return str(self.__minAvailable([int(x['id']) for x in self.pools]))
 
-    def handleCloudNode(self, node, params):
+    def handleCloudNode(self, node, params, xml=True):
         # Load the JSON block from the sequence file
-        self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
+        if xml:
+            self.cloudSpec = json.loads(expand(node.childNodes[0].data, params))
+        else:
+            self.cloudSpec = node
 
 
         job = xenrt.GEC().jobid() or "nojob"
@@ -1033,7 +1052,7 @@ class PrepareNode:
 # TODO: Create storage if required                        if cluster.has_key('primaryStorageSRName'):
                             
 
-                            self.handlePoolNode(simplePoolNode, params)
+                            self.handlePoolNodeXML(simplePoolNode, params)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
                             cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
                     elif cluster['hypervisor'].lower() == "kvm":
@@ -1048,7 +1067,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
-                                self.handleHostNode(simpleHostNode, params)
+                                self.handleHostNodeXML(simpleHostNode, params)
                             cluster['XRT_KVMHostIds'] = string.join(map(str, hostIds),',')
 
                     elif cluster['hypervisor'].lower() == "lxc":
@@ -1063,7 +1082,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_KVM_DISTRO', 'rhel63-x64'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
-                                self.handleHostNode(simpleHostNode, params)
+                                self.handleHostNodeXML(simpleHostNode, params)
                             cluster['XRT_LXCHostIds'] = string.join(map(str, hostIds),',')
 
                     elif cluster['hypervisor'].lower() == "hyperv":
@@ -1085,7 +1104,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 simpleHostNode.setAttribute('extraConfig', '{"cloudstack":true}')
-                                self.handleHostNode(simpleHostNode, params)
+                                self.handleHostNodeXML(simpleHostNode, params)
                             cluster['XRT_HyperVHostIds'] = string.join(map(str, hostIds),',')
                     elif cluster['hypervisor'].lower() == "vmware":
                         if zone.get("networktype", "Basic") == "Advanced" and not zone.has_key('XRT_ZoneNetwork'):
@@ -1113,7 +1132,7 @@ class PrepareNode:
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
-                                self.handleHostNode(simpleHostNode, params)
+                                self.handleHostNodeXML(simpleHostNode, params)
                             cluster['XRT_VMWareHostIds'] = string.join(map(str, hostIds),',')
 
     def handleInstanceNode(self, node, params, template=False):
@@ -1148,7 +1167,87 @@ class PrepareNode:
             self.instances.append(instance)
         return instance
 
-    def handlePoolNode(self, node, params):
+    def handlePoolNodeJSON(self, node):
+        pool = {}
+        hosts = []
+
+        pool["id"] = str(node.get("id", 0))
+        pool["name"] = node.get("name", "RESOURCE_POOL_%s" % (pool["id"]))
+        pool["master"] = node.get("master")
+        pool["ssl"] = node.get("ssl", False)
+
+        for x in node.get("hosts", []):
+            host = self.handleHostNodeJSON(x)
+            host['pool'] = pool['name']
+            hosts.append(host)
+            if not pool["master"]:
+                pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+
+        if "multihosts" in node:
+            i = node['multihosts'].get('start', 0)
+            end = node['multihosts'].get('end', None)
+            while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
+                hnode = copy.deepcopy(node['multihosts'])
+                hnode['id'] = i
+                host = self.handleHostNodeJSON(hnode)
+                host["pool"] = pool["name"]
+                hosts.append(host)
+                if not pool["master"]:
+                    pool["master"] = "RESOURCE_HOST_%s" % (i)
+                if i == stop:
+                    break
+                i = i + 1
+
+        otherNodes = []
+        hasAdvancedNet = False
+        for x in otherNodes:
+            if x.localName == "storage":
+                type = expand(x.getAttribute("type"), params)
+                name = expand(x.getAttribute("name"), params)
+                default = expand(x.getAttribute("default"), params)
+                options = expand(x.getAttribute("options"), params)
+                network = expand(x.getAttribute("network"), params)
+                blkbackPoolSize = expand(x.getAttribute("blkbackpoolsize"), params)
+                vmhost = expand(x.getAttribute("vmhost"), params)
+                size = expand(x.getAttribute("size"), params)
+                self.srs.append({"type":type, 
+                                 "name":name, 
+                                 "host":pool["master"],
+                                 "default":(lambda x:x == "true")(default),
+                                 "options":options,
+                                 "network":network,
+                                 "blkbackPoolSize":blkbackPoolSize,
+                                 "vmhost":vmhost,
+                                 "size":size})
+            elif x.localName == "bridge":
+                type = expand(x.getAttribute("type"), params)
+                name = expand(x.getAttribute("name"), params)
+                self.bridges.append({"type":type, 
+                                     "name":name, 
+                                     "host":pool["master"]})
+            elif x.localName == "vm":
+                vm = self.handleVMNode(x, params)
+                vm["host"] = pool["master"] 
+            elif x.localName == "vmgroup":
+                vmgroup = self.handleVMGroupNode(x, params)
+                for vm in vmgroup:
+                    vm["host"] = host["name"]      
+            elif x.localName == "NETWORK":
+                # This is a network topology description we can use
+                # with createNetworkTopology. Record the whole DOM node
+                if x.getAttribute("controller"):
+                    self.controllersForPools[pool["name"]] = expand(x.getAttribute("controller"), params)
+                self.networksForPools[pool["name"]] = x.parentNode
+                hasAdvancedNet = True
+        self.pools.append(pool)
+
+        if hasAdvancedNet:
+            for h in hosts:
+                h['basicNetwork'] = False
+
+        return pool
+
+    def handlePoolNodeXML(self, node, params):
         pool = {}
 
         pool["id"] = expand(node.getAttribute("id"), params)
@@ -1178,7 +1277,7 @@ class PrepareNode:
         # determine who the master is (XRT-6100 + XRT-6101)
         for x in hostNodes:
             if x.localName == "host":
-                host = self.handleHostNode(x, params)
+                host = self.handleHostNodeXML(x, params)
                 host["pool"] = pool["name"]
                 hosts.append(host)
                 if not pool["master"]:
@@ -1194,7 +1293,7 @@ class PrepareNode:
                 else:
                     stop = None
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
-                    host = self.handleHostNode(x, params, id=i)
+                    host = self.handleHostNodeXML(x, params, id=i)
                     host["pool"] = pool["name"]
                     hosts.append(host)
                     if not pool["master"]:
@@ -1253,7 +1352,7 @@ class PrepareNode:
     def handleVlanNode(self, node, params):
         self.privatevlans.append(expand(node.getAttribute("name"), params))
 
-    def handleHostNode(self, node, params, id=0):
+    def handleHostNodeXML(self, node, params, id=0):
         host = {}        
         host["pool"] = None
 
@@ -1380,6 +1479,94 @@ class PrepareNode:
                     if x.getAttribute("controller"):
                         self.controllersForHosts[host["name"]] = expand(x.getAttribute("controller"), params)
                     hasAdvancedNet = True
+        host['basicNetwork'] = not hasAdvancedNet
+
+        self.hosts.append(host)
+
+        return host
+
+    def handleHostNodeJSON(self, node):
+        host = {}        
+        host["pool"] = None
+
+        host["id"] = str(node['id'])
+        host["name"] = node.get("name", str("RESOURCE_HOST_%s" % (host["id"])))
+        host["version"] = node.get("version")
+        host["productType"] = node.get("product_type", xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver"))
+        host["productVersion"] = node.get("product_version")
+        host["installSRType"] = node.get("install_sr_type")
+        host["dhcp"] = node.get("dhcp", True)
+        host['ipv6'] = node.get("ipv6", "")
+        host['noipv4'] = node.get("noipv4", False)
+        host['diskCount'] = node.get("disk_count", 1)
+        license = node.get("license")
+        if "license" in node:
+            if node['license'] == True:
+                host["license"] = True
+            elif node['license'] == False:
+                host["license"] = False
+            else:
+                host["license"] = node['license']
+        else:
+            ls = xenrt.TEC().lookup("OPTION_LIC_SKU", None)
+            if ls:
+                host["license"] = ls
+        
+        if "usev6testd" in node:
+            host["usev6testd"] = node["usev6testd"]
+        if "noisos" in node:
+            host["noisos"] = node.get("noisos", False)
+        host["suppackcds"] = node.get("suppackcds")
+        if "disablefw" in node:
+            host["disablefw"] = node.get("disablefw")
+        # cpufreqgovernor is usually one of {userspace, performance, powersave, ondemand}.
+        host['cpufreqgovernor'] = node.get("cpufreqgovernor", xenrt.TEC().lookup("CPUFREQ_GOVERNOR", None))
+        host['extraConfig'] = node.get("extra_config", {})
+        
+        hasAdvancedNet = False
+        for x in node.get("srs", []):
+            type = expand(x.getAttribute("type"), params)
+            name = expand(x.getAttribute("name"), params)
+            default = expand(x.getAttribute("default"), params)
+            options = expand(x.getAttribute("options"), params)
+            network = expand(x.getAttribute("network"), params)
+            blkbackPoolSize = expand(x.getAttribute("blkbackpoolsize"), params)
+            vmhost = expand(x.getAttribute("vmhost"), params)
+            size = expand(x.getAttribute("size"), params)
+            self.srs.append({"type":type, 
+                             "name":name, 
+                             "host":host["name"],
+                             "default":(lambda x:x == "true")(default),
+                             "options":options,
+                             "network":network,
+                             "blkbackPoolSize":blkbackPoolSize,
+                             "vmhost":vmhost,
+                             "size":size})
+
+        for x in node.get("bridges", []):
+            type = expand(x.getAttribute("type"), params)
+            name = expand(x.getAttribute("name"), params)
+            self.bridges.append({"type":type, 
+                                 "name":name, 
+                                 "host":host})
+
+        for x in node.get("vms", []):
+            vm = self.handleVMNode(x, params)
+            vm["host"] = host["name"] 
+            
+        for x in node.get("vm_groups", []):
+            vmgroup = self.handleVMGroupNode(x, params)
+            for vm in vmgroup:
+                vm["host"] = host["name"]      
+            
+        if "network" in node:
+            # This is a network topology description we can use
+            # with createNetworkTopology. Record the whole DOM node
+            self.networksForHosts[host["name"]] = x.parentNode
+            if x.getAttribute("controller"):
+                self.controllersForHosts[host["name"]] = expand(x.getAttribute("controller"), params)
+            hasAdvancedNet = True
+
         host['basicNetwork'] = not hasAdvancedNet
 
         self.hosts.append(host)

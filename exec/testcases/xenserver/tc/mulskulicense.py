@@ -13,6 +13,8 @@ import xenrt
 
 class LicenseBase(xenrt.TestCase, object):
 
+    UPGRADE = False
+
     def prepare(self,arglist):
 
         self.editions = None
@@ -28,13 +30,27 @@ class LicenseBase(xenrt.TestCase, object):
             self.__sysObj = self.getHost("RESOURCE_HOST_1")
             self.__isHostObj = True
             self.hosts.append(self.__sysObj)
+        self.__parseArgs(arglist)
+
+        self.v6 = self.licenseServer(self.newLicenseServerName)
+
+        if not self.UPGRADE:
+            self.updateLicenseObjs()
+            self.verifyEditions()
+
+    def updateLicenseObjs(self):
 
         self.__validLicenseObj = self.systemObj.validLicenses()
         self.__validXSLicenseObj = self.systemObj.validLicenses(xenserverOnly=True)
         xenrt.TEC().logverbose("All valid editions: %s" % self.__validLicenseObj)
         xenrt.TEC().logverbose("XS valid editions: %s" % self.__validXSLicenseObj)
-        self.__parseArgs(arglist)
-        self.v6 = self.licenseServer(self.newLicenseServerName)
+
+    def verifyEditions(self):
+
+        if self.editions:
+            for edition in self.editions:
+                if not self.__checkForValidEdition(edition=edition):
+                    raise xenrt.XRTFailure("Incorrect edition given")
 
     def preLicenseHook(self):
         """
@@ -106,9 +122,6 @@ class LicenseBase(xenrt.TestCase, object):
         for arg in arglist:
             if arg.startswith('edition'):
                 self.editions = arg.split('=')[1].split(',')
-                for edition in self.editions:
-                    if not self.__checkForValidEdition(edition=edition):
-                        raise xenrt.XRTFailure("Incorrect edition given")
             if arg.startswith('newlicenseserver'):
                 self.newLicenseServerName = arg.split('=')[1]
             if arg.startswith('oldlicenseserver'):
@@ -234,6 +247,7 @@ class LicenseBase(xenrt.TestCase, object):
             self.releaseLicense(edition)
 
 class ClearwaterUpgrade(LicenseBase):
+    UPGRADE  = True
 
     def preLicenseHook(self):
 
@@ -247,7 +261,9 @@ class ClearwaterUpgrade(LicenseBase):
             self.systemObj.upgrade()
         else:
             self.upgradePool()
-    
+
+        self.updateLicenseObjs() 
+
     def run(self,arglist=None):
 
         self.preLicenseHook()
@@ -343,7 +359,7 @@ class TCTPOldLicenseServerExp(TampaUpgrade):
 #U3.2 , C7 ,max 4 testcase
     def preLicenseHook(self):
 
-        super(TCCWOldLicenseServerExp, self).preLicenseHook()
+        super(TCTPOldLicenseServerExp, self).preLicenseHook()
         
         #verfiy that the host is in expired state  as the license server is not upgraded 
         self.verifySystemLicenseState()
@@ -352,7 +368,7 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
 
     def preLicenseHook(self):
 
-        super(TCCWOldLicenseServerUpg, self).preLicenseHook()
+        super(TCTPOldLicenseServerUpg, self).preLicenseHook()
 
         self.verifySystemLicenseState()
         

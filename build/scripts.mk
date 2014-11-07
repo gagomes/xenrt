@@ -262,7 +262,11 @@ endif
 .PHONY: exec
 exec:
 	$(info Installing files to $(EXECDIR))
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+else
 	rsync -axl $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+endif
 
 .PHONY: $(SCRIPTS)
 $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))

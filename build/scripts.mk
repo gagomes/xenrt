@@ -252,7 +252,11 @@ $(NEWDIRS): $(SHAREDIR)
 .PHONY: $(SRCDIRS)
 $(SRCDIRS): $(SCRIPTS) $(GENCODE) $(SHAREDIR)
 	$(info Installing files to $@...)
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@) $(SHAREDIR)
+else
 	rsync -axl $(notdir $@) $(SHAREDIR)
+endif
 	-rsync -axl $(ROOT)/$(INTERNAL)/$(notdir $@) $(SHAREDIR)
 
 .PHONY: exec

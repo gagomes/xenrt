@@ -21,11 +21,13 @@
   <testsequence>
 
     <serial group="LicenseHost">
+
       <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="TC18972" tc="TC-18972">
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
 
     </serial>
+
   </testsequence>
 
 </xenrt>

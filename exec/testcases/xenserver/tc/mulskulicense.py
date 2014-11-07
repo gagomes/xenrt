@@ -3,11 +3,10 @@
 #
 # XenServer licensing test cases valid from Clearwater
 #
-# Copyright (c) 2013 Citrix Systems, Inc. All use and distribution of this
+# Copyright (c) 2014 Citrix Systems, Inc. All use and distribution of this
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
-
 import string, re, time, traceback, sys, copy, random
 import xenrt
 

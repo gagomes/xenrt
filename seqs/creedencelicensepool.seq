@@ -32,7 +32,7 @@
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
 
-      <testcase id="xenserver.tc.mulskulicense.TCLicenseGraceBase" name="LicenseGrace" tc="TC-23338">
+      <testcase id="xenserver.tc.mulskulicense.TCLicenseGrace" name="LicenseGrace" tc="TC-23338">
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>
 

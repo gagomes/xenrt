@@ -525,7 +525,7 @@ class LicenseGraceBase(LicenseExpiryBase):
         """Shutdown license server and restart host v6d server"""
 
         # Shutdown the License Server.
-        self.v6.stop()
+        self.getGuest(self.newLicenseServerName).shutdown() # self.v6.stop()
         # Restart v6d service on hosts.
         for host in self.hosts:
             host.execdom0("service v6d restart")
@@ -534,7 +534,7 @@ class LicenseGraceBase(LicenseExpiryBase):
         """Start license server and restart host v6d server"""
 
         # Start the license server.
-        self.v6.start()
+        self.getGuest(self.newLicenseServerName).start() # self.v6.start()
         # Restart v6d service on hosts.
         for host in self.hosts:
             host.execdom0("service v6d restart")
@@ -542,7 +542,7 @@ class LicenseGraceBase(LicenseExpiryBase):
     def run(self, arglist=[]):
         pass
 
-class TCLicenseGraceBase(LicenseGraceBase):
+class TCLicenseGrace(LicenseGraceBase):
     """Verify the grace license and its expiry in Creedence hosts"""
 
     def run(self, arglist=[]):

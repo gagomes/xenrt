@@ -527,8 +527,7 @@ class SshInstallerThread(threading.Thread):
                              level=xenrt.RC_OK,
                              timeout=20,
                              username="root",
-                             nowarn=True,
-                             usePty=True) == xenrt.RC_OK:
+                             nowarn=True) == xenrt.RC_OK:
                 return
         
     def stop(self):

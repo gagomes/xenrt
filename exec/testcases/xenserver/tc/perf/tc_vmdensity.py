@@ -1677,18 +1677,19 @@ class Experiment_vmrun(Experiment):
             xenrt.TEC().logverbose("Using PRODUCT_VERSION=%s" % xenrt.TEC().lookup("PRODUCT_VERSION", None))
 
             networkcfg = ""
+            name_defaultsr = "%ssr" % (self.defaultsr,)
             if self.defaultsr in ["lvm","ext"] or self.defaultsr.startswith("ext:"):
                 localsr = self.defaultsr.split(":")[0] #ignore : and anything after it
                 sharedsr = ""
             else:
                 localsr = "ext"
-                sharedsr = '<storage type="%s" name="%ssr"/>' % (self.defaultsr,self.defaultsr)
+                sharedsr = '<storage type="%s" name="%s"/>' % (self.defaultsr, name_defaultsr)
 
                 #in the SCALE cluster, we prefer to use the reserved 10Gb network in NSEC
                 hn = xenrt.TEC().lookup("MACHINE", "WARNING: NO MACHINE NAME")
                 if "xrtuk-08-" in hn:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host detected, using NSEC+jumbo network configuration" % hn)
-                    sharedsr = '<storage type="%s" name="%ssr" jumbo="true" network="NSEC"/>' % (self.defaultsr,self.defaultsr)
+                    sharedsr = '<storage type="%s" name="%s" jumbo="true" network="NSEC"/>' % (self.defaultsr, name_defaultsr)
                     networkcfg = """<NETWORK><PHYSICAL network="NPRI"><NIC /><MANAGEMENT /><VMS /></PHYSICAL><PHYSICAL network="NSEC"><NIC /><STORAGE /></PHYSICAL></NETWORK>"""
                 else:
                     xenrt.TEC().logverbose("%s: xrtuk-08-* host NOT detected, using default network configuration" % hn)
@@ -1720,6 +1721,7 @@ class Experiment_vmrun(Experiment):
 
  
             host = self.tc.getDefaultHost()
+            host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
 

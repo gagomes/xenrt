@@ -38,6 +38,26 @@ class LicenseBase(xenrt.TestCase, object):
             self.updateLicenseObjs()
             self.verifyEditions()
 
+    def addCWLicenseFiles(self):
+
+        licenseFilename = []
+        licenseFilename.append("valid-xendesktop")
+        licenseFilename.append("valid-persocket")
+        
+        for lFile in licenseFilename:
+            self.v6.addLicense(lFile)
+
+    def addTPLicenseFiles(self):
+
+        licenseFilename = []
+        licenseFilename.append("valid-platinum")
+        licenseFilename.append("valid-enterprise-xd")
+        licenseFilename.append("valid-enterprise")
+        licenseFilename.append("valid-advanced")
+
+        for lFile in licenseFilename:
+            self.v6.addLicense(lFile)
+
     def updateLicenseObjs(self):
 
         self.__validLicenseObj = self.systemObj.validLicenses()
@@ -252,8 +272,9 @@ class ClearwaterUpgrade(LicenseBase):
     def preLicenseHook(self):
 
         if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)     
-            v6.addLicense(self.oldLicenseEdition)       
+            v6 = self.licenseServer(self.oldLicenseServerName)    
+            if self.oldLicenseEdition != 'free':
+                self.addCWLicenseFiles() 
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
@@ -304,7 +325,10 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
 
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
-            v6.addLicense(self.oldLicenseEdition)
+
+            if self.oldLicenseEdition != 'free':
+                self.addCWLicenseFiles()
+
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
@@ -336,8 +360,10 @@ class TampaUpgrade(LicenseBase):
     def preLicenseHook(self):
 
         if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)     
-            v6.addLicense(self.oldLicenseEdition)       
+            v6 = self.licenseServer(self.oldLicenseServerName)    
+            if self.oldLicenseEdition != 'free':
+                self.addTPLicenseFiles()
+ 
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)            
                 details = host.getLicenseDetails()
@@ -357,15 +383,6 @@ class TampaUpgrade(LicenseBase):
     
         self.preLicenseHook()
             
-class TCTPOldLicenseServerExp(TampaUpgrade):
-#U3.2 , C7 ,max 4 testcase
-    def preLicenseHook(self):
-
-        super(TCTPOldLicenseServerExp, self).preLicenseHook()
-        
-        #verfiy that the host is in expired state  as the license server is not upgraded 
-        self.verifySystemLicenseState()
-        
 class TCTPOldLicenseServerUpg(TampaUpgrade):
 
     def preLicenseHook(self):
@@ -386,7 +403,9 @@ class TCTPNewLicenseServer(TampaUpgrade):
 
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
-            v6.addLicense(self.oldLicenseEdition)
+            if self.oldLicenseEdition != 'free':
+                self.addTPLicenseFiles()
+
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)
 
@@ -428,7 +447,9 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
 
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
-            v6.addLicense(self.oldLicenseEdition)
+            if self.oldLicenseEdition != 'free':
+                self.addTPLicenseFiles()
+
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)
 
@@ -527,8 +548,8 @@ class LicenseGraceBase(LicenseExpiryBase):
         # Shutdown the License Server.
         self.getGuest(self.newLicenseServerName).shutdown() # self.v6.stop()
 
-        # Give some time to get into grace license.
-        xenrt.sleep(60)
+        #give some time to get the grace license
+        xenrt.sleep(300)
 
         # Restart v6d service on hosts.
         for host in self.hosts:
@@ -540,8 +561,8 @@ class LicenseGraceBase(LicenseExpiryBase):
         # Start the license server.
         self.getGuest(self.newLicenseServerName).start() # self.v6.start()
 
-        # Give some time to get into grace license.
-        xenrt.sleep(60)
+        #give some time to come out of grace license
+        xenrt.sleep(300)
 
         # Restart v6d service on hosts.
         for host in self.hosts:

@@ -322,27 +322,44 @@ class TampaUpgrade(LicenseBase):
             v6 = self.licenseServer(self.oldLicenseServerName)     
             v6.addLicense(self.oldLicenseEdition)       
             for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,v6server=v6)
+                host.license(edition=self.oldLicenseEdition,v6server=v6)            
+                details = host.getLicenseDetails()
+                wlbprevstatus = details["restrict_wlb"]
+                if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+                    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+                elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
+                    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')            
 
         if self.isHostObj:
             self.systemObj.upgrade()
         else:
             self.upgradePool()
-
+            
     def run(self,arglist=None):
-
+    
         self.preLicenseHook()
             
 class TCTPOldLicenseServerExp(TampaUpgrade):
 #U3.2 , C7 ,max 4 testcase
     def preLicenseHook(self):
 
-        super(TCTPOldLicenseServerExp, self).preLicenseHook()
+        super(TCCWOldLicenseServerExp, self).preLicenseHook()
         
-        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
-          
         #verfiy that the host is in expired state  as the license server is not upgraded 
         self.verifySystemLicenseState()
+        
+class TCTPOldLicenseServerUpg(TampaUpgrade):
+
+    def preLicenseHook(self):
+
+        super(TCCWOldLicenseServerUpg, self).preLicenseHook()
+
+        self.verifySystemLicenseState()
+        
+        #License the creedence host with new license server
+        self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+
+        self.releaseLicense(self.expectedEditionAfterUpg)
             
 class TCTPNewLicenseServer(TampaUpgrade):
 #U3.1 , C8 ,max 5 testcases
@@ -358,10 +375,16 @@ class TCTPNewLicenseServer(TampaUpgrade):
             self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+                details = host.getLicenseDetails()
+                wlbprevstatus = details["restrict_wlb"]
+                if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+                    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+                elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
+                    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
             
             #Ensure that creedence licenses are available in new license server prior to host upgrade        
-            for edition in self.editions:
-                self.v6.addLicense(self._getLicenseFileName(edition))
+            self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
+            #self.v6.addLicense(self._getLicenseFileName(edition))
 
         if self.isHostObj:
             self.systemObj.upgrade()
@@ -393,23 +416,27 @@ class TCTPNewLicenseServerNoLicenseFiles(TampaUpgrade):
             self.v6.addLicense(self.oldLicenseEdition)
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=self.v6)
+                details = host.getLicenseDetails()
+                wlbprevstatus = details["restrict_wlb"]
+                if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+                    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+                elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
+                    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
                 
         if self.isHostObj:
             self.systemObj.upgrade()
         else:
             self.upgradePool()
             
-        #verfiy that the host is in expired state  as the license server is not upgraded 
+        #verfiy that the host is in expired state  as the creedence licenses are not available 
         self.verifySystemLicenseState()
         
         #Now upload creedence license files into license server      
-        for edition in self.editions:
-            self.v6.addLicense(self._getLicenseFileName(edition))
+        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
             
         #The host gets the license depending upon its previous license
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
         self.releaseLicense(self.expectedEditionAfterUpg)
-
 
 class LicenseExpiryBase(LicenseBase):
     """

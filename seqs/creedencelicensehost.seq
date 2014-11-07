@@ -1,6 +1,8 @@
 <?xml version="1.0" ?>
 <xenrt>
 
+  <!-- Verify license tests on a Creedence host -->
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
   </variables>

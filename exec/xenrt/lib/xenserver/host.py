@@ -14137,7 +14137,7 @@ class CreedencePool(ClearwaterPool):
         args = []
         cli = self.master.getCLIInstance()
         args.append("uuid=%s" % (self.getUUID()))
-        args.append("edition=%s" % (edition))
+        args.append("edition=%s" % (sku))
 
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))

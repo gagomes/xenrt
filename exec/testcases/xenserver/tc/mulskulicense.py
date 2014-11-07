@@ -7,7 +7,8 @@
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
-import string, re, time, traceback, sys, copy, random
+
+import string, re, traceback, sys, copy, random, datetime
 import xenrt
 
 class LicenseBase(xenrt.TestCase, object):
@@ -491,30 +492,72 @@ class LicenseExpiryBase(LicenseBase):
 
         self.__forceExpireLicense(host)
 
+        return host
+
     def __forceExpireLicense(self, host):
         """ Set next day of expiration date"""
-        
+
+        xenrt.TEC().logverbose("Change date and time of %s to expire license." % host.getName())
         licinfo = host.getLicenseDetails()
         host.execdom0("/etc/init.d/ntpd stop")
-        expiretarget = time.gmtime(licinfo["expiry"])
-        host.execdom0("date -u %s" %
-                           (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
+        expiretarget = datetime.datetime.strptime(licinfo["expiry"], "%Y%m%dT%H:%M:%SZ")
+        host.execdom0("date -u %s" % expiretarget.strftime("%m%d%H%M%Y.%S"))
 
         # Give some time to actually expire the license.
         xenrt.sleep(60)
 
-    def resetTimer(self, host):
+    def resetTimer(self, host=None):
         """ Restart NTP daemon, so that timer of host reset on time."""
-        host.execdom0("/etc/init.d/ntpd start")
-        # Give some time to resync timer.
-        xenrt.sleep(30)
+        
+        hosts = []
+        if not host:
+            if self.isHostObj:
+                hosts = [self.systemObj]
+            else:
+                hosts = self.systemObj.getHosts()
+        else:
+            hosts = [host]
+                
+        for host in hosts:
+            xenrt.TEC().logverbose("Starting NTPD on %s" % host.getName())
+            try:
+                host.execdom0("/etc/init.d/ntpd start", nolog=True)
+                # Give some time to resync timer.
+                xenrt.sleep(30)
+            except:
+                # If NTPD is already running, command will raise Exception.
+                # In that case no need to sleep.
+                pass
 
     def run(self, arglist=[]):
         pass
 
+    def postRun(self):
+        self.resetTimer()
+        LicenseBase.postRun(self)
+
 class TCLicenseExpiry(LicenseExpiryBase):
     """ Expiry test case """
 
+    def licenseExpiryTest(self, edition):
+
+        # Need to reset in case previous sub case failed.
+        self.resetTimer()
+
+        # Assign license and verify it.
+        self.applyLicense(self.getLicenseObj(edition))
+        self.verifySystemLicenseState(edition)
+
+        # Expiry test
+        host = self.expireLicense()
+        host.checkHostLicenseState("free")
+        if not self.isHostObj:
+            self.verifySystemLicenseState(edition, True)
+        self.resetTimer(host)
+        # End of expiry test
+
+        self.releaseLicense(edition)
+        
     def run(self, arglist=[]):
 
         self.preLicenseHook()
@@ -523,20 +566,9 @@ class TCLicenseExpiry(LicenseExpiryBase):
             if edition == "free":
                 # free lincese does not require expiry test.
                 continue
-            # Assign license and verify it.
-            self.applyLicense(self.getLicenseObj(edition)) 
-            self.verifySystemLicenseState(edition=edition)
-            self.verifyLicenseServer(edition)
 
-            # Expiry test
-            host = self.expireLicense()
-            host.checkHostLicenseState("free")
-            if not self.isHostObj:
-                self.verifySystemLicenseState(edition, True)
-            self.resetTimer(host)
-            # End of expiry test
+            self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
 
-            self.releaseLicense(edition)
 
 class LicenseGraceBase(LicenseExpiryBase):
     """Base class to verify the grace license tests"""

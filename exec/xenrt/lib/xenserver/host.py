@@ -14145,7 +14145,7 @@ class CreedencePool(ClearwaterPool):
 
         cli.execute("pool-apply-edition", string.join(args))
 
-        self.checkLicenseState(edition)
+        self.checkLicenseState(sku)
 
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())

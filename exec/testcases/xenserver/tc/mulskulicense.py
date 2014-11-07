@@ -526,6 +526,10 @@ class LicenseGraceBase(LicenseExpiryBase):
 
         # Shutdown the License Server.
         self.getGuest(self.newLicenseServerName).shutdown() # self.v6.stop()
+
+        # Give some time to get into grace license.
+        xenrt.sleep(60)
+
         # Restart v6d service on hosts.
         for host in self.hosts:
             host.execdom0("service v6d restart")
@@ -535,6 +539,10 @@ class LicenseGraceBase(LicenseExpiryBase):
 
         # Start the license server.
         self.getGuest(self.newLicenseServerName).start() # self.v6.start()
+
+        # Give some time to get into grace license.
+        xenrt.sleep(60)
+
         # Restart v6d service on hosts.
         for host in self.hosts:
             host.execdom0("service v6d restart")

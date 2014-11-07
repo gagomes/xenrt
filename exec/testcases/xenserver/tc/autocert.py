@@ -205,6 +205,15 @@ class _XSAutoCertKit(xenrt.TestCase):
         if self.tec.lookup("SINGLE_NIC", False, boolean=True):
             self.SINGLE_NIC = "-o singlenic=true"
 
+        # Machines in XenRT may have wrong hwclock time.
+        # This may cause crashdump test case failed.
+        # To avoid sync clock here.
+        for host in self.getDefaultPool().getHosts():
+            try:
+                host.execdom0("hwclock --systohc")
+            except:
+                pass
+
     def createNetworkConfFile(self):
         nets = {self.pool.master.getDefaultInterface(): "NPRI"}
         nics = self.pool.master.listSecondaryNICs()

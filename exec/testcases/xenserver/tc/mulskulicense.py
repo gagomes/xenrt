@@ -569,27 +569,26 @@ class TCLicenseExpiry(LicenseExpiryBase):
 
             self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
 
-
 class LicenseGraceBase(LicenseExpiryBase):
     """Base class to verify the grace license tests"""
 
-    def initiateGraceLicenseTest(self):
-        """Shutdown license server and restart host v6d server"""
+    def initiateGraceLicense(self):
+        """Shutdown license server and restart host toolstack"""
 
         # Shutdown the License Server.
         self.getGuest(self.newLicenseServerName).shutdown() # self.v6.stop()
 
         # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts]
+        [host.restartToolstack() for host in self.hosts] # service v6d restart
 
-    def revertGraceLicenseTest(self):
-        """Start license server and restart host v6d server"""
+    def revertGraceLicense(self):
+        """Start license server and restart host toolstack"""
 
         # Start the license server.
         self.getGuest(self.newLicenseServerName).start() # self.v6.start()
 
         # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts]
+        [host.restartToolstack() for host in self.hosts] # service v6d restart
 
     def run(self, arglist=[]):
         pass
@@ -597,32 +596,27 @@ class LicenseGraceBase(LicenseExpiryBase):
 class TCLicenseGrace(LicenseGraceBase):
     """Verify the grace license and its expiry in Creedence hosts"""
 
-    def run(self, arglist=[]):
-
-        self.preLicenseHook()
-
-        for edition in self.editions:
-            if edition == "free":
-                # Free lincese does not require grace license test.
-                continue
+    def licenseGraceTest(self, edition):
 
             # Assign license and verify it.
-            license = self.getLicenseObj(edition)
-            self.applyLicense(license)
+            self.applyLicense(self.getLicenseObj(edition))
 
-            self.initiateGraceLicenseTest()
+            # Force the host to have grace license.
+            self.initiateGraceLicense()
 
             # Check whether the hosts obtained grace licenses.
             for host in self.hosts:
                 self.checkGrace(host)
 
-            self.revertGraceLicenseTest()
+            # Force the hosts to regain its orignal licenses.
+            self.revertGraceLicense()
 
             # Check whether the hosts regained the original licenses.
             self.verifySystemLicenseState(edition=edition)
             self.verifyLicenseServer(edition)
 
-            self.initiateGraceLicenseTest()
+            # Again force the host to have grace license.
+            self.initiateGraceLicense()
 
             # Check whether the hosts obtained grace licenses.
             for host in self.hosts:
@@ -640,3 +634,15 @@ class TCLicenseGrace(LicenseGraceBase):
             # At this point we do not know what is the license state.
             # Goes back to grace license again ? Or the original license?.
             # Not sure whether to release the license and verify the state again.
+            self.releaseLicense(edition)
+
+    def run(self, arglist=[]):
+
+        self.preLicenseHook()
+
+        for edition in self.editions:
+            if edition == "free":
+                # Free lincese does not require grace license test.
+                continue
+
+            self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")

@@ -38,16 +38,16 @@ class LicenseBase(xenrt.TestCase, object):
             self.updateLicenseObjs()
             self.verifyEditions()
 
-    def addCWLicenseFiles(self):
+    def addCWLicenseFiles(self,v6):
 
         licenseFilename = []
         licenseFilename.append("valid-xendesktop")
         licenseFilename.append("valid-persocket")
         
         for lFile in licenseFilename:
-            self.v6.addLicense(lFile)
+            v6.addLicense(lFile)
 
-    def addTPLicenseFiles(self):
+    def addTPLicenseFiles(self,v6):
 
         licenseFilename = []
         licenseFilename.append("valid-platinum")
@@ -56,7 +56,7 @@ class LicenseBase(xenrt.TestCase, object):
         licenseFilename.append("valid-advanced")
 
         for lFile in licenseFilename:
-            self.v6.addLicense(lFile)
+            v6.addLicense(lFile)
 
     def updateLicenseObjs(self):
 
@@ -274,7 +274,7 @@ class ClearwaterUpgrade(LicenseBase):
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)    
             if self.oldLicenseEdition != 'free':
-                self.addCWLicenseFiles() 
+                self.addCWLicenseFiles(v6) 
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
@@ -327,7 +327,7 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
             v6 = self.licenseServer(self.oldLicenseServerName)
 
             if self.oldLicenseEdition != 'free':
-                self.addCWLicenseFiles()
+                self.addCWLicenseFiles(v6)
 
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
@@ -362,7 +362,7 @@ class TampaUpgrade(LicenseBase):
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)    
             if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles()
+                self.addTPLicenseFiles(v6)
  
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)            
@@ -404,7 +404,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
             if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles()
+                self.addTPLicenseFiles(v6)
 
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)
@@ -448,7 +448,7 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
             if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles()
+                self.addTPLicenseFiles(v6)
 
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,v6server=v6)

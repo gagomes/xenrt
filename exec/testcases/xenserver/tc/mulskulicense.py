@@ -462,7 +462,7 @@ class LicenseExpiryBase(LicenseBase):
     TC for Creedence (and later) license expiration test.
     """
 
-    def expireLicenseTest(self):
+    def expireLicense(self):
         """Select a host and force expire the license of the host."""
         if self.isHostObj:
             host = self.systemObj
@@ -509,7 +509,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
             self.verifyLicenseServer(edition)
 
             # Expiry test
-            host = self.expireLicenseTest()
+            host = self.expireLicense()
             host.checkHostLicenseState("free")
             if not self.isHostObj:
                 self.verifySystemLicenseState(edition, True)
@@ -577,7 +577,7 @@ class TCLicenseGraceBase(LicenseGraceBase):
                 self.checkGrace(host)
 
             # Now expire one of the host license such that it cross the grace period.
-            host = self.expireLicenseTest()
+            host = self.expireLicense()
 
             # Check whether the hosts license expired.
             self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.

@@ -71,23 +71,23 @@ class CreedenceLicence(Licence):
 
     def getLicenceFileName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
-            return "valid-enterprise-persocket.lic"
+            return "valid-enterprise-persocket"
         if self.sku == XenServerLicenceSKU.PerUserEnterprise:
-            return "valid-enterprise-peruser.lic"
+            return "valid-enterprise-peruser"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
-            return "valid-enterprise-perccu.lic"
+            return "valid-enterprise-perccu"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
             return "valid-xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
-            return "valid-standard-persocket.lic"
+            return "valid-standard-persocket"
         if self.sku == XenServerLicenceSKU.PerUserStandard:
-            return "valid-standard-peruser.lic"
+            return "valid-standard-peruser"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "valid-standard-perccu.lic"
+            return "valid-standard-perccu"
         if self.sku == XenServerLicenceSKU.Free:
             return None
         if self.sku == XenServerLicenceSKU.PerSocket:
-            return "valid-persocket.lic"
+            return "valid-persocket"
         raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):

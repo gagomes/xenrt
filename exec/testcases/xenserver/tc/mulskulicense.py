@@ -434,8 +434,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
             
             #Ensure that creedence licenses are available in new license server prior to host upgrade        
-            self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
-            #self.v6.addLicense(self._getLicenseFileName(edition))
+            #self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))         
 
         if self.isHostObj:
             self.systemObj.upgrade()

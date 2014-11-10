@@ -22,6 +22,7 @@ class LicenseBase(xenrt.TestCase, object):
         self.newLicenseServerName = 'LicenseServer'
         self.oldLicenseEdition = None
         self.oldLicenseServerName = None
+        self.graceExpected = False
         if self.getDefaultPool():
             self.__sysObj =  self.getDefaultPool()
             self.hosts = self.getDefaultPool().getHosts() 
@@ -166,6 +167,8 @@ class LicenseBase(xenrt.TestCase, object):
                 self.oldLicenseEdition = arg.split('=')[1]
             if arg.startswith('expectededition'):
                 self.expectedEditionAfterUpg = arg.split('=')[1]
+            if arg.startswith('grace'):
+                self.graceExpected = True
 
     def verifyLicenseServer(self,edition,reset=False):
 
@@ -361,6 +364,9 @@ class TCCWOldLicenseServerExp(ClearwaterUpgrade):
         super(TCCWOldLicenseServerExp, self).preLicenseHook()
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+
+        if not self.graceExpected:
+            return
         
         for host in self.hosts:
             self.checkGrace(host)
@@ -373,10 +379,11 @@ class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
 
         super(TCCWOldLicenseServerUpg, self).preLicenseHook()
 
-        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+        if not self.graceExpected:
+            self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
 
-        for host in self.hosts:
-            self.checkGrace(host)
+            for host in self.hosts:
+                self.checkGrace(host)
 
         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
 

@@ -443,6 +443,7 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
     def preLicenseHook(self):
 
         super(TCTPOldLicenseServerUpg, self).preLicenseHook()
+        #Add creedence Files to the Old License server
 
         #Verify that the Tampa Host is having expected edition but in expired state as the license server is not updated
         for host in self.hosts :
@@ -450,12 +451,12 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
                 raise xenrt.XRTFailure("License is not expired properly.")
         
         #License the creedence host with new license server
-        self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
-
-        self.releaseLicense(self.expectedEditionAfterUpg)
+        if self.expectedEditionAfterUpg != "free":
+            self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+            self.releaseLicense(self.expectedEditionAfterUpg)
             
 class TCTPNewLicenseServer(TampaUpgrade):
-#U3.1 , C8 ,max 5 testcases
+#U3.1 , C8 
 
     def preLicenseHook(self):
 
@@ -477,9 +478,8 @@ class TCTPNewLicenseServer(TampaUpgrade):
                 #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
             
-            #Ensure that creedence licenses are available in new license server prior to host upgrade        
-            self.updateLicenseObjs()
-            self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))         
+            #Ensure that creedence licenses are available in new license server prior to host upgrade            
+            #self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))         
 
         if self.isHostObj:
             self.systemObj.upgrade()
@@ -497,8 +497,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
                 pass
         
         #The host will be in licensed state depending upon its previous license
-        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
- 
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
         self.releaseLicense(self.expectedEditionAfterUpg)
         
 class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
@@ -535,13 +534,14 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
         for host in self.hosts :
             if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
                 raise xenrt.XRTFailure("License is not expired properly.")
-        
-        #Now upload creedence license files into license server      
-        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
-            
-        #The host gets the license depending upon its previous license
-        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
-        self.releaseLicense(self.expectedEditionAfterUpg)
+                
+        if self.expectedEditionAfterUpg != "free":
+            #Now upload creedence license files into license server      
+            self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
+                
+            #The host gets the license depending upon its previous license
+            self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
+            self.releaseLicense(self.expectedEditionAfterUpg)
 
 class LicenseExpiryBase(LicenseBase):
     """

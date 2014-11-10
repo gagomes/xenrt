@@ -71,42 +71,42 @@ class CreedenceLicence(Licence):
 
     def getLicenceFileName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
-            return "valid-persocket"
+            return "valid-enterprise-persocket.lic"
         if self.sku == XenServerLicenceSKU.PerUserEnterprise:
-            return "licence.lic"
+            return "valid-enterprise-peruser.lic"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
-            return "licence.lic"
+            return "valid-enterprise-perccu.lic"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
             return "valid-xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
-            return "licence.lic"
+            return "valid-standard-persocket.lic"
         if self.sku == XenServerLicenceSKU.PerUserStandard:
-            return "licence.lic"
+            return "valid-standard-peruser.lic"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "licence.lic"
+            return "valid-standard-perccu.lic"
         if self.sku == XenServerLicenceSKU.Free:
-            return "licence.lic"
+            return None
         if self.sku == XenServerLicenceSKU.PerSocket:
-            return "licence.lic"
+            return "valid-persocket.lic"
         raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise:
-            return "CXS_STD_CCS"
+            return "CXS_ENT2_CCS"
         if self.sku == XenServerLicenceSKU.PerUserEnterprise:
-            return "XSC_CCD"
+            return "CXS_ENT2_UD"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
-            return "XSC_CCD"
+            return "CXS_ENT2_CCU"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
             return "XDS_STD_CCS"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
-            return "XSC_CCD"
+            return "CXS_STD2_CCS"
         if self.sku == XenServerLicenceSKU.PerUserStandard:
-            return "XSC_CCD"
+            return "CXS_STD2_UD"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "XSC_CCD"
+            return "CXS_STD2_CCU"
         if self.sku == XenServerLicenceSKU.Free:
-            return "XSC_CCD"
+            return None
         if self.sku == XenServerLicenceSKU.PerSocket:
-            return "XSC_CCD"
+            return "CXS_STD_CCS"
         raise ValueError("No license server name found for the SKU %s" % self.sku)

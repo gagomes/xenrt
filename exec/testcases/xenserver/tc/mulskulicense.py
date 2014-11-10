@@ -379,11 +379,11 @@ class TampaUpgrade(LicenseBase):
             for host in self.hosts:
                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)            
                 details = host.getLicenseDetails()
-                wlbprevstatus = details["restrict_wlb"]
-                if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
-                    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
-                elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
-                    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')            
+                #wlbprevstatus = details["restrict_wlb"]
+                #if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+                #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+                #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
+                #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')            
 
         if self.isHostObj:
             self.systemObj.upgrade()

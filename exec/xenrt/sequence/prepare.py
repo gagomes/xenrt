@@ -1,17 +1,18 @@
 __all__=["PrepareNodeParserJSON", "PrepareNodeParserXML", "PrepareNode"]
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json, uuid
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json, uuid, copy
 import xenrt
 import pprint
 
-class PrepareNodeParserJSON(object):
+class PrepareNodeParserBase(object):
     def __init__(self, parent, data):
         self.data = data
         self.parent = parent
 
     def expand(self, s):
         return xenrt.sequence.expand(s, self.parent.params)
-    
+
+class PrepareNodeParserJSON(PrepareNodeParserBase):
     def parse(self):
         for x in self.data.get("pools", []):
             self.handlePoolNode(x)
@@ -24,8 +25,11 @@ class PrepareNodeParserJSON(object):
         for x in self.data.get("instances", []):
             self.handleInstanceNode(x, template=False)
         for x in self.data.get("vlans", []):
-            self.handleVLANNode(n)
+            self.handleVLANNode(x)
         
+        if "multihosts" in self.data:
+            self.handleMultiHostNode(self.data['multihosts'])
+
         if "cloud" in self.data:
             self.handleCloudNode(self.data['cloud'])
 
@@ -43,6 +47,25 @@ class PrepareNodeParserJSON(object):
 
     def __minAvailablePool(self):
         return self.__minAvailable([int(x['id']) for x in self.parent.pools])
+
+    def handleMultiHostNode(self, node, pool=None):
+        i = node.get('start', 0)
+        end = node.get('end', None)
+        hosts = []
+        while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
+            hnode = copy.deepcopy(node)
+            hnode['id'] = i
+            host = self.handleHostNode(hnode)
+            if pool:
+                host["pool"] = pool["name"]
+                if not pool["master"]:
+                    pool["master"] = "RESOURCE_HOST_%s" % (i)
+            hosts.append(host)
+            if i == end:
+                break
+            i = i + 1
+        return hosts
+
 
     def handleCloudNode(self, node):
         # Load the JSON block from the sequence file
@@ -88,8 +111,8 @@ class PrepareNodeParserJSON(object):
 
                     if cluster['hypervisor'].lower() == "xenserver":
                         if not cluster.has_key('XRT_MasterHostId'):
-
-                            simplePoolNode = {'id': self.__minAvailablePool(), hosts:[]}
+                            poolId = self.__minAvailablePool()
+                            simplePoolNode = {'id': poolId, 'hosts':[]}
                             
                             poolHosts = []
                             for h in xrange(cluster['XRT_Hosts']):
@@ -102,7 +125,7 @@ class PrepareNodeParserJSON(object):
                             
 
                             self.handlePoolNode(simplePoolNode)
-                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.pools)[0]
+                            poolSpec = filter(lambda x:x['id'] == str(poolId), self.parent.pools)[0]
                             cluster['XRT_MasterHostId'] = int(poolSpec['master'].split('RESOURCE_HOST_')[1])
                     elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
@@ -202,23 +225,11 @@ class PrepareNodeParserJSON(object):
                 pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
 
         if "multihosts" in node:
-            i = node['multihosts'].get('start', 0)
-            end = node['multihosts'].get('end', None)
-            while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
-                hnode = copy.deepcopy(node['multihosts'])
-                hnode['id'] = i
-                host = self.handleHostNode(hnode)
-                host["pool"] = pool["name"]
-                hosts.append(host)
-                if not pool["master"]:
-                    pool["master"] = "RESOURCE_HOST_%s" % (i)
-                if i == stop:
-                    break
-                i = i + 1
+            hosts.extend(self.handleMultiHostNode(node['multihosts'], pool))
 
         otherNodes = []
         hasAdvancedNet = False
-        self.handleSRs(node)
+        self.handleSRs(node, pool['master'])
         self.handleBridges(node, pool['master'])
         for x in node.get("vms", []):
             vm = self.handleVMNode(x)
@@ -245,20 +256,20 @@ class PrepareNodeParserJSON(object):
 
         return pool
 
-    def handleSRs(self, node):
+    def handleSRs(self, node, host):
         for x in node.get("srs", []):
             type = x.get("type")
             name = x.get("name")
             default = x.get("default")
-            options = x.get("options")
-            network = x.get("network")
-            blkbackPoolSize = x.get("blkbackpoolsize")
-            vmhost = x.get("vmhost")
-            size = x.get("size")
+            options = x.get("options", "")
+            network = x.get("network", "")
+            blkbackPoolSize = x.get("blkbackpoolsize", "")
+            vmhost = x.get("vmhost", "")
+            size = x.get("size", "")
             self.parent.srs.append({"type":type, 
                              "name":name, 
-                             "host":host["name"],
-                             "default":(lambda x:x == "true")(default),
+                             "host":host,
+                             "default":default,
                              "options":options,
                              "network":network,
                              "blkbackPoolSize":blkbackPoolSize,
@@ -267,8 +278,8 @@ class PrepareNodeParserJSON(object):
 
     def handleBridges(self, node, host):
         for x in node.get("bridges", []):
-            type = x.get("type")
-            name = x.get("name")
+            type = x.get("type", "")
+            name = x.get("name", "")
             self.parent.bridges.append({"type":type, 
                                  "name":name, 
                                  "host":host})
@@ -287,7 +298,6 @@ class PrepareNodeParserJSON(object):
         host['ipv6'] = node.get("ipv6", "")
         host['noipv4'] = node.get("noipv4", False)
         host['diskCount'] = node.get("disk_count", 1)
-        license = node.get("license")
         if "license" in node:
             if node['license'] == True:
                 host["license"] = True
@@ -312,7 +322,7 @@ class PrepareNodeParserJSON(object):
         host['extraConfig'] = node.get("extra_config", {})
         
         hasAdvancedNet = False
-        self.handleSRs(node)
+        self.handleSRs(node, host['name'])
         self.handleBridges(node, host)
 
         for x in node.get("vms", []):
@@ -338,8 +348,8 @@ class PrepareNodeParserJSON(object):
 
         return host
 
-    def handleUtilityVMNode(x):
-        vm = self.handleVMNode(x, suffixjob=True)
+    def handleUtilityVMNode(self, node):
+        vm = self.handleVMNode(node, suffixjob=True)
         vm["host"] = "SHARED"
     
     def handleVLANNode(self, node):
@@ -372,8 +382,8 @@ class PrepareNodeParserJSON(object):
             vm['distro'] = node["distro"]
         if "vcpus" in node:
             vm['vcpus'] = node["vcpus"]
-        if "corespersocket" in node:
-            vm['corespersocket'] = node["corespersocket"]
+        if "cores_per_socket" in node:
+            vm['corespersocket'] = node["cores_per_socket"]
         if "memory" in node:
             vm['memory'] = node["memory"]
         if "guestparams" in node:
@@ -386,7 +396,7 @@ class PrepareNodeParserJSON(object):
             vm['arch'] = node["arch"]
         for x in node.get("vifs", []):
             device = x.get("device")
-            bridge = x.get("network")
+            bridge = x.get("network", "")
             ip = x.get("ip")
             vm["vifs"].append([str(device), bridge, xenrt.randomMAC(), None])
             if ip:
@@ -395,17 +405,17 @@ class PrepareNodeParserJSON(object):
             device = x.get("device")
             size = x.get("size")
             format = x.get("format", False)
-            number = x.get("number", 1)
+            number = x.get("count", 1)
             for i in range(int(number)):
-                vm["disks"].append([str(device+i), size, format])
+                vm["disks"].append([str(device+i), str(size), format])
         for x in node.get("postinstall", []):
             vm['postinstall'].append(x['action'])
-        for x in node.get("scripts"):
+        for x in node.get("scripts", []):
             vm['postinstall'].append(self.parent.toplevel.scripts[x])
-        if "filename" in node:
-            vm['filename'] = node['filename']
-        if "bootparams" in node:
-            vm['bootparams'] = node['bootparams']
+        if "file_name" in node:
+            vm['filename'] = node['file_name']
+        if "boot_params" in node:
+            vm['bootparams'] = node['boot_params']
         
         self.parent.vms.append(vm)
 
@@ -435,7 +445,11 @@ class PrepareNodeParserJSON(object):
         return instance
 
 
-class PrepareNodeParserXML(PrepareNodeParserJSON):
+class PrepareNodeParserXML(PrepareNodeParserBase):
+
+    def __init__(self, parent, data):
+        PrepareNodeParserBase.__init__(self, parent, data)
+        self.jsonParser = PrepareNodeParserJSON(self.parent, None)
 
     def parse(self):
         # Ignore cloud nodes on the first pass
@@ -473,15 +487,13 @@ class PrepareNodeParserXML(PrepareNodeParserJSON):
             if n.localName == "cloud":
                 self.handleCloudNode(n)
 
-    def handleCloudNode(node):
-        PrepareNodeParserJSON.handleCloudNode(json.loads(self.expand(node.childNodes[0].data)))
+    def handleCloudNode(self, node):
+        self.jsonParser.handleCloudNode(json.loads(self.expand(node.childNodes[0].data)))
     
     def handlePoolNode(self, node):
         pool = {}
-        print node.getAttribute("id")
 
         pool["id"] = self.expand(node.getAttribute("id"))
-        print pool
         if not pool["id"]:
             pool["id"] = 0
         pool["name"] = self.expand(node.getAttribute("name"))
@@ -796,7 +808,7 @@ class PrepareNodeParserXML(PrepareNodeParserJSON):
                     vm["postinstall"].append(action)
                 elif x.localName == "script":
                     name = self.expand(x.getAttribute("name"))
-                    vm["postinstall"].append(self.toplevel.scripts[name])
+                    vm["postinstall"].append(self.parent.toplevel.scripts[name])
                 elif x.localName == "file":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
@@ -806,7 +818,7 @@ class PrepareNodeParserXML(PrepareNodeParserJSON):
                         if a.nodeType == a.TEXT_NODE:
                             vm["bootparams"] = self.expand(str(a.data))
 
-        self.vms.append(vm)
+        self.parent.vms.append(vm)
 
         return vm
 
@@ -838,9 +850,9 @@ class PrepareNodeParserXML(PrepareNodeParserJSON):
                             instance["rootdisk"] = int(self.expand(str(a.data)))
 
         if template:
-            self.templates.append(instance)
+            self.parent.templates.append(instance)
         else:
-            self.instances.append(instance)
+            self.parent.instances.append(instance)
         return instance
 
 class PrepareNode:

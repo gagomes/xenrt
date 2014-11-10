@@ -57,6 +57,10 @@ class LicenseBase(xenrt.TestCase, object):
 
         for lFile in licenseFilename:
             v6.addLicense(lFile)
+            
+    def addCreedenceLicenseFiles(self,v6):
+        
+        pass
 
     def updateLicenseObjs(self):
 
@@ -425,7 +429,8 @@ class TampaUpgrade(LicenseBase):
                 #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
                 #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"): 
                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')            
-
+        self.addCreedenceLicenseFiles(v6)
+        
         if self.isHostObj:
             self.systemObj.upgrade()
             self.hosts=[]
@@ -442,8 +447,7 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
 
     def preLicenseHook(self):
 
-        super(TCTPOldLicenseServerUpg, self).preLicenseHook()
-        #Add creedence Files to the Old License server
+        super(TCTPOldLicenseServerUpg, self).preLicenseHook()        
 
         #Verify that the Tampa Host is having expected edition but in expired state as the license server is not updated
         for host in self.hosts :
@@ -479,7 +483,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
             
             #Ensure that creedence licenses are available in new license server prior to host upgrade            
-            #self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))         
+            self.addCreedenceLicenseFiles(self.v6)         
 
         if self.isHostObj:
             self.systemObj.upgrade()

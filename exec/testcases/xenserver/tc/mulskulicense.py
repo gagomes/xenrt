@@ -181,6 +181,47 @@ class LicenseBase(xenrt.TestCase, object):
                     host.checkHostLicenseState(edition=edition)
         else:
             self.systemObj.checkHostLicenseState(edition=edition)
+            
+    def checkLicenseExpired(self, host, edition, raiseException=False):
+        """ Checking License is expired by checking feature availability.
+        Checking date is pointless as TC expires license by changing date."""
+
+        try:
+            host.checkHostLicenseState(edition)
+        except xenrt.XRTException, e:
+            if raiseException:
+                raise e
+            else:
+                xenrt.TEC().logverbose("ERROR: %s" % str(e))
+                return False
+
+        licdet = host.getLicenseDetails()
+        if not "restrict_wlb" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_wlb is not in the license detail.")
+            return False
+        if licdet["restrict_wlb"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_wlb is false after license is expired.")
+            return False
+        if not "restrict_read_caching" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_read_caching is not in the license detail.")
+            return False
+        if licdet["restrict_read_caching"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_read_caching is false after license is expired.")
+            return False
+        if not "restrict_vgpu" in licdet:
+            if raiseException:
+                raise xenrt.XRTError("restrict_vgpu is not in the license detail.")
+            return False
+        if licdet["restrict_vgpu"]== "false":
+            if raiseException:
+                raise xenrt.XRTError("restrict_vgpu is false after license is expired.")
+            return False
+
+        return True
 
     def __checkForValidEdition(self,edition):
 
@@ -403,7 +444,10 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
 
         super(TCTPOldLicenseServerUpg, self).preLicenseHook()
 
-        self.verifySystemLicenseState()
+        #Verify that the Tampa Host is having expected edition but in expired state as the license server is not updated
+        for host in self.hosts :
+            if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
+                raise xenrt.XRTFailure("License is not expired properly.")
         
         #License the creedence host with new license server
         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
@@ -484,9 +528,12 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
             self.hosts.append(self.systemObj)
         else:
             self.upgradePool()
-        self.updateLicenseObjs() 
-        #verfiy that the host is in expired state  as the creedence licenses are not available 
-        self.verifySystemLicenseState()
+        self.updateLicenseObjs()       
+                
+        #Verify that the Tampa Host is having expected edition but in expired state as the creedence license files are not available in license server.
+        for host in self.hosts :
+            if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
+                raise xenrt.XRTFailure("License is not expired properly.")
         
         #Now upload creedence license files into license server      
         self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))

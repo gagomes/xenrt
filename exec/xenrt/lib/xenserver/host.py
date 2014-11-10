@@ -11172,18 +11172,22 @@ class SarasotaHost(CreedenceHost):
     USE_CCISS = False
 
     def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
-        ClearwaterHost.__init__(self,
+        CreedenceHost.__init__(self,
                                 machine,
                                 productVersion=productVersion,
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
+    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
+    def license(self, v6server=None, sku="free", usev6testd=True):
+        ClearwaterHost.license(self, v6server=v6server, sku=sku, usev6testd=usev6testd)
+
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest
 
     def postInstall(self):
-        ClearwaterHost.postInstall(self)
+        CreedenceHost.postInstall(self)
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
@@ -11241,7 +11245,7 @@ class SarasotaHost(CreedenceHost):
                 # This is fine, because the calling function will fall through to another method
                 return None
         else:
-            ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
+            ifs=CreedenceHost.getBridgeInterfaces(self, bridge)
         return ifs
 
 

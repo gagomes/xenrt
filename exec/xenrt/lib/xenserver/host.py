@@ -11180,8 +11180,8 @@ class SarasotaHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
     # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, v6server=None, sku="free", usev6testd=True):
-        ClearwaterHost.license(self, v6server=v6server, sku=sku, usev6testd=usev6testd)
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.SarasotaGuest

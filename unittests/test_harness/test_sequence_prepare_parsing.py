@@ -33,7 +33,11 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         jsondict = self.parsePrepare(jsonstr)
 
         pprint.pprint(xmldict)
+        with open("unittests-xml.out", "w") as f:
+            pprint.pprint(xmldict, stream=f)
         pprint.pprint(jsondict)
+        with open("unittests-json.out", "w") as f:
+            pprint.pprint(jsondict, stream=f)
         self.assertEqual(xmldict, jsondict)
     
     def parsePrepare(self, data):

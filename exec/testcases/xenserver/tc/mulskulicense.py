@@ -327,10 +327,26 @@ class LicenseBase(xenrt.TestCase, object):
             self.releaseLicense(edition)
 
     def postRun(self):
-        for edition in self.editions:
-            self.releaseLicense(edition)
-        xenrt.TestCase.postRun(self)
+   
+        for host in self.hosts:
+            host.license(v6server=None,sku='free',usev6testd=False)
 
+class TCRestartHost(LicenseBase):
+
+    def run(self,arglist=None):
+
+        for edition in self.editions:
+
+            self.applyLicense(self.getLicenseObj(edition))
+
+            if self.isHostObj:
+                self.systemObj.reboot()
+            else:
+                self.systemObj.master.reboot()
+
+            self.verifySystemLicenseState(edition=edition)
+
+            self.releaseLicense(edition)
 
 class ClearwaterUpgrade(LicenseBase):
     UPGRADE  = True

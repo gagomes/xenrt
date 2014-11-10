@@ -65,7 +65,7 @@ class LicenseBase(xenrt.TestCase, object):
         licenseFilename.append("valid-enterprise-persocket")
         licenseFilename.append("valid-enterprise-peruser")
         licenseFilename.append("valid-enterprise-perccu")
-        licenseFilename.append("valid-xendesktop")
+        #licenseFilename.append("valid-xendesktop")
         licenseFilename.append("valid-standard-persocket")
         licenseFilename.append("valid-standard-peruser")
         licenseFilename.append("valid-standard-perccu")

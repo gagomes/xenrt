@@ -60,7 +60,17 @@ class LicenseBase(xenrt.TestCase, object):
             
     def addCreedenceLicenseFiles(self,v6):
         
-        pass
+        licenseFilename = []
+        licenseFilename.append("valid-enterprise-persocket")
+        licenseFilename.append("valid-enterprise-peruser")
+        licenseFilename.append("valid-enterprise-perccu")
+        licenseFilename.append("valid-xendesktop")
+        licenseFilename.append("valid-standard-persocket")
+        licenseFilename.append("valid-standard-peruser")
+        licenseFilename.append("valid-standard-perccu")
+
+        for lFile in licenseFilename:
+            v6.addLicense(lFile)
 
     def updateLicenseObjs(self):
 
@@ -391,7 +401,7 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
 
-        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
+        self.addCreedenceLicenseFiles(self.v6)
 
         if self.isHostObj:
             self.systemObj.upgrade()

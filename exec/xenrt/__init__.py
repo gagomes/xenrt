@@ -1981,6 +1981,9 @@ class TestExecutionContext:
         if self.workdir:
             self.workdir.remove()
             self.workdir = None
+        if self.logdir:
+            self.logdir.remove()
+            self.logdir = None
 
     def getWorkdir(self):
         """Return the path to the working directory for this context."""

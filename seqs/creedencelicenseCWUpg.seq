@@ -35,7 +35,7 @@
   </prepare>
 
   <testsequence>
-   <serial group="LicensedTampaUpgrade" blocker="yes">      
+   <serial group="LicensedTampaUpgrade">      
       <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="TC19085" tc="TC-19085">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>

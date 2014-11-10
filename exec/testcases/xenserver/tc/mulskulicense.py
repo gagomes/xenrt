@@ -589,130 +589,113 @@ class LicenseExpiryBase(LicenseBase):
     TC for Creedence (and later) license expiration test.
     """
 
-    def expireLicense(self):
+    def expireLicense(self, allhosts=False):
         """Select a host and force expire the license of the host."""
         if self.isHostObj:
-            host = self.systemObj
+            hosts = [self.systemObj]
         else:
-            host = random.choice(self.systemObj.getHosts())
+            if allhosts:
+                hosts = self.systemObj.getHosts()
+            else:
+                hosts = [random.choice(self.systemObj.getHosts())]
 
-        self.__forceExpireLicense(host)
+        expiretime = xenrt.util.timenow() + 300
+        for host in hosts:
+            self.__forceExpireLicense(host, expiretime)
 
-        return host
+        # return just an expired host for a reference.
+        # If allhosts == True, list of expired hosts are same as hosts in the pool
+        return hosts[0]
 
-    def __forceExpireLicense(self, host):
-        """ Set next day of expiration date"""
+    def __forceExpireLicense(self, host, expiretime=-1):
+        """ Force Expire license from a host by changing expiry date."""
 
-        xenrt.TEC().logverbose("Change date and time of %s to expire license." % host.getName())
-        licinfo = host.getLicenseDetails()
-        host.execdom0("/etc/init.d/ntpd stop")
-        expiretarget = datetime.datetime.strptime(licinfo["expiry"], "%Y%m%dT%H:%M:%SZ")
-        host.execdom0("date -u %s" % expiretarget.strftime("%m%d%H%M%Y.%S"))
+        # Enable the license expires in 5 minutes
+        if expiretime < 0:
+            expiretime = xenrt.util.timenow() + 300
+        # Convert this to a Xapi timestamp
+        xapitime = xenrt.util.makeXapiTime(expiretime)
+        # Write it in to the FIST file
+        host.execdom0("echo '%s' > /tmp/fist_set_expiry_date" % (xapitime))
+        # Restart xapi
+        host.restartToolstack()
+        host.waitForEnabled(300)
 
-        # Give some time to actually expire the license.
-        xenrt.sleep(60)
+        # Give some time (5 mins + 30 secs) to expire the license.
+        xenrt.sleep(330)
 
-    def checkLicenseExpired(self, host, edition, raiseException=False):
+    def checkLicenseExpired(self, edition, host=None, timeout=3600):
+        """ Checking license expiry while timeout period.
+            Feature limit may not be applied for some time perios."""
+
+        if not host:
+            if self.isHostObj:
+                host = self.systemObj
+            else:
+                host = self.systemObj.master
+
+        starttime = xenrt.util.timenow()
+        while (xenrt.util.timenow() <= starttime + timeout):
+            xenrt.sleep(120)
+            ret = self.__checkLicenseExpiredFunc(host, edition)
+            if ret:
+                return True
+
+        xenrt.TEC().logverbose("XAPI is not updated after license expired for %d seconds." % timeout)
+
+        return False
+
+    def __checkLicenseExpiredFunc(self, host, edition):
         """ Checking License is expired by checking feature availability.
         Checking date is pointless as TC expires license by changing date."""
 
-        try:
-            host.checkHostLicenseState(edition)
-        except xenrt.XRTException, e:
-            if raiseException:
-                raise e
-            else:
-                xenrt.TEC().logverbose("ERROR: %s" % str(e))
-                return False
-
-        licdet = host.getLicenseDetails()
-        if not "restrict_wlb" in licdet:
-            if raiseException:
-                raise xenrt.XRTError("restrict_wlb is not in the license detail.")
-            return False
-        if licdet["restrict_wlb"]== "false":
-            if raiseException:
-                raise xenrt.XRTError("restrict_wlb is false after license is expired.")
-            return False
-        if not "restrict_read_caching" in licdet:
-            if raiseException:
-                raise xenrt.XRTError("restrict_read_caching is not in the license detail.")
-            return False
-        if licdet["restrict_read_caching"]== "false":
-            if raiseException:
-                raise xenrt.XRTError("restrict_read_caching is false after license is expired.")
-            return False
-        if not "restrict_vgpu" in licdet:
-            if raiseException:
-                raise xenrt.XRTError("restrict_vgpu is not in the license detail.")
-            return False
-        if licdet["restrict_vgpu"]== "false":
-            if raiseException:
-                raise xenrt.XRTError("restrict_vgpu is false after license is expired.")
-            return False
-
-        return True
-
-    def resetTimer(self, host=None):
-        """ Restart NTP daemon, so that timer of host reset on time."""
-        
-        hosts = []
-        if not host:
-            if self.isHostObj:
-                hosts = [self.systemObj]
-            else:
-                hosts = self.systemObj.getHosts()
-        else:
-            hosts = [host]
-                
-        for host in hosts:
-            xenrt.TEC().logverbose("Starting NTPD on %s" % host.getName())
-            try:
-                host.execdom0("/etc/init.d/ntpd start", nolog=True)
-                # Give some time to resync timer.
-                xenrt.sleep(30)
-            except:
-                # If NTPD is already running, command will raise Exception.
-                # In that case no need to sleep.
-                pass
+        features = [feature.hostFeatureFlagValue(host, False) for feature in host.licensedFeatures()]
+        if features[0] and features[1] and features[2]:
+            return True
+        return False
 
     def run(self, arglist=[]):
         pass
-
-    def postRun(self):
-        self.resetTimer()
-        LicenseBase.postRun(self)
 
 class TCLicenseExpiry(LicenseExpiryBase):
     """ Expiry test case """
 
     def licenseExpiryTest(self, edition):
 
-        # Need to reset in case previous sub case failed.
-        self.resetTimer()
-
         # Assign license and verify it.
         self.applyLicense(self.getLicenseObj(edition))
         self.verifySystemLicenseState(edition)
 
-        # Expiry test
-        host = self.expireLicense()
-        if not self.checkLicenseExpired(host, edition):
-            raise xenrt.XRTFailure("License is not expired properly.")
+        # Check only for WLB, read cache and vgpu.
+        skipped = False
+        if self.isHostObj:
+            host = self.systemObj
+        else:
+            host = self.systemObj.master
+        features = [feature.hostFeatureFlagValue(host) for feature in host.licensedFeatures()]
+        xenrt.TEC().logverbose("License: %s, WLB: %s, Read cache: %s, VGPU: %s" %
+            (edition, not features[0], not features[1], not features[2]))
+
+        if features[0] and features[1] and features[2]:
+            skipped = True
+            xenrt.TEC().logverbose("No features are available for this license. Skipping expire test.")
+        else:
+            # Expiry test
+            self.expireLicense(True)
+            if not self.checkLicenseExpired(edition):
+                raise xenrt.XRTFailure("License is not expired properly.")
 
         # Cleaning up.
-        self.resetTimer(host)
         self.releaseLicense(edition)
-        
+
+        if skipped:
+            raise xenrt.XRTSkip("%s does not have any feature." % edition)
+
     def run(self, arglist=[]):
 
         self.preLicenseHook()
 
         for edition in self.editions:
-            if edition == "free":
-                # free lincese does not require expiry test.
-                continue
-
             self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
 
 class LicenseGraceBase(LicenseExpiryBase):
@@ -774,14 +757,11 @@ class TCLicenseGrace(LicenseGraceBase):
 
         # Now expire one of the host license such that it cross the grace period.
         host = self.expireLicense()
-        if not self.checkLicenseExpired(host, edition):
+        if not self.checkLicenseExpired(edition, host):
             raise xenrt.XRTFailure("License is not expired properly.")
 
         # Check whether the hosts license expired.
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
-        
-        # Now reset the timer.
-        self.resetTimer(host) 
         
         # At this point we do not know what is the license state.
         # Goes back to grace license again ? Or the original license?.

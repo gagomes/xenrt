@@ -29,14 +29,14 @@ class LicensedFeature(object):
         """
         pass
 
-    def hostFeatureFlagValue(self, host):
+    def hostFeatureFlagValue(self, host, nolog=False):
         """
         What is the value of the host's feature flag
         @rtype boolean
         """
         cli = host.getCLIInstance()
         data = cli.execute("host-license-view",
-                           "host-uuid=%s" % (host.getMyHostUUID()))
+                           "host-uuid=%s" % (host.getMyHostUUID()), nolog=nolog)
         return self._searchForFlag(data, self.featureFlagName)
 
     def _searchForFlag(self, data, flag):

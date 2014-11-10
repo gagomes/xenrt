@@ -36,21 +36,21 @@
 
   <testsequence>
    <serial group="LicensedTampaUpgrade">      
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>  
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="TC19085" tc="TC-19085">
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>

@@ -378,8 +378,6 @@ class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
         for host in self.hosts:
             self.checkGrace(host)
 
-        self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
-
         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
 
         self.releaseLicense(self.expectedEditionAfterUpg)

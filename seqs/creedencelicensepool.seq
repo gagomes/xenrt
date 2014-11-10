@@ -29,6 +29,10 @@
 
     <serial group="PoolLicense">
 
+      <testcase id="xenserver.tc.mulskulicense.LicenseBase">
+        <arg>edition=enterprise-per-socket,xendesktop-platinum,enterprise-per-user,standard-per-socket,standard-per-user</arg>
+      </testcase>
+
       <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry" name="LicenseExpiry" tc="TC-23339">
         <arg>edition=enterprise-per-socket,xendesktop-platinum</arg>
       </testcase>

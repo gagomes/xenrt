@@ -170,7 +170,7 @@ class LicenseBase(xenrt.TestCase, object):
                 self.expectedEditionAfterUpg = arg.split('=')[1]
             if arg.startswith('grace'):
                 self.graceExpected = True
-            if arg.startwith('addlicfiles'):
+            if arg.startswith('addlicfiles'):
                 self.addLicFiles = False
 
     def verifyLicenseServer(self,edition,reset=False):

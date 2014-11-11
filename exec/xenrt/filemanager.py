@@ -153,7 +153,7 @@ class FileManager(object):
                     break
                 splitpoint += 1
                     
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1" % (self.__proxyflag, "/".join(ss[0:splitpoint]), t.dir, "/".join(ss[splitpoint:])))
+            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1 -H" % (self.__proxyflag, "/".join(ss[0:splitpoint]), t.dir, "/".join(ss[splitpoint:])))
             fetched = glob.glob("%s/*" % t.dir)
             os.rename(fetched[0], sharedLocation)
         finally:
@@ -164,7 +164,7 @@ class FileManager(object):
             t = xenrt.resources.TempDirectory()
             u = urlparse.urlparse(url)
             cutdirs = len(u.path.split("/")) - 2 # Remove beginning and end items
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (self.__proxyflag, url, t.dir, cutdirs), ignoreerrors=True)
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (self.__proxyflag, url, t.dir, cutdirs), ignoreerrors=True)
             xenrt.util.command("cd %s && tar -cvzf %s *" % (t.dir, sharedLocation))
         finally:
             t.remove()
@@ -177,7 +177,7 @@ class FileManager(object):
         try:
             t = xenrt.resources.TempDirectory()
             fetchPatterns= [url.split("/")[-1], url.split("/")[-1] + ".[0-9]*"]
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (self.__proxyflag, "/".join(url.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), maxDepth))
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (self.__proxyflag, "/".join(url.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), maxDepth))
             fetched = glob.glob("%s/*" % t.dir)
             fileList = " ".join(fetched)
             xenrt.TEC().logverbose( "Fetched files: %s"  % fileList)

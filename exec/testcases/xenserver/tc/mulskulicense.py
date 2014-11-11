@@ -23,6 +23,7 @@ class LicenseBase(xenrt.TestCase, object):
         self.oldLicenseEdition = None
         self.oldLicenseServerName = None
         self.graceExpected = False
+        self.addLicFiles = True
         if self.getDefaultPool():
             self.__sysObj =  self.getDefaultPool()
             self.hosts = self.getDefaultPool().getHosts() 
@@ -169,6 +170,8 @@ class LicenseBase(xenrt.TestCase, object):
                 self.expectedEditionAfterUpg = arg.split('=')[1]
             if arg.startswith('grace'):
                 self.graceExpected = True
+            if arg.startwith('addlicfiles'):
+                self.addLicFiles = False
 
     def verifyLicenseServer(self,edition,reset=False):
 
@@ -423,7 +426,8 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
             for host in self.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
 
-        self.addCreedenceLicenseFiles(self.v6)
+        if self.addLicFiles:
+            self.addCreedenceLicenseFiles(self.v6)
 
         if self.isHostObj:
             self.systemObj.upgrade()

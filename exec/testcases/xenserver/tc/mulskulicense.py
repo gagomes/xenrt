@@ -299,11 +299,12 @@ class LicenseBase(xenrt.TestCase, object):
  
         self.verifyLicenseServer(edition=license.getEdition())
 
-    def releaseLicense(self,edition):
+    def releaseLicense(self,edition,verifyLicenseServer=True):
 
         self.systemObj.license(v6server=None,sku='free',usev6testd=False)
 
-        self.verifyLicenseServer(edition,reset=True)
+        if verifyLicenseServer:
+            self.verifyLicenseServer(edition,reset=True)
 
     def checkGrace(self,host):
   
@@ -440,7 +441,7 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
  
-        self.releaseLicense(self.expectedEditionAfterUpg)
+        self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
 
 class TampaUpgrade(LicenseBase):
     UPGRADE = True
@@ -488,7 +489,7 @@ class TCTPOldLicenseServerUpg(TampaUpgrade):
         #License the creedence host with new license server
         if self.expectedEditionAfterUpg != "free":
             self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
-            self.releaseLicense(self.expectedEditionAfterUpg)
+            self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
             
 class TCTPNewLicenseServer(TampaUpgrade):
 #U3.1 , C8 
@@ -533,7 +534,7 @@ class TCTPNewLicenseServer(TampaUpgrade):
         
         #The host will be in licensed state depending upon its previous license
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
-        self.releaseLicense(self.expectedEditionAfterUpg)
+        self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
         
 class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
 #U3.3 , C9 
@@ -576,7 +577,7 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
                 
             #The host gets the license depending upon its previous license
             self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
-            self.releaseLicense(self.expectedEditionAfterUpg)
+            self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
 
 class LicenseExpiryBase(LicenseBase):
     """

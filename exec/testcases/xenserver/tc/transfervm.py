@@ -1489,7 +1489,7 @@ print allocated
         try:
             host.execdom0("echo '%s' >/tmp/tmp/scriptAllocated.py" % script)
             python = host.execdom0('which python').strip()
-            data = host.execdom0("%s /tmp/tmp/scriptAllocated.py" % python,timeout=900)
+            data = host.execdom0("%s /tmp/tmp/scriptAllocated.py" % python,timeout=1080)
         except:
             raise xenrt.XRTFailure("Unable to get the allocated blocks")
         data = data.replace("[","")

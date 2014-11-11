@@ -1,6 +1,6 @@
 
 import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
-import time, httplib, urlparse, glob, re
+import time, urlparse, glob, re, requests
 import xenrt, xenrt.util
 
 __all__ = ["getFileManager"]
@@ -284,15 +284,9 @@ class FileManager(object):
     def _isFetchable(self, filename):
         # Split remote in to host and path
         xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
-        u = urlparse.urlparse(filename)
-        host = u[1]
-        path = u[2]
         try:
-            conn = httplib.HTTPConnection(host)
-            conn.request("HEAD", path)
-            res = conn.getresponse()
-            conn.close()
-            return (res.status == 200)
+            r = requests.head(filename, allow_redirects=True)
+            return (r.status_code == 200)
         except:
             return False
 

@@ -22,7 +22,7 @@ class LicenseBase(xenrt.TestCase, object):
         self.newLicenseServerName = 'LicenseServer'
         self.oldLicenseEdition = None
         self.oldLicenseServerName = None
-        self.graceExpected = False
+        self.graceExpected = True
         self.addLicFiles = True
         if self.getDefaultPool():
             self.__sysObj =  self.getDefaultPool()
@@ -169,7 +169,7 @@ class LicenseBase(xenrt.TestCase, object):
             if arg.startswith('expectededition'):
                 self.expectedEditionAfterUpg = arg.split('=')[1]
             if arg.startswith('grace'):
-                self.graceExpected = True
+                self.graceExpected = False
             if arg.startswith('addlicfiles'):
                 self.addLicFiles = False
 

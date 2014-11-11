@@ -3614,7 +3614,7 @@ from xenrt.util import *
 from xenrt.registry import *
 from xenrt.objects import *
 from xenrt.config import *
-from xenrt.sequence import *
+from xenrt.seq import *
 from xenrt.results import *
 from xenrt.formatter import *
 from xenrt.filemanager import *

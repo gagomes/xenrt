@@ -904,4 +904,4 @@ class TestSequence(Serial):
                 else:
                     raise xenrt.XRTError("No 'xenrt' tag found.")
 
-from xenrt.sequence.prepare import *
+from xenrt.seq.prepare import *

@@ -61,7 +61,7 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
 
         for n in dom.childNodes:
             if n.nodeType == n.ELEMENT_NODE:
-                node = xenrt.sequence.PrepareNode(self.toplevel, n, {}) 
+                node = xenrt.seq.PrepareNode(self.toplevel, n, {}) 
             break
 
         node.tcname = self.tcname

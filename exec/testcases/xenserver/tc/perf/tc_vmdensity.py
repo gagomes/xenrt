@@ -3,7 +3,7 @@ import libperf
 import string, time, re, random, math
 import traceback
 import datetime
-from xenrt.sequence import PrepareNode
+from xenrt.seq import PrepareNode
 import xml.dom.minidom
 import subprocess
 import socket

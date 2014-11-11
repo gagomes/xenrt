@@ -1,6 +1,6 @@
 __all__=["PrepareNodeParserJSON", "PrepareNodeParserXML", "PrepareNode"]
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, json, uuid, copy
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy
 import xenrt
 import pprint
 
@@ -10,7 +10,7 @@ class PrepareNodeParserBase(object):
         self.parent = parent
 
     def expand(self, s):
-        return xenrt.sequence.expand(s, self.parent.params)
+        return xenrt.seq.expand(s, self.parent.params)
 
 class PrepareNodeParserJSON(PrepareNodeParserBase):
     def parse(self):
@@ -488,7 +488,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                 self.handleCloudNode(n)
 
     def handleCloudNode(self, node):
-        self.jsonParser.handleCloudNode(json.loads(self.expand(node.childNodes[0].data)))
+        self.jsonParser.handleCloudNode(yaml.load(self.expand(node.childNodes[0].data)))
     
     def handlePoolNode(self, node):
         pool = {}
@@ -676,7 +676,7 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
         if not extraCfg:
             host['extraConfig'] = {}
         else:
-            host['extraConfig'] = json.loads(extraCfg)
+            host['extraConfig'] = yaml.load(extraCfg)
         
         hasAdvancedNet = False
         for x in node.childNodes:
@@ -878,11 +878,11 @@ class PrepareNode:
         parser = None
         for n in node.childNodes:
             if n.nodeType == n.TEXT_NODE and n.data.strip():
-                parser = xenrt.sequence.PrepareNodeParserJSON(self, json.loads(n.data))
+                parser = xenrt.seq.PrepareNodeParserJSON(self, yaml.load(n.data))
                 break
 
         if not parser:
-            parser = xenrt.sequence.PrepareNodeParserXML(self, node)
+            parser = xenrt.seq.PrepareNodeParserXML(self, node)
 
         parser.parse()
 

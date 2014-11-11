@@ -576,12 +576,13 @@ class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
                 raise xenrt.XRTFailure("License is not expired properly.")
                 
         if self.expectedEditionAfterUpg != "free":
-            #Now upload creedence license files into license server      
-            self.addLicenses(self.getLicenseObj(self.expectedEditionAfterUpg))
+            #Now upload creedence license files into license server and license the host
+            self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
                 
             #The host gets the license depending upon its previous license
             self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 
             self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
+            
 
 class LicenseExpiryBase(LicenseBase):
     """

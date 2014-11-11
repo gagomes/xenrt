@@ -394,12 +394,7 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # Export vm
         psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
-        try:
-            self.psExecution(psScript,timeout = 40000)
-            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
-        except Exception, e:
-            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
+        self.psExecution(psScript,timeout = 40000)
         xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
@@ -446,13 +441,8 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # import VM
         psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
-        try:
-            ret = self.psExecution(psScript,timeout = 20000)
-            vm = ret.splitlines()[2]
-            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
-        except Exception, e:
-            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
-            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
+        ret = self.psExecution(psScript,timeout = 20000)
+        vm = ret.splitlines()[2]
         xenrt.TEC().logverbose("VM %s imported" % (vm))
         return vm
        

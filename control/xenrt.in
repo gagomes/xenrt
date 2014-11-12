@@ -1390,7 +1390,7 @@ preserve such possibilities.
     faithful_ex = [ "XMLRPC", "HARNESS_PID", "JOBID", "RUNDIR", "XENRT_VERSION",
                     "JOB_SUBMITTED", "STARTED", "JOBSTATUS", "SCHEDULEDON.*",
                     "CHECK", "RETURN", "UPLOADED", "FINISHED", "PASSRATES",
-                    "REGRESSION", "REMOVED" ]
+                    "REGRESSION", "REMOVED", "PREPARE_FAILED" ]
     testrun_ex = [ "MACHINE", "PXE_BIOS_BOOT_RETRY" ]
     custom_ex = [ "JOBGROUP", "TESTRUN.*", "JIRA.*", "USERID",
                   "EMAIL.*", ".*EMAIL_TO", "AUTO_BUG.*" ]

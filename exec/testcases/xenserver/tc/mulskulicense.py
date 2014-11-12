@@ -428,6 +428,8 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
 
         if self.addLicFiles:
             self.addCreedenceLicenseFiles(self.v6)
+        else:
+            self.v6.removeAllLicenses()
 
         if self.isHostObj:
             self.systemObj.upgrade()

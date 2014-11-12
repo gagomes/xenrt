@@ -439,11 +439,14 @@ class TCCWNewLicenseServer(ClearwaterUpgrade):
             self.upgradePool()
         self.updateLicenseObjs() 
         for host in self.hosts:
+            isExpRaised = False
             try:
                 self.checkGrace(host)
-                raise xenrt.XRTFailure("Host has got grace license")
+                isExpRaised = True
             except Exception as e:
                 pass
+            if isExpRaised:
+                raise xenrt.XRTFailure("Host has got grace license")
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
  
@@ -532,11 +535,14 @@ class TCTPNewLicenseServer(TampaUpgrade):
  
         self.updateLicenseObjs()
         for host in self.hosts:
+            isExpRaised = False
             try:
                 self.checkGrace(host)
-                raise xenrt.XRTFailure("Host has got grace license")
+                isExpRaised = True
             except Exception as e:
                 pass
+            if isExpRaised:
+                raise xenrt.XRTFailure("Host has got grace license")
         
         #The host will be in licensed state depending upon its previous license
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg) 

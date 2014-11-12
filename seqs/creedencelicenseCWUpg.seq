@@ -81,7 +81,7 @@
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="License7" tc="TC-12341">
-        <arg>expectededition=free</arg>
+        <arg>expectededition=enterprise-pre-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>

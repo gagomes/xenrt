@@ -61,30 +61,13 @@ class XenRTCommand:
 
     commands = None
     hide = False
-    readOnlyCmd = False
 
     def __init__(self, commands):
         self.commands = commands
         self.proxies = None
-        self.masterServerURL = None
-
-    def getMasterServerURL(self):
-        if not self.masterServerURL:
-            # Get master server URL
-            details = {'action': 'getmasterurl'} 
-            u = urlopen_with_retry(server_url + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-            self.masterServerURL = u.read().strip() + queuecgi
-        return self.masterServerURL
-
-            
 
     def getServerURL(self):
-        if self.readOnlyCmd:
-            return server_url
-        else:
-            return self.getMasterServerURL()
-                
+        return server_url
     
     def dispatch(self, args, raw=0):
 
@@ -566,7 +549,6 @@ class XenRTStatus(XenRTCommand):
             "(Analogous to piping xenrt status through grep.)"
     mandatory = "<jobid> [VarName1] [VarName#] [...]"
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'status'}
@@ -615,7 +597,6 @@ class XenRTUtilisation(XenRTCommand):
     -p <pool>[,<pool>...]   List of pools to summarise. Default is all.
     -v                      Verbose - show per-machine details as well.
     """
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'utilisation'}
@@ -685,7 +666,6 @@ class XenRTMachine(XenRTCommand):
     summary = "Get data for the specified machine"
     mandatory = "<machine>"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'machine'}
@@ -722,7 +702,6 @@ class XenRTShowLog(XenRTCommand):
     [ -t ]      show testcase durations
     """
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'showlog'}
@@ -783,7 +762,6 @@ class XenRTMList2(XenRTCommand):
     [-p]             Show machine properties
     [-v]             Show pseudohosts
     """
-    readOnlyCmd = True
 
     def run(self, args):
         self.controller = False
@@ -882,7 +860,6 @@ class XenRTList(XenRTCommand):
     [ -D <description> ]     show only jobs matching the given JOBDESC
     """
     group = "Scheduler"
-    readOnlyCmd = True
 
     def run(self, args):
         self.showsr = False
@@ -1942,7 +1919,6 @@ class XenRTSuiteStatus(XenRTCommand):
     -m             Used with -r, orders list by machine-hours
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.advanced = False
@@ -2031,7 +2007,6 @@ class XenRTDetailID(XenRTCommand):
     summary = "Get the detailid for a specified jobid, phase and test"
     mandatory = "<jobid> <phase> <test>"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'detailid'}
@@ -2065,7 +2040,6 @@ class XenRTHelp(XenRTCommand):
     name = "help"
     summary = "Get a summary of commands"
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         cx = {}
@@ -2156,7 +2130,6 @@ class XenRTUpload(XenRTCommand):
     [ -f <filename> ]         Filename to upload (default is STDIN)
     """
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'upload'}
@@ -2182,7 +2155,7 @@ class XenRTUpload(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        url = self.getMasterServerURL()
+        url = self.getServerURL()
 
         logserver = self.getLogServer(id, proxies=self.proxies)
         if logserver:
@@ -2202,7 +2175,6 @@ class XenRTDownload(XenRTCommand):
     [ -t test ]     Optional test (phase also required)
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.filename = None
@@ -2230,7 +2202,7 @@ class XenRTDownload(XenRTCommand):
         except getopt.GetoptError:
             sys.stderr.write("Unknown argument\n")
             return None
-        url = self.getMasterServerURL()
+        url = self.getServerURL()
 
         if not usemasterserver:
             logserver = self.getLogServer(id, proxies=self.proxies)
@@ -2438,7 +2410,6 @@ class XenRTCaseSet(XenRTCommand):
     summary = "List a set of test cases"
     mandatory = "<set>"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'caseset'}
@@ -2468,7 +2439,6 @@ class XenRTCaseSets(XenRTCommand):
     name = "casesets"
     summary = "List all known casesets"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'casesets'}
@@ -2613,7 +2583,6 @@ class XenRTInteract(XenRTCommand):
     [-L]               Show last 1000 log output lines
     """
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
 
@@ -2768,7 +2737,6 @@ class XenRTSList(XenRTCommand):
     [-q]             Quiet mode (don't show header)
     """
     group = "Site"
-    readOnlyCmd = True
 
     def run(self, args):
         self.controller = False
@@ -2912,7 +2880,6 @@ class XenRTSite(XenRTCommand):
     summary = "Get data for the specified site"
     mandatory = "<site>"
     group = "Site"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'site'}
@@ -3068,7 +3035,6 @@ class XenRTWarnings(XenRTCommand):
                              alternatives include 'comment' and 'data'
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.showsr = False
@@ -3174,7 +3140,6 @@ class XenRTSNetwork(_XenRTControllerOperation):
     summary = "Show network info for a site"
     mandatory = "<site>"
     group = "Site"
-    readOnlyCmd = True
     
     def run(self, args):
         if len(args) < 1:
@@ -3238,7 +3203,6 @@ class XenRTPower(_XenRTControllerOperation):
     summary = "Power control a machine"
     mandatory = "<machine> off|on|reboot|nmi"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         if len(args) < 2:
@@ -3270,7 +3234,6 @@ class XenRTConsole(_XenRTControllerOperation):
     summary = "Serial console for a machine"
     mandatory = "<machine>"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         if len(args) < 1:

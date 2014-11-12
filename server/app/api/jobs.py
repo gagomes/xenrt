@@ -286,6 +286,8 @@ class XenRTList(XenRTJobPage):
                 fd.write(string.join(rl, "\t") + "\n")
 
 class XenRTSubmit(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         details = {}
@@ -386,6 +388,8 @@ class XenRTSubmit(XenRTJobPage):
         return id
 
 class XenRTComplete(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -400,6 +404,8 @@ class XenRTComplete(XenRTJobPage):
 
 
 class XenRTUpdate(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -415,6 +421,8 @@ class XenRTUpdate(XenRTJobPage):
             return "ERROR Internal error"
 
 class XenRTRemove(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -489,6 +497,8 @@ class XenRTShowLog(XenRTJobPage):
         return self.showlog(id, wide, verbose, times=times)
 
 class XenRTJobGroup(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("command"):

@@ -6,6 +6,8 @@ import xml.dom.minidom, string, traceback, time
 import app.utils
 
 class XenRTSubResults(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         """Parse XML to update tblSubResults"""
@@ -100,6 +102,8 @@ class XenRTSubResults(XenRTAPIPage):
             return "ERROR updating database"    
 
 class XenRTEvent(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         timenow = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(time.time()))
@@ -129,6 +133,8 @@ class XenRTEvent(XenRTAPIPage):
             return "ERROR Database error"
 
 class XenRTLogData(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         db = self.getDB()
@@ -213,6 +219,8 @@ class XenRTLogData(XenRTAPIPage):
         return "OK"
 
 class XenRTSetResult(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         db = self.getDB()
         form = self.request.params
@@ -306,6 +314,8 @@ perfdef = {'jobid': (0, "Job ID", 10, PD_DLIST),
            'ts': (4, "Timestamp", 600, PD_HIDE)}
 
 class XenRTPerfData(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         """Read an uploaded XML file of one or more performance results and place

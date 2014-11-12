@@ -64,6 +64,7 @@ def getResourceInteractive(resType, argv):
         vlans = PrivateVLAN.getVLANRange(size, wait=False)
         return {"start": vlans[0].getID(), "end": vlans[-1].getID()}
 
+@xenrt.irregularName
 def DhcpXmlRpc():
     return xmlrpclib.ServerProxy("http://localhost:1500", allow_none=True)
 

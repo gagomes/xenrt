@@ -306,9 +306,12 @@ reboot
         bootcfgtext += "prefix=%s" % pxe.makeBootPath("")   # ... and use our PXE path as a prefix instead
         bootcfgtext = re.sub(r"--- useropts\.gz", r"", bootcfgtext)        # this file seems to cause only trouble, and getting rid of it seems to have no side effects...
         bootcfgtext = re.sub(r"--- jumpstrt\.gz", r"", bootcfgtext)        # this file (in ESXi 5.5) is similar
-        bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)          # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
-        deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
-        bootcfgtext = bootcfgtext2
+        if self.esxiVersion < "5.5":
+            deferToolsPackInstallation = False
+        else:
+            bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)      # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
+            deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
+            bootcfgtext = bootcfgtext2
         bootcfgtext = re.sub(r"(kernelopt=.*)", r"\1 debugLogToSerial=1 logPort=com1 ks=%s" %
                              ("nfs://%s%s" % (nfsdir.getHostAndPath(ksname))), bootcfgtext)
         bootcfg.write(bootcfgtext)

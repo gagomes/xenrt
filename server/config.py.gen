@@ -40,6 +40,8 @@ if os.path.exists(cf):
                                     basedir = data
                                 elif name == "DATABASE_CONNECT_STRING":
                                     cfg['dbConnectString'] = data
+                                elif name == "DATABASE_CONNECT_STRING_WRITE":
+                                    cfg['dbConnectStringWrite'] = data
                                 elif name == "TEMP_DIR_BASE":
                                     cfg['tmp_base'] = data
 

@@ -774,7 +774,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkLicenseExpired(edition):
+                if not self.checkGraceLicense(edition):
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
             except xenrt.XRTException, e:
                 pass
@@ -795,8 +795,8 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkLicenseExpired(edition):
-                    raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
+                if not self.checkGraceLicense(edition):
+                    raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
             except xenrt.XRTException, e:
                 pass
             finally:

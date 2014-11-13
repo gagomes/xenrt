@@ -68,7 +68,11 @@ class XenRTCommand:
 
     def getServerURL(self):
         return server_url
-    
+   
+    def getLogServerURL(self, jobid):
+        logserver = self.getLogServer(jobid, proxies=self.proxies)
+        return logserver_url % logserver
+
     def dispatch(self, args, raw=0):
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
@@ -103,7 +107,9 @@ class XenRTCommand:
             fd = sys.stdout
         fd.write(str)
 
-    def getLogServer(self, job, proxies=None):
+    def getLogServer(self, job, proxies=None, params=None):
+        if not params:
+            params=["LOG_SERVER", "JOB_FILES_SERVER"]
         details = {'action': 'status'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
         details["id"] = job
@@ -116,12 +122,12 @@ class XenRTCommand:
         else:
             reply = self.parse_job(data)
         u.close()
-        server = None
-        if reply.has_key("LOG_SERVER"):
-            server = reply['LOG_SERVER']
-        return server
+        for p in params:
+            if reply.has_key(p):
+                return reply[p]
+        return None
 
-    def uploadWithCurl(self, details, filename, proxies=None, url=None):
+    def uploadWithCurl(self, details, filename, url, proxies=None):
         cmd = ["curl"]
         cmd.append("-H \"Expect:\"")
         if proxies and proxies.has_key('http'):
@@ -129,17 +135,19 @@ class XenRTCommand:
         for d in details.keys():
             cmd.append("-F '%s=%s'" % (d, details[d]))
         cmd.append("-F file=@%s" % (filename))
-        if not url:
-            url = self.getServerURL()
         cmd.append(url)
         rc = os.system("%s > /dev/null 2>&1" % (string.join(cmd)))
         if rc == 0:
             return 1
         return None
 
-    def upload(self, details, filename, proxies=None, url=None):
+    def upload(self, details, filename, proxies=None, scheduler=False):
+        if scheduler:
+            url = self.getServerURL()
+        else:
+            url = self.getLogServerURL(details['id'])
         if os.path.exists("/usr/bin/curl"):
-            return self.uploadWithCurl(details, filename, proxies=proxies,url=url)
+            return self.uploadWithCurl(details, filename, url, proxies=proxies)
         if filename:
             f = file(filename, 'r')
         else:
@@ -148,8 +156,6 @@ class XenRTCommand:
         details["file"] = f.read()
         if filename:
             f.close()
-        if not url:
-            url = self.getServerURL()
         u = urlopen_with_retry(url, urllib.urlencode(details), proxies)
         reply = None
         data = u.read()
@@ -2094,7 +2100,7 @@ class XenRTSubResults(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        return self.upload(details, filename, proxies=self.proxies)
+        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
 
 class XenRTPerfData(XenRTCommand):
 
@@ -2118,7 +2124,7 @@ class XenRTPerfData(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        return self.upload(details, filename, proxies=self.proxies)                
+        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
 
 class XenRTUpload(XenRTCommand):
 
@@ -2155,13 +2161,7 @@ class XenRTUpload(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        url = self.getServerURL()
-
-        logserver = self.getLogServer(id, proxies=self.proxies)
-        if logserver:
-            url = logserver_url % logserver
-
-        return self.upload(details, filename, proxies=self.proxies, url=url)                
+        return self.upload(details, filename, proxies=self.proxies)                
 
 class XenRTDownload(XenRTCommand):
 
@@ -2204,10 +2204,13 @@ class XenRTDownload(XenRTCommand):
             return None
         url = self.getServerURL()
 
-        if not usemasterserver:
-            logserver = self.getLogServer(id, proxies=self.proxies)
-            if logserver:
-                url = logserver_url % logserver
+        if usemasterserver:
+            params = ["JOB_FILES_SERVER"]
+        else:
+            params = None
+        logserver = self.getLogServer(id, proxies=self.proxies, params=params)
+        if logserver:
+            url = logserver_url % logserver
 
         u = urlopen_with_retry(url, urllib.urlencode(details),
                            proxies=self.proxies)

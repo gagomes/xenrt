@@ -44,6 +44,8 @@ if os.path.exists(cf):
                                     cfg['dbConnectStringWrite'] = data
                                 elif name == "TEMP_DIR_BASE":
                                     cfg['tmp_base'] = data
+                                elif name == "LOG_SERVER":
+                                    cfg['log_server'] = data
 
 
 cfg['results'] = "%s/results" % basedir

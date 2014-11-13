@@ -565,6 +565,8 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+                tempRoot = self.execcmd("grep -Eo 'root=UUID=[0-9a-f-]+' /boot/grub2/grub.cfg | head -n 1").split('\n')[0]
+                self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
             elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
                 _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",

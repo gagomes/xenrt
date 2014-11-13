@@ -27,7 +27,8 @@ global _xmlrpcjiraauth
 _xmlrpcjiraauth = None
 
 # All known Windows distros
-WINDOWSDISTROS = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
+global _windowsdistros
+_windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
                   ('w2k3ee','Windows Server 2003 SP0 Enterprise'),
                   ('w2k3eesp1','Windows Server 2003 SP1 Enterprise'),
                   ('w2k3eer2','Windows Server 2003 SP1 R2 Enterprise'),
@@ -791,7 +792,7 @@ def processMatrixTests(release=None):
     
     
     # All known Windows distros
-    winDistros = xenrt.WINDOWSDISTROS
+    winDistros = _windowsdistros
     # All known linux distros that only have 32-bit versions
     linDistros_32only = [('rhel41','RHEL 4.1'),
                          ('rhel44','RHEL 4.4'),

@@ -71,7 +71,8 @@ shift
 # Run install-packages. This also acts as a handy syntax check
 python $venvpath/exec/$cmd --install-packages "$@" > $logpath/setup.log 2>&1
 
-# Now actually run XenRT
+# Now actually run XenRT. We don't want the trap handler any more
+trap '' ERR
 set +e
 python $venvpath/exec/$cmd "$@"
 

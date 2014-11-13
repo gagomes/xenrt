@@ -6877,7 +6877,7 @@ class GenericGuest(GenericPlace):
                     matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" in d]
             if len(matchedDistros) > 1:
                 osname = osname + " "
-                matchedDistros = [(d,n) for (d,n) in xenrt.tools._windowsdistros if osname in n]
+                matchedDistros = [(d,n) for (d,n) in matchedDistros if osname in n]
 
             # At this point if we have more than 1 distro matching, we can proceed with any of them.
             if len(matchedDistros) >= 1:

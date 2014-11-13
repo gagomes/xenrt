@@ -36,28 +36,28 @@
 
   <testsequence>
    <serial group="LicensedCWUpgrade">      
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="License1" tc="TC-12345">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="LicenseCWCRUPG1" tc="TC-23365">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>  
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="License2" tc="TC-12346">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="LicenseCWCRUPG2" tc="TC-23366">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="License3" tc="TC-12347">
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG3" tc="TC-23367">
         <arg>expectededition=enterprise-per-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase> 
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="License4" tc="TC-12348">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="LicenseCWCRUPG4" tc="TC-23368">
         <arg>expectededition=free</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
@@ -65,7 +65,7 @@
         <arg>grace</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="License5" tc="TC-12349">
+      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="LicenseCWCRUPG5" tc="TC-23369">
         <arg>expectededition=xendesktop-platinum</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
@@ -73,14 +73,14 @@
         <arg>grace</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="License6" tc="TC-12340">
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG6" tc="TC-23370">
         <arg>expectededition=free</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="License7" tc="TC-12341">
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG7" tc="TC-23371">
         <arg>expectededition=enterprise-pre-socket</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=per-socket</arg>

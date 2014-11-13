@@ -6861,24 +6861,30 @@ class GenericGuest(GenericPlace):
 
     def findDistro(self):
         if self.distro and self.distro !="UNKNOWN":
-            xenrt.TEC().warning("distro is already set to %s" % self.distro)
             return
+        # windows distro
+        try:
+            osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2]
+            osname = osname.split(":")[1].strip()
+        except:
+            pass
+        # linux distro
         releaseFiles = ["/etc/SuSE-release", "/etc/debian_version", "/etc/oracle-release", "/etc/redhat-release"]
         for rf in releaseFiles:
             try:
-                release = self.execguest("cat %s" % rf).splitlines()[0].strip()
+                release = self.execguest("cat %s" % rf, nolog=True).splitlines()[0].strip()
                 if "debian" in rf:
                     self.distro = "debian" + str(release.replace(".",""))
                 elif "oracle" in rf:
-                    release = self.execguest("cat a | sed -r 's/.*release //'").strip()
+                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
                     release = release.split(" ")[0]
                     self.distro = "oel" + str(release.replace(".",""))
                 elif "Red Hat" in release:
-                    release = self.execguest("cat a | sed -r 's/.*release //'").strip()
+                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
                     release = release.split(" ")[0]
                     self.distro = "rhel" + str(release.replace(".",""))
                 elif "CentOS" in release:
-                    release = self.execguest("cat a | sed -r 's/.*release //'").strip()
+                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
                     release = release.split(" ")[0]
                     self.distro = "centos" + str(release.replace(".",""))
                 elif "SuSE" in release:

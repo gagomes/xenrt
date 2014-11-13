@@ -22,6 +22,9 @@ cleanup() {
             xenrt upload $jobid -f $venvpath/setup.tar.bz2
             xenrt update $jobid UPLOADED yes
         fi
+        xenrt update $jobid RETURN ERROR
+        xenrt update $jobid CHECK ERROR
+        xenrt update $jobid REGRESSION ERROR
         xenrt complete $jobid
         xenrt email $jobid
     fi

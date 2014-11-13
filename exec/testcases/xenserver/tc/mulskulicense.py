@@ -706,38 +706,64 @@ class TCLicenseExpiry(LicenseExpiryBase):
         for edition in self.editions:
             self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
 
-class LicenseGraceBase(LicenseExpiryBase):
-    """Base class to verify the grace license tests"""
+class TCLicenseGrace(LicenseExpiryBase):
+    """Verify the grace license and its expiry in Creedence hosts"""
+
+    USEV6D_DEAMON = True
 
     def initiateGraceLicense(self):
-        """Shutdown license server and restart host toolstack"""
+        """Disconnect license server"""
 
+        if self.USEV6D_DEAMON:
+            self.v6.stop()
+        else:
         # Shutdown the License Server.
-        self.getGuest(self.newLicenseServerName).shutdown() # self.v6.stop()
-
-        # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts] # service v6d restart
+            self.getGuest(self.newLicenseServerName).shutdown()
 
     def revertGraceLicense(self):
-        """Start license server and restart host toolstack"""
+        """Re-establish license server connection"""
 
-        # Start the license server.
-        self.getGuest(self.newLicenseServerName).start() # self.v6.start()
+        if self.USEV6D_DEAMON:
+            self.v6.start()
+        else:
+        # Shutdown the License Server.
+            self.getGuest(self.newLicenseServerName).start()
 
-        # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts] # service v6d restart
+    def checkGraceLicense(self, host=None, timeout=3600):
+        """ Checking whether the grace license enabled"""
 
-    def run(self, arglist=[]):
-        pass
+        starttime = xenrt.util.timenow()
+        while (xenrt.util.timenow() <= starttime + timeout):
+            xenrt.sleep(120)
+            ret = self.checkGraceFunc(host)
+            if ret:
+                return True
 
-class TCLicenseGrace(LicenseGraceBase):
-    """Verify the grace license and its expiry in Creedence hosts"""
+        xenrt.TEC().logverbose("XAPI is not updated after license server is disconnected. (Took %d seconds)" % timeout)
+
+        return False
+
+    def checkGraceFunc(self,host):
+  
+        licenseInfo = host.getLicenseDetails()
+        if not 'grace' in licenseInfo['grace']:
+            xenrt.TEC().warning("ERROR: Host has not got grace license")
+            return False
+
+        expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
+        if (expiry > (xenrt.timenow() + 30*25*3600 + 1)):
+            xenrt.TEC().warning("ERROR: Host has got license expiry date > 30 days from current time,"
+                                " it has got expiry date: %s " % expiry)
+            return False
+
+        return True
 
     def licenseGraceTest(self, edition):
 
         # Check whether the license server is running.
-        if self.getGuest(self.newLicenseServerName).getState() != "UP":
-            self.getGuest(self.newLicenseServerName).start()
+        if not self.USEV6D_DEAMON:
+            if self.getGuest(self.newLicenseServerName).getState() != "UP":
+                self.getGuest(self.newLicenseServerName).start()
 
         # Assign license and verify it.
         self.applyLicense(self.getLicenseObj(edition))
@@ -747,7 +773,13 @@ class TCLicenseGrace(LicenseGraceBase):
 
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
-            self.checkGrace(host)
+            try:
+                if not self.checkLicenseExpired(edition):
+                    raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
+            except xenrt.XRTException, e:
+                pass
+            finally:
+                self.releaseLicense(edition)
 
         # Force the hosts to regain its orignal licenses.
         self.revertGraceLicense()
@@ -760,29 +792,37 @@ class TCLicenseGrace(LicenseGraceBase):
         self.initiateGraceLicense()
 
         # Check whether the hosts obtained grace licenses.
+        # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
-            self.checkGrace(host)
+            try:
+                if not self.checkLicenseExpired(edition):
+                    raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
+            except xenrt.XRTException, e:
+                pass
+            finally:
+                self.releaseLicense(edition)
 
         # Now expire one of the host license such that it cross the grace period.
-        host = self.expireLicense()
-        if not self.checkLicenseExpired(edition, host):
-            raise xenrt.XRTFailure("License is not expired properly.")
+        self.expireLicense()
+
+        # Check whther the license is expired.
+        try:
+            if not self.checkLicenseExpired(edition):
+                raise xenrt.XRTFailure("License is not expired properly.")
+        except xenrt.XRTException, e:
+            pass
+        finally:
+            self.releaseLicense(edition)
 
         # Check whether the hosts license expired.
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
-        
-        # At this point we do not know what is the license state.
-        # Goes back to grace license again ? Or the original license?.
-        # Not sure whether to release the license and verify the state again.
-        self.releaseLicense(edition)
 
     def run(self, arglist=[]):
-
-        self.preLicenseHook()
 
         for edition in self.editions:
             if edition == "free":
                 # Free lincese does not require grace license test.
                 continue
 
+            self.USEV6D_DEAMON = not self.USEV6D_DEAMON
             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")

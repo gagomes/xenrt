@@ -16,12 +16,14 @@ cleanup() {
         echo "Job $jobid Exiting with error"
         set -x
         xenrt update $jobid PREPARE_FAILED "Setup exited with error"
-        #xenrt email $jobid
         if [ -e "$logpath/setup.log" ]
         then
             tar -C $logpath -cvjf $venvpath/setup.tar.bz2 ./setup.log
             xenrt upload $jobid -f $venvpath/setup.tar.bz2
+            xenrt update $jobid UPLOADED yes
         fi
+        xenrt complete $jobid
+        xenrt email $jobid
     fi
     rm -rf $venvpath
     exit

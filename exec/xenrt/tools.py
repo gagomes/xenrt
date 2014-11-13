@@ -752,7 +752,7 @@ def processMatrixTests(release=None):
     
     
     # All known Windows distros
-    winDistros = _windowsdistros
+    winDistros = xenrt.tools._windowsdistros
     # All known linux distros that only have 32-bit versions
     linDistros_32only = [('rhel41','RHEL 4.1'),
                          ('rhel44','RHEL 4.4'),

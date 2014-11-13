@@ -653,13 +653,27 @@ class LicenseExpiryBase(LicenseBase):
         """ Checking License is expired by checking feature availability.
         Checking date is pointless as TC expires license by changing date."""
 
-        features = [feature.hostFeatureFlagValue(host, False) for feature in host.licensedFeatures()]
+        features = [feature.hostFeatureFlagValue(host, True) for feature in host.licensedFeatures()]
         if features[0] and features[1] and features[2]:
             return True
         return False
 
+    def cleanUpFistPoint(self, host=None):
+        if host:
+            hosts = [host]
+        else:
+            hosts = self.hosts
+
+        for host in hosts:
+            host.execdom0("rm -f /tmp/fist_set_expiry_date", level=xenrt.RC_OK)
+
     def run(self, arglist=[]):
         pass
+
+    def postRun(self):
+        self.cleanUpFistPoint()
+        super(LicenseExpiryBase, self).postRun()
+
 
 class TCLicenseExpiry(LicenseExpiryBase):
     """ Expiry test case """
@@ -691,6 +705,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
 
         # Cleaning up.
         self.releaseLicense(edition)
+        self.cleanUpFistPoint()
 
         if skipped:
             raise xenrt.XRTSkip("%s does not have any feature." % edition)

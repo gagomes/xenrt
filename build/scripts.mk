@@ -180,7 +180,7 @@ $(EXECDIR)/xenrt/ctrl.py:
 control/xrt:
 	$(info Creating link to $@...)
 	-rm $(SHAREDIR)/$@
-	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper2.sh `mktemp -d` /tmp/xenrtlogs NoJob $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
 
 control/xrt1:

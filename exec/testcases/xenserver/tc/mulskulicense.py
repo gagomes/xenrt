@@ -779,6 +779,8 @@ class TCLicenseGrace(LicenseExpiryBase):
             except xenrt.XRTException, e:
                 pass
             finally:
+                self.v6.start()
+                xenrt.sleep(120)
                 self.releaseLicense(edition)
 
         # Force the hosts to regain its orignal licenses.
@@ -800,6 +802,8 @@ class TCLicenseGrace(LicenseExpiryBase):
             except xenrt.XRTException, e:
                 pass
             finally:
+                self.v6.start()
+                xenrt.sleep(120)
                 self.releaseLicense(edition)
 
         # Now expire one of the host license such that it cross the grace period.

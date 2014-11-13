@@ -296,7 +296,10 @@ class _BalloonSmoketest(_BalloonPerfBase):
                 self.status = "pass"
             else:
                 # Trigger a debug dump from the VM and give it some time to dump
-                self.host.execdom0("/opt/xensource/debug/xenops debugkeys q")
+                if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+                    self.host.execdom0("xl debug-keys q")
+                else:
+                    self.host.execdom0("/opt/xensource/debug/xenops debugkeys q")
                 time.sleep(30)
             logString += self.status
             logString += ",%s" % (type)

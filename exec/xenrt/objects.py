@@ -6864,8 +6864,24 @@ class GenericGuest(GenericPlace):
             return
         # windows distro
         try:
-            osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2]
-            osname = osname.split(":")[1].strip()
+            osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2].split(":")[1].strip()
+            osname = osname.strip("Microsoft ")
+            self.windows = True
+            matchedDistros = [(d,n) for (d,n) in xenrt.tools._windowsdistros if osname in n]
+
+            if len(matchedDistros) > 1:
+                systype = guest.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()
+                if "x64" not in systype:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" not in d]
+                else:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" in d]
+            if len(matchedDistros) > 1:
+                osname = osname + " "
+                matchedDistros = [(d,n) for (d,n) in xenrt.tools._windowsdistros if osname in n]
+
+            # At this point if we have more than 1 distro matching, we can proceed with any of them.
+            if len(matchedDistros) >= 1:
+                self.distro = matchedDistros[0][0]
         except:
             pass
         # linux distro
@@ -6874,7 +6890,7 @@ class GenericGuest(GenericPlace):
             try:
                 release = self.execguest("cat %s" % rf, nolog=True).splitlines()[0].strip()
                 if "debian" in rf:
-                    self.distro = "debian" + str(release.replace(".",""))
+                    self.distro = "debian" + str(release.split(".")[0]) + "0"
                 elif "oracle" in rf:
                     release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
                     release = release.split(" ")[0]
@@ -6892,7 +6908,10 @@ class GenericGuest(GenericPlace):
                 break
             except:
                 pass
-        xenrt.TEC().logverbose("distro identified as %s " % self.distro)
+        if self.distro:
+            xenrt.TEC().logverbose("distro identified as %s " % self.distro)
+        else:
+            xenrt.TEC().warning("Failed to identify guest distro")
 
     def check(self):
         """Check the installed guest resources match the specification."""

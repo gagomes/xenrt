@@ -716,6 +716,7 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         if self.USEV6D_DEAMON:
             self.v6.stop()
+            xenrt.sleep(120)
         else:
         # Shutdown the License Server.
             self.getGuest(self.newLicenseServerName).shutdown()
@@ -725,6 +726,7 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         if self.USEV6D_DEAMON:
             self.v6.start()
+            xenrt.sleep(120)
         else:
         # Shutdown the License Server.
             self.getGuest(self.newLicenseServerName).start()

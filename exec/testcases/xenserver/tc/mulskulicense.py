@@ -824,5 +824,5 @@ class TCLicenseGrace(LicenseExpiryBase):
                 # Free lincese does not require grace license test.
                 continue
 
-            self.USEV6D_DEAMON = not self.USEV6D_DEAMON
             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")
+            #self.USEV6D_DEAMON = not self.USEV6D_DEAMON

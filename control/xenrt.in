@@ -1002,6 +1002,29 @@ class XenRTEmail(XenRTCommand):
         u.close()
         return reply
 
+class XenRTLogServer(XenRTCommand):
+    name = "logserver"
+    summary = "Get URL to default log server (server call only)"
+    mandatory = ""
+    hide = True
+
+    def run(self, args, preconf=None):
+        details = {'action': 'getlogserver'}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        reply = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+        else:
+            reply = data.strip()
+        u.close()
+        return reply
+
+    def render(self, args, results):
+        self.printout("%s\n" % results)
+        return 0
+
 class XenRTSetResult(XenRTCommand):
 
     name = "setresult"
@@ -3482,6 +3505,7 @@ class Commands:
         self.add(XenRTMGetResource)
         self.add(XenRTMListResources)
         self.add(XenRTMReleaseResources)
+        self.add(XenRTLogServer)
 
     def add(self, cl):
         c = cl(self)

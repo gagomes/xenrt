@@ -106,6 +106,10 @@ if os.path.exists("/etc/xenrt/site.xml"):
     if r:
         logserver = r.group(1)
 
+if not logserver:
+    logserver = com.run("logserver", [])
+    
+
 def fqdn(host):
     global domain
     if domain:

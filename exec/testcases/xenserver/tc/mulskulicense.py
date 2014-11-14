@@ -385,9 +385,6 @@ class TCCWOldLicenseServerExp(ClearwaterUpgrade):
 
         self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
 
-        if not self.graceExpected:
-            return
-        
         for host in self.hosts:
             self.checkGrace(host)
 
@@ -399,11 +396,10 @@ class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
 
         super(TCCWOldLicenseServerUpg, self).preLicenseHook()
 
-        if self.graceExpected:
-            self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
+        self.verifySystemLicenseState(edition=self.expectedEditionAfterUpg)
 
-            for host in self.hosts:
-                self.checkGrace(host)
+        for host in self.hosts:
+            self.checkGrace(host)
 
         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
 

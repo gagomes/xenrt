@@ -7890,7 +7890,7 @@ rm -f /etc/xensource/xhad.conf || true
         cli.execute("pool-enable-external-auth", string.join(args))
 
     def getSCSIID(self, device):
-        return self.execdom0("scsi_id -g -s /block/%s" % device).strip()
+        return self.execdom0("/usr/lib/udev/scsi_id -g -s /block/%s" % device).strip()
 
     def getFromMemInfo(self, field):
         meminfo = self.execdom0("cat /proc/meminfo")
@@ -11183,9 +11183,9 @@ class SarasotaHost(CreedenceHost):
     def getSCSIID(self, device):
         # TODO: When CentOS 6.4 userspace in trunk, remove the fallback to -s /block
         try:
-            return self.execdom0("scsi_id -g --device /dev/%s" % device).strip()
+            return self.execdom0("/usr/lib/udev/scsi_id -g --device /dev/%s" % device).strip()
         except:
-            return self.execdom0("scsi_id -g -s /block/%s" % device).strip()
+            return self.execdom0("/usr/lib/udev/scsi_id -g -s /block/%s" % device).strip()
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"

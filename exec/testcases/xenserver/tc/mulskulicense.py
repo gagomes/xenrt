@@ -731,7 +731,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Shutdown the License Server.
             self.getGuest(self.newLicenseServerName).start()
 
-    def checkGraceLicense(self, host=None, timeout=3600):
+    def checkGraceLicense(self, host, timeout=3600):
         """ Checking whether the grace license enabled"""
 
         starttime = xenrt.util.timenow()
@@ -776,7 +776,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkGraceLicense(edition):
+                if not self.checkGraceLicense(host):
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
             except xenrt.XRTException, e:
                 pass
@@ -799,7 +799,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkGraceLicense(edition):
+                if not self.checkGraceLicense(host):
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
             except xenrt.XRTException, e:
                 pass

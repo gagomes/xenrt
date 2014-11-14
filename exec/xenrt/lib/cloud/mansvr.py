@@ -215,8 +215,9 @@ class ManagementServer(object):
 
         if xenrt.TEC().lookup("CCP_CODE_COVERAGE", False, boolean=True):
             xenrt.TEC().logverbose("Enabling code coverage collection...")
-            javaHome = self.place.execcmd("dirname `which java`").strip()
-            self.place.execcmd("export JAVA_HOME=%s;%s/cloud/install_coverage_requirements.sh" % (javaHome, xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+            if self.place.execcmd("ls %s/setup_codecoverage.sh" % self.installDir, retval="code") != 0:
+                raise xenrt.XRTError("CCP_CODE_COVERAGE set but setup_codecoverage.sh not found in build")
+            self.place.execcmd("cd %s && ./setup_codecoverage.sh" % self.installDir)
             self.restart()
             xenrt.TEC().logverbose("...done")
 
@@ -284,8 +285,8 @@ class ManagementServer(object):
 
         self.place.execcmd('mkdir cloudplatform')
         self.place.execcmd('tar -zxvf cp.tar.gz -C /root/cloudplatform')
-        installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
-        self.place.execcmd('cd %s && ./install.sh -m' % (installDir), timeout=600)
+        self.installDir = os.path.dirname(self.place.execcmd('find cloudplatform/ -type f -name install.sh'))
+        self.place.execcmd('cd %s && ./install.sh -m' % (self.installDir), timeout=600)
 
         self.installCifs()
         self.checkJavaVersion()

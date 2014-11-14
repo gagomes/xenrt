@@ -773,20 +773,6 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Force the host to have grace license.
         self.initiateGraceLicense()
 
-
-
-        try:
-            host.checkHostLicenseState(edition)
-        except xenrt.XRTException, e:
-            if raiseException:
-                raise e
-            else:
-                xenrt.TEC().logverbose("ERROR: %s" % str(e))
-                return False
-
-
-
-
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:

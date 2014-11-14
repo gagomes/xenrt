@@ -773,13 +773,27 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Force the host to have grace license.
         self.initiateGraceLicense()
 
+
+
+        try:
+            host.checkHostLicenseState(edition)
+        except xenrt.XRTException, e:
+            if raiseException:
+                raise e
+            else:
+                xenrt.TEC().logverbose("ERROR: %s" % str(e))
+                return False
+
+
+
+
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkGraceLicense(host):
+                flag = self.checkGraceLicense(host)
+            except:
+                if not flag:
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
-            except xenrt.XRTException, e:
-                pass
             finally:
                 self.v6.start()
                 xenrt.sleep(120)
@@ -796,13 +810,12 @@ class TCLicenseGrace(LicenseExpiryBase):
         self.initiateGraceLicense()
 
         # Check whether the hosts obtained grace licenses.
-        # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             try:
-                if not self.checkGraceLicense(host):
+                flag = self.checkGraceLicense(host)
+            except:
+                if not flag:
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
-            except xenrt.XRTException, e:
-                pass
             finally:
                 self.v6.start()
                 xenrt.sleep(120)
@@ -813,10 +826,10 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         # Check whther the license is expired.
         try:
-            if not self.checkLicenseExpired(edition):
+            flag = self.checkLicenseExpired(edition)
+        except:
+            if not flag:
                 raise xenrt.XRTFailure("License is not expired properly.")
-        except xenrt.XRTException, e:
-            pass
         finally:
             self.releaseLicense(edition)
 

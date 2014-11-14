@@ -4437,3 +4437,84 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
                 sr.remove()
             except:
                 pass
+
+class TCVdiCorruption(xenrt.TestCase):
+    """TC to verify VDI corruption on writing data to a 2TB VDI (SCTX-1406)"""
+    #Jira TC-21641
+    
+    SRTYPE = "lvm"
+    SIZE = 2048 * xenrt.GIGA
+
+    def prepare(self, arglist):
+        self.vdi = None
+        self.vbd = None
+        self.host = self.getDefaultHost()
+        g=self.host.listGuests(running=True)
+        self.guest=self.host.getGuest(g[0])
+        self.cli = self.host.getCLIInstance()
+        srs = self.host.getSRs(type=self.SRTYPE)
+        if not srs:
+            raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
+        self.sr = srs[0]
+
+    def run(self, arglist):
+        step("Create vdi and plug VBD to guest")
+        self.vdi = self.host.createVDI(self.SIZE, self.sr)
+        device = self.guest.createDisk(vdiuuid=self.vdi,returnDevice=True)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(device))
+        self.vbd = self.guest.getDiskVBDUUID(device)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(self.vbd))
+
+        step("Upgrade host")
+        self.host = self.host.upgrade()
+        self.host.applyRequiredPatches()
+        
+        step("Start VM")
+        self.guest.start()
+        xenrt.TEC().logverbose("Formatting VDI within VM.")
+        time.sleep(10)
+        self.guest.execguest("mkfs.ext3 /dev/%s" % (device))
+        self.guest.execguest("mkdir /mnt/vdi1")
+        self.guest.execguest("mount /dev/%s /mnt/vdi1" % (device))
+        try:
+            outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
+        except Exception, e:
+            xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
+            availSpace = int(self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)))
+            if "Input/output error" in str(e.data):
+                if availSpace == 0:
+                    xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
+                else:
+                    raise xenrt.XRTError("Input/Error thrown before disk is full. available space=%s" % (availSpace))
+            elif "SSH timed out" in str(e) and availSpace == 0:
+                #Workaround due to CA-122162- dd command doesn't crash when 2TB VDI is full
+                #raise xenrt.XRTFailure("dd command didn't return after disk is full. available space=%s" % (availSpace))
+                #check if vdi is corrupted
+                filename = "/dev/VG_XenStorage-%s/VHD-%s" % (self.sr,self.vdi)
+                try:
+                    self.host.execdom0("vhd-util check -n %s" % filename)
+                except Exception, e:
+                    if "error calculating end of metadata" in str(e.data):
+                        raise xenrt.XRTFailure("VDI corruption on writing 2TB data")
+            else: 
+                raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
+        else:
+            availSpace = int(self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)))
+            if availSpace <> 0:
+                raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
+    
+    def postRun(self):
+        if self.vbd:
+            try:
+                self.cli.execute("vbd-unplug", "uuid=%s" % (self.vbd))
+            except:
+                pass
+            try:
+                self.cli.execute("vbd-destroy", "uuid=%s" % (self.vbd))
+            except:
+                pass
+        try:
+            if self.vdi:
+                self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
+        except:
+            pass

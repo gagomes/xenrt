@@ -23,11 +23,11 @@
     <serial group="LicenseHost">
 
       <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="LicenseApply" tc="TC-23362">
-        <arg>edition=enterprise-per-socket,xendesktop-platinum,enterprise-per-user,standard-per-socket,standard-per-user</arg>
+        <arg>edition=enterprise-per-socket,xendesktop-platinum,enterprise-per-user,standard-per-socket</arg>
       </testcase>
 
       <testcase id="xenserver.tc.mulskulicense.TCRestartHost" name="RestartHost" tc="TC-23364">
-        <arg>edition=enterprise-per-socket,xendesktop-platinum,enterprise-per-user,standard-per-socket,standard-per-user</arg>
+        <arg>edition=enterprise-per-socket,xendesktop-platinum,enterprise-per-user,standard-per-socket</arg>
       </testcase>
 
     </serial>

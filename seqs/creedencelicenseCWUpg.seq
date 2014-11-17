@@ -58,21 +58,21 @@
       </testcase> 
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="LicenseCWCRUPG4" tc="TC-23368">
-        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>expectededition=xendesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="LicenseCWCRUPG5" tc="TC-23369">
-        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>expectededition=xendesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG6" tc="TC-23370">
-        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>expectededition=xendesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
@@ -87,7 +87,7 @@
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG8" tc="TC-12345">
-        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>expectededition=xendesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=xendesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>

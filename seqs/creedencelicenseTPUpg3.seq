@@ -49,7 +49,7 @@
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCTPNewLicServerNoLicenseFiles" name="TC23348" tc="TC-23348">
-        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>expectededition=xendesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=enterprise-xd</arg>
         <arg>newlicenseserver=LicenseServer</arg>

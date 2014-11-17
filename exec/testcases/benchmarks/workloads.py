@@ -370,7 +370,7 @@ class FIOLinux(LinuxWorkload):
     def install(self, startOnBoot=False):
         LinuxWorkload.install(self, startOnBoot)
         if self.guest.execguest("test -e /etc/debian_version", retval="code") == 0:
-            self.guest.execguest("apt-get install -y --force-yes zlib-dev")
+            self.guest.execguest("apt-get install -y --force-yes zlib1g-dev")
         elif self.guest.execguest("test -e /etc/redhat-release", retval="code") == 0:
             self.guest.execguest("yum install -y zlib-devel")
         else:

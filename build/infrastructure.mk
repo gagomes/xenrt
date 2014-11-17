@@ -612,3 +612,7 @@ newrepos:
 	cd $(ROOT)/$(INTERNAL) && git remote set-url origin git@gitlab.citrite.net:xenrt/xenrt-internal.git
 	cd $(ROOT)/$(XENRT) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt.git
 	cd $(ROOT)/$(INTERNAL) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt-internal.git
+	-cd $(ROOT)/$(XENRT) && git branch --set-upstream master origin/master
+	-cd $(ROOT)/$(XENRT) && git branch master -u origin/master
+	-cd $(ROOT)/$(INTERNAL) && git branch --set-upstream master origin/master
+	-cd $(ROOT)/$(INTERNAL) && git branch master -u origin/master

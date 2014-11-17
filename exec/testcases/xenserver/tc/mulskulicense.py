@@ -754,11 +754,6 @@ class TCLicenseGrace(LicenseExpiryBase):
 
     def licenseGraceTest(self, edition):
 
-        # Check whether the license server is running.
-        if not self.USEV6D_DEAMON:
-            if self.getGuest(self.newLicenseServerName).getState() != "UP":
-                self.getGuest(self.newLicenseServerName).start()
-
         # Assign license and verify it.
         self.applyLicense(self.getLicenseObj(edition))
 
@@ -816,4 +811,3 @@ class TCLicenseGrace(LicenseExpiryBase):
                 continue
 
             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")
-            #self.USEV6D_DEAMON = not self.USEV6D_DEAMON

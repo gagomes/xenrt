@@ -228,7 +228,7 @@ def start_job(jobid):
         branch = data['XRTBRANCH']
         otherBranch = True
     else:
-        branch = "master"
+        branch = "stable"
         otherBranch = False
     trace("Using branch '%s'\n" % (branch))
 
@@ -237,7 +237,7 @@ def start_job(jobid):
 
         
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout -f master && git reset --hard" % (_rootdir))
+        execCmd("cd %s && git checkout -f stable && git reset --hard" % (_rootdir))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 
         if otherBranch:
@@ -249,17 +249,17 @@ def start_job(jobid):
             execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, branch))
             execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
             try:
-                execCmd("cd %s && git merge master --no-edit" % (_rootdir))
+                execCmd("cd %s && git merge stable --no-edit" % (_rootdir))
             except:
-                execCmd("cd %s && git merge master -m Merge" % (_rootdir))
+                execCmd("cd %s && git merge stable -m Merge" % (_rootdir))
         
-        execCmd("cd %s/../xenrt-internal.git && git checkout -f master && git reset --hard && git pull --ff-only" % (_rootdir), errorException=False)
+        execCmd("cd %s/../xenrt-internal.git && git checkout -f stable && git reset --hard && git pull --ff-only" % (_rootdir), errorException=False)
 
     except Exception, e:
         # Failed set-up, so bail out.
         errmsg = "Failed to checkout from git - %s" % str(e) 
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout -f master && git reset --hard" % (_rootdir), errorException=False)
+        execCmd("cd %s && git checkout -f stable && git reset --hard" % (_rootdir), errorException=False)
         if otherBranch:
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
         trace("%s\n" % (errmsg))
@@ -329,7 +329,7 @@ def start_job(jobid):
         os.system("cd %s && git reset --hard" % (_rootdir))
         os.system("rm -f %s" % custompatchtmp)
     
-    os.system("cd %s && git checkout -f master" % (_rootdir))
+    os.system("cd %s && git checkout -f stable" % (_rootdir))
     if otherBranch:
         os.system("cd %s && git branch -D %s" % (_rootdir, branch))
     os.system("cd %s && make minimal-install" % (_rootdir))

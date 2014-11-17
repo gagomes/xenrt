@@ -31,6 +31,7 @@ cleanup() {
             tar -C $logpath -cvjf $venvpath/setup.tar.bz2 ./setup.log
             xenrt upload $jobid -f $venvpath/setup.tar.bz2
             xenrt update $jobid UPLOADED yes
+            xenrt update $jobid PREPARE_FAILED_LOG "setup.log"
         fi
         # Set various parameters on the job, then complete and email
         xenrt update $jobid RETURN ERROR

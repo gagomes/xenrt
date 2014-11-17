@@ -52,9 +52,7 @@ class XenServerLicenceSKU(Enum):
     PerSocketEnterprise = "PerSocketEnterprise"
     PerUserEnterprise = "PerUserEnterprise"
     PerConcurrentUserEnterprise = "PerConcurrentUserEnterprise"
-    XenDesktopPlatinum = "XenDesktopPlatinum"
+    XenDesktopPlatinum = "XenDesktop"
     PerSocketStandard = "PerSocketStandard"
-    PerUserStandard = "PerUserStandard"
-    PerConcurrentUserStandard = "PerConcurrentUserStandard"
     Free = "Free"
     PerSocket = "PerSocket" # Clearwater version

@@ -11189,8 +11189,6 @@ class CreedenceHost(ClearwaterHost):
                     XenServerLicenceSKU.PerConcurrentUserEnterprise,
                     XenServerLicenceSKU.XenDesktopPlatinum,
                     XenServerLicenceSKU.PerSocketStandard,
-                    XenServerLicenceSKU.PerUserStandard,
-                    XenServerLicenceSKU.PerConcurrentUserStandard,
                     XenServerLicenceSKU.Free,
                     XenServerLicenceSKU.PerSocket]
 

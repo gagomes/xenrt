@@ -59,12 +59,9 @@ class CreedenceLicence(Licence):
            self.sku == XenServerLicenceSKU.PerSocket:
             return "enterprise-per-socket"
         if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
-            return "xendesktop-platinum"
+            return "xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "standard-per-socket"
-        if self.sku == XenServerLicenceSKU.PerUserStandard or \
-           self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "standard-per-user"
         if self.sku == XenServerLicenceSKU.Free:
             return "free"
         raise ValueError("No edition found for the SKU %s" % self.sku)
@@ -80,10 +77,6 @@ class CreedenceLicence(Licence):
             return "valid-xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "valid-standard-persocket"
-        if self.sku == XenServerLicenceSKU.PerUserStandard:
-            return "valid-standard-peruser"
-        if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "valid-standard-perccu"
         if self.sku == XenServerLicenceSKU.Free:
             return None
         if self.sku == XenServerLicenceSKU.PerSocket:
@@ -101,10 +94,6 @@ class CreedenceLicence(Licence):
             return "XDS_STD_CCS"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "CXS_STD2_CCS"
-        if self.sku == XenServerLicenceSKU.PerUserStandard:
-            return "CXS_STD2_UD"
-        if self.sku == XenServerLicenceSKU.PerConcurrentUserStandard:
-            return "CXS_STD2_CCU"
         if self.sku == XenServerLicenceSKU.Free:
             return None
         if self.sku == XenServerLicenceSKU.PerSocket:

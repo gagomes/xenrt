@@ -766,8 +766,8 @@ class TCLicenseGrace(LicenseExpiryBase):
                 if not self.checkGraceLicense(host):
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
             finally:
-                self.v6.start()
-                xenrt.sleep(120)
+                # Force the hosts to regain its orignal licenses.
+                self.revertGraceLicense()
                 self.releaseLicense(edition)
 
         # Force the hosts to regain its orignal licenses.
@@ -786,8 +786,8 @@ class TCLicenseGrace(LicenseExpiryBase):
                 if not self.checkGraceLicense(host):
                     raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
             finally:
-                self.v6.start()
-                xenrt.sleep(120)
+                # Force the hosts to regain its orignal licenses.
+                self.revertGraceLicense()
                 self.releaseLicense(edition)
 
         # Now expire one of the host license such that it cross the grace period.

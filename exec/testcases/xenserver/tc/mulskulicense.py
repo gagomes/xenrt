@@ -705,27 +705,23 @@ class TCLicenseExpiry(LicenseExpiryBase):
 class TCLicenseGrace(LicenseExpiryBase):
     """Verify the grace license and its expiry in Creedence hosts"""
 
-    USEV6D_DEAMON = True
-
     def initiateGraceLicense(self):
         """Disconnect license server"""
 
-        if self.USEV6D_DEAMON:
-            self.v6.stop()
-            xenrt.sleep(120)
-        else:
-        # Shutdown the License Server.
-            self.getGuest(self.newLicenseServerName).shutdown()
+        self.v6.stop()
+        xenrt.sleep(120)
+
+        # Restart toostack on every hosts.
+        [host.restartToolstack() for host in self.hosts]
 
     def revertGraceLicense(self):
         """Re-establish license server connection"""
 
-        if self.USEV6D_DEAMON:
-            self.v6.start()
-            xenrt.sleep(120)
-        else:
-        # Shutdown the License Server.
-            self.getGuest(self.newLicenseServerName).start()
+        self.v6.start()
+        xenrt.sleep(120)
+        
+        # Restart toostack on every hosts.
+        [host.restartToolstack() for host in self.hosts]
 
     def checkGraceLicense(self, host, timeout=3600):
         """ Checking whether the grace license enabled"""
@@ -757,11 +753,6 @@ class TCLicenseGrace(LicenseExpiryBase):
         return True
 
     def licenseGraceTest(self, edition):
-
-        # Check whether the license server is running.
-        if not self.USEV6D_DEAMON:
-            if self.getGuest(self.newLicenseServerName).getState() != "UP":
-                self.getGuest(self.newLicenseServerName).start()
 
         # Assign license and verify it.
         self.applyLicense(self.getLicenseObj(edition))
@@ -820,4 +811,3 @@ class TCLicenseGrace(LicenseExpiryBase):
                 continue
 
             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")
-            #self.USEV6D_DEAMON = not self.USEV6D_DEAMON

@@ -1,7 +1,7 @@
 from xenrt.enum import XenServerLicenceSKU
 from abc import ABCMeta, abstractmethod
 
-__all__ = ["CreedenceLicence"]
+__all__ = ["CreedenceLicence", "TampaLicence", "ClearwaterLicence", "XenServerLicenceFactory"]
 
 
 class Licence(object):
@@ -47,6 +47,34 @@ class Licence(object):
                                                                               self.getEdition(),
                                                                               self.getLicenceFileName(),
                                                                               self.getLicenceName())
+
+
+"""
+PLACEHOLDER CLASS
+"""
+class TampaLicence(Licence):
+    def getEdition(self):
+        return "licence"
+
+    def getLicenceFileName(self):
+        return "licence.lic"
+
+    def getLicenceName(self):
+        return "CXS_some_thing"
+
+
+"""
+PLACEHOLDER CLASS
+"""
+class ClearwaterLicence(Licence):
+    def getEdition(self):
+        return "licence"
+
+    def getLicenceFileName(self):
+        return "licence.lic"
+
+    def getLicenceName(self):
+        return "CXS_some_thing"
 
 
 class CreedenceLicence(Licence):
@@ -99,3 +127,18 @@ class CreedenceLicence(Licence):
         if self.sku == XenServerLicenceSKU.PerSocket:
             return "CXS_STD_CCS"
         raise ValueError("No license server name found for the SKU %s" % self.sku)
+
+class XenServerLicenceFactory(object):
+
+    def licence(self, xshost, sku):
+        """
+        Get the licence objects for a given host object
+        """
+        lver = xshost.productVersion.lower()
+        if lver == "tampa":
+            return TampaLicence(sku)
+        if lver == "clearwater":
+            return ClearwaterLicence(sku)
+        if lver == "creedence":
+            return CreedenceLicence(sku)
+        raise ValueError("No licence object was found for the provided host version: %s" % xshost.productVersion)

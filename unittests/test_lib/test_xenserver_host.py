@@ -230,11 +230,11 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
 @patch('xenrt.TEC')
 class TestHostLicenceBehaviourForCreedence(XenRTUnitTestCase):
 
-    def testXenServerOnlySKUsReturnListOfLicences(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        self.assertEqual(9, len(host.validLicenses()))
-
     def testAllSKUsReturnListOfLicences(self, tec):
+        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
+        self.assertEqual(7, len(host.validLicenses()))
+
+    def testXenServerOnlySKUsReturnListOfLicences(self, tec):
         host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
         self.assertEqual(3, len(host.validLicenses(True)))
 

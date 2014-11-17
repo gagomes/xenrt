@@ -307,22 +307,12 @@ def start_job(jobid):
             startDebuggerJob(jobid, cmd)
         except Exception as e:
             print 'ERROR here: %s'%(e)
-    elif "VENV2" in data and data['VENV2'] == "yes":
+    else:
         os.system("cd %s && make minimal-install" % (_rootdir))
         cmd.insert(0, jobid)
         cmd.insert(0, resdir)
         cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
         cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
-        cmdl = string.join(cmd)
-        trace("exec: %s\n" % (cmdl))
-        if not debug:
-            com.run("update", [jobid, "LOG_SERVER", "%s" % logserver])
-            pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-            com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
-    else:
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
-        cmd.insert(0, "%s/control/venvwrapper.sh" % _sharedir)
         cmdl = string.join(cmd)
         trace("exec: %s\n" % (cmdl))
         if not debug:

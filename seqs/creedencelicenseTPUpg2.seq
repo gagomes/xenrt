@@ -50,7 +50,7 @@
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCTPNewLicenseServer" name="TC23345" tc="TC-23345">
-        <arg>expectededition=free</arg>
+        <arg>expectededition=xendesktop-platinum</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicenseedition=enterprise-xd</arg>
         <arg>newlicenseserver=LicenseServer</arg>

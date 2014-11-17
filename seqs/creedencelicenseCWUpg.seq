@@ -85,6 +85,14 @@
         <arg>newlicenseserver=LicenseServer</arg>
         <arg>addlicfiles</arg>
       </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG8" tc="TC-12345">
+        <arg>expectededition=xendesktop-platinum</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicenseedition=xendesktop</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>addlicfiles</arg>
+      </testcase>
    </serial>   
     
   </testsequence>

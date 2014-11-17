@@ -394,11 +394,11 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # Export vm
         psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
-	try:
+        try:
             ret = self.psExecution(psScript,timeout = 40000)
             self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
         except Exception, e:
-	    self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
             raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
@@ -446,7 +446,7 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # import VM
         psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
-	try:
+        try:
             ret = self.psExecution(psScript,timeout = 40000)
             vm = ret.splitlines()[2]
             self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")

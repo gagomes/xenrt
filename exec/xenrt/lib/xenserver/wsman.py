@@ -417,28 +417,28 @@ def exportWSMANVM(password = None,
             $source = $transferVm.Xen_ConnectToDiskImageJob.TargetURI
 
             $transferJob = Start-BitsTransfer -Source $source -destination $destination -Asynchronous -DisplayName XenExportImport
-	    $timestamp = Get-Date -Format o
+            $timestamp = Get-Date -Format o
             "-Source $source -destination $destination"
 
             # Log the Cim call response on RAW file copy using BITS into exportWSMANVMScriptsOutput.txt
-	    "Cim call response on RAW file copy using BITS" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
-	    $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
-	    $transferJob | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            "Cim call response on RAW file copy using BITS" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $transferJob | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
 
             while ($jobStatus.JobState -ne "transferred"){
                 $jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
-		$timestamp = Get-Date -Format o
+                $timestamp = Get-Date -Format o
                 Write-Progress -activity "BITS Transfer Download" -status "copying.. " -PercentComplete ((($jobstatus.BytesTransferred / 1Mb) / ($jobStatus.BytesTotal / 1Mb)) * 100)
                 if ($jobStatus.JobState -eq "TransientError") {
                     $jobstatus
                     "download is paused for 10 secs due to TransientError from BITS"
                     sleep 10
-		    $jobStatus | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+                $jobStatus | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
                     Resume-BitsTransfer -BitsJob $transferJob
                 }
                 sleep 10
             }
-	    # Log the Transfer Job Status for RAW file into exportWSMANVMScriptsOutput.txt
+            # Log the Transfer Job Status for RAW file into exportWSMANVMScriptsOutput.txt
             "Transfer Job Status for RAW file" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             $jobStatus | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
@@ -456,14 +456,14 @@ def exportWSMANVM(password = None,
             $vdiDisconnect
             # check for a job status of finished
             $jobPercentComplete = 0
-	    "jobResult for Disconnect From Disk Image Job" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            "jobResult for Disconnect From Disk Image Job" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             while ($jobPercentComplete -ne 100) {
                 $jobResult = [xml]$objSession.Get($vdiDisconnect.DisconnectFromDiskImage_OUTPUT.Job.outerxml)
                 $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                 sleep 3
-		$jobResult | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $jobResult | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             }
-	    # Log the jobResult for Export Finished into exportWSMANVMScriptsOutput.txt
+            # Log the jobResult for Export Finished into exportWSMANVMScriptsOutput.txt
             "jobResult for Export Finished" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             WriteXmlToFile $jobResult | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
@@ -575,7 +575,7 @@ def importWSMANVM(password = None,
         }
         %s
         $newVdi = $output
-	$timestamp = Get-Date -Format o
+        $timestamp = Get-Date -Format o
         # Log the Vdi file details into importWSMANVMScriptsOutput.txt
         "Get the Vdi file details" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
@@ -590,12 +590,12 @@ def importWSMANVM(password = None,
                     $jobResult = [xml]$objSession.Get($newVdi.AddResourceSetting_OUTPUT.Job.outerxml)
                     $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                     sleep 1
-		    $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+                    $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
                 }
             }
         }
         $vm2Vdi = [xml]($objSession.Get($newvdi.AddResourceSetting_OUTPUT.ResultingResourceSetting.outerXML))
-	# Log the Add Resource to Vdi into importWSMANVMScriptsOutput.txt
+        # Log the Add Resource to Vdi into importWSMANVMScriptsOutput.txt
         "Get the Add Resource to Vdi" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
@@ -627,29 +627,29 @@ def importWSMANVM(password = None,
         $source =  "Q:\" + $element.Name
 
         $transferJob = Start-BitsTransfer -Source $source -destination $transferVm.Xen_ConnectToDiskImageJob.TargetURI -Asynchronous -DisplayName XenVdiTransfer -TransferType Upload
-	$timestamp = Get-Date -Format o
+        $timestamp = Get-Date -Format o
         "-Source " + $source + " -destination " + $transferVm.Xen_ConnectToDiskImageJob.TargetURI
-	# Log the Cim call response on RAW file copy using BITS into importWSMANVMScriptsOutput.txt
-	"Cim call response on RAW file copy using BITS" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
-	$timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
-	$transferJob | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        # Log the Cim call response on RAW file copy using BITS into importWSMANVMScriptsOutput.txt
+        "Cim call response on RAW file copy using BITS" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $transferJob | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
         while ($jobStatus.JobState -ne "transferred"){
-		$jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
-		$timestamp = Get-Date -Format o
+                $jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
+                $timestamp = Get-Date -Format o
                 Write-Progress -activity "BITS Transfer Upload" -status "copying.. " -PercentComplete ((($jobstatus.BytesTransferred / 1Mb) / ($jobStatus.BytesTotal / 1Mb)) * 100)
                 if ($jobStatus.JobState -eq "TransientError") {
                     $jobstatus
                     "upload is paused for 10 secs due to TransientError from BITS"
                     sleep 10
-		    $jobstatus | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+                    $jobstatus | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
                     Resume-BitsTransfer -BitsJob $transferJob
                 }
                 sleep 10
             }
 
             Write-Progress -activity "BITS Transfer Upload" -status "copying.. " -completed
-	# Log the Transfer Job Status for RAW file into importWSMANVMScriptsOutput.txt
+        # Log the Transfer Job Status for RAW file into importWSMANVMScriptsOutput.txt
         "Transfer Job Status for RAW file" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         $jobStatus | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
@@ -669,16 +669,16 @@ def importWSMANVM(password = None,
         $jobPercentComplete = 0
         while ($jobPercentComplete -ne 100) {
             $jobResult = [xml]$objSession.Get($vdiDisconnect.DisconnectFromDiskImage_OUTPUT.Job.outerxml)
-	    $timestamp = Get-Date -Format o
+            $timestamp = Get-Date -Format o
             $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
             $jobPercentComplete
             sleep 3
-	    $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+            $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         }
-	# Log the jobResult for VDIDisconnect into importWSMANVMScriptsOutput.txt
-	"jobResult for VDIDisconnect" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
-	$timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
-	WriteXmlToFile $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        # Log the jobResult for VDIDisconnect into importWSMANVMScriptsOutput.txt
+        "jobResult for VDIDisconnect" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        WriteXmlToFile $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
     }
     $vmUuid = $vm.Xen_ComputerSystem.Name
@@ -893,7 +893,7 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
         }
         $timestamp = Get-Date -Format o
         # Log the jobResult for connectToDiskImage into importWSMANScriptsOutput.txt
-	"JobResult for connectToDiskImage" | Out-File $scriptlog -Append
+        "JobResult for connectToDiskImage" | Out-File $scriptlog -Append
         $timestamp | Out-File $scriptlog -Append
         WriteXmlToFile $jobResult | Out-File $scriptlog -Append
     }

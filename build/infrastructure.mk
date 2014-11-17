@@ -597,22 +597,3 @@ marvin:
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
 
-.PHONY: newrepos-controller
-newrepos-controller:
-	$(info Setting up new repositories)
-	cd $(ROOT)/$(XENRT) && git remote set-url origin xenrtd@source.xs.citrite.net:/usr/groups/sources/repositories/xenrt/xenrt.git
-	cd $(ROOT)/$(XENRT) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt.git
-	cd $(ROOT)/$(INTERNAL) && git remote set-url origin xenrtd@source.xs.citrite.net:/usr/groups/sources/repositories/xenrt/xenrt.git
-	cd $(ROOT)/$(INTERNAL) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt-internal.git
-
-.PHONY: newrepos
-newrepos:
-	$(info Setting up new repositories)
-	cd $(ROOT)/$(XENRT) && git remote set-url origin git@gitlab.citrite.net:xenrt/xenrt.git
-	cd $(ROOT)/$(INTERNAL) && git remote set-url origin git@gitlab.citrite.net:xenrt/xenrt-internal.git
-	cd $(ROOT)/$(XENRT) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt.git
-	cd $(ROOT)/$(INTERNAL) && git remote set-url origin --push git@gitlab.citrite.net:xenrt/xenrt-internal.git
-	-cd $(ROOT)/$(XENRT) && git branch --set-upstream master origin/master
-	-cd $(ROOT)/$(XENRT) && git branch master -u origin/master
-	-cd $(ROOT)/$(INTERNAL) && git branch --set-upstream master origin/master
-	-cd $(ROOT)/$(INTERNAL) && git branch master -u origin/master

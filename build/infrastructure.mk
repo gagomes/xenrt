@@ -157,6 +157,7 @@ ifeq ($(DOSSH),yes)
 	$(SUDOSH) 'echo "PermitBlacklistedKeys yes" >> /etc/ssh/sshd_config'
 	$(SUDO) /etc/init.d/ssh reload
 	cp $(ROOT)/$(INTERNAL)/config/ssh/* $(HOME)/.ssh/
+	chmod 600 $(HOME)/.ssh/id_*
 else
 	$(info Skipping config)
 endif

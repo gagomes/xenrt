@@ -563,7 +563,12 @@ class TCNICTest(xenrt.TestCase):
             xenrt.TEC().progress("Created bridge %s." % (br))
 
         xenrt.TEC().progress("Installing target VM...")
-        t = self.host.createGenericLinuxGuest(start=False)
+        
+        if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
+            t = self.host.createGenericLinuxGuest(start=False, generic_distro="debian70")
+        else:
+            t = self.host.createGenericLinuxGuest(start=False)
+        
         t.setMemory(128)
         self.guestsToClean.append(t)
         xenrt.TEC().logverbose("Creating %s NICs on the target VM." % (max))

@@ -284,6 +284,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
 	sed -i 's#@user@#$(USERNAME)#g' $@
 	sed -i 's#@group@#$(GROUPNAME)#g' $@
+	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

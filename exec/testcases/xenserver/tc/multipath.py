@@ -4139,7 +4139,7 @@ class TC21455(xenrt.TestCase):
         while(xenrt.timenow()<=deadline):
             pid = self.host.execdom0("pidof multipathd || true").strip()
             if pid :
-                xenrt.TEC().logverbose("Multipathd restarted with process id %d" % (pid))
+                xenrt.TEC().logverbose("Multipathd restarted with process id %s" % (pid))
                 break
         if(xenrt.timenow() > deadline):
             raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")

@@ -1469,10 +1469,9 @@ class PrepareNode:
                     vm["postinstall"].append(self.toplevel.scripts[name])
                 elif x.localName == "file":
                     for a in x.childNodes:
-                        filename = expand(str(a.data), params)
-                        userText = expand(x.getAttribute("user"), params)
-                        userValue = userText == "true" or userText == "yes"
-                        vm["filename"] = [filename, userValue]
+                        usertext = expand(x.getAttribute("user"), params)
+                        vm["filename"] = expand(str(a.data), params)
+                        vm["userfile"] = usertext == "true" or usertext == "yes"
                         break
                 elif x.localName == "bootparams":
                     for a in x.childNodes:

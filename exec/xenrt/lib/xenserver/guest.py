@@ -4216,6 +4216,7 @@ def parseSequenceVIFs(guest, host, vifs):
 def createVMFromFile(host,
                      guestname,
                      filename,
+                     userfile=False,
                      postinstall=[],
                      memory=None,
                      bootparams=None,
@@ -4234,18 +4235,18 @@ def createVMFromFile(host,
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
     
-    if filename and filename[1]:
+    if userfile:
         share = xenrt.ExternalNFSShare()
         m = xenrt.rootops.MountNFS(share.getMount())
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
         if proxy:
-            xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename[0], m.mountpoint))
+            xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename, m.mountpoint))
         else:
-            xenrt.command('wget "%s" -O %s/file.xva' % (filename[0], m.mountpoint))
+            xenrt.command('wget "%s" -O %s/file.xva' % (filename, m.mountpoint))
         guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs)
         share.release()
     else:
-        guest.importVM(host, xenrt.TEC().getFile(filename[0]), vifs=vifs)
+        guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
     guest.reparseVIFs()
     guest.vifs.sort()
     if bootparams:

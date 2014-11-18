@@ -4233,8 +4233,19 @@ def createVMFromFile(host,
     guest = host.guestFactory()(displayname, host=host)
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
-
-    guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
+    
+    if filename and filename[1]:
+        share = xenrt.ExternalNFSShare()
+        m = xenrt.rootops.MountNFS(share.getMount())
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename[0], m.mountpoint))
+        else:
+            xenrt.command('wget "%s" -O %s/file.xva' % (filename[0], m.mountpoint))
+        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs)
+        share.release()
+    else:
+        guest.importVM(host, xenrt.TEC().getFile(filename[0]), vifs=vifs)
     guest.reparseVIFs()
     guest.vifs.sort()
     if bootparams:

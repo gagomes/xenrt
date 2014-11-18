@@ -196,13 +196,16 @@ class XenRTDHCPAllocator(object):
     def _populatePXEInfo(self, packet, intf):
         server = self.getInterfaceInfo(intf)['addr']
         userClass = packet.getOption("user_class")
+        arch = None
         try:
-            arch = packet.getOption("arch")
-            if arch:
-                _logger.info("Arch is %d" % (listToNumber(arch)))
-        except:
-            pass
-        if userClass and listToStr(userClass) == "iPXE":
+            archOpt = packet.getOption("client_system")
+            if archOpt:
+                arch = listToNumber(archOpt)
+        except Exception, e:
+            _logger.info("Error finding client architecture" % str(e))
+        if arch == 7:
+            packet.setOption("file", strToPaddedList("/grubx64.efi", 128))
+        elif userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
         else:
             if self.config['interfaces'][intf]['ipxe']:

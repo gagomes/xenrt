@@ -705,7 +705,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
 class TCLicenseGrace(LicenseExpiryBase):
     """Verify the grace license and its expiry in Creedence hosts"""
 
-    def initiateGraceLicense(self):
+    def disableLicenseServer(self):
         """Disconnect license server"""
 
         self.v6.stop()
@@ -714,7 +714,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Restart toostack on every hosts.
         [host.restartToolstack() for host in self.hosts]
 
-    def revertGraceLicense(self):
+    def enableLicenseServer(self):
         """Re-establish license server connection"""
 
         self.v6.start()
@@ -758,29 +758,29 @@ class TCLicenseGrace(LicenseExpiryBase):
         self.applyLicense(self.getLicenseObj(edition))
 
         # Force the host to have grace license.
-        self.initiateGraceLicense()
+        self.disableLicenseServer()
 
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             if not self.checkGraceLicense(host):
-                self.revertGraceLicense()
+                self.enableLicenseServer()
                 self.releaseLicense(edition)
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
 
         # Force the hosts to regain its orignal licenses.
-        self.revertGraceLicense()
+        self.enableLicenseServer()
 
         # Check whether the hosts regained the original licenses.
         self.verifySystemLicenseState(edition=edition)
         self.verifyLicenseServer(edition)
 
         # Again force the host to have grace license.
-        self.initiateGraceLicense()
+        self.disableLicenseServer()
 
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             if not self.checkGraceLicense(host):
-                self.revertGraceLicense()
+                self.enableLicenseServer()
                 self.releaseLicense(edition)
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
 
@@ -789,7 +789,7 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         # Check whther the license is expired.
         if not self.checkLicenseExpired(edition):
-            self.revertGraceLicense()
+            self.enableLicenseServer()
             self.releaseLicense(edition)
             raise xenrt.XRTFailure("License is not expired properly.")
 
@@ -797,7 +797,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
 
         # Cleaning up.
-        self.revertGraceLicense()
+        self.enableLicenseServer()
         self.releaseLicense(edition)
 
     def run(self, arglist=[]):

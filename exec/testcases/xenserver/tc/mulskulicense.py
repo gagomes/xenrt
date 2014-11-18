@@ -787,7 +787,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Now expire one of the host license such that it cross the grace period.
         self.expireLicense()
 
-        # Check whther the license is expired.
+        # Check whether the license is expired.
         if not self.checkLicenseExpired(edition):
             self.enableLicenseServer()
             self.releaseLicense(edition)
@@ -804,7 +804,8 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         for edition in self.editions:
             if edition == "free":
-                # Free lincese does not require grace license test.
+                # Free license does not require grace license test.
+                xenrt.TEC().logverbose("Free license does not require grace license test")
                 continue
 
             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")

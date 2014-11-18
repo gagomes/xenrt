@@ -795,6 +795,9 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts license expired.
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
 
+        # Cleaning up.
+        self.releaseLicense(edition)
+
     def run(self, arglist=[]):
 
         for edition in self.editions:

@@ -910,6 +910,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 try:
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Subcase", str(sr), str(tc), str(subcasename), str(result)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -930,6 +932,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Test", str(sr), str(tc), str(result), str(ticket),
                          str(detailid)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -980,7 +984,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     result = fitem[3]
                     ticket = fitem[4]
                     detailid = fitem[5]
-                    tcsku = fitem[6]
+                    if len(fitem) > 6:
+                        tcsku = fitem[6]
+                    else:
+                        tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
                     self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
                 elif recordtype == "Subcase":
@@ -988,7 +995,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     tc = fitem[2]
                     subcase  = fitem[3]
                     result = fitem[4]
-                    tcsku = fitem[5]
+                    if len(fitem) > 5:
+                        tcsku = fitem[5]
+                    else:
+                        tcsku = None
                     self.testrunRecordSubResult(sr,tc,subcase,result,tcsku)
             except Exception, e:
                 notdone.append(item)

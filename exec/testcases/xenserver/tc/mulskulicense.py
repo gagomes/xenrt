@@ -788,11 +788,9 @@ class TCLicenseGrace(LicenseExpiryBase):
         self.expireLicense()
 
         # Check whther the license is expired.
-        try:
-            if not self.checkLicenseExpired(edition):
-                raise xenrt.XRTFailure("License is not expired properly.")
-        finally:
+        if not self.checkLicenseExpired(edition):
             self.releaseLicense(edition)
+            raise xenrt.XRTFailure("License is not expired properly.")
 
         # Check whether the hosts license expired.
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.

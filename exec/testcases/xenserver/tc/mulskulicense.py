@@ -763,8 +763,8 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             if not self.checkGraceLicense(host):
-                self.revertGraceLicense() # Force the hosts to regain its orignal licenses.
-                self.releaseLicense(edition) # Release the applied license.
+                self.revertGraceLicense()
+                self.releaseLicense(edition)
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
 
         # Force the hosts to regain its orignal licenses.
@@ -780,8 +780,8 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Check whether the hosts obtained grace licenses.
         for host in self.hosts:
             if not self.checkGraceLicense(host):
-                self.revertGraceLicense() # Force the hosts to regain its orignal licenses.
-                self.releaseLicense(edition) # Release the applied license.
+                self.revertGraceLicense()
+                self.releaseLicense(edition)
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
 
         # Now expire one of the host license such that it cross the grace period.
@@ -789,6 +789,7 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         # Check whther the license is expired.
         if not self.checkLicenseExpired(edition):
+            self.revertGraceLicense()
             self.releaseLicense(edition)
             raise xenrt.XRTFailure("License is not expired properly.")
 
@@ -796,6 +797,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         self.verifySystemLicenseState(skipHostLevelCheck=True) # pool level license check.
 
         # Cleaning up.
+        self.revertGraceLicense()
         self.releaseLicense(edition)
 
     def run(self, arglist=[]):

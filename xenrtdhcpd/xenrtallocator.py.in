@@ -196,6 +196,12 @@ class XenRTDHCPAllocator(object):
     def _populatePXEInfo(self, packet, intf):
         server = self.getInterfaceInfo(intf)['addr']
         userClass = packet.getOption("user_class")
+        try:
+            arch = packet.getOption("arch")
+            if arch:
+                _logger.info("Arch is %d" % (listToNumber(arch)))
+        except:
+            pass
         if userClass and listToStr(userClass) == "iPXE":
             packet.setOption("file", strToPaddedList("http://%s/tftp/default-ipxe.cgi" % server, 128))
         else:

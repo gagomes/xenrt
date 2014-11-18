@@ -248,6 +248,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
                 self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result, self.getReason(msg))
+                if len(msg) > 12500:
+                    # Need to trim the message for Jira
+                    newmsg = msg[:2500]
+                    newmsg += "\n\n-- trimmed - full logs available on link above --\n\n"
+                    newmsg += msg[-10000:]
+                    msg = newmsg
                 self.failures["%s/%s" % (t.getAttribute("classname"), t.getAttribute("name"))] = msg
 
             newsuite = newdoc.createElement("testsuite")

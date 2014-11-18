@@ -247,7 +247,7 @@ class Guest(xenrt.GenericGuest):
 
     def _attachDevice(self, devicexmlstr, hotplug=False):
         """Attach a new device to the domain."""
-        xenrt.TEC().logverbose("Attaching device to %s" % self.name)
+        xenrt.TEC().logverbose("Attaching device to %s: devicexml=%s" % (self.name, devicexmlstr))
         if hotplug:
             if self.getState() == "UP" and self.enlightenedDrivers:
                 try:

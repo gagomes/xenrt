@@ -17,6 +17,8 @@ _sharedir = "@sharedir@"
 _rootdir = "@rootdir@"
 _vardir = "@vardir@"
 _stablebranch = "@stablebranch@"
+if not _stablebranch:
+    _stablebranch = "master"
 
 optparse = []
 optparse.append(("OPTIONS", "--arch", True))

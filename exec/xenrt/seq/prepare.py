@@ -1499,6 +1499,19 @@ class PrepareNode:
 
             raise
 
+        self.__createDeploymentRecord()
+
+    def __createDeploymentRecord(self):
+        deploymentRec = {}
+        # Process Hosts - first get a list of unique host objects
+        deploymentRec['hosts'] = []
+        hostObjList = list(set(map(lambda x:xenrt.TEC().registry.hostGet(x), xenrt.TEC().registry.hostList())))
+        for host in hostObjList:
+            deploymentRec['hosts'].append( { 'name': host.getName(), 'mgmt_ipv4': host.getIP(), 'root_user': 'root', 'root_password': host.password } )
+
+        with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
+            json.dump(deploymentRec, fh)
+
 class InstallWorkQueue:
     """Queue of install work items to perform."""
     def __init__(self):

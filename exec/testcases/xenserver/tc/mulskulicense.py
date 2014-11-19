@@ -734,7 +734,7 @@ class TCLicenseGrace(LicenseExpiryBase):
 
         self.v6.start()
         xenrt.sleep(120)
-
+        
         # Restart toostack on every hosts.
         [host.restartToolstack() for host in self.hosts]
 
@@ -753,7 +753,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         return False
 
     def checkGraceFunc(self,host):
-
+  
         licenseInfo = host.getLicenseDetails()
         if not 'grace' in licenseInfo['grace']:
             xenrt.TEC().warning("ERROR: Host has not got grace license")
@@ -814,6 +814,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         # Cleaning up.
         self.enableLicenseServer()
         self.releaseLicense(edition)
+        self.cleanUpFistPoint(host) # if any.
 
     def run(self, arglist=[]):
 

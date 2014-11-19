@@ -628,7 +628,7 @@ class LicenseExpiryBase(LicenseBase):
         # Give some time (5 mins + 30 secs) to expire the license.
         xenrt.sleep(330)
 
-    def checkLicenseExpired(self, edition, host=None, timeout=3600):
+    def checkLicenseExpired(self, edition, host=None, timeout=1800):
         """ Checking license expiry while timeout period.
             Feature limit may not be applied for some time perios."""
 
@@ -641,21 +641,68 @@ class LicenseExpiryBase(LicenseBase):
         starttime = xenrt.util.timenow()
         while (xenrt.util.timenow() <= starttime + timeout):
             xenrt.sleep(120)
-            ret = self.__checkLicenseExpiredFunc(host, edition)
-            if ret:
-                return True
+            if self.__checkLicenseTimePassed(host):
+                ret = self.__checkLicenseExpiredFunc(host, edition)
+                if ret:
+                    return True
 
         xenrt.TEC().logverbose("XAPI is not updated after license expired for %d seconds." % timeout)
 
         return False
 
+    def __checkLicenseTimePassed(self, host):
+        """ Checking License is expired by checking time"""
+
+        # This is hack. It is probably better to have this function in Lincese
+        # class and call this from base class of TC should be better.
+        # Checking parameter directly from TC is not recommendable.
+        xenrt.TEC().logverbose("Checking host expiry date is passed.")
+        licdet = host.getLicenseDetails()
+        if not "expiry" in licdet:
+            raise xenrt.XRTError("expiry field is not in the license detail.")
+        if xenrt.util.timenow() > xenrt.util.parseXapiTime(licdet['expiry']):
+            if not self.isHostObj:
+                xenrt.TEC().logverbose("Checking pool expiry date is passed.")
+                poolParams = self.systemObj.getPoolParam("license-state")
+                match = re.search("expiry: ([^\s]+)", poolParams)
+                if match:
+                    expiry = match.groups()[0]
+                    if expiry == "never":
+                        xenrt.TEC().logverbose("License-state of pool has set to 'never'.")
+                        return False
+                    if expiry != licdet['expiry']:
+                        xenrt.TEC().logverbose("Pool license expiry date mismatch with host expiry date.")
+
+                        xenrt.TEC().logverbose("Pool license expiry: %s host expiry: %s." % (expiry, licdet['expiry']))
+                        return False
+                    return True
+                else:
+                    xenrt.TEC().logverbose("Cannot find expiry information from pool license-state.")
+                    return False
+            else:
+                return True
+
+        xenrt.TEC().logverbose("License has not expired yet.")
+        return False
+
     def __checkLicenseExpiredFunc(self, host, edition):
         """ Checking License is expired by checking feature availability.
-        Checking date is pointless as TC expires license by changing date."""
+        Checking date is not reliable as TC expires license using fist point."""
 
-        features = [feature.hostFeatureFlagValue(host, True) for feature in host.licensedFeatures().values()]
-        if features[0] and features[1] and features[2]:
-            return True
+        xenrt.TEC().logverbose("Checking host feature set.")
+        hfeatures = [feature.hostFeatureFlagValue(host, True)
+            for feature in host.licensedFeatures()]
+        if hfeatures[0] and hfeatures[1] and hfeatures[2]:
+            if not self.isHostObj:
+                xenrt.TEC().logverbose("Checking pool feature set.")
+                pfeatures = [feature.poolFeatureFlagValue(self.systemObj)
+                    for feature in host.licensedFeatures()]
+                if pfeatures[0] and pfeatures[1] and pfeatures[2]:
+                    return True
+                else:
+                    xenrt.TEC().logverbose("Restriction flags of pool has not been updated while ones of host(s) are updated as expected.")
+            else:
+                return True
         return False
 
     def cleanUpFistPoint(self, host=None):

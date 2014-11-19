@@ -11188,10 +11188,7 @@ class CreedenceHost(ClearwaterHost):
         self.checkHostLicenseState(sku)
 
     def licensedFeatures(self):
-        return  [licensedfeatures.WorkloadBalancing(), licensedfeatures.ReadCaching(),
-                 licensedfeatures.VirtualGPU(), licensedfeatures.Hotfixing(),
-                 licensedfeatures.ExportPoolResourceList(),
-                 licensedfeatures.GPUPassthrough()]
+        return LicensedFeatureFactory().allFeatures(self)
 
     def checkHostLicenseState(self, edition):
 
@@ -11202,7 +11199,7 @@ class CreedenceHost(ClearwaterHost):
         if not (edition == details["edition"]):
             raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
 
-        xenrt.TEC().logverbose("Edition is same on host as expected") 
+        xenrt.TEC().logverbose("Edition is same on host as expected")
 
     def licenseApply(self, v6server, licenseObj):
         self.license(v6server,sku=licenseObj.getEdition())

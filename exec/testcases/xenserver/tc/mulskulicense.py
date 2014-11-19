@@ -653,7 +653,7 @@ class LicenseExpiryBase(LicenseBase):
         """ Checking License is expired by checking feature availability.
         Checking date is pointless as TC expires license by changing date."""
 
-        features = [feature.hostFeatureFlagValue(host, True) for feature in host.licensedFeatures()]
+        features = [feature.hostFeatureFlagValue(host, True) for feature in host.licensedFeatures().values()]
         if features[0] and features[1] and features[2]:
             return True
         return False
@@ -690,7 +690,7 @@ class TCLicenseExpiry(LicenseExpiryBase):
             host = self.systemObj
         else:
             host = self.systemObj.master
-        features = [feature.hostFeatureFlagValue(host) for feature in host.licensedFeatures()]
+        features = [feature.hostFeatureFlagValue(host) for feature in host.licensedFeatures().values()]
         xenrt.TEC().logverbose("License: %s, WLB: %s, Read cache: %s, VGPU: %s" %
             (edition, not features[0], not features[1], not features[2]))
 

@@ -3,7 +3,7 @@ import re
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
            "VirtualGPU", "Hotfixing", "ExportPoolResourceList",
-           "GPUPassthrough"]
+           "GPUPassthrough", "LicensedFeatureFactory"]
 
 
 class LicensedFeature(object):
@@ -12,6 +12,10 @@ class LicensedFeature(object):
     Class to check the licensing and actual state of a sepcific feature
     """
     __metaclass__ = ABCMeta
+
+    @abstractproperty
+    def name(self):
+        pass
 
     @abstractmethod
     def isEnabled(self, host):
@@ -71,6 +75,10 @@ class LicensedFeature(object):
 
 class WorkloadBalancing(LicensedFeature):
 
+    @property
+    def name(self):
+        return "WorkloadBalancing"
+
     def isEnabled(self, host):
         raise NotImplementedError()
 
@@ -86,6 +94,10 @@ class WorkloadBalancing(LicensedFeature):
 class ReadCaching(LicensedFeature):
 
     __TAP_CTRL_FLAG = "read_caching"
+
+    @property
+    def name(self):
+        return "ReadCaching"
 
     def __fetchPidAndMinor(self, host):
         regex = re.compile("""{0}=(\w+) {1}=(\w+)""".format("pid", "minor"))
@@ -107,6 +119,10 @@ class ReadCaching(LicensedFeature):
 
 class VirtualGPU(LicensedFeature):
 
+    @property
+    def name(self):
+        return "VirtualGPU"
+
     def isEnabled(self, host):
         [vm.reboot() for vm in host.guests.values()]
         return [vm.getState() == "UP" for vm in host.guests.values()]
@@ -119,11 +135,19 @@ class VirtualGPU(LicensedFeature):
 class GPUPassthrough(VirtualGPU):
 
     @property
+    def name(self):
+        return "GPUPassthrough"
+
+    @property
     def featureFlagName(self):
         return "restrict_gpu"
 
 
 class Hotfixing(LicensedFeature):
+
+    @property
+    def name(self):
+        return "Hotfixing"
 
     def isEnabled(self, host):
         raise NotImplementedError()
@@ -139,6 +163,10 @@ class Hotfixing(LicensedFeature):
 
 class ExportPoolResourceList(LicensedFeature):
 
+    @property
+    def name(self):
+        return "ExportPoolResourceList"
+
     def isEnabled(self, host):
         raise NotImplementedError()
 
@@ -149,3 +177,19 @@ class ExportPoolResourceList(LicensedFeature):
     @property
     def stateCanBeChecked(self):
         return False
+
+
+class LicensedFeatureFactory(object):
+    __CRE = "creedence"
+
+    def __getHostAge(self, xshost):
+        return xshost.productVersion.lower()
+
+    def __createDictOfFeatures(self, *featureList):
+        return dict([(f.name, f) for f in featureList])
+
+    def allFeatures(self, xshost):
+        if self.__getHostAge(xshost) == self.__CRE:
+            return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
+                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
+        raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))

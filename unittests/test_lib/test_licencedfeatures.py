@@ -1,4 +1,4 @@
-from xenrt.lib.xenserver.licensedfeatures import WorkloadBalancing, ReadCaching, VirtualGPU, Hotfixing, ExportPoolResourceList, GPUPassthrough
+from xenrt.lib.xenserver.licensedfeatures import WorkloadBalancing, ReadCaching, VirtualGPU, Hotfixing, ExportPoolResourceList, GPUPassthrough, LicensedFeatureFactory
 from testing import XenRTUnitTestCase
 from mock import Mock
 
@@ -139,3 +139,23 @@ class TestReadCachingEnablement(XenRTUnitTestCase):
         host = self.__createMockHost(data)
         rc = ReadCaching()
         self.assertEqual([True, True], rc.isEnabled(host))
+
+
+class FFHostDouble(object):
+    CREEDENCE = "Creedence"
+
+    def __init__(self, ver):
+        self.productVersion = ver
+
+
+class TestLicencedFeatureFactoryForCreedence(XenRTUnitTestCase):
+
+    def testReturningAllFeaturesLength(self):
+        fac = LicensedFeatureFactory()
+        host = FFHostDouble(FFHostDouble.CREEDENCE)
+        self.assertEqual(6, len(fac.allFeatures(host)))
+
+    def testKeysAreNotNone(self):
+        fac = LicensedFeatureFactory()
+        host = FFHostDouble(FFHostDouble.CREEDENCE)
+        [self.assertFalse(not i) for i in fac.allFeatures(host).keys()]

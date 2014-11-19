@@ -21,8 +21,7 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
-from xenrt.lib.xenserver.licensing import CreedenceLicence
-from xenrt.enum import XenServerLicenceSKU
+from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -10446,6 +10445,18 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
+    def validLicenses(self, xenserverOnly=False):
+        """
+        Get a licence object which contains the details of a licence settings
+        for a given SKU
+        sku: XenServerLicenceSKU member
+        """
+        factory = XenServerLicenceFactory()
+        if xenserverOnly:
+            return factory.xenserverOnlyLicences(self)
+        return factory.allLicences(self)
+
+
 #############################################################################
 class TampaXCPHost(TampaHost):
 
@@ -11175,25 +11186,6 @@ class CreedenceHost(ClearwaterHost):
 
         cli.execute("host-apply-edition", string.join(args))
         self.checkHostLicenseState(sku)
-
-    def validLicenses(self, xenserverOnly=False):
-        """
-        option: xenserverOnly - return the SKUs for just XenServer
-        """
-        xsOnlySKUs = [XenServerLicenceSKU.PerSocketEnterprise,
-                        XenServerLicenceSKU.PerSocketStandard,
-                        XenServerLicenceSKU.PerSocket]
-
-        allSKUs = [XenServerLicenceSKU.PerSocketEnterprise,
-                    XenServerLicenceSKU.PerUserEnterprise,
-                    XenServerLicenceSKU.PerConcurrentUserEnterprise,
-                    XenServerLicenceSKU.XenDesktopPlatinum,
-                    XenServerLicenceSKU.PerSocketStandard,
-                    XenServerLicenceSKU.Free,
-                    XenServerLicenceSKU.PerSocket]
-
-        skus = xsOnlySKUs if xenserverOnly else allSKUs
-        return [CreedenceLicence(s) for s in skus]
 
     def licensedFeatures(self):
         return  [licensedfeatures.WorkloadBalancing(), licensedfeatures.ReadCaching(),

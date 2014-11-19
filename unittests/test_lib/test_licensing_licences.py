@@ -6,7 +6,7 @@ class HostDouble(object):
         self.productVersion = productVersion
 
 
-class TestLicenceFactory(XenRTUnitTestCase):
+class TestLicenceFactoryLicenceForSKU(XenRTUnitTestCase):
 
     def testFactoryReturnsCorrectType(self):
         f = XenServerLicenceFactory()
@@ -16,3 +16,29 @@ class TestLicenceFactory(XenRTUnitTestCase):
     def testFactoryThrowsExceptionForUnknowType(self):
         f = XenServerLicenceFactory()
         self.assertRaises(ValueError, f.licence, HostDouble("SDFsdfSDFSDF"), "sku")
+
+
+class TestLicenceFactoryAllLicenceForHost(XenRTUnitTestCase):
+
+    def testFactoryReturnsCorrectAmount(self):
+        f = XenServerLicenceFactory()
+        for t, c in [("Creedence", 7)]:
+            self.assertEqual(c, len(f.allLicences(HostDouble(t))))
+
+    def testFactoryThrowsExceptionForUnknowType(self):
+        f = XenServerLicenceFactory()
+        for t in ["tampa", "Clearwater"]:
+            self.assertRaises(ValueError, f.allLicences, HostDouble(t))
+
+
+class TestLicenceFactoryXSOnlyLicenceForHost(XenRTUnitTestCase):
+
+    def testFactoryReturnsCorrectAmount(self):
+        f = XenServerLicenceFactory()
+        for t, c in [("Creedence", 3)]:
+            self.assertEqual(c, len(f.xenserverOnlyLicences(HostDouble(t))))
+
+    def testFactoryThrowsExceptionForUnknowType(self):
+        f = XenServerLicenceFactory()
+        for t in ["tampa", "Clearwater"]:
+            self.assertRaises(ValueError, f.xenserverOnlyLicences, HostDouble(t))

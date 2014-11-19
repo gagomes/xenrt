@@ -128,17 +128,44 @@ class CreedenceLicence(Licence):
             return "CXS_STD_CCS"
         raise ValueError("No license server name found for the SKU %s" % self.sku)
 
+
 class XenServerLicenceFactory(object):
+    __TAM = "tampa"
+    __CLR = "clearwater"
+    __CRE = "creedence"
+
+    def __getHostAge(self, xshost):
+        return xshost.productVersion.lower()
+
+    def xenserverOnlyLicences(self, xshost):
+        lver = self.__getHostAge(xshost)
+        if lver == self.__CRE:
+            skus = [XenServerLicenceSKU.PerSocketEnterprise,
+                    XenServerLicenceSKU.PerSocketStandard,
+                    XenServerLicenceSKU.PerSocket]
+            return [self.licence(xshost, s) for s in skus]
+
+        raise ValueError("No licence object was found for the provided host version: %s" % xshost.productVersion)
+
+    def allLicences(self, xshost):
+        lver = self.__getHostAge(xshost)
+        if lver == self.__CRE:
+            skus = [XenServerLicenceSKU.PerSocketEnterprise, XenServerLicenceSKU.PerUserEnterprise,
+                    XenServerLicenceSKU.PerConcurrentUserEnterprise, XenServerLicenceSKU.XenDesktopPlatinum,
+                    XenServerLicenceSKU.PerSocketStandard, XenServerLicenceSKU.Free, XenServerLicenceSKU.PerSocket]
+            return [self.licence(xshost, s) for s in skus]
+
+        raise ValueError("No licence object was found for the provided host version: %s" % xshost.productVersion)
 
     def licence(self, xshost, sku):
         """
         Get the licence objects for a given host object
         """
-        lver = xshost.productVersion.lower()
-        if lver == "tampa":
+        lver = self.__getHostAge(xshost)
+        if lver == self.__TAM:
             return TampaLicence(sku)
-        if lver == "clearwater":
+        if lver == self.__CLR:
             return ClearwaterLicence(sku)
-        if lver == "creedence":
+        if lver == self.__CRE:
             return CreedenceLicence(sku)
         raise ValueError("No licence object was found for the provided host version: %s" % xshost.productVersion)

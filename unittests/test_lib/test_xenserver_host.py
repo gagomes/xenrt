@@ -1,6 +1,5 @@
 from testing import XenRTUnitTestCase
 from mock import Mock, patch, PropertyMock
-from xenrt.lib.xenserver.licensedfeatures import LicensedFeature
 import xenrt
 
 
@@ -227,21 +226,33 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
         )
 
 
-@patch('xenrt.TEC')
 class TestHostLicenceBehaviourForCreedence(XenRTUnitTestCase):
 
-    def testAllSKUsReturnListOfLicences(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        self.assertEqual(7, len(host.validLicenses()))
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.CreedenceHost(None, None)
 
-    def testXenServerOnlySKUsReturnListOfLicences(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        self.assertEqual(3, len(host.validLicenses(True)))
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.allLicences")
+    @patch('xenrt.TEC')
+    def testAllSKUsReturnListOfLicences(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses()
+        self.assertTrue(fac.called)
 
-    def testListOfLicencesAreCreedenceOnes(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        [self.assertEqual("CreedenceLicence", type(l).__name__) for l in host.validLicenses(True)]
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.xenserverOnlyLicences")
+    @patch('xenrt.TEC')
+    def testXenServerOnlySKUsReturnListOfLicences(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses(True)
+        self.assertTrue(fac.called)
 
-    def testListOfLicenceFeaturesAreCreedenceOnes(self, tec):
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-        [self.assertTrue(isinstance(l, LicensedFeature)) for l in host.licensedFeatures()]
+
+class TestHostLicenceBehaviourForTampa(TestHostLicenceBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.TampaHost(None, None)
+
+
+class TestHostLicenceBehaviourForClearwater(TestHostLicenceBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.ClearwaterHost(None, None)

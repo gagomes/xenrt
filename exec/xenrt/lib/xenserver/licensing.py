@@ -49,10 +49,10 @@ class Licence(object):
                                                                               self.getLicenceName())
 
 
-"""
-PLACEHOLDER CLASS
-"""
 class TampaLicence(Licence):
+    """
+    PLACEHOLDER CLASS
+    """
     def getEdition(self):
         return "licence"
 
@@ -63,10 +63,10 @@ class TampaLicence(Licence):
         return "CXS_some_thing"
 
 
-"""
-PLACEHOLDER CLASS
-"""
 class ClearwaterLicence(Licence):
+    """
+    PLACEHOLDER CLASS
+    """
     def getEdition(self):
         return "licence"
 

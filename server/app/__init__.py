@@ -1,5 +1,6 @@
 from server import Page
 import app.db
+import time
 
 class XenRTPage(Page):
     WRITE = False
@@ -10,13 +11,40 @@ class XenRTPage(Page):
 
     def renderWrapper(self):
         ret = self.render()
+        if self.WRITE:
+            self.waitForLocalWrite()
         if self._db:
             self._db.close()
         return ret
 
+    def waitForLocalWrite(self):
+        assert self.WRITE
+        writeDb = self.getDB()
+        writeCur = writeDb.cursor()
+        writeCur.execute("SELECT pg_current_xlog_location()")
+        writeLoc = app.utils.XLogLocation(writeCur.fetchone()[0])
+        readDb = app.db.dbReadInstance()
+        readCur = readDb.cursor()
+        i = 0
+        while i < 1000:
+            readCur.execute("SELECT pg_last_xlog_replay_location();")
+            readLocStr = readCur.fetchone()[0]
+            if not readLocStr:
+                break
+            readLoc = app.utils.XLogLocation(readLocStr)
+            if readLoc >= writeLoc:
+                break
+            i += 1
+            time.sleep(0.1)
+        readCur.close()
+        readDb.close()
+
     def getDB(self):
         if not self._db:
-            self._db = app.db.dbInstance()
+            if self.WRITE:
+                self._db = app.db.dbWriteInstance()
+            else:
+                self._db = app.db.dbReadInstance()
         return self._db
 
     def lookup_jobid(self, detailid):

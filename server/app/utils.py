@@ -321,4 +321,21 @@ def check_constraint(constraint, entry):
             return 1
     # Constraint wasn't satisifed.
     return 0
-	
+
+class XLogLocation(object):
+    def __init__(self, location):
+        (self.corse, self.fine) = location.split("/")
+
+    def __cmp__(self, other):
+        if self.corse > other.corse:
+            return 1
+        elif self.corse < other.corse:
+            return -1
+        elif self.fine > other.fine:
+            return 1
+        elif self.fine < other.fine:
+            return -1
+        else:
+            assert self.corse == other.corse
+            assert self.fine == other.fine
+            return 0

@@ -3,5 +3,8 @@ import config
 
 __all__= ["dbInstance"]
 
-def dbInstance():
+def dbReadInstance():
     return pgdb.connect(config.dbConnectString)
+
+def dbWriteInstance():
+    return pgdb.connect(config.dbConnectStringWrite)

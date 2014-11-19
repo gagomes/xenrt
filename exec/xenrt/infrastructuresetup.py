@@ -266,6 +266,7 @@ def buildDHCPFile(config,machines,testpeers,sharedhosts):
     globalcfg['trueleasetime'] = 14400
     globalcfg['staticleasetime'] = 7200
     globalcfg['ipxe'] = xenrt.TEC().lookup("USE_IPXE", False, boolean=True)
+    globalcfg['uefi'] = xenrt.TEC().lookup("ENABLE_UEFI_PXE", False, boolean=True)
     blockedmacs = xenrt.TEC().lookup("BLOCKED_MACS",None)
     if blockedmacs:
         globalcfg['blockedmacs'] = blockedmacs.split(",")

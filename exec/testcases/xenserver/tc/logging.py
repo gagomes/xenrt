@@ -70,7 +70,7 @@ class TC6710(xenrt.TestCase):
             raise xenrt.XRTFailure("syslog message not found on syslog server")
         
         step("Check the message is populated in Host")
-        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
             if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
                 raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
         elif host.execdom0("grep %s /var/log/user.log" % (msg),retval="code") != 0:
@@ -88,7 +88,7 @@ class TC6710(xenrt.TestCase):
             raise xenrt.XRTFailure("syslog message not found on syslog server (xapi)")
         
         step("Check the \"xapi (re)start message\" is populated in Host")
-        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
             if host.execdom0("tail -n 6000 /var/log/messages | grep '(Re)starting xapi'", retval="code") != 0:
                 raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
         elif host.execdom0("tail -n 6000 /var/log/xensource.log | grep '(Re)starting xapi'", retval="code") != 0:
@@ -122,7 +122,7 @@ class TC6710(xenrt.TestCase):
             raise xenrt.XRTFailure("syslog message not found on syslog server after restart")
 
         step("Check the message is populated in Host")
-        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
             if host.execdom0("grep %s /var/log/messages" % (msg),retval="code") != 0:
                 raise xenrt.XRTFailure("syslog message not found locally when remote is enabled")
         elif host.execdom0("grep %s /var/log/user.log" % (msg),retval="code") != 0:
@@ -151,7 +151,7 @@ class TC6710(xenrt.TestCase):
         host.restartToolstack()
         time.sleep(60)
         
-        if not isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(host, xenrt.lib.xenserver.DundeeHost):
             if host.execdom0("tail -n 6000 /var/log/messages | grep '(Re)starting xapi'", retval="code") != 0:
                 raise xenrt.XRTFailure("syslog message not found locally when remote was disabled (xapi)")
         elif host.execdom0("tail -n 6000 /var/log/xensource.log | grep '(Re)starting xapi'", retval="code") != 0:

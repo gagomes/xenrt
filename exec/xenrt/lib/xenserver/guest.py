@@ -5718,7 +5718,7 @@ default:
             self.reboot()
 
 
-class SarasotaGuest(CreedenceGuest):
+class DundeeGuest(CreedenceGuest):
     pass
 
 

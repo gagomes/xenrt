@@ -2,7 +2,7 @@
   <!-- Measured Boot (TXT) tests to run on a non-TXT machine -->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <TXT_SUPP_PACK>xe-phase-2/xenserver-measured-boot.iso</TXT_SUPP_PACK>
   </variables>
 

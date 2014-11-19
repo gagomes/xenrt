@@ -28,7 +28,7 @@ __all__ = ["Host",
            "BostonXCPHost",
            "TampaHost",
            "TampaXCPHost",
-           "SarasotaHost",
+           "DundeeHost",
            "CreedenceHost",
            "ClearwaterHost",
            "NFSStorageRepository",
@@ -72,8 +72,8 @@ CLI_NATIVE = 3          # New style CLI
 
 
 def hostFactory(hosttype):
-    if hosttype == "Sarasota":
-        return xenrt.lib.xenserver.SarasotaHost
+    if hosttype == "Dundee":
+        return xenrt.lib.xenserver.DundeeHost
     elif hosttype in ("Creedence"):
         return xenrt.lib.xenserver.CreedenceHost
     elif hosttype in ("Clearwater"):
@@ -92,7 +92,7 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Creedence", "Sarasota"):
+    if mastertype in ("Clearwater", "Creedence", "Dundee"):
         return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
@@ -746,7 +746,7 @@ class Host(xenrt.GenericHost):
             if not primarydisk:
                 if self.i_primarydisk:
                     primarydisk = self.i_primarydisk
-                    # Handle the case where its a cciss disk going into a Sarasota+ host with CentOS 6.4+ udev rules
+                    # Handle the case where its a cciss disk going into a Dundee+ host with CentOS 6.4+ udev rules
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
@@ -11168,10 +11168,10 @@ class CreedenceHost(ClearwaterHost):
         cli.execute("host-apply-edition", string.join(args))
 
 #############################################################################
-class SarasotaHost(CreedenceHost):
+class DundeeHost(CreedenceHost):
     USE_CCISS = False
 
-    def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
+    def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
         CreedenceHost.__init__(self,
                                 machine,
                                 productVersion=productVersion,
@@ -11184,7 +11184,7 @@ class SarasotaHost(CreedenceHost):
         ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
 
     def guestFactory(self):
-        return xenrt.lib.xenserver.guest.SarasotaGuest
+        return xenrt.lib.xenserver.guest.DundeeGuest
 
     def postInstall(self):
         CreedenceHost.postInstall(self)
@@ -14078,10 +14078,10 @@ class ClearwaterPool(TampaPool):
 
 #############################################################################
 
-class SarasotaPool(ClearwaterPool):
+class DundeePool(ClearwaterPool):
 
     def hostFactory(self):
-        return xenrt.lib.xenserver.SarasotaHost
+        return xenrt.lib.xenserver.DundeeHost
 
 #############################################################################
 

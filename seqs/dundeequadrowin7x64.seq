@@ -1,0 +1,33 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true" />
+      <allhosts/>
+      <vm name="win7x64">
+        <distro>win7sp1-x64</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installVCRedist"/>
+        <postinstall action="installDirectX"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
+        <network device="0" />
+      </vm>
+    </pool>
+  </prepare>
+  <testsequence group="Win7x64">
+    <testcase id="xenserver.tc.gpu.GPUBasic" tc="TC-21707" blocker="yes">
+      <arg>gold=win7x64</arg>
+      <arg>vendor=NVIDIA</arg>
+      <arg>gpucount=2</arg>
+    </testcase>
+    <testcase id="xenserver.tc.gpu.StartAllGPU" tc="TC-21708">
+      <arg>gold=win7x64</arg>
+      <arg>vendor=NVIDIA</arg>
+      <arg>gpucount=2</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

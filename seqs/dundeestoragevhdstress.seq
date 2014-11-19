@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- MNR VHD storage stress test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VHD">
+    <testcase id="xenserver.tc.stress.TC8189"/>
+  </testsequence>
+
+</xenrt>

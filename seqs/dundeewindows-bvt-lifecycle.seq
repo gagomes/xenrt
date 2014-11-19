@@ -1,0 +1,121 @@
+<xenrt>
+
+  <!-- Dundee Windows OS functional tests: ws08sp2-x86 and ws08r2-x64 SP2 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+    <serial group="ws08sp2-x86">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9629">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>distro=ws08sp2-x86</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ws08sp2-x86">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9630">
+        <arg>guest=ws08sp2-x86</arg>
+        </testcase>
+        <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19832">
+        <arg>guest=ws08sp2-x86</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-9631">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-9632">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-9633">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>workloads</arg>
+        <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9635">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCHibernate" tc="TC-9636">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=2</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ws08sp2-x86</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+      <serial group="ws08r2sp1-x64">
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-9653">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=ws08r2sp1-x64</arg>
+          <arg>distro=ws08r2sp1-x64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="ws08r2sp1-x64">
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9654">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCStartStop" tc="TC-9655">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>loops=2</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-9656">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>loops=2</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9657">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=2</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9659">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=2</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCHibernate" tc="TC-9660">
+            <arg>guest=ws08r2sp1-x64</arg>
+            <arg>loops=2</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC7849">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <testcase id="xenserver.tc.checkpoint.TC12556">
+            <arg>guest=ws08r2sp1-x64</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=ws08r2sp1-x64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+    </parallel>
+  </testsequence>
+
+</xenrt>

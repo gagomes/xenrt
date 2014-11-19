@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- 160 pcpu tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Max CPU">
+      <testcase id="xenserver.tc.scalability.TC14899"/>
+      <testcase id="xenserver.tc.scalability.TC15293"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

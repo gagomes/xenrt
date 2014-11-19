@@ -1,0 +1,26 @@
+<xenrt>
+
+<!-- Triggering TRIM on various type of SRs -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="iscsiSR"/>
+      <storage type="fc" name="fcSR"/>
+      <host id="0" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PositiveTRIM">
+      <testcase id="xenserver.tc.lunspace.TC21549"/>
+      <testcase id="xenserver.tc.lunspace.TC21550"/>
+      <testcase id="xenserver.tc.lunspace.TC21554"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

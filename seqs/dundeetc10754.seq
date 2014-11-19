@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- HA METADATA_LUN_{BROKEN,HEALTHY} alerts tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Alerts">
+      <testcase id="xenserver.tc.ha.TC10754"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

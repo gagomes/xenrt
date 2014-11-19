@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Basic Pool vSwitch Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+  <prepare>
+      <host id="0"/>
+      <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="GRONetperfTests">
+      <testcase id="xenserver.tc.vswitch.NetworkThroughputwithGroOn" tc="TC-19992"/>
+      <testcase id="xenserver.tc.vswitch.TC19993" tc="TC-19993"/>
+      <testcase id="xenserver.tc.vswitch.TC19994" tc="TC-19994"/>
+      <testcase id="xenserver.tc.vswitch.TC20877" tc="TC-20877"/>
+      <testcase id="xenserver.tc.vswitch.TC20874" tc="TC-20874"/>
+      <testcase id="xenserver.tc.vswitch.TC20875" tc="TC-20875"/>
+    </serial>
+    <serial group="GROSRTests">
+      <testcase id="xenserver.tc.vswitch.SRTrafficwithGRO" tc="TC-20673"/>
+      <testcase id="xenserver.tc.vswitch.TC20672" tc="TC-20672"/>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

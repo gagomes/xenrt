@@ -1,0 +1,37 @@
+<xenrt>
+
+  <!-- Dundee vGPU K1 functionalities -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <host>
+      <vm name="masterwin7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="HostDrivers">
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAHostDrivers">
+    </testcase>
+  </testsequence>
+
+<!--for vgputype: K100=0, K120=1, K140=2, K1PassThrough=3, K200=4, K220=5, K240=6, K260=7, K2PassThrough=8 !-->
+
+  <testsequence group="Win7sp1x86K140">
+    <testcase id="xenserver.tc.vgpu.TCcreatevGPU" name="Win7sp1x86K140VGPU">
+      <arg>vmName=masterwin7sp1-x86</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+    <testcase id="xenserver.tc.vgpu.TCinstallNVIDIAGuestDrivers" name="Win7sp1x86K140Drivers">
+      <arg>vmName=masterwin7sp1-x86</arg>
+      <arg>vgputype=1</arg>
+    </testcase>
+  </testsequence>
+  
+</xenrt>

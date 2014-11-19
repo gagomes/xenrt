@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!-- LVHD reliability tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="lvmoiscsi" name="iscsisr" default="false"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="LVHDRT">
+      <testcase id="xenserver.tc.vhd.TC8682"/>
+      <testcase id="xenserver.tc.vhd.TC8775"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

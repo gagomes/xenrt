@@ -1,0 +1,108 @@
+<xenrt>
+  <!-- 14 Test Host vSwitch Scalability Test Sequence -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+    <PREPARE_WORKERS>15</PREPARE_WORKERS>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+  <prepare>
+    <pool id="1">
+      <host id="14">
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start" />
+        </vm>
+      </host>
+    </pool>
+    <pool id="0">
+      <host id="0">
+        <vm name="linux_0">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="linux_1">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="2">
+        <vm name="linux_2">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="3">
+        <vm name="linux_3">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="4">
+        <vm name="linux_4">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="5">
+        <vm name="linux_5">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="6">
+        <vm name="linux_6">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="7">
+        <vm name="linux_7">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="8">
+        <vm name="linux_8">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="9">
+        <vm name="linux_9">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="10">
+        <vm name="linux_10">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="11">
+        <vm name="linux_11">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="12">
+        <vm name="linux_12">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+      <host id="13">
+        <vm name="linux_13">
+          <distro>generic-linux</distro>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TCManyGuestsInPool" tc="TC-11544" name="TC-11544" >
+        <arg>guests=1024</arg>
+      </testcase>
+      <testcase id="xenserver.tc.vswitch.TC11542" />
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+</xenrt>

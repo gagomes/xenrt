@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- host CPU allocation/reporting/limit verification tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="CPUs">
+      <testcase id="xenserver.tc.host.TC11023"/>
+      <testcase id="xenserver.tc.host.TC11024"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

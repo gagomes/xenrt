@@ -1,0 +1,18 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="CoresPerSocket">
+      <testcase id="xenserver.tc.guest.TC10178" />
+    </serial>
+  </testsequence>
+
+</xenrt>

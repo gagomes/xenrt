@@ -1,0 +1,26 @@
+<xenrt>
+  <!-- Auto-installer tests from Boston using HTTP -->
+  <default name="OLD_PRODUCT_VERSION" value="Boston"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <CARBON_PATCHES_BOSTON>
+        <HF1>/usr/groups/release/XenServer-6.x/XS-6.0.0/hotfixes/XS60E001/52369/hotfix-XS60E001/XS60E001.xsupdate</HF1>
+    </CARBON_PATCHES_BOSTON>
+    <INSTALLER_PATCH>
+      <INSTALLER>XS60E001.xsupdate,XS62E006.xsupdate</INSTALLER>
+      <PROTOCOL>HTTP</PROTOCOL>
+    </INSTALLER_PATCH>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-17760"/>
+  </testsequence>
+
+</xenrt>

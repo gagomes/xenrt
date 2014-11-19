@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various negative Live VDI Storage Migration scenarios as given below:
+
+        TC17096 - Verifying Live VDI Storage Migration to destination SR with invalid SR UUID
+        TC17099 - Verifying Live VDI Storage Migration when the VDI is raw
+        TC16911 - Live VDI Migration from ext SR to lvm SR
+        TC16915 - Live VDI Migration from lvm SR to ext SR
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+      <storage type="nfs" name="nfs_targetSR"/>
+    </pool>
+  </prepare>
+  
+  <testsequence>
+
+    <serial group="NegLiveVDISXM">
+      <!-- live vdi migration from sr-type ext to lvm. -->
+
+      <!-- TC17099 - Verifying Live VDI Storage Migration when the VDI is raw. -->
+      <testcase id="xenserver.tc.sxm.RawVDIStorageMigration" name="TC17099" tc="TC-17099">
+        <arg>test=LiveVDI</arg>
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=nfs</arg>
+        <arg>immediate_failure</arg>
+      </testcase>
+
+    </serial>
+
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,83 @@
+<xenrt>
+
+  <!-- Midnight Ride Windows in-guest stress test sequence -->
+
+  <default name="BIT_DURATION_3" value="24"/>
+  <default name="HCT_DURATION_3" value="24"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKER>2</PREPARE_WORKER>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="ws08sp2-x86">
+        <distro>ws08sp2-x86</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08sp2-x64">
+        <distro>ws08sp2-x64</distro>
+        <memory>2048</memory>
+        <vcpus>1</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08r2-x64">
+        <distro>ws08r2-x64</distro>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel tc="TC-9590">
+      <testcase id="benchmarks.stress.TCburnintest" guest="ws08sp2-x86" group="ws08sp2-x86">
+        <arg>${BIT_DURATION_3}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCburnintest" guest="ws08sp2-x64" group="ws08sp2-x64">
+        <arg>${BIT_DURATION_3}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCburnintest" guest="ws08r2-x64" group="ws08r2-x64">
+        <arg>${BIT_DURATION_3}</arg>
+      </testcase>
+    </parallel>
+    <parallel tc="TC-9591">
+      <testcase id="benchmarks.stress.TCcorestress" guest="ws08sp2-x86" group="ws08sp2-x86">
+        <arg>240</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCcorestress" guest="ws08sp2-x64" group="ws08sp2-x64">
+        <arg>240</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCcorestress" guest="ws08r2-x64" group="ws08r2-x64">
+        <arg>240</arg>
+      </testcase>
+    </parallel>
+    <parallel tc="TC-9592">
+      <testcase id="benchmarks.stress.TCHCTStress" guest="ws08sp2-x86" group="ws08sp2-x86">
+        <arg>${HCT_DURATION_3}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCHCTStress" guest="ws08sp2-x64" group="ws08sp2-x64">
+        <arg>${HCT_DURATION_3}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCHCTStress" guest="ws08r2-x64" group="ws08r2-x64">
+        <arg>${HCT_DURATION_3}</arg>
+      </testcase>
+    </parallel>
+    <parallel>
+      <testcase id="benchmarks.stress.TCMappedFile" guest="ws08r2-x64" group="ws08r2-x64" tc="TC-9593"/>
+      <testcase id="benchmarks.stress.TCMappedFile" guest="ws08sp2-x86" group="ws08sp2-x86" tc="TC-9594"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

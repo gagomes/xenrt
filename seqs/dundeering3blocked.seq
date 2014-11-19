@@ -1,0 +1,32 @@
+<xenrt>
+
+  <!-- VM blocked operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VMBlocked">
+    <testcase id="xenserver.tc.vmlifecycle.TC8266" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8267" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8268" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8269" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8270" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8276" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8271" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8274" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8272" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8278" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8277" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8264" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8265" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8275" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC8273" prio="3"/>
+  </testsequence>
+
+</xenrt>

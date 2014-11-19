@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Hotfix testing -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="Patch">
+    <testcase id="xenserver.tc.host.TC8904"/>
+  </testsequence>
+
+</xenrt>

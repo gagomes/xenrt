@@ -157,6 +157,7 @@ ifeq ($(DOSSH),yes)
 	$(SUDOSH) 'echo "PermitBlacklistedKeys yes" >> /etc/ssh/sshd_config'
 	$(SUDO) /etc/init.d/ssh reload
 	cp $(ROOT)/$(INTERNAL)/config/ssh/* $(HOME)/.ssh/
+	chmod 600 $(HOME)/.ssh/id_*
 else
 	$(info Skipping config)
 endif
@@ -595,3 +596,4 @@ marvin:
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
+

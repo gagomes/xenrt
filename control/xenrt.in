@@ -61,31 +61,18 @@ class XenRTCommand:
 
     commands = None
     hide = False
-    readOnlyCmd = False
 
     def __init__(self, commands):
         self.commands = commands
         self.proxies = None
-        self.masterServerURL = None
-
-    def getMasterServerURL(self):
-        if not self.masterServerURL:
-            # Get master server URL
-            details = {'action': 'getmasterurl'} 
-            u = urlopen_with_retry(server_url + "?" + urllib.urlencode(details),
-                           proxies=self.proxies)
-            self.masterServerURL = u.read().strip() + queuecgi
-        return self.masterServerURL
-
-            
 
     def getServerURL(self):
-        if self.readOnlyCmd:
-            return server_url
-        else:
-            return self.getMasterServerURL()
-                
-    
+        return server_url
+   
+    def getLogServerURL(self, jobid):
+        logserver = self.getLogServer(jobid, proxies=self.proxies)
+        return logserver_url % logserver
+
     def dispatch(self, args, raw=0):
 
         if len(args) > 0 and args[0] in ("--help", "-h"):
@@ -120,7 +107,9 @@ class XenRTCommand:
             fd = sys.stdout
         fd.write(str)
 
-    def getLogServer(self, job, proxies=None):
+    def getLogServer(self, job, proxies=None, params=None):
+        if not params:
+            params=["LOG_SERVER", "JOB_FILES_SERVER"]
         details = {'action': 'status'}
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
         details["id"] = job
@@ -133,12 +122,12 @@ class XenRTCommand:
         else:
             reply = self.parse_job(data)
         u.close()
-        server = None
-        if reply.has_key("LOG_SERVER"):
-            server = reply['LOG_SERVER']
-        return server
+        for p in params:
+            if reply.has_key(p):
+                return reply[p]
+        return None
 
-    def uploadWithCurl(self, details, filename, proxies=None, url=None):
+    def uploadWithCurl(self, details, filename, url, proxies=None):
         cmd = ["curl"]
         cmd.append("-H \"Expect:\"")
         if proxies and proxies.has_key('http'):
@@ -146,17 +135,19 @@ class XenRTCommand:
         for d in details.keys():
             cmd.append("-F '%s=%s'" % (d, details[d]))
         cmd.append("-F file=@%s" % (filename))
-        if not url:
-            url = self.getServerURL()
         cmd.append(url)
         rc = os.system("%s > /dev/null 2>&1" % (string.join(cmd)))
         if rc == 0:
             return 1
         return None
 
-    def upload(self, details, filename, proxies=None, url=None):
+    def upload(self, details, filename, proxies=None, scheduler=False):
+        if scheduler:
+            url = self.getServerURL()
+        else:
+            url = self.getLogServerURL(details['id'])
         if os.path.exists("/usr/bin/curl"):
-            return self.uploadWithCurl(details, filename, proxies=proxies,url=url)
+            return self.uploadWithCurl(details, filename, url, proxies=proxies)
         if filename:
             f = file(filename, 'r')
         else:
@@ -165,8 +156,6 @@ class XenRTCommand:
         details["file"] = f.read()
         if filename:
             f.close()
-        if not url:
-            url = self.getServerURL()
         u = urlopen_with_retry(url, urllib.urlencode(details), proxies)
         reply = None
         data = u.read()
@@ -566,7 +555,6 @@ class XenRTStatus(XenRTCommand):
             "(Analogous to piping xenrt status through grep.)"
     mandatory = "<jobid> [VarName1] [VarName#] [...]"
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'status'}
@@ -615,7 +603,6 @@ class XenRTUtilisation(XenRTCommand):
     -p <pool>[,<pool>...]   List of pools to summarise. Default is all.
     -v                      Verbose - show per-machine details as well.
     """
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'utilisation'}
@@ -685,7 +672,6 @@ class XenRTMachine(XenRTCommand):
     summary = "Get data for the specified machine"
     mandatory = "<machine>"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'machine'}
@@ -722,7 +708,6 @@ class XenRTShowLog(XenRTCommand):
     [ -t ]      show testcase durations
     """
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'showlog'}
@@ -783,7 +768,6 @@ class XenRTMList2(XenRTCommand):
     [-p]             Show machine properties
     [-v]             Show pseudohosts
     """
-    readOnlyCmd = True
 
     def run(self, args):
         self.controller = False
@@ -882,7 +866,6 @@ class XenRTList(XenRTCommand):
     [ -D <description> ]     show only jobs matching the given JOBDESC
     """
     group = "Scheduler"
-    readOnlyCmd = True
 
     def run(self, args):
         self.showsr = False
@@ -1018,6 +1001,29 @@ class XenRTEmail(XenRTCommand):
             reply = 1
         u.close()
         return reply
+
+class XenRTLogServer(XenRTCommand):
+    name = "logserver"
+    summary = "Get URL to default log server (server call only)"
+    mandatory = ""
+    hide = True
+
+    def run(self, args, preconf=None):
+        details = {'action': 'getlogserver'}
+        u = urlopen_with_retry(self.getServerURL() + "?" + urllib.urlencode(details),
+                           proxies=self.proxies)
+        reply = None
+        data = u.read()
+        if data[0:5] == "ERROR":
+            sys.stderr.write(data)
+        else:
+            reply = data.strip()
+        u.close()
+        return reply
+
+    def render(self, args, results):
+        self.printout("%s\n" % results)
+        return 0
 
 class XenRTSetResult(XenRTCommand):
 
@@ -1413,7 +1419,7 @@ preserve such possibilities.
     faithful_ex = [ "XMLRPC", "HARNESS_PID", "JOBID", "RUNDIR", "XENRT_VERSION",
                     "JOB_SUBMITTED", "STARTED", "JOBSTATUS", "SCHEDULEDON.*",
                     "CHECK", "RETURN", "UPLOADED", "FINISHED", "PASSRATES",
-                    "REGRESSION", "REMOVED" ]
+                    "REGRESSION", "REMOVED", "PREPARE_FAILED" ]
     testrun_ex = [ "MACHINE", "PXE_BIOS_BOOT_RETRY" ]
     custom_ex = [ "JOBGROUP", "TESTRUN.*", "JIRA.*", "USERID",
                   "EMAIL.*", ".*EMAIL_TO", "AUTO_BUG.*" ]
@@ -1942,7 +1948,6 @@ class XenRTSuiteStatus(XenRTCommand):
     -m             Used with -r, orders list by machine-hours
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.advanced = False
@@ -2031,7 +2036,6 @@ class XenRTDetailID(XenRTCommand):
     summary = "Get the detailid for a specified jobid, phase and test"
     mandatory = "<jobid> <phase> <test>"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'detailid'}
@@ -2065,7 +2069,6 @@ class XenRTHelp(XenRTCommand):
     name = "help"
     summary = "Get a summary of commands"
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         cx = {}
@@ -2120,7 +2123,7 @@ class XenRTSubResults(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        return self.upload(details, filename, proxies=self.proxies)
+        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
 
 class XenRTPerfData(XenRTCommand):
 
@@ -2144,7 +2147,7 @@ class XenRTPerfData(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        return self.upload(details, filename, proxies=self.proxies)                
+        return self.upload(details, filename, proxies=self.proxies, scheduler=True)
 
 class XenRTUpload(XenRTCommand):
 
@@ -2156,7 +2159,6 @@ class XenRTUpload(XenRTCommand):
     [ -f <filename> ]         Filename to upload (default is STDIN)
     """
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'upload'}
@@ -2182,13 +2184,7 @@ class XenRTUpload(XenRTCommand):
             sys.stderr.write("Unknown argument\n")
             return None
 
-        url = self.getMasterServerURL()
-
-        logserver = self.getLogServer(id, proxies=self.proxies)
-        if logserver:
-            url = logserver_url % logserver
-
-        return self.upload(details, filename, proxies=self.proxies, url=url)                
+        return self.upload(details, filename, proxies=self.proxies)                
 
 class XenRTDownload(XenRTCommand):
 
@@ -2202,7 +2198,6 @@ class XenRTDownload(XenRTCommand):
     [ -t test ]     Optional test (phase also required)
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.filename = None
@@ -2230,12 +2225,15 @@ class XenRTDownload(XenRTCommand):
         except getopt.GetoptError:
             sys.stderr.write("Unknown argument\n")
             return None
-        url = self.getMasterServerURL()
+        url = self.getServerURL()
 
-        if not usemasterserver:
-            logserver = self.getLogServer(id, proxies=self.proxies)
-            if logserver:
-                url = logserver_url % logserver
+        if usemasterserver:
+            params = ["JOB_FILES_SERVER"]
+        else:
+            params = None
+        logserver = self.getLogServer(id, proxies=self.proxies, params=params)
+        if logserver:
+            url = logserver_url % logserver
 
         u = urlopen_with_retry(url, urllib.urlencode(details),
                            proxies=self.proxies)
@@ -2438,7 +2436,6 @@ class XenRTCaseSet(XenRTCommand):
     summary = "List a set of test cases"
     mandatory = "<set>"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'caseset'}
@@ -2468,7 +2465,6 @@ class XenRTCaseSets(XenRTCommand):
     name = "casesets"
     summary = "List all known casesets"
     hide = True
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'casesets'}
@@ -2613,7 +2609,6 @@ class XenRTInteract(XenRTCommand):
     [-L]               Show last 1000 log output lines
     """
     group = "Job"
-    readOnlyCmd = True
 
     def run(self, args):
 
@@ -2768,7 +2763,6 @@ class XenRTSList(XenRTCommand):
     [-q]             Quiet mode (don't show header)
     """
     group = "Site"
-    readOnlyCmd = True
 
     def run(self, args):
         self.controller = False
@@ -2912,7 +2906,6 @@ class XenRTSite(XenRTCommand):
     summary = "Get data for the specified site"
     mandatory = "<site>"
     group = "Site"
-    readOnlyCmd = True
 
     def run(self, args):
         details = {'action': 'site'}
@@ -3068,7 +3061,6 @@ class XenRTWarnings(XenRTCommand):
                              alternatives include 'comment' and 'data'
     """
     group = "Miscellaneous"
-    readOnlyCmd = True
 
     def run(self, args):
         self.showsr = False
@@ -3174,7 +3166,6 @@ class XenRTSNetwork(_XenRTControllerOperation):
     summary = "Show network info for a site"
     mandatory = "<site>"
     group = "Site"
-    readOnlyCmd = True
     
     def run(self, args):
         if len(args) < 1:
@@ -3238,7 +3229,6 @@ class XenRTPower(_XenRTControllerOperation):
     summary = "Power control a machine"
     mandatory = "<machine> off|on|reboot|nmi"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         if len(args) < 2:
@@ -3270,7 +3260,6 @@ class XenRTConsole(_XenRTControllerOperation):
     summary = "Serial console for a machine"
     mandatory = "<machine>"
     group = "Machine"
-    readOnlyCmd = True
 
     def run(self, args):
         if len(args) < 1:
@@ -3516,6 +3505,7 @@ class Commands:
         self.add(XenRTMGetResource)
         self.add(XenRTMListResources)
         self.add(XenRTMReleaseResources)
+        self.add(XenRTLogServer)
 
     def add(self, cl):
         c = cl(self)

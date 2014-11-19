@@ -1469,8 +1469,10 @@ class PrepareNode:
                     vm["postinstall"].append(self.toplevel.scripts[name])
                 elif x.localName == "file":
                     for a in x.childNodes:
-                        if a.nodeType == a.TEXT_NODE:
-                            vm["filename"] = expand(str(a.data), params)
+                        usertext = expand(x.getAttribute("user"), params)
+                        vm["filename"] = expand(str(a.data), params)
+                        vm["userfile"] = usertext == "true" or usertext == "yes"
+                        break
                 elif x.localName == "bootparams":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
@@ -1478,7 +1480,7 @@ class PrepareNode:
 
         self.vms.append(vm)
 
-        return vm                    
+        return vm
 
     def debugDisplay(self):
         xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))

@@ -112,7 +112,7 @@ class DBConnect:
                     try:
                         self.jobctrl(item[1], item[2:])
                         ok = True
-                    except IOError:
+                    except:
                         xenrt.TEC().logverbose("Replayed command failed")
                         notdone.append(item)
                         ok = False

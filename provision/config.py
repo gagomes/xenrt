@@ -15,13 +15,13 @@ releases = {"George (5.5)":("George","/usr/groups/release/XenServer-5.5.0-Update
             "Clearwater (6.2.0-69770)":("Clearwater","/usr/groups/release/XenServer-6.x/XS-6.2.0-rc3/RTM-69770/", "6.2.0-69770")
            }
 
-branches = {"trunk": ("Sarasota", "6.1.50"),
-            "trunk-storage": ("Sarasota", "6.1.50"),
-            "trunk-64bit": ("Sarasota", "6.1.50"),
-            "trunk-ring0": ("Sarasota", "6.1.50"),
-            "trunk-ring3": ("Sarasota", "6.1.50"),
-            "trunk-storage": ("Sarasota", "6.1.50"),
-            "trunk-partner": ("Sarasota", "6.1.50"),
+branches = {"trunk": ("Dundee", "6.2.50"),
+            "trunk-storage": ("Dundee", "6.2.50"),
+            "trunk-64bit": ("Dundee", "6.2.50"),
+            "trunk-ring0": ("Dundee", "6.2.50"),
+            "trunk-ring3": ("Dundee", "6.2.50"),
+            "trunk-storage": ("Dundee", "6.2.50"),
+            "trunk-partner": ("Dundee", "6.2.50"),
             "clearwater": ("Clearwater", "6.1.2")
            }
 

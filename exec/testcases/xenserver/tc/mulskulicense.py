@@ -800,10 +800,10 @@ class TCLicenseGrace(LicenseExpiryBase):
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
 
         # Now expire one of the host license such that it cross the grace period.
-        self.expireLicense()
+        host = self.expireLicense() # for both hosts expire, provide allhosts=True
 
         # Check whether the license is expired.
-        if not self.checkLicenseExpired(edition):
+        if not self.checkLicenseExpired(edition, host): # for all hosts just provide the param edition.
             self.enableLicenseServer()
             self.releaseLicense(edition)
             raise xenrt.XRTFailure("License is not expired properly.")

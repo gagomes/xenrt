@@ -128,7 +128,7 @@
         </testcase>
         <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21542">
         <arg>guest=ubuntu1404x86-64</arg>
-        <arg>max=8</arg>
+        <arg>max=16</arg>
         <arg>noplugwindows</arg>
         </testcase>
         <finally>

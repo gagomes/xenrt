@@ -36,12 +36,11 @@ def testrunJSONLoad(tool, params):
 
 def getIssue(j, issue):
     global tccache
-    if not tccache.has_key(issue):
+    if issue not in tccache:#not tccache.has_key(issue):
         print "  Getting %s" % issue
         i = j.jira.issue(issue)
         tccache[issue] = i
     return tccache[issue]
-
 
 def getIssues(j, issues):
     global tccache
@@ -62,7 +61,12 @@ def getIssues(j, issues):
 def _findOrCreateTestCase(existing, tcsummary, jiralink, container, desc, xenrttcid=None, xenrttcargs=None, component=None):
     j = jiralink
     if existing.has_key(tcsummary):
-        t = getIssue(j, existing[tcsummary])
+        try:
+            existing[tcsummary].key
+            t = getIssue(j, existing[tcsummary].key)
+        except Exception as e:
+            print e.message
+            t = getIssue(j, existing[tcsummary])
         print "Found %s - %s" % (t.key, t.fields.summary)
     elif existing.has_key("[experimental] " + tcsummary):
         t = getIssue(j, existing["[experimental] " + tcsummary])
@@ -170,7 +174,6 @@ def defineOSTests(distro,
             t = getIssue(j, clink.outwardIssue.key)
             if t.fields.status.name == "Open":
                 existing[t.fields.summary] = t
-
     if arch:
         guestname = distro + arch
     else:
@@ -197,7 +200,8 @@ def defineOSTests(distro,
     if arch:
         args.append("arch=%s" % (arch))
     args.append("memory=1024")
-    tcid = _findOrCreateTestCase(existing,
+
+    tcid =  _findOrCreateTestCase(existing,
                                  tcsummary,
                                  j,
                                  container,
@@ -205,7 +209,6 @@ def defineOSTests(distro,
                                  xenrttcid=install,
                                  xenrttcargs=string.join(args),
                                  component=comp)
-
     output.append("      <testcase id=\"%s\" name=\"VMInstall\" tc=\"%s\">" %
                   (install, tcid))
     output.extend(map(lambda x:"        <arg>%s</arg>" % (x), args))
@@ -233,7 +236,15 @@ def defineOSTests(distro,
                                      tcdesc,
                                      component=comp)
         _createXMLFragment(j, output, guestname, testcase, tcid)
-    
+    if arch == "x86-64" :
+        MAX = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS",
+                                   distro,
+                                  "MAX_VM_VCPUS64"], 8))
+    else:
+        MAX =  int(xenrt.TEC().lookup(["GUEST_LIMITATIONS",
+                                   distro,
+                                  "MAX_VM_VCPUS"], 8))
+
     for testdef in [("guestops.basic.TCStartStop",
                      "Startup-shutdown loop test of",
                      None,
@@ -327,7 +338,7 @@ def defineOSTests(distro,
                      "4. If the VM is Windows and previously had 1 CPU, reboot\n"
                      "5. Verify the correct number of CPUs are reported inside the VM\n"
                      "6. Repeat steps 1 to 5 for CPU counts up to 8 and then 1\n",
-                     ["max=8", "noplugwindows"])]:
+                     ["max=%s" % MAX, "noplugwindows"])]:
 
         testcase, pref, name, tcdesc, extraargs = testdef
         skip = False
@@ -674,6 +685,13 @@ def defineMatrixTest(oses, memory, vcpus, platform, tcArtifacts=None, versioncon
                 c = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS",
                                             distro,
                                             "MAXSOCKETS"], maxvcpus))
+                maxvcpus = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS",
+                                                    distro,
+                                                    "MAX_VM_VCPUS"], maxvcpus ))
+                if (not lin32) and (not win32):
+                    maxvcpus = int(xenrt.TEC().lookup(["GUEST_LIMITATIONS",
+                                                    distro,
+                                                    "MAX_VM_VCPUS64"], maxvcpus ))
                 if c > int(maxvcpus):
                     c = int(maxvcpus)
             else:
@@ -1654,7 +1672,7 @@ def productCodeName(version):
     print xenrt.TEC().lookup(["PRODUCT_CODENAMES",version], "ERROR: Could not find product codename")
 
 def listGuests():
-    print "\n".join(sorted(xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() + [x + "-x64" for x in xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() if xenrt.TEC().lookup(["GUEST_LIMITATIONS", x, "MAXMEMORY64"], None)]))
+    print "\n".join(sorted(xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() + [x + "-x64" for x in xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() if xenrt.TEC().lookup(["GUEST_LIMITATIONS", x, "MAXMEMORY64"], )]))
 
 def netPortControl(machinename, ethid, enable):
     machine = xenrt.PhysicalHost(machinename, ipaddr="0.0.0.0")

@@ -44,7 +44,6 @@ class Config:
         self.config["ROOT_PASSWORD_XGT"] = "xensource"
         self.config["ROOT_PASSWORD_DEBIAN"] = "xensource"
         self.config["EMBEDDED_PASSWORD"] = "xensource"
-
         # Local workig directories etc.
         self.config["XENRT_BASE"] = "/usr/share/xenrt"
         self.config["XENRT_CONF"] = "/etc/xenrt"
@@ -2054,6 +2053,7 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhel7"]["MAX_VM_VCPUS64"] = "16"
         self.config["GUEST_LIMITATIONS"]["centos45"] = {}
         self.config["GUEST_LIMITATIONS"]["centos45"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["centos45"]["MAXMEMORY"] = "16384"
@@ -2110,6 +2110,8 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos510"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos510"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos6"] = {}
         self.config["GUEST_LIMITATIONS"]["centos6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos6"]["MAXMEMORY"] = "8192"
@@ -2134,10 +2136,14 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos7"] = {}
         self.config["GUEST_LIMITATIONS"]["centos7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos7"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["oel53"] = {}
         self.config["GUEST_LIMITATIONS"]["oel53"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel53"]["MAXMEMORY"] = "65536"
@@ -2194,10 +2200,13 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel65"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel65"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["oel65"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["oel7"] = {}
         self.config["GUEST_LIMITATIONS"]["oel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel7"]["MAX_VM_VCPUS64"] = "16"
         self.config["GUEST_LIMITATIONS"]["sles92"] = {}
         self.config["GUEST_LIMITATIONS"]["sles92"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["sles92"]["MAXMEMORY"] = "16384"
@@ -2224,6 +2233,8 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["sles104"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sles104"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles104"]["MAXMEMORY"] = "491520"
+        self.config["GUEST_LIMITATIONS"]["sles104"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles104"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles11"] = {}
         self.config["GUEST_LIMITATIONS"]["sles11"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["sles11"]["MAXMEMORY"] = "16384"
@@ -2240,6 +2251,8 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["sles113"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["sles113"]["MAXMEMORY64"] = "524288"
+        self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["sles113"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["sles12"] = {}
         self.config["GUEST_LIMITATIONS"]["sles12"]["MINMEMORY"] = "4096"
         self.config["GUEST_LIMITATIONS"]["sles12"]["MAXMEMORY"] = "16384"
@@ -2251,14 +2264,20 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["ubuntu1004"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1004"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1004"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1004"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1004"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"] = {}
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1204"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"] = {}
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAX_VM_VCPUS"] = "8"
+        self.config["GUEST_LIMITATIONS"]["ubuntu1404"]["MAX_VM_VCPUS64"] = "16"
         self.config["GUEST_LIMITATIONS"]["debian50"] = {}
         self.config["GUEST_LIMITATIONS"]["debian50"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian50"]["MAXMEMORY"] = "32768"
@@ -2267,10 +2286,14 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["debian60"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian60"]["MAXMEMORY"] = "32768"
         self.config["GUEST_LIMITATIONS"]["debian60"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["debian60"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian60"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["debian70"] = {}
         self.config["GUEST_LIMITATIONS"]["debian70"]["MINMEMORY"] = "256"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
 
         self.config["LINUX_UPDATE"] = {}
         self.config["LINUX_UPDATE"]["rhel5"] = "rhel510"

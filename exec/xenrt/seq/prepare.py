@@ -1,6 +1,6 @@
 __all__=["PrepareNodeParserJSON", "PrepareNodeParserXML", "PrepareNode"]
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy, json
 import xenrt
 import pprint
 

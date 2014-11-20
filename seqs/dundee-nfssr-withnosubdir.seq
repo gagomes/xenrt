@@ -1,0 +1,45 @@
+<xenrt>
+
+  <!-- NFS storage tests with no sub directory -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <NFSSR_WITH_NOSUBDIR>yes</NFSSR_WITH_NOSUBDIR>
+  </variables>
+
+  <prepare>
+    <host>
+      <storage type="nfs" name="nfssr_nosubdir" default="true" options="nosubdir" />
+    </host>
+  </prepare>
+
+  <testsequence group="NFSwithNoSubDir">
+
+    <testcase id="xenserver.tc.storage.TC8123" name="TC20980" tc="TC-20980" />
+
+    <serial group="VDICreate">
+      <testcase id="xenserver.tc.storage.TC8523" name="TC20981" tc="TC-20981" prio="3" />
+    </serial>
+
+    <serial group="VDIResize">
+      <testcase id="xenserver.tc.storage.TC8503" name="TC20982" tc="TC-20982" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8504" name="TC20983" tc="TC-20983" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8505" name="TC20984" tc="TC-20984" prio="3" />
+      <testcase id="xenserver.tc.storage.TC8507" name="TC20985" tc="TC-20985" prio="3" />
+    </serial>
+
+    <serial group="VMSnap">
+      <testcase id="xenserver.tc.snapshot.TC7863" name="TC20986" tc="TC-20986" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8114" name="TC20988" tc="TC-20988" prio="3" />
+      <testcase id="xenserver.tc.snapshot.TC8117" name="TC20989" tc="TC-20989" prio="3" />
+    </serial>
+
+    <testcase id="xenserver.tc.impexp.TC10629" name="TC20987" tc="TC-20987" prio="3" />
+    <testcase id="xenserver.tc.storage.TC10626" name="TC20990" tc="TC-20990" prio="3" />
+
+    <testcase id="xenserver.tc.storage.TC20979" />
+
+  </testsequence>
+
+</xenrt>

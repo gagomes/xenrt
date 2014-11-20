@@ -300,7 +300,7 @@ class TC8542(_KirkwoodErrorBase):
         self.COMMAND_SHOULD_ERROR = True
         # CA-60147 - TC8542 If WLB is not alive, it is okay; pool-deconfigure-wlb is still expected to succeed.
         if isinstance(host, xenrt.lib.xenserver.BostonHost):
-            # CA-93312-TC8542-from Boston and forward (Sanibel, Tampa, Sarasota, etc), pool-deconfigure-wlb is still expected to succeed
+            # CA-93312-TC8542-from Boston and forward (Sanibel, Tampa, Clearwater, etc), pool-deconfigure-wlb is still expected to succeed
             self.COMMAND_SHOULD_ERROR = False
         self.pool.deconfigureWLB()
 

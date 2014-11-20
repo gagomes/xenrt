@@ -1,0 +1,38 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+        <storage type="nfs" name="nfssr" default="true" />
+    </host>
+    <host id="1" noisos="yes"/>
+    <host id="2" noisos="yes" />
+    <host id="3" noisos="yes" />
+    <host id="4" noisos="yes" />
+    <host id="5" noisos="yes" />
+    <host id="6" noisos="yes" />
+    <host id="7" noisos="yes" />
+    <host id="8" noisos="yes" />
+    <host id="9" noisos="yes" />
+    <host id="10" noisos="yes" />
+    <host id="11" noisos="yes" />
+    <host id="12" noisos="yes" />
+    <host id="13" noisos="yes" />
+    <host id="14" noisos="yes" />
+    <host id="15" noisos="yes" />
+  </prepare>
+
+  <testsequence>
+    <!-- hosts per pool- 16-->
+    <testcase id="testcases.xenserver.tc.maxima.TC18845" blocker="yes">
+      <arg>mypool</arg>
+      <arg>RESOURCE_HOST_0</arg>
+    </testcase>
+    <testcase id="testcases.xenserver.tc.maxima.TC18876">
+    </testcase>
+  </testsequence>
+</xenrt>

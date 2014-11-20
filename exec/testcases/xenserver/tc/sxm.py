@@ -998,7 +998,7 @@ class LiveMigrate(xenrt.TestCase):
         vmRef = session.xenapi.VM.get_by_uuid(guest.getUUID())
         domid = session.xenapi.VM.get_domid(vmRef)
         try:            
-            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):                
                 guest.getHost().execdom0("xl pause %s" % domid)
             else:
                 guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
@@ -1012,7 +1012,7 @@ class LiveMigrate(xenrt.TestCase):
         srcHost = vm['src_host']
         destHost = vm['dest_host']
 
-        if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):
             output = srcHost.execdom0('sm-cli mirror-list')
         else:
             output = srcHost.execdom0('/opt/xensource/debug/sm mirror-list') 
@@ -1029,7 +1029,7 @@ class LiveMigrate(xenrt.TestCase):
                 error_msg.append("FAILURE_SXM: VDI %s MD5 sum is not same after migration" % vdi)
 
         try:
-            if isinstance(guest.getHost(), xenrt.lib.xenserver.SarasotaHost):                
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):                
                 guest.getHost().execdom0("xl unpause %s" % domid)
             else:
                 guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)

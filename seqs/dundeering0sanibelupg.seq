@@ -1,0 +1,21 @@
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Boston"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456/"/>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.install.TCXenServerUpgrade" tc="TC-17761">
+        <arg>input=DEFAULT</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

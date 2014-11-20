@@ -1,0 +1,62 @@
+<xenrt>
+
+  <!-- XenDesktop BVT tests [XS Version: Dundee, XD Version(s): Bruin, Merlin] -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <DISABLE_NEW_ASF_DISCOVERY>yes</DISABLE_NEW_ASF_DISCOVERY>
+    <DISABLE_IPV6_XOP440>yes</DISABLE_IPV6_XOP440>
+    <OPTION_KEEP_NFS>yes</OPTION_KEEP_NFS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+      <storage type="nfs" name="transient" default="false"/>
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installDotNet35"/>
+        <postinstall action="installDotNet451"/>
+        <postinstall action="installPowerShell30"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <postinstall action="start"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="ws08r2sp1-x64">
+        <distro>ws08r2sp1-x64</distro>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installDotNet35"/>
+        <postinstall action="installDotNet451"/>
+        <postinstall action="installPowerShell30"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="xenDesktopTailor"/>
+        <postinstall action="shutdown"/>
+        <postinstall action="removeCD"/>
+        <postinstall action="start"/>
+        <network device="0" />
+        <vcpus>2</vcpus>
+        <memory>4096</memory>
+      </vm>      
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="XenDesktopBVT">
+      <testcase id="xenserver.tc.interop.TCXdAsfSetup" tc="TC-21467" blocker="yes"/>
+      <testcase id="xenserver.tc.interop.TCXsXdBvt" name="BruinBVT" tc="TC-20888">
+        <arg>xdVersion=bruin</arg>
+      </testcase>
+      <testcase id="xenserver.tc.interop.TCXsXdBvt" name="MerlinBVT" tc="TC-21466">
+        <arg>xdVersion=MerlinCloud</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

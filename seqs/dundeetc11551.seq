@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Jumbo Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <storage type="lvmoiscsi" name="iSCSI" default="true" options="jumbo"/>
+      <storage type="nfs" name="shared" default="true" options="jumbo"/> 
+      <host id="0">
+      </host>
+      <NETWORK>
+       <PHYSICAL network="NPRI">
+        <NIC/>
+        <MANAGEMENT/>
+       </PHYSICAL>
+       <PHYSICAL network="NSEC">
+        <NIC/>
+        <STORAGE/>
+       </PHYSICAL>
+       <PHYSICAL network="IPRI" jumbo="yes">
+        <NIC/>
+        <STORAGE/>
+       </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="vSwitch">
+      <testcase id="xenserver.tc.vswitch.TC11553"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

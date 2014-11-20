@@ -1,0 +1,141 @@
+<xenrt>
+
+  <!-- OS functional test sequence: oel61 and oel61-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+      <serial group="oel61">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-15664">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=oel61</arg>
+          <arg>distro=oel61</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="oel61">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-15665">
+            <arg>guest=oel61</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-15666">
+            <arg>guest=oel61</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-15667">
+            <arg>guest=oel61</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-15668">
+            <arg>guest=oel61</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-15669">
+            <arg>guest=oel61</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          
+          <!-- this fails due to CA-73512 which has been fixed by Red Hat but won't be out until 6.3 or later
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-15670">
+            <arg>N/A</arg>
+            <arg>guest=oel61</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>-->
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-15671">
+            <arg>N/A</arg>
+            <arg>guest=oel61</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-15672">
+            <arg>guest=oel61</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=oel61</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+
+      <serial group="oel61x86-64">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-15674">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=oel61x86-64</arg>
+          <arg>distro=oel61</arg>
+          <arg>arch=x86-64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="oel61x86-64">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-15675">
+            <arg>guest=oel61x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-15676">
+            <arg>guest=oel61x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-15677">
+            <arg>guest=oel61x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-15678">
+            <arg>guest=oel61x86-64</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-15679">
+            <arg>guest=oel61x86-64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-15680">
+            <arg>N/A</arg>
+            <arg>guest=oel61x86-64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-15681">
+            <arg>N/A</arg>
+            <arg>guest=oel61x86-64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-15682">
+            <arg>guest=oel61x86-64</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=oel61x86-64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

@@ -836,7 +836,7 @@ def processMatrixTests(release=None):
                   ('solaris10u9','Solaris 10u9')]
 
     # List of releases to manage
-    releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Creedence','Sarasota']
+    releases = ['Backport','George','GeorgeU1','MNR','Cowley','Boston','Sanibel','Tampa','Clearwater','Creedence','Dundee']
 
     releaseVersionConfig = {}
     releaseVersionConfig['Backport'] = "Orlando"
@@ -847,7 +847,7 @@ def processMatrixTests(release=None):
     releasesWithoutSeperateMaxMemTests = ['Backport','George','GeorgeU1','MNR','Cowley']
 
     # Mapping of suites to releases in the form Release:(Nightly,Regression, Experimental)
-    suiteMappings = {'Creedence':('TC-21159','TC-21163','TC-21190'), 'Sarasota': ('TC-18013', 'TC-18016', None)}
+    suiteMappings = {'Creedence':('TC-21159','TC-21163','TC-21190'), 'Dundee': ('TC-18013', 'TC-18016', None)}
 
     # Mapping of distros to Primary/Secondary/Tertiary for each release
     distrosToRels = {}
@@ -1112,9 +1112,9 @@ def processMatrixTests(release=None):
     distrosToRels['Creedence']['experimental'] = []
 
 
-    #  (Sarasota)
-    distrosToRels['Sarasota'] = {}
-    distrosToRels['Sarasota']['primary'] = ['rhel48','rhel510','rhel65',
+    #  (Dundee)
+    distrosToRels['Dundee'] = {}
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65',
                                           'sles104','sles113',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1125,10 +1125,10 @@ def processMatrixTests(release=None):
                                           'oel510','centos510','oel65','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Sarasota']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles112','sles103',
                                             'ws08r2-x64'
                                             'win7-x86','win7-x64','rhel64','oel64', 'centos64']
-    distrosToRels['Sarasota']['tertiary'] = ['rhel46','rhel45',
+    distrosToRels['Dundee']['tertiary'] = ['rhel46','rhel45',
                                               'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
                                               'rhel63',
                                               'sles102',
@@ -1139,8 +1139,8 @@ def processMatrixTests(release=None):
                                               'oel63','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
-    distrosToRels['Sarasota']['level0'] = ['w2k3eesp2']
-    distrosToRels['Sarasota']['experimental'] = []
+    distrosToRels['Dundee']['level0'] = ['w2k3eesp2']
+    distrosToRels['Dundee']['experimental'] = []
 
 
 
@@ -1377,7 +1377,7 @@ def _walkHierarchy(j, ticket):
     return reply
 
 
-def generateSmokeTestSequences(version="Sarasota", regressionSuite="TC-18016", nightlySuite="TC-18013", expSuite="TC-19628", folder="seqs"):
+def generateSmokeTestSequences(version="Dundee", regressionSuite="TC-18016", nightlySuite="TC-18013", expSuite="TC-19628", folder="seqs"):
     """Generates all smoke test sequences for the specified product version from the associate Jira tickets.
     
     Before using this method, ensure that processMatrixTests is up to date and has been run for the specified suites."""
@@ -1403,10 +1403,10 @@ def generateSmokeTestSequences(version="Sarasota", regressionSuite="TC-18016", n
     maxtests["Creedence"]["MaxMem"] = "13419"
     maxtests["Creedence"]["MaxMem32BitLin"] = "13437"
     maxtests["Creedence"]["MaxvCPUs"] = "13448"
-    maxtests["Sarasota"] = {}
-    maxtests["Sarasota"]["MaxMem"] = "13419"
-    maxtests["Sarasota"]["MaxMem32BitLin"] = "13437"
-    maxtests["Sarasota"]["MaxvCPUs"] = "13448"
+    maxtests["Dundee"] = {}
+    maxtests["Dundee"]["MaxMem"] = "13419"
+    maxtests["Dundee"]["MaxMem32BitLin"] = "13437"
+    maxtests["Dundee"]["MaxvCPUs"] = "13448"
 
     j = J()
     testPrefix = "xenserver.tc.smoketest"

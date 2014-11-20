@@ -1,0 +1,152 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+    <DISABLE_GUEST_IPV4>yes</DISABLE_GUEST_IPV4>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+
+    <serial group="ws08sp2-x86">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-16307">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>distro=ws08sp2-x86</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ws08sp2-x86">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-16308">
+        <arg>guest=ws08sp2-x86</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-16309">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-16310">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-16311">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-16312">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-16313">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>live</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-16314">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>loops=5</arg>
+        </testcase> -->
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-16315">
+        <arg>N/A</arg>
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-16316">
+        <arg>N/A</arg>
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-16317">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ws08sp2-x86</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="ws08sp2-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-16319">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>distro=ws08sp2-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ws08sp2-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-16320">
+        <arg>guest=ws08sp2-x64</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-16321">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-16322">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-16323">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-16324">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-16325">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>live</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <!-- <testcase id="guestops.srm.TCHibernate" tc="TC-16326">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>loops=5</arg>
+        </testcase> -->
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-16327">
+        <arg>N/A</arg>
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-16328">
+        <arg>N/A</arg>
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-16329">
+        <arg>guest=ws08sp2-x64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ws08sp2-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

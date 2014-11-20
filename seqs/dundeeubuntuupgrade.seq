@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="ubuntu1204">
+        <distro>ubuntu1204</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+  <testsequence group="UbuntuUpgrade">
+    <testcase id="testcases.guestops.upgrade.TCUbuntuUpgrade" tc="TC-23328">
+      <arg>guest=ubuntu1204</arg>
+      <arg>upgradeto=ubuntu1404</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

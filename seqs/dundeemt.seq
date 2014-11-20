@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- simple multi tenancy tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Multi Tenancy">
+      <testcase tc="TC-14868" id="xenserver.tc.portlocking.FalseMacIPTest"/>
+      
+      <testcase tc="TC-15202" id="xenserver.tc.portlocking.IPTablesInputTest"/>
+      <testcase tc="TC-15203" id="xenserver.tc.portlocking.IPTablesForwardTest"/>
+      <testcase tc="TC-15204" id="xenserver.tc.portlocking.IPTablesOutputTest"/>
+      
+      <testcase tc="TC-15205" id="xenserver.tc.portlocking.IPSetTest"/>
+      <testcase tc="TC-15206" id="xenserver.tc.portlocking.IPSetNameLengthTest"/>
+      <testcase tc="TC-15207" id="xenserver.tc.portlocking.IPSetNumTablesTest"/>
+      
+      <testcase tc="TC-15208" id="xenserver.tc.portlocking.EBTablesInputTest"/>
+      <testcase tc="TC-15209" id="xenserver.tc.portlocking.EBTablesForwardTest"/>
+      <testcase tc="TC-15210" id="xenserver.tc.portlocking.EBTablesOutputTest"/>
+      
+      <testcase tc="TC-15211" id="xenserver.tc.portlocking.ArpTablesInputTest"/>
+      <testcase tc="TC-15212" id="xenserver.tc.portlocking.ArpTablesForwardTest"/>
+      <testcase tc="TC-15213" id="xenserver.tc.portlocking.ArpTablesOutputTest"/>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

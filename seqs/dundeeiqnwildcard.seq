@@ -1,0 +1,25 @@
+<xenrt>
+  <!-- TC-18159: Regression test for CA-63999 (multipathing with IQN wildcard) -->
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <MANAGEMENT />
+          <NIC />
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <STORAGE />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.multipath.TCIQNWildcard" tc="TC-18159" />
+  </testsequence>
+</xenrt>

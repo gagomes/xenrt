@@ -117,12 +117,12 @@ class TestCheckRpmInstalled(XenRTUnitTestCase):
         self.assertFalse(self.__cut.checkRPMInstalled("Polymorph"))
 
 
-class TestSarasotaHost(XenRTUnitTestCase):
+class TestDundeeHost(XenRTUnitTestCase):
     @patch('xenrt.TEC')
     def testGetTestHotfix(self, tec):
         tec_instance = tec.return_value = Mock()
 
-        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
 
         host.getTestHotfix(1)
 
@@ -131,7 +131,7 @@ class TestSarasotaHost(XenRTUnitTestCase):
 
     @patch('xenrt.TEC')
     def testvSwitchCoverageLog(self, tec):
-        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
         host.vswitchAppCtl = Mock()
 
         host.vSwitchCoverageLog()
@@ -140,7 +140,7 @@ class TestSarasotaHost(XenRTUnitTestCase):
 
     @patch('xenrt.TEC')
     def testMockLocation(self, tec):
-        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
 
         self.assertEquals(
             'binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm',
@@ -148,11 +148,11 @@ class TestSarasotaHost(XenRTUnitTestCase):
 
     @patch('xenrt.TEC')
     def testguestFactory(self, tec):
-        host = xenrt.lib.xenserver.host.SarasotaHost(None, None)
+        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
 
         guestFactory = host.guestFactory()
 
-        self.assertEquals('SarasotaGuest', guestFactory.__name__)
+        self.assertEquals('DundeeGuest', guestFactory.__name__)
 
 
 class TestCreedenceHost(XenRTUnitTestCase):

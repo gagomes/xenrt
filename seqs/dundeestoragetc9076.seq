@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Fiber Channel Multipath tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-9076">
+      <testcase id="xenserver.tc.multipath.TC9075"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

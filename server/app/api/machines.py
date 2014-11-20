@@ -328,7 +328,7 @@ class XenRTBorrow(XenRTMachinePage):
                     return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
             if rc[0] and rc[0].strip() != userid and not force:
                 return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
-            if rc[1] and time.strptime(rc[1], "%Y-%m-%d %H:%M:%S") > leaseToTime and not force:
+            if rc[1] and rc[1].timetuple() > leaseToTime and not force:
                 return "ERROR: machine already leased for longer (use --force to override)"
             cur = db.cursor()
             cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "

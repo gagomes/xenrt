@@ -17,7 +17,7 @@ class XenRTCompat(XenRTPage):
         compat = server.ServerInstance().getCompatAction(action)
 
         if compat:
-            return compat(self.request).render()
+            return compat(self.request).renderWrapper()
         elif action == "frame":
             querystr = self.queryStrFromParams(['jobs', 'detailid'])
             if len(querystr) > 0:

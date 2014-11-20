@@ -22,7 +22,8 @@ class XenRTPage(Page):
         writeDb = self.getDB()
         writeCur = writeDb.cursor()
         writeCur.execute("SELECT pg_current_xlog_location()")
-        writeLoc = app.utils.XLogLocation(writeCur.fetchone()[0])
+        writeLocStr = writeCur.fetchone()[0]
+        writeLoc = app.utils.XLogLocation(writeLocStr)
         readDb = app.db.dbReadInstance()
         readCur = readDb.cursor()
         i = 0
@@ -32,6 +33,7 @@ class XenRTPage(Page):
             if not readLocStr:
                 break
             readLoc = app.utils.XLogLocation(readLocStr)
+            print "Checking whether writes have synced, attempt %d - write=%s, read=%s" % (i, writeLocStr, readLocStr)
             if readLoc >= writeLoc:
                 break
             i += 1

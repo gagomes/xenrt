@@ -40,18 +40,17 @@ class JiraLink:
         self.TESTRUN_URL = xenrt.TEC().lookup("TESTRUN_URL", None)
         self.customFields = None
 
-        self.connected = True
+        self.connected = False
         try:
             self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
             self.jira.session()
+            self.connected = True
         except jirarest.exceptions.JIRAError, e:
             traceback.print_exc(file=sys.stderr)
-            xenrt.TEC().logverbose("JiraLink Exception: %s" % self.getJiraExceptionText(e))
-            self.connected = False
+            xenrt.TEC().logverbose("JiraLink Exception: %s" % (self.getJiraExceptionText(e)))
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().logverbose("JiraLink Exception: %s" % (str(e)))
-            self.connected = False
 
         self.tickets = {}
 
@@ -63,10 +62,7 @@ class JiraLink:
         try:
             return str(exception)
         except UnicodeEncodeError:
-            if exception.text:
-                return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, unicode(exception.text, errors='ignore'), exception.url)
-            else:
-                return 'HTTP {0}: {1}'.format(exception.status_code, exception.url)
+            return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, unicode(exception.text, errors='ignore'), exception.url)
 
     def attemptToConnect(self):
         """If we've not already established a 'connection' with Jira then

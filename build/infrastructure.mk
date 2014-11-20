@@ -8,39 +8,39 @@ BACKUP	= if [ -e $(1) ]; then $(SUDO) cp $(1) $(1).xrt; fi
 RESTORE = if [ -e $(1).xrt ]; then $(SUDO) mv $(1).xrt $(1); fi
 
 ifeq ($(PRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOPROMPT = yes
-DOAUTOFS = yes
-DODHCPD = yes
-DODHCPD6 = yes
-DOHOSTS = yes
-DONETWORK = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOPROMPT ?= yes
+DOAUTOFS ?= yes
+DODHCPD ?= yes
+DODHCPD6 ?= yes
+DOHOSTS ?= yes
+DONETWORK ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOHOSTS = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOAUTOFSNIS = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOHOSTS ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOAUTOFSNIS ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(SSHCONFIG),yes)
-DOSSH = yes
+DOSSH ?= yes
 endif
 
 INETD_DAEMON ?= openbsd-inetd

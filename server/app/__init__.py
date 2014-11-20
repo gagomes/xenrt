@@ -1,5 +1,6 @@
 from server import Page
 import app.db
+import config
 import time
 
 class XenRTPage(Page):
@@ -34,7 +35,7 @@ class XenRTPage(Page):
         readDb = app.db.dbReadInstance()
         readCur = readDb.cursor()
         i = 0
-        while i < (int(cfg['db_sync_timeout'])/self.DB_SYNC_CHECK_INTERVAL):
+        while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):
             # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
             readCur.execute("SELECT pg_last_xlog_replay_location();")
             readLocStr = readCur.fetchone()[0]

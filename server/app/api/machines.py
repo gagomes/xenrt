@@ -474,8 +474,8 @@ class XenRTMUpdate(XenRTMachinePage):
                         self.update_machine_param(machine, key, form[key])
             return "OK"
         except:
-            return "ERROR Internal error"
             traceback.print_exc(file=sys.stderr)
+            return "ERROR Internal error"
 
     def update_machine_param(self, machine, key, value):
 

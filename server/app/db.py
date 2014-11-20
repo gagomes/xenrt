@@ -11,7 +11,18 @@ _writeDBPool = None
 class PooledDBConnection(object):
     def __init__(self, pool):
         self.pool = pool
-        self.conn = pool.getconn()
+        i = 0
+        # Allow all of the connections to flush
+        while i <= int(config.max_db_connections):
+            self.conn = pool.getconn()
+            cur = self.conn.cursor()
+            try:
+                cur.execute("SELECT 1;")
+                cur.close()
+                break
+            except:
+                self.pool.putconn(self.conn, close=True)
+            i += 1
 
     def close(self):
         self.pool.putconn(self.conn)
@@ -29,11 +40,12 @@ def dbWriteInstance():
     global _writeDBPool
     if not _writeDBPool:
         _writeDBPool = initPool(config.dbConnectStringWrite)
-    return PooledDBConnection(_readDBPool)
+    ret = PooledDBConnection(_writeDBPool)
+    return ret
 
 def initPool(connStr):
     args = connStrToArgs(connStr)
-    ret = psycopg2.pool.ThreadedConnectionPool(4, 1000, **args)
+    ret = psycopg2.pool.ThreadedConnectionPool(1, int(config.max_db_connections), **args)
     return ret
 
 def connStrToArgs(connStr):

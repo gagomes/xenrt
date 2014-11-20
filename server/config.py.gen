@@ -14,6 +14,7 @@ else:
 
 cfg['url_base'] = "http://%s/share/control" % (addr)
 cfg['tmp_base'] = "/tmp"
+cfg['max_db_connections'] = "8"
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):
@@ -46,6 +47,8 @@ if os.path.exists(cf):
                                     cfg['tmp_base'] = data
                                 elif name == "LOG_SERVER":
                                     cfg['log_server'] = data
+                                elif name == "MAX_DB_CONNECTIONS":
+                                    cfg['max_db_connections'] = data
 
 
 cfg['results'] = "%s/results" % basedir

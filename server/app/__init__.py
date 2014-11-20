@@ -10,12 +10,16 @@ class XenRTPage(Page):
         self._db = None
 
     def renderWrapper(self):
-        ret = self.render()
-        if self.WRITE:
-            self.waitForLocalWrite()
-        if self._db:
-            self._db.close()
-        return ret
+        try:
+            ret = self.render()
+            return ret
+        finally:
+            try:
+                if self.WRITE:
+                    self.waitForLocalWrite()
+            finally:
+                if self._db:
+                    self._db.close()
 
     def waitForLocalWrite(self):
         assert self.WRITE
@@ -30,10 +34,10 @@ class XenRTPage(Page):
         while i < 1000:
             readCur.execute("SELECT pg_last_xlog_replay_location();")
             readLocStr = readCur.fetchone()[0]
+            print "Checking whether writes have synced, attempt %d - write=%s, read=%s" % (i, writeLocStr, readLocStr)
             if not readLocStr:
                 break
             readLoc = app.utils.XLogLocation(readLocStr)
-            print "Checking whether writes have synced, attempt %d - write=%s, read=%s" % (i, writeLocStr, readLocStr)
             if readLoc >= writeLoc:
                 break
             i += 1

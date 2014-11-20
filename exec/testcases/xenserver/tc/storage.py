@@ -4480,13 +4480,13 @@ class TCVdiCorruption(xenrt.TestCase):
             outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
         except Exception, e:
             xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
-            availSpace = int(self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
             if "Input/output error" in str(e.data):
-                if availSpace == 0:
+                if availSpace == "0":
                     xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
                 else:
                     raise xenrt.XRTError("Input/Error thrown before disk is full. available space=%s" % (availSpace))
-            elif "SSH timed out" in str(e) and availSpace == 0:
+            elif "SSH timed out" in str(e) and availSpace == "0":
                 #Workaround due to CA-122162- dd command doesn't crash when 2TB VDI is full
                 #raise xenrt.XRTFailure("dd command didn't return after disk is full. available space=%s" % (availSpace))
                 #check if vdi is corrupted
@@ -4499,8 +4499,8 @@ class TCVdiCorruption(xenrt.TestCase):
             else: 
                 raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
         else:
-            availSpace = int(self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device)))
-            if availSpace <> 0:
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            if availSpace <> "0":
                 raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
     
     def postRun(self):

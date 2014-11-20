@@ -4,6 +4,7 @@ import time
 
 class XenRTPage(Page):
     WRITE = False
+    DB_SYNC_CHECK_INTERVAL = 0.1
 
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)
@@ -25,23 +26,27 @@ class XenRTPage(Page):
         assert self.WRITE
         writeDb = self.getDB()
         writeCur = writeDb.cursor()
+
+        # Get the current write xlog location from the master
         writeCur.execute("SELECT pg_current_xlog_location()")
         writeLocStr = writeCur.fetchone()[0]
         writeLoc = app.utils.XLogLocation(writeLocStr)
         readDb = app.db.dbReadInstance()
         readCur = readDb.cursor()
         i = 0
-        while i < 1000:
+        while i < (int(cfg['db_sync_timeout'])/self.DB_SYNC_CHECK_INTERVAL):
+            # Get the current xlog replay location from the local DB. This returns none if the local DB is the master
             readCur.execute("SELECT pg_last_xlog_replay_location();")
             readLocStr = readCur.fetchone()[0]
             print "Checking whether writes have synced, attempt %d - write=%s, read=%s" % (i, writeLocStr, readLocStr)
             if not readLocStr:
+                # This means the local database is the master, so we can stop
                 break
             readLoc = app.utils.XLogLocation(readLocStr)
             if readLoc >= writeLoc:
                 break
             i += 1
-            time.sleep(0.1)
+            time.sleep(self.DB_SYNC_CHECK_INTERVAL)
         readCur.close()
         readDb.close()
 

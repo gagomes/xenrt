@@ -12,7 +12,9 @@ class PooledDBConnection(object):
     def __init__(self, pool):
         self.pool = pool
         i = 0
-        # Allow all of the connections to flush
+        # If the database is restarted, we'll need to close the connection and start a new one
+        # So we do a simple query to the DB, and if that fails, we close the connection and try a new one
+        # Eventually all of the stale connections will be closed, then we'll get a fresh new one
         while i <= int(config.max_db_connections):
             self.conn = pool.getconn()
             cur = self.conn.cursor()
@@ -48,6 +50,7 @@ def initPool(connStr):
     ret = psycopg2.pool.ThreadedConnectionPool(1, int(config.max_db_connections), **args)
     return ret
 
+# Convert a connection string to a dictionary of args for psycopg2
 def connStrToArgs(connStr):
     ret = {}
     params = connStr.split(":")

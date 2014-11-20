@@ -362,7 +362,7 @@ def exportWSMANVM(password = None,
                   gateway = None):
 
     wsmanConn = wsmanConnection(password,hostIPAddr)
-    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway)
+    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway,"c:\exportWSMANVMScriptsOutput.txt")
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
     writexmlToFile = writeXmlToFile()
     str = '"' + "Xen:%s" % (vmuuid) + "%"+ '"'
@@ -373,7 +373,13 @@ def exportWSMANVM(password = None,
     $filter1 = "SELECT * FROM Xen_DiskSettingData where InstanceID like"
     $filter = $filter1 + '"' + %s + '"'
     $xenEnum = $objSession.Enumerate("http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_DiskSettingData", $filter, $dialect)
+    $timstamp = Get-Date -Format o
     $vmVbd = @()
+    # Log the jobResult for Element in the array into exportWSMANVMScriptsOutput.txt
+    "jobResult for Element in the array" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+    $xenEnum | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+
     while (!$xenEnum.AtEndOfStream) {
         $elementRec = $xenEnum.ReadItem()
         $vmVbd += [xml]$elementRec
@@ -411,19 +417,32 @@ def exportWSMANVM(password = None,
             $source = $transferVm.Xen_ConnectToDiskImageJob.TargetURI
 
             $transferJob = Start-BitsTransfer -Source $source -destination $destination -Asynchronous -DisplayName XenExportImport
+            $timestamp = Get-Date -Format o
             "-Source $source -destination $destination"
+
+            # Log the Cim call response on RAW file copy using BITS into exportWSMANVMScriptsOutput.txt
+            "Cim call response on RAW file copy using BITS" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $transferJob | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
 
             while ($jobStatus.JobState -ne "transferred"){
                 $jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
+                $timestamp = Get-Date -Format o
                 Write-Progress -activity "BITS Transfer Download" -status "copying.. " -PercentComplete ((($jobstatus.BytesTransferred / 1Mb) / ($jobStatus.BytesTotal / 1Mb)) * 100)
                 if ($jobStatus.JobState -eq "TransientError") {
                     $jobstatus
                     "download is paused for 10 secs due to TransientError from BITS"
                     sleep 10
+                $jobStatus | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
                     Resume-BitsTransfer -BitsJob $transferJob
                 }
                 sleep 10
             }
+            # Log the Transfer Job Status for RAW file into exportWSMANVMScriptsOutput.txt
+            "Transfer Job Status for RAW file" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $jobStatus | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $transferJob | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
 
             Write-Progress -activity "BITS Transfer Download" -status "copying.. " -completed
 
@@ -437,11 +456,17 @@ def exportWSMANVM(password = None,
             $vdiDisconnect
             # check for a job status of finished
             $jobPercentComplete = 0
+            "jobResult for Disconnect From Disk Image Job" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             while ($jobPercentComplete -ne 100) {
                 $jobResult = [xml]$objSession.Get($vdiDisconnect.DisconnectFromDiskImage_OUTPUT.Job.outerxml)
                 $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                 sleep 3
+            $jobResult | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
             }
+            # Log the jobResult for Export Finished into exportWSMANVMScriptsOutput.txt
+            "jobResult for Export Finished" | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            $timestamp | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
+            WriteXmlToFile $jobResult | Out-File "c:\exportWSMANVMScriptsOutput.txt" -Append
         }
     }
 
@@ -462,7 +487,7 @@ def importWSMANVM(password = None,
                   gateway = None):
 
     wsmanConn = wsmanConnection(password,hostIPAddr)
-    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway)
+    connToDiskImage = connectToDiskImageWithStaticIP(transProtocol,ssl,static_ip,mask,gateway,"c:\importWSMANVMScriptsOutput.txt")
     disconFromDiskImage = disconnectFromDiskImage("$connectionHandle")
     writexmlToFile = writeXmlToFile()
     vmData = '"' + "%" + "%s" % (vmuuid) + "%" + '"'
@@ -486,17 +511,24 @@ def importWSMANVM(password = None,
     # Perform the enumeration against the given CIM class
 
     $xenEnum = $objSession.Enumerate($cimUri, $filter, "http://schemas.microsoft.com/wbem/wsman/1/WQL")
+    $timestamp = Get-Date -Format o
 
     # This returns an object that contains all elements in $cimUri
 
     # Declare an empty, generic array with no specific type
     $xenEnumXml = @()
 
+    # Log the jobResult for Element in the array into importWSMANVMScriptsOutput.txt
+    "jobResult for Element in the array" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+    $xenEnum | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+
     # Read out each returned element as a member of the array
     while (!$xenEnum.AtEndOfStream) {
         $elementRec = $xenEnum.ReadItem()
         $xenEnumXml += $elementRec
     }
+    $xenEnumXml | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
 
     $vmDataInfo = [xml]$xenEnumXml
@@ -517,6 +549,13 @@ def importWSMANVM(password = None,
     $filterTemp = "SELECT * FROM Xen_StoragePool where Name like "
     $filterStr = $filterTemp + '"' + "%s" + '"'
     $xenEnum = $objSession.Enumerate("http://schemas.citrix.com/wbem/wscim/1/cim-schema/2/Xen_StoragePool", $filterStr, $dialect)
+
+    $timestamp = Get-Date -Format o
+    # Log the jobResult for WQL Filters into importWSMANVMScriptsOutput.txt
+    "jobResult for WQL Filters" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+    $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+    $xenEnum | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+
     $localSr = [xml]$xenEnum.ReadItem()
 
 
@@ -536,6 +575,12 @@ def importWSMANVM(password = None,
         }
         %s
         $newVdi = $output
+        $timestamp = Get-Date -Format o
+        # Log the Vdi file details into importWSMANVMScriptsOutput.txt
+        "Get the Vdi file details" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $vdiName | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $vmName | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         if ($newVdi -ne $NULL)
         {
             if ($newVdi.AddResourceSetting_OUTPUT.ReturnValue -ne 0) {
@@ -545,10 +590,15 @@ def importWSMANVM(password = None,
                     $jobResult = [xml]$objSession.Get($newVdi.AddResourceSetting_OUTPUT.Job.outerxml)
                     $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
                     sleep 1
+                    $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
                 }
             }
         }
         $vm2Vdi = [xml]($objSession.Get($newvdi.AddResourceSetting_OUTPUT.ResultingResourceSetting.outerXML))
+        # Log the Add Resource to Vdi into importWSMANVMScriptsOutput.txt
+        "Get the Add Resource to Vdi" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
         # Parse the VBD into the Xen_DiskImage information needed
         $dsdHostResource = $vm2vdi.Xen_DiskSettingData.HostResource
@@ -577,20 +627,33 @@ def importWSMANVM(password = None,
         $source =  "Q:\" + $element.Name
 
         $transferJob = Start-BitsTransfer -Source $source -destination $transferVm.Xen_ConnectToDiskImageJob.TargetURI -Asynchronous -DisplayName XenVdiTransfer -TransferType Upload
+        $timestamp = Get-Date -Format o
         "-Source " + $source + " -destination " + $transferVm.Xen_ConnectToDiskImageJob.TargetURI
+        # Log the Cim call response on RAW file copy using BITS into importWSMANVMScriptsOutput.txt
+        "Cim call response on RAW file copy using BITS" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $transferJob | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+
         while ($jobStatus.JobState -ne "transferred"){
-        $jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
+                $jobStatus = Get-BitsTransfer -JobId $transferJob.JobId
+                $timestamp = Get-Date -Format o
                 Write-Progress -activity "BITS Transfer Upload" -status "copying.. " -PercentComplete ((($jobstatus.BytesTransferred / 1Mb) / ($jobStatus.BytesTotal / 1Mb)) * 100)
                 if ($jobStatus.JobState -eq "TransientError") {
                     $jobstatus
                     "upload is paused for 10 secs due to TransientError from BITS"
                     sleep 10
+                    $jobstatus | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
                     Resume-BitsTransfer -BitsJob $transferJob
                 }
                 sleep 10
             }
 
             Write-Progress -activity "BITS Transfer Upload" -status "copying.. " -completed
+        # Log the Transfer Job Status for RAW file into importWSMANVMScriptsOutput.txt
+        "Transfer Job Status for RAW file" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $jobStatus | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $transferJob | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
         $bitsTime = $jobstatus.TransferCompletionTime - $jobstatus.CreationTime
         $bitsTime.TotalSeconds.ToString() + " Seconds"
@@ -606,10 +669,16 @@ def importWSMANVM(password = None,
         $jobPercentComplete = 0
         while ($jobPercentComplete -ne 100) {
             $jobResult = [xml]$objSession.Get($vdiDisconnect.DisconnectFromDiskImage_OUTPUT.Job.outerxml)
+            $timestamp = Get-Date -Format o
             $jobPercentComplete = $jobresult.Xen_DisconnectFromDiskImageJob.PercentComplete
             $jobPercentComplete
             sleep 3
+            $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
         }
+        # Log the jobResult for VDIDisconnect into importWSMANVMScriptsOutput.txt
+        "jobResult for VDIDisconnect" | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        $timestamp | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
+        WriteXmlToFile $jobResult | Out-File "c:\importWSMANVMScriptsOutput.txt" -Append
 
     }
     $vmUuid = $vm.Xen_ComputerSystem.Name
@@ -756,7 +825,8 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
                                    ssl = None,
                                    static_ip = None,
                                    mask = None,
-                                   gateway = None):
+                                   gateway = None,
+                                   scriptlog = "c:\importWSMANScriptsOutput.txt"):
 
     endPointRef = endPointReference("Xen_StoragePoolManagementService")
     psScript = u"""
@@ -765,6 +835,7 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
     }
     $protocol = "%s"
     $ssl = "%s"
+    $scriptlog = "%s"
     $DeviceID = $vdi.Xen_DiskImage.DeviceID
     $CreationClassName = $vdi.Xen_DiskImage.CreationClassName
     $SystemCreationClassName = $vdi.Xen_DiskImage.SystemCreationClassName
@@ -774,9 +845,9 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
     $actionUri = $xenEnum
     $timestamp = Get-Date -Format o
     # Log the actionUri for connectToDiskImage endpoint reference into importWSMANScriptsOutput.txt
-    "Get the actionUri for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    $actionUri | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    "Get the actionUri for connectToDiskImage" | Out-File $scriptlog -Append
+    $timestamp | Out-File $scriptlog -Append
+    $actionUri | Out-File $scriptlog -Append
 
     $parameters = @"
     <ConnectToDiskImage_INPUT
@@ -806,9 +877,9 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
     $startTransfer = [xml]$objSession.Invoke("ConnectToDiskImage", $actionURI, $parameters)
     $timestamp = Get-Date -Format o
     # Log the Cim call response for connectToDiskImage into importWSMANScriptsOutput.txt
-    "Cim call response for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-    WriteXmlToFile $startTransfer | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+    "Cim call response for connectToDiskImage" | Out-File $scriptlog -Append
+    $timestamp | Out-File $scriptlog -Append
+    WriteXmlToFile $startTransfer | Out-File $scriptlog -Append
 
     if ($startTransfer -ne $NULL)
     {
@@ -822,11 +893,11 @@ def connectToDiskImageWithStaticIP(transProtocol = None,
         }
         $timestamp = Get-Date -Format o
         # Log the jobResult for connectToDiskImage into importWSMANScriptsOutput.txt
-        "jobResult for connectToDiskImage" | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-        $timestamp | Out-File "c:\importWSMANScriptsOutput.txt" -Append
-        WriteXmlToFile $jobResult | Out-File "c:\importWSMANScriptsOutput.txt" -Append
+        "JobResult for connectToDiskImage" | Out-File $scriptlog -Append
+        $timestamp | Out-File $scriptlog -Append
+        WriteXmlToFile $jobResult | Out-File $scriptlog -Append
     }
-    """ % (transProtocol,ssl,endPointRef,static_ip,mask,gateway)
+    """ % (transProtocol,ssl,scriptlog,endPointRef,static_ip,mask,gateway)
  
     return psScript
 

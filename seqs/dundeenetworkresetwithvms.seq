@@ -1,0 +1,41 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="linux">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="shutdown"/>
+        </vm>
+        <vm name="windows">
+          <distro>ws08sp2-x86</distro>
+          <network device="0" />
+          <postinstall action="shutdown"/>
+        </vm>
+      </host> 
+      <host id="1">
+        <vm name="linux">
+          <distro>debian60</distro>
+          <network device="0" />
+          <postinstall action="shutdown"/>
+        </vm>
+        <vm name="windows">
+          <distro>ws08sp2-x86</distro>
+          <network device="0" />
+          <postinstall action="shutdown"/>
+        </vm>
+      </host> 
+    </pool>
+  </prepare>
+
+  <testsequence group="NetworkReset">
+    <testcase id="xenserver.tc.networkreset.TC15480"/>
+    <testcase id="xenserver.tc.networkreset.TC15481"/>
+  </testsequence>
+
+</xenrt>

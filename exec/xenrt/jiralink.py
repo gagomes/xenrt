@@ -40,20 +40,29 @@ class JiraLink:
         self.TESTRUN_URL = xenrt.TEC().lookup("TESTRUN_URL", None)
         self.customFields = None
 
-        self.connected = True
+        self.connected = False
         try:
             self.jira = jirarest.client.JIRA(options={'server': self.JIRA_URL}, basic_auth=(self.JIRA_USER, self.JIRA_PASS))
             self.jira.session()
+            self.connected = True
+        except jirarest.exceptions.JIRAError, e:
+            traceback.print_exc(file=sys.stderr)
+            xenrt.TEC().logverbose("JiraLink Exception: %s" % (self.getJiraExceptionText(e)))
         except Exception, e:
             traceback.print_exc(file=sys.stderr)
             xenrt.TEC().logverbose("JiraLink Exception: %s" % (str(e)))
-            self.connected = False        
 
         self.tickets = {}
 
         self._bufferdir = xenrt.GEC().config.lookup("JIRA_BUFFER_DIR", None)
         if self._bufferdir and not os.path.exists(self._bufferdir):
             os.makedirs(self._bufferdir)
+
+    def getJiraExceptionText(self, exception):
+        try:
+            return str(exception)
+        except UnicodeEncodeError:
+            return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, unicode(exception.text, errors='ignore'), exception.url)
 
     def attemptToConnect(self):
         """If we've not already established a 'connection' with Jira then
@@ -910,6 +919,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                 try:
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Subcase", str(sr), str(tc), str(subcasename), str(result)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -930,6 +941,8 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     fcntl.flock(f, fcntl.LOCK_EX)
                     x = ["Test", str(sr), str(tc), str(result), str(ticket),
                          str(detailid)]
+                    if tcsku:
+                        x.append(str(tcsku))
                     f.write("%s\n" % (string.join(x, "\t")))
                 finally:
                     f.close()           
@@ -980,7 +993,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     result = fitem[3]
                     ticket = fitem[4]
                     detailid = fitem[5]
-                    tcsku = fitem[6]
+                    if len(fitem) > 6:
+                        tcsku = fitem[6]
+                    else:
+                        tcsku = None
                     xenrt.TEC().logverbose("Replaying %s on SR %s" % (tc,sr))
                     self.testrunRecordRun(sr,tc,result,ticket,detailid,tcsku)
                 elif recordtype == "Subcase":
@@ -988,7 +1004,10 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
                     tc = fitem[2]
                     subcase  = fitem[3]
                     result = fitem[4]
-                    tcsku = fitem[5]
+                    if len(fitem) > 5:
+                        tcsku = fitem[5]
+                    else:
+                        tcsku = None
                     self.testrunRecordSubResult(sr,tc,subcase,result,tcsku)
             except Exception, e:
                 notdone.append(item)

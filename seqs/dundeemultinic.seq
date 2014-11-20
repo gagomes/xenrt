@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- MNR multiple nic test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="FunctionalTests">
+      <serial>
+        <testcase id="xenserver.tc.network.TC7339" blocker="yes" prio="3"/>
+        <testcase id="xenserver.tc.network.TC7340" prio="3"/>
+      </serial>
+      <testcase id="xenserver.tc.network.TC6632" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC6763" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC6868" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC7338" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC8092" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.network.TC7479" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.network.TC7480" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.bonding.TC8124" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.network.TC8609" blocker="yes" prio="3"/>
+      <testcase id="xenserver.tc.network.TC8350" blocker="yes" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

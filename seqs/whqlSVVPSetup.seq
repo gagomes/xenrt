@@ -2,7 +2,7 @@
 <!--SVVP Test Bed Automation-->
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
 
   <default name="PARALLEL" value="15"/>

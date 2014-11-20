@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR"/>
+      <host id="0" installsr="ext" />
+      <host id="1" installsr="lvm" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <storage type="lvmoiscsi" name="lvmoiscsi_targetSR"/>
+      <host id="2" installsr="ext" />
+      <host id="3" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolMidMigSXM">
+      <!--
+      <testcase id="xenserver.tc.sxm.SrcHostDownDuringMig" name="TC17070" tc="TC-17070">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>negative_test</arg>
+      </testcase>-->
+      <testcase id="xenserver.tc.sxm.DestHostDownDuringMig" name="TC17071" tc="TC-17071">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>negative_test</arg>
+      </testcase> 
+      <!--
+      <testcase id="xenserver.tc.sxm.SrcSesDownDuringMig" name="TC17082" tc="TC-17082">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>negative_test</arg>
+      </testcase> -->
+      <testcase id="xenserver.tc.sxm.DestSesDownDuringMig" name="TC17083" tc="TC-17083">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=ext</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.SrcSRFailDuringMig" name="TC17076" tc="TC-17076">
+        <arg>src_SR=lvmoiscsi</arg>
+        <arg>dest_SR=ext</arg>
+        <arg>negative_test</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.DestSRFailDringMig" name="TC17077" tc="TC-17077">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvmoiscsi</arg>
+        <arg>negative_test</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>
+

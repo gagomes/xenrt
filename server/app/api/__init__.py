@@ -362,6 +362,10 @@ class XenRTMasterURL(XenRTAPIPage):
     def render(self):
         return config.masterurl
 
+class XenRTLogServer(XenRTAPIPage):
+    def render(self):
+        return config.log_server
+
 class DumpHeaders(XenRTAPIPage):
     def render(self):
         out = ""
@@ -370,6 +374,7 @@ class DumpHeaders(XenRTAPIPage):
         return out
 
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
+PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs

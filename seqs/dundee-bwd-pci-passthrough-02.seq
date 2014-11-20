@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<xenrt>
+  
+  <default name="TCID" value="TC-18447"/>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+  </variables>
+  
+  <prepare>
+    <pool id="0" master="M1">
+      <host id="0" installsr="ext" alias="M1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="guest_installation">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win1_install">
+        <arg>M1</arg>
+        <arg>guest=win1</arg>
+        <arg>distro=ws08sp2-x64</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win1_driver">
+        <arg>guest=win1</arg>
+        <arg>resident_on=M1</arg>
+      </testcase>
+
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="win2_install">
+        <arg>M1</arg>
+        <arg>guest=win2</arg>
+        <arg>distro=ws08sp2-x86</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+      <testcase id="guestops.drivers.TCDriverInstall" blocker="yes" name="win2_driver">
+        <arg>guest=win2</arg>
+        <arg>resident_on=M1</arg>
+      </testcase>
+      
+      <!--lin1 is on master-->
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="lin1_install_1">
+        <arg>M1</arg>
+        <arg>guest=lin1</arg>
+        <arg>distro=sles111</arg>
+        <arg>memory=1024</arg>
+        <arg>sr=Local storage</arg>
+      </testcase>
+    </serial>
+    
+    <serial tc="${TCID}">
+      <testcase id="xenserver.tc.host.PCIPassThrough" name="pci_passthroug">
+        <arg>guests=(win1:6),(lin1:1),(win2:7)</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

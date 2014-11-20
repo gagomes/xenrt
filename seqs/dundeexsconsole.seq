@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- XSConsole tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="XSConsole">
+    <testcase id="xenserver.tc.xsconsole.TC8315"/>
+    <testcase id="xenserver.tc.xsconsole.TC8324"/>
+    <testcase id="xenserver.tc.xsconsole.TC8325"/>
+    <testcase id="xenserver.tc.xsconsole.TC8326"/>
+  </testsequence>
+
+</xenrt>

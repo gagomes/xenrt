@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Hardware HBA SR Scale Tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="HBASRScale">
+
+      <!-- Creation of 256 Hardware HBA SRs. -->
+      <testcase id="xenserver.tc.lunpervdi.TC20568" name="TC20568" tc="TC-20568"/>
+
+    </serial>
+  </testsequence>
+
+</xenrt>
+
+

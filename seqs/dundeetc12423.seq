@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- NIC promiscuous mode test -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+  </prepare>
+
+  <testsequence>
+      <testcase id="xenserver.tc.bonding.TC12423"/>
+  </testsequence>
+</xenrt>
+

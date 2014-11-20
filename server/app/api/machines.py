@@ -212,6 +212,8 @@ class XenRTMList(XenRTMachinePage):
             return "ERROR Error listing machines"
 
 class XenRTMStatus(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         try:
             form = self.request.params
@@ -229,6 +231,8 @@ class XenRTMStatus(XenRTMachinePage):
             return "ERROR"
 
 class XenRTMDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the mdefine CLI call"""
         try:
@@ -267,6 +271,8 @@ class XenRTMDefine(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTMUnDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the mundefine CLI call"""
         machine = self.request.params["machine"]
@@ -283,6 +289,8 @@ class XenRTMUnDefine(XenRTMachinePage):
             return "ERROR Error undefining %s" % (machine)
 
 class XenRTBorrow(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the borrow CLI call"""
         try:
@@ -334,6 +342,8 @@ class XenRTBorrow(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTReturn(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the return CLI call"""
         try:
@@ -380,6 +390,8 @@ class XenRTMachine(XenRTMachinePage):
             return "ERROR Could not find machine " + machine
 
 class XenRTMUpdate(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("machine"):

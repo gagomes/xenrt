@@ -372,6 +372,10 @@ Version 1.1.0
             elif device.startswith("xen-sr="):
                 device = sr = device.split('=')[1]
                 self.sr_to_diskname[sr] = sr.split("-")[0]
+            elif device.startswith("xen-srname="):
+                srname = device.split('=')[1]
+                sr = self.host.minimalList("sr-list", args="name-label=%s" % (srname))[0]
+                self.sr_to_diskname[sr] = sr.split("-")[0]
             elif device.startswith("xen-device="):
                 device = device.split('=')[1]
 

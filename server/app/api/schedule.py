@@ -6,6 +6,8 @@ import traceback, StringIO, string, time, random, pgdb, sys
 import config, app
 
 class XenRTSchedule(XenRTAPIPage):
+    WRITE = True
+
 
     def __init__(self, request):
         super(XenRTSchedule, self).__init__(request)

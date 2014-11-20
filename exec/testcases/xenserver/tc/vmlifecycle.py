@@ -1281,7 +1281,7 @@ class TC10054(xenrt.TestCase):
         self.guest.shutdown()
         self.host.execdom0("/etc/init.d/ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
-        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.execdom0('hwclock --set --date "%s"' % (time.strftime("%b %d %H:%M:%S UTC %Y", ftime)))
             self.host.execdom0('hwclock --hctosys')
         else:

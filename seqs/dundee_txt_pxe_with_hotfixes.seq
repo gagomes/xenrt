@@ -1,0 +1,28 @@
+<xenrt>
+  <!-- Measured Boot (TXT) slipstream installation with kernel patches tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" installsr="ext" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial>
+      <testcase id="xenserver.tc.txt.TCTxtSuppPackInstall" tc="TC-19897" blocker="yes"/>
+      <testcase id="xenserver.tc.txt.TCTxtHostCanReboot" tc="TC-19898" blocker="yes"/>
+      <testcase id="xenserver.install.TCApplyReqdPatches" tc="TC-20692" blocker="yes"/>
+      <testcase id="xenserver.tc.txt.TCTxtTpmCreatesOutput" tc="TC-19908"/>
+      <testcase id="xenserver.tc.txt.TCTxtSuppPackQuoteVerify" tc="TC-19918"/>
+      <testcase id="xenserver.tc.txt.TCTxtChangedInitrd" tc="TC-19919"/>
+      <testcase id="xenserver.tc.txt.TCTxtSuppPackChallenge" tc="TC-19927"/>
+      <testcase id="xenserver.tc.txt.TCTxtSuppPackAssetTagVerify" tc="TC-20685"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

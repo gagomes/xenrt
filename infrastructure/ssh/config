@@ -12,3 +12,14 @@ Host *.xenrt.xs.citrite.net
         CheckHostIP no
         UserKnownHostsFile /dev/null
 
+Host source.xs.citrite.net
+        IdentityFile ~/.ssh/id_rsa_xenrt_new
+        StrictHostKeyChecking no
+        CheckHostIP no
+        UserKnownHostsFile /dev/null
+
+Host gitlab.citrite.net
+        IdentityFile ~/.ssh/id_rsa_xenrt_new
+        StrictHostKeyChecking no
+        CheckHostIP no
+        UserKnownHostsFile /dev/null

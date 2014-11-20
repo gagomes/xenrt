@@ -1,0 +1,30 @@
+<xenrt>
+
+  <!-- LVHD leaf coalesce tests for LVMoISCSI -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <SR_ISCSI_MINSIZE>60</SR_ISCSI_MINSIZE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="lvmoiscsi" name="iscsisr" default="true"/>
+    </pool>
+  </prepare>
+
+  <testsequence group="LVM">
+    <testcase id="xenserver.tc.vhd.TC10581"/>
+    <testcase id="xenserver.tc.vhd.TC10582"/>
+    <testcase id="xenserver.tc.vhd.TC10583"/>
+    <testcase id="xenserver.tc.vhd.TC10585"/>
+    <testcase id="xenserver.tc.vhd.TC10586"/>
+    <testcase id="xenserver.tc.vhd.TC10587"/>
+    <testcase id="xenserver.tc.vhd.TC10588"/>
+  </testsequence>
+
+</xenrt>

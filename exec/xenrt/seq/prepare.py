@@ -822,7 +822,6 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
 
         return vm
 
-
     def handleInstanceNode(self, node, template=False):
         instance = {}
 

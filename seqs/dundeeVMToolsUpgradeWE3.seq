@@ -1,0 +1,66 @@
+<xenrt>
+
+  <!-- Clearwater to Dundee VM Tools/drivers/kernel upgrade test -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <vm name="w2k3eesp1">
+        <distro>w2k3eesp1</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08r2-x64">
+        <distro>ws08r2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08sp2-x86">
+        <distro>ws08sp2-x86</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="ws08sp2-x64">
+        <distro>ws08sp2-x64</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="HostInstallation" blocker="yes">
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=DEFAULT</arg>
+      </testcase>
+    </serial>
+    <serial group="UpgVM">
+      <testcase id="xenserver.tc.upgrade.TC11413"/>
+      <testcase id="xenserver.tc.upgrade.TC11415"/>
+      <testcase id="xenserver.tc.upgrade.TC11416"/>
+      <testcase id="xenserver.tc.upgrade.TC11417"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

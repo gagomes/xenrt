@@ -65,7 +65,7 @@
           </testcase>
           <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21346">
             <arg>guest=centos65</arg>
-            <arg>max=8</arg>
+            <arg>max=32</arg>
             <arg>noplugwindows</arg>
           </testcase>
           <finally>
@@ -124,7 +124,7 @@
           </testcase>
           <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21356">
             <arg>guest=centos65x86-64</arg>
-            <arg>max=8</arg>
+            <arg>max=32</arg>
             <arg>noplugwindows</arg>
           </testcase>
           <finally>

@@ -66,7 +66,7 @@
         </testcase>
         <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19829">
         <arg>guest=debian70</arg>
-        <arg>max=8</arg>
+        <arg>max=32</arg>
         <arg>noplugwindows</arg>
         </testcase>
         <finally>
@@ -124,7 +124,7 @@
         </testcase>
         <testcase id="guestops.cpu.TCCPUWalk" tc="TC-23360">
         <arg>guest=debian70x86-64</arg>
-        <arg>max=8</arg>
+        <arg>max=32</arg>
         <arg>noplugwindows</arg>
         </testcase>
         <finally>

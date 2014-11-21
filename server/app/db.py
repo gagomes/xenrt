@@ -17,8 +17,8 @@ class PooledDBConnection(object):
         # Eventually all of the stale connections will be closed, then we'll get a fresh new one
         while i <= int(config.max_db_connections):
             self.conn = pool.getconn()
-            cur = self.conn.cursor()
             try:
+                cur = self.conn.cursor()
                 cur.execute("SELECT 1;")
                 cur.close()
                 break

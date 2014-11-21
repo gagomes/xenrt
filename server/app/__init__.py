@@ -61,7 +61,6 @@ class XenRTPage(Page):
                 break
             i += 1
             time.sleep(self.DB_SYNC_CHECK_INTERVAL)
-        readCur.close()
         readDb.close()
 
     def getDB(self):

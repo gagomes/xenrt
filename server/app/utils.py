@@ -324,7 +324,10 @@ def check_constraint(constraint, entry):
 
 class XLogLocation(object):
     def __init__(self, location):
-        (self.coarse, self.fine) = location.split("/")
+        self.location = location
+        (coarseStr, fineStr) = self.location.split("/")
+        self.coarse = int(coarseStr, 16)
+        self.fine = int(fineStr, 16)
 
     def __cmp__(self, other):
         if self.coarse > other.coarse:
@@ -339,3 +342,6 @@ class XLogLocation(object):
             assert self.coarse == other.coarse
             assert self.fine == other.fine
             return 0
+
+    def __str__(self):
+        return self.location

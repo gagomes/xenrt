@@ -6,6 +6,7 @@ import app.constants
 import config
 
 import string
+from pyramid.httpexceptions import HTTPServiceUnavailable
 
 class XenRTAPIPage(XenRTPage):
 
@@ -373,8 +374,34 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
+class CheckDBSync(XenRTAPIPage):
+    def render(self):
+        try:
+            check_interval = 0.5
+            timeout = 5
+
+            writeDB = app.db.dbWriteInstance()
+            readDB = app.db.dbReadInstance()
+
+            writeLoc = self.getWriteLocation(writeDB)
+
+            for i in range(timeout/check_interval):
+                readLoc = self.getReadLocation(readDB)
+                if not readLoc:
+                    return "This node is talking to the master"
+
+                if readLoc >= writeLoc:
+                    return "This node is in sync, delay = %fs" % (i* check_interval)
+                time.sleep(check_interval)
+            return HTTPServiceUnavailable()
+        finally:
+            readDB.close()
+            writeDB.close()
+            
+
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
+PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs

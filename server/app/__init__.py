@@ -75,7 +75,7 @@ class XenRTPage(Page):
         reply = -1
         cur = self.getDB().cursor()
 
-        cur.execute("SELECT jobid from tblResults WHERE detailid = %u", 
+        cur.execute("SELECT jobid from tblResults WHERE detailid = %s", 
                     [int(detailid)])
 
         rc = cur.fetchone()
@@ -92,7 +92,7 @@ class XenRTPage(Page):
         d = {}
         cur.execute("SELECT jobid, version, revision, options, jobStatus, "
                     "userId, uploaded, removed FROM tbljobs WHERE " +
-                    "jobId = %u;", [id])
+                    "jobId = %s;", [id])
         rc = cur.fetchone()
         if rc:
             d = app.utils.parse_job(rc,cur)
@@ -109,7 +109,7 @@ class XenRTPage(Page):
 
         cur = db.cursor()
 
-        cur.execute("SELECT detailid from tblResults WHERE jobid = %u AND "
+        cur.execute("SELECT detailid from tblResults WHERE jobid = %s AND "
                     "phase = %s AND test = %s", [jobid, phase, test])
 
         rc = cur.fetchone()

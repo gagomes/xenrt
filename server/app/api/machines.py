@@ -589,8 +589,8 @@ class XenRTUtilisation(XenRTMachinePage):
                 cur.execute("SELECT extract(epoch FROM ts),etype,edata FROM tblevents "
                             "WHERE subject=%s AND (etype='JobStart' OR etype='"
                             "JobEnd') AND ts > ('epoch'::timestamptz + interval "
-                            "'%u seconds') AND ts < ('epoch'::timestamptz + "
-                            "interval '%u seconds') ORDER BY ts;",
+                            "'%s seconds') AND ts < ('epoch'::timestamptz + "
+                            "interval '%s seconds') ORDER BY ts;",
                             [machine,start,end])
 
                 started = False

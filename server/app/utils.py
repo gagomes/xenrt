@@ -77,7 +77,7 @@ def parse_job(rc,cur):
         d['REMOVED'] = string.strip(rc[7])
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
-                "jobid = %u;", [rc[0]])
+                "jobid = %s;", [rc[0]])
     
     while 1:
         rd = cur.fetchone()

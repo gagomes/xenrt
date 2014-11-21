@@ -384,15 +384,16 @@ class CheckDBSync(XenRTAPIPage):
             readDB = app.db.dbReadInstance()
 
             writeLoc = self.getWriteLocation(writeDB)
-
-            for i in range(timeout/check_interval):
+            i = 0
+            while i <= timeout/check_interval:
                 readLoc = self.getReadLocation(readDB)
                 if not readLoc:
-                    return "This node is talking to the master"
+                    return "This node is talking to the master database"
 
                 if readLoc >= writeLoc:
                     return "This node is in sync, delay = %fs" % (i* check_interval)
                 time.sleep(check_interval)
+                i += 1
             return HTTPServiceUnavailable()
         finally:
             readDB.close()

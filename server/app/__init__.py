@@ -46,7 +46,7 @@ class XenRTPage(Page):
     def waitForLocalWrite(self):
         assert self.WRITE
         writeDb = self.getDB()
-        writeLoc = self.getWriteLocation(writeDB)
+        writeLoc = self.getWriteLocation(writeDb)
         readDb = app.db.dbReadInstance()
         i = 0
         while i < (int(config.db_sync_timeout)/self.DB_SYNC_CHECK_INTERVAL):

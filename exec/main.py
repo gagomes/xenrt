@@ -828,6 +828,17 @@ if redir:
     # alternative: try buffering=1 for line buffering, if unbuffered is too slow, but you still want to follow harness.err with tail -f
     sys.stderr = file("harness.err", 'a', buffering=1)
 
+    def logUncaughtExceptions(type, value, tback):
+        try:
+            xenrt.GEC().harnessError()
+            xenrt.TEC().logverbose(''.join(traceback.format_tb(tback)))
+            xenrt.GEC().dbconnect.jobUpdate("PREPARE_FAILED", "Unhandled Exception")
+        except:
+            pass
+        sys.__excepthook__(type, value, tback)
+
+    sys.excepthook = logUncaughtExceptions
+
 if not testcase and not seqfile and not aux:
     sys.stderr.write("ERROR: No test sequence defined\n")
     usage(sys.stderr)

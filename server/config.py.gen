@@ -48,7 +48,7 @@ if os.path.exists(cf):
                                     cfg['tmp_base'] = data
                                 elif name == "LOG_SERVER":
                                     cfg['log_server'] = data
-                                elif name == "MAX_DB_CONNECTIONS":
+                                elif name == "MAX_DB_CONNECTIONS_PER_PROCESS":
                                     cfg['max_db_connections'] = data
                                 elif name == "DB_SYNC_TIMEOUT":
                                     cfg['db_sync_timeout'] = data

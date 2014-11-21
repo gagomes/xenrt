@@ -10,9 +10,9 @@
 
 import random
 import xenrt
-from xenrt.lib.xenserver.licesing import LicenceManager, XenServerLicenceFactory
+from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
 from xenrt.lib import assertions
-from enums import XenServerLicenceSKU
+#from enums import XenServerLicenceSKU
 
 """
 TO DO:
@@ -176,8 +176,8 @@ class LicenseBase(xenrt.TestCase, object):
         self.preLicenseHook()
 
         for sku in self.skus:
-            licence = self.licenceFactory().licenceForPool(self.systemObj, sku)
-            self.licenceManager.applyLicense(licence)
+            licence = self.licenceFactory.licenceForPool(self.systemObj, sku)
+            self.licenceManager.applyLicense(self.v6, self.systemObj, licence)
             self.licenceManager.releaseLicense(self.systemObj)
 
     def postRun(self):
@@ -190,498 +190,499 @@ class TCRestartHost(LicenseBase):
 
         for sku in self.skus:
             licence = self.licenceFactory.licenceForPool(self.systemObj, sku)
-            self.applyLicense(self.v6, self.systemObj, licence)
-
+            self.licenceManager.applyLicense(self.v6, self.systemObj, licence)
             self.systemObj.master.reboot()
-
             self.systemObj.checkHostLicenseState(edition=licence.getEdition())
+            self.licenceManager.releaseLicense(self.systemObj)
 
-            self.releaseLicense(self.systemObj)
 
-class ClearwaterUpgrade(LicenseBase):
+"""
+DO NOT DELETE THE BELOW - MID REFACTOR
+"""
 
-    def preLicenseHook(self):
+# class ClearwaterUpgrade(LicenseBase):
 
-        if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)
-            if self.oldLicenseEdition != XenServerLicenceSKU.Free.lower():
-                licences = self.licenceFactory.allLicences("Clearwater")
-                [self.licenseManager.addLicensesToServer(v6, l) for l in licences]
-            for host in self.systemObj.hosts:
-                host.templicense(edition=self.oldLicenseEdition,v6server=v6)
+#     def preLicenseHook(self):
 
-        self.upgradePool()
+#         if self.oldLicenseEdition:
+#             v6 = self.licenseServer(self.oldLicenseServerName)
+#             if self.oldLicenseEdition != XenServerLicenceSKU.Free.lower():
+#                 licences = self.licenceFactory.allLicences("Clearwater")
+#                 [self.licenseManager.addLicensesToServer(v6, l) for l in licences]
+#             for host in self.systemObj.hosts:
+#                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
+#         self.upgradePool()
 
-    def run(self,arglist=None):
 
-        self.preLicenseHook()
+#     def run(self,arglist=None):
 
-class TCCWOldLicenseServerExp(ClearwaterUpgrade):
+#         self.preLicenseHook()
 
-    def preLicenseHook(self):
+# class TCCWOldLicenseServerExp(ClearwaterUpgrade):
 
-        super(TCCWOldLicenseServerExp, self).preLicenseHook()
+#     def preLicenseHook(self):
 
-        self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+#         super(TCCWOldLicenseServerExp, self).preLicenseHook()
 
-        for host in self.hosts:
-            self.checkGrace(host)
+#         self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
 
-        #Expire the host
+#         for host in self.hosts:
+#             self.checkGrace(host)
 
-class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
+#         #Expire the host
 
-    def preLicenseHook(self):
+# class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
 
-        super(TCCWOldLicenseServerUpg, self).preLicenseHook()
+#     def preLicenseHook(self):
 
-        self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+#         super(TCCWOldLicenseServerUpg, self).preLicenseHook()
 
-        for host in self.hosts:
-            self.checkGrace(host)
+#         self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
 
-        self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+#         for host in self.hosts:
+#             self.checkGrace(host)
 
-        self.releaseLicense(self.expectedEditionAfterUpg)
+#         self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
 
-class TCCWNewLicenseServer(ClearwaterUpgrade):
+#         self.releaseLicense(self.expectedEditionAfterUpg)
 
-    def preLicenseHook(self):
+# class TCCWNewLicenseServer(ClearwaterUpgrade):
 
-        if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)
+#     def preLicenseHook(self):
 
-            if self.oldLicenseEdition != 'free':
-                #self.addCWLicenseFiles(v6) #REPLACE
-                self.addCWLicenseFiles(self.v6)
+#         if self.oldLicenseEdition:
+#             v6 = self.licenseServer(self.oldLicenseServerName)
 
-            for host in self.hosts:
-                host.templicense(edition=self.oldLicenseEdition,v6server=v6)
+#             if self.oldLicenseEdition != 'free':
+#                 #self.addCWLicenseFiles(v6) #REPLACE
+#                 self.addCWLicenseFiles(self.v6)
 
-            for host in self.hosts:
-                host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
+#             for host in self.hosts:
+#                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
 
-        if self.addLicFiles:
-            self.addCreedenceLicenseFiles(self.v6)
-        else:
-            self.v6.removeAllLicenses()
+#             for host in self.hosts:
+#                 host.templicense(edition=self.oldLicenseEdition,v6server=self.v6)
 
-        self.upgradePool()
-        #self.updateLicenseObjs()
-        for host in self.hosts:
-            isExpRaised = False
-            try:
-                self.checkGrace(host)
-                isExpRaised = True
-            except Exception as e:
-                pass
-            if isExpRaised:
-                raise xenrt.XRTFailure("Host has got grace license")
+#         if self.addLicFiles:
+#             self.addCreedenceLicenseFiles(self.v6)
+#         else:
+#             self.v6.removeAllLicenses()
 
-        self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+#         self.upgradePool()
+#         #self.updateLicenseObjs()
+#         for host in self.hosts:
+#             isExpRaised = False
+#             try:
+#                 self.checkGrace(host)
+#                 isExpRaised = True
+#             except Exception as e:
+#                 pass
+#             if isExpRaised:
+#                 raise xenrt.XRTFailure("Host has got grace license")
 
-        self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
+#         self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
 
-class TampaUpgrade(LicenseBase):
-    UPGRADE = True
+#         self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
 
-    def preLicenseHook(self):
+# class TampaUpgrade(LicenseBase):
+#     UPGRADE = True
 
-        if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)
-            if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles(v6)
+#     def preLicenseHook(self):
 
-            for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
-                details = host.getLicenseDetails()
-                wlbprevstatus = details["restrict_wlb"]
-                if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
-                    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
-                elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
-                    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
-        self.addCreedenceLicenseFiles(v6)
-
-        self.upgradePool()
-
-        #self.updateLicenseObjs()
-    def run(self,arglist=None):
-
-        self.preLicenseHook()
-
-class TCTPOldLicenseServerUpg(TampaUpgrade):
-
-    def preLicenseHook(self):
-
-        super(TCTPOldLicenseServerUpg, self).preLicenseHook()
-
-        #Verify that the Tampa Host is having expected edition but in expired state as the license server is not updated
-        for host in self.hosts :
-            if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
-                raise xenrt.XRTFailure("License is not expired properly.")
-
-        #License the creedence host with new license server
-        if self.expectedEditionAfterUpg != "free":
-            self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
-            self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
-
-class TCTPNewLicenseServer(TampaUpgrade):
-#U3.1 , C8
-
-    def preLicenseHook(self):
-
-        if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)
-            if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles(v6)
-                self.addTPLicenseFiles(self.v6)
-
-            for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
-
-            for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
-                details = host.getLicenseDetails()
-                #wlbprevstatus = details["restrict_wlb"]
-                #if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
-                #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
-                #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
-                #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
-
-            #Ensure that creedence licenses are available in new license server prior to host upgrade
-            self.addCreedenceLicenseFiles(self.v6)
-
-        self.upgradePool()
-
-        #self.updateLicenseObjs()
-        for host in self.hosts:
-            isExpRaised = False
-            try:
-                self.checkGrace(host)
-                isExpRaised = True
-            except Exception as e:
-                pass
-            if isExpRaised:
-                raise xenrt.XRTFailure("Host has got grace license")
-
-        #The host will be in licensed state depending upon its previous license
-        self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
-        self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
-
-class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
-#U3.3 , C9
-    def preLicenseHook(self):
-
-        if self.oldLicenseEdition:
-            v6 = self.licenseServer(self.oldLicenseServerName)
-            if self.oldLicenseEdition != 'free':
-                self.addTPLicenseFiles(v6)
-                self.addTPLicenseFiles(self.v6)
-
-            for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
-
-            for host in self.hosts:
-                host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
-                details = host.getLicenseDetails()
-                #wlbprevstatus = details["restrict_wlb"]
-                #if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
-                #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
-                #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
-                #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
-
-
-        self.upgradePool()
-        #self.updateLicenseObjs()
-
-        #Verify that the Tampa Host is having expected edition but in expired state as the creedence license files are not available in license server.
-        for host in self.hosts :
-            if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
-                raise xenrt.XRTFailure("License is not expired properly.")
-
-        if self.expectedEditionAfterUpg != "free":
-            #Now upload creedence license files into license server and license the host
-            self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
-
-            #The host gets the license depending upon its previous license
-            self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
-            self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
-
-
-class LicenseExpiryBase(LicenseBase):
-    """
-    TC for Creedence (and later) license expiration test.
-    """
-
-    def expireLicense(self, allhosts=False):
-        """Select a host and force expire the license of the host."""
-
-        if allhosts:
-            hosts = self.systemObj.getHosts()
-        else:
-            hosts = [random.choice(self.systemObj.getHosts())]
-
-        expiretime = xenrt.util.timenow() + 300
-        for host in hosts:
-            self.__forceExpireLicense(host, expiretime)
-
-        # return just an expired host for a reference.
-        # If allhosts == True, list of expired hosts are same as hosts in the pool
-        return hosts[0]
-
-    def __forceExpireLicense(self, host, expiretime=-1):
-        """ Force Expire license from a host by changing expiry date."""
-
-        # Enable the license expires in 5 minutes
-        if expiretime < 0:
-            expiretime = xenrt.util.timenow() + 300
-        # Convert this to a Xapi timestamp
-        xapitime = xenrt.util.makeXapiTime(expiretime)
-        # Write it in to the FIST file
-        host.execdom0("echo '%s' > /tmp/fist_set_expiry_date" % (xapitime))
-        # Restart xapi
-        host.restartToolstack()
-        host.waitForEnabled(300)
-
-        # Give some time (5 mins + 30 secs) to expire the license.
-        xenrt.sleep(330)
-
-    def checkLicenseExpired(self, edition, host=None, timeout=1800):
-        """ Checking license expiry while timeout period.
-            Feature limit may not be applied for some time perios."""
-
-
-        host = self.systemObj.master
-
-        starttime = xenrt.util.timenow()
-        while (xenrt.util.timenow() <= starttime + timeout):
-            xenrt.sleep(120)
-            if self.__checkLicenseTimePassed(host):
-                ret = self.__checkLicenseExpiredFunc(host, edition)
-                if ret:
-                    return True
-
-        xenrt.TEC().logverbose("XAPI is not updated after license expired for %d seconds." % timeout)
-
-        return False
-
-    def __checkLicenseTimePassed(self, host):
-        """ Checking License is expired by checking time"""
-
-        # This is hack. It is probably better to have this function in Lincese
-        # class and call this from base class of TC should be better.
-        # Checking parameter directly from TC is not recommendable.
-        xenrt.TEC().logverbose("Checking host expiry date is passed.")
-        licdet = host.getLicenseDetails()
-        if not "expiry" in licdet:
-            raise xenrt.XRTError("expiry field is not in the license detail.")
-        if xenrt.util.timenow() > xenrt.util.parseXapiTime(licdet['expiry']):
-            if not self.isHostObj:
-                xenrt.TEC().logverbose("Checking pool expiry date is passed.")
-                poolParams = self.systemObj.getPoolParam("license-state")
-                match = re.search("expiry: ([^\s]+)", poolParams)
-                if match:
-                    expiry = match.groups()[0]
-                    if expiry == "never":
-                        xenrt.TEC().logverbose("License-state of pool has set to 'never'.")
-                        return False
-                    if expiry != licdet['expiry']:
-                        xenrt.TEC().logverbose("Pool license expiry date mismatch with host expiry date.")
-
-                        xenrt.TEC().logverbose("Pool license expiry: %s host expiry: %s." % (expiry, licdet['expiry']))
-                        return False
-                    return True
-                else:
-                    xenrt.TEC().logverbose("Cannot find expiry information from pool license-state.")
-                    return False
-            else:
-                return True
-
-        xenrt.TEC().logverbose("License has not expired yet.")
-        return False
-
-    def __checkLicenseExpiredFunc(self, host, edition):
-        """ Checking License is expired by checking feature availability.
-        Checking date is not reliable as TC expires license using fist point."""
-
-        xenrt.TEC().logverbose("Checking host feature set.")
-        hfeatures = [feature.hostFeatureFlagValue(host, True)
-            for feature in host.licensedFeatures()]
-        if hfeatures[0] and hfeatures[1] and hfeatures[2]:
-            if not self.isHostObj:
-                xenrt.TEC().logverbose("Checking pool feature set.")
-                pfeatures = [feature.poolFeatureFlagValue(self.systemObj)
-                    for feature in host.licensedFeatures()]
-                if pfeatures[0] and pfeatures[1] and pfeatures[2]:
-                    return True
-                else:
-                    xenrt.TEC().logverbose("Restriction flags of pool has not been updated while ones of host(s) are updated as expected.")
-            else:
-                return True
-        return False
-
-    def cleanUpFistPoint(self, host=None):
-        if host:
-            hosts = [host]
-        else:
-            hosts = self.hosts
-
-        for host in hosts:
-            host.execdom0("rm -f /tmp/fist_set_expiry_date", level=xenrt.RC_OK)
-
-    def run(self, arglist=[]):
-        pass
-
-    def postRun(self):
-        self.cleanUpFistPoint()
-        super(LicenseExpiryBase, self).postRun()
-
-
-class TCLicenseExpiry(LicenseExpiryBase):
-    """ Expiry test case """
-
-    def licenseExpiryTest(self, edition):
-
-        # Assign license and verify it.
-        self.applyLicense(self.getLicenseObj(edition))
-        self.systemObj.checkHostLicenseState(edition=edition)
-
-        # Check only for WLB, read cache and vgpu.
-        skipped = False
-        host = self.systemObj.master
-        features = [feature.hostFeatureFlagValue(host) for feature in host.licensedFeatures().values()]
-        xenrt.TEC().logverbose("License: %s, WLB: %s, Read cache: %s, VGPU: %s" %
-            (edition, not features[0], not features[1], not features[2]))
-
-        if features[0] and features[1] and features[2]:
-            skipped = True
-            xenrt.TEC().logverbose("No features are available for this license. Skipping expire test.")
-        else:
-            # Expiry test
-            self.expireLicense(True)
-            if not self.checkLicenseExpired(edition):
-                raise xenrt.XRTFailure("License is not expired properly.")
-
-        # Cleaning up.
-        self.releaseLicense(edition)
-        self.cleanUpFistPoint()
-
-        if skipped:
-            raise xenrt.XRTSkip("%s does not have any feature." % edition)
-
-    def run(self, arglist=[]):
-
-        self.preLicenseHook()
-
-        for edition in self.skus:
-            self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
-
-class TCLicenseGrace(LicenseExpiryBase):
-    """Verify the grace license and its expiry in Creedence hosts"""
-
-    def disableLicenseServer(self):
-        """Disconnect license server"""
-
-        self.v6.stop()
-        xenrt.sleep(120)
-
-        # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts]
-
-    def enableLicenseServer(self):
-        """Re-establish license server connection"""
-
-        self.v6.start()
-        xenrt.sleep(120)
-        
-        # Restart toostack on every hosts.
-        [host.restartToolstack() for host in self.hosts]
-
-    def checkGraceLicense(self, host, timeout=3600):
-        """ Checking whether the grace license enabled"""
-
-        starttime = xenrt.util.timenow()
-        while (xenrt.util.timenow() <= starttime + timeout):
-            xenrt.sleep(120)
-            ret = self.checkGraceFunc(host)
-            if ret:
-                return True
-
-        xenrt.TEC().logverbose("XAPI is not updated after license server is disconnected. (Took %d seconds)" % timeout)
-
-        return False
-
-    def checkGraceFunc(self,host):
-  
-        licenseInfo = host.getLicenseDetails()
-        if not 'grace' in licenseInfo['grace']:
-            xenrt.TEC().warning("ERROR: Host has not got grace license")
-            return False
-
-        expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        if (expiry > (xenrt.timenow() + 30*25*3600 + 1)):
-            xenrt.TEC().warning("ERROR: Host has got license expiry date > 30 days from current time,"
-                                " it has got expiry date: %s " % expiry)
-            return False
-
-        return True
-
-    def licenseGraceTest(self, edition):
-
-        # Assign license and verify it.
-        self.applyLicense(self.getLicenseObj(edition))
-
-        # Force the host to have grace license.
-        self.disableLicenseServer()
-
-        # Check whether the hosts obtained grace licenses.
-        for host in self.hosts:
-            if not self.checkGraceLicense(host):
-                self.enableLicenseServer()
-                self.releaseLicense(edition)
-                raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
-
-        # Force the hosts to regain its orignal licenses.
-        self.enableLicenseServer()
-
-        # Check whether the hosts regained the original licenses.
-        self.systemObj.checkHostLicenseState(edition=edition)
-        self.verifyLicenseServer(edition)
-
-        # Again force the host to have grace license.
-        self.disableLicenseServer()
-
-        # Check whether the hosts obtained grace licenses.
-        for host in self.hosts:
-            if not self.checkGraceLicense(host):
-                self.enableLicenseServer()
-                self.releaseLicense(edition)
-                raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
-
-        # Now expire one of the host license such that it cross the grace period.
-        host = self.expireLicense() # for both hosts expire, provide allhosts=True
-
-        # Check whether the license is expired.
-        if not self.checkLicenseExpired(edition, host): # for all hosts just provide the param edition.
-            self.enableLicenseServer()
-            self.releaseLicense(edition)
-            raise xenrt.XRTFailure("License is not expired properly.")
-
-        # Check whether the hosts license expired.
-        self.systemObj.checkHostLicenseState(edition=edition)
-
-        # Cleaning up.
-        self.enableLicenseServer()
-        self.releaseLicense(edition)
-        self.cleanUpFistPoint(host) # if any.
-
-    def run(self, arglist=[]):
-
-        for edition in self.skus:
-            if edition == "free":
-                # Free license does not require grace license test.
-                xenrt.TEC().logverbose("Free license does not require grace license test")
-                continue
-
-            self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")
+#         if self.oldLicenseEdition:
+#             v6 = self.licenseServer(self.oldLicenseServerName)
+#             if self.oldLicenseEdition != 'free':
+#                 self.addTPLicenseFiles(v6)
+
+#             for host in self.hosts:
+#                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
+#                 details = host.getLicenseDetails()
+#                 wlbprevstatus = details["restrict_wlb"]
+#                 if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+#                     raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+#                 elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
+#                     raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
+#         self.addCreedenceLicenseFiles(v6)
+
+#         self.upgradePool()
+
+#         #self.updateLicenseObjs()
+#     def run(self,arglist=None):
+
+#         self.preLicenseHook()
+
+# class TCTPOldLicenseServerUpg(TampaUpgrade):
+
+#     def preLicenseHook(self):
+
+#         super(TCTPOldLicenseServerUpg, self).preLicenseHook()
+
+#         #Verify that the Tampa Host is having expected edition but in expired state as the license server is not updated
+#         for host in self.hosts :
+#             if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
+#                 raise xenrt.XRTFailure("License is not expired properly.")
+
+#         #License the creedence host with new license server
+#         if self.expectedEditionAfterUpg != "free":
+#             self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+#             self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
+
+# class TCTPNewLicenseServer(TampaUpgrade):
+# #U3.1 , C8
+
+#     def preLicenseHook(self):
+
+#         if self.oldLicenseEdition:
+#             v6 = self.licenseServer(self.oldLicenseServerName)
+#             if self.oldLicenseEdition != 'free':
+#                 self.addTPLicenseFiles(v6)
+#                 self.addTPLicenseFiles(self.v6)
+
+#             for host in self.hosts:
+#                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
+
+#             for host in self.hosts:
+#                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
+#                 details = host.getLicenseDetails()
+#                 #wlbprevstatus = details["restrict_wlb"]
+#                 #if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+#                 #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+#                 #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
+#                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
+
+#             #Ensure that creedence licenses are available in new license server prior to host upgrade
+#             self.addCreedenceLicenseFiles(self.v6)
+
+#         self.upgradePool()
+
+#         #self.updateLicenseObjs()
+#         for host in self.hosts:
+#             isExpRaised = False
+#             try:
+#                 self.checkGrace(host)
+#                 isExpRaised = True
+#             except Exception as e:
+#                 pass
+#             if isExpRaised:
+#                 raise xenrt.XRTFailure("Host has got grace license")
+
+#         #The host will be in licensed state depending upon its previous license
+#         self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+#         self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
+
+# class TCTPNewLicServerNoLicenseFiles(TampaUpgrade):
+# #U3.3 , C9
+#     def preLicenseHook(self):
+
+#         if self.oldLicenseEdition:
+#             v6 = self.licenseServer(self.oldLicenseServerName)
+#             if self.oldLicenseEdition != 'free':
+#                 self.addTPLicenseFiles(v6)
+#                 self.addTPLicenseFiles(self.v6)
+
+#             for host in self.hosts:
+#                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=v6)
+
+#             for host in self.hosts:
+#                 host.license(edition=self.oldLicenseEdition,usev6testd=False,v6server=self.v6)
+#                 details = host.getLicenseDetails()
+#                 #wlbprevstatus = details["restrict_wlb"]
+#                 #if self.oldLicenseEdition == "advanced" and not(wlbprevstatus == "true"):
+#                 #    raise xenrt.XRTFailure('Advance Tampa Host has wlb enabled')
+#                 #elif self.oldLicenseEdition == "platinum" and not (wlbprevstatus=="false"):
+#                 #    raise xenrt.XRTFailure('Platinum Tampa Host has wlb disabled')
+
+
+#         self.upgradePool()
+#         #self.updateLicenseObjs()
+
+#         #Verify that the Tampa Host is having expected edition but in expired state as the creedence license files are not available in license server.
+#         for host in self.hosts :
+#             if not self.checkLicenseExpired(host, edition=self.expectedEditionAfterUpg):
+#                 raise xenrt.XRTFailure("License is not expired properly.")
+
+#         if self.expectedEditionAfterUpg != "free":
+#             #Now upload creedence license files into license server and license the host
+#             self.applyLicense(self.getLicenseObj(self.expectedEditionAfterUpg))
+
+#             #The host gets the license depending upon its previous license
+#             self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+#             self.releaseLicense(self.expectedEditionAfterUpg,verifyLicenseServer=False)
+
+
+# class LicenseExpiryBase(LicenseBase):
+#     #TC for Creedence (and later) license expiration test.
+
+
+#     def expireLicense(self, allhosts=False):
+#         """Select a host and force expire the license of the host."""
+
+#         if allhosts:
+#             hosts = self.systemObj.getHosts()
+#         else:
+#             hosts = [random.choice(self.systemObj.getHosts())]
+
+#         expiretime = xenrt.util.timenow() + 300
+#         for host in hosts:
+#             self.__forceExpireLicense(host, expiretime)
+
+#         # return just an expired host for a reference.
+#         # If allhosts == True, list of expired hosts are same as hosts in the pool
+#         return hosts[0]
+
+#     def __forceExpireLicense(self, host, expiretime=-1):
+#         """ Force Expire license from a host by changing expiry date."""
+
+#         # Enable the license expires in 5 minutes
+#         if expiretime < 0:
+#             expiretime = xenrt.util.timenow() + 300
+#         # Convert this to a Xapi timestamp
+#         xapitime = xenrt.util.makeXapiTime(expiretime)
+#         # Write it in to the FIST file
+#         host.execdom0("echo '%s' > /tmp/fist_set_expiry_date" % (xapitime))
+#         # Restart xapi
+#         host.restartToolstack()
+#         host.waitForEnabled(300)
+
+#         # Give some time (5 mins + 30 secs) to expire the license.
+#         xenrt.sleep(330)
+
+#     def checkLicenseExpired(self, edition, host=None, timeout=1800):
+#         """ Checking license expiry while timeout period.
+#             Feature limit may not be applied for some time perios."""
+
+
+#         host = self.systemObj.master
+
+#         starttime = xenrt.util.timenow()
+#         while (xenrt.util.timenow() <= starttime + timeout):
+#             xenrt.sleep(120)
+#             if self.__checkLicenseTimePassed(host):
+#                 ret = self.__checkLicenseExpiredFunc(host, edition)
+#                 if ret:
+#                     return True
+
+#         xenrt.TEC().logverbose("XAPI is not updated after license expired for %d seconds." % timeout)
+
+#         return False
+
+#     def __checkLicenseTimePassed(self, host):
+#         """ Checking License is expired by checking time"""
+
+#         # This is hack. It is probably better to have this function in Lincese
+#         # class and call this from base class of TC should be better.
+#         # Checking parameter directly from TC is not recommendable.
+#         xenrt.TEC().logverbose("Checking host expiry date is passed.")
+#         licdet = host.getLicenseDetails()
+#         if not "expiry" in licdet:
+#             raise xenrt.XRTError("expiry field is not in the license detail.")
+#         if xenrt.util.timenow() > xenrt.util.parseXapiTime(licdet['expiry']):
+#             if not self.isHostObj:
+#                 xenrt.TEC().logverbose("Checking pool expiry date is passed.")
+#                 poolParams = self.systemObj.getPoolParam("license-state")
+#                 match = re.search("expiry: ([^\s]+)", poolParams)
+#                 if match:
+#                     expiry = match.groups()[0]
+#                     if expiry == "never":
+#                         xenrt.TEC().logverbose("License-state of pool has set to 'never'.")
+#                         return False
+#                     if expiry != licdet['expiry']:
+#                         xenrt.TEC().logverbose("Pool license expiry date mismatch with host expiry date.")
+
+#                         xenrt.TEC().logverbose("Pool license expiry: %s host expiry: %s." % (expiry, licdet['expiry']))
+#                         return False
+#                     return True
+#                 else:
+#                     xenrt.TEC().logverbose("Cannot find expiry information from pool license-state.")
+#                     return False
+#             else:
+#                 return True
+
+#         xenrt.TEC().logverbose("License has not expired yet.")
+#         return False
+
+#     def __checkLicenseExpiredFunc(self, host, edition):
+#         """ Checking License is expired by checking feature availability.
+#         Checking date is not reliable as TC expires license using fist point."""
+
+#         xenrt.TEC().logverbose("Checking host feature set.")
+#         hfeatures = [feature.hostFeatureFlagValue(host, True)
+#             for feature in host.licensedFeatures()]
+#         if hfeatures[0] and hfeatures[1] and hfeatures[2]:
+#             if not self.isHostObj:
+#                 xenrt.TEC().logverbose("Checking pool feature set.")
+#                 pfeatures = [feature.poolFeatureFlagValue(self.systemObj)
+#                     for feature in host.licensedFeatures()]
+#                 if pfeatures[0] and pfeatures[1] and pfeatures[2]:
+#                     return True
+#                 else:
+#                     xenrt.TEC().logverbose("Restriction flags of pool has not been updated while ones of host(s) are updated as expected.")
+#             else:
+#                 return True
+#         return False
+
+#     def cleanUpFistPoint(self, host=None):
+#         if host:
+#             hosts = [host]
+#         else:
+#             hosts = self.hosts
+
+#         for host in hosts:
+#             host.execdom0("rm -f /tmp/fist_set_expiry_date", level=xenrt.RC_OK)
+
+#     def run(self, arglist=[]):
+#         pass
+
+#     def postRun(self):
+#         self.cleanUpFistPoint()
+#         super(LicenseExpiryBase, self).postRun()
+
+
+# class TCLicenseExpiry(LicenseExpiryBase):
+#     """ Expiry test case """
+
+#     def licenseExpiryTest(self, edition):
+
+#         # Assign license and verify it.
+#         self.applyLicense(self.getLicenseObj(edition))
+#         self.systemObj.checkHostLicenseState(edition=edition)
+
+#         # Check only for WLB, read cache and vgpu.
+#         skipped = False
+#         host = self.systemObj.master
+#         features = [feature.hostFeatureFlagValue(host) for feature in host.licensedFeatures().values()]
+#         xenrt.TEC().logverbose("License: %s, WLB: %s, Read cache: %s, VGPU: %s" %
+#             (edition, not features[0], not features[1], not features[2]))
+
+#         if features[0] and features[1] and features[2]:
+#             skipped = True
+#             xenrt.TEC().logverbose("No features are available for this license. Skipping expire test.")
+#         else:
+#             # Expiry test
+#             self.expireLicense(True)
+#             if not self.checkLicenseExpired(edition):
+#                 raise xenrt.XRTFailure("License is not expired properly.")
+
+#         # Cleaning up.
+#         self.releaseLicense(edition)
+#         self.cleanUpFistPoint()
+
+#         if skipped:
+#             raise xenrt.XRTSkip("%s does not have any feature." % edition)
+
+#     def run(self, arglist=[]):
+
+#         self.preLicenseHook()
+
+#         for edition in self.skus:
+#             self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
+
+# class TCLicenseGrace(LicenseExpiryBase):
+#     """Verify the grace license and its expiry in Creedence hosts"""
+
+#     def disableLicenseServer(self):
+#         """Disconnect license server"""
+
+#         self.v6.stop()
+#         xenrt.sleep(120)
+
+#         # Restart toostack on every hosts.
+#         [host.restartToolstack() for host in self.hosts]
+
+#     def enableLicenseServer(self):
+#         """Re-establish license server connection"""
+
+#         self.v6.start()
+#         xenrt.sleep(120)
+
+#         # Restart toostack on every hosts.
+#         [host.restartToolstack() for host in self.hosts]
+
+#     def checkGraceLicense(self, host, timeout=3600):
+#         """ Checking whether the grace license enabled"""
+
+#         starttime = xenrt.util.timenow()
+#         while (xenrt.util.timenow() <= starttime + timeout):
+#             xenrt.sleep(120)
+#             ret = self.checkGraceFunc(host)
+#             if ret:
+#                 return True
+
+#         xenrt.TEC().logverbose("XAPI is not updated after license server is disconnected. (Took %d seconds)" % timeout)
+
+#         return False
+
+#     def checkGraceFunc(self,host):
+
+#         licenseInfo = host.getLicenseDetails()
+#         if not 'grace' in licenseInfo['grace']:
+#             xenrt.TEC().warning("ERROR: Host has not got grace license")
+#             return False
+
+#         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
+#         if (expiry > (xenrt.timenow() + 30*25*3600 + 1)):
+#             xenrt.TEC().warning("ERROR: Host has got license expiry date > 30 days from current time,"
+#                                 " it has got expiry date: %s " % expiry)
+#             return False
+
+#         return True
+
+#     def licenseGraceTest(self, edition):
+
+#         # Assign license and verify it.
+#         self.applyLicense(self.getLicenseObj(edition))
+
+#         # Force the host to have grace license.
+#         self.disableLicenseServer()
+
+#         # Check whether the hosts obtained grace licenses.
+#         for host in self.hosts:
+#             if not self.checkGraceLicense(host):
+#                 self.enableLicenseServer()
+#                 self.releaseLicense(edition)
+#                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
+
+#         # Force the hosts to regain its orignal licenses.
+#         self.enableLicenseServer()
+
+#         # Check whether the hosts regained the original licenses.
+#         self.systemObj.checkHostLicenseState(edition=edition)
+#         self.verifyLicenseServer(edition)
+
+#         # Again force the host to have grace license.
+#         self.disableLicenseServer()
+
+#         # Check whether the hosts obtained grace licenses.
+#         for host in self.hosts:
+#             if not self.checkGraceLicense(host):
+#                 self.enableLicenseServer()
+#                 self.releaseLicense(edition)
+#                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license again" % host)
+
+#         # Now expire one of the host license such that it cross the grace period.
+#         host = self.expireLicense() # for both hosts expire, provide allhosts=True
+
+#         # Check whether the license is expired.
+#         if not self.checkLicenseExpired(edition, host): # for all hosts just provide the param edition.
+#             self.enableLicenseServer()
+#             self.releaseLicense(edition)
+#             raise xenrt.XRTFailure("License is not expired properly.")
+
+#         # Check whether the hosts license expired.
+#         self.systemObj.checkHostLicenseState(edition=edition)
+
+#         # Cleaning up.
+#         self.enableLicenseServer()
+#         self.releaseLicense(edition)
+#         self.cleanUpFistPoint(host) # if any.
+
+#     def run(self, arglist=[]):
+
+#         for edition in self.skus:
+#             if edition == "free":
+#                 # Free license does not require grace license test.
+#                 xenrt.TEC().logverbose("Free license does not require grace license test")
+#                 continue
+
+#             self.runSubcase("licenseGraceTest", edition, "Grace - %s" % edition, "Grace")

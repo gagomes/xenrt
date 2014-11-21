@@ -832,7 +832,7 @@ if redir:
         try:
             xenrt.GEC().harnessError()
             xenrt.TEC().logverbose(''.join(traceback.format_tb(tback)))
-            xenrt.GEC().dbconnect.jobUpdate("PREPARE_FAILED", "Unhandled Exception")
+            xenrt.GEC().dbconnect.jobUpdate("PREPARE_FAILED", str(value).replace("\n", ",")[:250])
         except:
             pass
         sys.__excepthook__(type, value, tback)
@@ -2414,6 +2414,7 @@ cloudip = gec.config.lookup("EXISTING_CLOUDSTACK_IP", None)
 if cloudip:
     cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
     gec.registry.toolstackPut("cloud", cloud)
+
 
 # Import any additional testcases.
 if tcfile:

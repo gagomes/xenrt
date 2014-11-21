@@ -75,6 +75,26 @@ def createHost(id=0,
     if extraConfig.has_key("dc") and extraConfig.has_key("cluster"):
         host.addToVCenter(extraConfig["dc"], extraConfig["cluster"])
 
+    if cpufreqgovernor:
+        # Roughly map the Linux cpufreqgovernor names onto ESXi policy names
+        nameMapping = {
+            "performance": "static",
+            "ondemand": "dynamic",
+            "powersave": "low",
+        }
+        if cpufreqgovernor in nameMapping:
+            policy = nameMapping[cpufreqgovernor]
+        else:
+            policy = cpufreqgovernor
+
+        cur = host.getCurrentPowerPolicy()
+        xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (cur,))
+
+        host.setPowerPolicy(policy)
+
+        cur = host.getCurrentPowerPolicy()
+        xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (cur,))
+
     return host
 
 class ESXHost(xenrt.lib.libvirt.Host):
@@ -286,9 +306,12 @@ reboot
         bootcfgtext += "prefix=%s" % pxe.makeBootPath("")   # ... and use our PXE path as a prefix instead
         bootcfgtext = re.sub(r"--- useropts\.gz", r"", bootcfgtext)        # this file seems to cause only trouble, and getting rid of it seems to have no side effects...
         bootcfgtext = re.sub(r"--- jumpstrt\.gz", r"", bootcfgtext)        # this file (in ESXi 5.5) is similar
-        bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)          # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
-        deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
-        bootcfgtext = bootcfgtext2
+        if self.esxiVersion < "5.5":
+            deferToolsPackInstallation = False
+        else:
+            bootcfgtext2 = re.sub(r"--- tools.t00", r"", bootcfgtext)      # this file is too large to get over netboot from atftpd (as used in CBGLAB01), so we will install it after host-installation
+            deferToolsPackInstallation = (bootcfgtext2 <> bootcfgtext)
+            bootcfgtext = bootcfgtext2
         bootcfgtext = re.sub(r"(kernelopt=.*)", r"\1 debugLogToSerial=1 logPort=com1 ks=%s" %
                              ("nfs://%s%s" % (nfsdir.getHostAndPath(ksname))), bootcfgtext)
         bootcfg.write(bootcfgtext)
@@ -403,6 +426,9 @@ reboot
             if len(nicList) == 1  and len(vlanList) == 0:
                 pri_eth = self.getNICPIF(nicList[0])
 
+                if pri_eth == '':
+                    raise xenrt.XRTError("Could not find vmnic device for device %d" % (nicList[0]))
+
                 # Set up new vSwitch if necessary
                 xenrt.TEC().logverbose("Processing %s: %s" % (pri_eth, p))
                 pri_bridge = self.getBridge(pri_eth)
@@ -442,3 +468,29 @@ reboot
 
     def addToVCenter(self, dc, cluster):
         xenrt.lib.esx.getVCenter().addHost(self, dc, cluster)
+
+    def setPowerPolicy(self, policyname):
+        script = """
+from pyVim.connect import Connect
+si = Connect()
+hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEntity[0].host[0]
+key = None
+for policy in hostConfig.config.powerSystemCapability.availablePolicy:
+    if policy.shortName == "%s":
+        key = policy.key
+
+# Change to new policy
+hostConfig.GetConfigManager().GetPowerSystem().ConfigurePowerPolicy(key)
+""" % (policyname)
+        self.execcmd("echo '%s' | python" % (script))
+
+    def getCurrentPowerPolicy(self):
+        script = """
+from pyVim.connect import Connect
+si = Connect()
+hostConfig = si.RetrieveContent().rootFolder.childEntity[0].hostFolder.childEntity[0].host[0]
+
+# Report existing policy
+print hostConfig.GetConfigManager().GetPowerSystem().info.currentPolicy.shortName
+"""
+        return self.execcmd("echo '%s' | python" % (script)).strip()

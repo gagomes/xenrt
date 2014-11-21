@@ -47,7 +47,7 @@ class _XSAutoCertKit(xenrt.TestCase):
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
             if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
                     branch = "trunk"
                     build = "88907"
                 elif "x86_64" in host.execdom0("uname -a"):
@@ -57,7 +57,7 @@ class _XSAutoCertKit(xenrt.TestCase):
                     branch = "clearwater-sp1-lcm-autocertkit"
                     build = "88844"
             else:
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
                     branch = "trunk"
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"
@@ -205,6 +205,15 @@ class _XSAutoCertKit(xenrt.TestCase):
         if self.tec.lookup("SINGLE_NIC", False, boolean=True):
             self.SINGLE_NIC = "-o singlenic=true"
 
+        # Machines in XenRT may have wrong hwclock time.
+        # This may cause crashdump test case failed.
+        # To avoid sync clock here.
+        for host in self.getDefaultPool().getHosts():
+            try:
+                host.execdom0("hwclock --systohc")
+            except:
+                pass
+
     def createNetworkConfFile(self):
         nets = {self.pool.master.getDefaultInterface(): "NPRI"}
         nics = self.pool.master.listSecondaryNICs()
@@ -221,12 +230,12 @@ class _XSAutoCertKit(xenrt.TestCase):
         for s in self.pool.getSlaves():
             nics = s.listSecondaryNICs()
             slavenets = {s.getDefaultInterface(): "NPRI"}
-            xenrt.TEC().logverbose("Found slave NICs: %s" % slavenets)
             for n in nics:
                 netname = s.getNICNetworkName(n)
                 if netname in ["NPRI", "NSEC", "IPRI", "ISEC"]:
                     slavenets[s.getSecondaryNIC(n)] = netname
-                    
+            xenrt.TEC().logverbose("Found slave NICs: %s from %s" % (slavenets, s.getName()))
+            
             for n in nets.keys():
                 if n not in slavenets.keys() or nets[n] != slavenets[n]:
                     xenrt.TEC().logverbose("Dropping net %s: %s" % (n, nets[n]))

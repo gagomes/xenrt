@@ -179,6 +179,9 @@ chain tftp://${next-server}/pxelinux.0
             self.devcon("update \"c:\\%s\\%s\" \"%s\"" % (archive, inf, pci))
 
 
+    def reboot(self):
+        self.softReboot()
+
     def softReboot(self):
         self.xmlrpcExec("del c:\\booted.stamp")
         deadline = xenrt.util.timenow() + 1800
@@ -199,10 +202,10 @@ chain tftp://${next-server}/pxelinux.0
         pass
 
     def joinDefaultDomain(self):
+        self.rename(self.getName())
         self.xmlrpcExec("netsh advfirewall set domainprofile state off")
-        hname = self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
         ad = xenrt.getADConfig()
-        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (hname, ad.domain, ad.domainName, ad.adminUser, ad.adminPassword))
+        self.xmlrpcExec("netdom join %s /domain:%s /userd:%s\\%s /passwordd:%s" % (self.getName(), ad.domain, ad.domainName, ad.adminUser, ad.adminPassword))
         self.softReboot()
 
     def reconfigureToStatic(self, ad=False):

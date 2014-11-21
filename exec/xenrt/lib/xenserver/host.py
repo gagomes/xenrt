@@ -28,10 +28,11 @@ __all__ = ["Host",
            "BostonXCPHost",
            "TampaHost",
            "TampaXCPHost",
-           "SarasotaHost",
+           "DundeeHost",
            "CreedenceHost",
            "ClearwaterHost",
            "NFSStorageRepository",
+           "NFSv4StorageRepository",
            "FileStorageRepository",
            "FileStorageRepositoryNFS",
            "ISCSIStorageRepository",
@@ -71,8 +72,8 @@ CLI_NATIVE = 3          # New style CLI
 
 
 def hostFactory(hosttype):
-    if hosttype == "Sarasota":
-        return xenrt.lib.xenserver.SarasotaHost
+    if hosttype == "Dundee":
+        return xenrt.lib.xenserver.DundeeHost
     elif hosttype in ("Creedence"):
         return xenrt.lib.xenserver.CreedenceHost
     elif hosttype in ("Clearwater"):
@@ -91,7 +92,7 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Creedence", "Sarasota"):
+    if mastertype in ("Clearwater", "Creedence", "Dundee"):
         return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
@@ -526,8 +527,7 @@ class SshInstallerThread(threading.Thread):
                              level=xenrt.RC_OK,
                              timeout=20,
                              username="root",
-                             nowarn=True,
-                             usePty=True) == xenrt.RC_OK:
+                             nowarn=True) == xenrt.RC_OK:
                 return
         
     def stop(self):
@@ -602,6 +602,11 @@ class Host(xenrt.GenericHost):
     def asXapiObject(self):
         objType = xenrt.lib.xenserver.XapiHost.OBJECT_TYPE
         return xenrt.lib.xenserver.objectFactory().getObject(objType)(self.getCLIInstance(), objType, self.uuid)
+
+    def getPool(self):
+        if not self.pool:
+            poolFactory(self.productVersion)(self)
+        return self.pool
 
     def populateSubclass(self, x):
         xenrt.GenericHost.populateSubclass(self, x)
@@ -741,7 +746,7 @@ class Host(xenrt.GenericHost):
             if not primarydisk:
                 if self.i_primarydisk:
                     primarydisk = self.i_primarydisk
-                    # Handle the case where its a cciss disk going into a Sarasota+ host with CentOS 6.4+ udev rules
+                    # Handle the case where its a cciss disk going into a Dundee+ host with CentOS 6.4+ udev rules
                     # In this situation a path that includes cciss- will not work. See CA-121184 for details
                     if "cciss" in primarydisk:
                         primarydisk = self.getInstallDisk(ccissIfAvailable=self.USE_CCISS)
@@ -11137,23 +11142,63 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
+    def license(self, v6server=None, sku="free", usev6testd=True):
+
+        cli = self.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.getMyHostUUID()))
+
+        if  usev6testd and not v6server:
+            # Make sure the v6testd is in use
+            # Try to get it from xe-phase-1
+            if self.execdom0("test -e /opt/xensource/libexec/v6d.orig",
+                             retval="code") != 0:
+                self.execdom0("mv -f /opt/xensource/libexec/v6d "
+                              "/opt/xensource/libexec/v6d.orig")
+                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                if rpm:
+                    sftp = self.sftpClient()
+                    try:
+                        sftp.copyTo(rpm, "/tmp/v6-test.rpm")
+                    finally:
+                        sftp.close()
+                    self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                else:
+                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
+                                  "/opt/xensource/libexec/v6d" %
+                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
+                self.execdom0("service v6d restart")
+
+            sku = "per-socket"
+
+        args.append("edition=%s" % sku)
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("host-apply-edition", string.join(args))
+
 #############################################################################
-class SarasotaHost(CreedenceHost):
+class DundeeHost(CreedenceHost):
     USE_CCISS = False
 
-    def __init__(self, machine, productVersion="Sarasota", productType="xenserver"):
-        ClearwaterHost.__init__(self,
+    def __init__(self, machine, productVersion="Dundee", productType="xenserver"):
+        CreedenceHost.__init__(self,
                                 machine,
                                 productVersion=productVersion,
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
+    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
+
     def guestFactory(self):
-        return xenrt.lib.xenserver.guest.SarasotaGuest
+        return xenrt.lib.xenserver.guest.DundeeGuest
 
     def postInstall(self):
-        ClearwaterHost.postInstall(self)
+        CreedenceHost.postInstall(self)
 
         # check there are no failed first boot scripts
         self._checkForFailedFirstBootScripts()
@@ -11211,7 +11256,7 @@ class SarasotaHost(CreedenceHost):
                 # This is fine, because the calling function will fall through to another method
                 return None
         else:
-            ifs=ClearwaterHost.getBridgeInterfaces(self, bridge)
+            ifs=CreedenceHost.getBridgeInterfaces(self, bridge)
         return ifs
 
 
@@ -11912,11 +11957,13 @@ class ISCSIStorageRepository(StorageRepository):
                 while xenrt.TEC().lookup("RESOURCE_HOST_%u" % (i), None):
                     i = i + 1
                 params["INITIATORS"] = i
+            ttype = xenrt.TEC().lookup("ISCSI_TYPE", None)
             lun = xenrt.lib.xenserver.ISCSILun(minsize=minsize,
                                                maxsize=maxsize,
                                                params=params,
                                                jumbo=jumbo,
-                                               mpprdac=mpp_rdac)
+                                               mpprdac=mpp_rdac,
+                                               ttype = ttype)
         self.lun = lun
         self.subtype = subtype
         self.noiqnset = noiqnset
@@ -11991,7 +12038,8 @@ class ISCSIStorageRepository(StorageRepository):
         dconf = {}
         dconf["target"] = lun.getServer()
         dconf["targetIQN"] = lun.getTargetName()
-        dconf["LUNid"] = lun.getLunID()
+        if lun.getLunID() != None:
+            dconf["LUNid"] = lun.getLunID()
         if lun.getID():
             dconf["SCSIid"] = lun.getID()
         chap = lun.getCHAP()
@@ -14041,10 +14089,10 @@ class ClearwaterPool(TampaPool):
 
 #############################################################################
 
-class SarasotaPool(ClearwaterPool):
+class DundeePool(ClearwaterPool):
 
     def hostFactory(self):
-        return xenrt.lib.xenserver.SarasotaHost
+        return xenrt.lib.xenserver.DundeeHost
 
 #############################################################################
 

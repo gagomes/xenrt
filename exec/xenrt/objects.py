@@ -2829,7 +2829,7 @@ Add-WindowsFeature as-net-framework"""
             xenrt.TEC().logverbose("GUI already installed")
             return
         if not noAutoDotNetInstall:
-            if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
                 self.installDotNet4()
             if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
                 self.installDotNet4()
@@ -3032,7 +3032,7 @@ Add-WindowsFeature as-net-framework"""
 
         self.installDotNet35()
 
-        if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.installDotNet4()
 
         self.xmlrpcUnpackTarball("%s/nunit.tgz" %
@@ -4175,6 +4175,20 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
             self.xmlrpcSendFile("%s/distutils/%s" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), devconexe), "c:\\%s" % devconexe)
         return self.xmlrpcExec("c:\\%s %s" % (devconexe, command), returndata=True)
 
+    def getWindowsHostName(self):
+        return self.xmlrpcExec("hostname", returndata=True).strip().splitlines()[-1]
+
+    def rename(self, name):
+        if self.windows:
+            curName = self.getWindowsHostName()
+            self.xmlrpcExec("wmic ComputerSystem where Name=\"%s\" call Rename Name=\"%s\"" % (curName, name))
+            self.winRegAdd("HKLM",
+                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
+                           "DefaultDomainName",
+                           "SZ",
+                            name)
+            self.reboot()
+
 class RunOnLocation(GenericPlace):
     def __init__(self, address):
         GenericPlace.__init__(self)
@@ -4829,7 +4843,7 @@ class GenericHost(GenericPlace):
             return None
         return brs
 
-    def listSecondaryNICs(self, network=None, rspan=False, speed=None):
+    def listSecondaryNICs(self, network=None, rspan=False, speed=None, macaddr=None):
         """Return a list of "assumed" IDs (integers) of secondary NICs for this
         host as defined in the per-machine config."""
         reply = []
@@ -4845,7 +4859,8 @@ class GenericHost(GenericPlace):
                 if network == None or network == nw or network == "ANY":
                     if (not rspan) or rs:
                         if speed == None or speed == sp or (speed == "1G" and not sp):
-                            reply.append(i)
+                            if macaddr == None or xenrt.util.normaliseMAC(macaddr) == xenrt.util.normaliseMAC(mac):
+                                reply.append(i)
             else:
                 break
             i = i + 1
@@ -8805,6 +8820,10 @@ class GenericGuest(GenericPlace):
                 self.host.execdom0("xenstore-chmod /local/domain/%s/memory/target n0 n%s" %
                                    (self.getDomid(),self.getDomid()))
 
+    def reparseVIFs(self):
+        self.vifs = [ (nic, vbridge, mac, ip) for \
+                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
+
     def deviceToNetworkName(self,device):
 
         nics = self.getVIFs()
@@ -10494,7 +10513,7 @@ class WlbApplianceServer:
             xenrt.sleep(2)
             self.place.writeToConsole("echo \"VerboseTraceEnabled = 1\" >> /opt/citrix/wlb/wlb.conf\\n")
             xenrt.sleep(2)
-            if isinstance(self.place.host, xenrt.lib.xenserver.SarasotaHost):
+            if isinstance(self.place.host, xenrt.lib.xenserver.DundeeHost):
                 self.place.writeToConsole("sed -i \"s/\(SoapDataTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf\\n")
                 xenrt.sleep(2)
         else:

@@ -1,0 +1,27 @@
+<xenrt>
+
+  <!--Support LACP for large number of NICs, as required by NetScaler team - needs NPRI NICs >=20-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="Lacp18NicTests">
+      <testcase id="testcases.xenserver.tc.bonding.TCActiveActive18nic" tc="TC-18598"/>
+      <testcase id="testcases.xenserver.tc.bonding.BondSplit" tc="TC-18599"/>
+      <testcase id="testcases.xenserver.tc.bonding.TCActivePassive18nic" tc="TC-18600"/>
+      <testcase id="testcases.xenserver.tc.bonding.BondSplit" tc="TC-18601"/>
+      <testcase id="testcases.xenserver.tc.bonding.TCLacpBondSetUpMng8Nic" tc="TC-18516"/>
+      <testcase id="testcases.xenserver.tc.bonding.TCFailover8nic" tc="TC-18554"/>
+      <testcase id="testcases.xenserver.tc.bonding.BondSplit" tc="TC-18555"/>
+      <testcase id="testcases.xenserver.tc.bonding.TCLacpBondx9" tc="TC-18515"/>
+      <!--<testcase id="testcases.xenserver.tc.bonding.TCFailoverExistingBonds" tc="TC-18556"/>-->
+      <testcase id="testcases.xenserver.tc.bonding.TCSplitExistingBonds" tc="TC-18557"/>
+    </serial>
+  </testsequence>
+</xenrt>

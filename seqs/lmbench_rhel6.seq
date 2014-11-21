@@ -1,0 +1,24 @@
+<xenrt>
+
+  <prepare>
+    <host>
+      <vm name="rhel6x64">
+        <distro>rhel6</distro>
+        <vcpus>2</vcpus>
+        <memory>1024</memory>
+        <arch>x86-64</arch>
+        <network device="0"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="rhel6x64" guest="rhel6x64">
+      <testcase id="benchmarks.micro.TClmbench" tc="TC-9571">
+        <arg>quick</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

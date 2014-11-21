@@ -1,0 +1,23 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence group="NetworkReset">
+    <testcase id="xenserver.tc.networkreset.TC15483"/>
+    <testcase id="xenserver.tc.networkreset.TC15484"/>
+    <testcase id="xenserver.tc.networkreset.TC15485"/>
+    <testcase id="xenserver.tc.networkreset.TC15486"/>
+    <testcase id="xenserver.tc.networkreset.TC15490"/>
+    <testcase id="xenserver.tc.networkreset.TC15487"/>
+  </testsequence>
+
+</xenrt>

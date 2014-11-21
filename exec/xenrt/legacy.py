@@ -41,7 +41,7 @@ class TestCaseLegacy(xenrt.TestCase):
                            "REVISION", 
                            "OPTIONS", 
                            "MACHINE" ]:
-            cmdl.append(xenrt.TEC().lookup(parameter, "-"))
+            cmdl.append(xenrt.TEC().lookup(parameter, "-") or "-")
         cmdl.append(self.testname)
         cmdl.append("-")   # phase TODO
         cmdl.append(action)

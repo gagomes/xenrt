@@ -2,6 +2,7 @@ from server import Page
 import app.db
 
 class XenRTPage(Page):
+    WRITE = False
 
     def __init__(self, request):
         super(XenRTPage, self).__init__(request)

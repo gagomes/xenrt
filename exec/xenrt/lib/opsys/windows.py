@@ -11,6 +11,7 @@ __all__ = ["WindowsOS"]
 
 packageList = []
 
+@xenrt.irregularName
 def RegisterWindowsPackage(package):
     packageList.append(package)
 

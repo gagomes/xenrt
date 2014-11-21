@@ -144,7 +144,7 @@ class TC8175(xenrt.TestCase):
             self.runSubcase("checkEvent", (e[0], e[1], e[2]), "VM", e[0])
 
 class TC8176(xenrt.TestCase):
-    """Alerts can be sent via email. Use TC8176PrioPostTampa for Sarasota and later."""
+    """Alerts can be sent via email. Use TC8176PrioPostTampa for Dundee and later."""
 
     def __init__(self, tcid=None):
         self.smtpServer = None
@@ -166,7 +166,7 @@ class TC8176(xenrt.TestCase):
                                     (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"),
                                      self.smtpServer.port))
 
-        # This functionality has changed from Sarasota onwards. if condition is done to support both versions
+        # This functionality has changed from Dundee onwards. if condition is done to support both versions
         # https://confluence.uk.xensource.com/display/engp/XenServer+alert+proposal+%28was+audit%29
         if self.newPriority == True:
             self.prioMsgEmailChk(host, pool, testname="TC8176_a", testPriority=3, isReceived=True )
@@ -347,7 +347,7 @@ class TC8176(xenrt.TestCase):
             self.smtpServer.stop()
 
 class TC8176PrioPostTampa(TC8176):
-    """Alerts can be sent via email. New Priority applies to Sarasota and later."""
+    """Alerts can be sent via email. New Priority applies to Dundee and later."""
 
     def __init__(self, tcid=None):
         TC8176.__init__(self, tcid=tcid)
@@ -647,7 +647,7 @@ class MemoryAlerts(_AlertBase):
             raise xenrt.XRTError("Machine local SR not sufficient to run this test")
 
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.PRIORITY=5
 
         # Setup required to generate memory alerts
@@ -816,7 +816,7 @@ class StorageAlerts(_AlertBase):
         memLeft=self.host.getMaxMemory()
         xenrt.TEC().logverbose("SR Alerts: Memory left after install %s" % memLeft)
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.PRIORITY=5
 
         # Start the sr spammer thread here

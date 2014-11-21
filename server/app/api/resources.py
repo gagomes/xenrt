@@ -43,6 +43,8 @@ class XenRTResourcePage(XenRTAPIPage):
         return ret
 
 class XenRTLockResource(XenRTResourcePage):
+    WRITE = True
+
     def doRender(self):
         self.get_lock()
         ret = {}
@@ -80,6 +82,8 @@ class XenRTLockResource(XenRTResourcePage):
         return json.dumps(ret)
 
 class XenRTReleaseResource(XenRTResourcePage):
+    WRITE = True
+
     def doRender(self):
         self.get_lock()
         ret = ""

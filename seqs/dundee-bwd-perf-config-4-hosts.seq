@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- LPV performance testing with 256 LUNs on 4 hosts with 32 guests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="LPVPerfMultiple">
+
+      <testcase id="xenserver.tc.lunpervdiperf.LunPerVDIPerfTest" name="TC18499" tc="TC-18499">
+        <arg>hosts=4</arg>
+        <arg>guests=32</arg>
+        <arg>distro=oel62</arg>
+        <arg>vmmemory=896</arg>
+        <arg>lunsize=10</arg>
+        <arg>lunpervdis=256</arg>
+        <arg>iozoneiterations=10</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

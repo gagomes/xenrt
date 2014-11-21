@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- Live checkpoint VM operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="Checkpoint">
+      <testcase id="xenserver.tc.checkpoint.TC9316"/>
+      <testcase id="xenserver.tc.checkpoint.TC9317"/>
+      <testcase id="xenserver.tc.checkpoint.TC9320"/>
+      <testcase id="xenserver.tc.checkpoint.TC9321"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

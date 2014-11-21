@@ -4139,7 +4139,7 @@ class TC21455(xenrt.TestCase):
         while(xenrt.timenow()<=deadline):
             pid = self.host.execdom0("pidof multipathd || true").strip()
             if pid :
-                xenrt.TEC().logverbose("Multipathd restarted with process id %d" % (pid))
+                xenrt.TEC().logverbose("Multipathd restarted with process id %s" % (pid))
                 break
         if(xenrt.timenow() > deadline):
             raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")
@@ -4208,8 +4208,8 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
         eqlmpconf += "\\t\\tgetuid_callout \"/usr/lib/udev/scsi_id -g -u -s /block/%n\"\\n"
         # TODO: Remove above line and uncomment below lines when Centos 6.4 userspace in use
-        #if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/usr/lib/udev/scsi_id -g -u --devices /dev/%n\"\\n"
+        #if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u --devices /dev/%n\"\\n"
         #else:
         #    eqlmpconf += "\\t\\tgetuid_callout \"/usr/lib/udev/scsi_id -g -u -s /block/%n\"\\n"
         eqlmpconf += "\\t\\tpath_checker readsector0\\n"
@@ -4827,7 +4827,7 @@ class TCValidatePathCount(_TC8159):
         
         totalPaths = len(host.getMultipathInfo()[self.scsiid])
         activePaths = len(host.getMultipathInfo(onlyActive=True)[self.scsiid])
-        expectedPaths = [activePaths-1, totalPaths]
+        expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
         
         step("Drop one path by disabling port")
         host.disableFCPort(1)

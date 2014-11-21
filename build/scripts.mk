@@ -86,7 +86,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -106,7 +106,7 @@ pylint-all:
 xmllint:
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	xmllint --noout --schema $(XSD) $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
@@ -180,7 +180,7 @@ $(EXECDIR)/xenrt/ctrl.py:
 control/xrt:
 	$(info Creating link to $@...)
 	-rm $(SHAREDIR)/$@
-	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper2.sh `mktemp -d` /tmp/xenrtlogs NoJob $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
 
 control/xrt1:
@@ -252,13 +252,21 @@ $(NEWDIRS): $(SHAREDIR)
 .PHONY: $(SRCDIRS)
 $(SRCDIRS): $(SCRIPTS) $(GENCODE) $(SHAREDIR)
 	$(info Installing files to $@...)
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@) $(SHAREDIR)
+else
 	rsync -axl $(notdir $@) $(SHAREDIR)
+endif
 	-rsync -axl $(ROOT)/$(INTERNAL)/$(notdir $@) $(SHAREDIR)
 
 .PHONY: exec
 exec:
 	$(info Installing files to $(EXECDIR))
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+else
 	rsync -axl $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+endif
 
 .PHONY: $(SCRIPTS)
 $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
@@ -276,6 +284,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
 	sed -i 's#@user@#$(USERNAME)#g' $@
 	sed -i 's#@group@#$(GROUPNAME)#g' $@
+	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

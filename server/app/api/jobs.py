@@ -286,12 +286,15 @@ class XenRTList(XenRTJobPage):
                 fd.write(string.join(rl, "\t") + "\n")
 
 class XenRTSubmit(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         details = {}
         for key in form.keys():
             if key != 'action':
                 details[key] = form[key]
+        details['JOB_FILES_SERVER'] = config.log_server
         if details.has_key("MACHINE") and details["MACHINE"] == "ALL":
             # XRT-127
             allto = 86400
@@ -386,6 +389,8 @@ class XenRTSubmit(XenRTJobPage):
         return id
 
 class XenRTComplete(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -400,6 +405,8 @@ class XenRTComplete(XenRTJobPage):
 
 
 class XenRTUpdate(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -415,6 +422,8 @@ class XenRTUpdate(XenRTJobPage):
             return "ERROR Internal error"
 
 class XenRTRemove(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("id"):
@@ -489,6 +498,8 @@ class XenRTShowLog(XenRTJobPage):
         return self.showlog(id, wide, verbose, times=times)
 
 class XenRTJobGroup(XenRTJobPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("command"):

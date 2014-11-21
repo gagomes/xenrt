@@ -853,7 +853,7 @@ class TC18491(xenrt.TestCase):
         self.guest = self.getGuest("vm")
         
         webDir = xenrt.WebDirectory()
-        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6vpx11-12-1_unzipped.xva"))
+        webDir.copyIn(xenrt.TEC().getFile("/usr/groups/xenrt/v6/v6vpx11-12-1_unzipped.xva"))
         self.guest.execguest("cd / && wget %s" % webDir.getURL("v6vpx11-12-1_unzipped.xva"))
         
         # install NFS server on guest

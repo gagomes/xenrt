@@ -8,39 +8,39 @@ BACKUP	= if [ -e $(1) ]; then $(SUDO) cp $(1) $(1).xrt; fi
 RESTORE = if [ -e $(1).xrt ]; then $(SUDO) mv $(1).xrt $(1); fi
 
 ifeq ($(PRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOPROMPT = yes
-DOAUTOFS = yes
-DODHCPD = yes
-DODHCPD6 = yes
-DOHOSTS = yes
-DONETWORK = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOPROMPT ?= yes
+DOAUTOFS ?= yes
+DODHCPD ?= yes
+DODHCPD6 ?= yes
+DOHOSTS ?= yes
+DONETWORK ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOHOSTS = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOAUTOFSNIS = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOHOSTS ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOAUTOFSNIS ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(SSHCONFIG),yes)
-DOSSH = yes
+DOSSH ?= yes
 endif
 
 INETD_DAEMON ?= openbsd-inetd
@@ -68,7 +68,7 @@ extrapackages: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2 libkrb5-dev
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2 libkrb5-dev
 	# Squeeze only
 	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
@@ -95,6 +95,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade mysql-connector-python
 	$(SUDO) easy_install --upgrade kerberos
 	$(SUDO) easy_install --upgrade pywinrm
+	$(SUDO) easy_install --upgrade pyyaml
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto
@@ -156,6 +157,7 @@ ifeq ($(DOSSH),yes)
 	$(SUDOSH) 'echo "PermitBlacklistedKeys yes" >> /etc/ssh/sshd_config'
 	$(SUDO) /etc/init.d/ssh reload
 	cp $(ROOT)/$(INTERNAL)/config/ssh/* $(HOME)/.ssh/
+	chmod 600 $(HOME)/.ssh/id_*
 else
 	$(info Skipping config)
 endif
@@ -376,9 +378,8 @@ tftp:
 	$(call BACKUP,$(INETD))
 	$(SUDO) mkdir -p $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/pxelinux.cfg
-	$(SUDO) sed -i 's#/srv/tftp#-s $(TFTPROOT)#g' $(INETD)
-	$(SUDOSH) 'echo "OPTIONS=\"-R 4096\"" > /etc/default/openbsd-inetd'
-	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+	$(SUDO) sed -i 's#/srv/tftp#$(TFTPROOT)#g' /etc/default/tftpd-hpa
+	$(SUDO) /etc/init.d/tftpd-hpa restart
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/pxelinux.0 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/menu.c32 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/mboot.c32 $(TFTPROOT)
@@ -396,6 +397,7 @@ tftp:
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
+	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
 	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 
@@ -590,6 +592,8 @@ infrastructure-uninstall: network-uninstall \
 .PHONY: marvin
 marvin:
 	$(info Installing marvin)
+	wget -O $(SHAREDIR)/marvin-3.x.tar.gz http://repo-ccp.citrix.com/releases/Marvin/3.0.x/Marvin-66.tar.gz
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
+

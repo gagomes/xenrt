@@ -1,0 +1,16 @@
+<xenrt>
+
+  <!-- Tests for Hotfix Kittinger HFX745 (CA-101248)-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.network.TCHfx745" tc="TC-19178" />
+  </testsequence>
+</xenrt>

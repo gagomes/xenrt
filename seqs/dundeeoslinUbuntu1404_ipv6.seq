@@ -1,0 +1,144 @@
+<xenrt>
+
+  <!-- OS functional tests (IPv6): ubuntu1404 and ubuntu1404x86-64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+     <serial group="ubuntu1404">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-21524">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ubuntu1404</arg>
+        <arg>distro=ubuntu1404</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ubuntu1404">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-21525">
+        <arg>guest=ubuntu1404</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-21526">
+        <arg>guest=ubuntu1404</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-21527">
+        <arg>guest=ubuntu1404</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-21528">
+        <arg>guest=ubuntu1404</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-21529">
+        <arg>guest=ubuntu1404</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-21530">
+        <arg>N/A</arg>
+        <arg>guest=ubuntu1404</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-21531">
+        <arg>N/A</arg>
+        <arg>guest=ubuntu1404</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21532">
+        <arg>guest=ubuntu1404</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ubuntu1404</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+
+
+    <serial group="ubuntu1404x86-64">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-21534">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>distro=ubuntu1404</arg>
+        <arg>arch=x86-64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="ubuntu1404x86-64">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-21535">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-21536">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-21537">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-21538">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-21539">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-21540">
+        <arg>N/A</arg>
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-21541">
+        <arg>N/A</arg>
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-21542">
+        <arg>guest=ubuntu1404x86-64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=ubuntu1404x86-64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

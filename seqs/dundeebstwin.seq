@@ -1,0 +1,107 @@
+<xenrt>
+
+  <!-- Dundee basic Windows (32 bit and 64 bit) check -->
+
+  <default name="GUESTMEMORY" value="512"/>
+  <default name="GUESTVCPUS" value="2"/>
+  <default name="GUESTDISK" value="DEFAULT"/>
+  <default name="GUESTVERSION" value="winxpsp3"/>
+  <default name="GUEST2MEMORY" value="1024"/>
+  <default name="GUEST2VCPUS" value="1"/>
+  <default name="GUEST2DISK" value="DEFAULT"/>
+  <default name="GUEST2VERSION" value="ws08r2-x64"/>
+  <default name="VMOPSITER" value="2"/>
+  <default name="SRMWORKLOADS" value="noworkloads"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6643"/>
+      <testcase id="xenserver.install.TCXenServerSetupISOImportNFS" name="SetupISOImportNFS" tc="TC-6649"/>
+      <testcase id="xenserver.tc.vgpu.TCcheckNvidiaDriver" tc="TC-21483"/>
+
+      <parallel>
+        <serial group="WindowsGuest1">
+          <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall" tc="TC-6654">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=winguest</arg>
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-6655">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19831">
+            <arg>guest=winguest</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-6657">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-6658">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+            <arg>${SRMWORKLOADS}</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-6660">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+            <arg>live</arg>
+            <arg>${SRMWORKLOADS}</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCShutdown" tc="TC-6661">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUESTVERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUESTDISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC7849">
+            <arg>guest=winguest</arg>
+          </testcase>
+          <testcase id="xenserver.tc.checkpoint.TC9232">
+            <arg>guest=winguest</arg>
+          </testcase>
+        </serial>
+
+        <serial group="WindowsGuest2">
+          <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="TCWindowsInstall" tc="TC-9355">
+            <arg>RESOURCE_HOST_0</arg>
+            <arg>guest=winguest2</arg>
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-9356">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="guestops.drivers.TCVerifyDriversUptoDate" tc="TC-19832">
+            <arg>guest=winguest2</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCStartStop" tc="TC-9357">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-9358">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+            <arg>${SRMWORKLOADS}</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9359">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+            <arg>loops=${VMOPSITER}</arg>
+            <arg>live</arg>
+            <arg>${SRMWORKLOADS}</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCShutdown" tc="TC-9360">
+            <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUEST2VCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUEST2MEMORY}&lt;/MEMORY&gt;&lt;VERSION&gt;${GUEST2VERSION}&lt;/VERSION&gt;&lt;DISKSIZE&gt;${GUEST2DISK}&lt;/DISKSIZE&gt;&lt;/CONFIG&gt;</arg>
+          </testcase>
+          <testcase id="xenserver.tc.snapshot.TC7850">
+            <arg>guest=winguest2</arg>
+          </testcase>
+          <testcase id="xenserver.tc.checkpoint.TC9713">
+            <arg>guest=winguest2</arg>
+          </testcase>
+        </serial>
+      </parallel>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

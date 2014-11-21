@@ -556,17 +556,7 @@ class Guest(xenrt.GenericGuest):
                 self.installTools()
         if True: #xenrt.TEC().lookup("TESTING_KERNELS", False, boolean=True):
             kernelUpdatesPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "") + "/kernelUpdates"
-            if distro and 'ubuntu1404' in distro:
-                _new_kernel = kernelUpdatesPrefix + "/Ubuntu1404/"
-                _new_kernel_path = ["linux-image-3.13.0-33-generic_3.13.0-33.58_amd64.deb",
-                                    "linux-image-3.13.0-33-generic_3.13.0-33.58_i386.deb"]
-                if '64' in self.arch:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[0]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[0]))
-                else:
-                    self.execcmd("wget %s/%s"%(_new_kernel,_new_kernel_path[1]))
-                    self.execcmd("dpkg -i %s"%(_new_kernel_path[1]))
-            elif distro and 'oel7' in distro:
+            if distro and 'oel7' in distro:
                 _new_kernel = kernelUpdatesPrefix + "/OEL7/"
                 _new_kernel_path = ["kernel-uek-firmware-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
                                     "kernel-uek-3.8.13-36.3.1.el7uek.xs.x86_64.rpm",
@@ -575,6 +565,8 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+                tempRoot = self.execcmd("grep -Eo 'root=UUID=[0-9a-f-]+' /boot/grub2/grub.cfg | head -n 1").split('\n')[0]
+                self.execcmd("sed -i 's^root=/dev/mapper/VolGroup-lv_root^%s^' /boot/grub2/grub.cfg"%(tempRoot))
             elif distro and distro in ['rhel7','centos7']:
                 _new_kernel = kernelUpdatesPrefix + "/RHEL7/"
                 _new_kernel_path = ["kernel-devel-3.10.0-123.6.3.el7.xs1.x86_64.rpm",
@@ -2141,10 +2133,6 @@ exit /B 1
                 reply["%s%s" % (self.vifstem, device)] = (mac, ip, mybridge)
 
         return reply
-
-    def reparseVIFs(self):
-        self.vifs = [ (nic, vbridge, mac, ip) for \
-                      (nic, (mac, ip, vbridge)) in self.getVIFs().items() ]
 
     def changeVIF(self, name, bridge=None, mac=None):
         """Change the specified VIF to be on a different bridge or have a different MAC"""
@@ -4228,6 +4216,7 @@ def parseSequenceVIFs(guest, host, vifs):
 def createVMFromFile(host,
                      guestname,
                      filename,
+                     userfile=False,
                      postinstall=[],
                      memory=None,
                      bootparams=None,
@@ -4245,8 +4234,19 @@ def createVMFromFile(host,
     guest = host.guestFactory()(displayname, host=host)
     guest.ips = ips
     vifs = parseSequenceVIFs(guest, host, vifs)
-
-    guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
+    
+    if userfile:
+        share = xenrt.ExternalNFSShare()
+        m = xenrt.rootops.MountNFS(share.getMount())
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            xenrt.command('wget -e http_proxy=%s "%s" -O %s/file.xva' % (proxy, filename, m.mountpoint))
+        else:
+            xenrt.command('wget "%s" -O %s/file.xva' % (filename, m.mountpoint))
+        guest.importVM(host, "%s/file.xva" % m.mountpoint, vifs=vifs)
+        share.release()
+    else:
+        guest.importVM(host, xenrt.TEC().getFile(filename), vifs=vifs)
     guest.reparseVIFs()
     guest.vifs.sort()
     if bootparams:
@@ -5718,7 +5718,7 @@ default:
             self.reboot()
 
 
-class SarasotaGuest(CreedenceGuest):
+class DundeeGuest(CreedenceGuest):
     pass
 
 

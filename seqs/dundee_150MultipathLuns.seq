@@ -1,0 +1,29 @@
+<xenrt>
+    <!-- PR1566-->
+    <variables>
+        <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    </variables>
+
+    <prepare>
+        <host id="0">
+            <NETWORK>
+                <PHYSICAL network="NPRI">
+                    <NIC />
+                    <MANAGEMENT />
+                    <VMS />
+                </PHYSICAL>
+                <PHYSICAL network="NSEC">
+                    <NIC />
+                    <STORAGE />
+                </PHYSICAL>
+            </NETWORK>
+        </host>
+        <host id="1">
+        </host>
+    </prepare>
+    
+    <testsequence group="multipathLuns">
+        <testcase id="xenserver.tc.maxima.TC18838"/>
+    </testsequence>
+    
+</xenrt>

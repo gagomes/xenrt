@@ -1,0 +1,60 @@
+<xenrt>
+
+  <!-- MNR Windows burnintest stress sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+  </variables>
+
+  <default name="GUESTDISTRO" value="win7-x64"/>
+  <default name="GUESTMEMORY" value="1024"/>
+  <default name="GUESTVCPUS" value="2"/>
+  <default name="DURATION" value="48"/>
+  <default name="TCID" value="TC-9744"/>
+
+  <prepare>
+    <host>
+      <vm name="VM1">
+        <distro>${GUESTDISTRO}</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <disk device="0" size="16"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="VM2">
+        <distro>${GUESTDISTRO}</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <disk device="0" size="16"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="VM3">
+        <distro>${GUESTDISTRO}</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <vcpus>${GUESTVCPUS}</vcpus>
+        <disk device="0" size="16"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel tc="${TCID}">
+      <testcase id="benchmarks.stress.TCburnintest" guest="VM1" group="w2k8x64VM1">
+        <arg>${DURATION}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCburnintest" guest="VM2" group="w2k8x64VM2">
+        <arg>${DURATION}</arg>
+      </testcase>
+      <testcase id="benchmarks.stress.TCburnintest" guest="VM3" group="w2k8x64VM3">
+        <arg>${DURATION}</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Cowley to Tampa host upgrade tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC14898" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

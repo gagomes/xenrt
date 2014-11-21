@@ -1,0 +1,91 @@
+<xenrt>
+
+  <!-- Sequence to test the various storage xen migration test cases. -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <storage type="nfs" name="nfs_sourceSR_1" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR_1" />
+      <host id="0" installsr="ext" />
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <storage type="nfs" name="nfs_sourceSR_2" />
+      <storage type="lvmoiscsi" name="lvmoiscsi_sourceSR_2" />
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolInGuestSXM">
+      <testcase id="xenserver.tc.sxm.WinInGuestReboot" name="TC17179" tc="TC-17179">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.WinInGuestShutdown" name="TC17181" tc="TC-17181">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <!--<testcase id="xenserver.tc.sxm.WinCrash" name="TC17183" tc="TC-17183">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>-->
+      <testcase id="xenserver.tc.sxm.LinInGuestReboot" name="TC17185" tc="TC-17185">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LinInGuestShutdown" name="TC17187" tc="TC-17187">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+    <serial group="CrossPoolMiscSXM">
+      <testcase id="xenserver.tc.sxm.SixVdiAttached" name="TC17190" tc="TC-17190"></testcase>
+      <testcase id="xenserver.tc.sxm.MulVDIacrossDifSRs" name="TC17192" tc="TC-17192"></testcase>
+      <testcase id="xenserver.tc.sxm.VMWithSnapshot" name="TC17194" tc="TC-17194">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.VMRevertedToSnapshot" name="TC21673" tc="TC-21673">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.VMWithSnapshotUsingXE" name="TC20838" tc="TC-20838">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>use_xe</arg>
+        <arg>iterations=2</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.VMWithCDin" name="TC17196" tc="TC-17196">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.CancelMigrate" name="TC17198" tc="TC-17198">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC17364" tc="TC-17364">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+        <arg>use_xe</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.ConcurrentVMMigrate1" name="TC17350" tc="TC-17350">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+      <testcase id="xenserver.tc.sxm.ConcurrentVMMigrate2" name="TC17351" tc="TC-17351">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

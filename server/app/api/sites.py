@@ -51,7 +51,7 @@ class XenRTSitePage(XenRTAPIPage):
             sqlset.append("%s = %%s" % field)
             vals.append(val)
         vals.append(site)
-        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (sqlset)
+        sql = "UPDATE tblSites SET %s WHERE site = %%s" % (string.join(sqlset, ", "))
         cur.execute(sql, vals)
 
         db.commit()
@@ -110,6 +110,8 @@ class XenRTSite(XenRTSitePage):
             return "ERROR Could not find site " + site
 
 class XenRTSDefine(XenRTSitePage):
+    WRITE = True
+
     def render(self):
         try:
             site = None
@@ -157,6 +159,8 @@ class XenRTSDefine(XenRTSitePage):
             return "ERROR updating database"
 
 class XenRTSUnDefine(XenRTSitePage):
+    WRITE = True
+
     def render(self):
         """Handle the sundefine CLI call"""
         site = self.request.params["site"]
@@ -177,6 +181,8 @@ class XenRTSUnDefine(XenRTSitePage):
             return "ERROR Error undefining %s" % (site)
 
 class XenRTSUpdate(XenRTSitePage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("site"):

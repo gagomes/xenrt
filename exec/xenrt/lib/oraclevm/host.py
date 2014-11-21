@@ -49,7 +49,7 @@ def createHost(id=0,
     if not productVersion:
         productVersion = xenrt.TEC().lookup("ORACLEVM_VERSION", "3.2.8")
 
-    host = HostFactory(m, productVersion=productVersion, productType=productType)
+    host = hostFactory(m, productVersion=productVersion, productType=productType)
 
     host.install()
 
@@ -68,7 +68,7 @@ def createHost(id=0,
 
     return host
 
-def HostFactory(machine, productVersion, productType):
+def hostFactory(machine, productVersion, productType):
     if productVersion.startswith("2"):
         return OracleVMHost(machine, productVersion=productVersion, productType=productType)
     else:

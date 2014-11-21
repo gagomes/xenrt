@@ -12,13 +12,15 @@ import random
 import xenrt
 from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
 from xenrt.lib import assertions
-#from enums import XenServerLicenceSKU
+from xenrt.enum import XenServerLicenceSKU
 
 """
 TO DO:
 Search for editions and replace with skus
 Check upgrade cases and call the licence.verify method to verify any problems with strings being passed in
 Replace addCWLicenseFiles usage
+Need to change seqs to use SKUs, not editions
+Rewrite upgrade method on LicenseBase
 """
 
 
@@ -95,6 +97,8 @@ class LicenseBase(xenrt.TestCase, object):
 
         #see Line 2045 exec/testcases/xenserver/tc/hotfix.py
 
+        # REWRITE THIS USING LIB CODE THAT ALREADY EXISTS
+
         # Update our internal pool object before starting the upgrade
         newP = xenrt.lib.xenserver.poolFactory(xenrt.TEC().lookup("PRODUCT_VERSION", None))(self.systemObj.master)
         self.systemObj.populateSubclass(newP)
@@ -147,7 +151,7 @@ class LicenseBase(xenrt.TestCase, object):
         Checking date is pointless as TC expires license by changing date."""
 
 
-        #?? Why is this checking features
+        #?? Why is this checking features - when it's called checkLicenseExpired ??
         try:
             host.checkHostLicenseState(edition)
             for feature in host.licensedFeatures():
@@ -196,28 +200,25 @@ class TCRestartHost(LicenseBase):
             self.licenceManager.releaseLicense(self.systemObj)
 
 
+class ClearwaterUpgrade(LicenseBase):
+
+    def run(self,arglist=None):
+
+        if self.oldLicenseEdition:
+            v6 = self.licenseServer(self.oldLicenseServerName)
+            if self.oldLicenseEdition != XenServerLicenceSKU.Free.lower():
+                licences = self.licenceFactory.allLicences("Clearwater")
+                [self.licenceManager.addLicensesToServer(v6, l) for l in licences]
+            for host in self.systemObj.hosts:
+                host.templicense(edition=self.oldLicenseEdition,v6server=v6)
+
+        self.upgradePool()
+
+
 """
 DO NOT DELETE THE BELOW - MID REFACTOR
 """
 
-# class ClearwaterUpgrade(LicenseBase):
-
-#     def preLicenseHook(self):
-
-#         if self.oldLicenseEdition:
-#             v6 = self.licenseServer(self.oldLicenseServerName)
-#             if self.oldLicenseEdition != XenServerLicenceSKU.Free.lower():
-#                 licences = self.licenceFactory.allLicences("Clearwater")
-#                 [self.licenseManager.addLicensesToServer(v6, l) for l in licences]
-#             for host in self.systemObj.hosts:
-#                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
-
-#         self.upgradePool()
-
-
-#     def run(self,arglist=None):
-
-#         self.preLicenseHook()
 
 # class TCCWOldLicenseServerExp(ClearwaterUpgrade):
 

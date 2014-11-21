@@ -18,9 +18,11 @@ from xenrt.enum import XenServerLicenceSKU
 TO DO:
 Search for editions and replace with skus
 Check upgrade cases and call the licence.verify method to verify any problems with strings being passed in
-Replace addCWLicenseFiles usage
+Replace addCWLicenseFiles usage - port across to the ClearwaterLicence class
 Need to change seqs to use SKUs, not editions
 Rewrite upgrade method on LicenseBase
+Remove @wip from unit tests and fix accordingly
+What is the comment about expriing a host to do with? (In TCCWOldLicenseServerExp)
 """
 
 
@@ -202,12 +204,14 @@ class TCRestartHost(LicenseBase):
 
 class ClearwaterUpgrade(LicenseBase):
 
+    UPGRADE_FROM = "Clearwater"
+
     def run(self,arglist=None):
 
         if self.oldLicenseEdition:
             v6 = self.licenseServer(self.oldLicenseServerName)
             if self.oldLicenseEdition != XenServerLicenceSKU.Free.lower():
-                licences = self.licenceFactory.allLicences("Clearwater")
+                licences = self.licenceFactory.allLicences(self.UPGRADE_FROM)
                 [self.licenceManager.addLicensesToServer(v6, l) for l in licences]
             for host in self.systemObj.hosts:
                 host.templicense(edition=self.oldLicenseEdition,v6server=v6)
@@ -215,23 +219,18 @@ class ClearwaterUpgrade(LicenseBase):
         self.upgradePool()
 
 
+class TCCWOldLicenseServerExp(ClearwaterUpgrade):
+
+    def run(self,arglist=None):
+        super(TCCWOldLicenseServerExp, self).run(arglist)
+        self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
+        [self.checkGrace(h) for h in self.systemObj.hosts]
+         #Expire the host
+
 """
 DO NOT DELETE THE BELOW - MID REFACTOR
 """
 
-
-# class TCCWOldLicenseServerExp(ClearwaterUpgrade):
-
-#     def preLicenseHook(self):
-
-#         super(TCCWOldLicenseServerExp, self).preLicenseHook()
-
-#         self.systemObj.checkHostLicenseState(edition=self.expectedEditionAfterUpg)
-
-#         for host in self.hosts:
-#             self.checkGrace(host)
-
-#         #Expire the host
 
 # class TCCWOldLicenseServerUpg(ClearwaterUpgrade):
 

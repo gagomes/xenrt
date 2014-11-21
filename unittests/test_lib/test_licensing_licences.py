@@ -1,11 +1,11 @@
-from testing import XenRTUnitTestCase
+from testing import XenRTUnitTestCase, wip
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
 
 class HostDouble(object):
     def __init__(self, productVersion):
         self.productVersion = productVersion
 
-
+@wip
 class TestLicenceFactoryLicenceForSKU(XenRTUnitTestCase):
 
     def testFactoryReturnsCorrectType(self):
@@ -17,7 +17,7 @@ class TestLicenceFactoryLicenceForSKU(XenRTUnitTestCase):
         f = XenServerLicenceFactory()
         self.assertRaises(ValueError, f.licence, HostDouble("SDFsdfSDFSDF"), "sku")
 
-
+@wip
 class TestLicenceFactoryAllLicenceForHost(XenRTUnitTestCase):
 
     def testFactoryReturnsCorrectAmount(self):
@@ -30,7 +30,7 @@ class TestLicenceFactoryAllLicenceForHost(XenRTUnitTestCase):
         for t in ["tampa", "Clearwater"]:
             self.assertRaises(ValueError, f.allLicences, HostDouble(t))
 
-
+@wip
 class TestLicenceFactoryXSOnlyLicenceForHost(XenRTUnitTestCase):
 
     def testFactoryReturnsCorrectAmount(self):

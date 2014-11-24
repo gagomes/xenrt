@@ -8,7 +8,7 @@
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 #
 
-import sys, string, time
+import sys, string, time, re
 import xenrt
 
 class TCUbuntuUpgrade(xenrt.TestCase):
@@ -39,3 +39,62 @@ class TCUbuntuUpgrade(xenrt.TestCase):
             g.execguest("/bin/echo -e \"Y\\n\" | apt-get -y --force-yes dist-upgrade", timeout=7200)
 
         g.reboot()
+
+class TCLinuxUpgrade(xenrt.TestCase):
+
+    repoPath   = "/etc/yum.repos.d/upgrade.repo"
+    baseUrl    = None
+    fastRpm    = None
+    yumRpm     = None
+    upgradeRpm = None
+    instRepo   = None
+
+    def run(self, arglist=None):
+        args = self.parseArgsKeyValue(arglist)
+        g = self.getGuest(args['guest'])
+        g.execguest("echo \[upgrade\] > %s" % (self.repoPath))
+        g.execguest("echo name\=upgrade >> %s" % (self.repoPath))
+        g.execguest("echo baseurl\=%s >> %s" % (self.baseUrl, self.repoPath))
+        g.execguest("echo enabled\=1 >>  %s" % (self.repoPath))
+        g.execguest("echo gpgcheck\=0 >> %s" % (self.repoPath))
+        xenrt.TEC().comment("Repo Created")
+        g.execguest("yum -y install preupgrade-assistant-contents")
+
+        try :
+            g.execguest("rpm -Uvh --replacepkgs %s" %(self.fastRpm))
+            g.execguest("rpm -Uvh --replacepkgs %s" %(self.yumRpm))
+            xenrt.TEC().comment("Replaced yum packages")
+            g.execguest("yum -y install redhat-upgrade-tool")
+            g.execguest("yum -y install preupgrade-assistant")
+            g.execguest("/bin/echo -e \"y\\n\" | preupg")
+            xenrt.TEC().comment("Pre upgrade completed")
+        except:
+            raise xenrt.XRTError("Pre upgrade failed")
+
+        maxattempts = 20
+        success = False
+        i = 0
+        while i < maxattempts:
+            try :
+                g.execguest("rpm --import %s" %(self.upgradeRpm))
+                g.execguest("redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(self.instRepo), timeout=7200)
+                xenrt.TEC().comment("Red hat upgrade tool completed")
+                success = True
+                break
+            except :
+                i += 1
+        if not success:
+            raise xenrt.XRTError("Upgrade failed after multiple attempts")
+
+        g.reboot()
+
+        releaseCentos = g.execguest("cat /etc/centos-release")
+        if not re.search("7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")
+
+class TCCentosUpgrade (TCLinuxUpgrade):
+
+    baseUrl     = "http://dev.centos.org/centos/6/upg/x86_64/"
+    fastRpm     = "http://mirror.centos.org/centos/6/os/x86_64/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm"
+    yumRpm      = "http://mirror.centos.org/centos/6/os/x86_64/Packages/yum-3.2.29-60.el6.centos.noarch.rpm"
+    upgradeRpm  = "http://centos.excellmedia.net/7.0.1406/os/x86_64/RPM-GPG-KEY-CentOS-7"
+    instRepo    = "http://centos.excellmedia.net/7.0.1406/os/x86_64/"

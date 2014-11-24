@@ -10,7 +10,7 @@
   <default name="PXE_NETWORK" value="PVSNET"/>
   <default name="SRV_DISTRO" value="ws08sp2-x86"/>
   <default name="DEV_DISTRO" value="win7-x86"/>
-  <default name="PVS_BUILD_LOCATION" value="\\xenrtcifs.xenrt.xs.citrite.net\share\PVS\7.1">
+  <default name="PVS_BUILD_LOCATION" value="\\xenrtcifs.xenrt.xs.citrite.net\share\PVS\7.1"/>
   
   <prepare>
     <host>

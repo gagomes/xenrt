@@ -20,6 +20,7 @@
         <vcpus>4</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
       </vm>
       <vm name="${DEV_DISTRO}">
         <distro>${DEV_DISTRO}</distro>
@@ -27,6 +28,7 @@
         <vcpus>2</vcpus>
         <network device="0"/>
         <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell20"/>
       </vm>
       <bridge name="${PXE_NETWORK}"/>
     </host>

@@ -13,7 +13,7 @@ class XenRTJobPage(XenRTAPIPage):
         cur2 = self.getDB().cursor()
 
         if wide != "no":
-            cur.execute("SELECT options FROM tblJobs WHERE jobid = %u",
+            cur.execute("SELECT options FROM tblJobs WHERE jobid = %s",
                         [id])
             rc = cur.fetchone()
             if rc:
@@ -28,7 +28,7 @@ class XenRTJobPage(XenRTAPIPage):
             pref = ""
 
         cur.execute("SELECT phase, test, result, detailid FROM tblresults " +
-                    "WHERE jobid = %u",
+                    "WHERE jobid = %s",
                     [id])
         while 1:
             rc = cur.fetchone()
@@ -41,7 +41,7 @@ class XenRTJobPage(XenRTAPIPage):
             detailid = int(rc[3])
             if verbose != "no" or times:
                 cur2.execute("SELECT ts, key, value FROM tblDetails WHERE " +
-                             "detailid = %u ORDER BY ts;", [detailid])
+                             "detailid = %s ORDER BY ts;", [detailid])
                 detailedtext = ""
                 started = None
                 finished = None
@@ -49,14 +49,14 @@ class XenRTJobPage(XenRTAPIPage):
                     rc2 = cur2.fetchone()
                     if not rc2:
                         break
-                    fts = string.strip(rc2[0])
+                    fts = rc2[0]
                     fkey = string.strip(rc2[1])
                     fvalue = string.strip(rc2[2])
                     if fkey == "result" and times:
                         if fvalue == "started":
-                            started = time.mktime(time.strptime(fts,  "%Y-%m-%d %H:%M:%S"))
+                            started = time.mktime(fts.timetuple())
                         if fvalue in ("pass", "fail", "error", "partial"):
-                            finished = time.mktime(time.strptime(fts,  "%Y-%m-%d %H:%M:%S"))
+                            finished = time.mktime(fts.timetuple())
                     if verbose != "no":
                         line = "...[%-19s] %-10s %s" % (fts, fkey, fvalue)
                         detailedtext = detailedtext + line + "\n"
@@ -369,7 +369,7 @@ class XenRTSubmit(XenRTJobPage):
 
         for key in e.keys():
             cur.execute("INSERT INTO tbljobdetails (jobid,param,value) " +
-                        "VALUES (%u,%s,%s);", [id, key, e[key]])
+                        "VALUES (%s,%s,%s);", [id, key, e[key]])
 
         # If we have specifed a jobgroup and tag then update the jobgroup
         if params.has_key("JOBGROUP") and params.has_key("JOBGROUPTAG"):
@@ -382,7 +382,7 @@ class XenRTSubmit(XenRTJobPage):
             except:
                 pass
             cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
-                        "(%s, %u, %s);", [jobgroup, id, jobtag])
+                        "(%s, %s, %s);", [jobgroup, id, jobtag])
 
         db.commit()
         cur.close()

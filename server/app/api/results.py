@@ -78,7 +78,7 @@ class XenRTSubResults(XenRTAPIPage):
                                 reason = reason[0:48]
                                 # Insert this record
                                 cur.execute("SELECT subid from tblSubResults " \
-                                            "WHERE detailid = %u AND subgroup = " \
+                                            "WHERE detailid = %s AND subgroup = " \
                                             "%s AND subtest = %s",
                                             [detailid, gname, tname])
                                 rc = cur.fetchone()
@@ -86,13 +86,13 @@ class XenRTSubResults(XenRTAPIPage):
                                     subid = int(rc[0])
                                     cur.execute("UPDATE tblSubResults SET result =" \
                                                 " %s, reason = %s WHERE " \
-                                                "subid = %u",
+                                                "subid = %s",
                                                 [result, reason, subid])
                                 else:
                                     cur.execute("INSERT INTO tblSubResults " \
                                                 "(detailid, subgroup, subtest, " \
                                                 "result, reason) VALUES " \
-                                                "(%u, %s, %s, %s, %s)",
+                                                "(%s, %s, %s, %s, %s)",
                                                 [detailid, gname, tname, result, reason])
             db.commit()
             cur.close()        
@@ -164,15 +164,15 @@ class XenRTLogData(XenRTAPIPage):
             result = value
         detailid = 0
         cur.execute("SELECT detailid FROM tblResults " +
-                    "WHERE jobid = %u AND phase = %s AND test = %s;",
+                    "WHERE jobid = %s AND phase = %s AND test = %s;",
                     [id, phase, test])
         rc = cur.fetchone()
         if not rc:
             cur.execute("INSERT INTO tblResults (jobid, phase, test, result) "
-                        "VALUES (%u, %s, %s, %s);",
+                        "VALUES (%s, %s, %s, %s);",
                         [id, phase, test, result])
             cur.execute("SELECT detailid FROM tblResults " +
-                        "WHERE jobid = %u AND phase = %s AND test = %s;",
+                        "WHERE jobid = %s AND phase = %s AND test = %s;",
                         [id, phase, test])
             rc = cur.fetchone()
             if not rc:
@@ -189,18 +189,18 @@ class XenRTLogData(XenRTAPIPage):
         if len(value) > 255:
             value = value[0:255]
         cur.execute("INSERT INTO tblDetails (detailid, ts, key, value) "
-                    "VALUES (%u, %s, %s, %s);",
+                    "VALUES (%s, %s, %s, %s);",
                     [detailid, timenow, key, value])
 
         # If the key was "result" the update the result in tblResult as well
         if key == "result":
-            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %s "
                         "AND phase = %s AND test = %s;",
                         [value, id, phase, test])
 
         # If the key was "warning" then modify the result in tblResult
         if key == "warning":
-            cur.execute("SELECT result FROM tblResults WHERE jobid = %u "
+            cur.execute("SELECT result FROM tblResults WHERE jobid = %s "
                         "AND phase = %s AND test = %s;",
                         [id, phase, test])
             rc = cur.fetchone()
@@ -210,7 +210,7 @@ class XenRTLogData(XenRTAPIPage):
                 result = "unknown"
             if result[-2:] != "/w":
                 result = result + "/w"
-            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %s "
                         "AND phase = %s AND test = %s;",
                         [result, id, phase, test])
             
@@ -242,21 +242,21 @@ class XenRTSetResult(XenRTAPIPage):
 
 
         cur.execute("SELECT jobid, phase, test, result FROM tblResults "
-                    "WHERE jobid = %u AND phase = %s AND test = %s;",
+                    "WHERE jobid = %s AND phase = %s AND test = %s;",
                     [id, phase, test])
         rc = cur.fetchone()
         if not rc:
             cur.execute("INSERT INTO tblResults (jobid, phase, test, result) "
-                        "VALUES (%u, %s, %s, %s);",
+                        "VALUES (%s, %s, %s, %s);",
                         [id, phase, test, result])
         else:
-            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %u "
+            cur.execute("UPDATE tblResults SET result = %s WHERE jobid = %s "
                         "AND phase = %s AND test = %s;",
                         [result, id, phase, test])
 
         # Also add to the detailed history
         cur.execute("SELECT detailid FROM tblResults "
-                    "WHERE jobid = %u AND phase = %s AND test = %s;",
+                    "WHERE jobid = %s AND phase = %s AND test = %s;",
                     [id, phase, test])
         rc = cur.fetchone()
         if not rc:
@@ -266,7 +266,7 @@ class XenRTSetResult(XenRTAPIPage):
             detailid = int(rc[0])
             cur.execute(
                 "INSERT INTO tblDetails (detailid, ts, key, value) VALUES "
-                "(%u, %s, 'result', %s);", [detailid, timenow, result])
+                "(%s, %s, 'result', %s);", [detailid, timenow, result])
             
         db.commit()
         cur.close()

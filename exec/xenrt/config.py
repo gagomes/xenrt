@@ -958,10 +958,14 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_57_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_510"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_510_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_511"] = "Red Hat Enterprise Linux 5 (32-bit),Red Hat Enterprise Linux 5.7 (32-bit),Red Hat Enterprise Linux 5.7"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_511_64"] = "Red Hat Enterprise Linux 5 (64-bit),Red Hat Enterprise Linux 5.7 (64-bit),Red Hat Enterprise Linux 5.7 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_6"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_6_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_65"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_65_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_66"] = "Red Hat Enterprise Linux 6 (32-bit),Red Hat Enterprise Linux 6,Red Hat Enterprise Linux 6.0 (32-bit)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_66_64"] = "Red Hat Enterprise Linux 6 (64-bit),Red Hat Enterprise Linux 6 x64,Red Hat Enterprise Linux 6.0 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_RHEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_53"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.3 (32-bit),Oracle Enterprise Linux 5.3"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_53_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.3 (64-bit),Oracle Enterprise Linux 5.3 x64"
@@ -979,10 +983,14 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_59_64"] = "Oracle Enterprise Linux 5 (64-bit)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_510"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.10 (32-bit),Oracle Enterprise Linux 5.10"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_510_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.10 (64-bit),Oracle Enterprise Linux 5.10 x64"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_511"] = "Oracle Enterprise Linux 5 (32-bit),Oracle Enterprise Linux 5.10 (32-bit),Oracle Enterprise Linux 5.10"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_511_64"] = "Oracle Enterprise Linux 5 (64-bit),Oracle Enterprise Linux 5.10 (64-bit),Oracle Enterprise Linux 5.10 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_6"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_6_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_65"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_65_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_66"] = "Oracle Enterprise Linux 6 (32-bit),Oracle Enterprise Linux 6,Oracle Enterprise Linux 6 (32-bit) (experimental),Oracle Enterprise Linux 6.0 (32-bit),Oracle Enterprise Linux 6.0,Oracle Enterprise Linux 6.0 (32-bit) (experimental)"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_66_64"] = "Oracle Enterprise Linux 6 (64-bit),Oracle Enterprise Linux 6 x64,Oracle Enterprise Linux 6 (64-bit) (experimental),Oracle Enterprise Linux 6.0 (64-bit),Oracle Enterprise Linux 6.0 x64,Oracle Enterprise Linux 6.0 (64-bit) (experimental)"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_OEL_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_45"] = "CentOS 4.5 (32-bit),CentOS 4.5"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_46"] = "CentOS 4.6 (32-bit),CentOS 4.6"
@@ -1006,10 +1014,14 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_57_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_510"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_510_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_511"] = "CentOS 5 (32-bit),CentOS 5.7 (32-bit),CentOS 5.7,CentOS 5.7 (32-bit),CentOS 5.7"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_511_64"] = "CentOS 5 (64-bit),CentOS 5.7 (64-bit),CentOS 5.7 x64,CentOS 5.7 (64-bit),CentOS 5.7 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_6"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_6_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_65"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_65_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66"] = "CentOS 6 (32-bit),CentOS 6.0 (32-bit),CentOS 6.0,CentOS 6.0 (32-bit),CentOS 6.0"
+        self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_66_64"] = "CentOS 6 (64-bit),CentOS 6.0 (64-bit),CentOS 6.0 x64,CentOS 6.0 (64-bit),CentOS 6.0 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CENTOS_7_64"] = "Red Hat Enterprise Linux 7"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004"] = "Ubuntu Lucid Lynx 10.04 (32-bit), Ubuntu Lucid Lynx 10.04"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_UBUNTU_1004_64"] = "Ubuntu Lucid Lynx 10.04 (64-bit), Ubuntu Lucid Lynx 10.04 x64"
@@ -2025,6 +2037,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel510"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel510"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel511"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel511"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["rhel511"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["rhel511"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["rhel6"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel6"]["MAXMEMORY"] = "8192"
@@ -2049,6 +2065,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY"] = "8192"
         self.config["GUEST_LIMITATIONS"]["rhel65"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["rhel66"] = {}
+        self.config["GUEST_LIMITATIONS"]["rhel66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["rhel66"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["rhel7"] = {}
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["rhel7"]["MAXMEMORY"] = "8192"
@@ -2112,6 +2132,12 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos510"]["MAXMEMORY64"] = "16384"
         self.config["GUEST_LIMITATIONS"]["centos510"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos510"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos511"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos511"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["centos511"]["MAXMEMORY"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos511"]["MAXMEMORY64"] = "16384"
+        self.config["GUEST_LIMITATIONS"]["centos511"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos511"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos6"] = {}
         self.config["GUEST_LIMITATIONS"]["centos6"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos6"]["MAXMEMORY"] = "8192"
@@ -2138,6 +2164,12 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos65"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos66"] = {}
+        self.config["GUEST_LIMITATIONS"]["centos66"]["MINMEMORY"] = "1024"
+        self.config["GUEST_LIMITATIONS"]["centos66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["centos66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["centos66"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["centos66"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["centos7"] = {}
         self.config["GUEST_LIMITATIONS"]["centos7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["centos7"]["MAXMEMORY"] = "8192"
@@ -2176,6 +2208,10 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel510"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY"] = "65536"
         self.config["GUEST_LIMITATIONS"]["oel510"]["MAXMEMORY64"] = "131072"
+        self.config["GUEST_LIMITATIONS"]["oel511"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel511"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["oel511"]["MAXMEMORY"] = "65536"
+        self.config["GUEST_LIMITATIONS"]["oel511"]["MAXMEMORY64"] = "131072"
         self.config["GUEST_LIMITATIONS"]["oel6"] = {}
         self.config["GUEST_LIMITATIONS"]["oel6"]["MINMEMORY"] = "512"
         self.config["GUEST_LIMITATIONS"]["oel6"]["MAXMEMORY"] = "8192"
@@ -2202,6 +2238,12 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAXMEMORY64"] = "32768"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAX_VM_VCPUS"] = "32"
         self.config["GUEST_LIMITATIONS"]["oel65"]["MAX_VM_VCPUS64"] = "32"
+        self.config["GUEST_LIMITATIONS"]["oel66"] = {}
+        self.config["GUEST_LIMITATIONS"]["oel66"]["MINMEMORY"] = "512"
+        self.config["GUEST_LIMITATIONS"]["oel66"]["MAXMEMORY"] = "8192"
+        self.config["GUEST_LIMITATIONS"]["oel66"]["MAXMEMORY64"] = "32768"
+        self.config["GUEST_LIMITATIONS"]["oel66"]["MAX_VM_VCPUS"] = "32"
+        self.config["GUEST_LIMITATIONS"]["oel66"]["MAX_VM_VCPUS64"] = "32"
         self.config["GUEST_LIMITATIONS"]["oel7"] = {}
         self.config["GUEST_LIMITATIONS"]["oel7"]["MINMEMORY"] = "1024"
         self.config["GUEST_LIMITATIONS"]["oel7"]["MAXMEMORY"] = "8192"
@@ -2296,12 +2338,12 @@ class Config:
         self.config["GUEST_LIMITATIONS"]["debian70"]["MAX_VM_VCPUS64"] = "32"
 
         self.config["LINUX_UPDATE"] = {}
-        self.config["LINUX_UPDATE"]["rhel5"] = "rhel510"
-        self.config["LINUX_UPDATE"]["rhel6"] = "rhel65"
-        self.config["LINUX_UPDATE"]["oel5"] = "oel510"
-        self.config["LINUX_UPDATE"]["oel6"] = "oel65"
-        self.config["LINUX_UPDATE"]["centos5"] = "centos510"
-        self.config["LINUX_UPDATE"]["centos6"] = "centos65"
+        self.config["LINUX_UPDATE"]["rhel5"] = "rhel511"
+        self.config["LINUX_UPDATE"]["rhel6"] = "rhel66"
+        self.config["LINUX_UPDATE"]["oel5"] = "oel511"
+        self.config["LINUX_UPDATE"]["oel6"] = "oel66"
+        self.config["LINUX_UPDATE"]["centos5"] = "centos511"
+        self.config["LINUX_UPDATE"]["centos6"] = "centos66"
 
         self.config["PRODUCT_KEYS"] = {}
 

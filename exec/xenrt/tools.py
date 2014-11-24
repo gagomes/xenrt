@@ -65,7 +65,6 @@ def _findOrCreateTestCase(existing, tcsummary, jiralink, container, desc, xenrtt
             existing[tcsummary].key
             t = getIssue(j, existing[tcsummary].key)
         except Exception as e:
-            print e.message
             t = getIssue(j, existing[tcsummary])
         print "Found %s - %s" % (t.key, t.fields.summary)
     elif existing.has_key("[experimental] " + tcsummary):
@@ -801,12 +800,14 @@ def processMatrixTests(release=None):
                   ('rhel58','RHEL 5.8'),
                   ('rhel59','RHEL 5.9'),
                   ('rhel510','RHEL 5.10'),
+                  ('rhel511','RHEL 5.11'),
                   ('rhel6','RHEL 6.0'),
                   ('rhel61','RHEL 6.1'),
                   ('rhel62','RHEL 6.2'),
                   ('rhel63','RHEL 6.3'),
                   ('rhel64','RHEL 6.4'),
                   ('rhel65','RHEL 6.5'),
+                  ('rhel66','RHEL 6.6'),
                   ('centos5','CentOS 5.0'),
                   ('centos51','CentOS 5.1'),
                   ('centos52','CentOS 5.2'),
@@ -818,12 +819,14 @@ def processMatrixTests(release=None):
                   ('centos58','CentOS 5.8'),
                   ('centos59','CentOS 5.9'),
                   ('centos510','CentOS 5.10'),
+                  ('centos511','CentOS 5.11'),
                   ('centos6','CentOS 6.0'),
                   ('centos61','CentOS 6.1'),
                   ('centos62','CentOS 6.2'),
                   ('centos63','CentOS 6.3'),
                   ('centos64','CentOS 6.4'),
                   ('centos65','CentOS 6.5'),
+                  ('centos66','CentOS 6.6'),
                   ('oel53','Oracle Enterprise Linux 5.3'),
                   ('oel54','Oracle Enterprise Linux 5.4'),
                   ('oel55','Oracle Enterprise Linux 5.5'),
@@ -832,12 +835,14 @@ def processMatrixTests(release=None):
                   ('oel58','Oracle Enterprise Linux 5.8'),
                   ('oel59','Oracle Enterprise Linux 5.9'),
                   ('oel510','Oracle Enterprise Linux 5.10'),
+                  ('oel511','Oracle Enterprise Linux 5.11'),
                   ('oel6','Oracle Enterprise Linux 6.0'),
                   ('oel61','Oracle Enterprise Linux 6.1'),
                   ('oel62','Oracle Enterprise Linux 6.2'),
                   ('oel63','Oracle Enterprise Linux 6.3'),
                   ('oel64','Oracle Enterprise Linux 6.4'),
                   ('oel65','Oracle Enterprise Linux 6.5'),
+                  ('oel66','Oracle Enterprise Linux 6.6'),
                   ('sles101','SLES10 SP1'),
                   ('sles102','SLES10 SP2'),
                   ('sles103','SLES10 SP3'),
@@ -1101,7 +1106,7 @@ def processMatrixTests(release=None):
 
     #  (Creedence)
     distrosToRels['Creedence'] = {}
-    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel7','oel7','centos7',
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1109,7 +1114,7 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65','ubuntu1404',
+                                          'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles112','sles103',
@@ -1132,7 +1137,7 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel511','rhel66',
                                           'sles104','sles113',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1140,21 +1145,22 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65','ubuntu1404',
+                                          'oel511','centos511','oel66','centos66','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel510','sles112','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel64','oel64', 'centos64']
+                                            'win7-x86','win7-x64','rhel65','oel65', 'centos65']
     distrosToRels['Dundee']['tertiary'] = ['rhel46','rhel45',
-                                              'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
-                                              'rhel63',
+                                              'rhel59','rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'rhel64','rhel63',
                                               'sles102',
                                               'sles11','sles111',
                                               'centos48','centos47','centos46','centos45',
-                                              'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
-                                              'oel63','centos63',
+                                              'centos510','centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel510','oel59','oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'oel64','oel63',
+                                              'centos64','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
     distrosToRels['Dundee']['level0'] = ['w2k3eesp2']

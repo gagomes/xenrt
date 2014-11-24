@@ -308,9 +308,17 @@ check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
+	sh -c 'xmllint --schema $(XSD) seqs/*.seq --noout 2>&1 && echo "All XML validated"' | grep -v validates	
+	rm $(XSD)
 
 .PHONY: minimal-check
 minimal-check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
 	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
+	sh -c 'xmllint --schema $(XSD) seqs/*.seq --noout 2>&1 && echo "All XML validated"' | grep -v validates	
+	rm $(XSD)

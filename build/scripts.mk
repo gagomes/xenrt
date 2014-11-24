@@ -310,7 +310,7 @@ check: install
 	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
-	sh -c 'xmllint --schema $(XSD) seqs/*.seq --noout 2>&1 && echo "All XML validated"' | grep -v validates	
+	xmllint --schema $(XSD) seqs/*.seq --noout
 	rm $(XSD)
 
 .PHONY: minimal-check

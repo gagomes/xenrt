@@ -7,9 +7,8 @@
     <host/>
   </prepare>
   <testsequence>
-    <parallel group="HVM5G2C_4" workers="1">
-      <testcase id="xenserver.tc.smoketest.TC21497" prio="4" tc="TC-21497"/>
-      <testcase id="xenserver.tc.smoketest.TC21498" prio="4" tc="TC-21498"/>
+    <parallel group="VMs_12" workers="2">
+      <testcase id="xenserver.tc.smoketest.TC21494" prio="4" tc="TC-21494"/>
     </parallel>
   </testsequence>
 </xenrt>

@@ -552,6 +552,30 @@ def generateOSTestSequences():
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64", arch="x86-64")
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 (IPv6)")
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64 (IPv6 only)", arch="x86-64")
+    defineOSTests("centos65", "CentOS 6.5")
+    defineOSTests("centos65", "CentOS 6.5 x64", arch="x86-64")
+    defineOSTests("oel65", "Oracle Enterprise Linux 6.5")
+    defineOSTests("oel65", "Oracle Enterprise Linux 6.5 x64", arch="x86-64")
+    defineOSTests("rhel65", "RedHat Enterprise Linux 6.5")
+    defineOSTests("rhel65", "RedHat Enterprise Linux 6.5 x64", arch="x86-64")
+    defineOSTests("rhel510", "RedHat Enterprise Linux 5.10")
+    defineOSTests("rhel510", "RedHat Enterprise Linux 5.10 x64", arch="x86-64")
+    defineOSTests("oel510", "Oracle Enterprise Linux 5.10")
+    defineOSTests("oel510", "Oracle Enterprise Linux 5.10 x64", arch="x86-64")
+    defineOSTests("centos510", "CentOS 5.10")
+    defineOSTests("centos510", "CentOS 5.10 x64", arch="x86-64")
+    defineOSTests("centos66", "CentOS 6.5")
+    defineOSTests("centos66", "CentOS 6.5 x64", arch="x86-64")
+    defineOSTests("oel66", "Oracle Enterprise Linux 6.6")
+    defineOSTests("oel66", "Oracle Enterprise Linux 6.6 x64", arch="x86-64")
+    defineOSTests("rhel66", "RedHat Enterprise Linux 6.6")
+    defineOSTests("rhel66", "RedHat Enterprise Linux 6.6 x64", arch="x86-64")
+    defineOSTests("rhel511", "RedHat Enterprise Linux 5.11")
+    defineOSTests("rhel511", "RedHat Enterprise Linux 5.11 x64", arch="x86-64")
+    defineOSTests("oel511", "Oracle Enterprise Linux 5.11")
+    defineOSTests("oel511", "Oracle Enterprise Linux 5.11 x64", arch="x86-64")
+    defineOSTests("centos511", "CentOS 5.11")
+    defineOSTests("centos511", "CentOS 5.11 x64", arch="x86-64")
 
 def getChildren(key):
     global childrencache
@@ -1401,7 +1425,7 @@ def _walkHierarchy(j, ticket):
     return reply
 
 
-def generateSmokeTestSequences(version="Dundee", regressionSuite="TC-18016", nightlySuite="TC-18013", expSuite="TC-19628", folder="seqs"):
+def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", nightlySuite="TC-21159", expSuite="TC-19628", folder="seqs"):
     """Generates all smoke test sequences for the specified product version from the associate Jira tickets.
     
     Before using this method, ensure that processMatrixTests is up to date and has been run for the specified suites."""

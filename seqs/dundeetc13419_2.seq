@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
   </variables>
   <prepare>
     <host/>
@@ -17,6 +17,7 @@
       <testcase id="xenserver.tc.smoketest.TC21425" prio="3" tc="TC-21425"/>
       <testcase id="xenserver.tc.smoketest.TC21426" prio="3" tc="TC-21426"/>
       <testcase id="xenserver.tc.smoketest.TC21501" prio="3" tc="TC-21501"/>
+      <testcase id="xenserver.tc.smoketest.TC21666" prio="3" tc="TC-21666"/>
     </parallel>
   </testsequence>
 </xenrt>

@@ -777,7 +777,7 @@ class _WSMANProtocol(_CIMInterface):
             s_ip = start_ip.split('.')
             if (int(s_ip[3]) + staticIPs) >= 255:
                 start_ip,end_ip = self.getIPRange(staticIPs)
-                (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+            (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)

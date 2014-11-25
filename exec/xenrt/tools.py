@@ -153,9 +153,8 @@ def defineOSTests(distro,
     container = None
     for oshlink in oshlinks:
         if oshlink.type.name == "Contains" and hasattr(oshlink, "outwardIssue"):
-            child = getIssue(j, oshlink.outwardIssue.key)
-            if child.fields.summary == desc:
-                container = child
+            if oshlink.outwardIssue.fields.summary == desc:
+                container = getIssue(j, oshlink.outwardIssue.key)
                 break
 
     # If not then make one
@@ -171,7 +170,7 @@ def defineOSTests(distro,
     for clink in clinks:
         if clink.type.name == "Contains" and hasattr(clink, "outwardIssue"):
             t = getIssue(j, clink.outwardIssue.key)
-            if t.fields.status.name == "Open":
+            if t.fields.status.name == "New":
                 existing[t.fields.summary] = t
     if arch:
         guestname = distro + arch
@@ -1887,3 +1886,83 @@ def createMarvinSequence(tags=[], classPathRoot=''):
     marvinTestsStrs.sort()
     for testStr in marvinTestsStrs:
         print testStr
+
+def newGuestsMiniStress():
+    # Tailor to your needs
+    families = {"oel": "Oracle Enterprise Linux", "rhel": "RedHat Enterprise Linux", "centos": "CentOS"}
+
+    template = """<xenrt>
+
+  <!-- OS functional test sequence: %s and %s-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+%s
+%s
+    </parallel>
+  </testsequence>
+</xenrt>
+"""
+
+    for i in families.keys():
+        for j in ["5.11", "6.6"]:
+            osname = "%s%s" % (i, j.replace(".", ""))
+            print osname
+            a = defineOSTests(osname, "%s %s" % (families[i], j))
+            b = defineOSTests(osname, "%s %s x64" % (families[i], j), arch="x86-64")
+            seq = template % (osname, osname, a, b)
+
+            with open("seqs/creedenceoslin%s.seq" % osname, "w") as f:
+                f.write(seq)
+
+def newGuestsInstalls():
+    # Tailor to your needs
+
+    families = {"oel": "Oracle Enterprise Linux", "rhel": "RedHat Enterprise Linux", "centos": "CentOS"}
+    methods = {"ISO": ("_TC5786", False), "HTTP": ("_TC6767", True), "NFS": ("_TC6767", True) }
+    arches = {"x86-32": "32 bit", "x86-64": "64 bit"}
+    versions = {"511": "5.11", "66": "6.6"}
+
+    tccode = ""
+    seqcode = ""
+
+    j = J()
+    container = getIssue(j, "TC-5790")
+
+    for f in families.keys():
+        for v in versions.keys():
+            for m in methods.keys():
+                for a in arches.keys():
+                    tcname = "Install a %s %s %s VM from %s" % (families[f], versions[v], arches[a], m)
+                    print "Creating %s" % tcname
+                    tckey = _findOrCreateTestCase({}, tcname, j, container, tcname)
+                    print tckey
+                    (base, needmethod) = methods[m]
+                    tccode += "class %s(%s):\n" % (tckey.replace("-", ""), base)
+                    tccode += "    \"\"\"%s\"\"\"\n" % (tcname)
+                    tccode += "    DISTRO=\"%s%s\"\n" % (f, v)
+                    tccode += "    ARCH=\"%s\"\n" % a
+                    if needmethod:
+                        tccode += "    METHOD=\"%s\"\n" % m
+                    tccode += "\n"
+                    seqcode += "<testcase id=\"xenserver.tc.vminstall.%s\" group=\"VMInstall\"/>\n" % tckey.replace("-", "")
+
+    print tccode
+    print seqcode
+
+

@@ -868,7 +868,7 @@ class TC20568(LunPerVDI):
 
     def run(self, arglist=[]):
         # As per CA-114581, changing the number of LUNs to 75.
-        addedLuns = self.netAppFiler.provisionLuns(65, 1, self._createInitiators()) # + 10 default created in prepare()
+        addedLuns = self.netAppFiler.provisionLuns(246, 1, self._createInitiators()) # + 10 default created in prepare()
         map(lambda host : host.scanFibreChannelBus(), self.hosts)
 
         # 2. Create lvmoHBA SRs on the master.

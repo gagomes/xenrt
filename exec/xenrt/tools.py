@@ -170,7 +170,7 @@ def defineOSTests(distro,
     for clink in clinks:
         if clink.type.name == "Contains" and hasattr(clink, "outwardIssue"):
             t = getIssue(j, clink.outwardIssue.key)
-            if t.fields.status.name == "New":
+            if t.fields.status.name in ("New", "Open"):
                 existing[t.fields.summary] = t
     if arch:
         guestname = distro + arch
@@ -1414,8 +1414,8 @@ def _walkHierarchy(j, ticket):
     links = t.fields.issuelinks
     for link in links:
         if link.type.name == "Contains" and hasattr(link, "outwardIssue"):
-            c = getIssue(j, link.outwardIssue.key)
-            if c.fields.status.name == "Open":
+            c = link.outwardIssue
+            if c.fields.status.name in ("New", "Open"):
                 ty = c.fields.issuetype.name
                 if ty == "Test Case":
                     reply.append(link.outwardIssue.key)
@@ -1599,13 +1599,8 @@ def makeSequence(version, ticket, suite, filename, suitetickets=None, testPrefix
         for jj in range(i, maxPerFile+i):
             if jj < len(tcs):
                 tcid = "TC-%d" % tcs[jj]
-                t = getIssue(j, tcid)
-                print tcid
-                xenrttcid = j.getCustomField(t, "xenrtTCID")
-                xenrttcargs = j.getCustomField(t, "xenrtTCArgs")
-                if not xenrttcid:
-                    xenrttcid = "%s.%s" % (testPrefix, tcid.replace('-',''))
-                    xenrttcargs = None
+                xenrttcid = "%s.%s" % (testPrefix, tcid.replace('-',''))
+                xenrttcargs = None
                 tc = newdoc.createElement("testcase")
                 ser.appendChild(tc)
                 tc.setAttribute("id", xenrttcid)

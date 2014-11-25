@@ -1,0 +1,35 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="VM1">
+        <distro>ws08sp2-x86</distro>
+        <memory>512</memory>
+        <vcpus>4</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="VM2">
+        <distro>ws08sp2-x86</distro>
+        <memory>512</memory>
+        <vcpus>4</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8607">
+      <testcase id="xenserver.tc.regression.TC8607"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

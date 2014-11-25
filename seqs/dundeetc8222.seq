@@ -1,0 +1,54 @@
+<xenrt>
+
+  <!-- HA operation using iSCSI reached via a dedicated storage bond tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool>
+      <storage type="lvmoiscsi" name="iSCSI" default="true"/>
+      <host id="0"/>
+      <host id="1"/>
+      <host id="2"/>
+      <host id="3"/>
+      <NETWORK controller="controller">
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <NIC/>
+          <STORAGE/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="HA">
+      <testcase id="xenserver.tc.ha.TC8222"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

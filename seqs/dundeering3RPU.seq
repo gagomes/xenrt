@@ -1,0 +1,97 @@
+<xenrt>
+  <!-- Rolling pool update tests -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="debian70">
+          <distro>debian70</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="rhel57">
+          <distro>rhel57</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="centos57">
+          <distro>centos57</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="winxpsp3">
+          <distro>winxpsp3</distro>
+          <memory>1024</memory>
+          <network device="0" />
+          <postinstall action="installDrivers" />
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+        <vm name="ubuntu1204">
+          <distro>ubuntu1204</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="win7-x86">
+          <distro>win7-x86</distro>
+          <memory>1024</memory>
+          <vcpus>2</vcpus>
+          <postinstall action="installDrivers" />
+          <network device="0" />
+          <disk device="0" size="24" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="sles111">
+          <distro>sles111</distro>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <storage>nfs1</storage>
+        </vm>
+        <vm name="ws08r2sp1-x64">
+          <distro>ws08r2sp1-x64</distro>
+          <memory>1024</memory>
+          <network device="0" />
+          <postinstall action="installDrivers" />
+          <storage>nfs1</storage>
+        </vm>
+      </host>
+      <storage type="nfs" name="nfs1" default="true" />
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="RPU">
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolHFX" name="AddHFXtoOldVersion">
+        <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
+        <arg>applyAllHFXsBeforeApplyAction=True</arg>
+      </testcase>
+      <testcase id="testcases.xenserver.tc.hotfix.TCRollingPoolUpdate" name="TCRPUWithHFX" tc="TC-21008">
+        <arg>FINAL_VERSION=Dundee</arg>
+        <arg>vmActionIfHostRebootRequired=EVACUATE</arg>
+        <arg>applyAllHFXsBeforeApplyAction=True</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+</xenrt>

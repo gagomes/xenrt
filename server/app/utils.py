@@ -77,7 +77,7 @@ def parse_job(rc,cur):
         d['REMOVED'] = string.strip(rc[7])
 
     cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
-                "jobid = %u;", [rc[0]])
+                "jobid = %s;", [rc[0]])
     
     while 1:
         rd = cur.fetchone()
@@ -321,4 +321,27 @@ def check_constraint(constraint, entry):
             return 1
     # Constraint wasn't satisifed.
     return 0
-	
+
+class XLogLocation(object):
+    def __init__(self, location):
+        self.location = location
+        (coarseStr, fineStr) = self.location.split("/")
+        self.coarse = int(coarseStr, 16)
+        self.fine = int(fineStr, 16)
+
+    def __cmp__(self, other):
+        if self.coarse > other.coarse:
+            return 1
+        elif self.coarse < other.coarse:
+            return -1
+        elif self.fine > other.fine:
+            return 1
+        elif self.fine < other.fine:
+            return -1
+        else:
+            assert self.coarse == other.coarse
+            assert self.fine == other.fine
+            return 0
+
+    def __str__(self):
+        return self.location

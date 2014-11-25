@@ -1,0 +1,20 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <!-- Hotfix: LockBox - 651 -->
+    <serial group="hfx651">
+      <testcase id="xenserver.tc.storage.TC19049" name="TC19049" tc="TC-19049" />
+    </serial>
+  </testsequence>
+
+</xenrt>

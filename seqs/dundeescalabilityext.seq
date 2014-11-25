@@ -1,0 +1,19 @@
+<xenrt>
+
+  <!-- Boston scalability on Ext test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+    </host>
+  </prepare>
+
+  <testsequence group="LocalVHD">
+    <testcase id="xenserver.tc.scalability.TC8082"/>
+  </testsequence>
+
+</xenrt>

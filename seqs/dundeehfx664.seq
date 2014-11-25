@@ -1,0 +1,18 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+  </variables>
+
+
+  <prepare>
+      <host id="0"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="HFX-664">
+      <testcase id="xenserver.tc.snapshot.TC18784"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

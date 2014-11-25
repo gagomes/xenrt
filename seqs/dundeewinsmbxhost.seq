@@ -1,0 +1,100 @@
+<xenrt>
+
+  <!-- Dundee Windows SMB cross host file transfer test -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="win7sp1x86">
+        <distro>win7sp1-x86</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="win8x86">
+        <distro>win8-x86</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="win81x86">
+        <distro>win81-x86</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+    <host id="1">
+      <vm name="ws08r2sp1x64">
+        <distro>ws08r2sp1-x64</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="ws12x64">
+        <distro>ws12-x64</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <vm name="ws12r2x64">
+        <distro>ws12r2-x64</distro>
+        <postinstall action="installDrivers"/>
+        <network device="0" />
+        <network device="1" bridge="NSEC"/>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
+      </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+        </PHYSICAL>
+      </NETWORK>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="WinSMBTransfer">
+      <testcase id="xenserver.tc.guest.TCCrossHostWinSMB" name="SMBWinKern61" tc="TC-20885">
+        <arg>host0guest=win7sp1x86</arg>
+        <arg>host1guest=ws08r2sp1x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCCrossHostWinSMB" name="SMBWinKern62" tc="TC-20886">
+        <arg>host0guest=win8x86</arg>
+        <arg>host1guest=ws12x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCCrossHostWinSMB" name="SMBWinKern63" tc="TC-20887">
+        <arg>host0guest=win81x86</arg>
+        <arg>host1guest=ws12r2x64</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

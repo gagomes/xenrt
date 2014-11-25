@@ -28,6 +28,16 @@ cleanup() {
         # If we've got a log, then upload it
         if [ -e "$logpath/setup.log" ]
         then
+            if [ -e "$logpath/harness.out" ]
+            then
+                cat $logpath/harness.out >> $logpath/setup.log
+            fi
+            
+            if [ -e "$logpath/harness.err" ]
+            then
+                cat $logpath/harness.err >> $logpath/setup.log
+            fi
+
             tar -C $logpath -cvjf $venvpath/setup.tar.bz2 ./setup.log
             xenrt upload $jobid -f $venvpath/setup.tar.bz2
             xenrt update $jobid UPLOADED yes

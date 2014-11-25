@@ -118,7 +118,7 @@ class _TCXenCenterNUnit(xenrt.TestCase):
             cmd.append("/xml=\"%s\\%s.XenAdminTests.xml\"" % (logdir, category))
             cmd.append('"%s\\Release\\XenAdminTests.dll"' % (self.tdir))
             cmd.append("/include=%s" % category)
-            if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
                 cmd.append("/framework=net-4.0")
             
             try:

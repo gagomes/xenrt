@@ -1,0 +1,154 @@
+<xenrt>
+
+  <!-- OS functional test sequence: win8-x86 and win8-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+    <serial group="win8-x86">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17915">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=win8-x86</arg>
+        <arg>distro=win8-x86</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="win8-x86">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-17916">
+        <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="xenserver.guest.TCCheckStdVGA" tc="TC-18778">
+        <arg>guest=win8-x86</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-17917">
+        <arg>guest=win8-x86</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-17918">
+        <arg>guest=win8-x86</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-17919">
+        <arg>guest=win8-x86</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-17920">
+        <arg>guest=win8-x86</arg>
+        <arg>workloads</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17921">
+        <arg>guest=win8-x86</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17923">
+        <arg>N/A</arg>
+        <arg>guest=win8-x86</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17924">
+        <arg>N/A</arg>
+        <arg>guest=win8-x86</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17925">
+        <arg>guest=win8-x86</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=win8-x86</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+    <serial group="win8-x64">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-17927">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=win8-x64</arg>
+        <arg>distro=win8-x64</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="win8-x64">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-17928">
+        <arg>guest=win8-x64</arg>
+        </testcase>
+        <testcase id="xenserver.guest.TCCheckStdVGA" tc="TC-18779">
+        <arg>guest=win8-x64</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-17929">
+        <arg>guest=win8-x64</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-17930">
+        <arg>guest=win8-x64</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-17931">
+        <arg>guest=win8-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-17932">
+        <arg>guest=win8-x64</arg>
+        <arg>workloads</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-17933">
+        <arg>guest=win8-x64</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=5</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-17935">
+        <arg>N/A</arg>
+        <arg>guest=win8-x64</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-17936">
+        <arg>N/A</arg>
+        <arg>guest=win8-x64</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-17937">
+        <arg>guest=win8-x64</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=win8-x64</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

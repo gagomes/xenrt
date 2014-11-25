@@ -1,0 +1,22 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="linux">
+        <distro>debian60</distro>
+        <network device="0" />
+        <postinstall action="shutdown"/>
+      </vm>
+    </host> 
+  </prepare>
+
+  <testsequence group="NetworkReset">
+    <testcase id="xenserver.tc.networkreset.TC15482"/>
+    <testcase id="xenserver.tc.networkreset.TC15492"/>
+  </testsequence>
+
+</xenrt>

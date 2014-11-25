@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Cache on non-ext file systems tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="LVM">
+      <testcase id="xenserver.tc.cache.TC12009"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

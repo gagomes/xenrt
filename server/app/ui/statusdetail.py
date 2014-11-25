@@ -105,7 +105,7 @@ class XenRTDetailFrame(XenRTPage):
             
             keydisp = key
             out += "<tr><td>%s</td><td>%s</td><td %s>%s%s%s</td></tr>" % \
-                  (string.strip(rc[0]), keydisp, col, value, units, rel)
+                  (rc[0].strftime("%Y-%m-%d %H:%M:%S"), keydisp, col, value, units, rel)
                    
         out += "</table>"
 

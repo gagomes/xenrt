@@ -1,0 +1,28 @@
+<xenrt>
+
+  <!-- Negative TestCases for LUN-per-VDI that require a Pool -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <scheduler>
+    <param>MACHINES_REQUIRED=2</param>
+  </scheduler>
+  <prepare>
+    <pool id="0">
+      <host id="0" />
+    </pool>
+    <pool id="1">
+      <host id="1" />
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="NegativeLUNperVDIPool">
+      
+      <!-- Verify whether Storage Xen Motion is possible with LUN/VDI SR -->
+      <testcase id="xenserver.tc.lunpervdi.TC18378" name="TC18378" tc="TC-18378"/>
+    
+    </serial>
+  </testsequence>
+</xenrt>

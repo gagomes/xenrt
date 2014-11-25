@@ -2829,7 +2829,7 @@ Add-WindowsFeature as-net-framework"""
             xenrt.TEC().logverbose("GUI already installed")
             return
         if not noAutoDotNetInstall:
-            if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+            if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
                 self.installDotNet4()
             if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
                 self.installDotNet4()
@@ -3032,7 +3032,7 @@ Add-WindowsFeature as-net-framework"""
 
         self.installDotNet35()
 
-        if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.installDotNet4()
 
         self.xmlrpcUnpackTarball("%s/nunit.tgz" %
@@ -10499,7 +10499,7 @@ class WlbApplianceServer:
             xenrt.sleep(2)
             self.place.writeToConsole("echo \"VerboseTraceEnabled = 1\" >> /opt/citrix/wlb/wlb.conf\\n")
             xenrt.sleep(2)
-            if isinstance(self.place.host, xenrt.lib.xenserver.SarasotaHost):
+            if isinstance(self.place.host, xenrt.lib.xenserver.DundeeHost):
                 self.place.writeToConsole("sed -i \"s/\(SoapDataTrace\).*/\\1 = 1/\" /opt/citrix/wlb/wlb.conf\\n")
                 xenrt.sleep(2)
         else:

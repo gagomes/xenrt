@@ -760,15 +760,23 @@ class _WSMANProtocol(_CIMInterface):
         base = xenrt.TEC().getLogdir()
         self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
         self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
-    
+
+    def getIPRange(self,staticIPs):
+
+        s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
+        start_ip = s_obj[1].getAddr()
+        end_ip = s_obj[staticIPs].getAddr()
+        return start_ip,end_ip
+
     def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
         driveName = "Q:\\"
         if staticIPs:
-            s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
-            start_ip = s_obj[1].getAddr()
-            end_ip = s_obj[staticIPs].getAddr()
+            start_ip,end_ip = self.getIPRange(staticIPs)
+            s_ip = start_ip.split('.')
+            if (int(s_ip[3]) + staticIPs) >= 255:
+                start_ip,end_ip = self.getIPRange(staticIPs)
             (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:

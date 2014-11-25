@@ -1,0 +1,49 @@
+<xenrt>
+
+  <!-- Dundee R3 basic Debian check -->
+
+  <default name="GUESTMEMORY" value="512"/>
+  <default name="GUESTVCPUS" value="1"/>
+  <default name="CLITESTLIST" value="ALL"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence>
+    <serial group="HostInstallation">
+      <testcase id="xenserver.install.TCXenServerInstall" tc="TC-6644"/>
+      <testcase id="xenserver.cli.TCQuicktest" tc="TC-6653"/>
+
+      <!-- <testcase id="xenserver.cli.TCCLI" group="FunctionalTests" tc="TC-6662">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>tests=${CLITESTLIST}</arg>
+        <arg>guests=debian-pv</arg>
+      </testcase> -->
+
+      <serial group="DebianGuest">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-13213">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=debianguest</arg>
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;debian60&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-6664">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;debian60&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=2</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-6665">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;debian60&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+          <arg>loops=2</arg>
+          <arg>live</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCShutdown" tc="TC-6666">
+          <arg>config=&lt;CONFIG&gt;&lt;CPU&gt;${GUESTVCPUS}&lt;/CPU&gt;&lt;MEMORY&gt;${GUESTMEMORY}&lt;/MEMORY&gt;&lt;DISTRO&gt;debian60&lt;/DISTRO&gt;&lt;/CONFIG&gt;</arg>
+        </testcase>
+      </serial>
+
+      <testcase id="xenserver.tc.storage.TC6824" group="FunctionalTests" tc="TC-6824"/>
+      <testcase id="xenserver.tc.storage.TC6825" group="FunctionalTests" tc="TC-6825"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

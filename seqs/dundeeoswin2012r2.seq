@@ -1,0 +1,145 @@
+<xenrt>
+
+  <!-- OS functional tests: ws12r2-x64 and ws12r2core-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+      <serial group="ws12r2-x64">
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-19965">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=ws12r2-x64</arg>
+          <arg>distro=ws12r2-x64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="ws12r2-x64">
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-19966">
+            <arg>guest=ws12r2-x64</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCStartStop" tc="TC-19967">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-19968">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-19969">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-19970">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19971">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19973">
+            <arg>N/A</arg>
+            <arg>guest=ws12r2-x64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19974">
+            <arg>N/A</arg>
+            <arg>guest=ws12r2-x64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19975">
+            <arg>guest=ws12r2-x64</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=ws12r2-x64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+      <serial group="ws12r2core-x64">
+        <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-19977">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=ws12r2core-x64</arg>
+          <arg>distro=ws12r2core-x64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="ws12r2core-x64">
+          <testcase id="guestops.drivers.TCDriverInstall" tc="TC-19978">
+            <arg>guest=ws12r2core-x64</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCStartStop" tc="TC-19979">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-19980">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-19981">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-19982">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>workloads</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19983">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>live</arg>
+            <arg>workloads</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19985">
+            <arg>N/A</arg>
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19986">
+            <arg>N/A</arg>
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19987">
+            <arg>guest=ws12r2core-x64</arg>
+            <arg>max=8</arg>
+            <arg>noplugwindows</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=ws12r2core-x64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

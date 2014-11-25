@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa" />
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>1</PREPARE_WORKERS>
+    <FEATURE_UPGRADE_TEST>yes</FEATURE_UPGRADE_TEST>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <OPTION_DEFAULT_SR>true</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="nfssr" default="true"/>
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.cache.TC11870" tc="TC-19834"/>
+    </serial>
+  </testsequence>
+
+</xenrt>
+

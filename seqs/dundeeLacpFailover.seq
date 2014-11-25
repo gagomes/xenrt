@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- LacpBonding - Failover Tests-->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="LacpFailover">
+      <testcase id="testcases.xenserver.tc.bonding.TCLacpBondSetUpMng8Nic" tc="TC-18516"/>
+      <testcase id="testcases.xenserver.tc.bonding.TCFailoverEth" tc="TC-18711" />
+      <testcase id="testcases.xenserver.tc.bonding.BondSplit" tc="TC-18555"/>
+    </serial>
+  </testsequence>
+</xenrt>

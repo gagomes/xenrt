@@ -1,0 +1,18 @@
+<xenrt>
+
+  <!-- VM operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="VMOps">
+    <testcase id="xenserver.tc.vmlifecycle.TC10555" prio="3"/>
+    <testcase id="xenserver.tc.vmlifecycle.TC10556" prio="3"/>
+  </testsequence>
+
+</xenrt>

@@ -3752,7 +3752,7 @@ class TC10755(xenrt.TestCase):
                     errs['name'] = "'%s' not 'LICENSE_SERVER_UNREACHABLE'" % (name)
                 priority = self.host.genParamGet("message", a, "priority")
                 version = xenrt.TEC().lookup("PRODUCT_VERSION")
-                if version == "Sarasota":
+                if version == "Dundee":
                     if priority != "2":
                         errs['priority'] = "'%s' not '2'" % (priority)
                 else:

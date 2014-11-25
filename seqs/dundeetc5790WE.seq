@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- Linux installation test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+
+      <testcase id="xenserver.tc.vminstall.TC5786" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC5788" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6767" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6768" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6769" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6770" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6773" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6774" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6775" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6781" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC6782" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC8957" group="VMInstall"/>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the Hotfix application on Tampa base release and then storage xen migration.
+
+        TC17352 - Verifying Cross Pool Storage Migration on a Tampa build with an hotfix applied.
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0" installsr="ext" />
+    </pool>
+    <pool id="1">
+      <host id="1" installsr="lvm" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="HotfixCrossPoolSXM">
+      <!-- intra-pool sxm migration from sr-type ext to lvm. -->
+      <testcase id="xenserver.tc.sxm.HotFixStorageMigration" name="TC17352" tc="TC-17352">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

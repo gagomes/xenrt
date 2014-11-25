@@ -1,0 +1,40 @@
+<xenrt>
+
+  <!-- Bond Balancing tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+      <sharedhost>
+        <vm name="controller">
+          <file>%CONTROLLER_XVA%</file>
+          <memory>512</memory>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </sharedhost>
+    <pool>
+      <host/>
+      <NETWORK controller="controller"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Balancing">
+      <testcase id="xenserver.tc.bonding.TC8310" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17755" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17756" blocker="yes"/>
+    </serial>
+    <serial>
+      <finally>
+        <testcase id="guestops.basic.TCShutdown">
+          <arg>guest=controller</arg>
+          <arg>again</arg>
+        </testcase>
+      </finally>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,32 @@
+<xenrt>
+
+  <!-- MNR CA-21760 Regression Test -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <default name="GUESTDISTRO" value="rhel51"/>
+  <default name="GUESTMEMORY" value="28000"/>
+  <default name="TCID" value="TC-8357"/>
+
+  <prepare>
+    <host>
+      <vm name="BIGVM">
+        <distro>${GUESTDISTRO}</distro>
+        <memory>${GUESTMEMORY}</memory>
+        <arch>x86-64</arch>
+        <vcpus>1</vcpus>
+        <disk device="0" size="20"/>
+        <network device="0"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.regression.TC8357" guest="BIGVM"/>
+  </testsequence>
+
+</xenrt>

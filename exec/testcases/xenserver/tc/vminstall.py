@@ -2514,3 +2514,206 @@ class TC21775(_TC5786):
     DISTRO = "oel7"
     ARCH = "x86-64"
 
+class TC23702(_TC6767):
+    """Install a RedHat Enterprise Linux 5.11 64 bit VM from HTTP"""
+    DISTRO="rhel511"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23703(_TC6767):
+    """Install a RedHat Enterprise Linux 5.11 32 bit VM from HTTP"""
+    DISTRO="rhel511"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23704(_TC5786):
+    """Install a RedHat Enterprise Linux 5.11 64 bit VM from ISO"""
+    DISTRO="rhel511"
+    ARCH="x86-64"
+
+class TC23705(_TC5786):
+    """Install a RedHat Enterprise Linux 5.11 32 bit VM from ISO"""
+    DISTRO="rhel511"
+    ARCH="x86-32"
+
+class TC23706(_TC6767):
+    """Install a RedHat Enterprise Linux 5.11 64 bit VM from NFS"""
+    DISTRO="rhel511"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23707(_TC6767):
+    """Install a RedHat Enterprise Linux 5.11 32 bit VM from NFS"""
+    DISTRO="rhel511"
+    ARCH="x86-32"
+    METHOD="NFS"
+
+class TC23708(_TC6767):
+    """Install a RedHat Enterprise Linux 6.6 64 bit VM from HTTP"""
+    DISTRO="rhel66"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23709(_TC6767):
+    """Install a RedHat Enterprise Linux 6.6 32 bit VM from HTTP"""
+    DISTRO="rhel66"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23710(_TC5786):
+    """Install a RedHat Enterprise Linux 6.6 64 bit VM from ISO"""
+    DISTRO="rhel66"
+    ARCH="x86-64"
+
+class TC23711(_TC5786):
+    """Install a RedHat Enterprise Linux 6.6 32 bit VM from ISO"""
+    DISTRO="rhel66"
+    ARCH="x86-32"
+
+class TC23712(_TC6767):
+    """Install a RedHat Enterprise Linux 6.6 64 bit VM from NFS"""
+    DISTRO="rhel66"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23713(_TC6767):
+    """Install a RedHat Enterprise Linux 6.6 32 bit VM from NFS"""
+    DISTRO="rhel66"
+    ARCH="x86-32"
+    METHOD="NFS"
+
+class TC23714(_TC6767):
+    """Install a CentOS 5.11 64 bit VM from HTTP"""
+    DISTRO="centos511"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23715(_TC6767):
+    """Install a CentOS 5.11 32 bit VM from HTTP"""
+    DISTRO="centos511"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23716(_TC5786):
+    """Install a CentOS 5.11 64 bit VM from ISO"""
+    DISTRO="centos511"
+    ARCH="x86-64"
+
+class TC23717(_TC5786):
+    """Install a CentOS 5.11 32 bit VM from ISO"""
+    DISTRO="centos511"
+    ARCH="x86-32"
+
+class TC23718(_TC6767):
+    """Install a CentOS 5.11 64 bit VM from NFS"""
+    DISTRO="centos511"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23719(_TC6767):
+    """Install a CentOS 5.11 32 bit VM from NFS"""
+    DISTRO="centos511"
+    ARCH="x86-32"
+    METHOD="NFS"
+
+class TC23720(_TC6767):
+    """Install a CentOS 6.6 64 bit VM from HTTP"""
+    DISTRO="centos66"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23721(_TC6767):
+    """Install a CentOS 6.6 32 bit VM from HTTP"""
+    DISTRO="centos66"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23722(_TC5786):
+    """Install a CentOS 6.6 64 bit VM from ISO"""
+    DISTRO="centos66"
+    ARCH="x86-64"
+
+class TC23723(_TC5786):
+    """Install a CentOS 6.6 32 bit VM from ISO"""
+    DISTRO="centos66"
+    ARCH="x86-32"
+
+class TC23724(_TC6767):
+    """Install a CentOS 6.6 64 bit VM from NFS"""
+    DISTRO="centos66"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23725(_TC6767):
+    """Install a CentOS 6.6 32 bit VM from NFS"""
+    DISTRO="centos66"
+    ARCH="x86-32"
+    METHOD="NFS"
+
+class TC23726(_TC6767):
+    """Install a Oracle Enterprise Linux 5.11 64 bit VM from HTTP"""
+    DISTRO="oel511"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23727(_TC6767):
+    """Install a Oracle Enterprise Linux 5.11 32 bit VM from HTTP"""
+    DISTRO="oel511"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23728(_TC5786):
+    """Install a Oracle Enterprise Linux 5.11 64 bit VM from ISO"""
+    DISTRO="oel511"
+    ARCH="x86-64"
+
+class TC23729(_TC5786):
+    """Install a Oracle Enterprise Linux 5.11 32 bit VM from ISO"""
+    DISTRO="oel511"
+    ARCH="x86-32"
+
+class TC23730(_TC6767):
+    """Install a Oracle Enterprise Linux 5.11 64 bit VM from NFS"""
+    DISTRO="oel511"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23731(_TC6767):
+    """Install a Oracle Enterprise Linux 5.11 32 bit VM from NFS"""
+    DISTRO="oel511"
+    ARCH="x86-32"
+    METHOD="NFS"
+
+class TC23732(_TC6767):
+    """Install a Oracle Enterprise Linux 6.6 64 bit VM from HTTP"""
+    DISTRO="oel66"
+    ARCH="x86-64"
+    METHOD="HTTP"
+
+class TC23733(_TC6767):
+    """Install a Oracle Enterprise Linux 6.6 32 bit VM from HTTP"""
+    DISTRO="oel66"
+    ARCH="x86-32"
+    METHOD="HTTP"
+
+class TC23734(_TC5786):
+    """Install a Oracle Enterprise Linux 6.6 64 bit VM from ISO"""
+    DISTRO="oel66"
+    ARCH="x86-64"
+
+class TC23735(_TC5786):
+    """Install a Oracle Enterprise Linux 6.6 32 bit VM from ISO"""
+    DISTRO="oel66"
+    ARCH="x86-32"
+
+class TC23736(_TC6767):
+    """Install a Oracle Enterprise Linux 6.6 64 bit VM from NFS"""
+    DISTRO="oel66"
+    ARCH="x86-64"
+    METHOD="NFS"
+
+class TC23737(_TC6767):
+    """Install a Oracle Enterprise Linux 6.6 32 bit VM from NFS"""
+    DISTRO="oel66"
+    ARCH="x86-32"
+    METHOD="NFS"

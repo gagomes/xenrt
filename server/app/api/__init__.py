@@ -6,6 +6,7 @@ import app.constants
 import config
 
 import string
+from pyramid.httpexceptions import HTTPServiceUnavailable
 
 class XenRTAPIPage(XenRTPage):
 
@@ -317,7 +318,7 @@ class XenRTAPIPage(XenRTPage):
             jobstatus = app.constants.job_status_desc[status]
        
             cur = db.cursor()
-            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%u;", [jobstatus,id])
+            cur.execute("UPDATE tbljobs SET jobstatus=%s WHERE jobid=%s;", [jobstatus,id])
             if commit:
                 db.commit()
 
@@ -335,7 +336,7 @@ class XenRTAPIPage(XenRTPage):
         if key in app.constants.core_params:
             cur = db.cursor()
             try:
-                cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%u;" % (key), 
+                cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
                             [value,id])
                 if commit:
                     db.commit()
@@ -346,13 +347,13 @@ class XenRTAPIPage(XenRTPage):
             try:
                 if not details.has_key(key):
                     cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%u,%s,%s);", [id, key, value])
+                                "VALUES (%s,%s,%s);", [id, key, value])
                 elif len(value) > 0:
                     cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
-                                "jobid=%u AND param=%s;", [value,id,key])
+                                "jobid=%s AND param=%s;", [value,id,key])
                 else:
                     # Use empty string as a way to delete a property
-                    cur.execute("DELETE FROM tbljobdetails WHERE jobid=%u "
+                    cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [id, key])
                 db.commit()
             finally:
@@ -373,8 +374,35 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
+class CheckDBSync(XenRTAPIPage):
+    def render(self):
+        try:
+            check_interval = 0.5
+            timeout = 5
+
+            writeDB = app.db.dbWriteInstance()
+            readDB = app.db.dbReadInstance()
+
+            writeLoc = self.getWriteLocation(writeDB)
+            i = 0
+            while i <= timeout/check_interval:
+                readLoc = self.getReadLocation(readDB)
+                if not readLoc:
+                    return "This node is talking to the master database"
+
+                if readLoc >= writeLoc:
+                    return "This node is in sync, delay = %fs" % (i* check_interval)
+                time.sleep(check_interval)
+                i += 1
+            return HTTPServiceUnavailable()
+        finally:
+            readDB.close()
+            writeDB.close()
+            
+
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
+PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs

@@ -1,6 +1,6 @@
 __all__=["PrepareNodeParserJSON", "PrepareNodeParserXML", "PrepareNode"]
 
-import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy
+import sys, string, time, os, xml.dom.minidom, threading, traceback, re, random, yaml, uuid, copy, json
 import xenrt
 import pprint
 
@@ -816,7 +816,6 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["filename"] = self.expand(str(a.data))
-                        break
                 elif x.localName == "bootparams":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
@@ -825,7 +824,6 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
         self.parent.vms.append(vm)
 
         return vm
-
 
     def handleInstanceNode(self, node, template=False):
         instance = {}
@@ -1502,6 +1500,19 @@ class PrepareNode:
                                            pref='WARNING')
 
             raise
+
+        self.__createDeploymentRecord()
+
+    def __createDeploymentRecord(self):
+        deploymentRec = {}
+        # Process Hosts - first get a list of unique host objects
+        deploymentRec['hosts'] = []
+        hostObjList = list(set(map(lambda x:xenrt.TEC().registry.hostGet(x), xenrt.TEC().registry.hostList())))
+        for host in hostObjList:
+            deploymentRec['hosts'].append( { 'name': host.getName(), 'mgmt_ipv4': host.getIP(), 'root_user': 'root', 'root_password': host.password } )
+
+        with open(os.path.join(xenrt.TEC().getLogdir(), 'deployment.json'), 'w') as fh:
+            json.dump(deploymentRec, fh)
 
 class InstallWorkQueue:
     """Queue of install work items to perform."""

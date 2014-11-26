@@ -6867,7 +6867,7 @@ class GenericGuest(GenericPlace):
             osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2].split(":")[1].strip()
             osname = osname.strip("Microsoft ")
             self.windows = True
-            matchedDistros = [(d,n) for (d,n) in xenrt.tools._windowsdistros if osname in n]
+            matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
 
             if len(matchedDistros) > 1:
                 systype = guest.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()

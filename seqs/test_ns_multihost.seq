@@ -5,7 +5,7 @@
   </variables>
   <scheduler>
     <resources>memory&gt;=8G</resources>
-    <param>MACHINES_REQUIRED=3</param>
+    <param>MACHINES_REQUIRED=1</param>
     <flags>privvlan,staticip</flags>
   </scheduler>
   <prepare>
@@ -29,7 +29,7 @@
         <disk device="0" size="8" />
         <packages>curl</packages>
       </vm>
-      <vm name="client2">
+      <!--vm name="client2">
         <distro>debian70</distro>
         <memory>256</memory>
         <vcpus>2</vcpus>
@@ -37,9 +37,9 @@
         <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.3/24" />
         <disk device="0" size="8" />
         <packages>curl,apache2</packages>
-      </vm>
+      </vm-->
     </host>
-    <host id="1">
+    <!--host id="1">
       <NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />
@@ -82,7 +82,7 @@
         <network device="2" bridge="SERVER_VLAN" ip="172.16.1.1/24" />
         <postinstall action="setupNetscalerVPX" />
       </vm>
-    </host>
+    </host-->
   </prepare>
 </xenrt>
 

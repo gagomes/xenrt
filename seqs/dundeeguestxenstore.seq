@@ -1,0 +1,35 @@
+<!-- Test the renaming of a set of hosts via. XenStore SCTX-1467 -->
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=16G/disk1&gt;=150G</resources>
+  </scheduler>
+  <prepare>
+    <pool>
+      <host id="0">
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel group="Rename" workers="5">
+      <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenWin7" tc="TC-21563" sku="XStrRenWin7">
+        <arg>distro=win7sp1-x86</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenWin8" tc="TC-21563" sku="XStrRenWin8">
+        <arg>distro=win8-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenWin81" tc="TC-21563" sku="XStrRenWin81">
+        <arg>distro=win81-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenWS12" tc="TC-21563" sku="XStrRenWS12">
+        <arg>distro=ws12r2core-x64</arg>
+      </testcase>
+      <testcase id="xenserver.tc.guest.TCSettingGuestNameViaXenstore" name="XStrRenVista" tc="TC-21563" sku="XStrRenVista">
+        <arg>distro=vistaeesp2</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+</xenrt>

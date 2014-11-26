@@ -1,0 +1,51 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Sequence to test the various Cross Pool Storage Migration scenarios as given below:
+
+        TC17108 - Cross Pool Storage Migration when the two pools are on different subnets
+
+  -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <!-- <pool id="0" name="sourceSXMPool"> -->
+    <pool id="0">
+      <host id="0" installsr="ext" />
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+    <!-- <pool id="1" name="targetSXMPool"> -->
+    <pool id="1">
+      <host id="1" installsr="lvm" />
+      <NETWORK>
+        <PHYSICAL network="NSEC">
+          <NIC/>
+          <MANAGEMENT/>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="CrossPoolSXM">
+      <!-- cross-pool sxm migration from sr-type ext to lvm. -->
+
+      <!-- TC17108 - Cross Pool Storage Migration when the two pools are on on different subnets. -->
+      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC17108" tc="TC-17108">
+        <arg>src_SR=ext</arg>
+        <arg>dest_SR=lvm</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

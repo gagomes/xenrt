@@ -1,0 +1,29 @@
+<xenrt>
+
+  <!-- multipath boot-from-san tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <SR_ISCSI_MINSIZE>8</SR_ISCSI_MINSIZE>
+    
+    <!-- This is changed between tests-->
+    <OPTION_ROOT_MPATH></OPTION_ROOT_MPATH>
+  </variables>
+
+  <testsequence>
+    <serial group="SANBootMP">
+      
+      <!--Install to a server with a boot disk on a SAN via Emulex HBAs with multipath root disk and single path SR-->
+      <testcase id="xenserver.tc.install.TC12059" blocker="yes"/>
+      
+      <!-- Install to a server with a boot disk on a SAN via Emulex HBAs with multipathing with primary path down -->
+      <testcase id="xenserver.tc.install.TC12061"/>
+      
+      <!-- Install to a server with a boot disk on a SAN via Emulex HBAs with multipathing with secondary path down -->
+      <testcase id="xenserver.tc.install.TC12062"/>
+      
+      <!-- Install to a server with a boot disk on a SAN via Emulex HBAs without multipathing turned on -->
+      <testcase id="xenserver.tc.install.TC12209"/>
+    </serial>
+  </testsequence>
+</xenrt>

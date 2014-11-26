@@ -1,0 +1,14 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OLD_PRODUCT_VERSION>George</OLD_PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.5.0-Update2</OLD_PRODUCT_INPUTDIR>
+  </variables>
+
+  <testsequence>
+    <serial group="ImpExp55Up2">
+      <testcase id="xenserver.tc.upgrade.TC12548"/>
+    </serial>
+  </testsequence>
+</xenrt>

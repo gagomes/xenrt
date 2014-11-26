@@ -1,0 +1,40 @@
+<xenrt>
+
+  <!-- Linux installation test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="1"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+
+    <parallel workers="${PARALLEL}">
+
+      <testcase id="xenserver.tc.vminstall.TC13120" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13132" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13129" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC11841" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC11840" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC11836" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13133" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13134" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13135" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13136" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13121" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC13122" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14498" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14499" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14502" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14825" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14827" group="VMInstall"/>
+      <testcase id="xenserver.tc.vminstall.TC14830" group="VMInstall"/>
+    </parallel>
+  </testsequence>
+
+</xenrt>

@@ -47,7 +47,7 @@ class _XSAutoCertKit(xenrt.TestCase):
         acklocation = xenrt.TEC().lookup("ACK_LOCATION", None)
         if not acklocation:
             if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
                     branch = "trunk"
                     build = "88907"
                 elif "x86_64" in host.execdom0("uname -a"):
@@ -57,7 +57,7 @@ class _XSAutoCertKit(xenrt.TestCase):
                     branch = "clearwater-sp1-lcm-autocertkit"
                     build = "88844"
             else:
-                if isinstance(host, xenrt.lib.xenserver.SarasotaHost):
+                if isinstance(host, xenrt.lib.xenserver.DundeeHost):
                     branch = "trunk"
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"

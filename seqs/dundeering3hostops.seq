@@ -1,0 +1,40 @@
+<xenrt>
+
+  <!-- General Host operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host/>
+    </pool>
+  </prepare>
+
+  <testsequence group="HostOps">
+    <testcase id="xenserver.tc.host.TC6859" prio="2"/>
+    <testcase id="xenserver.tc.host.TC5792" prio="2"/>
+    <testcase id="xenserver.cli.TCQuicktest" group="FunctionalTests" tc="TC-5797" prio="2"/>
+    <testcase id="xenserver.tc.host.TC6641" prio="3"/>
+    <testcase id="xenserver.cli.TCWindowsCLI" tc="TC-6965" prio="3"/>
+    <testcase id="xenserver.cli.TCCLIAuth" tc="TC-6969" prio="3"/>
+    <testcase id="xenserver.tc.alert.TC8172" group="Alert" prio="3"/>
+    <testcase id="xenserver.tc.alert.TC8173" group="Alert" prio="3"/>
+    <testcase id="xenserver.tc.alert.TC8175" group="Alert" prio="3"/>
+    <testcase id="xenserver.tc.alert.TC8176PrioPostTampa" tc="TC-8176" group="Alert" prio="3"/>
+    <testcase id="xenserver.tc.alert.TC8426" group="Alert" prio="3"/>
+    <testcase id="xenserver.cli.TC7351" prio="3"/>
+    <testcase id="xenserver.cli.TCPatchApply" tc="TC-7352" prio="3"/>
+    <testcase id="xenserver.tc.host.TC8309" prio="3"/>
+    <testcase id="xenserver.tc.network.TC8464" prio="3"/>
+    <testcase id="xenserver.tc.host.TC8813" prio="3"/>
+    <testcase id="xenserver.tc.host.TC8814" prio="3"/>
+    <testcase id="xenserver.tc.host.TC9123" prio="3"/>
+    <testcase id="xenserver.tc.cli.TC8906" prio="3"/>
+    <testcase id="xenserver.tc.cli.TC8907" prio="3"/>
+  </testsequence>
+
+</xenrt>

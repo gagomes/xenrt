@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- MNR host operations weekend test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="HostOps">
+    <testcase id="xenserver.tc.storage.TC6723" group="SRTests"/>
+    <testcase id="xenserver.network.TCTapBridgeTest" tc="TC-7309"/>
+    <!-- Removing the test case. Refer CA-86613
+    <testcase id="xenserver.tc.api.TC8236"/>
+    -->
+  </testsequence>
+
+</xenrt>

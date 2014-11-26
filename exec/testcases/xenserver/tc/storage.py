@@ -4341,3 +4341,180 @@ class TC21718(xenrt.TestCase):
                 return
         raise xenrt.XRTFailure("SRmaster key in PBD device config can be set while creating PBD")
 
+class TCPbdDuplicateSecret(xenrt.TestCase):
+    """Duplicate device-config:password_secret should not be created.Regression test for SCTX-1486"""
+    # Jira TC-21719
+
+    def prepare(self, arglist=None):
+        self.srs = []
+        self.srsToRemove = []
+        self.host = self.getDefaultHost()
+        self.host1 = self.getHost("RESOURCE_HOST_1")
+        self.pool = self.getDefaultPool()
+
+        # Create a Windows VM to be the CIFS server.
+        self.guest = xenrt.TEC().registry.guestGet("CIFSSERVER")
+        if not self.guest:
+            self.guest = self.host.createGenericWindowsGuest()
+            self.uninstallOnCleanup(self.guest)
+        
+        # Enable file and printer sharing on the guest.
+        self.guest.xmlrpcExec("netsh firewall set service type=fileandprint "
+                              "mode=enable profile=all")
+
+        self.exports = []
+        # Create a user account.
+        user = "Administrator"
+        password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+
+        # Share a directory.
+        sharedir = self.guest.xmlrpcTempDir()
+        sharename = "XENRTSHARE"
+        self.guest.xmlrpcExec("net share %s=%s /GRANT:%s,FULL" %
+                                    (sharename, sharedir, user))
+
+        self.exports.append((sharename, user, password))
+
+        self.client = self.host.createGenericLinuxGuest()
+        self.uninstallOnCleanup(self.client)
+        self.secrets = []
+
+    def run(self, arglist=None):
+        # Attach the share as a CIFS ISO to the pool.
+        sharename, user, password = self.exports[0]
+        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,"cifstest")
+
+        self.srs.append(sr)
+
+        self.srsToRemove.append(sr)
+
+        # Create a secret
+        secret_uuid = self.host.createSecret(password)
+        self.secrets.append(secret_uuid)
+
+        sr.create(self.guest.getIP(),
+                    sharename,
+                    "iso",
+                    "iso",
+                    username=user,
+                    password=secret_uuid,
+                    use_secret=True)
+        cli=self.host.getCLIInstance()
+        cli.execute("sr-param-set","uuid=%s shared=true" % self.srs[0].uuid)
+
+        #create a pbd for slave host with same password secret as master
+        pbd1=self.srs[0].getPBDs().keys()[0]
+
+        master_pbd_dc = self.host.genParamsGet("pbd",pbd1,"device-config")
+        master_pbd_username = master_pbd_dc['username']
+        master_pbd_cifspassword_secret = master_pbd_dc['cifspassword_secret']
+        master_pbd_location = master_pbd_dc['location']
+        master_pbd_type = master_pbd_dc['type']
+
+        self.dconf = {"username": master_pbd_username , "cifspassword_secret": master_pbd_cifspassword_secret , "location":master_pbd_location, "type": master_pbd_type}
+
+        args = []
+        args.append("host-uuid=%s" % (self.host1.getMyHostUUID()))
+        args.append("sr-uuid=%s" % (self.srs[0].uuid))
+        args.extend(["device-config:%s=\"%s\"" % (x, y) for x,y in self.dconf.items()])
+        pbd2 = cli.execute("pbd-create", string.join(args)).strip()
+
+        cli.execute("pbd-plug uuid=%s" % pbd2)
+
+        #check if password secret of both pbds are different.
+
+        passwordSecret1=self.host.genParamsGet("pbd",pbd1,"device-config")['cifspassword_secret']
+        passwordSecret2=self.host.genParamsGet("pbd",pbd2,"device-config")['cifspassword_secret']
+
+        if passwordSecret1 == passwordSecret2:	
+            raise xenrt.XRTFailure('Unexpected Output: Created 2 pbds with same password secret')	
+        else:
+            xenrt.TEC().logverbose("Expected output: New pbd has different password secret")
+
+    def postRun(self):
+        for sr in self.srsToRemove:
+            try:
+                sr.remove()
+            except:
+                pass
+
+class TCVdiCorruption(xenrt.TestCase):
+    """TC to verify VDI corruption on writing data to a 2TB VDI (SCTX-1406)"""
+    #Jira TC-21641
+    
+    SRTYPE = "lvm"
+    SIZE = 2048 * xenrt.GIGA
+
+    def prepare(self, arglist):
+        self.vdi = None
+        self.vbd = None
+        self.host = self.getDefaultHost()
+        g=self.host.listGuests(running=True)
+        self.guest=self.host.getGuest(g[0])
+        self.cli = self.host.getCLIInstance()
+        srs = self.host.getSRs(type=self.SRTYPE)
+        if not srs:
+            raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
+        self.sr = srs[0]
+
+    def run(self, arglist):
+        step("Create vdi and plug VBD to guest")
+        self.vdi = self.host.createVDI(self.SIZE, self.sr)
+        device = self.guest.createDisk(vdiuuid=self.vdi,returnDevice=True)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(device))
+        self.vbd = self.guest.getDiskVBDUUID(device)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(self.vbd))
+
+        step("Upgrade host")
+        self.host = self.host.upgrade()
+        self.host.applyRequiredPatches()
+        
+        step("Start VM")
+        self.guest.start()
+        xenrt.TEC().logverbose("Formatting VDI within VM.")
+        time.sleep(10)
+        self.guest.execguest("mkfs.ext3 /dev/%s" % (device))
+        self.guest.execguest("mkdir /mnt/vdi1")
+        self.guest.execguest("mount /dev/%s /mnt/vdi1" % (device))
+        try:
+            outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
+        except Exception, e:
+            xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            if "Input/output error" in str(e.data):
+                if availSpace == "0":
+                    xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
+                else:
+                    raise xenrt.XRTError("Input/Error thrown before disk is full. available space=%s" % (availSpace))
+            elif "SSH timed out" in str(e) and availSpace == "0":
+                #Workaround due to CA-122162- dd command doesn't crash when 2TB VDI is full
+                #raise xenrt.XRTFailure("dd command didn't return after disk is full. available space=%s" % (availSpace))
+                #check if vdi is corrupted
+                filename = "/dev/VG_XenStorage-%s/VHD-%s" % (self.sr,self.vdi)
+                try:
+                    self.host.execdom0("vhd-util check -n %s" % filename)
+                except Exception, e:
+                    if "error calculating end of metadata" in str(e.data):
+                        raise xenrt.XRTFailure("VDI corruption on writing 2TB data")
+            else: 
+                raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
+        else:
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            if availSpace <> "0":
+                raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
+    
+    def postRun(self):
+        if self.vbd:
+            try:
+                self.cli.execute("vbd-unplug", "uuid=%s" % (self.vbd))
+            except:
+                pass
+            try:
+                self.cli.execute("vbd-destroy", "uuid=%s" % (self.vbd))
+            except:
+                pass
+        try:
+            if self.vdi:
+                self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
+        except:
+            pass

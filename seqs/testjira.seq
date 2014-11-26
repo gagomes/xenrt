@@ -1,7 +1,7 @@
 <xenrt>
 
   <variables>
-    <PRODUCT_VERSION>Sarasota</PRODUCT_VERSION>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
     <CARBON_CD_IMAGE_NAME>bain.iso</CARBON_CD_IMAGE_NAME>
   </variables>
 

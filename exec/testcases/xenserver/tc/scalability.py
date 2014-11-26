@@ -3020,7 +3020,6 @@ class TCScaleVMXenDesktop49Reboot(TCStbltyWorkLoadBase):
 
 class _VBDScalability(_Scalability):
 
-    SR = None
     vdis = []
     VALIDATE = False
 
@@ -3030,6 +3029,10 @@ class _VBDScalability(_Scalability):
             maxVbds = int(host.lookup("MAX_VBDS_PER_HOST"))
         else:
             maxVbds = self.MAX
+        xenrt.TEC().logverbose("MAX VBDS PER HOST is %s" %(maxVbds))
+
+        vdiPerVM = int(host.lookup("MAX_VDIS_PER_VM")) + 1
+        xenrt.TEC().logverbose("MAX VDIs per VM is %s " %(vdiPerVM))
 
         # Find the SR
         srs = host.getSRs(type=self.SR)
@@ -3041,7 +3044,7 @@ class _VBDScalability(_Scalability):
         srCount = 0
         vdiCount = 0
         vdiPerSrCount = 0
-        while vdiCount < maxVbds and srCount<len(srs):
+        while vdiCount < vdiPerVM and srCount<len(srs):
             try:
                 uuid = host.createVDI(sizebytes=10485760, sruuid=srs[srCount], name="VDI Scalability %u" %(vdiCount))
                 self.vdis.append(uuid)
@@ -3060,12 +3063,6 @@ class _VBDScalability(_Scalability):
                                              "10485760, had %u" % (spaceleft))
                         srCount = srCount+1
                         vdiPerSrCount = 0
-
-        if vdiCount < maxVbds :
-            raise xenrt.XRTFailure("Asked to create %u VDIs, only managed "
-                                        "to create %u" % (maxVbds,vdiCount))
-        else:
-            xenrt.TEC().value("numberVDIs",vdiCount)
 
         for sr in srs:
             # See how long an sr-scan takes
@@ -3090,63 +3087,62 @@ class _VBDScalability(_Scalability):
                                        guest.getUUID(),
                                        "allowed-VBD-devices").split("; ")
         vbdsAvailable = len(vbddevices)
+        guest.start()
 
-        # Start adding VBDs and plugging VDIs into them, once we reach allowed
-        # VBDs, make a new clone and continue
-
-        vmCount = 0
-        pluggedCount = 0
-        leftOnGuest = 0
         i = 0
-        while pluggedCount < maxVbds and i < vdiCount and srCount < len(srs):
-            if leftOnGuest == 0:
-                try:
-                    g = guest.cloneVM()
-                    self.uninstallOnCleanup(g)
-                    pluggedCount += 1
-                    g.start()
-                    vmCount += 1
-                    currentGuest = g
-                    self.guests.append(currentGuest)
-                    leftOnGuest = vbdsAvailable
-
-                except xenrt.XRTFailure, e:
-                    psize = int(host.getSRParam(srs[srCount],"physical-size"))
-                    if psize > 0:
-                        spaceleft = psize - \
-                                    int(host.getSRParam(srs[srCount],"physical-utilisation"))
-                        if spaceleft < 8 * xenrt.GIGA:
-                            xenrt.TEC().warning("Ran out of space on SR, required "
-                                                "8589934592, had %u" % (spaceleft))
-                            srCount = srCount+1
-                            continue
-
+        vmNumbers = (int ( maxVbds / vdiPerVM )) + 1
+        while (vbdsAvailable > 0) :
             try:
-
-                device = currentGuest.createDisk(vdiuuid=self.vdis[i],returnDevice=True)
-                xenrt.TEC().logverbose("Formatting VDI within VM.")
-                time.sleep(30)
-
-                currentGuest.execguest("mkfs.ext3 /dev/%s" % (device))
-                currentGuest.execguest("mount /dev/%s /mnt" % (device))
-                xenrt.TEC().logverbose("Creating some random data on VDI.")
-                currentGuest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8")
-                currentGuest.execguest("umount /mnt")
-
-                pluggedCount += 1
-                leftOnGuest -= 1
-                i = i+1
-                xenrt.TEC().logverbose("Plugged VBD %s" %(pluggedCount))
-
+                device = guest.createDisk(vdiuuid=self.vdis[i],returnDevice=True)
+                i += 1
+                vbdsAvailable -= 1
             except xenrt.XRTFailure, e:
-                xenrt.TEC().comment("Failed to create/plug VBD for VDI %u: %s" %
-                                     (pluggedCount+1,e))
-                break
+                 xenrt.TEC().comment("Failed to create Disks")
+
+        guest.shutdown()
+        self.guests.append(guest)
+
+        vmCount = 1
+
+        while (vmNumbers > 1) :
+            try:
+                g = guest.cloneVM()
+                self.uninstallOnCleanup(g)
+                self.guests.append(g)
+                vmNumbers -= 1
+            except xenrt.XRTFailure, e:
+                xenrt.TEC().comment("Failed to clone a VM")
+
+        pluggedCount = 0
+        for vmClone in self.guests:
+            vmClone.start()
+            vmCount += 1
+            vbdUuids = self.host.minimalList("vbd-list",args="vm-uuid=%s" % (vmClone.getUUID()))
+
+            for vbdClone in vbdUuids :
+                vbdFormat = self.host.genParamGet("vbd", vbdClone, "device")
+                if vbdFormat == 'xvda' :
+                    pluggedCount += 1
+                    continue
+                try:
+                    xenrt.TEC().logverbose("Formatting VDI within VM.")
+                    vmClone.execguest("mkfs.ext3 /dev/%s" % (vbdFormat))
+                    vmClone.execguest("mount /dev/%s /mnt" % (vbdFormat))
+                    xenrt.TEC().logverbose("Creating some random data on VDI.")
+                    vmClone.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8")
+                    vmClone.execguest("umount /mnt")
+
+                    pluggedCount += 1
+                    xenrt.TEC().logverbose("Plugged VBD %s" %(pluggedCount))
+                except xenrt.XRTFailure, e:
+                    xenrt.TEC().comment("Failed to create/plug VBD")
+                    break
 
         if pluggedCount < maxVbds:
-            raise xenrt.XRTFailure("Created %u VDIs, only able to create/plug "
+            xenrt.TEC().logverbose("Plugged VBD %s" %(pluggedCount))
+            raise xenrt.XRTFailure("Only able to create/plug "
                                     "VBDs for %u on %u guests" %
-                                    (vdiCount,pluggedCount,vmCount))
+                                    (pluggedCount,vmCount))
 
         if self.VALIDATE:
                 if self.runSubcase("lifecycleOperations", (), "LifecycleOperations", "LifecycleOperations") != xenrt.RESULT_PASS:

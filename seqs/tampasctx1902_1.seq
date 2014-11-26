@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
   </variables>
   <prepare>
       <host id="0">
@@ -41,7 +42,7 @@
 
   <testsequence>
     <serial group="Setup">
-      <testcase id="xenserver.tc.srpervm.SetupSRs">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
         <arg>linuxvms=8</arg>
         <arg>linuxfiler=fas3050b</arg>
         <arg>windowsvms=8</arg>

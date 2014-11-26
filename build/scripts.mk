@@ -180,7 +180,7 @@ $(EXECDIR)/xenrt/ctrl.py:
 control/xrt:
 	$(info Creating link to $@...)
 	-rm $(SHAREDIR)/$@
-	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper.sh `mktemp -d` $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper2.sh `mktemp -d` /tmp/xenrtlogs NoJob $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
 	chmod a+x $(SHAREDIR)/$@
 
 control/xrt1:
@@ -284,6 +284,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
 	sed -i 's#@user@#$(USERNAME)#g' $@
 	sed -i 's#@group@#$(GROUPNAME)#g' $@
+	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)

@@ -40,6 +40,8 @@ class XenRTDownload(XenRTAPIPage):
                 return "ERROR Internal error"
 
 class XenRTUpload(XenRTAPIPage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         prefix = ""
@@ -98,7 +100,7 @@ class XenRTUpload(XenRTAPIPage):
         db = self.getDB()
         cur = db.cursor()
 
-        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %u",
+        cur.execute("UPDATE tblResults SET uploaded = %s WHERE detailid = %s",
                     [uploaded, detailid])
 
         db.commit()

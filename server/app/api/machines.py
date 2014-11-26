@@ -212,6 +212,8 @@ class XenRTMList(XenRTMachinePage):
             return "ERROR Error listing machines"
 
 class XenRTMStatus(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         try:
             form = self.request.params
@@ -229,6 +231,8 @@ class XenRTMStatus(XenRTMachinePage):
             return "ERROR"
 
 class XenRTMDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the mdefine CLI call"""
         try:
@@ -267,6 +271,8 @@ class XenRTMDefine(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTMUnDefine(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the mundefine CLI call"""
         machine = self.request.params["machine"]
@@ -283,6 +289,8 @@ class XenRTMUnDefine(XenRTMachinePage):
             return "ERROR Error undefining %s" % (machine)
 
 class XenRTBorrow(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """Handle the borrow CLI call"""
         try:
@@ -320,7 +328,7 @@ class XenRTBorrow(XenRTMachinePage):
                     return "ERROR: The policy for this manchine only allows leasing for %d hours, please contact QA if you need a longer lease" % rc[2]
             if rc[0] and rc[0].strip() != userid and not force:
                 return "ERROR: machine already leased to %s (use --force to override)" % rc[0].strip()
-            if rc[1] and time.strptime(rc[1], "%Y-%m-%d %H:%M:%S") > leaseToTime and not force:
+            if rc[1] and rc[1].timetuple() > leaseToTime and not force:
                 return "ERROR: machine already leased for longer (use --force to override)"
             cur = db.cursor()
             cur.execute("UPDATE tblMachines SET leaseTo = %s, leasefrom = %s, comment = %s, leasereason = %s "
@@ -334,6 +342,8 @@ class XenRTBorrow(XenRTMachinePage):
             return "ERROR updating database"
 
 class XenRTReturn(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         """handle the return CLI call"""
         try:
@@ -380,6 +390,8 @@ class XenRTMachine(XenRTMachinePage):
             return "ERROR Could not find machine " + machine
 
 class XenRTMUpdate(XenRTMachinePage):
+    WRITE = True
+
     def render(self):
         form = self.request.params
         if not form.has_key("machine"):
@@ -462,8 +474,8 @@ class XenRTMUpdate(XenRTMachinePage):
                         self.update_machine_param(machine, key, form[key])
             return "OK"
         except:
-            return "ERROR Internal error"
             traceback.print_exc(file=sys.stderr)
+            return "ERROR Internal error"
 
     def update_machine_param(self, machine, key, value):
 
@@ -577,8 +589,8 @@ class XenRTUtilisation(XenRTMachinePage):
                 cur.execute("SELECT extract(epoch FROM ts),etype,edata FROM tblevents "
                             "WHERE subject=%s AND (etype='JobStart' OR etype='"
                             "JobEnd') AND ts > ('epoch'::timestamptz + interval "
-                            "'%u seconds') AND ts < ('epoch'::timestamptz + "
-                            "interval '%u seconds') ORDER BY ts;",
+                            "'%s seconds') AND ts < ('epoch'::timestamptz + "
+                            "interval '%s seconds') ORDER BY ts;",
                             [machine,start,end])
 
                 started = False

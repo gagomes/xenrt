@@ -1,0 +1,48 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+  </variables>
+  <prepare>
+      <host id="0">
+        <vm name="lingold">
+          <distro>debian60</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <MANAGEMENT />
+          <NIC />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+      </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="Setup">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
+        <arg>linuxvms=33</arg>
+        <arg>windowsvms=0</arg>
+      </testcase>
+      <testcase id="xenserver.tc.srpervm.ReconfigureRingSize">
+        <arg>ringsize=1</arg>
+        <arg>applyfix=yes</arg>
+      </testcase>
+      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+    </serial>
+    <serial group="LowMem">
+      <testcase id="xenserver.tc.srpervm.TCMonitorLowMem" >
+        <arg>minutes=60</arg>
+        <arg>checkinterval=10</arg>
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

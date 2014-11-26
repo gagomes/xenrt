@@ -343,6 +343,20 @@ class Guest(xenrt.lib.libvirt.Guest):
         self.enlightenedDrivers = True
 
     def installTools(self, source=None, reboot=False, updateKernel=True):
+        # On newer guests, VMware prefers the use of open-vm-tools (http://kb.vmware.com/kb/2073803)
+        if self.distro.startswith("debian70"):
+            self.execguest("apt-get -y --force-yes install open-vm-tools")
+        else:
+            self.installLegacyTools(source, reboot, updateKernel)
+
+        # Check it's installed and output the version
+        version = self.execguest("/usr/bin/vmware-toolbox-cmd -v").strip()
+        xenrt.TEC().logverbose("installed vmware tools version %s" % (version))
+
+        # Switch devices over to use PV drivers automatically
+        self.usePVdrivers(force=False)
+
+    def installLegacyTools(self, source=None, reboot=False, updateKernel=True):
         self.insertToolsCD()
 
         # Assume that the CD drive is at /dev/sr0 in the VM
@@ -373,14 +387,7 @@ class Guest(xenrt.lib.libvirt.Guest):
         xenrt.TEC().logverbose("vmware tools installation output: %s" % (output))
         self.execguest("rm -rf %s" % (unpackdir))
 
-        # Check it's installed and output the version
-        version = self.execguest("/usr/bin/vmware-toolbox-cmd -v").strip()
-        xenrt.TEC().logverbose("installed vmware tools version %s" % (version))
-
         # TODO eject the CD?
-
-        # Switch devices over to use PV drivers automatically
-        self.usePVdrivers(force=False)
 
     def enablePXE(self, pxe=True):
         pass

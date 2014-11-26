@@ -394,7 +394,12 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # Export vm
         psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
-        self.psExecution(psScript,timeout = 40000)
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
@@ -441,8 +446,13 @@ class _WSMANProtocol(_CIMInterface):
         (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
         # import VM
         psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
-        ret = self.psExecution(psScript,timeout = 20000)
-        vm = ret.splitlines()[2]
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            vm = ret.splitlines()[2]
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s imported" % (vm))
         return vm
        
@@ -750,15 +760,23 @@ class _WSMANProtocol(_CIMInterface):
         base = xenrt.TEC().getLogdir()
         self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
         self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
-    
+
+    def getIPRange(self,staticIPs):
+
+        s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
+        start_ip = s_obj[1].getAddr()
+        end_ip = s_obj[staticIPs].getAddr()
+        return start_ip,end_ip
+
     def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
         driveName = "Q:\\"
         if staticIPs:
-            s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
-            start_ip = s_obj[1].getAddr()
-            end_ip = s_obj[staticIPs].getAddr()
+            start_ip,end_ip = self.getIPRange(staticIPs)
+            s_ip = start_ip.split('.')
+            if (int(s_ip[3]) + staticIPs) >= 255:
+                start_ip,end_ip = self.getIPRange(staticIPs)
             (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
             psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
         else:

@@ -11,7 +11,7 @@ class RemoteNoseInstaller(object):
 
     def install(self):
         # Install git, python, pip, paramiko, nose
-        self.runner.execguest("apt-get install -y --force-yes git python python-dev python-setuptools python-dev python-pip")
+        self.runner.execguest("apt-get install -y --force-yes git python python-dev python-setuptools python-dev python-pip python-netaddr")
         # Install marvin
         if xenrt.TEC().lookup("MARVIN_URL", None):
             self.runner.execguest("wget -O /root/marvin.tar.gz \"%s\"" % xenrt.TEC().lookup("MARVIN_URL"))
@@ -149,10 +149,12 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
 
 class TCRemoteNoseSimSetup(_TCRemoteNoseBase):
     def run(self, arglist):
-        mgmtSvrIp = self.getGuest("CS-MS").getIP()
+        mgmtSvr = self.getGuest("CS-MS")
+        mgmtSvrIp = mgmtSvr.getIP()
         cfg = json.loads(self.runner.execguest("cat /root/cloudstack/%s | grep -v \"^#\"" % self.args['deploy']))
         cfg['dbSvr']['dbSvr'] = mgmtSvrIp
         cfg['mgtSvr'][0]['mgtSvrIp'] = mgmtSvrIp
+        cfg['mgtSvr'][0]['passwd'] = mgmtSvr.password
 
         with open("%s/marvin.cfg" % xenrt.TEC().getLogdir(), "w") as f:
             f.write(json.dumps(cfg, indent=2))
@@ -246,6 +248,12 @@ class TCRemoteNose(_TCRemoteNoseBase):
                 elif t.getElementsByTagName("skipped"):
                     result = xenrt.RESULT_SKIPPED
                 self.testcaseResult(t.getAttribute("classname"), t.getAttribute("name"), result, self.getReason(msg))
+                if msg and len(msg) > 12500:
+                    # Need to trim the message for Jira
+                    newmsg = msg[:2500]
+                    newmsg += "\n\n-- trimmed - full logs available on link above --\n\n"
+                    newmsg += msg[-10000:]
+                    msg = newmsg
                 self.failures["%s/%s" % (t.getAttribute("classname"), t.getAttribute("name"))] = msg
 
             newsuite = newdoc.createElement("testsuite")

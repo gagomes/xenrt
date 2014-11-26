@@ -1,0 +1,21 @@
+<xenrt>
+
+  <!-- MNR guest bios strings sequence for tests that require hosts from different OEMs -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR>
+    <WORKAROUND_CA6704>yes</WORKAROUND_CA6704>
+  </variables>
+
+  <prepare>
+    <pool>
+      <allhosts/>
+    </pool>
+  </prepare>
+
+  <testsequence group="GuestBiosStringsDiffOEM">
+    <testcase id="xenserver.tc.guestbios.TC10535" prio="3"/>
+  </testsequence>
+
+</xenrt>

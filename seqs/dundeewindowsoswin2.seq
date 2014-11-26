@@ -1,0 +1,84 @@
+<xenrt>
+
+  <!-- OS functional test sequence: winxpsp3 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <OPTION_OEM_ALL_LOGS>yes</OPTION_OEM_ALL_LOGS>
+  </variables>
+
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="winxpsp3">
+      <testcase id="xenserver.guest.TCXenServerWindowsInstall" name="VMInstall" tc="TC-7516">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=winxpsp3</arg>
+        <arg>distro=winxpsp3</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="winxpsp3">
+        <testcase id="guestops.drivers.TCDriverInstall" tc="TC-7517">
+          <arg>guest=winxpsp3</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCStartStop" tc="TC-7518">
+          <arg>guest=winxpsp3</arg>
+          <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-7519">
+          <arg>guest=winxpsp3</arg>
+          <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-7520">
+          <arg>guest=winxpsp3</arg>
+          <arg>workloads</arg>
+          <arg>loops=10</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-7521">
+          <arg>guest=winxpsp3</arg>
+          <arg>workloads</arg>
+          <arg>loops=5</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-7522">
+          <arg>guest=winxpsp3</arg>
+          <arg>live</arg>
+          <arg>workloads</arg>
+          <arg>loops=10</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-7524">
+          <arg>N/A</arg>
+          <arg>guest=winxpsp3</arg>
+          <arg>noshutdown</arg>
+          <arg>initial=4</arg>
+          <arg>max=7</arg>
+          <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-7525">
+          <arg>N/A</arg>
+          <arg>guest=winxpsp3</arg>
+          <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-7526">
+          <arg>guest=winxpsp3</arg>
+          <arg>max=8</arg>
+          <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=winxpsp3</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+  </testsequence>
+</xenrt>

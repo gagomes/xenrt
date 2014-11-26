@@ -6,10 +6,12 @@ errors = []
 
 
 def checkNFS(address,name):
+    os.popen("sudo umount /tmp/nagiosnfs").close()
     f = os.popen("sudo mkdir -p /tmp/nagiosnfs && sudo mount %s /tmp/nagiosnfs && sudo umount /tmp/nagiosnfs 2>&1" % address)
     err = f.close()
     if err:
         errors.append("%s (%s)" % (address, name))
+    os.popen("sudo umount /tmp/nagiosnfs").close()
     return err
 
 def getTextFromXmlNode(node):

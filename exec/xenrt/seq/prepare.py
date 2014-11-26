@@ -414,6 +414,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             vm['postinstall'].append(self.parent.toplevel.scripts[x])
         if "file_name" in node:
             vm['filename'] = node['file_name']
+            vm['userfile'] = node.get("user", False)
         if "boot_params" in node:
             vm['bootparams'] = node['boot_params']
         
@@ -810,9 +811,12 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     name = self.expand(x.getAttribute("name"))
                     vm["postinstall"].append(self.parent.toplevel.scripts[name])
                 elif x.localName == "file":
+                    usertext = self.expand(x.getAttribute("user"))
+                    vm["userfile"] = usertext == "true" or usertext == "yes"
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["filename"] = self.expand(str(a.data))
+                        break
                 elif x.localName == "bootparams":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:

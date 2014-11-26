@@ -13,7 +13,7 @@ PRODUCTIONCONFIG    = no
 WINDOWS_ISOS        = /local/inputs/windows
 TEST_INPUTS         = /local/inputs/tests
 
-SHAREDIR            = /usr/share/xenrt
+SHAREDIR            = $(shell pwd)/output
 CONFDIR             = /etc/xenrt
 CONFDIRS            = 
 SCRATCHDIR          = /local/scratch

@@ -14,5 +14,6 @@
    <serial group="HFX_FOX">
     <testcase id="testcases.xenserver.tc.vhd.TC20995"/>
    </serial>
+   <testcase id="testcases.xenserver.tc.storage.TCPbdDuplicateSecret" tc="TC-21719"/>
   </testsequence>
 </xenrt>

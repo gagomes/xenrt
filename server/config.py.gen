@@ -14,6 +14,8 @@ else:
 
 cfg['url_base'] = "http://%s/share/control" % (addr)
 cfg['tmp_base'] = "/tmp"
+cfg['max_db_connections'] = "8"
+cfg['db_sync_timeout'] = "60"
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):
@@ -40,8 +42,16 @@ if os.path.exists(cf):
                                     basedir = data
                                 elif name == "DATABASE_CONNECT_STRING":
                                     cfg['dbConnectString'] = data
+                                elif name == "DATABASE_CONNECT_STRING_WRITE":
+                                    cfg['dbConnectStringWrite'] = data
                                 elif name == "TEMP_DIR_BASE":
                                     cfg['tmp_base'] = data
+                                elif name == "LOG_SERVER":
+                                    cfg['log_server'] = data
+                                elif name == "MAX_DB_CONNECTIONS_PER_PROCESS":
+                                    cfg['max_db_connections'] = data
+                                elif name == "DB_SYNC_TIMEOUT":
+                                    cfg['db_sync_timeout'] = data
 
 
 cfg['results'] = "%s/results" % basedir

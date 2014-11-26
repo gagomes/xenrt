@@ -1,0 +1,59 @@
+<xenrt>
+
+  <!-- MNR TC-9734 mixops test sequence -->
+
+  <default name="MIXHOURS" value="48"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <MIXOPS_MEMORY_SHARE>4</MIXOPS_MEMORY_SHARE>
+    <OPTION_KEEP_SCREENSHOTS>yes</OPTION_KEEP_SCREENSHOTS>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="ws08sp2-x86">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="ws08r2-x64">
+        <distro>ws08r2-x64</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+      <vm name="debian60">
+        <distro>debian60</distro>
+        <network device="0"/>
+      </vm>
+      <vm name="rhel54">
+        <distro>rhel54</distro>
+        <network device="0"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel tc="TC-9734">
+      <testcase id="xenserver.guest.TCMixops" group="debian60">
+        <arg>guest=debian60</arg>
+        <arg>duration=${MIXHOURS}</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCMixops" group="rhel54">
+        <arg>guest=rhel54</arg>
+        <arg>duration=${MIXHOURS}</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCMixops" group="ws08sp2-x86">
+        <arg>guest=ws08sp2-x86</arg>
+        <arg>duration=${MIXHOURS}</arg>
+      </testcase>
+      <testcase id="xenserver.guest.TCMixops" group="ws08r2-x64">
+        <arg>guest=ws08r2-x64</arg>
+        <arg>duration=${MIXHOURS}</arg>
+      </testcase>
+    </parallel>
+  </testsequence>
+
+</xenrt>

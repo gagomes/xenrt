@@ -1,0 +1,73 @@
+<xenrt>
+  <variables>
+    <!-- Clearwater test sequence PR1566-->
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+    <prepare>
+        <host id="0">
+            <NETWORK>
+                <PHYSICAL network="NPRI">
+                    <NIC />
+                    <MANAGEMENT />
+                    <VMS />
+                    <VLAN network="VR01">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR02">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR03">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR04">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR05">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR06">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR07">
+                        <STORAGE />
+                    </VLAN>
+                </PHYSICAL>
+            </NETWORK>
+        </host>
+        <host id="1">
+            <NETWORK>
+                <PHYSICAL network="NPRI">
+                    <NIC />
+                    <MANAGEMENT />
+                    <VMS />
+                    <VLAN network="VR01">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR02">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR03">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR04">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR05">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR06">
+                        <STORAGE />
+                    </VLAN>
+                    <VLAN network="VR07">
+                        <STORAGE />
+                    </VLAN>
+                </PHYSICAL>
+            </NETWORK>
+        </host>
+    </prepare>
+
+    <testsequence>
+        <testcase id="xenserver.tc.maxima.TC18837"/>
+    </testsequence>
+</xenrt>

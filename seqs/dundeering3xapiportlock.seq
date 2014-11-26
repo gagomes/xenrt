@@ -1,0 +1,105 @@
+<xenrt>
+
+  <!-- Xapi Port locking tests -->
+  
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>8</PREPARE_WORKERS>
+  </variables>
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="victim1">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+        <vm name="victim2ipv6">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+        <vm name="attacker">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+      </host>
+      <host id="1">
+        <vm name="victim1ipv6">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+        <vm name="victim2">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+        <vm name="attackeripv6">
+          <distro>debian70</distro>
+          <memory>1024</memory>
+          <vcpus>1</vcpus>
+          <disk device="0" size="10" />
+          <network device="0"/>
+        </vm>
+      </host>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC />
+          <MANAGEMENT />
+        </PHYSICAL>
+        <PHYSICAL network="NPRI">
+          <VMS />
+          <NIC />
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+  </prepare>
+  <testsequence>
+    <serial group="XapiPortLock">
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPBroadcast" tc="TC-17218" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCArpBroadcastNoLocking" tc="TC-16590" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCArpBroadcastVifLock" tc="TC-16591" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCBadArpResponseNoLocking" tc="TC-16592" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCBadArpResponseVifLocked" tc="TC-16593" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCGoodArpResponse" tc="TC-16594" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPMacSpoofNoLocking" tc="TC-16595" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPMacSpoofVifLocked" tc="TC-16596" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPSpoofNoLocking" tc="TC-16597" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPSpoofVifLocked" tc="TC-16598" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCMacSpoofNoLocking" tc="TC-16599" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCMacSpoofVifLocked" tc="TC-16600" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCSniffingNoLocking" tc="TC-16601" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCSniffingVifLocked" tc="TC-16602" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCNSNoLocking" tc="TC-16603" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCNSVifLocked" tc="TC-16604" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCBadNANoLocking"  tc="TC-16605"/>
+      <testcase id="testcases.xenserver.tc.portlocking.TCBadNAVifLocked" tc="TC-16606" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPMacSpoofNoLockingIPV6" tc="TC-16607" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPMacSpoofVifLockedIPV6" tc="TC-16608" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPV6SpoofNoLocking" tc="TC-16609" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCIPV6SpoofVifLocked" tc="TC-16610" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCMacSpoofIPV6NoLocking" tc="TC-16611" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCMacSpoofIPV6VifLocked" tc="TC-16612" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCMultipleIPV4Send" tc="TC-16613" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCGoodNdpResponse" tc="TC-16616" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCDisabledNetwork" tc="TC-16617" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCDisabledVif" tc="TC-16618" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCDisabledVif2" tc="TC-16619" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCNetworkLockApiVerify" tc="TC-16621" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCVifLockApiVerify" tc="TC-16622" />
+      <testcase id="testcases.xenserver.tc.portlocking.TCVifIPAddressInvalidIPAddress" tc="TC-16623" />
+    </serial>
+  </testsequence>
+</xenrt>

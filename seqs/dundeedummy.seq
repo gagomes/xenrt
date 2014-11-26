@@ -1,0 +1,17 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <serial group="Dummy">
+      <testcase id="dummy.TCSleep" tc="TC-20619" />
+    </serial>
+  </testsequence>
+
+
+</xenrt>

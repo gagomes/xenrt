@@ -1,0 +1,22 @@
+<xenrt>
+
+  <!-- MNR VM clock drifting testcases on VMX host with 8 CPU -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+     <serial group="VMX8">
+       <testcase id="xenserver.tc.vmlifecycle.TC9752"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9753"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9754"/>
+       <testcase id="xenserver.tc.vmlifecycle.TC9755"/>
+     </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,35 @@
+<xenrt>
+
+  <!-- pool operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+    </pool>
+    <pool id="1">
+      <host id="1"/>
+    </pool>
+    <pool id="2">
+      <host id="2"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Misc">
+      <testcase id="xenserver.tc.pool.TC8608"/>
+      <testcase id="xenserver.tc.pool.TC8611"/>
+      <testcase id="xenserver.tc.pool.TC8758"/>
+    </serial>
+    <serial group="Patch">
+      <testcase id="xenserver.tc.pool.TC7985"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

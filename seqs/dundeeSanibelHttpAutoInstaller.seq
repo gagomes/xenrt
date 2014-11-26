@@ -1,0 +1,21 @@
+<xenrt>
+  <!-- Auto-installer tests from Sanibel using HTTP -->
+  <default name="OLD_PRODUCT_VERSION" value="Sanibel" />
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.2/RTM-53456" />
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALLER_PATCH>
+      <INSTALLER>XS62E006.xsupdate</INSTALLER>
+      <PROTOCOL>HTTP</PROTOCOL>
+    </INSTALLER_PATCH>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" />
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCAutoInstaller" tc="TC-21484" />
+  </testsequence>
+</xenrt>

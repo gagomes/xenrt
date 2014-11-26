@@ -568,8 +568,8 @@ class _CLITest(testcases.xenserver.tc.security._RBAC):
            for key in listdel:
                 del self.CONFIG[key]
         
-        #handle pif-forget differently for pre-Augusta versions and Augusta
-        if isinstance(self.pool.master, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.pool.master, xenrt.lib.xenserver.SarasotaHost):
+        #handle pif-forget differently for pre-Dundee versions and Dundee
+        if isinstance(self.pool.master, xenrt.lib.xenserver.CreedenceHost) or isinstance(self.pool.master, xenrt.lib.xenserver.DundeeHost):
            self.ALLOWED["pif-forget"]="The operation you requested cannot be performed because the specified PIF is the management interface"
         else:
            self.FATAL["pif-forget"]="pif-forget timed out"

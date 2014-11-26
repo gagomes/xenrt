@@ -1,0 +1,22 @@
+<xenrt>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <serial group="PR-1430">
+      <testcase id="xenserver.tc.bonding.TC17714" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17713" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17712" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17715" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17716" blocker="yes"/>
+      <testcase id="xenserver.tc.bonding.TC17717"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

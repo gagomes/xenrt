@@ -66,7 +66,7 @@
         </testcase>
         <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19829">
         <arg>guest=debian70</arg>
-        <arg>max=8</arg>
+        <arg>max=32</arg>
         <arg>noplugwindows</arg>
         </testcase>
         <finally>
@@ -78,7 +78,7 @@
       </serial>
     </serial>
     <serial group="debian70x86-64">
-      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-19821">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-23352">
         <arg>RESOURCE_HOST_0</arg>
         <arg>guest=debian70x86-64</arg>
         <arg>distro=debian70</arg>
@@ -86,45 +86,45 @@
         <arg>memory=1024</arg>
       </testcase>
       <serial guest="debian70x86-64">
-        <testcase id="guestops.basic.TCStartStop" tc="TC-19822">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-23353">
         <arg>guest=debian70x86-64</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.basic.TCReboot" tc="TC-19823">
+        <testcase id="guestops.basic.TCReboot" tc="TC-23354">
         <arg>guest=debian70x86-64</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.srm.TCSuspendResume" tc="TC-19824">
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-23355">
         <arg>guest=debian70x86-64</arg>
         <arg>workloads</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="guestops.srm.TCMigrate" tc="TC-19825">
+        <testcase id="guestops.srm.TCMigrate" tc="TC-23356">
         <arg>guest=debian70x86-64</arg>
         <arg>workloads</arg>
         <arg>loops=10</arg>
         </testcase>
-        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-19826">
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-23357">
         <arg>guest=debian70x86-64</arg>
         <arg>live</arg>
         <arg>workloads</arg>
         <arg>loops=20</arg>
         </testcase>
-        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-19827">
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-23358">
         <arg>N/A</arg>
         <arg>guest=debian70x86-64</arg>
         <arg>noshutdown</arg>
         <arg>initial=4</arg>
         <arg>max=7</arg>
         </testcase>
-        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-19828">
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-23359">
         <arg>N/A</arg>
         <arg>guest=debian70x86-64</arg>
         <arg>noshutdown</arg>
         </testcase>
-        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-19829">
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-23360">
         <arg>guest=debian70x86-64</arg>
-        <arg>max=8</arg>
+        <arg>max=32</arg>
         <arg>noplugwindows</arg>
         </testcase>
         <finally>

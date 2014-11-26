@@ -9,46 +9,67 @@
 import xenrt
 import testcases.benchmarks.workloads
 
-class SetupSRs(xenrt.TestCase):
-
-    def createSR(self, lun, name):
-        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master, name)
-        sr.create(lun, noiqnset=True, subtype="lvm")
-    
+class SetupSRsBase(xenrt.TestCase):
+    PROTOCOL=None
     def run(self, arglist=[]):
         args = self.parseArgsKeyValue(arglist)
 
-        linuxLunCount = int(args.get("linuxvms", "10"))
-        windowsLunCount = int(args.get("windowsvms", "10"))
+        linuxCount = int(args.get("linuxvms", "10"))
+        windowsCount = int(args.get("windowsvms", "10"))
 
         windowsFilerName = args.get("windowsfiler", None)
         linuxFilerName = args.get("linuxfiler", None)
 
-        linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
-        linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=linuxFilerName)
-        windowsRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=windowsFilerName)
-        windowsDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, xenrt.StorageArrayType.iSCSI, specify=windowsFilerName)
-
-
+        linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=linuxFilerName)
+        linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=linuxFilerName)
+        windowsRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=windowsFilerName)
+        windowsDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=windowsFilerName)
+        
         self.pool = self.getDefaultHost().getPool()
         [x.enableMultipathing() for x in self.pool.getHosts()]
-        
-        initiators = dict((x.getName(), {'iqn': x.getIQN()}) for x in self.pool.getHosts())
+       
+        initiators = self.getInitiators()
 
-        linuxRootFiler.provisionLuns(linuxLunCount, 10, initiators)
-        linuxDataFiler.provisionLuns(linuxLunCount * 2, 5, initiators)
-        windowsRootFiler.provisionLuns(windowsLunCount, 30, initiators)
-        windowsDataFiler.provisionLuns(windowsLunCount * 2, 5, initiators)
+        linuxRootFiler.provisionLuns(linuxCount, 10, initiators)
+        linuxDataFiler.provisionLuns(linuxCount * 2, 5, initiators)
+        windowsRootFiler.provisionLuns(windowsCount, 30, initiators)
+        windowsDataFiler.provisionLuns(windowsCount * 2, 5, initiators)
 
-        for i in range(linuxLunCount):
-            self.createSR(linuxRootFiler.getLuns()[i].getISCSILunObj(), "LinuxRootSR_%d" % i)
-            self.createSR(linuxDataFiler.getLuns()[i*2].getISCSILunObj(), "LinuxDataSR_A%d" % i)
-            self.createSR(linuxDataFiler.getLuns()[i*2+1].getISCSILunObj(), "LinuxDataSR_B%d" % i)
+        for i in range(linuxCount):
+            self.createSR(linuxRootFiler.getLuns()[i], "LinuxRootSR_%d" % i)
+            self.createSR(linuxDataFiler.getLuns()[i*2], "LinuxDataSR_A%d" % i)
+            self.createSR(linuxDataFiler.getLuns()[i*2+1], "LinuxDataSR_B%d" % i)
             
-        for i in range(windowsLunCount):
-            self.createSR(windowsRootFiler.getLuns()[i].getISCSILunObj(), "WindowsRootSR_%d" % i)
-            self.createSR(windowsDataFiler.getLuns()[i*2].getISCSILunObj(), "WindowsDataSR_A%d" % i)
-            self.createSR(windowsDataFiler.getLuns()[i*2+1].getISCSILunObj(), "WindowsDataSR_B%d" % i)
+        for i in range(windowsCount):
+            self.createSR(windowsRootFiler.getLuns()[i], "WindowsRootSR_%d" % i)
+            self.createSR(windowsDataFiler.getLuns()[i*2], "WindowsDataSR_A%d" % i)
+            self.createSR(windowsDataFiler.getLuns()[i*2+1], "WindowsDataSR_B%d" % i)
+
+    def createSR(self, lun, name): 
+        raise xenrt.XRTError("Not implemented in base class")
+
+    def getInitiators(self): 
+        raise xenrt.XRTError("Not implemented in base class")
+
+class SetupSRsiSCSI(SetupSRsBase):
+    PROTOCOL = xenrt.StorageArrayType.iSCSI
+
+    def createSR(self, lun, name):
+        sr = xenrt.lib.xenserver.ISCSIStorageRepository(self.pool.master, name)
+        sr.create(lun.getISCSILunObj(), noiqnset=True, subtype="lvm")
+
+    def getInitiators(self):
+        return dict((x.getName(), {'iqn': x.getIQN()}) for x in self.pool.getHosts())
+
+class SetupSRsFC(SetupSRsBase):
+    PROTOCOL = xenrt.StorageArrayType.FibreChannel
+
+    def createSR(self, lun, name):
+        sr = xenrt.lib.xenserver.FCStorageRepository(self.pool.master, name)
+        sr.create(lun.getId())
+
+    def getInitiators(self):
+        return dict(zip(self.pool.getHosts(), [h.getFCWWPNInfo() for h in self.pool.getHosts()]))
 
 class ReconfigureRingSize(xenrt.TestCase):
     def run(self, arglist=[]):
@@ -69,9 +90,11 @@ class CopyVMs(xenrt.TestCase):
     def run(self, arglist=[]):
        
         wingold = self.getGuest("wingold")
-        wingold.setState("DOWN")
+        if wingold:
+            wingold.setState("DOWN")
         lingold = self.getGuest("lingold")
-        lingold.setState("DOWN")
+        if lingold:
+            lingold.setState("DOWN")
         host = self.getDefaultHost()
 
         i = 0

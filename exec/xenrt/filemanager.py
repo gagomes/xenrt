@@ -1,6 +1,6 @@
 
 import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
-import time, httplib, urlparse, glob, re
+import time, urlparse, glob, re, requests
 import xenrt, xenrt.util
 
 __all__ = ["getFileManager"]
@@ -153,7 +153,7 @@ class FileManager(object):
                     break
                 splitpoint += 1
                     
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1" % (self.__proxyflag, "/".join(ss[0:splitpoint]), t.dir, "/".join(ss[splitpoint:])))
+            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1 -H" % (self.__proxyflag, "/".join(ss[0:splitpoint]), t.dir, "/".join(ss[splitpoint:])))
             fetched = glob.glob("%s/*" % t.dir)
             os.rename(fetched[0], sharedLocation)
         finally:
@@ -164,7 +164,7 @@ class FileManager(object):
             t = xenrt.resources.TempDirectory()
             u = urlparse.urlparse(url)
             cutdirs = len(u.path.split("/")) - 2 # Remove beginning and end items
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (self.__proxyflag, url, t.dir, cutdirs), ignoreerrors=True)
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (self.__proxyflag, url, t.dir, cutdirs), ignoreerrors=True)
             xenrt.util.command("cd %s && tar -cvzf %s *" % (t.dir, sharedLocation))
         finally:
             t.remove()
@@ -177,7 +177,7 @@ class FileManager(object):
         try:
             t = xenrt.resources.TempDirectory()
             fetchPatterns= [url.split("/")[-1], url.split("/")[-1] + ".[0-9]*"]
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (self.__proxyflag, "/".join(url.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), maxDepth))
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (self.__proxyflag, "/".join(url.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), maxDepth))
             fetched = glob.glob("%s/*" % t.dir)
             fileList = " ".join(fetched)
             xenrt.TEC().logverbose( "Fetched files: %s"  % fileList)
@@ -284,15 +284,9 @@ class FileManager(object):
     def _isFetchable(self, filename):
         # Split remote in to host and path
         xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
-        u = urlparse.urlparse(filename)
-        host = u[1]
-        path = u[2]
         try:
-            conn = httplib.HTTPConnection(host)
-            conn.request("HEAD", path)
-            res = conn.getresponse()
-            conn.close()
-            return (res.status == 200)
+            r = requests.head(filename, allow_redirects=True)
+            return (r.status_code == 200)
         except:
             return False
 

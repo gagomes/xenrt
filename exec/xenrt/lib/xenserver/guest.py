@@ -4344,6 +4344,7 @@ def createVM(host,
         for p in postinstall:
             eval("g.%s()" % (p))
         for p in packages:
+            xenrt.TEC().logverbose("debug: installing %s" % p)
             g.installpackage(p)
         return g
     else:

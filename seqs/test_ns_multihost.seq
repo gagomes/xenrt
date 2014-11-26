@@ -27,6 +27,7 @@
         <network device="0" />
         <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.2/24" />
         <disk device="0" size="8" />
+        <packages>curl</packages>
       </vm>
       <vm name="client2">
         <distro>debian70</distro>
@@ -35,6 +36,7 @@
         <network device="0" />
         <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.3/24" />
         <disk device="0" size="8" />
+        <packages>curl,apache2</packages>
       </vm>
     </host>
     <host id="1">

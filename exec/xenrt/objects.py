@@ -9532,6 +9532,15 @@ while True:
             xenrt.TEC().registry.instancePut(self.name, self)
         return self.instance
 
+    def installpackage(self, package):
+
+        # Pending step: Add apt-get cacher proxy to guest
+
+        if "deb" in self.distro:
+            self.execguest("apt-get -y --force-yes install %s" % package)
+        else:
+            raise xenrt.XRTError("Not Implemented")
+
 class EventObserver(xenrt.XRTThread):
 
     def __init__(self,host,session,eventClass,taskRef,timeout):

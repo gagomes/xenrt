@@ -434,6 +434,7 @@ ifeq ($(KERBEROS),yes)
 	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFIDIR)/keytab
 	$(SUDO) a2enmod auth_kerb
+	$(SUDO) a2enmod headers
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf
 else
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default /etc/apache2/sites-available

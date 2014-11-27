@@ -20,9 +20,8 @@
     </host>
   </prepare>
     <testsequence group="CentosUpgrade">
-    <testcase id="testcases.guestops.upgrade.TCCentosUpgrade">
+    <testcase id="testcases.guestops.upgrade.TCCentosUpgrade" tc="TC-23740">
       <arg>guest=centos65</arg>
-      <arg>upgradeto=centos7</arg>
     </testcase>
   </testsequence>
 </xenrt>

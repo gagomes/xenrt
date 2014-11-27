@@ -4490,6 +4490,9 @@ def createVM(host,
                     g.xmlrpcRemoveFile("c:\\postrun.vbs")
             else:
                 eval("g.%s()" % (p))
+        for p in packages:
+            xenrt.TEC().logverbose("debug: installing %s" % p)
+            g.installpackage(p)
 
         return g
 

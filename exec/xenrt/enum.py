@@ -9,8 +9,7 @@ import xenrt
 __all__ = ["PowerState", "LifecycleOperation", "HypervisorType", "IsoRepository", "InstallMethod"]
 
 # All known Windows distros
-global _windowsdistros
-_windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
+windowsdistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
                   ('w2k3ee','Windows Server 2003 SP0 Enterprise'),
                   ('w2k3eesp1','Windows Server 2003 SP1 Enterprise'),
                   ('w2k3eer2','Windows Server 2003 SP1 R2 Enterprise'),

@@ -6868,10 +6868,10 @@ class GenericGuest(GenericPlace):
             osname = osname.strip("Microsoft ")
             self.windows = True
 
-            matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
+            matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
             while len(matchedDistros) == 0 and len(osname.split(" ")) > 3:
                 osname = osname.rsplit(" ",1)[0]
-                matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
+                matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
 
             if len(matchedDistros) > 1:
                 systype = self.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()

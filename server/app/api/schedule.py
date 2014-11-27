@@ -259,7 +259,7 @@ class XenRTSchedule(XenRTAPIPage):
                 if not rc:
                     break
                 m = string.strip(rc[0])
-                ut = rc[1].timetuple()
+                ut = time.mktime(rc[1].timetuple())
                 if ut < time.time():
                     exp.append("'%s'" % (m))
             if len(exp) > 0:

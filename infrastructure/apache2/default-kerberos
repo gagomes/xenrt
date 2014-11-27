@@ -71,11 +71,11 @@
     ProxyPassReverse    /share/control http://localhost:1025/share/control retry=0
 
     <Location /auth>
-        AuthName @KERBEROSREALM@
+        AuthName @@KERBEROSREALM@@
         AuthType Kerberos
         Krb5Keytab /etc/xenrt/keytab
         KrbServiceName HTTP
-        KrbAuthRealms @KERBEROSREALM@
+        KrbAuthRealms @@KERBEROSREALM@@
         KrbMethodNegotiate on
         KrbMethodK5Passwd on
         KrbSaveCredentials off

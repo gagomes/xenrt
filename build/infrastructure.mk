@@ -432,7 +432,7 @@ ifeq ($(KERBEROS),yes)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
 	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFIDIR)/keytab
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFDIR)/keytab
 	$(SUDO) a2enmod auth_kerb
 	$(SUDO) a2enmod headers
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf

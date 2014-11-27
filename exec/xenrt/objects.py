@@ -6869,7 +6869,7 @@ class GenericGuest(GenericPlace):
             self.windows = True
 
             matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
-            while len(matchedDistros) == 0 and len(osname.split(" ") > 3):
+            while len(matchedDistros) == 0 and len(osname.split(" ")) > 3:
                 osname = osname.rsplit(" ",1)[0]
                 matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
 

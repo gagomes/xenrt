@@ -14736,7 +14736,7 @@ class IOvirt:
     
     def enableVirtualFunctions(self):
         
-        out = self.getHost().execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        out = self.getHost().execdom0("grep -v '^#' /etc/modprobe.d/ixgbe.conf 2> /dev/null; echo -n ''").strip()
         if len(out) > 0:
             return
         
@@ -14748,8 +14748,9 @@ class IOvirt:
                 maxVFs = "63" + (",63" * (numPFs - 1))
             else:
                 maxVFs = "40" #+ (",40" * (numPFs - 1))
-            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > /etc/modprobe.d/ixgbe' % maxVFs)
+            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > /etc/modprobe.d/ixgbe.conf' % maxVFs)
             #self.getHost().execdom0('echo "options igb max_vfs=7,7,7,7" > /etc/modprobe.d/igb')
+            self.getHost().execdom0('/bin/sh /boot/initrd-*.img.cmd')
             self.getHost().reboot()
             self.getHost().waitForSSH(300, desc="host reboot after enabling virtual functions")
             

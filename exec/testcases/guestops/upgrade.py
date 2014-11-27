@@ -40,14 +40,15 @@ class TCUbuntuUpgrade(xenrt.TestCase):
 
         g.reboot()
 
-class TCLinuxUpgrade(xenrt.TestCase):
+class TCCentosUpgrade(xenrt.TestCase):
 
     repoPath   = "/etc/yum.repos.d/upgrade.repo"
-    baseUrl    = None
-    fastRpm    = None
-    yumRpm     = None
-    upgradeRpm = None
-    instRepo   = None
+    urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+    baseUrl    = "%s/CentOS/dev.centos.org" % (urlprefix)
+    fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
+    yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
+    upgradeRpm = "%s/CentOS/centos.excellmedia.net/RPM-GPG-KEY-CentOS-7" % (urlprefix)
+    instRepo   = "%s/CentOS/centos.excellmedia.net/" % (urlprefix)
 
     def run(self, arglist=None):
         args = self.parseArgsKeyValue(arglist)
@@ -66,7 +67,7 @@ class TCLinuxUpgrade(xenrt.TestCase):
             xenrt.TEC().comment("Replaced yum packages")
             g.execguest("yum -y install redhat-upgrade-tool")
             g.execguest("yum -y install preupgrade-assistant")
-            g.execguest("/bin/echo -e \"y\\n\" | preupg")
+            g.execguest("/bin/echo -e 'y\n' | preupg")
             xenrt.TEC().comment("Pre upgrade completed")
         except:
             raise xenrt.XRTError("Pre upgrade failed")
@@ -90,11 +91,3 @@ class TCLinuxUpgrade(xenrt.TestCase):
 
         releaseCentos = g.execguest("cat /etc/centos-release")
         if not re.search("7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")
-
-class TCCentosUpgrade (TCLinuxUpgrade):
-
-    baseUrl     = "http://dev.centos.org/centos/6/upg/x86_64/"
-    fastRpm     = "http://mirror.centos.org/centos/6/os/x86_64/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm"
-    yumRpm      = "http://mirror.centos.org/centos/6/os/x86_64/Packages/yum-3.2.29-60.el6.centos.noarch.rpm"
-    upgradeRpm  = "http://centos.excellmedia.net/7.0.1406/os/x86_64/RPM-GPG-KEY-CentOS-7"
-    instRepo    = "http://centos.excellmedia.net/7.0.1406/os/x86_64/"

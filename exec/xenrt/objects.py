@@ -6900,11 +6900,8 @@ class GenericGuest(GenericPlace):
             elif  "SUSE" in release:
                 # sles
                 release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
-                relversion = release.split("release-")[1].split(".")
-                if relversion[1][0] != "0":
-                    self.distro ="sles" + relversion[0] + relversion[1][0]
-                else:
-                    self.distro ="sles" + relversion[0]
+                relversion = release.split("-")[2].replace(".","")
+                self.distro ="sles" + relversion
             else:
                 # rhel derived - rhel, centos, oel
                 try:

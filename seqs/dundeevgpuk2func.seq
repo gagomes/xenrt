@@ -5,7 +5,7 @@
   </variables>
 
   <prepare>
-    <host"/>
+    <host/>
   </prepare>
 
   <testsequence>

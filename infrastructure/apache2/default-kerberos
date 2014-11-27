@@ -1,12 +1,12 @@
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
-    
+
     DocumentRoot /var/www/
     RedirectMatch ^/$ /share/control/
     RedirectMatch ^/xenrt$ /xenrt/
     RedirectMatch ^/share/control$ /share/control/
     RedirectMatch ^/control$ /control/
-    
+
     RewriteEngine On
     RewriteRule ^/debian-security/(.*) /apt/apt-cacher-cgi.pl/security.debian.org/$1
     RewriteRule ^/debian-amd64/(.*) /apt/apt-cacher-cgi.pl/amd64.debian.net/debian-amd64/$1
@@ -23,6 +23,7 @@
         Options FollowSymLinks ExecCGI
         AllowOverride None
     </Directory>
+
     <Directory /var/www/>
         Options Indexes FollowSymLinks MultiViews ExecCGI
         AddHandler cgi-script .cgi
@@ -68,6 +69,30 @@
     ProxyPassReverse    /control http://localhost:1025/share/control retry=0
     ProxyPass           /share/control http://localhost:1025/share/control retry=0
     ProxyPassReverse    /share/control http://localhost:1025/share/control retry=0
+
+    <Location /auth>
+        AuthName @kerberosrealm@
+        AuthType Kerberos
+        Krb5Keytab /etc/xenrt/keytab
+        KrbServiceName HTTP
+        KrbAuthRealms @kerberosrealm@
+        KrbMethodNegotiate on
+        KrbMethodK5Passwd on
+        KrbSaveCredentials off
+        KrbVerifyKDC off
+        Require Valid-User
+    </Location>
+
+
+    RequestHeader unset X-Forwarded-User
+    RewriteEngine On
+    RewriteCond %{LA-U:REMOTE_USER} (.+)
+    RewriteRule .* - [E=RU:%1]
+    RequestHeader add X-Forwarded-User %{RU}e
+    RequestHeader unset Authorization
+
+    ProxyPass           /auth http://localhost:1025/share/control retry=0
+    ProxyPassReverse    /auth http://localhost:1025/share/control retry=0
 
 
 </VirtualHost>

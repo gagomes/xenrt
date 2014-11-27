@@ -6887,44 +6887,42 @@ class GenericGuest(GenericPlace):
             if len(matchedDistros) >= 1:
                 self.distro = matchedDistros[0][0]
         except:
-            pass
-
-        # linux distros
-        try:
-            release = self.execguest("cat /etc/issue", nolog=True).strip().splitlines()[0].strip()
-            # Debian derived - debian, ubuntu
-            if "Ubuntu" in release:
-                release = release.split(" ")[1]
-                if len(release)>5:
-                    release = release[:5]
-                self.distro = "ubuntu" + str(release.replace(".",""))
-            elif "Debian" in release:
-                release = self.execguest("cat /etc/debian_version", nolog=True).splitlines()[0].strip()
-                self.distro = "debian" + str(release.split(".")[0]) + "0"
-            elif  "SUSE" in release:
-                # sles
-                release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
-                relversion = release.split("-")[2].replace(".","")
-                self.distro ="sles" + relversion
-            else:
-                # rhel derived - rhel, centos, oel
-                try:
-                    release = self.execguest("cat /etc/oracle-release", nolog=True).splitlines()[0].strip()
-                except:
+            # linux distros
+            try:
+                release = self.execguest("cat /etc/issue", nolog=True).strip().splitlines()[0].strip()
+                # Debian derived - debian, ubuntu
+                if "Ubuntu" in release:
+                    release = release.split(" ")[1]
+                    if len(release)>5:
+                        release = release[:5]
+                    self.distro = "ubuntu" + str(release.replace(".",""))
+                elif "Debian" in release:
+                    release = self.execguest("cat /etc/debian_version", nolog=True).splitlines()[0].strip()
+                    self.distro = "debian" + str(release.split(".")[0]) + "0"
+                elif  "SUSE" in release:
+                    # sles
+                    release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
+                    relversion = release.split("-")[2].replace(".","")
+                    self.distro ="sles" + relversion
+                else:
+                    # rhel derived - rhel, centos, oel
                     try:
-                        release = self.execguest("cat /etc/redhat-release", nolog=True).splitlines()[0].strip()
+                        release = self.execguest("cat /etc/oracle-release", nolog=True).splitlines()[0].strip()
                     except:
-                        release = None
-                if release:
-                    relversion = release.split("release ")[1].split(" ")[0].strip("0")
-                    if "Oracle" in release:
-                        self.distro = "oel" + str(relversion.replace(".",""))
-                    elif "CentOS" in release:
-                        self.distro = "centos" + str(relversion.replace(".",""))
-                    elif "Red Hat" in release:
-                        self.distro = "rhel" + str(relversion.replace(".",""))
-        except:
-            pass
+                        try:
+                            release = self.execguest("cat /etc/redhat-release", nolog=True).splitlines()[0].strip()
+                        except:
+                            release = None
+                    if release:
+                        relversion = release.split("release ")[1].split(" ")[0].strip("0")
+                        if "Oracle" in release:
+                            self.distro = "oel" + str(relversion.replace(".",""))
+                        elif "CentOS" in release:
+                            self.distro = "centos" + str(relversion.replace(".",""))
+                        elif "Red Hat" in release:
+                            self.distro = "rhel" + str(relversion.replace(".",""))
+            except:
+                pass
 
         if self.distro:
             xenrt.TEC().logverbose("distro identified as %s " % self.distro)

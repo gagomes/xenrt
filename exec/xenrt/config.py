@@ -925,7 +925,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Clearwater"]["V6_DBV"] = "2013.0621"
         self.config["VERSION_CONFIG"]["Clearwater"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Clearwater"]["MAX_VBDS_PER_HOST"] = "2048"
-        self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
+        self.config["VERSION_CONFIG"]["Clearwater"]["HVM_LINUX"] = "rhel7,centos7,oel7,ubuntu1404"
         
         # Creedence
         self.config["VERSION_CONFIG"]["Creedence"] = {}
@@ -1069,7 +1069,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008"] = "Citrix XenApp on Windows Server 2008 (32-bit),Citrix XenApp on Windows Server 2008"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008_64"] = "Citrix XenApp on Windows Server 2008 (64-bit),Citrix XenApp x64 on Windows Server 2008 x64"
         self.config["VERSION_CONFIG"]["Creedence"]["TEMPLATE_NAME_CPS_2008R2_64"] = "Citrix XenApp on Windows Server 2008 R2 (64-bit),Citrix XenApp x64 on Windows Server 2008 R2 x64"
-        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7,centos7,oel7,sles12,ubuntu1404"
+        self.config["VERSION_CONFIG"]["Creedence"]["HVM_LINUX"] = "rhel7,centos7,oel7,ubuntu1404"
         self.config["VERSION_CONFIG"]["Creedence"]["NMAP_ALLOWED_PORTS"] = "tcp/22 tcp/443 tcp/80 (tcp/1311)"
         self.config["VERSION_CONFIG"]["Creedence"]["CLI_SERVER_FLAG"] = "-s"
         self.config["VERSION_CONFIG"]["Creedence"]["DOM0_DISTRO"] = "centos51"

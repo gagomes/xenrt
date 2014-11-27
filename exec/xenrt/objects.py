@@ -6912,7 +6912,7 @@ class GenericGuest(GenericPlace):
                     except:
                         release = None
                 if release:
-                    relversion = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
+                    relversion = self.execguest("cat /etc/redhat-release | sed -r 's/.*release //'", nolog=True).strip()
                     relversion = release.split(" ")[0]
                     if "Oracle" in release:
                         self.distro = "oel" + str(relversion.replace(".",""))

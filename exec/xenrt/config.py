@@ -1122,7 +1122,7 @@ class Config:
         self.config["VERSION_CONFIG"]["Creedence"]["TILE_WIN_DISTRO"] = "ws08sp2-x86"
         self.config["VERSION_CONFIG"]["Creedence"]["TILE_LINUX_DISTRO"] = "centos57"
         self.config["VERSION_CONFIG"]["Creedence"]["EXPECTED_CRASHDUMP_FILES"] = "xen-crashdump-analyser.log,xen.log,dom0.log"
-        self.config["VERSION_CONFIG"]["Creedence"]["V6_DBV"] = "2013.0621"
+        self.config["VERSION_CONFIG"]["Creedence"]["V6_DBV"] = "2015.0101"
         self.config["VERSION_CONFIG"]["Creedence"]["DEFAULT_RPU_LINUX_VERSION"] = "rhel64"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDIS_PER_VM"] = "15"
         self.config["VERSION_CONFIG"]["Creedence"]["MAX_VDI_SIZE_NFS"] = "2093058"

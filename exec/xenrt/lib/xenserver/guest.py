@@ -144,7 +144,7 @@ class Guest(xenrt.GenericGuest):
             try:
                 self.distro = self.paramGet("other-config", "xenrt-distro")
             except:
-                pass
+                self.findDistro()
 
         # Have a go at working out the distro.
         if not self.distro:

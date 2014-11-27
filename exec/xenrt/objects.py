@@ -6870,7 +6870,7 @@ class GenericGuest(GenericPlace):
             matchedDistros = [(d,n) for (d,n) in xenrt.enum._windowsdistros if osname in n]
 
             if len(matchedDistros) > 1:
-                systype = guest.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()
+                systype = self.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()
                 if "x64" not in systype:
                     matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" not in d]
                 else:
@@ -6884,30 +6884,48 @@ class GenericGuest(GenericPlace):
                 self.distro = matchedDistros[0][0]
         except:
             pass
-        # linux distro
-        releaseFiles = ["/etc/SuSE-release", "/etc/debian_version", "/etc/oracle-release", "/etc/redhat-release"]
-        for rf in releaseFiles:
-            try:
-                release = self.execguest("cat %s" % rf, nolog=True).splitlines()[0].strip()
-                if "debian" in rf:
-                    self.distro = "debian" + str(release.split(".")[0]) + "0"
-                elif "oracle" in rf:
-                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
-                    release = release.split(" ")[0]
-                    self.distro = "oel" + str(release.replace(".",""))
-                elif "Red Hat" in release:
-                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
-                    release = release.split(" ")[0]
-                    self.distro = "rhel" + str(release.replace(".",""))
-                elif "CentOS" in release:
-                    release = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
-                    release = release.split(" ")[0]
-                    self.distro = "centos" + str(release.replace(".",""))
-                elif "SuSE" in release:
-                    xenrt.TEC().warning("Unimplemented")
-                break
-            except:
-                pass
+
+        # linux distros
+        try:
+            release = self.execguest("cat /etc/issue", nolog=True).strip().splitlines()[0].strip()
+            # Debian derived - debian, ubuntu
+            if "Ubuntu" in release:
+                release = release.split(" ")[1]
+                if len(release)>5:
+                    release = release[:5]
+                self.distro = "ubuntu" + str(release.replace(".",""))
+            elif "Debian" in release:
+                release = self.execguest("cat /etc/debian_version", nolog=True).splitlines()[0].strip()
+                self.distro = "debian" + str(release.split(".")[0]) + "0"
+            elif  "SUSE" in release:
+                # sles
+                release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
+                relversion = release.split("release-")[1].split(".")
+                if relversion[1][0] != "0":
+                    self.distro ="sles" + relversion[0] + relversion[1][0]
+                else:
+                    self.distro ="sles" + relversion[0]
+            else:
+                # rhel derived - rhel, centos, oel
+                try:
+                    release = self.execguest("cat /etc/oracle-release", nolog=True).splitlines()[0].strip()
+                except:
+                    try:
+                        release = self.execguest("cat /etc/redhat-release", nolog=True).splitlines()[0].strip()
+                    except:
+                        release = None
+                if release:
+                    relversion = self.execguest("cat a | sed -r 's/.*release //'", nolog=True).strip()
+                    relversion = release.split(" ")[0]
+                    if "Oracle" in release:
+                        self.distro = "oel" + str(relversion.replace(".",""))
+                    elif "CentOS" in release:
+                        self.distro = "centos" + str(relversion.replace(".",""))
+                    elif "Red Hat" in release:
+                        self.distro = "rhel" + str(relversion.replace(".",""))
+        except:
+            pass
+
         if self.distro:
             xenrt.TEC().logverbose("distro identified as %s " % self.distro)
         else:

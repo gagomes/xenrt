@@ -6912,7 +6912,7 @@ class GenericGuest(GenericPlace):
                     except:
                         release = None
                 if release:
-                    relversion = release.split("release ")[1]
+                    relversion = release.split("release ")[1].split(" ")[0]
                     if "Oracle" in release:
                         self.distro = "oel" + str(relversion.replace(".",""))
                     elif "CentOS" in release:

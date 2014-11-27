@@ -429,7 +429,8 @@ httpd:
 	$(SUDO) mkdir -p /var/cache/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/cache/apache2 
 ifeq ($(KERBEROS),yes)
-	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
+	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
 	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFIDIR)/keytab
 	$(SUDO) a2enmod auth_kerb

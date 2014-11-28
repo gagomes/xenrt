@@ -109,11 +109,24 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
-            if "netscaler" in resources:
+            if "configurableData" in resources:
+                range = xenrt.StaticIP4Addr().getIPRange(4)
+                testData['configurableData']['portableIpRange']['startip'] = range[0].getAddr()
+                testData['configurableData']['portableIpRange']['endip'] = range[-1].getAddr()
+                testData['configurableData']['portableIpRange']['gateway'] = xenrt.getNetworkParam("NPRI", "GATEWAY")
+                testData['configurableData']['portableIpRange']['netmask'] = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
+                testData['configurableData']['portableIpRange']['vlan'] = xenrt.getNetworkParam("NPRI", "VLAN")
+
+                #Netscaler configuration
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
-                testData['netscaler_VPX']['privateinterface'] = '1/1'
+                testData['configurableData']['netscaler']['ipaddress'] = netscaler.managementIp
+                testData['configurableData']['netscaler']['username'] = 'nsroot'
+                testData['configurableData']['netscaler']['password'] = 'nsroot'
+                testData['configurableData']['netscaler']['networkdevicetype'] = 'NetscalerVPXLoadBalancer'
+                testData['configurableData']['netscaler']['publicinterface'] = '1/1'
+                testData['configurableData']['netscaler']['privateinterface'] = '1/2'
+                testData['configurableData']['netscaler']['numretries'] = '2'
             
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512

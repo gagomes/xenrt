@@ -1,4 +1,3 @@
-# Status: proprietary
 90acf7785352439a77cd50a03fa034f2  ./hotfix-6.0.50-test3.xsupdate
 e3dc5e2bcd533fc721e76c30b70ae608  ./hotfix-5.6.0-test1.xsupdate
 bf0bf1c6699ee27c8bb809bd6a0741cd  ./hotfix-5.6.0-test2.xsupdate
@@ -122,3 +121,8 @@ c45cc9c0c88fc1b6ecba75228be02cff  ./hotfix-6.2.0-test2.xsupdate
 e12fa4e6deb0bacbe056f45269cfe47c  ./hotfix-6.2.0-test3.xsupdate
 fcba930a77346f03e02467c9c9519dac  ./hotfix-6.2.0-test4.xsupdate
 ea47833f2d8c87d62c6acfdfd8deab7e  ./hotfix-6.2.0-test5.xsupdate
+8806356ac239776bdd936dbe8e3f3221  ./hotfix-6.5.0-test1.xsupdate
+622198b3c7f8d2de49b012a20322c984  ./hotfix-6.5.0-test2.xsupdate
+2da372e3a5f5c6f4421e6b7ac6f8c686  ./hotfix-6.5.0-test3.xsupdate
+34b330e568f6405a66901f91857bd050  ./hotfix-6.5.0-test4.xsupdate
+b900288f4950da5a60eb2fcbe8b09db5  ./hotfix-6.5.0-test5.xsupdate

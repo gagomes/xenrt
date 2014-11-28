@@ -11093,9 +11093,6 @@ class CreedenceHost(ClearwaterHost):
 
     V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
 
-    def getTestHotfix(self, hotfixNumber):
-        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
-
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
 
@@ -11178,6 +11175,9 @@ class DundeeHost(CreedenceHost):
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
+
+    def getTestHotfix(self, hotfixNumber):
+        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
     # For now, skip creedence, as trunk doesn't have the creedence license changes yet
     def license(self, sku="free",edition=None, usev6testd=True, v6server=None):

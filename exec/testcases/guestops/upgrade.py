@@ -42,16 +42,15 @@ class TCUbuntuUpgrade(xenrt.TestCase):
 
 class TCCentosUpgrade(xenrt.TestCase):
 
-    repoPath   = "/etc/yum.repos.d/upgrade.repo"
-    urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
-    baseUrl    = "%s/CentOS/dev.centos.org" % (urlprefix)
-    fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
-    yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
-    upgradeRpm = "%s/CentOS/centos.excellmedia.net/RPM-GPG-KEY-CentOS-7" % (urlprefix)
-    instRepo   = "%s/CentOS/centos.excellmedia.net/" % (urlprefix)
-
     def run(self, arglist=None):
         args = self.parseArgsKeyValue(arglist)
+        repoPath   = "/etc/yum.repos.d/upgrade.repo"
+        urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        baseUrl    = "%s/CentOS/dev.centos.org" % (urlprefix)
+        fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
+        yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
+        upgradeRpm = "%s/CentOS/centos.excellmedia.net/RPM-GPG-KEY-CentOS-7" % (urlprefix)
+        instRepo   = "%s/CentOS/centos.excellmedia.net/" % (urlprefix)
         g = self.getGuest(args['guest'])
         g.execguest("echo \[upgrade\] > %s" % (self.repoPath))
         g.execguest("echo name\=upgrade >> %s" % (self.repoPath))

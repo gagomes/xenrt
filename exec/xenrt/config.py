@@ -1142,6 +1142,7 @@ class Config:
         
         # Dundee
         self.config["VERSION_CONFIG"]["Dundee"] = copy.deepcopy(self.config["VERSION_CONFIG"]["Creedence"])
+        self.config["VERSION_CONFIG"]["Dundee"]["V6_DBV"] = "2014.1127"
 
         # Libvirt
         self.config["VERSION_CONFIG"]["Libvirt"] = {}

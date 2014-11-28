@@ -3881,9 +3881,10 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
 
     def run(self, arglist):
         host = self.getDefaultHost()
-        driverNotAvail = host.installNVIDIAHostDrivers(reboot=False,returnIfDriverNotPresent=True)
-        if driverNotAvail:
-            xenrt.TEC().logverbose("Driver not available in vGPU builder, so passing the test")
+        driverNotAvail = host.installNVIDIAHostDrivers(reboot=False,ignoreDistDriver=True)
+        if not driverNotAvail:
+            xenrt.TEC().logverbose("Driver not available in vGPU builder, so skipping the test")
+            xenrt.TEC().skip("Driver not available in vGPU builder, so skipping the test")
             return
         try:
             host.execdom0("modprobe nvidia")

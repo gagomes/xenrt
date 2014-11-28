@@ -10956,7 +10956,7 @@ done
         else:
             return True
 
-    def installNVIDIAHostDrivers(self, reboot=True,returnIfDriverNotPresent = False):
+    def installNVIDIAHostDrivers(self, reboot=True,ignoreDistDriver = False):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.00.i386.rpm"
         inputDir = xenrt.TEC().lookup("INPUTDIR", default=None)
         rel = xenrt.TEC().lookup("RELEASE", default=None)
@@ -10976,8 +10976,8 @@ done
                 rpm = rpm + '.rpm'
             except Exception, e:
                 xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
-                if returnIfDriverNotPresent:
-                    return True
+                if ignoreDistDriver:
+                    return False
                 getItFromDist = True
                                  
         else:
@@ -11008,13 +11008,13 @@ done
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
-            return False
+            return True
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
         if reboot:
             self.reboot()
  
-        return False
+        return True
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):
         return int(self.execdom0("xe gpu-group-get-remaining-capacity uuid=%s vgpu-type-uuid=%s" %(groupUUID,vGPUTypeUUID)))

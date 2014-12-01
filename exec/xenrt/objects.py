@@ -9540,6 +9540,10 @@ while True:
                     self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
                     self.execguest("apt-get update")
                 self.execguest("apt-get -y --force-yes install %s" % package)
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+                self.execguest("yum install -y %s" % package)
+            elif "sles" in self.distro:
+                self.execguest("zypper -n --non-interactive install %s" % package)
             else:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:

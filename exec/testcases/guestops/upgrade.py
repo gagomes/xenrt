@@ -44,25 +44,24 @@ class TCCentosUpgrade(xenrt.TestCase):
 
     def run(self, arglist=None):
         args = self.parseArgsKeyValue(arglist)
-        repoPath   = "/etc/yum.repos.d/upgrade.repo"
+        centOsurl = xenrt.TEC().lookup(["RPM_SOURCE","centos7","x86-64", "HTTP"])
         urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        repoPath   = "/etc/yum.repos.d/upgrade.repo"
         baseUrl    = "%s/CentOS/dev.centos.org" % (urlprefix)
         fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
         yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
-        upgradeRpm = "%s/CentOS/centos.excellmedia.net/RPM-GPG-KEY-CentOS-7" % (urlprefix)
-        instRepo   = "%s/CentOS/centos.excellmedia.net/" % (urlprefix)
         g = self.getGuest(args['guest'])
-        g.execguest("echo \[upgrade\] > %s" % (self.repoPath))
-        g.execguest("echo name\=upgrade >> %s" % (self.repoPath))
-        g.execguest("echo baseurl\=%s >> %s" % (self.baseUrl, self.repoPath))
-        g.execguest("echo enabled\=1 >>  %s" % (self.repoPath))
-        g.execguest("echo gpgcheck\=0 >> %s" % (self.repoPath))
+        g.execguest("echo \[upgrade\] > %s" % (repoPath))
+        g.execguest("echo name\=upgrade >> %s" % (repoPath))
+        g.execguest("echo baseurl\=%s >> %s" % (baseUrl, repoPath))
+        g.execguest("echo enabled\=1 >>  %s" % (repoPath))
+        g.execguest("echo gpgcheck\=0 >> %s" % (repoPath))
         xenrt.TEC().comment("Repo Created")
         g.execguest("yum -y install preupgrade-assistant-contents")
 
         try :
-            g.execguest("rpm -Uvh --replacepkgs %s" %(self.fastRpm))
-            g.execguest("rpm -Uvh --replacepkgs %s" %(self.yumRpm))
+            g.execguest("rpm -Uvh --replacepkgs %s" %(fastRpm))
+            g.execguest("rpm -Uvh --replacepkgs %s" %(yumRpm))
             xenrt.TEC().comment("Replaced yum packages")
             g.execguest("yum -y install redhat-upgrade-tool")
             g.execguest("yum -y install preupgrade-assistant")
@@ -76,8 +75,8 @@ class TCCentosUpgrade(xenrt.TestCase):
         i = 0
         while i < maxattempts:
             try :
-                g.execguest("rpm --import %s" %(self.upgradeRpm))
-                g.execguest("redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(self.instRepo), timeout=7200)
+                g.execguest("rpm --import %s/RPM-GPG-KEY-CentOS-7" %(centOsurl))
+                g.execguest("redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(centOsurl), timeout=7200)
                 xenrt.TEC().comment("Red hat upgrade tool completed")
                 success = True
                 break

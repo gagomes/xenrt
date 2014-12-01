@@ -109,15 +109,14 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
-            if "configurableData" in resources:
+            if "portableip" in resources:
                 range = xenrt.StaticIP4Addr().getIPRange(4)
                 testData['configurableData']['portableIpRange']['startip'] = range[0].getAddr()
                 testData['configurableData']['portableIpRange']['endip'] = range[-1].getAddr()
                 testData['configurableData']['portableIpRange']['gateway'] = xenrt.getNetworkParam("NPRI", "GATEWAY")
                 testData['configurableData']['portableIpRange']['netmask'] = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
-                testData['configurableData']['portableIpRange']['vlan'] = xenrt.getNetworkParam("NPRI", "VLAN")
-
-                #Netscaler configuration
+                testData['configurableData']['portableIpRange']['vlan'] = 1000
+            if "netscaler" in resources:
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
                 testData['configurableData']['netscaler']['ipaddress'] = netscaler.managementIp

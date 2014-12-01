@@ -1584,6 +1584,7 @@ class Experiment_vmrun(Experiment):
 
     #updated in do_VMTYPES()
     distro = "None"
+    arch = "x86-32"
     vmparams = []
     vmram = None
     dom0disksched = None
@@ -1944,7 +1945,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "nopvdrivers" not in self.vmpostinstall:
                         postinstall+=['installDrivers']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch="x86-64")
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR)
                     #g0.check()
                     #g0.installDrivers()
@@ -1954,7 +1955,7 @@ class Experiment_vmrun(Experiment):
                     postinstall=[]
                     if "convertHVMtoPV" in self.vmpostinstall:
                         postinstall+=['convertHVMtoPV']
-                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch="x86-64")
+                    g0=lib.guest.createVM(host,vm_name,self.distro,vifs=self.vmvifs,disks=self.vmdisks,vcpus=self.vmvcpus,corespersocket=self.vm_cores_per_socket,memory=self.vmram,guestparams=self.vmparams,postinstall=postinstall,sr=defaultSR,arch=self.arch)
                     #g0.install(host,isoname=xenrt.DEFAULT,distro=self.distro,sr=defaultSR, repository="cdrom",method="CDROM")
 
                 g0.check()
@@ -2421,7 +2422,13 @@ MachinePassword=%s
 
     def do_VMTYPES(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMTYPES value=[%s]" % value)
-        self.distro = value
+        values = value.split(":")  # eg. win7sp1:x86-64
+        self.distro = values[0]
+        if "x64" in self.distro:
+            self.arch="x86-64"
+        if len(values) > 1:
+            self.arch=values[1]
+        xenrt.TEC().logverbose("DEBUG: distro,arch=[%s],[%s]" % (self.distro, self.arch))
 
     def do_VMPARAMS(self, value, coord):
         xenrt.TEC().logverbose("DEBUG: VMPARAMS value=[%s]" % str(value))

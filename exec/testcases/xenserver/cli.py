@@ -24,16 +24,6 @@ class TCCLI(xenrt.TestCase):
         self.vg = None
         self.reboot = True
 
-    def disableLVMMetadataReadOnly(self, host):
-        """ Check lvm metadata read only flag and disable it
-        if it is enabled."""
-
-        confloc = "/etc/lvm/lvm.conf"
-        seekfor = "metadata_read_only = 1"
-        replacewith = "metadata_read_only = 0"
-        host.execdom0("sed -i 's/%s/%s/g' %s" % (seekfor, replacewith, confloc), retval="code")
-        host.execdom0("service lvm2-monitor restart")
-
     def run(self, arglist=None):
         selected_tests = None
         machine = "RESOURCE_HOST_0"
@@ -56,7 +46,7 @@ class TCCLI(xenrt.TestCase):
                 if l[0] == "localsr":
                     uselocalsr = True
         guests = string.split(guests, ",")
-            
+
         host = xenrt.TEC().registry.hostGet(machine)
         self.hostToClean = host
         if not host:
@@ -65,9 +55,6 @@ class TCCLI(xenrt.TestCase):
         self.getLogsFrom(host)
         sftp = host.sftpClient()
         cli = host.getCLIInstance()
-
-        # Disable meta data read only flag to make lvcreate work.
-        self.disableLVMMetadataReadOnly(host)
 
         # Get the test binaries
         testtar = xenrt.TEC().lookup("CLI_REGRESSION_TESTS", None)

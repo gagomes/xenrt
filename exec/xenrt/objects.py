@@ -9532,7 +9532,7 @@ while True:
             xenrt.TEC().registry.instancePut(self.name, self)
         return self.instance
 
-    def installpackage(self, package):
+    def installPackage(self, package):
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 aptProxy = xenrt.TEC().lookup("APT_PROXY", None)

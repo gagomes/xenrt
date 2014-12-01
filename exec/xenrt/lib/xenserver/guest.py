@@ -144,7 +144,7 @@ class Guest(xenrt.GenericGuest):
             try:
                 self.distro = self.paramGet("other-config", "xenrt-distro")
             except:
-                self.findDistro()
+                pass
 
         # Have a go at working out the distro.
         if not self.distro:
@@ -4263,7 +4263,7 @@ def createVMFromFile(host,
     for p in postinstall:
         eval("guest.%s()" % (p))
     for p in packages:
-        guest.installpackage(p)
+        guest.installPackage(p)
     return guest
 
 def createVM(host,
@@ -4344,8 +4344,7 @@ def createVM(host,
         for p in postinstall:
             eval("g.%s()" % (p))
         for p in packages:
-            xenrt.TEC().logverbose("debug: installing %s" % p)
-            g.installpackage(p)
+            g.installPackage(p)
         return g
     else:
         if distro.startswith("generic-"): 
@@ -4491,8 +4490,7 @@ def createVM(host,
             else:
                 eval("g.%s()" % (p))
         for p in packages:
-            xenrt.TEC().logverbose("debug: installing %s" % p)
-            g.installpackage(p)
+            g.installPackage(p)
 
         return g
 

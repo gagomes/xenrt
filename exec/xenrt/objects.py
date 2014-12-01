@@ -9533,13 +9533,17 @@ while True:
         return self.instance
 
     def installpackage(self, package):
-
-        # Pending step: Add apt-get cacher proxy to guest
-
-        if "deb" in self.distro:
-            self.execguest("apt-get -y --force-yes install %s" % package)
-        else:
-            raise xenrt.XRTError("Not Implemented")
+        try:
+            if "deb" in self.distro or "ubuntu" in self.distro:
+                aptProxy = xenrt.TEC().lookup("APT_PROXY", None)
+                if aptProxy:
+                    self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
+                    self.execguest("apt-get update")
+                self.execguest("apt-get -y --force-yes install %s" % package)
+            else:
+                raise xenrt.XRTError("Not Implemented")
+        except Exception, e:
+            raise xenrt.XRTError("Failed to install package '%s' on guest %s : %s" % (package, self, e))
 
 class EventObserver(xenrt.XRTThread):
 

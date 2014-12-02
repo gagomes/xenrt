@@ -8911,7 +8911,7 @@ class MNRHost(Host):
         uuids = cli.execute('secret-list', 'value=%s' % value, minimal=True)
         return uuids.split(',')
 
-    def installLicenseServerGuest(self, name=None, windows = False):
+    def installLicenseServerGuest(self, name=None, windows = False, host=None):
         if not name:
             name = xenrt.randomGuestName()
         if windows:
@@ -8930,7 +8930,7 @@ class MNRHost(Host):
             g.poll("UP", pollperiod=5)
             xenrt.sleep(120)
         
-        g.getV6LicenseServer()
+        g.getV6LicenseServer(host=host)
         return g
 
     def enableDefaultADAuth(self):

@@ -855,6 +855,11 @@ def processMatrixTests(release=None):
     suiteMappings = {'Creedence':('TC-21159', 'TC-21163', 'TC-21190'), 'Dundee':('TC-23497', 'TC-23495', None)}
 
     # Mapping of distros to Primary/Secondary/Tertiary for each release
+    
+    # primary: An operating system version that will undergo significant testing
+    # secondary: An operating system version that will undergo a limited amount of testing, perhaps in limited scenarios
+    # tertiary: An operating system version that will only receive smoke testing (usually defined to be VM installation and basic lifecycle operations)
+
     distrosToRels = {}
     # Backport of old tests
     distrosToRels['Backport'] = {}

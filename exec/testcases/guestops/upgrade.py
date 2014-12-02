@@ -51,24 +51,17 @@ class TCCentosUpgrade(xenrt.TestCase):
         fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
         yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
         g = self.getGuest(args['guest'])
-        g.execguest("echo \[upgrade\] > %s" % (repoPath))
-        g.execguest("echo name\=upgrade >> %s" % (repoPath))
-        g.execguest("echo baseurl\=%s >> %s" % (baseUrl, repoPath))
-        g.execguest("echo enabled\=1 >>  %s" % (repoPath))
-        g.execguest("echo gpgcheck\=0 >> %s" % (repoPath))
+        g.execguest("echo '[upgrade]' > %s" % (repoPath))
+        g.execguest("echo name'=upgrade' >> %s" % (repoPath))
+        g.execguest("echo baseurl'='%s >> %s" % (baseUrl, repoPath))
+        g.execguest("echo enabled'='1 >>  %s" % (repoPath))
+        g.execguest("echo gpgcheck'='0 >> %s" % (repoPath))
         xenrt.TEC().comment("Repo Created")
-        g.execguest("yum -y install preupgrade-assistant-contents")
-
-        try :
-            g.execguest("rpm -Uvh --replacepkgs %s" %(fastRpm))
-            g.execguest("rpm -Uvh --replacepkgs %s" %(yumRpm))
-            xenrt.TEC().comment("Replaced yum packages")
-            g.execguest("yum -y install redhat-upgrade-tool")
-            g.execguest("yum -y install preupgrade-assistant")
-            g.execguest("/bin/echo -e 'y\n' | preupg")
-            xenrt.TEC().comment("Pre upgrade completed")
-        except:
-            raise xenrt.XRTError("Pre upgrade failed")
+        [g.execguest("rpm -Uvh --replacepkgs %s" % pkg) for pkg in [fastRpm, yumRpm]]
+        xenrt.TEC().comment("Replaced yum packages")
+        [g.execguest("yum -y install %s" %tool) for tool in ['preupgrade-assistant-contents','redhat-upgrade-tool','preupgrade-assistant']]
+        g.execguest("/bin/echo -e 'y\n' | preupg")
+        xenrt.TEC().comment("Pre upgrade completed")
 
         maxattempts = 20
         success = False
@@ -88,4 +81,4 @@ class TCCentosUpgrade(xenrt.TestCase):
         g.reboot()
 
         releaseCentos = g.execguest("cat /etc/centos-release")
-        if not re.search("7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")
+        if not re.search("CentOS\s+Linux\s+release\s+7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")

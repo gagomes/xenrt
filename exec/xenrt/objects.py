@@ -6873,6 +6873,76 @@ class GenericGuest(GenericPlace):
     def getGuestVIFs(self):
         return self.getMyVIFs()
 
+    def findDistro(self):
+        if self.distro and self.distro !="UNKNOWN":
+            return
+        # windows distro
+        try:
+            osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2].split(":")[1].strip()
+            osname = osname.strip("Microsoft ")
+            self.windows = True
+
+            matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
+            while len(matchedDistros) == 0 and len(osname.split(" ")) > 3:
+                osname = osname.rsplit(" ",1)[0]
+                matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
+
+            if len(matchedDistros) > 1:
+                systype = self.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()
+                if "x64" not in systype:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" not in d]
+                else:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" in d]
+            if len(matchedDistros) > 1:
+                osname = osname + " "
+                matchedDistros = [(d,n) for (d,n) in matchedDistros if osname in n]
+
+            # At this point if we have more than 1 distro matching, we can proceed with any of them.
+            if len(matchedDistros) >= 1:
+                self.distro = matchedDistros[0][0]
+        except:
+            # linux distros
+            try:
+                release = self.execguest("cat /etc/issue", nolog=True).strip().splitlines()[0].strip()
+                # Debian derived - debian, ubuntu
+                if "Ubuntu" in release:
+                    release = release.split(" ")[1]
+                    if len(release)>5:
+                        release = release[:5]
+                    self.distro = "ubuntu" + str(release.replace(".",""))
+                elif "Debian" in release:
+                    release = self.execguest("cat /etc/debian_version", nolog=True).splitlines()[0].strip()
+                    self.distro = "debian" + str(release.split(".")[0]) + "0"
+                elif  "SUSE" in release:
+                    # sles
+                    release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
+                    relversion = release.split("-")[2].replace(".","")
+                    self.distro ="sles" + relversion
+                else:
+                    # rhel derived - rhel, centos, oel
+                    try:
+                        release = self.execguest("cat /etc/oracle-release", nolog=True).splitlines()[0].strip()
+                    except:
+                        try:
+                            release = self.execguest("cat /etc/redhat-release", nolog=True).splitlines()[0].strip()
+                        except:
+                            release = None
+                    if release:
+                        relversion = release.split("release ")[1].split(" ")[0].strip("0")
+                        if "Oracle" in release:
+                            self.distro = "oel" + str(relversion.replace(".",""))
+                        elif "CentOS" in release:
+                            self.distro = "centos" + str(relversion.replace(".",""))
+                        elif "Red Hat" in release:
+                            self.distro = "rhel" + str(relversion.replace(".",""))
+            except:
+                pass
+
+        if self.distro:
+            xenrt.TEC().logverbose("distro identified as %s " % self.distro)
+        else:
+            xenrt.TEC().warning("Failed to identify guest distro")
+
     def check(self):
         """Check the installed guest resources match the specification."""
         ok = 1

@@ -3416,6 +3416,8 @@ class TC8131(_StuckState):
         self.slave.machine.powerctl.on()
         self.slave.waitForSSH(900)
         time.sleep(300)
+        # Check if we're getting some sort of xapi response
+        self.slave.waitForXapi(300, local=True)
         # Observe that the slave comes up in emergency mode
         data = self.slave.execdom0("xe vm-list || true")
         if not re.search("The host could not join the liveset", data):

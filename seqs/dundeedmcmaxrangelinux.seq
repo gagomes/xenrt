@@ -12,7 +12,6 @@
 
   <testsequence>
     <serial group="Linux1">
-      <testcase id="xenserver.tc.balloon.TC9341"/>
       <testcase id="xenserver.tc.balloon.TC20691"/>
       <testcase id="xenserver.tc.balloon.TC12597"/>
       <testcase id="xenserver.tc.balloon.TC12596"/>

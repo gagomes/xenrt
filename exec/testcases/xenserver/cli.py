@@ -46,7 +46,7 @@ class TCCLI(xenrt.TestCase):
                 if l[0] == "localsr":
                     uselocalsr = True
         guests = string.split(guests, ",")
-            
+
         host = xenrt.TEC().registry.hostGet(machine)
         self.hostToClean = host
         if not host:
@@ -55,7 +55,7 @@ class TCCLI(xenrt.TestCase):
         self.getLogsFrom(host)
         sftp = host.sftpClient()
         cli = host.getCLIInstance()
-        
+
         # Get the test binaries
         testtar = xenrt.TEC().lookup("CLI_REGRESSION_TESTS", None)
         if not testtar:

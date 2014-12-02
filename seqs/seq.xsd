@@ -67,12 +67,6 @@
     </xs:restriction>
   </xs:simpleType>
 
-  <xs:simpleType name="marvinPath">
-    <xs:restriction base="xs:string">
-      <xs:pattern value="(smoke|component)/.*\.py$"/>
-    </xs:restriction>
-  </xs:simpleType>
-
   <xs:group name="pool">
     <xs:sequence>
       <xs:element name="pool">
@@ -356,7 +350,7 @@
           <xs:choice minOccurs="0" maxOccurs="unbounded">
             <xs:element name="arg" type="xs:string"/>
           </xs:choice>
-          <xs:attribute name="path" use="required" type="marvinPath"/>
+          <xs:attribute name="path" use="required" type="xs:string"/>
           <xs:attribute name="class" use="required" type="xs:string"/>
           <xs:attribute name="tags" use="optional" type="xs:string"/>
           <xs:attribute name="host" use="optional" type="xs:string"/>

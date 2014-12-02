@@ -65,7 +65,6 @@ def _findOrCreateTestCase(existing, tcsummary, jiralink, container, desc, xenrtt
             existing[tcsummary].key
             t = getIssue(j, existing[tcsummary].key)
         except Exception as e:
-            print e.message
             t = getIssue(j, existing[tcsummary])
         print "Found %s - %s" % (t.key, t.fields.summary)
     elif existing.has_key("[experimental] " + tcsummary):
@@ -154,9 +153,8 @@ def defineOSTests(distro,
     container = None
     for oshlink in oshlinks:
         if oshlink.type.name == "Contains" and hasattr(oshlink, "outwardIssue"):
-            child = getIssue(j, oshlink.outwardIssue.key)
-            if child.fields.summary == desc:
-                container = child
+            if oshlink.outwardIssue.fields.summary == desc:
+                container = getIssue(j, oshlink.outwardIssue.key)
                 break
 
     # If not then make one
@@ -172,7 +170,7 @@ def defineOSTests(distro,
     for clink in clinks:
         if clink.type.name == "Contains" and hasattr(clink, "outwardIssue"):
             t = getIssue(j, clink.outwardIssue.key)
-            if t.fields.status.name == "Open":
+            if t.fields.status.name in ("New", "Open"):
                 existing[t.fields.summary] = t
     if arch:
         guestname = distro + arch
@@ -553,6 +551,30 @@ def generateOSTestSequences():
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64", arch="x86-64")
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 (IPv6)")
     defineOSTests("ubuntu1404", "Ubuntu Trusty Tahr 14.04 x64 (IPv6 only)", arch="x86-64")
+    defineOSTests("centos65", "CentOS 6.5")
+    defineOSTests("centos65", "CentOS 6.5 x64", arch="x86-64")
+    defineOSTests("oel65", "Oracle Enterprise Linux 6.5")
+    defineOSTests("oel65", "Oracle Enterprise Linux 6.5 x64", arch="x86-64")
+    defineOSTests("rhel65", "RedHat Enterprise Linux 6.5")
+    defineOSTests("rhel65", "RedHat Enterprise Linux 6.5 x64", arch="x86-64")
+    defineOSTests("rhel510", "RedHat Enterprise Linux 5.10")
+    defineOSTests("rhel510", "RedHat Enterprise Linux 5.10 x64", arch="x86-64")
+    defineOSTests("oel510", "Oracle Enterprise Linux 5.10")
+    defineOSTests("oel510", "Oracle Enterprise Linux 5.10 x64", arch="x86-64")
+    defineOSTests("centos510", "CentOS 5.10")
+    defineOSTests("centos510", "CentOS 5.10 x64", arch="x86-64")
+    defineOSTests("centos66", "CentOS 6.5")
+    defineOSTests("centos66", "CentOS 6.5 x64", arch="x86-64")
+    defineOSTests("oel66", "Oracle Enterprise Linux 6.6")
+    defineOSTests("oel66", "Oracle Enterprise Linux 6.6 x64", arch="x86-64")
+    defineOSTests("rhel66", "RedHat Enterprise Linux 6.6")
+    defineOSTests("rhel66", "RedHat Enterprise Linux 6.6 x64", arch="x86-64")
+    defineOSTests("rhel511", "RedHat Enterprise Linux 5.11")
+    defineOSTests("rhel511", "RedHat Enterprise Linux 5.11 x64", arch="x86-64")
+    defineOSTests("oel511", "Oracle Enterprise Linux 5.11")
+    defineOSTests("oel511", "Oracle Enterprise Linux 5.11 x64", arch="x86-64")
+    defineOSTests("centos511", "CentOS 5.11")
+    defineOSTests("centos511", "CentOS 5.11 x64", arch="x86-64")
 
 def getChildren(key):
     global childrencache
@@ -725,48 +747,7 @@ def processMatrixTests(release=None):
     
     
     # All known Windows distros
-    winDistros = [('w2k3eesp2pae','Windows Server Enterprise Edition SP2 with PAE Enabled'),
-                  ('w2k3ee','Windows Server 2003 SP0 Enterprise'),
-                  ('w2k3eesp1','Windows Server 2003 SP1 Enterprise'),
-                  ('w2k3eer2','Windows Server 2003 SP1 R2 Enterprise'),
-                  ('w2k3eesp2','Windows Server 2003 SP2 Enterprise'),
-                  ('w2k3eesp2-x64','Windows Server 2003 SP2 Enterprise x64'),
-                  ('w2k3se','Windows Server 2003 SP0 Standard'),
-                  ('w2k3sesp1','Windows Server 2003 SP1 Standard'),
-                  ('w2k3ser2','Windows Server 2003 SP1 R2 Standard'),
-                  ('w2k3sesp2','Windows Server 2003 SP2 Standard'),
-                  ('w2kassp4','Windows 2000 Server SP4'),
-                  ('winxpsp2','Windows XP SP2'),
-                  ('winxpsp3','Windows XP SP3'),
-                  ('vistaee','Windows Vista SP0 Enterprise'),
-                  ('vistaee-x64','Windows Vista SP0 Enterprise x64'),
-                  ('vistaeesp1','Windows Vista SP1 Enterprise'),
-                  ('vistaeesp1-x64','Windows Vista SP1 Enterprise x64'),
-                  ('vistaeesp2','Windows Vista SP2 Enterprise'),
-                  ('vistaeesp2-x64','Windows Vista SP2 Enterprise x64'),
-                  ('ws08-x86','Windows Server 2008 Enterprise'),
-                  ('ws08-x64','Windows Server 2008 Enterprise x64'),
-                  ('ws08sp2-x86','Windows Server 2008 SP2 Enterprise'),
-                  ('ws08sp2-x64','Windows Server 2008 SP2 Enterprise x64'),
-                  ('ws08dc-x86','Windows Server 2008 Datacenter'),
-                  ('ws08dc-x64','Windows Server 2008 Datacenter x64'),
-                  ('ws08dcsp2-x86','Windows Server 2008 SP2 Datacenter'),
-                  ('ws08dcsp2-x64','Windows Server 2008 SP2 Datacenter x64'),
-                  ('ws08r2-x64','Windows Server 2008 R2 Enterprise x64'),
-                  ('ws08r2sp1-x64','Windows Server 2008 R2 SP1 Enterprise x64'),
-                  ('ws08r2dcsp1-x64','Windows Server 2008 R2 SP1 Datacenter x64'),
-                  ('win7-x86','Windows 7'),
-                  ('win7-x64','Windows 7 x64'),
-                  ('win7sp1-x86','Windows 7 SP1'),
-                  ('win7sp1-x64','Windows 7 SP1 x64'),
-                  ('win8-x86','Windows 8'),
-                  ('win8-x64','Windows 8 x64'),
-                  ('win81-x86','Windows 8.1'),
-                  ('win81-x64','Windows 8.1 x64'),
-                  ('ws12-x64','Windows Server 2012 x64'),
-                  ('ws12core-x64','Windows Server2012 Core x64'),
-                  ('ws12r2-x64','Windows Server 2012 R2 x64'),
-                  ('ws12r2core-x64','Windows Server 2012 R2 Core x64')]
+    winDistros = xenrt.enum.windowsdistros
     # All known linux distros that only have 32-bit versions
     linDistros_32only = [('rhel41','RHEL 4.1'),
                          ('rhel44','RHEL 4.4'),
@@ -801,12 +782,14 @@ def processMatrixTests(release=None):
                   ('rhel58','RHEL 5.8'),
                   ('rhel59','RHEL 5.9'),
                   ('rhel510','RHEL 5.10'),
+                  ('rhel511','RHEL 5.11'),
                   ('rhel6','RHEL 6.0'),
                   ('rhel61','RHEL 6.1'),
                   ('rhel62','RHEL 6.2'),
                   ('rhel63','RHEL 6.3'),
                   ('rhel64','RHEL 6.4'),
                   ('rhel65','RHEL 6.5'),
+                  ('rhel66','RHEL 6.6'),
                   ('centos5','CentOS 5.0'),
                   ('centos51','CentOS 5.1'),
                   ('centos52','CentOS 5.2'),
@@ -818,12 +801,14 @@ def processMatrixTests(release=None):
                   ('centos58','CentOS 5.8'),
                   ('centos59','CentOS 5.9'),
                   ('centos510','CentOS 5.10'),
+                  ('centos511','CentOS 5.11'),
                   ('centos6','CentOS 6.0'),
                   ('centos61','CentOS 6.1'),
                   ('centos62','CentOS 6.2'),
                   ('centos63','CentOS 6.3'),
                   ('centos64','CentOS 6.4'),
                   ('centos65','CentOS 6.5'),
+                  ('centos66','CentOS 6.6'),
                   ('oel53','Oracle Enterprise Linux 5.3'),
                   ('oel54','Oracle Enterprise Linux 5.4'),
                   ('oel55','Oracle Enterprise Linux 5.5'),
@@ -832,12 +817,14 @@ def processMatrixTests(release=None):
                   ('oel58','Oracle Enterprise Linux 5.8'),
                   ('oel59','Oracle Enterprise Linux 5.9'),
                   ('oel510','Oracle Enterprise Linux 5.10'),
+                  ('oel511','Oracle Enterprise Linux 5.11'),
                   ('oel6','Oracle Enterprise Linux 6.0'),
                   ('oel61','Oracle Enterprise Linux 6.1'),
                   ('oel62','Oracle Enterprise Linux 6.2'),
                   ('oel63','Oracle Enterprise Linux 6.3'),
                   ('oel64','Oracle Enterprise Linux 6.4'),
                   ('oel65','Oracle Enterprise Linux 6.5'),
+                  ('oel66','Oracle Enterprise Linux 6.6'),
                   ('sles101','SLES10 SP1'),
                   ('sles102','SLES10 SP2'),
                   ('sles103','SLES10 SP3'),
@@ -1101,7 +1088,7 @@ def processMatrixTests(release=None):
 
     #  (Creedence)
     distrosToRels['Creedence'] = {}
-    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel7','oel7','centos7',
+    distrosToRels['Creedence']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
                                           'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1109,7 +1096,7 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65','ubuntu1404',
+                                          'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
     distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles112','sles103',
@@ -1132,7 +1119,7 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel511','rhel66',
                                           'sles104','sles113',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
@@ -1140,21 +1127,22 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
                                           'ubuntu1004', 'debian60',
-                                          'oel510','centos510','oel65','centos65','ubuntu1404',
+                                          'oel511','centos511','oel66','centos66','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel510','sles112','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel64','oel64', 'centos64']
+                                            'win7-x86','win7-x64','rhel65','oel65', 'centos65']
     distrosToRels['Dundee']['tertiary'] = ['rhel46','rhel45',
-                                              'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
-                                              'rhel63',
+                                              'rhel59','rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'rhel64','rhel63',
                                               'sles102',
                                               'sles11','sles111',
                                               'centos48','centos47','centos46','centos45',
-                                              'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
-                                              'oel63','centos63',
+                                              'centos510','centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel510','oel59','oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'oel64','oel63',
+                                              'centos64','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
     distrosToRels['Dundee']['level0'] = ['w2k3eesp2']
@@ -1385,8 +1373,8 @@ def _walkHierarchy(j, ticket):
     links = t.fields.issuelinks
     for link in links:
         if link.type.name == "Contains" and hasattr(link, "outwardIssue"):
-            c = getIssue(j, link.outwardIssue.key)
-            if c.fields.status.name == "Open":
+            c = link.outwardIssue
+            if c.fields.status.name in ("New", "Open"):
                 ty = c.fields.issuetype.name
                 if ty == "Test Case":
                     reply.append(link.outwardIssue.key)
@@ -1395,7 +1383,7 @@ def _walkHierarchy(j, ticket):
     return reply
 
 
-def generateSmokeTestSequences(version="Dundee", regressionSuite="TC-18016", nightlySuite="TC-18013", expSuite="TC-19628", folder="seqs"):
+def generateSmokeTestSequences(version="Creedence", regressionSuite="TC-21163", nightlySuite="TC-21159", expSuite="TC-19628", folder="seqs"):
     """Generates all smoke test sequences for the specified product version from the associate Jira tickets.
     
     Before using this method, ensure that processMatrixTests is up to date and has been run for the specified suites."""
@@ -1570,13 +1558,8 @@ def makeSequence(version, ticket, suite, filename, suitetickets=None, testPrefix
         for jj in range(i, maxPerFile+i):
             if jj < len(tcs):
                 tcid = "TC-%d" % tcs[jj]
-                t = getIssue(j, tcid)
-                print tcid
-                xenrttcid = j.getCustomField(t, "xenrtTCID")
-                xenrttcargs = j.getCustomField(t, "xenrtTCArgs")
-                if not xenrttcid:
-                    xenrttcid = "%s.%s" % (testPrefix, tcid.replace('-',''))
-                    xenrttcargs = None
+                xenrttcid = "%s.%s" % (testPrefix, tcid.replace('-',''))
+                xenrttcargs = None
                 tc = newdoc.createElement("testcase")
                 ser.appendChild(tc)
                 tc.setAttribute("id", xenrttcid)
@@ -1857,3 +1840,83 @@ def createMarvinSequence(tags=[], classPathRoot=''):
     marvinTestsStrs.sort()
     for testStr in marvinTestsStrs:
         print testStr
+
+def newGuestsMiniStress():
+    # Tailor to your needs
+    families = {"oel": "Oracle Enterprise Linux", "rhel": "RedHat Enterprise Linux", "centos": "CentOS"}
+
+    template = """<xenrt>
+
+  <!-- OS functional test sequence: %s and %s-x64 -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+%s
+%s
+    </parallel>
+  </testsequence>
+</xenrt>
+"""
+
+    for i in families.keys():
+        for j in ["5.11", "6.6"]:
+            osname = "%s%s" % (i, j.replace(".", ""))
+            print osname
+            a = defineOSTests(osname, "%s %s" % (families[i], j))
+            b = defineOSTests(osname, "%s %s x64" % (families[i], j), arch="x86-64")
+            seq = template % (osname, osname, a, b)
+
+            with open("seqs/creedenceoslin%s.seq" % osname, "w") as f:
+                f.write(seq)
+
+def newGuestsInstalls():
+    # Tailor to your needs
+
+    families = {"oel": "Oracle Enterprise Linux", "rhel": "RedHat Enterprise Linux", "centos": "CentOS"}
+    methods = {"ISO": ("_TC5786", False), "HTTP": ("_TC6767", True), "NFS": ("_TC6767", True) }
+    arches = {"x86-32": "32 bit", "x86-64": "64 bit"}
+    versions = {"511": "5.11", "66": "6.6"}
+
+    tccode = ""
+    seqcode = ""
+
+    j = J()
+    container = getIssue(j, "TC-5790")
+
+    for f in families.keys():
+        for v in versions.keys():
+            for m in methods.keys():
+                for a in arches.keys():
+                    tcname = "Install a %s %s %s VM from %s" % (families[f], versions[v], arches[a], m)
+                    print "Creating %s" % tcname
+                    tckey = _findOrCreateTestCase({}, tcname, j, container, tcname)
+                    print tckey
+                    (base, needmethod) = methods[m]
+                    tccode += "class %s(%s):\n" % (tckey.replace("-", ""), base)
+                    tccode += "    \"\"\"%s\"\"\"\n" % (tcname)
+                    tccode += "    DISTRO=\"%s%s\"\n" % (f, v)
+                    tccode += "    ARCH=\"%s\"\n" % a
+                    if needmethod:
+                        tccode += "    METHOD=\"%s\"\n" % m
+                    tccode += "\n"
+                    seqcode += "<testcase id=\"xenserver.tc.vminstall.%s\" group=\"VMInstall\"/>\n" % tckey.replace("-", "")
+
+    print tccode
+    print seqcode
+
+

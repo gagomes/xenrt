@@ -191,7 +191,7 @@ class _Hotfix(xenrt.TestCase):
 
                 if uv6 and not v6applied and not self.CC:
                     # Apply a v6 platinum license to this host
-                    v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.slave)
+                    v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.host)
                     v6.removeAllLicenses()
                     v6.addLicense("valid-platinum")
                     self.host.license(edition="platinum", usev6testd=False, v6server=v6)

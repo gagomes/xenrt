@@ -286,7 +286,7 @@ class XenRTSchedule(XenRTAPIPage):
                 else:
                     schstrings[-1] = schstrings[-1] + "," + machine
             if len(schstrings) == 0:
-                raise "No SCHEDULEDON string set"
+                raise "No SCHEDULEDON string set - job %u" % job
             if len(schstrings) > 3:
                 raise "Machine list too long for the three SCHEDULEDON strings: " \
                       "%s" % (string.join(machines, ","))

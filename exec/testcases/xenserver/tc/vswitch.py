@@ -4362,7 +4362,7 @@ class TC11583(_Controller):
         step("Setting rconn:FILE:DBG in vswitch")
         self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
         self.debugNic()
-        # Attempt backoff of 10 and second(s).
+        # Attempt backoff of 10 and 5 second(s).
         for backoffms in [10000, 5000]:
             step("Changing backoff to %s" % backoffms)
             dvscuuid = self.getControllerUUID()

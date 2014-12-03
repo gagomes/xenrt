@@ -32,4 +32,3 @@ server/uwsgi.ini
 server/xenrt-server
 nosetests.xml
 .coverage
-.project

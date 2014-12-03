@@ -14,7 +14,6 @@ import xenrt
 class TCLinuxUpgrade(xenrt.TestCase):
 
     def upgradelinux(self, g, cmd):
-        maxattempts = 20
         retVal = 0
         for i in range (1,20) :
             retVal = g.execguest("%s" %cmd, timeout=7200 , retval = "code")
@@ -41,7 +40,7 @@ class TCUbuntuUpgrade(TCLinuxUpgrade):
         g.execguest("echo deb %s %s main restricted > /etc/apt/sources.list" % (xenrt.TEC().lookup(["RPM_SOURCE", newDistro, g.arch, "HTTP"]), ubuntuName))
         g.execguest("echo deb %s %s-updates main restricted >> /etc/apt/sources.list" % (xenrt.TEC().lookup(["RPM_SOURCE", newDistro, g.arch, "HTTP"]), ubuntuName))
         g.execguest("apt-get update")
-        cmd = "/bin/echo -e \"Y\\n\" | apt-get -y --force-yes dist-upgrade"
+        cmd = "/bin/echo -e 'Y\n' | apt-get -y --force-yes dist-upgrade"
         self.upgradelinux(g,cmd)
 
 class TCCentosUpgrade(TCLinuxUpgrade):

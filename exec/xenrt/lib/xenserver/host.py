@@ -8911,7 +8911,7 @@ class MNRHost(Host):
         uuids = cli.execute('secret-list', 'value=%s' % value, minimal=True)
         return uuids.split(',')
 
-    def installLicenseServerGuest(self, name=None, windows = False):
+    def installLicenseServerGuest(self, name=None, windows = False, host=None):
         if not name:
             name = xenrt.randomGuestName()
         if windows:
@@ -8930,7 +8930,7 @@ class MNRHost(Host):
             g.poll("UP", pollperiod=5)
             xenrt.sleep(120)
         
-        g.getV6LicenseServer()
+        g.getV6LicenseServer(host=host)
         return g
 
     def enableDefaultADAuth(self):
@@ -10956,7 +10956,7 @@ done
         else:
             return True
 
-    def installNVIDIAHostDrivers(self, reboot=True):
+    def installNVIDIAHostDrivers(self, reboot=True,ignoreDistDriver = False):
         rpmDefault="NVIDIA-vgx-xenserver-6.2-331.59.00.i386.rpm"
         inputDir = xenrt.TEC().lookup("INPUTDIR", default=None)
         rel = xenrt.TEC().lookup("RELEASE", default=None)
@@ -10976,6 +10976,8 @@ done
                 rpm = rpm + '.rpm'
             except Exception, e:
                 xenrt.TEC().logverbose("Following error was thrown while trying to get host drivers from vGPU server %s " % str(e))
+                if ignoreDistDriver:
+                    return False
                 getItFromDist = True
                                  
         else:
@@ -11006,11 +11008,13 @@ done
 
         if self.checkRPMInstalled(rpm):
             xenrt.TEC().logverbose("NVIDIA Host driver is already installed")
-            return
+            return True
 
         self.execdom0("rpm -ivh /tmp/%s" % (rpm))
         if reboot:
             self.reboot()
+ 
+        return True
 
     def remainingGpuCapacity(self, groupUUID, vGPUTypeUUID):
         return int(self.execdom0("xe gpu-group-get-remaining-capacity uuid=%s vgpu-type-uuid=%s" %(groupUUID,vGPUTypeUUID)))
@@ -11092,9 +11096,6 @@ done
 class CreedenceHost(ClearwaterHost):
 
     V6MOCKD_LOCATION = "binary-packages/RPMS/domain0/RPMS/x86_64/v6mockd-0-0.x86_64.rpm"
-
-    def getTestHotfix(self, hotfixNumber):
-        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.CreedenceGuest
@@ -11178,6 +11179,9 @@ class DundeeHost(CreedenceHost):
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
+
+    def getTestHotfix(self, hotfixNumber):
+        return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
     # For now, skip creedence, as trunk doesn't have the creedence license changes yet
     def license(self, sku="free",edition=None, usev6testd=True, v6server=None):

@@ -142,11 +142,14 @@ dsh:
 
 .PHONY: ntp
 ntp:
+ifeq ($(PUPPETNODE),yes)
+	$(info Skipping NTP config)
+else
 	$(info Configuring NTP...)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/ntp/ntp.conf /etc/ntp.conf
 	$(SUDO) sed -i 's/__NTP__/$(NTP_SERVER)/' /etc/ntp.conf
 	$(SUDO) /etc/init.d/ntp restart
-
+endif
 
 .PHONY: ssh
 ssh:

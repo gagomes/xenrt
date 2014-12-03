@@ -1,7 +1,7 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
 
-import traceback, StringIO, string, time, random, pgdb, sys
+import traceback, StringIO, string, time, random, sys
 
 import config, app
 
@@ -227,7 +227,7 @@ class XenRTSchedule(XenRTAPIPage):
             self.mutex_held += 1
         else:
             if not self.mutex:
-                self.mutex = pgdb.connect(config.dbConnectString)
+                self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
             cur.execute("LOCK TABLE scheduleLock")
             self.mutex_held = 1

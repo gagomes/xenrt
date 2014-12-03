@@ -1109,7 +1109,7 @@ class PrepareNode:
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'esx')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_ESXI_VERSION', '5.5.0-update01'))
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('ESXI_VERSION', '5.5.0-update01'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))

@@ -14,36 +14,6 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
       </vm>
-      <vm name="ws08sp2-x64">
-        <distro>ws08sp2-x64</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-      </vm>
-      <vm name="vistaeesp2">
-        <distro>vistaeesp2</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-      </vm>
-      <vm name="win7sp1-x86">
-        <distro>win7sp1-x86</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-      </vm>
-      <vm name="win81-x86">
-        <distro>win81-x86</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-      </vm>
-      <vm name="ws12r2-x64">
-        <distro>ws12r2-x64</distro>
-        <memory>${GUESTMEMORY}</memory>
-        <vcpus>${GUESTVCPUS}</vcpus>
-        <network device="0"/>
-      </vm>
     </host>
   </prepare>
 

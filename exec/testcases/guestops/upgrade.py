@@ -11,7 +11,23 @@
 import sys, string, time, re
 import xenrt
 
-class TCUbuntuUpgrade(xenrt.TestCase):
+class TCLinuxUpgrade(xenrt.TestCase):
+
+    def upgradelinux(self, g, cmd):
+        maxattempts = 20
+        retVal = 0
+        for i in range (1,20) :
+            retVal = g.execguest("%s" %cmd, timeout=7200 , retval = "code")
+            if not retVal : 
+                break
+
+        if retVal:
+            g.execguest("%s" %cmd, timeout=7200)
+
+        xenrt.TEC().comment("Rebooting to complete the upgrade process")
+        g.reboot()
+
+class TCUbuntuUpgrade(TCLinuxUpgrade):
 
     UBUNTU_NAME_MAP = {"ubuntu1404": "trusty",
                        "ubuntu1204": "precise",
@@ -25,25 +41,15 @@ class TCUbuntuUpgrade(xenrt.TestCase):
         g.execguest("echo deb %s %s main restricted > /etc/apt/sources.list" % (xenrt.TEC().lookup(["RPM_SOURCE", newDistro, g.arch, "HTTP"]), ubuntuName))
         g.execguest("echo deb %s %s-updates main restricted >> /etc/apt/sources.list" % (xenrt.TEC().lookup(["RPM_SOURCE", newDistro, g.arch, "HTTP"]), ubuntuName))
         g.execguest("apt-get update")
-        maxattempts = 20
-        success = False
-        i = 0
-        while i < maxattempts:
-            try:
-                g.execguest("/bin/echo -e \"Y\\n\" | apt-get -y --force-yes dist-upgrade", timeout=7200)
-                success = True
-                break
-            except:
-                i += 1
-        if not success:
-            g.execguest("/bin/echo -e \"Y\\n\" | apt-get -y --force-yes dist-upgrade", timeout=7200)
+        cmd = "/bin/echo -e \"Y\\n\" | apt-get -y --force-yes dist-upgrade"
+        self.upgradelinux(g,cmd)
 
-        g.reboot()
-
-class TCCentosUpgrade(xenrt.TestCase):
+class TCCentosUpgrade(TCLinuxUpgrade):
 
     def run(self, arglist=None):
         args = self.parseArgsKeyValue(arglist)
+
+        # Set up the base urls required for centos upgrade
         centOsurl = xenrt.TEC().lookup(["RPM_SOURCE","centos7","x86-64", "HTTP"])
         urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         repoPath   = "/etc/yum.repos.d/upgrade.repo"
@@ -51,34 +57,28 @@ class TCCentosUpgrade(xenrt.TestCase):
         fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
         yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
         g = self.getGuest(args['guest'])
+
+        # Create the repo file for the upgrade
         g.execguest("echo '[upgrade]' > %s" % (repoPath))
         g.execguest("echo name'=upgrade' >> %s" % (repoPath))
         g.execguest("echo baseurl'='%s >> %s" % (baseUrl, repoPath))
         g.execguest("echo enabled'='1 >>  %s" % (repoPath))
         g.execguest("echo gpgcheck'='0 >> %s" % (repoPath))
         xenrt.TEC().comment("Repo Created")
+
+        # replace yum packages before the preupgrade step
         [g.execguest("rpm -Uvh --replacepkgs %s" % pkg) for pkg in [fastRpm, yumRpm]]
         xenrt.TEC().comment("Replaced yum packages")
+
+        # Install tools required for preupgrade
         [g.execguest("yum -y install %s" %tool) for tool in ['preupgrade-assistant-contents','redhat-upgrade-tool','preupgrade-assistant']]
         g.execguest("/bin/echo -e 'y\n' | preupg")
         xenrt.TEC().comment("Pre upgrade completed")
 
-        maxattempts = 20
-        success = False
-        i = 0
-        while i < maxattempts:
-            try :
-                g.execguest("rpm --import %s/RPM-GPG-KEY-CentOS-7" %(centOsurl))
-                g.execguest("redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(centOsurl), timeout=7200)
-                xenrt.TEC().comment("Red hat upgrade tool completed")
-                success = True
-                break
-            except :
-                i += 1
-        if not success:
-            raise xenrt.XRTError("Upgrade failed after multiple attempts")
-
-        g.reboot()
+        # run the redhat-upgrade-tool to start the upgrade
+        g.execguest("rpm --import %s/RPM-GPG-KEY-CentOS-7" %(centOsurl))
+        cmd = "redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(centOsurl)
+        self.upgradelinux(g,cmd)
 
         releaseCentos = g.execguest("cat /etc/centos-release")
         if not re.search("CentOS\s+Linux\s+release\s+7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")

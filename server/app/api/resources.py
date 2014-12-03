@@ -1,7 +1,7 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
 
-import traceback, StringIO, string, time, random, pgdb, json
+import traceback, StringIO, string, time, random, json
 
 import config, app
 class XenRTResourcePage(XenRTAPIPage):
@@ -16,7 +16,7 @@ class XenRTResourcePage(XenRTAPIPage):
             self.mutex_held += 1
         else:
             if not self.mutex:
-                self.mutex = pgdb.connect(config.dbConnectString)
+                self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
             cur.execute("LOCK TABLE resourcelock")
             self.mutex_held = 1

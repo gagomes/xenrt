@@ -14,7 +14,6 @@
       <testcase id="xenserver.tc.smoketest.TC19709" prio="4" tc="TC-19709"/>
       <testcase id="xenserver.tc.smoketest.TC19710" prio="4" tc="TC-19710"/>
       <testcase id="xenserver.tc.smoketest.TC19711" prio="4" tc="TC-19711"/>
-      <testcase id="xenserver.tc.smoketest.TC19712" prio="4" tc="TC-19712"/>
       <testcase id="xenserver.tc.smoketest.TC19713" prio="4" tc="TC-19713"/>
     </parallel>
   </testsequence>

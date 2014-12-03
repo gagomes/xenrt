@@ -641,6 +641,7 @@ class Host(xenrt.GenericHost):
         x.haLocalConfig = self.haLocalConfig
         x.haStatefileBlocked = self.haStatefileBlocked
         x.haHeartbeatBlocks = self.haHeartbeatBlocks
+        x.inputDir = self.inputDir
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -2224,7 +2225,7 @@ fi
         
         xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
         if xenrt.TEC().lookup("APPLY_ALL_RELEASED_HFXS", False, boolean=True):
-            if self.host.isReleasedBuild():
+            if self.isReleasedBuild():
                 xenrt.TEC().logverbose("This is a release build. Adding released hotfixes to config.")
                 xenrt.TEC().config.addAllHotfixes()
             else:

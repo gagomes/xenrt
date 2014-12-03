@@ -13,7 +13,7 @@ def dbWriteInstance():
 def connStrToArgs(connStr):
     ret = {}
     params = connStr.split(":")
-    hostport = params[0],split(",")
+    hostport = params[0].split(",")
     ret['host'] = hostport[0]
     if len(hostport) > 1:
         ret['port'] = hostport[1]

@@ -3,11 +3,11 @@ import config
 
 def dbReadInstance():
     args = connStrToArgs(config.dbConnectString)
-    return psycopg2.connect(args)
+    return psycopg2.connect(**args)
 
 def dbWriteInstance():
     args = connStrToArgs(config.dbConnectStringWrite)
-    return psycopg2.connect(args)
+    return psycopg2.connect(**args)
 
 # Convert a connection string to a dictionary of args for psycopg2
 def connStrToArgs(connStr):

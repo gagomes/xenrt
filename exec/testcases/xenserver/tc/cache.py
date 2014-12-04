@@ -257,7 +257,7 @@ class _Cache(xenrt.TestCase):
     def beginMeasurement(self): 
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
-        param = "tcp port nfs and host %s -i %s -tt -x -s 0 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
+        param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
         #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
             #param = param + " -B 64000"
         self.packetCatcher.startCapture(param)

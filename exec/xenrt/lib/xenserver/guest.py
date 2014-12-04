@@ -4344,7 +4344,7 @@ def createVM(host,
         for p in postinstall:
             eval("g.%s()" % (p))
         if packages:
-            guest.installPackages(packages)
+            g.installPackages(packages)
         return g
     else:
         if distro.startswith("generic-"): 
@@ -4491,7 +4491,7 @@ def createVM(host,
                 eval("g.%s()" % (p))
 
         if packages:
-            guest.installPackages(packages)
+            g.installPackages(packages)
 
         return g
 

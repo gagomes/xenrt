@@ -83,6 +83,7 @@ class TCCentosUpgrade(TCLinuxUpgrade):
 
 class TCOelUpgrade(TCLinuxUpgrade):
 
+    def run(self):
         urlPrefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         # Set up the base urls required for oel upgrade
         baseUrl    = "%s/Oel/public-yum.oracle.com/repo/OracleLinux/OL6/addons/x86_64" % (urlPrefix)

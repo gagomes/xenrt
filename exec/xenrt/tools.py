@@ -1100,18 +1100,18 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
-                                          'ubuntu1004', 'debian60',
+                                          'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
                                             'win7-x86','win7-x64','rhel64','oel64', 'centos64']
     distrosToRels['Creedence']['tertiary'] = ['rhel46','rhel45',
                                               'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
                                               'rhel63',
                                               'sles102',
-                                              'sles11','sles111',
+                                              'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
                                               'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
                                               'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
@@ -1131,18 +1131,18 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
-                                          'ubuntu1004', 'debian60',
+                                          'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
                                             'win7-x86','win7-x64','rhel64','oel64', 'centos64']
     distrosToRels['Dundee']['tertiary'] = ['rhel46','rhel45',
                                               'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
                                               'rhel63',
                                               'sles102',
-                                              'sles11','sles111',
+                                              'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
                                               'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
                                               'oel59','oel58','oel57','oel56','oel55','oel54','oel53',

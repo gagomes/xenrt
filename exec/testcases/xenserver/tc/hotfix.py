@@ -115,7 +115,7 @@ class _Hotfix(xenrt.TestCase):
         xenrt.TEC().comment("Initial host(s) install of %s" % self.INITIAL_VERSION)
         v6applied = False
         if not self.CC and usev6:
-            xenrt.resources.SharedHost().getHost().installLicenseServerGuest(name="LicenseServer")
+            xenrt.resources.SharedHost().getHost().installLicenseServerGuest(name="LicenseServer",host=self.host)
             
             v6 = self.getGuest("LicenseServer").getV6LicenseServer()
             self.uninstallOnCleanup(self.getGuest("LicenseServer"))
@@ -191,7 +191,7 @@ class _Hotfix(xenrt.TestCase):
 
                 if uv6 and not v6applied and not self.CC:
                     # Apply a v6 platinum license to this host
-                    v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer()
+                    v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.host)
                     v6.removeAllLicenses()
                     v6.addLicense("valid-platinum")
                     self.host.license(edition="platinum", usev6testd=False, v6server=v6)

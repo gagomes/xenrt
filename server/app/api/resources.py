@@ -1,7 +1,7 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
 
-import traceback, StringIO, string, time, random, pgdb, json
+import traceback, StringIO, string, time, random, json
 
 import config, app
 class XenRTResourcePage(XenRTAPIPage):
@@ -16,7 +16,7 @@ class XenRTResourcePage(XenRTAPIPage):
             self.mutex_held += 1
         else:
             if not self.mutex:
-                self.mutex = pgdb.connect(config.dbConnectString)
+                self.mutex = app.db.dbWriteInstance()
             cur = self.mutex.cursor()
             cur.execute("LOCK TABLE resourcelock")
             self.mutex_held = 1
@@ -74,7 +74,7 @@ class XenRTLockResource(XenRTResourcePage):
                     available.append(info)
 
             if len(available) > 0:
-                cur.execute("UPDATE tblresources SET status='locked',jobid=%d WHERE name=%s", [int(jobid), available[0]['name']])
+                cur.execute("UPDATE tblresources SET status='locked',jobid=%s WHERE name=%s", [int(jobid), available[0]['name']])
                 self.getDB().commit()
                 ret = available[0]
         finally:
@@ -90,7 +90,7 @@ class XenRTReleaseResource(XenRTResourcePage):
         try: 
             cur = self.getDB().cursor()
             if "job" in self.request.params:
-                cur.execute("UPDATE tblresources SET status='idle' WHERE jobid=%d AND status='locked'", [int(self.request.params['job'])])
+                cur.execute("UPDATE tblresources SET status='idle' WHERE jobid=%s AND status='locked'", [int(self.request.params['job'])])
             else:
                 cur.execute("UPDATE tblresources SET status='idle' WHERE name=%s AND status='locked'", [self.request.params['name']])
             self.getDB().commit()

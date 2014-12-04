@@ -72,9 +72,6 @@ class Config:
         self.config["LOCAL_BASE"] = "/tmp/local"
         self.config["GUEST_CONSOLE_LOGDIR"] = "${LOCAL_BASE}/scratch/xenrt/guest-console-logs"
 
-        self.config["JIRA_USERNAME"] = 'shwetat'
-        self.config["JIRA_PASSWORD"] = 'Mypwd#123'
-        self.config["JIRA_URL"] = "https://issues.citrite.net"
         # Networking configuration
         self.config["NETWORK_CONFIG"] = {}
         self.config["NETWORK_CONFIG"]["DEFAULT"] = {}

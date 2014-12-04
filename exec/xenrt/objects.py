@@ -9551,7 +9551,7 @@ while True:
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFileUrl = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("LINUX_REPOSITORY_LISTS", "/usr/groups/linuxrepolist/") + self.distro
+                repoFileUrl = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("LINUX_REPOSITORY_LISTS", "/usr/groups/xenrt/linuxrepolist/") + self.distro
                 self.execguest("wget %s -O /etc/apt/sources.list.public" % repoFileUrl)
                 self.execguest("cat /etc/apt/sources.list.orig /etc/apt/sources.list.public > /etc/apt/sources.list")
 

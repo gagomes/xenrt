@@ -11,8 +11,8 @@
   <prepare>
     <vlan name="CLIENT_VLAN" />
     <vlan name="SERVER_VLAN" />
-    <!--host id="0">
-      <NETWORK>
+    <host id="0">
+      <!--NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />
           <MANAGEMENT />
@@ -36,8 +36,8 @@
         <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.3/24" />
         <disk device="0" size="8" />
       </vm>
-    </host-->
-    <host id="1">
+    </host>
+    <host id="1"-->
       <NETWORK>
         <PHYSICAL network="NPRI">
           <VMS />

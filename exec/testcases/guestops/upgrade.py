@@ -51,11 +51,11 @@ class TCCentosUpgrade(TCLinuxUpgrade):
     def run(self):
         # Set up the base urls required for centos upgrade
         centOsurl = xenrt.TEC().lookup(["RPM_SOURCE","centos7","x86-64", "HTTP"])
-        urlprefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        urlPrefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
         repoPath   = "/etc/yum.repos.d/upgrade.repo"
-        baseUrl    = "%s/CentOS/dev.centos.org" % (urlprefix)
-        fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlprefix)
-        yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlprefix)
+        baseUrl    = "%s/CentOS/dev.centos.org" % (urlPrefix)
+        fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlPrefix)
+        yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlPrefix)
 
         # Create the repo file for the upgrade
         self.guest.execguest("echo '[upgrade]' > %s" % (repoPath))
@@ -70,8 +70,7 @@ class TCCentosUpgrade(TCLinuxUpgrade):
         xenrt.TEC().comment("Replaced yum packages")
 
         # Install tools required for preupgrade
-        [self.guest.execguest("yum -y install %s" %tool) for tool in ['preupgrade-assistant-contents','redhat-upgrade-tool','preupgrade-assistant']]
-        self.guest.execguest("/bin/echo -e 'y\n' | preupg")
+        [self.guest.execguest("yum -y install --assumeyes %s" %tool) for tool in ['preupgrade-assistant-contents','redhat-upgrade-tool','preupgrade-assistant', 'preupg']]
         xenrt.TEC().comment("Pre upgrade completed")
 
         # run the redhat-upgrade-tool to start the upgrade
@@ -81,3 +80,37 @@ class TCCentosUpgrade(TCLinuxUpgrade):
 
         releaseCentos = self.guest.execguest("cat /etc/centos-release")
         if not re.search("CentOS\s+Linux\s+release\s+7" , releaseCentos) : raise xenrt.XRTError("Upgrade was not successful")
+
+class TCOelUpgrade(TCLinuxUpgrade):
+
+        urlPrefix  = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        # Set up the base urls required for oel upgrade
+        baseUrl    = "%s/Oel/public-yum.oracle.com/repo/OracleLinux/OL6/addons/x86_64" % (urlPrefix)
+        repoPath   = "/etc/yum.repos.d/upgrade.repo"
+        fastRpm    = "%s/CentOS/mirror.centos.org/Packages/yum-plugin-fastestmirror-1.1.30-30.el6.noarch.rpm" % (urlPrefix)
+        yumRpm     = "%s/CentOS/mirror.centos.org/Packages/yum-3.2.29-60.el6.centos.noarch.rpm" % (urlPrefix)
+        oel7Url    = xenrt.TEC().lookup(["RPM_SOURCE","oel7","x86-64", "HTTP"])
+
+        # Create the repo file for the upgrade
+        self.guest.execguest("echo '[upgrade]' > %s" % (repoPath))
+        self.guset.execguest("echo name'=upgrade' >> %s" % (repoPath))
+        self.guset.execguest("echo baseurl'='%s >> %s" % (baseUrl, repoPath))
+        self.guest.execguest("echo gpgkey'=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle' >> %s" %(repoPath))
+        self.guest.execguest("echo gpgcheck'='1 >> %s" % (repoPath))
+        self.guest.execguest("echo enabled'='1 >>  %s" % (repoPath))
+        xenrt.TEC().comment("Repo Created")
+
+        # replace yum packages before the preupgrade step
+        [self.guest.execguest("rpm -Uvh --replacepkgs %s" % pkg) for pkg in [fastRpm, yumRpm]]
+        xenrt.TEC().comment("Replaced yum packages")
+
+        # Install tools required for preupgrade
+        [self.guest.execguest("yum -y install --assumeyes %s" %tool) for tool in ['openscap','preupgrade-assistant-contents','redhat-upgrade-tool','preupg']]
+        xenrt.TEC().comment("Pre upgrade completed")
+
+        # run the redhat-upgrade-tool to start the upgrade
+        cmd = "redhat-upgrade-tool --network 7.0 --force --instrepo %s" %(oel7Url)
+        self.upgradelinux(cmd)
+
+        releaseOel = self.guest.execguest("cat /etc/centos-release")
+        if not re.search("Oracle\s+Linux\s+Server\s+release\s+7" , releaseOel) : raise xenrt.XRTError("Upgrade was not successful")

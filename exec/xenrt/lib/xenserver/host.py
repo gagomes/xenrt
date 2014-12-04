@@ -3266,7 +3266,10 @@ fi
             return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
 
     def isReleasedBuild(self):
-        return "/release/" in self.inputDir
+        if self.inputDir:
+            return "/release/" in self.inputDir
+        else:
+            return False
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface

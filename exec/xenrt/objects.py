@@ -9532,22 +9532,34 @@ while True:
             xenrt.TEC().registry.instancePut(self.name, self)
         return self.instance
 
-    def installPackage(self, package):
+    def installPackages(self, packages):
+        self.enablePublicRepository()
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
-                aptProxy = xenrt.TEC().lookup("APT_PROXY", None)
+                if "deb" in self.distro:
+                    aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
+                elif "ubuntu" in self.distro:
+                    aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
                 if aptProxy:
                     self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
                     self.execguest("apt-get update")
-                self.execguest("apt-get -y --force-yes install %s" % package)
+                self.execguest("apt-get -y --force-yes install %s" % packages)
             elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
-                self.execguest("yum install -y %s" % package)
+                self.execguest("yum install -y %s" % packages)
             elif "sles" in self.distro:
-                self.execguest("zypper -n --non-interactive install %s" % package)
+                self.execguest("zypper -n --non-interactive install %s" % packages)
             else:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
-            raise xenrt.XRTError("Failed to install package '%s' on guest %s : %s" % (package, self, e))
+            raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
+
+    def enablePublicRepository(self):
+        #TBD
+        pass
+
+    def disablePublicRepository(self):
+        #TBD
+        pass
 
 class EventObserver(xenrt.XRTThread):
 

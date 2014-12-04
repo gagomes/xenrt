@@ -1480,7 +1480,7 @@ class PrepareNode:
                 elif x.localName == "packages":
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
-                            vm["packages"] = string.split(expand(str(a.data), params), ",")
+                            vm["packages"] = expand(str(a.data), params).replace(","," ").strip()
 
         self.vms.append(vm)
 

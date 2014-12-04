@@ -4218,7 +4218,7 @@ def createVMFromFile(host,
                      filename,
                      userfile=False,
                      postinstall=[],
-                     packages=[],
+                     packages=None,
                      memory=None,
                      bootparams=None,
                      suffix=None,
@@ -4262,8 +4262,8 @@ def createVMFromFile(host,
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
         eval("guest.%s()" % (p))
-    for p in packages:
-        guest.installPackage(p)
+    if packages:
+        guest.installPackages(packages)
     return guest
 
 def createVM(host,
@@ -4279,7 +4279,7 @@ def createVM(host,
              arch="x86-32",
              disks=[],
              postinstall=[],
-             packages=[],
+             packages=None,
              pxe=False,
              template=None,
              notools=False,
@@ -4343,8 +4343,8 @@ def createVM(host,
                                        distro=distro)
         for p in postinstall:
             eval("g.%s()" % (p))
-        for p in packages:
-            g.installPackage(p)
+        if packages:
+            guest.installPackages(packages)
         return g
     else:
         if distro.startswith("generic-"): 
@@ -4489,8 +4489,9 @@ def createVM(host,
                     g.xmlrpcRemoveFile("c:\\postrun.vbs")
             else:
                 eval("g.%s()" % (p))
-        for p in packages:
-            g.installPackage(p)
+
+        if packages:
+            guest.installPackages(packages)
 
         return g
 

@@ -54,9 +54,6 @@ class FileManager:
         xenrt.TEC().logverbose("Resolved latest symlink to %s" % realDir)
         return "%s/%s" % (os.path.dirname(dirname.strip("/")), realDir)
 
-    def isReleasedBuild(self):
-        return "/release/" in self._getBaseDir()
-
     def _getBaseDir(self):
         """Internal method to get the currently in force base directory.
         This will take into account thread-local input dir overrides."""

@@ -9553,7 +9553,7 @@ while True:
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + guest.distro
+                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
                 repoFileContent = xenrt.command("cat %s" % repoFile)
                 self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent)
                 if doUpdate:

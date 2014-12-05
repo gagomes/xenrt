@@ -1209,7 +1209,7 @@ class GenericPlace:
             rf = self._xmlrpc().tempFile()
             self._xmlrpc().createTarball(rf, remotedirectory)
             self.xmlrpcGetFile(rf, f, ignoreHealthCheck=ignoreHealthCheck)
-            xenrt.util.command("tar -xf %s -C %s" % (f, localdirectory))
+            xenrt.util.command("tar -xf %s -C \"%s\"" % (f, localdirectory))
             self.xmlrpcRemoveFile(rf, ignoreHealthCheck=ignoreHealthCheck)
             os.unlink(f)
         except Exception, e:

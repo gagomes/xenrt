@@ -3639,7 +3639,7 @@ exit /B 1
                 if self.enlightenedDrivers:
                     self.checkPVDevices()
 
-                if xenrt.TEC().lookup("DEBUG_VNCKEYS", True, boolean=True):
+                if xenrt.TEC().lookup("DEBUG_VNCKEYS", False, boolean=True):
                     # Send some suitable keystrokes to product evidence on the
                     # VNC screen capture of the VM being alive
                     try:

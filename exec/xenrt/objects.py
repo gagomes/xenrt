@@ -7088,7 +7088,7 @@ class GenericGuest(GenericPlace):
             xenrt.TEC().warning("Unable to check guest vifs.")
 
         if ok == 0:
-            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", False, boolean=True):
+            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", True, boolean=True):
                 for r in reasons:
                     xenrt.TEC().warning(r)
             else:

@@ -1209,7 +1209,7 @@ class GenericPlace:
             rf = self._xmlrpc().tempFile()
             self._xmlrpc().createTarball(rf, remotedirectory)
             self.xmlrpcGetFile(rf, f, ignoreHealthCheck=ignoreHealthCheck)
-            xenrt.util.command("tar -xf %s -C %s" % (f, localdirectory))
+            xenrt.util.command("tar -xf %s -C \"%s\"" % (f, localdirectory))
             self.xmlrpcRemoveFile(rf, ignoreHealthCheck=ignoreHealthCheck)
             os.unlink(f)
         except Exception, e:
@@ -7088,7 +7088,7 @@ class GenericGuest(GenericPlace):
             xenrt.TEC().warning("Unable to check guest vifs.")
 
         if ok == 0:
-            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", False, boolean=True):
+            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", True, boolean=True):
                 for r in reasons:
                     xenrt.TEC().warning(r)
             else:

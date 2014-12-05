@@ -607,7 +607,7 @@ ifeq ($(PUPPETNODE),yes)
 	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
 	$(SUDO) dpkg -i puppet-release.deb
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install puppet
+	$(SUDO) apt-get install -y puppet
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
 else
 	$(info This node must be set as a PUPPETNODE in the config.mk file)

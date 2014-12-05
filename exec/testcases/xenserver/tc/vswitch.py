@@ -2399,7 +2399,10 @@ class TC20958(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
+            try:
+                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
+            except(ValueError):
+                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
             if received == 0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
@@ -4359,8 +4362,8 @@ class TC11583(_Controller):
         step("Setting rconn:FILE:DBG in vswitch")
         self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
         self.debugNic()
-        # Attempt backoff of 10, 5, 2 and 1 second(s).  
-        for backoffms in [10000, 5000, 2000, 1000]:
+        # Attempt backoff of 10 and 5 second(s).
+        for backoffms in [10000, 5000]:
             step("Changing backoff to %s" % backoffms)
             dvscuuid = self.getControllerUUID()
             self.debugNic()

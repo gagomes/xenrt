@@ -2303,9 +2303,6 @@ logdata call."""
             inputDir = xenrt.TEC().lookup("INPUTDIR")
         return inputDir
 
-    def isReleasedBuild(self):
-        return "/release/" in self.getInputDir()
-
     def __str__(self):
         if self.tc:
             return "TEC:%s" % (self.tc.tcid)

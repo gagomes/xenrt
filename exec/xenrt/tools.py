@@ -852,9 +852,14 @@ def processMatrixTests(release=None):
     releasesWithoutSeperateMaxMemTests = ['Backport','George','GeorgeU1','MNR','Cowley']
 
     # Mapping of suites to releases in the form Release:(Nightly,Regression, Experimental)
-    suiteMappings = {'Creedence':('TC-21159','TC-21163','TC-21190'), 'Dundee': ('TC-18013', 'TC-18016', None)}
+    suiteMappings = {'Creedence':('TC-21159', 'TC-21163', 'TC-21190'), 'Dundee':('TC-23497', 'TC-23495', None)}
 
     # Mapping of distros to Primary/Secondary/Tertiary for each release
+    
+    # primary: An operating system version that will undergo significant testing
+    # secondary: An operating system version that will undergo a limited amount of testing, perhaps in limited scenarios
+    # tertiary: An operating system version that will only receive smoke testing (usually defined to be VM installation and basic lifecycle operations)
+
     distrosToRels = {}
     # Backport of old tests
     distrosToRels['Backport'] = {}
@@ -1095,18 +1100,18 @@ def processMatrixTests(release=None):
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
-                                          'ubuntu1004', 'debian60',
+                                          'ubuntu1004', 'debian60','debian70',
                                           'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles112','sles103',
+    distrosToRels['Creedence']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
                                             'win7-x86','win7-x64','rhel64','oel64', 'centos64']
     distrosToRels['Creedence']['tertiary'] = ['rhel46','rhel45',
                                               'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
                                               'rhel63',
                                               'sles102',
-                                              'sles11','sles111',
+                                              'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
                                               'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
                                               'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
@@ -1119,30 +1124,29 @@ def processMatrixTests(release=None):
 
     #  (Dundee)
     distrosToRels['Dundee'] = {}
-    distrosToRels['Dundee']['primary'] = ['rhel48','rhel511','rhel66',
-                                          'sles104','sles113',
+    distrosToRels['Dundee']['primary'] = ['rhel48','rhel510','rhel65','rhel511','rhel66','rhel7','oel7','centos7',
+                                          'sles104','sles113','sles12',
                                           'w2k3eesp2','w2k3eesp2-x64',
                                           'winxpsp3','vistaeesp2',
                                           'ws08dcsp2-x86',
                                           'ws08dcsp2-x64','ws08r2dcsp1-x64',
                                           'win7sp1-x86','win7sp1-x64',
-                                          'ubuntu1004', 'debian60',
-                                          'oel511','centos511','oel66','centos66','ubuntu1404',
+                                          'ubuntu1004', 'debian60','debian70',
+                                          'oel510','centos510','oel65','oel511','oel66','centos66','centos511','centos65','ubuntu1404',
                                           'ubuntu1204','win8-x86','win8-x64', 'ws12-x64','ws12core-x64', 
                                           'win81-x86','win81-x64', 'ws12r2-x64','ws12r2core-x64']
-    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel510','sles112','sles103',
+    distrosToRels['Dundee']['secondary'] = ['rhel47','rhel59','sles103',
                                             'ws08r2-x64'
-                                            'win7-x86','win7-x64','rhel65','oel65', 'centos65']
+                                            'win7-x86','win7-x64','rhel64','oel64', 'centos64']
     distrosToRels['Dundee']['tertiary'] = ['rhel46','rhel45',
-                                              'rhel59','rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
-                                              'rhel64','rhel63',
+                                              'rhel58','rhel57','rhel56','rhel55','rhel54','rhel53','rhel52','rhel51',
+                                              'rhel63',
                                               'sles102',
-                                              'sles11','sles111',
+                                              'sles11','sles111','sles112',
                                               'centos48','centos47','centos46','centos45',
-                                              'centos510','centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
-                                              'oel510','oel59','oel58','oel57','oel56','oel55','oel54','oel53',
-                                              'oel64','oel63',
-                                              'centos64','centos63',
+                                              'centos59','centos58','centos57','centos56' 'centos55','centos54','centos53','centos52','centos51',
+                                              'oel59','oel58','oel57','oel56','oel55','oel54','oel53',
+                                              'oel63','centos63',
                                               'w2k3sesp2',
                                               'w2k3eer2','w2k3ser2']
     distrosToRels['Dundee']['level0'] = ['w2k3eesp2']

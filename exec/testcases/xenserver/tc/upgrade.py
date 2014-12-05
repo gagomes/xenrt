@@ -1201,6 +1201,10 @@ class TCAutoInstaller(xenrt.TestCase):
         # Verify the actual install
         self.host.reboot(timeout=1800)
 
+        self.host.checkVersion()
+        if self.host.productVersion != xenrt.TEC().lookup("PRODUCT_VERSION"):
+            raise xenrt.XRTFailure("Host Product Version (%s) doesn't match test Product Version (%s)" % (self.host.productVersion, xenrt.TEC().lookup("PRODUCT_VERSION")))
+
     def callCheckAndInstall(self, imageLocation, expectedToSucceed=True):
         xenrt.TEC().logverbose("Image Location: %s" % (imageLocation))
 

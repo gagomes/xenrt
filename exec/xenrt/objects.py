@@ -4085,14 +4085,14 @@ Loop While not oex3.Stdout.atEndOfStream"""%(applicationEventLogger,systemEventL
         self.special["ActiveDirectoryServer"] = ad
         return ad
 
-    def getV6LicenseServer(self, useEarlyRelease=None, install=True):
+    def getV6LicenseServer(self, useEarlyRelease=None, install=True, host = None):
         """Return a V6LicenseServer for this place, creating a new object if we
            do not already have one cached."""
         if self.special.has_key("V6LicenseServer"):
             xenrt.TEC().logverbose("Using cached V6 license server for %s" %
                                    (self.getName()))
             return self.special["V6LicenseServer"]
-        v6 = V6LicenseServer(self, useEarlyRelease=useEarlyRelease, install=install)
+        v6 = V6LicenseServer(self, useEarlyRelease=useEarlyRelease, install=install, host=host)
         self.special["V6LicenseServer"] = v6
         return v6
 
@@ -10635,7 +10635,7 @@ class WlbApplianceServer:
 class V6LicenseServer:
     """An object to represent a V6 License Server"""
 
-    def __init__(self, place, useEarlyRelease=None, install=True):
+    def __init__(self, place, useEarlyRelease=None, install=True, host=None):
         self.licenses = []
         self.licensedir = None
         self.place = place
@@ -10756,17 +10756,19 @@ class V6LicenseServer:
 
         # Get licenses
         self.p = p
-        self.changeLicenseMode(useEarlyRelease)
+        self.changeLicenseMode(useEarlyRelease, host)
 
-    def changeLicenseMode(self, useEarlyRelease):
+    def changeLicenseMode(self, useEarlyRelease, host=None):
         """Change between retail and earlyrelease licensing"""
 
         self.licensedir = xenrt.TEC().tempDir()
 
         er = ""
+        if not host:
+            host = self.place.host
         if useEarlyRelease:
             er = "er"
-        elif useEarlyRelease is None and (self.place.host.special.has_key('v6earlyrelease') and self.place.host.special['v6earlyrelease']):
+        elif useEarlyRelease is None and (host.special.has_key('v6earlyrelease') and host.special['v6earlyrelease']):
             er = "er"
         zipfile = "%s/keys/citrix/v6%s.zip" % (xenrt.TEC().lookup("XENRT_CONF"), er)
         xenrt.TEC().logverbose("Looking for V6 zip file: %s" % (zipfile))

@@ -130,21 +130,21 @@ class XenRTAPIPage(XenRTPage):
         cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", [machine])
         if cur.fetchone():
             u = []
-            if site:
+            if site is not None:
                 u.append(("site", site))
-            if cluster:
+            if cluster is not None:
                 u.append(("cluster", cluster))
-            if pool:
+            if pool is not None:
                 u.append(("pool", pool))
-            if status:
+            if status is not None:
                 u.append(("status", status))
-            if resources:
+            if resources is not None:
                 u.append(("resources", resources))
-            if flags:
+            if flags is not None:
                 u.append(("flags", flags))
-            if descr:
+            if descr is not None:
                 u.append(("descr", descr))
-            if leasepolicy != None:
+            if leasepolicy is not None:
                 if leasepolicy == "":
                     u.append(("leasepolicy", None))
                 else:
@@ -396,7 +396,9 @@ class CheckDBSync(XenRTAPIPage):
                 i += 1
             return HTTPServiceUnavailable()
         finally:
+            readDB.rollback()
             readDB.close()
+            writeDB.rollback()
             writeDB.close()
             
 

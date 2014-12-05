@@ -396,10 +396,10 @@ class CheckDBSync(XenRTAPIPage):
                 i += 1
             return HTTPServiceUnavailable()
         finally:
-            readDB.rollback()
-            readDB.close()
             writeDB.rollback()
             writeDB.close()
+            readDB.rollback()
+            readDB.close()
             
 
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")

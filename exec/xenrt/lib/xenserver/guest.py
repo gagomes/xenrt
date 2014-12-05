@@ -3639,7 +3639,7 @@ exit /B 1
                 if self.enlightenedDrivers:
                     self.checkPVDevices()
 
-                if xenrt.TEC().lookup("DEBUG_VNCKEYS", True, boolean=True):
+                if xenrt.TEC().lookup("DEBUG_VNCKEYS", False, boolean=True):
                     # Send some suitable keystrokes to product evidence on the
                     # VNC screen capture of the VM being alive
                     try:
@@ -4136,54 +4136,6 @@ exit /B 1
 
         self.reboot()
 
-    def xenDesktopTailor(self):
-        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
-        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
-
-        try:
-            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
-        except:
-            pass
-
-
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
-            try:
-                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
-            except:
-                pass
-        self.shutdown()
-        self.paramSet("platform:usb", "false")
-        self.paramSet("platform:hvm_serial", "none")
-        self.paramSet("platform:nousb", "true")
-        self.paramSet("platform:monitor", "null")
-        self.paramSet("platform:parallel", "none")
-        self.start()
-
-    def getNetworkNameForVIF(self, vifname):
-        mac, ip, bridge = self.getVIF(vifname=vifname)
-        network = self.host.getNetworkUUID(bridge)
-        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
-
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):
@@ -4218,6 +4170,7 @@ def createVMFromFile(host,
                      filename,
                      userfile=False,
                      postinstall=[],
+                     packages=[],
                      memory=None,
                      bootparams=None,
                      suffix=None,
@@ -4261,6 +4214,8 @@ def createVMFromFile(host,
     xenrt.TEC().registry.guestPut(guestname, guest)
     for p in postinstall:
         eval("guest.%s()" % (p))
+    if packages:
+        guest.installPackages(packages)
     return guest
 
 def createVM(host,
@@ -4276,6 +4231,7 @@ def createVM(host,
              arch="x86-32",
              disks=[],
              postinstall=[],
+             packages=[],
              pxe=False,
              template=None,
              notools=False,
@@ -4339,6 +4295,8 @@ def createVM(host,
                                        distro=distro)
         for p in postinstall:
             eval("g.%s()" % (p))
+        if packages:
+            g.installPackages(packages)
         return g
     else:
         if distro.startswith("generic-"): 
@@ -4483,6 +4441,9 @@ def createVM(host,
                     g.xmlrpcRemoveFile("c:\\postrun.vbs")
             else:
                 eval("g.%s()" % (p))
+
+        if packages:
+            g.installPackages(packages)
 
         return g
 

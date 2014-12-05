@@ -69,10 +69,15 @@ class NFSPacketCatcher(PacketCatcher):
         src, dst = re.search("(?P<src>[\w\.]+)\s+>\s+(?P<dst>[\w\.]+)", header).groups()
         srcseq = re.search("\.(?P<sequence>\d+$)", src) 
         dstseq = re.search("\.(?P<sequence>\d+$)", dst)
+        xid = re.search("xid\s+(?P<xid>\d+)\s", header)
+        if xid:
+            return xid.group("xid")
         if srcseq:
             return srcseq.group("sequence")
-        else:
+        elif dstseq:
             return dstseq.group("sequence")
+        else:
+            raise xenrt.XRTError("Cannot find NFS sequence or xid from packet.")
 
     def getNFSHeader(self, packet):
         header, body = packet

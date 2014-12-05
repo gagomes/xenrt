@@ -1195,7 +1195,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     xenrt.TEC().logverbose("Exception running %s on %s: %s" %
                                            (c, place.getName(), str(e)))
             # parse logs for errors
-            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log"]:
+            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log", "user.log"]:
                 try:
                     # See if it's there
                     if os.path.exists("%s/%s" % (d,log)):
@@ -2302,9 +2302,6 @@ logdata call."""
         if not inputDir:
             inputDir = xenrt.TEC().lookup("INPUTDIR")
         return inputDir
-
-    def isReleasedBuild(self):
-        return "/release/" in self.getInputDir()
 
     def __str__(self):
         if self.tc:

@@ -1,0 +1,14 @@
+## Debian security updates: 
+deb http://security.debian.org/ squeeze/updates main contrib non-free 
+deb-src http://security.debian.org/ squeeze/updates main contrib non-free 
+
+## Debian.org: 
+deb http://ftp.debian.org/debian/ squeeze main contrib non-free 
+deb-src http://ftp.debian.org/debian/ squeeze main contrib non-free 
+
+## Debian Official Repository Mirror squeeze: 
+deb ftp://debian.oregonstate.edu/debian/ squeeze main contrib non-free 
+deb-src ftp://debian.oregonstate.edu/debian/ squeeze main contrib non-free 
+deb ftp://debian.oregonstate.edu/debian/ squeeze-proposed-updates main contrib non-free 
+deb-src ftp://debian.oregonstate.edu/debian/ squeeze-proposed-updates main contrib non-free 
+

@@ -180,6 +180,8 @@ def createHost(id=0,
         hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
+    if version:
+        host.inputDir = version
 
     if iScsiBootLun:
         host.bootLun = iScsiBootLun
@@ -557,6 +559,7 @@ class Host(xenrt.GenericHost):
         self.bootLun = None
         self.bootNics = []
         self.distro = "XSDom0"
+        self.inputDir = None
 
         self.i_cd = None
         self.i_primarydisk = None
@@ -638,6 +641,7 @@ class Host(xenrt.GenericHost):
         x.haLocalConfig = self.haLocalConfig
         x.haStatefileBlocked = self.haStatefileBlocked
         x.haHeartbeatBlocks = self.haHeartbeatBlocks
+        x.inputDir = self.inputDir
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -1832,6 +1836,7 @@ fi
         # Call the private upgrade method
         newHost._upgrade(newVersion, suppackcds=suppackcds)
         newHost.checkVersion()
+        newHost.inputDir = newVersion
         # Set our replaced pointer
         self.replaced = newHost
         # Try and update the host object in the registry (if present)
@@ -2231,7 +2236,7 @@ fi
         
         xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
         if xenrt.TEC().lookup("APPLY_ALL_RELEASED_HFXS", False, boolean=True):
-            if xenrt.TEC().isReleasedBuild():
+            if self.isReleasedBuild():
                 xenrt.TEC().logverbose("This is a release build. Adding released hotfixes to config.")
                 xenrt.TEC().config.addAllHotfixes()
             else:
@@ -3270,6 +3275,12 @@ fi
         else:
             cpuinfo = self.execdom0("cat /proc/cpuinfo")
             return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
+
+    def isReleasedBuild(self):
+        if self.inputDir:
+            return "/release/" in self.inputDir
+        else:
+            return False
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface
@@ -13405,7 +13416,7 @@ class Pool:
                 xenrt.sleep(to + extra)
         else:
             raise xenrt.XRTError("Unknown HA timeout %s" % (key))            
-        if key == "W" and xenrt.TEC().lookup("WORKAROUND_CA86961", False, boolean=True):
+        if key == "W" and xenrt.TEC().lookup("WORKAROUND_CA86961", True, boolean=True):
             # Allow a further 3 minutes
             xenrt.TEC().warning("Working around CA-86961 by waiting an extra 3 minutes")
             xenrt.sleep(180)

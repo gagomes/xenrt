@@ -17,7 +17,11 @@ import os.path
 import random
 import urllib2, shutil, os, os.path
 import xmlrpclib
-import XenAPI, libvirt
+import XenAPI
+try:
+    import libvirt
+except:
+    sys.stderr.write("WARNING: Could not import libvirt classes\n")
 
 class Util:
     # try some function up to x times

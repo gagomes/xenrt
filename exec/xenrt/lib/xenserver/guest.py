@@ -4218,7 +4218,7 @@ def createVMFromFile(host,
                      filename,
                      userfile=False,
                      postinstall=[],
-                     packages=None,
+                     packages=[],
                      memory=None,
                      bootparams=None,
                      suffix=None,
@@ -4263,7 +4263,7 @@ def createVMFromFile(host,
     for p in postinstall:
         eval("guest.%s()" % (p))
     if packages:
-        guest.installPackages(packages)
+        guest.installPackages("".join(packages))
     return guest
 
 def createVM(host,
@@ -4279,7 +4279,7 @@ def createVM(host,
              arch="x86-32",
              disks=[],
              postinstall=[],
-             packages=None,
+             packages=[],
              pxe=False,
              template=None,
              notools=False,
@@ -4344,7 +4344,7 @@ def createVM(host,
         for p in postinstall:
             eval("g.%s()" % (p))
         if packages:
-            g.installPackages(packages)
+            g.installPackages("".join(packages))
         return g
     else:
         if distro.startswith("generic-"): 
@@ -4491,7 +4491,7 @@ def createVM(host,
                 eval("g.%s()" % (p))
 
         if packages:
-            g.installPackages(packages)
+            g.installPackages("".join(packages))
 
         return g
 

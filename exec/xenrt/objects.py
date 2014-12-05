@@ -9533,9 +9533,11 @@ while True:
         return self.instance
 
     def installPackages(self, packages):
-        self.enablePublicRepository()
+        self.enablePublicRepository(doUpdateOnSuccess=False)
+        self.setAptCacheProxy(doUpdateOnSuccess=False)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
+                self.execguest("apt-get update")
                 self.execguest("apt-get -y --force-yes install %s" % packages)
             elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
                 self.execguest("yum install -y %s" % packages)
@@ -9547,26 +9549,33 @@ while True:
             raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
         self.disablePublicRepository()
 
-    def enablePublicRepository(self):
+    def enablePublicRepository(self, doUpdateOnSuccess=True):
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
-                repoFileUrl = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "") + xenrt.TEC().lookup("LINUX_REPOSITORY_LISTS", "/usr/groups/xenrt/linuxrepolist/") + self.distro
-                self.execguest("wget %s -O /etc/apt/sources.list.public" % repoFileUrl)
-                self.execguest("cat /etc/apt/sources.list.orig /etc/apt/sources.list.public > /etc/apt/sources.list")
-
-                if "deb" in self.distro:
-                    aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
-                elif "ubuntu" in self.distro:
-                    aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
-                if aptProxy:
-                    self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-
-                self.execguest("apt-get update")
+                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + guest.distro
+                repoFileContent = xenrt.command("cat %s" % repoFile)
+                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent)
+                if doUpdate:
+                    self.execguest("apt-get update")
             else:
                 raise xenrt.XRTError("Not Implemented")
         except Exception, e:
             xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
+
+    def setAptCacheProxy(self, doUpdateOnSuccess=True):
+        try:
+            aptProxy = None
+            if "deb" in self.distro:
+                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
+            elif "ubuntu" in self.distro:
+                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
+            if aptProxy:
+                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
+                if doUpdate:
+                    self.execguest("apt-get update")
+        except Exception, e:
+            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
 
     def disablePublicRepository(self):
         try:

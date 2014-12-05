@@ -9532,9 +9532,10 @@ while True:
             xenrt.TEC().registry.instancePut(self.name, self)
         return self.instance
 
-    def installPackages(self, packages):
+    def installPackages(self, packageList):
         self.enablePublicRepository(doUpdateOnSuccess=False)
         self.setAptCacheProxy(doUpdateOnSuccess=False)
+        packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
                 self.execguest("apt-get update")

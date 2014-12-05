@@ -609,6 +609,7 @@ ifeq ($(PUPPETNODE),yes)
 	$(SUDO) apt-get update
 	$(SUDO) apt-get install -y puppet
 	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
+	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
 else
 	$(info This node must be set as a PUPPETNODE in the config.mk file)
 endif

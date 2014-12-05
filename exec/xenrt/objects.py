@@ -9556,7 +9556,7 @@ while True:
                 repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
                 repoFileContent = xenrt.command("cat %s" % repoFile)
                 self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent)
-                if doUpdate:
+                if doUpdateOnSuccess:
                     self.execguest("apt-get update")
             else:
                 raise xenrt.XRTError("Not Implemented")
@@ -9572,7 +9572,7 @@ while True:
                 aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
             if aptProxy:
                 self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
-                if doUpdate:
+                if doUpdateOnSuccess:
                     self.execguest("apt-get update")
         except Exception, e:
             xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)

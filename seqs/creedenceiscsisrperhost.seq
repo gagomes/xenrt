@@ -9,7 +9,7 @@
 
   <scheduler>
     <pool>4CLFCQ,4CLFCE</pool>
-    <param>MACHINES_REQUIRED=4</param>
+    <param>MACHINES_REQUIRED=1</param>
   </scheduler>
 
   <prepare>

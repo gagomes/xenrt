@@ -1,0 +1,48 @@
+<xenrt>
+
+  <!-- Create 256 iSCSI SRs on a single host and use it in a number of guests -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
+  </variables>
+
+  <scheduler>
+    <pool>4CLFCQ,4CLFCE</pool>
+    <param>MACHINES_REQUIRED=4</param>
+  </scheduler>
+
+  <prepare>
+    <pool>
+      <host id="0">
+        <vm name="lingold">
+          <distro>debian60</distro>
+          <arch>x86-64</arch>
+          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <network device="0" />
+          <disk device="0" size="8" />
+          <postinstall action="preCloneTailor"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Config">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
+        <arg>linuxvms=32</arg>
+        <arg>windowsvms=0</arg>
+        <arg>datadisk=7</arg>
+      </testcase>
+    </serial>
+    <serial group="Copy">
+      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+    </serial>
+    <serial group="Reboot">
+      <testcase id="xenserver.tc.srpervm.RebootAllVMs" />
+    </serial>
+  </testsequence>
+
+</xenrt>
+

@@ -1,0 +1,8 @@
+###### Ubuntu Main Repos
+deb http://uk.archive.ubuntu.com/ubuntu/ trusty main 
+
+###### Ubuntu Update Repos
+deb http://uk.archive.ubuntu.com/ubuntu/ trusty-security main 
+deb http://uk.archive.ubuntu.com/ubuntu/ trusty-updates main 
+deb http://uk.archive.ubuntu.com/ubuntu/ trusty-backports main 
+

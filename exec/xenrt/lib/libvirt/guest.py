@@ -247,7 +247,7 @@ class Guest(xenrt.GenericGuest):
 
     def _attachDevice(self, devicexmlstr, hotplug=False):
         """Attach a new device to the domain."""
-        xenrt.TEC().logverbose("Attaching device to %s" % self.name)
+        xenrt.TEC().logverbose("Attaching device to %s: devicexml=%s" % (self.name, devicexmlstr))
         if hotplug:
             if self.getState() == "UP" and self.enlightenedDrivers:
                 try:
@@ -1359,7 +1359,7 @@ class Guest(xenrt.GenericGuest):
 
         # create new mac addresses
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("mac"):
-            node.parentNode.removeChild(node)
+            node.setAttribute("address", xenrt.randomMAC())
 
         # clone the domain
         xmldom.getElementsByTagName("name")[0].childNodes[0].data = newname

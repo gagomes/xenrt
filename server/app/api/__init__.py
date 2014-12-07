@@ -374,6 +374,22 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
+class TakeoverTime(XenRTAPIPage):
+    def render(self):
+        try:
+            readDB = app.db.dbReadInstance()
+            readLoc = self.getReadLocation(readDB)
+            if not readLoc:
+                cur = readDB.cursor()
+                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
+                rc = cur.fetchone()
+                return rc[0]
+            else:
+                return HTTPServiceUnavailable()
+        finally:
+            readDB.rollback()
+            readDB.close()
+
 class IsMaster(XenRTAPIPage):
     def render(self):
         try:
@@ -419,6 +435,7 @@ PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmast
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
 PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
 PageFactory(IsMaster, "ismaster", "/api/ismaster")
+PageFactory(TakeoverTime, "takeovertime", "/api/takeovertime")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs

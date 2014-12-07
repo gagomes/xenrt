@@ -115,8 +115,13 @@ class ESXHost(xenrt.lib.libvirt.Host):
 
     # Normally it's datastore1, but sometimes you get datastore2. Not clear why.
     def getDefaultDatastore(self):
-        # Let's return the first one we find in the list of volumes.
-        return self.execdom0("cd /vmfs/volumes && ls -d datastore* | head -n 1").strip()
+        if self.defaultsr:
+            default = self.defaultsr
+        else:
+            # Let's return the first one we find in the list of volumes.
+            default = self.execdom0("cd /vmfs/volumes && ls -d datastore* | head -n 1").strip()
+        xenrt.TEC().logverbose("default sr = %s" % (default,))
+        return default
 
     def lookupDefaultSR(self):
         return self.srs[self.getDefaultDatastore()].uuid

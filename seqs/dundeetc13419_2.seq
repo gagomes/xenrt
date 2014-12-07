@@ -8,6 +8,7 @@
   </prepare>
   <testsequence>
     <parallel group="MaxMem_2" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC20573" prio="3" tc="TC-20573"/>
       <testcase id="xenserver.tc.smoketest.TC20574" prio="3" tc="TC-20574"/>
       <testcase id="xenserver.tc.smoketest.TC21420" prio="3" tc="TC-21420"/>
       <testcase id="xenserver.tc.smoketest.TC21421" prio="3" tc="TC-21421"/>
@@ -17,7 +18,6 @@
       <testcase id="xenserver.tc.smoketest.TC21425" prio="3" tc="TC-21425"/>
       <testcase id="xenserver.tc.smoketest.TC21426" prio="3" tc="TC-21426"/>
       <testcase id="xenserver.tc.smoketest.TC21501" prio="3" tc="TC-21501"/>
-      <testcase id="xenserver.tc.smoketest.TC21666" prio="3" tc="TC-21666"/>
     </parallel>
   </testsequence>
 </xenrt>

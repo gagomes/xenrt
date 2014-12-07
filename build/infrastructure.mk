@@ -610,3 +610,16 @@ marvin:
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
 
+.PHONY: puppet-%
+puppet-%:
+ifeq ($(PUPPETNODE),yes)
+	$(info Installing puppet agent)
+	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
+	$(SUDO) dpkg -i puppet-release.deb
+	$(SUDO) apt-get update
+	$(SUDO) apt-get install -y puppet
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
+	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
+else
+	$(info This node must be set as a PUPPETNODE in the config.mk file)
+endif

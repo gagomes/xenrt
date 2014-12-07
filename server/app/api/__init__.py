@@ -374,6 +374,19 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
+class IsMaster(XenRTAPIPage):
+    def render(self):
+        try:
+            readDB = app.db.dbReadInstance()
+            readLoc = self.getReadLocation(readDB)
+            if not readLoc:
+                return "This node is talking to the master database"
+            else:
+                return HTTPServiceUnavailable()
+        finally:
+            readDB.rollback()
+            readDB.close()
+
 class CheckDBSync(XenRTAPIPage):
     def render(self):
         try:
@@ -396,15 +409,16 @@ class CheckDBSync(XenRTAPIPage):
                 i += 1
             return HTTPServiceUnavailable()
         finally:
-            readDB.rollback()
-            readDB.close()
             writeDB.rollback()
             writeDB.close()
+            readDB.rollback()
+            readDB.close()
             
 
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
 PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
+PageFactory(IsMaster, "ismaster", "/api/ismaster")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs

@@ -13394,7 +13394,7 @@ class Pool:
                 xenrt.sleep(to + extra)
         else:
             raise xenrt.XRTError("Unknown HA timeout %s" % (key))            
-        if key == "W" and xenrt.TEC().lookup("WORKAROUND_CA86961", False, boolean=True):
+        if key == "W" and xenrt.TEC().lookup("WORKAROUND_CA86961", True, boolean=True):
             # Allow a further 3 minutes
             xenrt.TEC().warning("Working around CA-86961 by waiting an extra 3 minutes")
             xenrt.sleep(180)

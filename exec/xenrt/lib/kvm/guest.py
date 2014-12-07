@@ -77,7 +77,7 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
         if self.vcpus is None:
             self.vcpus = 1
         if rootdisk in [None, xenrt.lib.libvirt.Guest.DEFAULT]:
-            rootdisk = 8*xenrt.GIGA
+            rootdisk = 16*xenrt.GIGA
 
         # create VM definition from template
         # virt-install has some in-built "templates" -- as close as we can get with libvirt

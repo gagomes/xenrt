@@ -405,11 +405,11 @@ class IsMaster(XenRTAPIPage):
                     remote_time = int(r.text.strip())
                     cur = readDB.cursor()
                     cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
-                    local_time = int(cur.fetchone().strip())
+                    local_time = int(cur.fetchone()[0].strip())
                     if local_time > remote_time:
                         raise Exception("Remote is talking to a writable database, but local database is newer")
                 except Exception, e:
-                    return "This node is talking to the master database - remote node status %s" % str(e)
+                    return "This node is talking to the master database - partner node status %s" % str(e)
                 else:
                     return HTTPServiceUnavailable()
             else:

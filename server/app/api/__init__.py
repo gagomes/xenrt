@@ -7,6 +7,7 @@ import config
 
 import string
 from pyramid.httpexceptions import HTTPServiceUnavailable
+import requests
 
 class XenRTAPIPage(XenRTPage):
 
@@ -396,7 +397,21 @@ class IsMaster(XenRTAPIPage):
             readDB = app.db.dbReadInstance()
             readLoc = self.getReadLocation(readDB)
             if not readLoc:
-                return "This node is talking to the master database"
+                try:
+                    if not config.partner_ha_node:
+                        raise Exception("No partner node to check")
+                    r = requests.get("http://%s/xenrt/api/takeovertime" % config.partner_ha_node)
+                    r.raise_for_status()
+                    remote_time = int(r.text.strip())
+                    cur = readDB.cursor()
+                    cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
+                    local_time = int(cur.fetchone().strip())
+                    if local_time > remote_time:
+                        raise Exception("Remote is talking to a writable database, but local database is newer")
+                except Exception, e:
+                    return "This node is talking to the master database - remote node status %s" % str(e)
+                else:
+                    return HTTPServiceUnavailable()
             else:
                 return HTTPServiceUnavailable()
         finally:

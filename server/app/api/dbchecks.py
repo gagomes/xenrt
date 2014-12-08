@@ -6,6 +6,7 @@ from pyramid.httpexceptions import HTTPServiceUnavailable
 import requests
 
 import config
+import time
 
 
 class TakeoverTime(XenRTAPIPage):

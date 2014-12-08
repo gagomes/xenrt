@@ -3091,8 +3091,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
     def nfsDirSetup(self, nfsvm):
         """Setup an nfs share on the VM"""
         dir="/nfssr"
-        nfsvm.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsvm.installPackages(["nfs-kernel-server","nfs-common","portmap"])
 
         # Create a dir and export it
         nfsvm.execguest("mkdir %s" % dir)

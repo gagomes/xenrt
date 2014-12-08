@@ -2,7 +2,6 @@ import os, xml.dom.minidom, re, string
 
 cfg = {}
 
-cfg['masterurl'] ="@masterurl@"
 basedir ="@sharedir@/control"
 confdir = "@confdir@"
 netdata = os.popen("/sbin/ip addr show dev eth0").read()

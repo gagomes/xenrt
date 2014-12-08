@@ -827,7 +827,7 @@ class StorageAlerts(_AlertBase):
         guest.execguest("mkfs.ext3 /dev/%s" % device2)
         guest.execguest("mount /dev/%s /mnt" % device2)
         xenrt.TEC().logverbose("Creating some random data on VDI.")
-        guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=7000")
+        guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8000")
         
         if self.INTELLICACHE:
             cli=self.host.getCLIInstance()

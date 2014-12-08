@@ -375,82 +375,9 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
-class TakeoverTime(XenRTAPIPage):
-    def render(self):
-        try:
-            readDB = app.db.dbReadInstance()
-            readLoc = self.getReadLocation(readDB)
-            if not readLoc:
-                cur = readDB.cursor()
-                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
-                rc = cur.fetchone()
-                return rc[0]
-            else:
-                return HTTPServiceUnavailable()
-        finally:
-            readDB.rollback()
-            readDB.close()
-
-class IsMaster(XenRTAPIPage):
-    def render(self):
-        try:
-            readDB = app.db.dbReadInstance()
-            readLoc = self.getReadLocation(readDB)
-            if not readLoc:
-                try:
-                    if not config.partner_ha_node:
-                        raise Exception("No partner node to check")
-                    r = requests.get("http://%s/xenrt/api/takeovertime" % config.partner_ha_node)
-                    r.raise_for_status()
-                    remote_time = int(r.text.strip())
-                    cur = readDB.cursor()
-                    cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
-                    local_time = int(cur.fetchone()[0].strip())
-                    if local_time > remote_time:
-                        raise Exception("Remote is talking to a writable database, but local database is newer")
-                except Exception, e:
-                    return "This node is talking to the master database - partner node status %s" % str(e)
-                else:
-                    return HTTPServiceUnavailable()
-            else:
-                return HTTPServiceUnavailable()
-        finally:
-            readDB.rollback()
-            readDB.close()
-
-class CheckDBSync(XenRTAPIPage):
-    def render(self):
-        try:
-            check_interval = 0.5
-            timeout = 5
-
-            writeDB = app.db.dbWriteInstance()
-            readDB = app.db.dbReadInstance()
-
-            writeLoc = self.getWriteLocation(writeDB)
-            i = 0
-            while i <= timeout/check_interval:
-                readLoc = self.getReadLocation(readDB)
-                if not readLoc:
-                    return "This node is talking to the master database"
-
-                if readLoc >= writeLoc:
-                    return "This node is in sync, delay = %fs" % (i* check_interval)
-                time.sleep(check_interval)
-                i += 1
-            return HTTPServiceUnavailable()
-        finally:
-            writeDB.rollback()
-            writeDB.close()
-            readDB.rollback()
-            readDB.close()
-            
 
 PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
-PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
-PageFactory(IsMaster, "ismaster", "/api/ismaster")
-PageFactory(TakeoverTime, "takeovertime", "/api/takeovertime")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs
@@ -463,3 +390,4 @@ import app.api.files
 import app.api.results
 import app.api.guestfile
 import app.api.resources
+import app.api.dbchecks

@@ -224,6 +224,7 @@ class RebootAllVMs(xenrt.TestCase):
                     if g.getState() == "UP":
                         #noreachcheck=True will ensure the VNC Snapshot is taken and checked.
                         g.checkHealth(noreachcheck=True) 
+                        g.verifyGuestFunctional()
                 except:
                     xenrt.TEC().warning("Guest %s not up" % (g.getName()))
                     failedGuests.append(g.getName())

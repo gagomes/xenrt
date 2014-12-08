@@ -223,8 +223,9 @@ class RebootAllVMs(xenrt.TestCase):
                 try:
                     if g.getState() == "UP":
                         #noreachcheck=True will ensure the VNC Snapshot is taken and checked.
-                        g.checkHealth(noreachcheck=True) 
-                        g.verifyGuestFunctional()
+                        g.checkHealth(noreachcheck=True)
+                        #attachedDisks=True uses all the attached disks.
+                        g.verifyGuestFunctional(migrate=True, attachedDisks=True)
                 except:
                     xenrt.TEC().warning("Guest %s not up" % (g.getName()))
                     failedGuests.append(g.getName())

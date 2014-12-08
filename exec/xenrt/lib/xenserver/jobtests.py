@@ -184,6 +184,7 @@ class JTDeadLetter(xenrt.JobTest):
                     sftp.close()
             except:
                 pass
+            xenrt.TEC().logverbose(self.host.execdom0("cat /root/dead.letter"))
             return "dead.letter: %s" % self.host.execdom0("du -h /root/dead.letter")
 
 class JTCoresPerSocket(xenrt.JobTest):

@@ -218,16 +218,7 @@ class _VSwitch(xenrt.TestCase):
         raise xenrt.XRTError("Failed to find guest with name %s" % (name))
 
     def setupGuestTcpDump(self, guest):
-        if self.wdir == None:
-            self.wdir = xenrt.resources.WebDirectory()
-            self.wdir.copyIn("/local/apt-cache/packages/libssl0.9.7_0.9.7e-3sarge5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/libpcap0.8_0.8.3-5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/tcpdump_3.8.3-5sarge2_i386.deb")
-
-        guest.execguest("wget %s" % self.wdir.getURL("libssl0.9.7_0.9.7e-3sarge5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("libpcap0.8_0.8.3-5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("tcpdump_3.8.3-5sarge2_i386.deb"))
-        guest.execguest("dpkg -i libssl0.9.7_0.9.7e-3sarge5_i386.deb libpcap0.8_0.8.3-5_i386.deb tcpdump_3.8.3-5sarge2_i386.deb")
+        guest.installPackages(["tcpdump"])
 
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()

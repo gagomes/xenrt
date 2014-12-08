@@ -1,5 +1,6 @@
 from app.api import XenRTAPIPage
 from server import PageFactory
+import app.db
 
 from pyramid.httpexceptions import HTTPServiceUnavailable
 import requests

@@ -69,6 +69,7 @@ def resultDisplay(resultcode):
 
 STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/daemon.log",
+                 "/var/log/user.log",
                  "/var/log/xend.log",
                  "/var/log/xend-debug.log",
                  "/var/log/xen-hotplug.log",

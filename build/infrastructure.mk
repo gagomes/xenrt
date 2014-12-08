@@ -445,6 +445,11 @@ endif
 	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default
+ifeq ($(PROXY_JENKINS_8080),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/jenkins-proxy /etc/apache2/sites-available
+	$(SUDO) sed -i 's#@@PROXY_JENKINS_URL@@#$(PROXY_JENKINS_URL)#' /etc/apache2/sites-available/jenkins-proxy
+	$(SUDO) ln -s /etc/apache2/sites-available/jenkins-proxy /etc/apache2/sites-enabled/001-jenkins
+endif
 	$(SUDO) a2enmod cgi
 	$(SUDO) a2enmod alias
 	$(SUDO) a2enmod rewrite

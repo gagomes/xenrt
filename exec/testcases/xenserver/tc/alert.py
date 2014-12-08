@@ -807,11 +807,6 @@ class StorageAlerts(_AlertBase):
                             alarmLevel=self.ALARMLEVEL,
                             alarmTriggerPeriod=self.ALARMTRIGGERPERIOD,
                             alarmAutoInhibitPeriod=self.ALARMAUTOINIHIBITPERIOD)
-        #self.createWindowsVM(host=self.host, srtype=self.uuid, waitForStart=True)
-
-        # Setup required to generate alerts
-        #for i in range(numVMs):
-        #    self.createWindowsVM(host=self.host, srtype=self.uuid)
 
         #Create a generic linux guest
         guest = self.host.createGenericLinuxGuest(sr = self.uuid)

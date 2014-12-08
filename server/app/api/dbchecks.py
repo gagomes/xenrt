@@ -16,7 +16,7 @@ class _DBCheckBase(XenRTAPIPage):
                 if not config.partner_ha_node:
                     return "This node is connected to the master database - no partner node exists to check for split brain"
                 try:
-                    r = requests.get("http://%s/xenrt/api/takeovertime" % config.partner_ha_node)
+                    r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node)
                     r.raise_for_status()
                     remote_time = int(r.text.strip())
                 except Exception, e:

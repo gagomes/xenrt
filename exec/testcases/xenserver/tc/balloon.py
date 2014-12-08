@@ -884,11 +884,7 @@ class TC9284(xenrt.TestCase):
 
     def migrateNoncoop(self):
         # Make the guest non cooperative
-        # temporary change till CA-151643 is not fixed
-        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
-            xenrt.TEC().logverbose("Not running this subcase. CA-151643 workaround")
-            return
-            
+        
         self.guest.makeCooperative(False)
         try:
             self.guest.migrateVM(self.host, live="true")

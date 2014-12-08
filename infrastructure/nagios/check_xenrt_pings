@@ -110,14 +110,12 @@ f = os.popen("xenrt mlist2 -s %s -C" % site)
 machines = f.readlines()
 f.close()
 
-machinexml = xml.dom.minidom.parseString(os.popen("/usr/share/xenrt/exec/main.py --run-tool 'machineXML()'").read())
-
 for m in machines:
     (machine,status,job) = m.split(",")
     if status == "offline":
         continue
     try:
-        mdom = machinexml.getElementsByTagName(machine)[0]
+        mdom = xml.dom.minidom.parseString(open("/etc/xenrt/machines/%s.xml" % machine).read())
         for (i,j) in machinexmlnodes:
             addresslist = mdom.getElementsByTagName(i)
             for a in addresslist:

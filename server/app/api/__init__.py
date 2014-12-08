@@ -359,10 +359,35 @@ class XenRTAPIPage(XenRTPage):
                 db.commit()
             finally:
                 cur.close()
+    
+    def isDBMaster(self):
+        try:
+            readDB = app.db.dbReadInstance()
+            readLoc = self.getReadLocation(readDB)
+            if not readLoc:
+                if not config.partner_ha_node:
+                    return "This node is connected to the master database - no partner node exists to check for split brain"
+                try:
+                    r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node)
+                    r.raise_for_status()
+                    remote_time = int(r.text.strip())
+                except Exception, e:
+                    return "This node is connected the master database - partner does not seem to be the master database - %s" % str(e)
+                cur = readDB.cursor()
+                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
+                local_time = int(cur.fetchone()[0].strip())
+                if local_time > remote_time:
+                    return "This node is connected the master database - remote is talking to a writable database, but local database is newer"
+                else:
+                    print "This node is connected to a writable database, but remote database is newer"
+                    raise HTTPServiceUnavailable()
+            else:
+                return None
+        finally:
+            readDB.rollback()
+            readDB.close()
 
-class XenRTMasterURL(XenRTAPIPage):
-    def render(self):
-        return config.masterurl
+        
 
 class XenRTLogServer(XenRTAPIPage):
     def render(self):
@@ -376,7 +401,6 @@ class DumpHeaders(XenRTAPIPage):
         return out
 
 
-PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 

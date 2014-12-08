@@ -523,8 +523,11 @@ ifeq ($(DONAGIOS),yes)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/check_* /usr/lib/nagios/plugins/
 	$(SUDO) sed -i '/nrpe_user=/d' $(NRPE)
 	$(SUDO) sed -i '/nrpe_group=/d' $(NRPE)
-	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPE)"
-	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPE)"
+	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+ifeq ($(PUPPETNODE),yes)
+	$(SUDO) sed -i '/command[check_disk]/d' $(NRPECONFDIR)/xenrt.cfg
+endif
 	$(SUDO) /etc/init.d/nagios-nrpe-server restart 
 endif
 

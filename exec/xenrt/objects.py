@@ -9538,7 +9538,7 @@ while True:
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("apt-get update")
+                self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
             elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
                 self.execguest("yum install -y %s" % packages)

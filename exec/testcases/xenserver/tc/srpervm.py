@@ -207,6 +207,11 @@ class TCMonitorLowMem(xenrt.TestCase):
 
 class RebootAllVMs(xenrt.TestCase):
     def run(self, arglist=[]):
+
+        failedGuests = []
+        failedHosts = []
+        numOfGuests = 0
+
         for os in ["win", "lin"]:
             i = 0
             while True:
@@ -214,4 +219,18 @@ class RebootAllVMs(xenrt.TestCase):
                 if not g:
                     break
                 g.reboot()
+
+                try:
+                    if g.getState() == "UP":
+                        #noreachcheck=True will ensure the VNC Snapshot is taken and checked.
+                        g.checkHealth(noreachcheck=True) 
+                except:
+                    xenrt.TEC().warning("Guest %s not up" % (g.getName()))
+                    failedGuests.append(g.getName())
+
                 i += 1
+                numOfGuests +=1
+
+        if len(failedGuests) > 0:
+            raise xenrt.XRTFailure("Failed to perform health checks on %d/%d guests - %s" %
+                                    (len(failedGuests), numOfGuests, ", ".join(failedGuests)))

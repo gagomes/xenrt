@@ -1570,7 +1570,7 @@ class TCPatchApply(xenrt.TestCase):
         except xenrt.XRTFailure, e:
             raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
 
-        if self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost)and self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
             raise xenrt.XRTFailure("Deployment_Guide-en-US RPM not found after applying hotfix2")
     
     def patch3(self):

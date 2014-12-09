@@ -52,7 +52,6 @@
     <testcase id="xenserver.tc.host.TC9123" prio="3"/>
     <testcase id="xenserver.tc.cli.TC8906" prio="3"/>
     <testcase id="xenserver.tc.cli.TC8907" prio="3"/>
-    <testcase id="xenserver.tc.vmlifecycle.TC10054" prio="3"/>
     <testcase id="xenserver.tc.host.TC10171" prio="3"/>
     <testcase id="xenserver.tc.security.TC10557" prio="3"/>
     <testcase id="xenserver.tc.storage.TC10615" prio="3"/>

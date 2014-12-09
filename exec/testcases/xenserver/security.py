@@ -494,3 +494,99 @@ class TCXSA55(TCXSA24):
                 raise xenrt.XRTFailure("Unexpected error message while starting a VM with invalid kernel", data=str(e.data))
         else:
             raise xenrt.XRTFailure("Succeeded to start a VM with an invalid kernel")
+
+class TCXSA87(TCXSA29):
+    """Test to verify XSA-87"""
+    # Jira TC-23743
+    
+    VULN = 87
+
+    def run(self, arglist=None):
+        
+        self.host.execdom0("xl create /root/minios.cfg")
+        self.checkHost()
+        
+        if not self.host.guestconsolelogs:
+            raise xenrt.XRTFailure("No guest console logs")
+        filename = "%s/console.*.log" % (self.host.guestconsolelogs)
+        logs = self.host.execdom0("tail -n 100 %s" % (filename))
+        
+        if "Xen appears still vulnerable to XSA-87!" in logs:
+            raise xenrt.XRTFailure("XSA-87 not reported as fixed.")
+        elif "XSA-87 appears fixed" in logs:
+            xenrt.TEC().logverbose("XSA-87 fixed")
+        else:
+            raise xenrt.XRTFailure("Unexpected output. 'XSA-87' not found in logs")
+            
+class TCXSA111(_TCXSA):
+    """Test to verify XSA-111"""
+    # Jira TC-23744
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
+        url = "http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111"
+        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+    
+    def run(self, arglist=None):
+        vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
+        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % vm)
+        try:
+            self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
+        except:
+            pass
+
+        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
+        xenrt.TEC().logverbose(serlog)
+        
+        try:
+            self.checkHost()
+        except:
+            # host crashed
+            raise xenrt.XRTFailure("Unexpected output. Host crashed")
+            self.host.reboot()
+            
+        xenrt.TEC().logverbose("Expected output: Host didn't crash")
+        
+    def postRun(self):
+        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
+        self.host.reboot()
+
+        
+        
+class TCXSA112(_TCXSA):
+    """Test to verify XSA-112"""
+    # Jira TC-23745
+    
+    def prepare(self, arglist=None):
+        _TCXSA.prepare(self, arglist)
+        #change log level
+        self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
+        self.host.reboot()
+        
+        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
+        url = "http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112"
+        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+        
+    def run(self, arglist=None):
+        vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
+        self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=4" % vm)
+        
+        try:
+            self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
+        except:
+            pass
+        self.checkHost()
+        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
+        xenrt.TEC().logverbose(serlog)
+        
+        if "All done: Poisoned value found as expected" in serlog:
+            xenrt.TEC().logverbose("Expected output: Found 'Poisoned value found as expected' in serial log")
+        elif "Test failed: Expected to find poisoned value" in serlog:
+            raise xenrt.XRTFailure("XSA-112 not fixed.Found 'Test failed: Expected to find poisoned value' in logs")
+        else:
+            raise xenrt.XRTFailure("Unexpected output in serial logs")
+    
+    def postRun(self):
+        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
+        self.host.reboot()

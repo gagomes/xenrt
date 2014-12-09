@@ -73,8 +73,8 @@ class _VMScalability(_Scalability):
     MAX = 0
     TRYMAX = False # TRY to load the MAXimum possible VMs, by disabling some features
     LOOPS = 0
-    DISTRO = "LINUX"
-    ARCH = "x86-32"
+    DISTRO = "debian70"
+    ARCH = "x86-64"
     MEMORY=384
     CHECKHEALTH = False
     CHECKREACHABLE = False
@@ -453,6 +453,9 @@ class _VMScalability(_Scalability):
             self.lock.acquire()
             if passed:
                 self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
+                if g.getDomid() <= self.vmDomid:
+                    xenrt.TEC().warning("Guest %s domid %s less than previous guest's domid %s" (g.getName(),g.getDomid(), self.vmDomid))
+                self.vmDomid = g.getDomid()
             self.lock.release()
 
     def loopingTest(self):
@@ -470,6 +473,7 @@ class _VMScalability(_Scalability):
                 xenrt.TEC().logverbose("LOOP %s: Loop iteration started. Starting all Guests."% i)
                 self.guestsPendingOperation = [g for g in self.guests]
                 self.nbrOfPassedGuests = 0
+                self.vmDomid = 0
                 xenrt.pfarm ([xenrt.PTask(self.guestOperationThread, operation="start", iterationNbr=i) for threads in range(nbrOfThreads)])
                 xenrt.TEC().comment("LOOP %s: start attempt finished with %s%% (%s/%s) success rate ."% (i,(self.nbrOfPassedGuests*100/self.nbrOfGuests),self.nbrOfPassedGuests,self.nbrOfGuests))
 
@@ -665,11 +669,11 @@ class TC19270(_VMScalability):
     CHECKREACHABLE=True
     CHECKHEALTH=True
     TRYMAX = True
-    NET_BRIDGE = True
+    NET_BRIDGE = False
     #DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
-    DOM0CPUS = True
+    DOM0CPUS = False
 
 class TC19271(_VMScalability):
     """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""

@@ -40,7 +40,7 @@
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
     <serial group="Reboot">
-      <testcase id="xenserver.tc.srpervm.RebootAllVMs" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
     </serial>
   </testsequence>
 

@@ -444,11 +444,11 @@ class _VMScalability(_Scalability):
                 elif operation == "start":
                     g.start(specifyOn = False)
                 passed = True
-            except:
+            except Exception, e:
                 if iterationNbr == None:
-                    xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
+                    xenrt.TEC().warning("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
                 else:
-                    xenrt.TEC().warning("LOOP %s: Guest %s failed to %s" % (iterationNbr, g.getName(), operation))
+                    xenrt.TEC().warning("LOOP %s: Guest %s failed to %s : %s" % (iterationNbr, g.getName(), operation, str(e)))
 
             self.lock.acquire()
             if passed:

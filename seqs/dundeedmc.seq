@@ -13,7 +13,6 @@
 
   <testsequence>
     <serial group="TC-9283">
-      <testcase id="xenserver.tc.balloon.TC9284"/>
       <testcase id="xenserver.tc.balloon.TC9285"/>
       <testcase id="xenserver.tc.balloon.TC9527"/>
       <testcase id="xenserver.tc.balloon.TC9528"/>
@@ -24,6 +23,7 @@
       <testcase id="xenserver.tc.balloon.TC12600"/>
       <testcase id="xenserver.tc.balloon.TC12602"/>
       <testcase id="xenserver.tc.balloon.TC12603"/>
+      <testcase id="xenserver.tc.balloon.TC9284"/>
     </serial>
   </testsequence>
 

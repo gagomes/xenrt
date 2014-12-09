@@ -180,8 +180,6 @@ def createHost(id=0,
         hosttype = xenrt.TEC().lookup("PRODUCT_VERSION", "Orlando")
     host = xenrt.lib.xenserver.hostFactory(hosttype)(m,
                                                      productVersion=hosttype)
-    if version:
-        host.inputDir = version
 
     if iScsiBootLun:
         host.bootLun = iScsiBootLun
@@ -314,7 +312,11 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # Set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
-        host.execdom0("xenpm set-scaling-governor performance")
+        host.execdom0("xenpm set-scaling-governor %s" % (cpufreqgovernor))
+
+        # Make it persist across reboots
+        args = {"cpufreq": "xen:%s" % (cpufreqgovernor)}
+        host.setXenCmdLine(set="xen", **args)
 
         output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
@@ -559,7 +561,6 @@ class Host(xenrt.GenericHost):
         self.bootLun = None
         self.bootNics = []
         self.distro = "XSDom0"
-        self.inputDir = None
 
         self.i_cd = None
         self.i_primarydisk = None
@@ -641,7 +642,6 @@ class Host(xenrt.GenericHost):
         x.haLocalConfig = self.haLocalConfig
         x.haStatefileBlocked = self.haStatefileBlocked
         x.haHeartbeatBlocks = self.haHeartbeatBlocks
-        x.inputDir = self.inputDir
 
     def _clearObjectCache(self):
         """Remove cached object data."""
@@ -1836,7 +1836,6 @@ fi
         # Call the private upgrade method
         newHost._upgrade(newVersion, suppackcds=suppackcds)
         newHost.checkVersion()
-        newHost.inputDir = newVersion
         # Set our replaced pointer
         self.replaced = newHost
         # Try and update the host object in the registry (if present)
@@ -2236,7 +2235,7 @@ fi
         
         xenrt.TEC().logverbose("Applying required hotfixes. Product-version: %s" % self.productVersion)
         if xenrt.TEC().lookup("APPLY_ALL_RELEASED_HFXS", False, boolean=True):
-            if self.isReleasedBuild():
+            if xenrt.TEC().isReleasedBuild():
                 xenrt.TEC().logverbose("This is a release build. Adding released hotfixes to config.")
                 xenrt.TEC().config.addAllHotfixes()
             else:
@@ -3275,12 +3274,6 @@ fi
         else:
             cpuinfo = self.execdom0("cat /proc/cpuinfo")
             return self.isHvmEnabled() and re.search(r"vmx", cpuinfo)
-
-    def isReleasedBuild(self):
-        if self.inputDir:
-            return "/release/" in self.inputDir
-        else:
-            return False
 
     def getBridgeWithMapping(self, index):
         """Returns the name of a bridge corresponding to the interface

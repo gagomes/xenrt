@@ -435,6 +435,11 @@ httpd:
 	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default
+ifeq ($(PROXY_JENKINS_8080),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/jenkins-proxy /etc/apache2/sites-available
+	$(SUDO) sed -i 's#@@PROXY_JENKINS_URL@@#$(PROXY_JENKINS_URL)#' /etc/apache2/sites-available/jenkins-proxy
+	$(SUDO) ln -s /etc/apache2/sites-available/jenkins-proxy /etc/apache2/sites-enabled/001-jenkins
+endif
 	$(SUDO) a2enmod cgi
 	$(SUDO) a2enmod alias
 	$(SUDO) a2enmod rewrite
@@ -516,10 +521,14 @@ ifeq ($(DONAGIOS),yes)
 	$(SUDO) sed -i 's/dont_blame_nrpe=0/dont_blame_nrpe=1/g' $(NRPE)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/xenrt.cfg $(NRPECONFDIR)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/check_* /usr/lib/nagios/plugins/
+ifeq ($(PUPPETNODE),yes)
+	$(SUDO) sed -i '/command[check_disk]/d' $(NRPECONFDIR)/xenrt.cfg
+else
 	$(SUDO) sed -i '/nrpe_user=/d' $(NRPE)
 	$(SUDO) sed -i '/nrpe_group=/d' $(NRPE)
-	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPE)"
-	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPE)"
+	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+endif
 	$(SUDO) /etc/init.d/nagios-nrpe-server restart 
 endif
 
@@ -600,3 +609,16 @@ marvin:
 	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
 	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
 
+.PHONY: puppet-%
+puppet-%:
+ifeq ($(PUPPETNODE),yes)
+	$(info Installing puppet agent)
+	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
+	$(SUDO) dpkg -i puppet-release.deb
+	$(SUDO) apt-get update
+	$(SUDO) apt-get install -y puppet
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
+	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
+else
+	$(info This node must be set as a PUPPETNODE in the config.mk file)
+endif

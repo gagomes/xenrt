@@ -295,6 +295,7 @@ class XenRTSubmit(XenRTJobPage):
             if key != 'action':
                 details[key] = form[key]
         details['JOB_FILES_SERVER'] = config.log_server
+        details['LOG_SERVER'] = config.log_server
         if details.has_key("MACHINE") and details["MACHINE"] == "ALL":
             # XRT-127
             allto = 86400

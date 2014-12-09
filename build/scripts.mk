@@ -278,7 +278,6 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
@@ -297,7 +296,6 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@.tmp
 	sed -i 's#@vardir@#$(VARDIR)#g' $@.tmp
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@.tmp
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@.tmp
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@.tmp
 	python $@.tmp > $@
 	rm $@.tmp

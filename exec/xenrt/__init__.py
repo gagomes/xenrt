@@ -69,6 +69,7 @@ def resultDisplay(resultcode):
 
 STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/daemon.log",
+                 "/var/log/user.log",
                  "/var/log/xend.log",
                  "/var/log/xend-debug.log",
                  "/var/log/xen-hotplug.log",
@@ -2302,6 +2303,9 @@ logdata call."""
         if not inputDir:
             inputDir = xenrt.TEC().lookup("INPUTDIR")
         return inputDir
+
+    def isReleasedBuild(self):
+        return "/release/" in self.getInputDir()
 
     def __str__(self):
         if self.tc:

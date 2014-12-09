@@ -826,20 +826,7 @@ This ticket represents a failed job level testcase. To avoid spam, XenRT's seen 
             environment += "\nJenkins URL: %s" % jenkins
         environment += "\nXenRT Job URL: http://xenrt.xs.citrite.net/xenrt/minimalframe?jobs=%s" % jobid
         assignee = xenrt.TEC().lookup("AUTO_BUG_ASSIGNEE", None)
-        
-        if tcid == "TC-21564":
-            fline = ""
-            for hostname in hostsStr.split(','):
-                try:
-                    f = open("%s/%s_dead.letter" % (xenrt.TEC().getLogdir(),hostname.strip()))
-                    data = f.read()
-                    fline = (data.strip().split('\n')[0])
-                    if fline:
-                        break
-                except:
-                    pass
-            reason = reason+fline
-            
+
         sstr = "JobTest/%s: %s" % (tcid, reason)
         (i, new) = self.fileTicket("fail", ("JobTest", tcid, reason),
                                    sstr,description,environment,None,assignee,hosts,tcid)

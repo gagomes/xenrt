@@ -208,6 +208,18 @@ class TCMonitorLowMem(xenrt.TestCase):
 class RebootAllVMs(xenrt.TestCase):
     def run(self, arglist=[]):
 
+        for os in ["win", "lin"]:
+            i = 0
+            while True:
+                g = self.getGuest("%sclone-%d" % (os, i))
+                if not g:
+                    break
+                g.reboot()
+                i += 1
+
+class LifeCycleAllVMs(xenrt.TestCase):
+    def run(self, arglist=[]):
+
         failedGuests = []
         failedHosts = []
         numOfGuests = 0
@@ -223,7 +235,9 @@ class RebootAllVMs(xenrt.TestCase):
                 try:
                     if g.getState() == "UP":
                         #noreachcheck=True will ensure the VNC Snapshot is taken and checked.
-                        g.checkHealth(noreachcheck=True) 
+                        g.checkHealth(noreachcheck=True)
+                        #attachedDisks=True uses all the attached disks.
+                        g.verifyGuestFunctional(migrate=True, attachedDisks=True)
                 except:
                     xenrt.TEC().warning("Guest %s not up" % (g.getName()))
                     failedGuests.append(g.getName())

@@ -3913,18 +3913,31 @@ exit /B 1
         self.getHost().xenstoreWrite(\
             "/local/domain/%u/data/updated" % (domid), '1')
 
-    def verifyGuestFunctional(self, migrate=False):
+    def verifyGuestFunctional(self, migrate=False, attachedDisks=False):
         if self.getState() == "UP":
             if self.windows:
                 # Write a file
                 self.xmlrpcExec("echo 'Testing Storage Access' > \\teststorage") 
                 # Read it
                 self.xmlrpcExec("type \\teststorage") 
+
+                if attachedDisks:
+                    raise xenrt.XRTError("Unimplemented")
+
             else:
                 # Write a file
                 self.execguest("dd if=/dev/zero bs=1024 count=1000 of=teststorage")
                 # Read it
                 self.execguest("dd if=teststorage of=/dev/null")
+
+                if attachedDisks:
+                    devices = self.getHost().minimalList("vbd-list", "device",
+                                    "vm-uuid=%s bootable=false type=Disk" % (self.getUUID()))
+                    for d in devices:
+                        # Write a file
+                        self.execguest("dd if=/dev/zero bs=1024 count=1000 of=/dev/%s" % d)
+                        # Read it
+                        self.execguest("dd if=/dev/%s of=/dev/null" % d)
 
             if migrate:
                self.migrateVM(host=self.host, live="true")

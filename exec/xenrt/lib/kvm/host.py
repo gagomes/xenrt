@@ -128,6 +128,7 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # For each CPU, set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
+        # TODO also make this persist across reboots
         host.execcmd("for cpu in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo %s > $cpu; done" % (cpufreqgovernor,))
 
         output = host.execcmd("head /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor || true")

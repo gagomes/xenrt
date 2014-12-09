@@ -3922,7 +3922,7 @@ exit /B 1
                 self.xmlrpcExec("type \\teststorage") 
 
                 if attachedDisks:
-                    pass # To be implemented.
+                    raise xenrt.XRTError("Unimplemented")
 
             else:
                 # Write a file

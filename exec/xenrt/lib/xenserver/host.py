@@ -11190,7 +11190,7 @@ class CreedenceHost(ClearwaterHost):
     def licensedFeatures(self):
         return LicensedFeatureFactory().allFeatures(self)
 
-    def checkHostLicenseState(self, edition):
+    def checkLicenseState(self, edition):
 
         details = self.getLicenseDetails()
 
@@ -14057,8 +14057,6 @@ class ClearwaterPool(TampaPool):
 
     def checkLicenseState(self, edition):
 
-        failure = []
-
         poolEdition = ""
         poolLicenseState = self.getPoolParam("license-state")
         
@@ -14070,15 +14068,6 @@ class ClearwaterPool(TampaPool):
 
         if not (edition == poolEdition):
             raise xenrt.XRTFailure("Pool edition is not similar to %s" % edition)
-
-        #for h in self.getHosts():
-        #    try:
-        #        h.checkHostLicenseState(edition ,licensed)
-        #    except Exception, e:
-        #        failure.append(str(e))
-        if failure:
-            xenrt.TEC().logverbose("Following hosts have not got same editions")
-            raise xenrt.XRTFailure(failure)
 
     def getNoOfSockets(self):
 

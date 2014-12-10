@@ -11,13 +11,13 @@ class LicenceManager(object):
         totalLicenses, licenseinUse = v6.getLicenseInUse(license.getLicenceName())
         return licenseinUse
 
-    def applyLicense(self, v6, hostOrPool, license):
-        self.addLicensesToServer(v6, license)
+    def applyLicense(self, v6, hostOrPool, license,licenseinUse):
         hostOrPool.licenseApply(v6,license)
-        self.verifyLicenseServer(license.getEdition()) # TO GO?
+        self.verifyLicenseServer(license,v6,licenseinUse,hostOrPool) 
 
     def releaseLicense(self, hostOrPool):
-        hostOrPool.license(v6server=None, sku='free', usev6testd=False)
+        licence = XenServerLicenceFactory().licenseForPool(hostOrPool,XenServerLicenceSKU.Free.lower())
+        hostOrPool.licenseApply(None,licence)
 
     def verifyLicenseServer(self, license, v6, licenseinUse, hostOrPool, reset=False):
 
@@ -188,7 +188,8 @@ class XenServerLicenceFactory(object):
         raise ValueError("No licence object was found for the provided host version: %s" % productVersion)
 
     def allLicencesForPool(self, xspool):
-        return self.allLicences(xspool.master)
+        lver = self.__getHostAge(xspool.master)
+        return self.allLicences(lver)
 
     def allLicencesForHost(self, xshost):
         lver = self.__getHostAge(xshost)
@@ -205,7 +206,8 @@ class XenServerLicenceFactory(object):
         raise ValueError("No licence object was found for the provided host version: %s" % productVersion)
 
     def licenceForPool(self, xspool, sku):
-        return self.licence(xspool.master, sku)
+        lver =self.__getHostAge(xspool.master)
+        return self.licence(lver, sku)
 
     def licenceForHost(self, xshost, sku):
         lver = self.__getHostAge(xshost)

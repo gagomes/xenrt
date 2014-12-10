@@ -313,7 +313,7 @@ Version 1.1.0
                     distro=self.distro,
                     arch=self.arch,
                     postinstall=postinstall,
-                    vifs=xenrt.productLib(host=self.host).Guest.DEFAULT)
+                    vifs=self.host.guestFactory().DEFAULT)
 
             if self.template.windows:
                 if not isinstance(self.template, xenrt.lib.esx.Guest):

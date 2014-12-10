@@ -446,15 +446,17 @@ class _VMScalability(_Scalability):
                 passed = True
             except Exception, e:
                 if iterationNbr == None:
-                    xenrt.TEC().warning("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
+                    xenrt.TEC().warning("Guest %s failed to %s : %s" % (g.getName(), operation))
+                    xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
                 else:
-                    xenrt.TEC().warning("LOOP %s: Guest %s failed to %s : %s" % (iterationNbr, g.getName(), operation, str(e)))
-
+                    xenrt.TEC().warning("LOOP %s: Guest %s failed to %s : %s" % (iterationNbr, g.getName(), operation))
+                    xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
+                    
             self.lock.acquire()
             if passed:
                 self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
                 if g.getDomid() <= self.vmDomid:
-                    xenrt.TEC().warning("Guest %s domid %s less than previous guest's domid %s" (g.getName(),g.getDomid(), self.vmDomid))
+                    raise xenrt.XRTFailure("Guest %s domid %s less than previous guest's domid %s" (g.getName(),g.getDomid(), self.vmDomid))
                 self.vmDomid = g.getDomid()
             self.lock.release()
 

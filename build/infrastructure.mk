@@ -431,7 +431,17 @@ httpd:
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/lock/apache2
 	$(SUDO) mkdir -p /var/cache/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/cache/apache2 
+ifeq ($(KERBEROS),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
+	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
+	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFDIR)/keytab
+	$(SUDO) a2enmod auth_kerb
+	$(SUDO) a2enmod headers
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf
+else
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default /etc/apache2/sites-available
+endif
 	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default

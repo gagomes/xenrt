@@ -7899,7 +7899,7 @@ rm -f /etc/xensource/xhad.conf || true
         cli.execute("pool-enable-external-auth", string.join(args))
 
     def getSCSIID(self, device):
-        return self.execdom0("/usr/lib/udev/scsi_id -g -s /block/%s" % device).strip()
+        return self.execdom0("%s -g -s /block/%s" % (self.scsiIdPath(), device)).strip()
 
     def getFromMemInfo(self, field):
         meminfo = self.execdom0("cat /proc/meminfo")
@@ -7920,6 +7920,18 @@ rm -f /etc/xensource/xhad.conf || true
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
                 return joinedPath
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
+        
+    def snmpdIsEnabled(self):
+        return "3:on" in self.execdom0("/sbin/chkconfig --list snmpd")
+        
+    def disableSnmpd(self):
+        self.execdom0("/sbin/chkconfig snmpd off")
+    
+    def enableSnmpd(self):
+        self.execdom0("/sbin/chkconfig snmpd on")
+        
+    def scsiIdPath(self):
+        return "/usr/lib/udev/scsi_id"
 
 #############################################################################
 
@@ -11195,6 +11207,9 @@ class DundeeHost(CreedenceHost):
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
+    def isCentOS7Dom0(self):
+        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+    
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
@@ -11236,9 +11251,9 @@ class DundeeHost(CreedenceHost):
     def getSCSIID(self, device):
         # TODO: When CentOS 6.4 userspace in trunk, remove the fallback to -s /block
         try:
-            return self.execdom0("/usr/lib/udev/scsi_id -g --device /dev/%s" % device).strip()
+            return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
         except:
-            return self.execdom0("/usr/lib/udev/scsi_id -g -s /block/%s" % device).strip()
+            return self.execdom0("%s -g -s /block/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"
@@ -11266,7 +11281,30 @@ class DundeeHost(CreedenceHost):
         else:
             ifs=CreedenceHost.getBridgeInterfaces(self, bridge)
         return ifs
+        
+    def snmpdIsEnabled(self):
+        if self.isCentOS7Dom0():
+            return "enabled" in self.execdom0("service snmpd status | cat")
+        else:
+            return Host.snmpdIsEnabled(self)
+            
+    def disableSnmpd(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("systemctl disable snmpd")
+        else:
+            Host.disableSnmpd(self)
+            
+    def enableSnmpd(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("systemctl enable snmpd")
+        else:
+            Host.enableSnmpd(self)
 
+    def scsiIdPath(self):
+        if self.isCentOS7Dom0():
+            return "/sbin/scsi_id"
+        else:
+            Host.scsiIdPath(self)
 
 #############################################################################
 

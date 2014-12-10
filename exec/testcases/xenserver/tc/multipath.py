@@ -4206,12 +4206,7 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tvendor \"EQLOGIC\"\\n"
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
-        eqlmpconf += "\\t\\tgetuid_callout \"/usr/lib/udev/scsi_id -g -u -s /block/%n\"\\n"
-        # TODO: Remove above line and uncomment below lines when Centos 6.4 userspace in use
-        #if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u --devices /dev/%n\"\\n"
-        #else:
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/usr/lib/udev/scsi_id -g -u -s /block/%n\"\\n"
+        eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
         eqlmpconf += "\\t\\tpath_checker readsector0\\n"
         eqlmpconf += "\\t\\tfailback immediate\\n"
         eqlmpconf += "\\t\\tpath_selector \"round-robin 0\"\\n"

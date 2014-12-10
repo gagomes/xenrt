@@ -1458,20 +1458,18 @@ class TC8913(xenrt.TestCase):
         data = self.host.execdom0("service snmpd status | cat")
         if "running" in data:
             self.wasrunning = True
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
+        if self.host.snmpdIsEnabled():
             self.wasenabled = True
 
     def run(self, arglist=None):
         # Enable snmpd service
-        self.host.execdom0("/sbin/chkconfig snmpd on")
+        self.host.enableSnmpd()
 
         # Reboot
         self.host.reboot()
 
         # Check the service is still enabled
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
+        if not self.host.snmpdIsEnabled():
             raise xenrt.XRTFailure("snmpd service disabled after reboot")
 
         # Make sure the snmpd service is reported as running
@@ -1489,7 +1487,7 @@ class TC8913(xenrt.TestCase):
             if not self.wasrunning:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC8914(xenrt.TestCase):
     """Dom0 SNMP (when enabled by hacking dom0) can be quiered for SNMPv2-MIB::sysContact and SNMPv2-MIB::sysLocation"""
@@ -1505,9 +1503,8 @@ class TC8914(xenrt.TestCase):
         if not "running" in data:
             self.wasrunning = False
             self.host.execdom0("service snmpd start")
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        if not self.host.snmpdIsEnabled():
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Back up the old config
@@ -1594,7 +1591,7 @@ syslocation XenRT syslocation
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC9989(xenrt.TestCase):
     """Verify SNMP is disabled by default in Dom0."""
@@ -1604,7 +1601,7 @@ class TC9989(xenrt.TestCase):
 
         # Make sure the snmpd service is reported as stopped
         data = self.host.execdom0("service snmpd status | cat")
-        if not "inactive" in data:
+        if not "inactive" in data and not "stopped" in data:
             raise xenrt.XRTFailure("snmpd service is not stopped")
 
         # Make sure the snmpd process is not running
@@ -1612,10 +1609,9 @@ class TC9989(xenrt.TestCase):
         if "snmpd" in data:
             raise xenrt.XRTFailure("snmpd process is running")
 
-        # Make sure the snmpd service is not enabled in chkconfig
-        data = self.host.execdom0("service snmpd status | cat")
-        if "enabled" in data:
-            raise xenrt.XRTFailure("snmpd service is enabled in chkconfig")
+        # Make sure the snmpd service is not enabled
+        if self.host.snmpdIsEnabled(self):
+            raise xenrt.XRTFailure("snmpd service is enabled")
 
 class _SNMPConfigTest(xenrt.TestCase):
     SNMPCONF = "/etc/snmp/snmpd.conf"
@@ -1702,7 +1698,7 @@ class TC9993(_SNMPConfigTest):
             time.sleep(60)
         data = self.host.execdom0("service snmpd status | cat")
         if "disabled" in data:
-            self.host.execdom0("systemctl enable snmpd")
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Make sure the firewall allows SNMP through

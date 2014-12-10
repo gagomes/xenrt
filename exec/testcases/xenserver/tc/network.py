@@ -315,7 +315,7 @@ class MngReconfigure(xenrt.TestCase):
         xenrt.TEC().logverbose("Finding IP address of new management "
                                "interface...")
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        nip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (nmi, nip))
 
@@ -327,7 +327,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (defaultuuid))
         data = host.execdom0("ifconfig xenbr%s" % (default[-1]))
-        r = re.search(".*inet (?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Old management interface still has IP "
                                    "address")
@@ -368,7 +368,7 @@ class MngReconfigure(xenrt.TestCase):
         
         cli.execute("pif-reconfigure-ip uuid=%s mode=None" % (nmiuuid))
         data = host.execdom0("ifconfig xenbr%s" % (nmi[-1]))
-        r = re.search(".*inet (?P<ip>[0-9\.]+)", data)
+        r = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         if r:
             raise xenrt.XRTFailure("Previous management interface still has "
                                    "IP address")
@@ -920,7 +920,7 @@ class _TC8095(xenrt.TestCase):
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Primary interface not UP")
         try:
-            ip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for primary interface")
         if ip != pifip:
@@ -2390,7 +2390,7 @@ class TC20921(xenrt.TestCase):
         self.guest.execguest("vconfig add eth0 %s" % (vlanid))
         self.guest.execguest("dhclient eth0.%s" % (vlanid))
         data = self.guest.execguest("ifconfig eth0.%s" % (vlanid))
-        ip = re.search(".*inet (?P<ip>[0-9\.]+)", data)
+        ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data)
         return ip
         
     def run(self, arglist=None):

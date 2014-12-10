@@ -780,7 +780,7 @@ class StorageAlerts(_AlertBase):
         self.VARIANCE=250
         """Fill up the host so that alerts can get generated"""
         self.host = self.getHost("RESOURCE_HOST_0")
-        numVMs=2
+        numVDIs=2
 
         # Enable the non-default DS
         self.host.execdom0("xe-enable-all-plugin-metrics true")
@@ -811,24 +811,17 @@ class StorageAlerts(_AlertBase):
         #Create a generic linux guest
         guest = self.host.createGenericLinuxGuest(sr = self.uuid)
         self.uninstallOnCleanup(guest)
-        #Create VDI of size 10GB to generate storage alerts using it.
-        device1 = guest.createDisk(sizebytes=10*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
-        time.sleep(5)
-        #Fill some space on the VDI 
-        guest.execguest("mkfs.ext3 /dev/%s" % device1)
-        guest.execguest("mount /dev/%s /mnt" % device1)
-        xenrt.TEC().logverbose("Creating some random data on VDI.")
-        guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=7000")
         
-        #Create one more VDI of size 10GB to generate storage alerts using it.
-        device2 = guest.createDisk(sizebytes=10*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
-        time.sleep(5)
-        #Fill some space on the VDI 
-        guest.execguest("mkfs.ext3 /dev/%s" % device2)
-        guest.execguest("mount /dev/%s /mnt" % device2)
-        xenrt.TEC().logverbose("Creating some random data on VDI.")
-        guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8000")
-        
+        for i in range(numVDIs):
+            #Create VDI of size 10GB to generate storage alerts by copying and destroying it multiple times.
+            device = guest.createDisk(sizebytes=10*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
+            time.sleep(5)
+            #Fill some space on the VDI 
+            guest.execguest("mkfs.ext3 /dev/%s" % device)
+            guest.execguest("mount /dev/%s /mnt" % device)
+            xenrt.TEC().logverbose("Creating some random data on VDI.")
+            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8000")
+
         if self.INTELLICACHE:
             cli=self.host.getCLIInstance()
             if guest.getState() != "DOWN":
@@ -949,23 +942,6 @@ class TC18680(StorageAlerts):
             if e.data and "This operation cannot be completed as the host is in use by (at least) the object of type and ref echoed below." in str(e.data):
                 #Wait till I/O operations on VDI to complete
                 xenrt.sleep(200)
-                for vdi in self.host.minimalList("vdi-list",
-                                                 args="name-label=\"Created by XenRT\""):
-                    vbds = self.host.minimalList("vbd-list",
-                                                 args="vdi-uuid=%s" % (vdi))
-                    for vbd in vbds:
-                        try:
-                            cli.execute("vbd-unplug", "uuid=%s" % (vbd))
-                        except:
-                            pass
-                        try:
-                            cli.execute("vbd-destroy", "uuid=%s" % (vbd))
-                        except:
-                            pass
-                    try:
-                        cli.execute("vdi-destroy", "uuid=%s" % (vdi))
-                    except:
-                        pass
                 try:
                     cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
                             self.host.getLocalSR())

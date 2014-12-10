@@ -17,6 +17,7 @@ createVM = xenrt.lib.libvirt.createVM
 virt_install_lock = thread.allocate_lock()
 
 class KVMGuest(xenrt.lib.libvirt.Guest):
+    DEFAULT = -10
     DEFAULT_DISK_FORMAT = "raw"
 
     def __init__(self, *args, **kwargs):

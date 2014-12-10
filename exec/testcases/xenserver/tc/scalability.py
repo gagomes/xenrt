@@ -352,6 +352,7 @@ class _VMScalability(_Scalability):
         self.nbrOfFailThresholds = len(self.hosts)
         self.nbrOfFails = 0
         self.failedGuests = []
+        self.vmDomid = 0
         xenrt.pfarm ([xenrt.PTask(self.createVmCloneThread, host, tailor_guest= tailor_guest) for host in self.hosts])
         self.nbrOfGuests = self.currentNbrOfGuests - self.nbrOfFails
 

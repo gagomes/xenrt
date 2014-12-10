@@ -460,7 +460,7 @@ class _VMScalability(_Scalability):
 
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)
-
+        self.vmDomid = 0
         xenrt.TEC().logverbose("Shutting down all Guests")
         self.guestsPendingOperation = [g for g in self.guests]
         self.nbrOfPassedGuests = 0
@@ -473,7 +473,6 @@ class _VMScalability(_Scalability):
                 xenrt.TEC().logverbose("LOOP %s: Loop iteration started. Starting all Guests."% i)
                 self.guestsPendingOperation = [g for g in self.guests]
                 self.nbrOfPassedGuests = 0
-                self.vmDomid = 0
                 xenrt.pfarm ([xenrt.PTask(self.guestOperationThread, operation="start", iterationNbr=i) for threads in range(nbrOfThreads)])
                 xenrt.TEC().comment("LOOP %s: start attempt finished with %s%% (%s/%s) success rate ."% (i,(self.nbrOfPassedGuests*100/self.nbrOfGuests),self.nbrOfPassedGuests,self.nbrOfGuests))
 

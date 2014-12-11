@@ -10,6 +10,7 @@
   <scheduler>
     <pool>4CLFCQ,4CLFCE</pool>
     <param>MACHINES_REQUIRED=1</param>
+    <flags>iscsi</flags>
   </scheduler>
 
   <prepare>
@@ -39,8 +40,8 @@
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
-    <serial group="Reboot">
-      <testcase id="xenserver.tc.srpervm.RebootAllVMs" />
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
     </serial>
   </testsequence>
 

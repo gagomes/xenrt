@@ -52,7 +52,7 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
             controllerType = self._getDiskDeviceBus()
 
         if userdevice is None:
-            userdevicename = self._getNextBlockDevice()
+            userdevicename = self._getNextBlockDevice(controllerType=controllerType)
         else:
             userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+self._baseDeviceForBus())
 

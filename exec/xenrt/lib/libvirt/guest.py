@@ -912,7 +912,11 @@ class Guest(xenrt.GenericGuest):
         # Find all disks on this controller
         for node in xmldom.getElementsByTagName("devices")[0].getElementsByTagName("disk"):
             bus = node.getElementsByTagName("target")[0].getAttribute("bus")
-            c = int(node.getElementsByTagName("address")[0].getAttribute("controller"))
+            controller = node.getElementsByTagName("address")[0].getAttribute("controller")
+            if controller == '':
+                c = 0
+            else:
+                c = int(controller)
             if controllerType == bus and controllerIndex == c:
                 dev = node.getElementsByTagName("target")[0].getAttribute("dev")
                 hdchar = dev.strip(prefix)

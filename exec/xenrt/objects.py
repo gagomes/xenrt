@@ -4786,7 +4786,8 @@ class GenericHost(GenericPlace):
             self.findPassword()
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
-                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && /usr/libexec/iptables/iptables.init save")
+                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
+                self.iptableSave()
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
@@ -5178,7 +5179,7 @@ class GenericHost(GenericPlace):
                 self.execdom0("/sbin/reboot")
             except xenrt.XRTFailure, e:
                 if e.reason != "SSH channel closed unexpectedly":
-                    raise e
+                    raise
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):
@@ -6498,8 +6499,8 @@ exit 0
             disks = self.lookup("OPTION_CARBON_DISKS", None)
 
         # Work around /dev/disk/by-id paths changing
-        if disks and "scsi-SATA" in "".join(disks):
-            disks = None
+        #if disks and "scsi-SATA" in "".join(disks):
+        #    disks = None
 
         if not disks:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
@@ -6521,8 +6522,8 @@ exit 0
             disks = self.lookup("OPTION_GUEST_DISKS", None)
 
         # Work around /dev/disk/by-id paths changing
-        if disks and "scsi-SATA" in "".join(disks):
-            disks = None
+        #if disks and "scsi-SATA" in "".join(disks):
+        #    disks = None
 
         if disks:
             return string.split(disks)[:count]

@@ -1521,7 +1521,7 @@ class TC8914(xenrt.TestCase):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        self.host.iptablesSave()
 
     def checkSNMP(self):
         for com in ["xenrtsnmprw", "xenrtsnmpro"]:
@@ -1756,7 +1756,7 @@ class TC9993(_SNMPConfigTest):
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("systemctl disable snmpd")
+                self.host.disableSnmpd()
 
 class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""

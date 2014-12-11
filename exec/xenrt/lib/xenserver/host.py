@@ -1680,8 +1680,9 @@ done
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             pxecfg.mbootArgsModule1Add("bash-shell")
 
-        pxecfg.mbootArgsModule1Add("net.ifnames=0")
-        pxecfg.mbootArgsModule1Add("biosdevname=0")
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            pxecfg.mbootArgsModule1Add("net.ifnames=0")
+            pxecfg.mbootArgsModule1Add("biosdevname=0")
 
         if self.bootLun:
             pxecfg.mbootArgsModule1Add("use_ibft")
@@ -1743,7 +1744,7 @@ done
                 self.execdom0("/sbin/reboot")
             except xenrt.XRTFailure, e:
                 if e.reason != "SSH channel closed unexpectedly":
-                    raise e
+                    raise
         else:
             self.machine.powerctl.cycle()
             
@@ -1865,7 +1866,7 @@ fi
             self.execdom0("iptables -I OUTPUT -p tcp --dport 80 -m state "
                           "--state NEW -d %s -j ACCEPT" %
                           (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
-            self.execdom0("service iptables save")
+            self.iptablesSave()
         if xenrt.TEC().lookup("WORKAROUND_CA136054", False, boolean=True):
             xenrt.TEC().warning("Applying CA-136054 workaround")
             self.execdom0("mkdir -p /usr/lib/xen/bin")
@@ -7932,6 +7933,12 @@ rm -f /etc/xensource/xhad.conf || true
         
     def scsiIdPath(self):
         return "/usr/lib/udev/scsi_id"
+        
+    def iptablesSave(self):
+        self.execdom0("service iptables save")
+        
+    def getIxgbeConfigFilePath(self):
+        return "/etc/modprobe.d/ixgbe"
 
 #############################################################################
 
@@ -8814,7 +8821,7 @@ class MNRHost(Host):
         self.execdom0("iptables -A OUTPUT -o %s -j DROP" %
                       (self.getStorageBridge()))
         # Save the configuration
-        self.execdom0("service iptables save")
+        self.iptablesSave()
 
     def configureForCC(self):
         """Configure the host in Common Criteria mode"""
@@ -11249,11 +11256,10 @@ class DundeeHost(CreedenceHost):
                 raise xenrt.XRTFailure("firstboot.d %s failed" % f)
 
     def getSCSIID(self, device):
-        # TODO: When CentOS 6.4 userspace in trunk, remove the fallback to -s /block
-        try:
+        if self.isCentOS7Dom0():
             return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
-        except:
-            return self.execdom0("%s -g -s /block/%s" % (self.scsiIdPath(), device)).strip()
+        else:
+            Host.getSCSIID(self, device)
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"
@@ -11304,7 +11310,19 @@ class DundeeHost(CreedenceHost):
         if self.isCentOS7Dom0():
             return "/sbin/scsi_id"
         else:
-            Host.scsiIdPath(self)
+            return Host.scsiIdPath(self)
+            
+    def iptablesSave(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("/usr/libexec/iptables/iptables.init save")
+        else:
+            Host.iptablesSave(self)
+
+    def getIxgbeConfigFilePath(self):
+        if self.isCentOS7Dom0():
+            return "/etc/modprobe.d/ixgbe.conf"
+        else:
+            return Host.getIxgbeConfigFilePath(self)
 
 #############################################################################
 
@@ -11921,7 +11939,7 @@ class NFSStorageRepository(StorageRepository):
             raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
                                    "does not exist" % (self.uuid))
         nfs = string.split(host.execdom0("mount | grep \""
-                                          "/run/sr-mount/%s \"" %
+                                          "/var/run/sr-mount/%s \"" %
                                           (self.uuid)))[0]
         shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
         if nfs != shouldbe:
@@ -12947,7 +12965,7 @@ class Pool:
                     slave.execdom0("iptables -I OUTPUT -p tcp --dport 80 -m state "
                                   "--state NEW -d %s -j ACCEPT" %
                                   (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
-                    slave.execdom0("service iptables save")
+                    slave.iptablesSave()
                 return
             xenrt.sleep(60)
         raise xenrt.XRTFailure("Host %s has not rebooted" % (slave.getName()))
@@ -14782,7 +14800,7 @@ class IOvirt:
     
     def enableVirtualFunctions(self):
         
-        out = self.getHost().execdom0("grep -v '^#' /etc/modprobe.d/ixgbe.conf 2> /dev/null; echo -n ''").strip()
+        out = self.getHost().execdom0("grep -v '^#' %s 2> /dev/null; echo -n ''" % (self.getHost().getIxgbeConfigFilePath())).strip()
         if len(out) > 0:
             return
         
@@ -14794,8 +14812,8 @@ class IOvirt:
                 maxVFs = "63" + (",63" * (numPFs - 1))
             else:
                 maxVFs = "40" #+ (",40" * (numPFs - 1))
-            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > /etc/modprobe.d/ixgbe.conf' % maxVFs)
-            #self.getHost().execdom0('echo "options igb max_vfs=7,7,7,7" > /etc/modprobe.d/igb')
+            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > %s' % (maxVFs, self.getHost().getIxgbeConfigFilePath()))
+
             self.getHost().execdom0('/bin/sh /boot/initrd-*.img.cmd')
             self.getHost().reboot()
             self.getHost().waitForSSH(300, desc="host reboot after enabling virtual functions")

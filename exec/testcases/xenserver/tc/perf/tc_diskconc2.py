@@ -421,6 +421,22 @@ Version 1.1.0
 
                 sr = self.host.getSRUUID(diskname)
                 self.sr_to_diskname[sr] = diskname
+            elif device.startswith("kvm-device="):
+                device = device.split('=')[1]
+
+                diskname = self.host.execdom0("basename `readlink -f %s`" % device).strip()
+                srname = "SR-%s" % (diskname)
+                sr = xenrt.lib.kvm.EXTStorageRepository(self.host, srname)
+                sr.create(device)
+
+                # Reload the host information until the new SR appears
+                while srname not in self.host.srs:
+                    time.sleep(1)
+                    self.host.existing()
+                    xenrt.TEC().logverbose("host has SRs %s" % (self.host.srs))
+
+                sr = self.host.getSRUUID(srname)
+                self.sr_to_diskname[sr] = diskname
 
             # Set the SR scheduler
             if device in self.disk_schedulers:

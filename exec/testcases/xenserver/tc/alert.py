@@ -814,13 +814,13 @@ class StorageAlerts(_AlertBase):
         
         for i in range(numVDIs):
             #Create VDI of size 10GB to generate storage alerts by copying and destroying it multiple times.
-            device = guest.createDisk(sizebytes=10*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
+            device = guest.createDisk(sizebytes=2*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
             time.sleep(5)
             #Fill some space on the VDI 
             guest.execguest("mkfs.ext3 /dev/%s" % device)
             guest.execguest("mount /dev/%s /mnt" % device)
             xenrt.TEC().logverbose("Creating some random data on VDI.")
-            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=8000")
+            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=1000")
 
         if self.INTELLICACHE:
             cli=self.host.getCLIInstance()
@@ -935,21 +935,12 @@ class TC18680(StorageAlerts):
         if not "ext" in srType:
             raise xenrt.XRTError("Local storage of the host does not support thin provisioning")
         try:
+            xenrt.sleep(50)
             cli.execute("host-disable")
             cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
                         self.host.getLocalSR())
         except xenrt.XRTFailure, e:
-            if e.data and "This operation cannot be completed as the host is in use by (at least) the object of type and ref echoed below." in str(e.data):
-                #Wait till I/O operations on VDI to complete
-                xenrt.sleep(200)
-                try:
-                    cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
-                            self.host.getLocalSR())
-                    pass
-                except Exception,e:
-                    raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
-            else:
-                raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
+            raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
         finally:
             cli.execute("host-enable")
         StorageAlerts.prepare(self, arglist)

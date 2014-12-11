@@ -4736,6 +4736,11 @@ class GenericHost(GenericPlace):
                 version     = self.execdom0("grep ^product-version /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
                 # e.g. "623860"
                 buildNumber = self.execdom0("grep ^build /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
+            elif self.execdom0("virsh list", retval="code") == 0:
+                # It's probably KVM
+                name = "KVM"
+                version = "Linux"
+                buildNumber = ""
             elif self.execdom0("test -e /etc/redhat-release", retval="code") == 0:
                 name = "Linux"
                 version = "RedHat"

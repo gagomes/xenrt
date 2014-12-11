@@ -40,8 +40,6 @@ class XenRTDownload(XenRTAPIPage):
                 return "ERROR Internal error"
 
 class XenRTUpload(XenRTAPIPage):
-    WRITE = True
-
     def render(self):
         form = self.request.params
         prefix = ""

@@ -158,7 +158,7 @@ endif
 	$(SUDO) mkdir -p $@/conf.d
 	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
 	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
+	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs
 docs:

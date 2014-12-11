@@ -6499,8 +6499,8 @@ exit 0
             disks = self.lookup("OPTION_CARBON_DISKS", None)
 
         # Work around /dev/disk/by-id paths changing
-        #if disks and "scsi-SATA" in "".join(disks):
-        #    disks = None
+        if disks and "scsi-SATA" in "".join(disks):
+            disks = None
 
         if not disks:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
@@ -6522,8 +6522,8 @@ exit 0
             disks = self.lookup("OPTION_GUEST_DISKS", None)
 
         # Work around /dev/disk/by-id paths changing
-        #if disks and "scsi-SATA" in "".join(disks):
-        #    disks = None
+        if disks and "scsi-SATA" in "".join(disks):
+            disks = None
 
         if disks:
             return string.split(disks)[:count]

@@ -4,6 +4,7 @@
 
   <variables>
     <PRODUCT_VERSION>Tampa</PRODUCT_VERSION>
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
   </variables>
 
   <prepare>

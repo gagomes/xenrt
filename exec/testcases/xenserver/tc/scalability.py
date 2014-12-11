@@ -456,10 +456,13 @@ class _VMScalability(_Scalability):
             self.lock.acquire()
             if passed:
                 self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
-                if g.getDomid() <= self.vmDomid:
-                    raise xenrt.XRTFailure("Guest %s domid %s less than previous guest's domid %s" (g.getName(),g.getDomid(), self.vmDomid))
+                previousVmDomid = self.vmDomid
                 self.vmDomid = g.getDomid()
             self.lock.release()
+
+            if self.vmDomid <= previousVmDomid:
+                raise xenrt.XRTFailure("Guest %s domid %s less than previous guest's domid %s" % (g.getName(), self.vmDomid, previousVmDomid))
+
 
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)

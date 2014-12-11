@@ -3659,7 +3659,6 @@ exit /B 1
 
                 ##Try to log the ipconfig data using a VB script writing it into the WMI
                 try:
-                    self.logger
                     # Send Windows-R to bring up a run dialog
                     self.sendVncKeys(["0x72/0xffeb"])
                     xenrt.sleep(8)

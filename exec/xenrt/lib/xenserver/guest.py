@@ -4148,6 +4148,11 @@ exit /B 1
 
         self.reboot()
 
+    def getNetworkNameForVIF(self, vifname):
+        mac, ip, bridge = self.getVIF(vifname=vifname)
+        network = self.host.getNetworkUUID(bridge)
+        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):

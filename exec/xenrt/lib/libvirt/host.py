@@ -110,6 +110,7 @@ class Host(xenrt.GenericHost):
             xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
         for sruuid in self.getSRs():
             isESX = ("esx" in self.productVersion.lower() or "esx" in self.productType.lower())
+            isKVM = ("kvm" in self.productVersion.lower() or "kvm" in self.productType.lower())
             srname = self.getSRName(sruuid)
             if isESX and srname == "datastore1":
                 srclass = xenrt.lib.esx.EXTStorageRepository
@@ -119,6 +120,14 @@ class Host(xenrt.GenericHost):
                 srclass = xenrt.lib.esx.ISOStorageRepository
             elif isESX and srname.startswith("local"):
                 srclass = xenrt.lib.esx.EXTStorageRepository
+            elif isKVM and srname.startswith("LocalStorage"):
+                srclass = xenrt.lib.kvm.EXTStorageRepository
+            elif isKVM and srname.startswith("XenRT ISOs"):
+                srclass = xenrt.lib.kvm.ISOStorageRepository
+            elif isKVM and srname.startswith("XenRT static ISOs"):
+                srclass = xenrt.lib.kvm.ISOStorageRepository
+            elif isKVM and srname.startswith("SR-"):
+                srclass = xenrt.lib.kvm.EXTStorageRepository
             else:
                 xenrt.TEC().logverbose("Warning: No way of identifying type of SR %s" % (srname))
                 srclass = xenrt.lib.libvirt.sr.StorageRepository

@@ -3,7 +3,7 @@
 
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
-    <!--<USE_MULTIPATH>yes</USE_MULTIPATH>-->
+    <USE_MULTIPATH>yes</USE_MULTIPATH>
   </variables>
 
   <prepare>

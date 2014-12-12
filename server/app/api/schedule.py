@@ -1,5 +1,6 @@
 from server import PageFactory
 from app.api import XenRTAPIPage
+from pyramid.httpexceptions import HTTPFound
 
 import traceback, StringIO, string, time, random, sys
 
@@ -16,6 +17,11 @@ class XenRTSchedule(XenRTAPIPage):
 
     def render(self):
         form = self.request.params
+        if not self.isDBMaster():
+            if form.get("besteffort") == "yes":
+                return "Skipping schedule as this node is not the master"
+            else:
+                return HTTPFound(location="http://%s/xenrt/api/schedule" % config.partner_ha_node)
         dryrun = False
         ignore = False
         verbose = False

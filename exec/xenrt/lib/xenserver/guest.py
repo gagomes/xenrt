@@ -3659,7 +3659,6 @@ exit /B 1
 
                 ##Try to log the ipconfig data using a VB script writing it into the WMI
                 try:
-                    self.logger
                     # Send Windows-R to bring up a run dialog
                     self.sendVncKeys(["0x72/0xffeb"])
                     xenrt.sleep(8)
@@ -3913,18 +3912,31 @@ exit /B 1
         self.getHost().xenstoreWrite(\
             "/local/domain/%u/data/updated" % (domid), '1')
 
-    def verifyGuestFunctional(self, migrate=False):
+    def verifyGuestFunctional(self, migrate=False, attachedDisks=False):
         if self.getState() == "UP":
             if self.windows:
                 # Write a file
                 self.xmlrpcExec("echo 'Testing Storage Access' > \\teststorage") 
                 # Read it
                 self.xmlrpcExec("type \\teststorage") 
+
+                if attachedDisks:
+                    raise xenrt.XRTError("Unimplemented")
+
             else:
                 # Write a file
                 self.execguest("dd if=/dev/zero bs=1024 count=1000 of=teststorage")
                 # Read it
                 self.execguest("dd if=teststorage of=/dev/null")
+
+                if attachedDisks:
+                    devices = self.getHost().minimalList("vbd-list", "device",
+                                    "vm-uuid=%s bootable=false type=Disk" % (self.getUUID()))
+                    for d in devices:
+                        # Write a file
+                        self.execguest("dd if=/dev/zero bs=1024 count=1000 of=/dev/%s" % d)
+                        # Read it
+                        self.execguest("dd if=/dev/%s of=/dev/null" % d)
 
             if migrate:
                self.migrateVM(host=self.host, live="true")
@@ -4135,6 +4147,11 @@ exit /B 1
         self.xmlrpcExec("regEdit.exe /s c:\\XD.reg")
 
         self.reboot()
+
+    def getNetworkNameForVIF(self, vifname):
+        mac, ip, bridge = self.getVIF(vifname=vifname)
+        network = self.host.getNetworkUUID(bridge)
+        return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
 
 #############################################################################
 

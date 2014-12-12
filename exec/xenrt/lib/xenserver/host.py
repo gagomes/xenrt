@@ -312,7 +312,11 @@ def createHost(id=0,
         xenrt.TEC().logverbose("Before changing cpufreq governor: %s" % (output,))
 
         # Set the scaling_governor. This command will fail if the host does not support cpufreq scaling (e.g. BIOS power regulator is not in OS control mode)
-        host.execdom0("xenpm set-scaling-governor performance")
+        host.execdom0("xenpm set-scaling-governor %s" % (cpufreqgovernor))
+
+        # Make it persist across reboots
+        args = {"cpufreq": "xen:%s" % (cpufreqgovernor)}
+        host.setXenCmdLine(set="xen", **args)
 
         output = host.execdom0("xenpm get-cpufreq-para | fgrep -e current_governor -e 'cpu id' || true")
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))

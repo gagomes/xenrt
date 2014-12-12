@@ -1469,7 +1469,7 @@ class TC7985(xenrt.TestCase):
             raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
 
         for h in self.pool.getHosts():
-            if h.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
+            if not isinstance(h, xenrt.lib.xenserver.DundeeHost) and h.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
                 raise xenrt.XRTFailure("Deployment_Guide-en-US RPM not found after applying hotfix2")
 
     def patch3(self):

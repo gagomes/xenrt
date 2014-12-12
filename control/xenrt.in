@@ -2267,6 +2267,7 @@ class XenRTSchedule(XenRTCommand):
     -v     Verbose output
     -d     Perform a dry run to see what could be scheduled, do not schedule
     -i     Ignore current allocations when performing a dry run
+    -b     Best effort - don't rediect to master if a slave is connected to
     """
     group = "Scheduler"
     
@@ -2275,7 +2276,7 @@ class XenRTSchedule(XenRTCommand):
         showstatus = False
         details['USERID'] = pwd.getpwuid(os.getuid())[0]
         try:
-            optlist, optx = getopt.getopt(args, 'divj')
+            optlist, optx = getopt.getopt(args, 'divjb')
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == '-d':
@@ -2284,6 +2285,8 @@ class XenRTSchedule(XenRTCommand):
                     details["ignore"] = "yes"
                 elif flag == "-v":
                     details["verbose"] = "yes"
+                elif flag == "-b":
+                    details["besteffort"] = "yes"
                 elif flag == "-j":
                     showstatus = True
         except getopt.GetoptError:

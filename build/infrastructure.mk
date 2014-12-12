@@ -431,10 +431,25 @@ httpd:
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/lock/apache2
 	$(SUDO) mkdir -p /var/cache/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/cache/apache2 
+ifeq ($(KERBEROS),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
+	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
+	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFDIR)/keytab
+	$(SUDO) a2enmod auth_kerb
+	$(SUDO) a2enmod headers
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf
+else
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default /etc/apache2/sites-available
+endif
 	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default
+ifeq ($(PROXY_JENKINS_8080),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/jenkins-proxy /etc/apache2/sites-available
+	$(SUDO) sed -i 's#@@PROXY_JENKINS_URL@@#$(PROXY_JENKINS_URL)#' /etc/apache2/sites-available/jenkins-proxy
+	$(SUDO) ln -sf /etc/apache2/sites-available/jenkins-proxy /etc/apache2/sites-enabled/001-jenkins
+endif
 	$(SUDO) a2enmod cgi
 	$(SUDO) a2enmod alias
 	$(SUDO) a2enmod rewrite
@@ -516,10 +531,14 @@ ifeq ($(DONAGIOS),yes)
 	$(SUDO) sed -i 's/dont_blame_nrpe=0/dont_blame_nrpe=1/g' $(NRPE)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/xenrt.cfg $(NRPECONFDIR)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/check_* /usr/lib/nagios/plugins/
+ifeq ($(PUPPETNODE),yes)
+	$(SUDO) sed -i '/command[check_disk]/d' $(NRPECONFDIR)/xenrt.cfg
+else
 	$(SUDO) sed -i '/nrpe_user=/d' $(NRPE)
 	$(SUDO) sed -i '/nrpe_group=/d' $(NRPE)
-	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPE)"
-	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPE)"
+	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+endif
 	$(SUDO) /etc/init.d/nagios-nrpe-server restart 
 endif
 

@@ -26,7 +26,7 @@ NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
 LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
-BINLINKS    := xenrt xrt xrt1 xrtbranch
+BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -158,6 +158,7 @@ endif
 	$(SUDO) mkdir -p $@/conf.d
 	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
 	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
+	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs
 docs:
@@ -202,6 +203,10 @@ xrtbranch:
 xenrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xenrt $(BINDIR)/$@
+
+runsuite:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/runsuite $(BINDIR)/$@
 
 images:
 	$(info Creating link to $@...)
@@ -278,7 +283,6 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
@@ -297,7 +301,6 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@.tmp
 	sed -i 's#@vardir@#$(VARDIR)#g' $@.tmp
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@.tmp
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@.tmp
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@.tmp
 	python $@.tmp > $@
 	rm $@.tmp

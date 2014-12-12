@@ -4877,9 +4877,9 @@ class GenericHost(GenericPlace):
         mac = self.getNICMACAddress(assumedid)
         mac = xenrt.util.normaliseMAC(mac)
         data = self.execdom0("ifconfig -a")
-        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
+        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?(HWaddr|\n\s+ether)\s+([A-Za-z0-9:]+)", data)
         for intf in intfs:
-            ieth, imac = intf
+            ieth, _, imac = intf
             if xenrt.util.normaliseMAC(imac) == mac:
                 return ieth
         raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
@@ -9538,7 +9538,7 @@ while True:
         packages = " ".join(packageList)
         try:
             if "deb" in self.distro or "ubuntu" in self.distro:
-                self.execguest("apt-get update")
+                self.execguest("apt-get update", level=xenrt.RC_OK)
                 self.execguest("apt-get -y --force-yes install %s" % packages)
             elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
                 self.execguest("yum install -y %s" % packages)

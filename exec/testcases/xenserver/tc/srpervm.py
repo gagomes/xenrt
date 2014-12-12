@@ -20,30 +20,42 @@ class SetupSRsBase(xenrt.TestCase):
         windowsFilerName = args.get("windowsfiler", None)
         linuxFilerName = args.get("linuxfiler", None)
 
-        linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=linuxFilerName)
-        linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=linuxFilerName)
-        windowsRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=windowsFilerName)
-        windowsDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp, self.PROTOCOL, specify=windowsFilerName)
+        dataDiskPerVM = int(args.get("datadisk", "2"))
+
+        if linuxCount > 0:
+            linuxRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        self.PROTOCOL, specify=linuxFilerName)
+            linuxDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        self.PROTOCOL, specify=linuxFilerName)
+
+        if windowsCount > 0:
+            windowsRootFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        self.PROTOCOL, specify=windowsFilerName)
+            windowsDataFiler = xenrt.StorageArrayFactory().getStorageArray(xenrt.StorageArrayVendor.NetApp,
+                                                                        self.PROTOCOL, specify=windowsFilerName)
         
         self.pool = self.getDefaultHost().getPool()
         [x.enableMultipathing() for x in self.pool.getHosts()]
        
         initiators = self.getInitiators()
 
-        linuxRootFiler.provisionLuns(linuxCount, 10, initiators)
-        linuxDataFiler.provisionLuns(linuxCount * 2, 5, initiators)
-        windowsRootFiler.provisionLuns(windowsCount, 30, initiators)
-        windowsDataFiler.provisionLuns(windowsCount * 2, 5, initiators)
+        if linuxCount > 0:
+            linuxRootFiler.provisionLuns(linuxCount, 10, initiators)
+            linuxDataFiler.provisionLuns(linuxCount * dataDiskPerVM, 5, initiators)
+
+        if windowsCount > 0:
+            windowsRootFiler.provisionLuns(windowsCount, 30, initiators)
+            windowsDataFiler.provisionLuns(windowsCount * dataDiskPerVM, 5, initiators)
 
         for i in range(linuxCount):
             self.createSR(linuxRootFiler.getLuns()[i], "LinuxRootSR_%d" % i)
-            self.createSR(linuxDataFiler.getLuns()[i*2], "LinuxDataSR_A%d" % i)
-            self.createSR(linuxDataFiler.getLuns()[i*2+1], "LinuxDataSR_B%d" % i)
-            
+            for j in range(dataDiskPerVM):
+                self.createSR(linuxDataFiler.getLuns()[i*dataDiskPerVM + j], "LinuxDataSR_%d_%d" % (j, i))
+
         for i in range(windowsCount):
             self.createSR(windowsRootFiler.getLuns()[i], "WindowsRootSR_%d" % i)
-            self.createSR(windowsDataFiler.getLuns()[i*2], "WindowsDataSR_A%d" % i)
-            self.createSR(windowsDataFiler.getLuns()[i*2+1], "WindowsDataSR_B%d" % i)
+            for j in range(dataDiskPerVM):
+                self.createSR(windowsDataFiler.getLuns()[i*dataDiskPerVM + j], "WindowsDataSR_%d_%d" % (j, i))
 
     def createSR(self, lun, name): 
         raise xenrt.XRTError("Not implemented in base class")
@@ -84,7 +96,6 @@ class ReconfigureRingSize(xenrt.TestCase):
         for s in srs:
             host.genParamSet("sr", s, "other-config:mem-pool-size-rings", args['ringsize']) 
             host.genParamSet("sr", s, "other-config:blkback-mem-pool-size-rings", args['ringsize']) 
-    
 
 class CopyVMs(xenrt.TestCase):
     def run(self, arglist=[]):
@@ -106,16 +117,19 @@ class CopyVMs(xenrt.TestCase):
 
             g = lingold.copyVM(name="linclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("linclone-%d" % i, g)
-            
-            sr = host.minimalList("sr-list", args="name-label=\"LinuxDataSR_A%d\"" % (i))[0]
-            g.createDisk(4*xenrt.GIGA, sruuid=sr)
-            
-            sr = host.minimalList("sr-list", args="name-label=\"LinuxDataSR_B%d\"" % (i))[0]
-            g.createDisk(4*xenrt.GIGA, sruuid=sr)
+
+            j =0
+            while True:
+                srs = host.minimalList("sr-list", args="name-label=\"LinuxDataSR_%d_%d\"" % (j,i))
+                if not srs:
+                    break
+                sr = srs[0]
+                g.createDisk(4*xenrt.GIGA, sruuid=sr)
+                j += 1
 
             g.start(specifyOn=False)
             i += 1
-        
+
         i = 0
         while True:
             srs = host.minimalList("sr-list", args="name-label=\"WindowsRootSR_%d\"" % i)
@@ -125,12 +139,15 @@ class CopyVMs(xenrt.TestCase):
 
             g = wingold.copyVM(name="winclone-%d" % i, sruuid=sr)
             xenrt.GEC().registry.guestPut("winclone-%d" % i, g)
-            
-            sr = host.minimalList("sr-list", args="name-label=\"WindowsDataSR_A%d\"" % (i))[0]
-            g.createDisk(4*xenrt.GIGA, sruuid=sr)
-            
-            sr = host.minimalList("sr-list", args="name-label=\"WindowsDataSR_B%d\"" % (i))[0]
-            g.createDisk(4*xenrt.GIGA, sruuid=sr)
+
+            j =0
+            while True:
+                srs = host.minimalList("sr-list", args="name-label=\"WindowsDataSR_%d_%d\"" % (j,i))
+                if not srs:
+                    break
+                sr = srs[0]
+                g.createDisk(4*xenrt.GIGA, sruuid=sr)
+                j += 1
 
             g.start(specifyOn=False)
             i += 1
@@ -190,6 +207,7 @@ class TCMonitorLowMem(xenrt.TestCase):
 
 class RebootAllVMs(xenrt.TestCase):
     def run(self, arglist=[]):
+
         for os in ["win", "lin"]:
             i = 0
             while True:
@@ -198,3 +216,35 @@ class RebootAllVMs(xenrt.TestCase):
                     break
                 g.reboot()
                 i += 1
+
+class LifeCycleAllVMs(xenrt.TestCase):
+    def run(self, arglist=[]):
+
+        failedGuests = []
+        failedHosts = []
+        numOfGuests = 0
+
+        for os in ["win", "lin"]:
+            i = 0
+            while True:
+                g = self.getGuest("%sclone-%d" % (os, i))
+                if not g:
+                    break
+                g.reboot()
+
+                try:
+                    if g.getState() == "UP":
+                        #noreachcheck=True will ensure the VNC Snapshot is taken and checked.
+                        g.checkHealth(noreachcheck=True)
+                        #attachedDisks=True uses all the attached disks.
+                        g.verifyGuestFunctional(migrate=True, attachedDisks=True)
+                except:
+                    xenrt.TEC().warning("Guest %s not up" % (g.getName()))
+                    failedGuests.append(g.getName())
+
+                i += 1
+                numOfGuests +=1
+
+        if len(failedGuests) > 0:
+            raise xenrt.XRTFailure("Failed to perform health checks on %d/%d guests - %s" %
+                                    (len(failedGuests), numOfGuests, ", ".join(failedGuests)))

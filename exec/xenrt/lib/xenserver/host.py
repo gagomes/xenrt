@@ -12605,7 +12605,7 @@ class Pool:
 
         cli = self.getCLIInstance()
         cli.execute("pool-emergency-transition-to-master")
-        xenrt.sleep(300)
+        xenrt.sleep(20)
 
         if self.sharedDB and reachable:
             try:

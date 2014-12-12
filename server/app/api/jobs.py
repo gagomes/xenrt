@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app.constants
 
-import string, time, smtplib, traceback, StringIO, re, sys
+import string, time, smtplib, traceback, StringIO, re, sys, calendar
 
 class XenRTJobPage(XenRTAPIPage):
     def showlog(self, id, wide, verbose, times=False):
@@ -54,9 +54,9 @@ class XenRTJobPage(XenRTAPIPage):
                     fvalue = string.strip(rc2[2])
                     if fkey == "result" and times:
                         if fvalue == "started":
-                            started = time.mktime(fts.timetuple())
+                            started = calendar.gmtime(fts.timetuple())
                         if fvalue in ("pass", "fail", "error", "partial"):
-                            finished = time.mktime(fts.timetuple())
+                            finished = calendar.gmtime(fts.timetuple())
                     if verbose != "no":
                         line = "...[%-19s] %-10s %s" % (fts, fkey, fvalue)
                         detailedtext = detailedtext + line + "\n"
@@ -304,7 +304,7 @@ class XenRTSubmit(XenRTJobPage):
                     allto = int(details["ALLTIMEOUT"])
                 except:
                     pass
-            alltimenow = time.mktime(time.localtime())
+            alltimenow = time.time()
             details["ALLTIMEOUT"] = "%u" % (int(alltimenow) + allto)
         try:
             id = self.new_job(details)

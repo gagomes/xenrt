@@ -129,7 +129,7 @@ for m in machines:
         mdom = xml.dom.minidom.parseString(open("/etc/xenrt/machines/%s.xml" % machine).read())
         if bmccheck:
             powerctl = mdom.getElementsByTagName("POWER_CONTROL")
-            if powerctl and getTextFromXmlNode(powerctl[0]) == "ipmipdufallback":
+            if powerctl and getTextFromXmlNode(powerctl[0]) != "ipmi":
                 continue
         for (i,j) in machinexmlnodes:
             addresslist = mdom.getElementsByTagName(i)

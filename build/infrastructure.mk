@@ -548,6 +548,8 @@ ifeq ($(DOLOGROTATE),yes)
 	$(info Setting logrotate to daily for syslog)
 	$(SUDO) sed -i 's/weekly/daily/g' /etc/logrotate.d/rsyslog
 	$(SUDO) sed -i '/delaycompress/d' /etc/logrotate.d/rsyslog
+	$(SUDO) sed -i 's/weekly/daily/g' /etc/logrotate.d/apache2
+	$(SUDO) sed -i '/delaycompress/d' /etc/logrotate.d/apache2
 endif
 
 .PHONY: nagios-uninstall

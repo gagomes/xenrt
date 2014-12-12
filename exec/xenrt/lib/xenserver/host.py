@@ -1661,6 +1661,11 @@ done
                                                            (self.getName()))))
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
+
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            pxecfg.mbootArgsModule1Add("net.ifnames=0")
+            pxecfg.mbootArgsModule1Add("biosdevname=0")
+
         mac = self.lookup("MAC_ADDRESS", None)
         if mac:
             pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
@@ -1679,10 +1684,6 @@ done
                                 % (dom0_extra_args_user))
         if xenrt.TEC().lookup("OPTION_BASH_SHELL", False, boolean=True):
             pxecfg.mbootArgsModule1Add("bash-shell")
-
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            pxecfg.mbootArgsModule1Add("net.ifnames=0")
-            pxecfg.mbootArgsModule1Add("biosdevname=0")
 
         if self.bootLun:
             pxecfg.mbootArgsModule1Add("use_ibft")
@@ -11215,7 +11216,7 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
 
     def isCentOS7Dom0(self):
-        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+        return xenrt.TEC().lookup("CENTOS7_DOM0", True, boolean=True)
     
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)

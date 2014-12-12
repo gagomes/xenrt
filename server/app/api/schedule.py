@@ -2,7 +2,7 @@ from server import PageFactory
 from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, sys
+import traceback, StringIO, string, time, random, sys, calendar
 
 import config, app
 
@@ -268,7 +268,7 @@ class XenRTSchedule(XenRTAPIPage):
                 if not rc:
                     break
                 m = string.strip(rc[0])
-                ut = time.mktime(rc[1].timetuple())
+                ut = calendar.timegm(rc[1].timetuple())
                 if ut < time.time():
                     exp.append("'%s'" % (m))
             if len(exp) > 0:
@@ -374,7 +374,7 @@ class XenRTSchedule(XenRTAPIPage):
                 # since the epoch) in the future.
                 if details.has_key("START_AFTER"):
                     sa = int(details["START_AFTER"])
-                    if sa > int(time.mktime(time.gmtime())):
+                    if sa > int(time.time()):
                         continue
 
                 # Exclude any jobs with time windows that are not currently open

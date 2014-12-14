@@ -99,6 +99,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         except:
             xenrt.TEC().logverbose("test_data not supported")
         else:
+            # Older versions of marvin don't have configurableData.
+            # Initialise it to an empty dict here so we don't get exceptions
+            # later on
+            if not testData.has_key('configurableData'):
+                testData['configurableData'] = {}
             if self.args.has_key("resources"):
                 resources = self.args['resources'].split(",")
             else:   

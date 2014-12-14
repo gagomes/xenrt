@@ -127,8 +127,6 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['configurableData']['netscaler']['publicinterface'] = '1/1'
                 testData['configurableData']['netscaler']['privateinterface'] = '1/2'
                 testData['configurableData']['netscaler']['numretries'] = '2'
-            if "host" in resources:
-                testData['configurableData']['host']['password'] = 'xenroot'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['memory'] = 512
@@ -149,7 +147,8 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
-            testData['host_password'] = "xenroot"
+            testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     

@@ -11293,37 +11293,37 @@ class DundeeHost(CreedenceHost):
         if self.isCentOS7Dom0():
             return "enabled" in self.execdom0("service snmpd status | cat")
         else:
-            return Host.snmpdIsEnabled(self)
+            return CreedenceHost.snmpdIsEnabled(self)
             
     def disableSnmpd(self):
         if self.isCentOS7Dom0():
             self.execdom0("systemctl disable snmpd")
         else:
-            Host.disableSnmpd(self)
+            CreedenceHost.disableSnmpd(self)
             
     def enableSnmpd(self):
         if self.isCentOS7Dom0():
             self.execdom0("systemctl enable snmpd")
         else:
-            Host.enableSnmpd(self)
+            CreedenceHost.enableSnmpd(self)
 
     def scsiIdPath(self):
         if self.isCentOS7Dom0():
             return "/sbin/scsi_id"
         else:
-            return Host.scsiIdPath(self)
+            return CreedenceHost.scsiIdPath(self)
             
     def iptablesSave(self):
         if self.isCentOS7Dom0():
             self.execdom0("/usr/libexec/iptables/iptables.init save")
         else:
-            Host.iptablesSave(self)
+            CreedenceHost.iptablesSave(self)
 
     def getIxgbeConfigFilePath(self):
         if self.isCentOS7Dom0():
             return "/etc/modprobe.d/ixgbe.conf"
         else:
-            return Host.getIxgbeConfigFilePath(self)
+            return CreedenceHost.getIxgbeConfigFilePath(self)
 
 #############################################################################
 
@@ -11940,7 +11940,7 @@ class NFSStorageRepository(StorageRepository):
             raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
                                    "does not exist" % (self.uuid))
         nfs = string.split(host.execdom0("mount | grep \""
-                                          "/var/run/sr-mount/%s \"" %
+                                          "/run/sr-mount/%s \"" %
                                           (self.uuid)))[0]
         shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
         if nfs != shouldbe:

@@ -1696,7 +1696,6 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("service snmpd start")
             xenrt.TEC().logverbose("Waiting 60s after starting snmpd (CA-70508)...")
             time.sleep(60)
-        data = self.host.execdom0("service snmpd status | cat")
         if not self.host.snmpdIsEnabled():
             self.host.enableSnmpd()
             self.wasenabled = False

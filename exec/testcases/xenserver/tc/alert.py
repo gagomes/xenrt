@@ -936,11 +936,10 @@ class TC18680(StorageAlerts):
             raise xenrt.XRTError("Local storage of the host does not support thin provisioning")
         try:
             xenrt.sleep(50)
-            cli.execute("host-disable")
-            cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
-                        self.host.getLocalSR())
-        except xenrt.XRTFailure, e:
+            self.host.disable()
+            self.host.enableCaching(self.host.getLocalSR())
+        except Exception, e:
             raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
         finally:
-            cli.execute("host-enable")
+            self.host.enable()
         StorageAlerts.prepare(self, arglist)

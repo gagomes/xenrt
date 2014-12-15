@@ -69,6 +69,7 @@ def resultDisplay(resultcode):
 
 STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/daemon.log",
+                 "/var/log/user.log",
                  "/var/log/xend.log",
                  "/var/log/xend-debug.log",
                  "/var/log/xen-hotplug.log",
@@ -1195,7 +1196,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     xenrt.TEC().logverbose("Exception running %s on %s: %s" %
                                            (c, place.getName(), str(e)))
             # parse logs for errors
-            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log"]:
+            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log", "user.log"]:
                 try:
                     # See if it's there
                     if os.path.exists("%s/%s" % (d,log)):

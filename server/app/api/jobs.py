@@ -3,7 +3,7 @@ from app.api import XenRTAPIPage
 
 import config, app.constants
 
-import string, time, smtplib, traceback, StringIO, re, sys
+import string, time, smtplib, traceback, StringIO, re, sys, calendar
 
 class XenRTJobPage(XenRTAPIPage):
     def showlog(self, id, wide, verbose, times=False):
@@ -54,9 +54,9 @@ class XenRTJobPage(XenRTAPIPage):
                     fvalue = string.strip(rc2[2])
                     if fkey == "result" and times:
                         if fvalue == "started":
-                            started = time.mktime(fts.timetuple())
+                            started = calendar.timegm(fts.timetuple())
                         if fvalue in ("pass", "fail", "error", "partial"):
-                            finished = time.mktime(fts.timetuple())
+                            finished = calendar.timegm(fts.timetuple())
                     if verbose != "no":
                         line = "...[%-19s] %-10s %s" % (fts, fkey, fvalue)
                         detailedtext = detailedtext + line + "\n"
@@ -295,6 +295,7 @@ class XenRTSubmit(XenRTJobPage):
             if key != 'action':
                 details[key] = form[key]
         details['JOB_FILES_SERVER'] = config.log_server
+        details['LOG_SERVER'] = config.log_server
         if details.has_key("MACHINE") and details["MACHINE"] == "ALL":
             # XRT-127
             allto = 86400
@@ -303,7 +304,7 @@ class XenRTSubmit(XenRTJobPage):
                     allto = int(details["ALLTIMEOUT"])
                 except:
                     pass
-            alltimenow = time.mktime(time.localtime())
+            alltimenow = time.time()
             details["ALLTIMEOUT"] = "%u" % (int(alltimenow) + allto)
         try:
             id = self.new_job(details)

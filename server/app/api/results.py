@@ -178,6 +178,7 @@ class XenRTLogData(XenRTAPIPage):
             if not rc:
                 return "ERROR Could not get detailid for test"
                 cur.close()
+                db.rollback()
                 db.close()
             else:
                 detailid = int(rc[0])

@@ -218,16 +218,7 @@ class _VSwitch(xenrt.TestCase):
         raise xenrt.XRTError("Failed to find guest with name %s" % (name))
 
     def setupGuestTcpDump(self, guest):
-        if self.wdir == None:
-            self.wdir = xenrt.resources.WebDirectory()
-            self.wdir.copyIn("/local/apt-cache/packages/libssl0.9.7_0.9.7e-3sarge5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/libpcap0.8_0.8.3-5_i386.deb")
-            self.wdir.copyIn("/local/apt-cache/packages/tcpdump_3.8.3-5sarge2_i386.deb")
-
-        guest.execguest("wget %s" % self.wdir.getURL("libssl0.9.7_0.9.7e-3sarge5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("libpcap0.8_0.8.3-5_i386.deb"))
-        guest.execguest("wget %s" % self.wdir.getURL("tcpdump_3.8.3-5sarge2_i386.deb"))
-        guest.execguest("dpkg -i libssl0.9.7_0.9.7e-3sarge5_i386.deb libpcap0.8_0.8.3-5_i386.deb tcpdump_3.8.3-5sarge2_i386.deb")
+        guest.installPackages(["tcpdump"])
 
     def prepare(self, arglist):
         self.pool = self.getDefaultPool()
@@ -2399,7 +2390,10 @@ class TC20958(_VSwitch):
             pings.pop()
             pings.pop()
             result = pings.pop()
-            transmitted, received, packet_loss, ms  = re.findall("(\d\d)", result)
+            try:
+                transmitted, received, packet_loss, ms  = re.findall("(\d+)", result)
+            except(ValueError):
+                transmitted, received, duplicates, packet_loss, ms  = re.findall("(\d+)", result)
             if received == 0:
                 raise xenrt.XRTFailure("could not reach address %s on vlan %d" % (vlan_if_address, vlan_id))
 
@@ -3088,8 +3082,7 @@ class SRTrafficwithGRO(NetworkThroughputwithGRO):
     def nfsDirSetup(self, nfsvm):
         """Setup an nfs share on the VM"""
         dir="/nfssr"
-        nfsvm.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsvm.installPackages(["nfs-kernel-server","nfs-common","portmap"])
 
         # Create a dir and export it
         nfsvm.execguest("mkdir %s" % dir)
@@ -4359,8 +4352,8 @@ class TC11583(_Controller):
         step("Setting rconn:FILE:DBG in vswitch")
         self.host.execdom0("ovs-appctl vlog/set rconn:FILE:DBG")
         self.debugNic()
-        # Attempt backoff of 10, 5, 2 and 1 second(s).  
-        for backoffms in [10000, 5000, 2000, 1000]:
+        # Attempt backoff of 10 and 5 second(s).
+        for backoffms in [10000, 5000]:
             step("Changing backoff to %s" % backoffms)
             dvscuuid = self.getControllerUUID()
             self.debugNic()

@@ -8,6 +8,8 @@
   </prepare>
   <testsequence>
     <parallel group="MaxvCPUs_5" workers="1">
+      <testcase id="xenserver.tc.smoketest.TC23539" prio="4" tc="TC-23539"/>
+      <testcase id="xenserver.tc.smoketest.TC23540" prio="4" tc="TC-23540"/>
       <testcase id="xenserver.tc.smoketest.TC23541" prio="4" tc="TC-23541"/>
       <testcase id="xenserver.tc.smoketest.TC23542" prio="4" tc="TC-23542"/>
       <testcase id="xenserver.tc.smoketest.TC23543" prio="4" tc="TC-23543"/>

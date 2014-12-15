@@ -2,7 +2,6 @@ import os, xml.dom.minidom, re, string
 
 cfg = {}
 
-cfg['masterurl'] ="@masterurl@"
 basedir ="@sharedir@/control"
 confdir = "@confdir@"
 netdata = os.popen("/sbin/ip addr show dev eth0").read()
@@ -16,6 +15,7 @@ cfg['url_base'] = "http://%s/share/control" % (addr)
 cfg['tmp_base'] = "/tmp"
 cfg['max_db_connections'] = "8"
 cfg['db_sync_timeout'] = "60"
+cfg['partner_ha_node'] = ""
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):
@@ -52,6 +52,8 @@ if os.path.exists(cf):
                                     cfg['max_db_connections'] = data
                                 elif name == "DB_SYNC_TIMEOUT":
                                     cfg['db_sync_timeout'] = data
+                                elif name == "PARTNER_HA_NODE":
+                                    cfg['partner_ha_node'] = data
 
 
 cfg['results'] = "%s/results" % basedir

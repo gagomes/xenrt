@@ -21,6 +21,7 @@ class XenRTPage(Page):
                     self.waitForLocalWrite()
             finally:
                 if self._db:
+                    self._db.rollback()
                     self._db.close()
 
     def getWriteLocation(self, db):
@@ -46,6 +47,7 @@ class XenRTPage(Page):
     def waitForLocalWrite(self):
         assert self.WRITE
         writeDb = self.getDB()
+        writeDb.rollback()
         writeLoc = self.getWriteLocation(writeDb)
         readDb = app.db.dbReadInstance()
         i = 0
@@ -61,6 +63,7 @@ class XenRTPage(Page):
                 break
             i += 1
             time.sleep(self.DB_SYNC_CHECK_INTERVAL)
+        readDb.rollback()
         readDb.close()
 
     def getDB(self):

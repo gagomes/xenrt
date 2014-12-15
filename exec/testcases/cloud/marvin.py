@@ -99,6 +99,11 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
         except:
             xenrt.TEC().logverbose("test_data not supported")
         else:
+            # Older versions of marvin don't have configurableData.
+            # Initialise it to an empty dict here so we don't get exceptions
+            # later on
+            if not testData.has_key('configurableData'):
+                testData['configurableData'] = {}
             if self.args.has_key("resources"):
                 resources = self.args['resources'].split(",")
             else:   
@@ -109,12 +114,24 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             if "iscsi" in resources:
                 lun = xenrt.ISCSITemporaryLun(100)
                 testData['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+                testData['configurableData']['iscsi'] = {"url": "iscsi://%s/%s/%d" % (lun.getServer(), lun.getTargetName(), lun.getLunID()), "name": "Test iSCSI Storage"}
+            if "portableip" in resources:
+                range = xenrt.StaticIP4Addr().getIPRange(4)
+                testData['configurableData']['portableIpRange']['startip'] = range[0].getAddr()
+                testData['configurableData']['portableIpRange']['endip'] = range[-1].getAddr()
+                testData['configurableData']['portableIpRange']['gateway'] = xenrt.getNetworkParam("NPRI", "GATEWAY")
+                testData['configurableData']['portableIpRange']['netmask'] = xenrt.getNetworkParam("NPRI", "SUBNETMASK")
+                testData['configurableData']['portableIpRange']['vlan'] = 1000
             if "netscaler" in resources:
                 netscaler = NetScaler.setupNetScalerVpx('NetScaler-VPX')
                 netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
-                testData['netscaler_VPX']['ipaddress'] = netscaler.managementIp
-                testData['netscaler_VPX']['privateinterface'] = '1/1'
-            
+                testData['configurableData']['netscaler']['ipaddress'] = netscaler.managementIp
+                testData['configurableData']['netscaler']['username'] = 'nsroot'
+                testData['configurableData']['netscaler']['password'] = 'nsroot'
+                testData['configurableData']['netscaler']['networkdevicetype'] = 'NetscalerVPXLoadBalancer'
+                testData['configurableData']['netscaler']['publicinterface'] = '1/1'
+                testData['configurableData']['netscaler']['privateinterface'] = '1/2'
+                testData['configurableData']['netscaler']['numretries'] = '2'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512
                 testData['service_offerings']['memory'] = 512
@@ -135,7 +152,8 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
             testData['medium']['hypervisor'] = self.args['hypervisor']
             testData['server']['hypervisor'] = self.args['hypervisor']
             testData['server_without_disk']['hypervisor'] = self.args['hypervisor']
-            testData['host_password'] = "xenroot"
+            testData['host_password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
+            testData['configurableData']['host']['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")
             with open("%s/testdata.cfg" % xenrt.TEC().getLogdir(), "w") as f:
                 f.write(json.dumps(testData, indent=2))
     

@@ -38,6 +38,7 @@ class CloudStack(object):
             place = xenrt.GenericGuest("CS-MS")
             place.mainip = ip
             place.findPassword()
+            place.findDistro()
         self.mgtsvr = xenrt.lib.cloud.ManagementServer(place)
         self.marvin = xenrt.lib.cloud.MarvinApi(self.mgtsvr)
         self.marvinCfg = {}

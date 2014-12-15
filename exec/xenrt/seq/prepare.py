@@ -200,7 +200,7 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                                 hostIds.append(hostId)
                                 simpleHostNode = {'id': hostId,
                                                   'product_type': 'esx',
-                                                  'product_version': xenrt.TEC().lookup('CLOUD_ESXI_VERSION', '5.5.0-update01'),
+                                                  'product_version': xenrt.TEC().lookup('ESXI_VERSION', '5.5.0-update02'),
                                                   'noisos': True,
                                                   'install_sr_type': 'no',
                                                   'extra_config': {"dc": zone['XRT_VMWareDC'], "cluster": cluster['XRT_VMWareCluster'], "virconn": False}
@@ -820,6 +820,10 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["bootparams"] = self.expand(str(a.data))
+                elif x.localName == "packages":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            vm["packages"] = expand(str(a.data), params).split(",")
 
         self.parent.vms.append(vm)
 

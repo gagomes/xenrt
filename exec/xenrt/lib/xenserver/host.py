@@ -12605,7 +12605,7 @@ class Pool:
 
         cli = self.getCLIInstance()
         cli.execute("pool-emergency-transition-to-master")
-        xenrt.sleep(20)
+        host.waitForXapi(35, desc="wait for Xapi")
 
         if self.sharedDB and reachable:
             try:

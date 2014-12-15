@@ -1542,10 +1542,7 @@ class TC8758(xenrt.TestCase):
         # Now manually recover the pool
         self.pool.setMaster(self.host1)
 
-        # Wait 1 minute and then check xapi is running
-        time.sleep(60)
-        cli = self.pool.getCLIInstance() # Need to renew it
-
+        cli = self.pool.getCLIInstance()
         try:
             cli.execute("host-list")
         except:

@@ -198,6 +198,9 @@ class GenericPlace:
     def tailor(self):
         raise xenrt.XRTError("Unimplemented")
 
+    def createScaleXtremeEnvironment(self):
+        raise xenrt.XRTError("Unimplemented")
+
     def execdom0(self,
                  command,
                  username=None,

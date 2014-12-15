@@ -13,8 +13,8 @@ class SXAgent(object):
         super(SXAgent, self).__init__()
 
         self.__agentVM = None
-        self.__apikey = xenrt.TEC().lookup("apikey", None)
-        self.__credential = xenrt.TEC().lookup("credential", None)
+        self.__apikey = xenrt.TEC().lookup("SXA_APIKEY", None)
+        self.__credential = xenrt.TEC().lookup("SXA_CREDENTIAL", None)
         self.__nodeid = None
         self.__api = None
 

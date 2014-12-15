@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
+from xenrt.enum import XenServerLicenceSKU
 import re
 
 __all__ = ["WorkloadBalancing", "ReadCaching",
@@ -178,6 +179,37 @@ class ExportPoolResourceList(LicensedFeature):
     def stateCanBeChecked(self):
         return False
 
+class CreedenceEnabledFeatures(object):
+
+    def __init__(self,sku):
+        self.sku = sku
+
+    def getEnabledFeatures(self):
+        if self.sku == XenServerLicenceSKU.PerUserEnterprise or \
+           self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
+            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
+        if self.sku == XenServerLicenceSKU.PerSocketEnterprise or \
+           self.sku == XenServerLicenceSKU.PerSocket:
+            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+                    Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return [Hotfixing().name, GPUPassthrough().name]
+        if self.sku == XenServerLicenceSKU.PerSocketStandard:
+            return [Hotfixing().name, GPUPassthrough().name]
+        if self.sku == XenServerLicenceSKU.Free:
+            return [Hotfixing().name, GPUPassthrough().name] 
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS: or \
+           self.sku == XenServerLicenceSKU.XenDesktopPlusMPS
+            return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
+                    Hotfixing().name, GPUPassthrough().name]
+
+    def expectedEnabledState(self, feature):
+
+        if feature.name in self.getEnabledFeatures():
+            return False
+        else:
+            return True
 
 class LicensedFeatureFactory(object):
     __CRE = "creedence"
@@ -193,3 +225,8 @@ class LicensedFeatureFactory(object):
             return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
+ 
+    def getFeatureState(self, productVersion, sku, feature):
+        lver = productVersion.lower()
+        if lver == self.__CRE:
+            return CreedenceEnabledFeatures(sku).expectedEnabledState(feature)

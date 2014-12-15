@@ -16,7 +16,7 @@ class LicenceManager(object):
         self.verifyLicenseServer(license,v6,licenseinUse,hostOrPool) 
 
     def releaseLicense(self, hostOrPool):
-        licence = XenServerLicenceFactory().licenseForPool(hostOrPool,XenServerLicenceSKU.Free.lower())
+        licence = XenServerLicenceFactory().licenceForPool(hostOrPool,XenServerLicenceSKU.Free)
         hostOrPool.licenseApply(None,licence)
 
     def verifyLicenseServer(self, license, v6, licenseinUse, hostOrPool, reset=False):
@@ -83,32 +83,45 @@ class Licence(object):
 
 
 class TampaLicence(Licence):
-    """
-    PLACEHOLDER CLASS
-    """
+
     def getEdition(self):
-        return "licence"
+        if self.sku == XenServerLicenceSKU.XSPlatinum:
+            return "platinum"
+        if self.sku == XenServerLicenceSKU.XSEnterprise:
+            return "enterprise"
+        if self.sku == XenServerLicenceSKU.XSAdvance:
+            return "advanced"
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "enterprise-xd"
+        if self.sku == XenServerLicenceSKU.Free:
+            return "free"
+        raise ValueError("No edition found for the SKU %s" % self.sku)
 
     def getLicenceFileName(self):
-        return "licence.lic"
+        if self.sku == XenServerLicenceSKU.XSPlatinum:
+            return "valid-platinum"
+        if self.sku == XenServerLicenceSKU.XSEnterprise:
+            return "valid-enterprise"
+        if self.sku == XenServerLicenceSKU.XSAdvance:
+            return "valid-advanced"
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "valid-enterpise-xd"
+        if self.sku == XenServerLicenceSKU.Free:
+            return None
+        raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
-        return "CXS_some_thing"
-
+        return
 
 class ClearwaterLicence(Licence):
-    """
-    PLACEHOLDER CLASS
-    """
+    
     def getEdition(self):
-        return "licence"
+        return 
 
     def getLicenceFileName(self):
-        return "licence.lic"
-
+        return 
     def getLicenceName(self):
-        return "CXS_some_thing"
-
+        return
 
 class CreedenceLicence(Licence):
 
@@ -119,10 +132,13 @@ class CreedenceLicence(Licence):
         if self.sku == XenServerLicenceSKU.PerSocketEnterprise or \
            self.sku == XenServerLicenceSKU.PerSocket:
             return "enterprise-per-socket"
-        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
-            return "xendesktop"
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "desktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "standard-per-socket"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS or \
+            self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
+            return "desktop-plus"
         if self.sku == XenServerLicenceSKU.Free:
             return "free"
         raise ValueError("No edition found for the SKU %s" % self.sku)
@@ -134,7 +150,7 @@ class CreedenceLicence(Licence):
             return "valid-enterprise-peruser"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "valid-enterprise-perccu"
-        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
+        if self.sku == XenServerLicenceSKU.XenDesktop:
             return "valid-xendesktop"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "valid-standard-persocket"
@@ -142,6 +158,10 @@ class CreedenceLicence(Licence):
             return None
         if self.sku == XenServerLicenceSKU.PerSocket:
             return "valid-persocket"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS:
+            return "valid-xendesktop-plus.lic"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
+            return "valid-xendesktop-plus-MPS.lic"
         raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):
@@ -151,7 +171,7 @@ class CreedenceLicence(Licence):
             return "CXS_ENT2_UD"
         if self.sku == XenServerLicenceSKU.PerConcurrentUserEnterprise:
             return "CXS_ENT2_CCU"
-        if self.sku == XenServerLicenceSKU.XenDesktopPlatinum:
+        if self.sku == XenServerLicenceSKU.XenDesktop:
             return "XDS_STD_CCS"
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return "CXS_STD2_CCS"

@@ -4484,7 +4484,7 @@ fi
 
         xenrt.TEC().logverbose("Finding IP address of new management interface...")
         data = self.execdom0("ifconfig xenbr%s" % (interface[-1]))
-        nip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (interface, nip))
 
@@ -6760,7 +6760,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("New interface not UP after configuration")
         try:
-            ip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for new interface")
 
@@ -6807,7 +6807,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Interface not UP")
         try:
-            ip = re.search(".*inet (?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for interface")
 

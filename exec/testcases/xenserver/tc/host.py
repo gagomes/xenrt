@@ -1697,7 +1697,7 @@ class TC9993(_SNMPConfigTest):
             xenrt.TEC().logverbose("Waiting 60s after starting snmpd (CA-70508)...")
             time.sleep(60)
         data = self.host.execdom0("service snmpd status | cat")
-        if "disabled" in data:
+        if not self.host.snmpdIsEnabled():
             self.host.enableSnmpd()
             self.wasenabled = False
 
@@ -1710,7 +1710,7 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("/usr/libexec/iptables/iptables.init save")
+        self.host.iptablesSave()
 
         # Find the community name
         for line in self.snmp_config_lines:

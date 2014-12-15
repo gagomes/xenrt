@@ -54,9 +54,9 @@ class XenRTJobPage(XenRTAPIPage):
                     fvalue = string.strip(rc2[2])
                     if fkey == "result" and times:
                         if fvalue == "started":
-                            started = calendar.gmtime(fts.timetuple())
+                            started = calendar.timegm(fts.timetuple())
                         if fvalue in ("pass", "fail", "error", "partial"):
-                            finished = calendar.gmtime(fts.timetuple())
+                            finished = calendar.timegm(fts.timetuple())
                     if verbose != "no":
                         line = "...[%-19s] %-10s %s" % (fts, fkey, fvalue)
                         detailedtext = detailedtext + line + "\n"

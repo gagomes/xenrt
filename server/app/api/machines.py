@@ -314,7 +314,7 @@ class XenRTBorrow(XenRTMachinePage):
             if form.has_key("forever"):
                 leaseTo = "2030-01-01 00:00:00"
                 leaseToTime = time.strptime(leaseTo, "%Y-%m-%d %H:%M:%S")
-                hours = (calendar.gmtime(leaseToTime) - time.time()) / 3600
+                hours = (calendar.timegm(leaseToTime) - time.time()) / 3600
             if form.has_key("force"):
                 force = True
             cur = db.cursor()

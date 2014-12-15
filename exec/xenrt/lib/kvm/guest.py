@@ -17,6 +17,7 @@ createVM = xenrt.lib.libvirt.createVM
 virt_install_lock = thread.allocate_lock()
 
 class KVMGuest(xenrt.lib.libvirt.Guest):
+    DEFAULT = -10
     DEFAULT_DISK_FORMAT = "raw"
 
     def __init__(self, *args, **kwargs):
@@ -51,7 +52,7 @@ class KVMGuest(xenrt.lib.libvirt.Guest):
             controllerType = self._getDiskDeviceBus()
 
         if userdevice is None:
-            userdevicename = self._getNextBlockDevice()
+            userdevicename = self._getNextBlockDevice(controllerType=controllerType)
         else:
             userdevicename = self._getDiskDevicePrefix() +chr(int(userdevice)+self._baseDeviceForBus())
 

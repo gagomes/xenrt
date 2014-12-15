@@ -4736,6 +4736,11 @@ class GenericHost(GenericPlace):
                 version     = self.execdom0("grep ^product-version /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
                 # e.g. "623860"
                 buildNumber = self.execdom0("grep ^build /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
+            elif self.execdom0("virsh list", retval="code") == 0:
+                # It's probably KVM
+                name = "KVM"
+                version = "Linux"
+                buildNumber = ""
             elif self.execdom0("test -e /etc/redhat-release", retval="code") == 0:
                 name = "Linux"
                 version = "RedHat"
@@ -9573,7 +9578,7 @@ while True:
                 self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
                 repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
                 repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent)
+                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
                 if doUpdateOnSuccess:
                     self.execguest("apt-get update")
             else:

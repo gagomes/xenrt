@@ -1,0 +1,5 @@
+#!/bin/bash
+
+make -C ~/xenrt.git update install
+
+xrt1 --run-suite $*

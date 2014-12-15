@@ -598,7 +598,6 @@ class Host(xenrt.GenericHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTSlab)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTPasswords)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoverage)
-        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoresPerSocket)
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
@@ -11214,10 +11213,11 @@ class DundeeHost(CreedenceHost):
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
+        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
     def isCentOS7Dom0(self):
         return xenrt.TEC().lookup("CENTOS7_DOM0", True, boolean=True)
-    
+
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
@@ -12673,7 +12673,7 @@ class Pool:
 
         cli = self.getCLIInstance()
         cli.execute("pool-emergency-transition-to-master")
-        xenrt.sleep(300)
+        host.waitForXapi(35, desc="wait for Xapi")
 
         if self.sharedDB and reachable:
             try:

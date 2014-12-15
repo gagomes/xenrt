@@ -3298,8 +3298,9 @@ class GlobalExecutionContext:
             try:
                 logdir = self.anontec.getLogdir()
                 record = xenrt.GEC().registry.getDeploymentRecord()
-                with open("%s/deployment.json", "w") as f:
+                with open("%s/deployment.json" % logdir, "w") as f:
                     f.write(json.dumps(record, indent=2))
+                self.dbconnect.jobUpload("%s/deployment.json" % logdir, prefix="deployment.json")
             except Exception, e:
                 xenrt.TEC().logverbose("Exception getting deployment record: %s" % str(e))
 

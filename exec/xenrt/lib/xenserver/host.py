@@ -598,7 +598,6 @@ class Host(xenrt.GenericHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTSlab)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTPasswords)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoverage)
-        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTCoresPerSocket)
         
         self.installationCookie = "%012x" % xenrt.random.randint(0,0xffffffffffff)
@@ -11183,7 +11182,8 @@ class DundeeHost(CreedenceHost):
                                 productType=productType)
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
-
+        self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
+        
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 

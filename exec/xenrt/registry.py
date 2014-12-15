@@ -22,6 +22,19 @@ class Registry:
     def dump(self):
         xenrt.TEC().logverbose(self.data)
 
+    def getDeploymentRecord(self):
+        # TODO consider pools and clouds
+
+        ret = {"hosts":{}, "vms": {}}
+        for h in self.hostList():
+            if h.startswith("RESOURCE_HOST_"):
+                continue
+            ret['hosts'][h] = self.hostGet(h).getDeploymentRecord()
+        
+        for g in self.guestList():
+            ret['vms'][g] = self.guestGet(g).getDeploymentRecord()
+        return ret
+
     # Generic operations
     def write(self, path, value):
         self.mylock.acquire()

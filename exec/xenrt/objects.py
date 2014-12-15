@@ -9561,7 +9561,7 @@ while True:
                 self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
                 repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
                 repoFileContent = xenrt.command("cat %s" % repoFile)
-                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent)
+                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
                 if doUpdateOnSuccess:
                     self.execguest("apt-get update")
             else:

@@ -116,12 +116,32 @@ class TampaLicence(Licence):
 class ClearwaterLicence(Licence):
     
     def getEdition(self):
-        return 
+        if self.sku == XenServerLicenceSKU.PerSocket:
+            return "per-socket"
+        if self.sku == XenServerLicenceSKU.Free:
+            return "free"
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "xendesktop"
+        raise ValueError("No edition found for the SKU %s" % self.sku)
 
     def getLicenceFileName(self):
-        return 
+        if self.sku == XenServerLicenceSKU.PerSocket:
+            return "valid-persocket"
+        if self.sku == XenServerLicenceSKU.Free:
+            return None
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "valid-enterprise-xd"
+        raise ValueError("No license file name found for the SKU %s" % self.sku)
+
     def getLicenceName(self):
-        return
+
+        if self.sku == XenServerLicenceSKU.PerSocket:
+            return "CXS_STD_CCS"
+        if self.sku == XenServerLicenceSKU.Free:
+            return None
+        if self.sku == XenServerLicenceSKU.XenDesktop:
+            return "XDS_STD_CCS"
+        raise ValueError("No license server name found for the SKU %s" % self.sku)  
 
 class CreedenceLicence(Licence):
 

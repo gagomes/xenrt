@@ -1610,7 +1610,7 @@ class TC9989(xenrt.TestCase):
             raise xenrt.XRTFailure("snmpd process is running")
 
         # Make sure the snmpd service is not enabled
-        if self.host.snmpdIsEnabled(self):
+        if self.host.snmpdIsEnabled():
             raise xenrt.XRTFailure("snmpd service is enabled")
 
 class _SNMPConfigTest(xenrt.TestCase):

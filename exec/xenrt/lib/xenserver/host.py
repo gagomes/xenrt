@@ -7932,7 +7932,7 @@ rm -f /etc/xensource/xhad.conf || true
         self.execdom0("/sbin/chkconfig snmpd on")
         
     def scsiIdPath(self):
-        return "/usr/lib/udev/scsi_id"
+        return "/sbin/scsi_id"
         
     def iptablesSave(self):
         self.execdom0("service iptables save")
@@ -11309,7 +11309,7 @@ class DundeeHost(CreedenceHost):
 
     def scsiIdPath(self):
         if self.isCentOS7Dom0():
-            return "/sbin/scsi_id"
+            return "/usr/lib/udev/scsi_id"
         else:
             return CreedenceHost.scsiIdPath(self)
             

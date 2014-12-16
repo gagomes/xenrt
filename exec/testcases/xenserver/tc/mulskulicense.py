@@ -244,39 +244,30 @@ class TestFeatureBase(LicenseBase):
             self.licenceManager.applyLicense(self.v6, self.systemObj, self.licence,licenseinUse)
             self.systemObj.checkLicenseState(edition=self.licence.getEdition())
 
-
-            if not self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
-                license.sku,feature)
             self.checkFeature()
 
             self.licenceManager.releaseLicense(self.systemObj)
 
             xenrt.TEC().logverbose("Finished testing SKU: %s" % sku)
 
-    def checkFeature(self, featureEnabled):
+    def checkFeature(self):
         """
         Abstract, to be overwritten with feature specific test steps.
-            featureEnabled: bool, if the feature is expected to be enabled with the current SKU.
         """
         pass
 
 class TCReadCachingFeature(TestFeatureBase):
 
-    def prepare(self, arglist=None):
-        super(TCReadCachingFeature, self).prepare(arglist)
-
-        # List of skus where this feature is turned on.
-        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise"]
-
     def checkFeature(self):
         # Restrict read caching = True / False
         feature = ReadCaching()
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
-        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
-                self.license.sku,feature)
-        assertions.assertEquals(featureEnabled,
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+                self.license.sku, feature)
+
+        assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
-            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
+            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
         # Check read caching values before any VMs.
         enabledList = feature.isEnabled(self.systemObj.master)
@@ -287,18 +278,18 @@ class TCReadCachingFeature(TestFeatureBase):
 
         # Check we have the right read caching priviledge.
         enabledList = feature.isEnabled(self.systemObj.master)
-        assertions.assertEquals(featureEnabled,
+        assertions.assertEquals(not featureRestricted,
             True in enabledList,
-            "Read caching privilidge is not as expected after creating new VM. Should be: %s" % (featureEnabled))
+            "Read caching restriction is not as expected after creating new VM. Should be: %s" % (featureRestricted))
 
         # Remove License.
         self.licenceManager.releaseLicense(self.systemObj)
 
         # Check, should still the same RC privilidge.
         enabledList = feature.isEnabled(self.systemObj.master)
-        assertions.assertEquals(featureEnabled,
+        assertions.assertEquals(not featureRestricted,
             True in enabledList,
-            "Read caching privilidge is not as expected after removing license, but not performing lifecycle / tootstack restart. Should be: %s" % (featureEnabled))
+            "Read caching restriction is not as expected after removing license, but not performing lifecycle / tootstack restart. Should be: %s" % (featureRestricted))
 
         self.systemObj.master.reboot()
 
@@ -316,21 +307,15 @@ class TCReadCachingFeature(TestFeatureBase):
 
 class TCWLBFeature(TestFeatureBase):
 
-    def prepare(self, arglist=None):
-        super(TCWLBFeature, self).prepare(arglist)
-
-        # List of skus where this feature is turned on.
-        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise", "XenDesktop"]
-
     def checkFeature(self):
         self.systemObj.master.execdom0("xe host-license-view")
 
         feature = WorkloadBalancing()
-        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
                 self.license.sku,feature)
 
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
-        assertions.assertEquals(featureEnabled,
+        assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
 
@@ -355,15 +340,15 @@ class TCVirtualGPUFeature(TestFeatureBase):
     def checkFeature(self):
         # Check flag and feature on licensed host.
         feature =  VirtualGPU()
-        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
                 self.license.sku,feature)
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
-        assertions.assertEquals(featureEnabled,
+        assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
 
         enabledList = feature.isEnabled(self.systemObj.master)
-        assertions.assertEquals(featureEnabled,
+        assertions.assertEquals(not featureRestricted,
             True in enabledList,
             "vGPU privilidge is not as expected after creating new VM. Should be: %s" % (featureEnabled))
 

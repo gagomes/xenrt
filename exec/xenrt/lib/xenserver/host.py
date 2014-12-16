@@ -1985,8 +1985,7 @@ fi
                 self.checkForHardwareBootProblem(False)
                 raise
 
-        # Wait for firstboot and other scripts to complete
-        #xenrt.sleep(300)
+        self.waitForFirstBootScriptsToComplete()
 
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
@@ -2118,6 +2117,18 @@ fi
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
+
+    def waitForFirstBootScriptsToComplete(self):
+        ret = ""
+        for i in range(10):
+            ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
+            if "success" in ret:
+                xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)
+                return
+            else:
+                xenrt.sleep(30)
+
+        xenrt.TEC().logverbose("First boot scripts didn't complete: %s" % ret)
 
     def checkHostInstallReport(self, filename):
         """Checks a host installer completion file. If the file is not

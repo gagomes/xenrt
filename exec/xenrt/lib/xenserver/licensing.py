@@ -21,7 +21,11 @@ class LicenceManager(object):
 
     def verifyLicenseServer(self, license, v6, licenseinUse, hostOrPool, reset=False):
 
-        xsOnlyLicences = XenServerLicenceFactory().xenserverOnlyLicences()
+        if isinstance(hostOrPool,xenrt.lib.xenserver.Pool):
+            productVersion = hostOrPool.master.productVersion
+        else:
+            productVersion = hostOrPool.productVersion
+        xsOnlyLicences = XenServerLicenceFactory().xenserverOnlyLicences(productVersion)
         if not next((i for i in xsOnlyLicences if i.getEdition() == license.getEdition()), None):
             xenrt.TEC().logverbose("XD license is applied so no need to verify the license server")
             return
@@ -211,7 +215,7 @@ class XenServerLicenceFactory(object):
         return xshost.productVersion.lower()
 
     def xenserverOnlyLicencesForPool(self, xspool):
-        return self.xenserverOnlyLicences(xspool.master)
+        return self.xenserverOnlyLicences(xspool.master.productVersion)
 
     def xenserverOnlyLicencesForHost(self, xshost):
         lver = self.__getHostAge(xshost)

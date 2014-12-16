@@ -4206,7 +4206,12 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tvendor \"EQLOGIC\"\\n"
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
-        eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
+        
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.isCentOS7Dom0():
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u --devices /dev/%n\"\\n"
+        else:
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
+        
         eqlmpconf += "\\t\\tpath_checker readsector0\\n"
         eqlmpconf += "\\t\\tfailback immediate\\n"
         eqlmpconf += "\\t\\tpath_selector \"round-robin 0\"\\n"

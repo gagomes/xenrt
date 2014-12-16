@@ -59,12 +59,14 @@ class XenRTJobFileDownload(XenRTAPIPage):
             ctype = "application/octet-stream"
         
         try:
-            localfilename = app.utils.results_filename(filename, self.request.matchdict['job'])
+            localfilename = app.utils.results_filename(filename, int(self.request.matchdict['job']))
+            print localfilename
             self.request.response.body_file = file(localfilename, "r")
             self.request.response.content_type=ctype
             if encoding:
                 self.request.response.content_encoding=encoding
         except Exception, e:
+            print str(e)
             if isinstance(e, IOError):
                 return HTTPNotFound()
             else:

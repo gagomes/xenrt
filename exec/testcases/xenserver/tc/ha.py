@@ -4740,7 +4740,7 @@ class TCHARestartProtectedVms(_HATest):
         self.guest3=self.getGuest("Deb3")
         
         freemem = self.host1.getFreeMemory()
-        guestmem =0.4*(freemem+self.guest1.memory)
+        guestmem = int(0.4*(freemem+self.guest1.memory))
         
         allguests = [self.guest1,self.guest2,self.guest3]
 

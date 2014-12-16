@@ -230,6 +230,155 @@ class TCUpgrade(LicenseBase):
                     raise xenrt.XRTFailure("Host License has not expired")
                 else: 
                     self.featureFlagValidation()
+
+class TestFeatureBase(LicenseBase):
+
+    def run(self, arglist=None):
+        for sku in self.skus:
+            xenrt.TEC().logverbose("Testing SKU: %s" % sku)
+
+            self.licence = self.licenceFactory.licenceForHost(self.systemObj.master, sku)
+
+            # Apply the currrent license.
+            licenseinUse = self.licenseManager.addLicensesToServer(self.v6,self.licence)
+            self.licenceManager.applyLicense(self.v6, self.systemObj, self.licence,licenseinUse)
+            self.systemObj.checkLicenseState(edition=self.licence.getEdition())
+
+
+            if not self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+                license.sku,feature)
+            self.checkFeature()
+
+            self.licenceManager.releaseLicense(self.systemObj)
+
+            xenrt.TEC().logverbose("Finished testing SKU: %s" % sku)
+
+    def checkFeature(self, featureEnabled):
+        """
+        Abstract, to be overwritten with feature specific test steps.
+            featureEnabled: bool, if the feature is expected to be enabled with the current SKU.
+        """
+        pass
+
+class TCReadCachingFeature(TestFeatureBase):
+
+    def prepare(self, arglist=None):
+        super(TCReadCachingFeature, self).prepare(arglist)
+
+        # List of skus where this feature is turned on.
+        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise"]
+
+    def checkFeature(self):
+        # Restrict read caching = True / False
+        feature = ReadCaching()
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+                self.license.sku,feature)
+        assertions.assertEquals(featureEnabled,
+            featureResctictedFlag,
+            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
+
+        # Check read caching values before any VMs.
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertFalse(True in enabledList, "Read Caching is enabled before any VMs created.")
+
+        # Create VM..
+        guest = self.systemObj.master.createGenericLinuxGuest(sr="nfsstorage")
+
+        # Check we have the right read caching priviledge.
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertEquals(featureEnabled,
+            True in enabledList,
+            "Read caching privilidge is not as expected after creating new VM. Should be: %s" % (featureEnabled))
+
+        # Remove License.
+        self.licenceManager.releaseLicense(self.systemObj)
+
+        # Check, should still the same RC privilidge.
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertEquals(featureEnabled,
+            True in enabledList,
+            "Read caching privilidge is not as expected after removing license, but not performing lifecycle / tootstack restart. Should be: %s" % (featureEnabled))
+
+        self.systemObj.master.reboot()
+
+        # Check flag again
+        # Should be restricted after removing license.
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertTrue(featureResctictedFlag,
+            "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
+
+        # Check that read caching is now disabled.
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertFalse(True in enabledList, "Read Caching is enabled after removing license and lifecycle operation.")
+
+        guest.uninstall()
+
+class TCWLBFeature(TestFeatureBase):
+
+    def prepare(self, arglist=None):
+        super(TCWLBFeature, self).prepare(arglist)
+
+        # List of skus where this feature is turned on.
+        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise", "XenDesktop"]
+
+    def checkFeature(self):
+        self.systemObj.master.execdom0("xe host-license-view")
+
+        feature = WorkloadBalancing()
+        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+                self.license.sku,feature)
+
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertEquals(featureEnabled,
+            featureResctictedFlag,
+            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
+
+        self.licenceManager.releaseLicense(self.systemObj)
+
+        self.systemObj.master.reboot()
+
+        self.systemObj.master.execdom0("xe host-license-view")
+
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertTrue(featureResctictedFlag,
+            "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
+
+class TCVirtualGPUFeature(TestFeatureBase):
+
+    def prepare(self, arglist=None):
+        super(TCVirtualGPUFeature, self).prepare(arglist)
+
+        # List of skus where this feature is turned on.
+        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise", "XenDesktop"]
+
+    def checkFeature(self):
+        # Check flag and feature on licensed host.
+        feature =  VirtualGPU()
+        featureEnabled = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
+                self.license.sku,feature)
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertEquals(featureEnabled,
+            featureResctictedFlag,
+            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
+
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertEquals(featureEnabled,
+            True in enabledList,
+            "vGPU privilidge is not as expected after creating new VM. Should be: %s" % (featureEnabled))
+
+        # Unlicense host.
+        self.licenceManager.releaseLicense(self.systemObj)
+
+        # Check flag and functionality again, after removing license.
+        featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
+        assertions.assertTrue(featureResctictedFlag,
+            "Feature flag is not restricted after removing license. Feature restricted: %s" % (featureResctictedFlag))
+
+
+        enabledList = feature.isEnabled(self.systemObj.master)
+        assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
+
         
 # class LicenseExpiryBase(LicenseBase):
 #     #TC for Creedence (and later) license expiration test.

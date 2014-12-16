@@ -8485,24 +8485,22 @@ class MNRHost(Host):
             elif len(ipcfg) > 1:
                 xenrt.TEC().reason("Multiple IP addresses configured on device %s" % name)
             else:
-                m = re.match("inet ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "netmask ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "broadcast ([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)", ipcfg[0])
+                m = re.match("inet (addr:)?([0-9\.]+).+?(netmask |Mask:)([0-9\.]+)", ipcfg[0])
 
             if not m:
                 xenrt.TEC().reason("Cannot determine interface configuration for %s" % name)
                 ok = 0
             else:
-                if m.group(1) != ip:
+                if m.group(2) != ip:
                     ok = 0
                     xenrt.TEC().reason("Configuration of %s has "
                                        "IP address %s (expected %s)" %
-                                       (name, m.group(1), ip))
-                if m.group(3) != netmask:
+                                       (name, m.group(2), ip))
+                if m.group(4) != netmask:
                     ok = 0
                     xenrt.TEC().reason("Configuration of %s has "
                                        "NETMASK %s (expected %s)" %
-                                       (name, m.group(2), netmask))
+                                       (name, m.group(4), netmask))
 
             # There is no way to confirm the gateway configured for a
             # given device unless it is actually being usedas the

@@ -4792,7 +4792,7 @@ class GenericHost(GenericPlace):
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
                 self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
-                self.iptableSave()
+                self.iptablesSave()
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")

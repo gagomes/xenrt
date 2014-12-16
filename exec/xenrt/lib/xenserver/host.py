@@ -1986,7 +1986,7 @@ fi
                 raise
 
         # Wait for firstboot and other scripts to complete
-        xenrt.sleep(300)
+        #xenrt.sleep(300)
 
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()

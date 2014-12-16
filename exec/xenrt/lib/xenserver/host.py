@@ -13181,7 +13181,7 @@ class Pool:
             for h in self.getHosts():
                 failed = False
                 try:
-                    if h.execdom0("ps -ef | grep [x]api",
+                    if h.execdom0("ps -ef | grep \"bin/[x]api \"",
                                   retval="code") == 0:
                         failed = True
                 except:

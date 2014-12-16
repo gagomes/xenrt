@@ -64,6 +64,7 @@ class XenRTJobFileDownload(XenRTAPIPage):
             self.request.response.content_type=ctype
             if encoding:
                 self.request.response.content_encoding=encoding
+            return self.request.response
         except Exception, e:
             if isinstance(e, IOError):
                 return HTTPNotFound()

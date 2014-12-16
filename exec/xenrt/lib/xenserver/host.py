@@ -2122,13 +2122,13 @@ fi
         ret = ""
         for i in range(10):
             ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
-            if "success" in ret:
+            if ret:
                 xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)
                 return
             else:
                 xenrt.sleep(30)
 
-        xenrt.TEC().logverbose("First boot scripts didn't complete: %s" % ret)
+        xenrt.TEC().logverbose("First boot scripts didn't complete")
 
     def checkHostInstallReport(self, filename):
         """Checks a host installer completion file. If the file is not

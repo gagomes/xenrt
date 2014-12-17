@@ -293,7 +293,7 @@ class TCReadCachingFeature(TestFeatureBase):
             True in enabledList,
             "Read caching restriction is not as expected after removing license, but not performing lifecycle / tootstack restart. Should be: %s" % (featureRestricted))
 
-        self.systemObj.master.reboot()
+        guest.reboot()
 
         # Check flag again
         # Should be restricted after removing license.
@@ -321,8 +321,6 @@ class TCWLBFeature(TestFeatureBase):
             "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
 
         self.licenceManager.releaseLicense(self.systemObj)
-
-        self.systemObj.master.reboot()
 
         self.systemObj.master.execdom0("xe host-license-view")
 

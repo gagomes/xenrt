@@ -246,26 +246,26 @@ class TestFeatureBase(LicenseBase):
             self.licenceManager.applyLicense(self.v6, self.systemObj, self.licence,licenseinUse)
             self.systemObj.checkLicenseState(edition=self.licence.getEdition())
 
-            self.checkFeature()
+            self.checkFeature(sku)
 
             self.licenceManager.releaseLicense(self.systemObj)
 
             xenrt.TEC().logverbose("Finished testing SKU: %s" % sku)
 
-    def checkFeature(self):
+    def checkFeature(self, currentSKU):
         """
         Abstract, to be overwritten with feature specific test steps.
+        currentSKU: The current license sku being tested.
         """
         pass
 
 class TCReadCachingFeature(TestFeatureBase):
 
-    def checkFeature(self):
+    def checkFeature(self, currentSKU):
         # Restrict read caching = True / False
         feature = ReadCaching()
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
-        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
-                self.license.sku, feature)
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion, currentSKU, feature)
 
         assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
@@ -309,12 +309,11 @@ class TCReadCachingFeature(TestFeatureBase):
 
 class TCWLBFeature(TestFeatureBase):
 
-    def checkFeature(self):
+    def checkFeature(self, currentSKU):
         self.systemObj.master.execdom0("xe host-license-view")
 
         feature = WorkloadBalancing()
-        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
-                self.license.sku,feature)
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion, currentSKU, feature)
 
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
         assertions.assertEquals(featureRestricted,
@@ -333,11 +332,10 @@ class TCWLBFeature(TestFeatureBase):
 
 class TCVirtualGPUFeature(TestFeatureBase):
 
-    def checkFeature(self):
+    def checkFeature(self, currentSKU):
         # Check flag and feature on licensed host.
         feature =  VirtualGPU()
-        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
-                self.license.sku,feature)
+        featureRestricted = self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion, currentSKU, feature)
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
         assertions.assertEquals(featureRestricted,
             featureResctictedFlag,

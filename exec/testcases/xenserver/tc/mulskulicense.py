@@ -318,7 +318,7 @@ class TCWLBFeature(TestFeatureBase):
         featureResctictedFlag = feature.hostFeatureFlagValue(self.systemObj.master)
         assertions.assertEquals(featureRestricted,
             featureResctictedFlag,
-            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureEnabled, featureResctictedFlag))
+            "Feature flag on host does not match actual permissions. Feature allowed: %s, Feature restricted: %s" % (featureRestricted, featureResctictedFlag))
 
         self.licenceManager.releaseLicense(self.systemObj)
 

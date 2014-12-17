@@ -5169,6 +5169,13 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execdom0("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly":
+                raise
+    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5180,11 +5187,7 @@ class GenericHost(GenericPlace):
                           "> /dev/null 2>&1 </dev/null &")
             xenrt.sleep(5)
         else:
-            try:
-                self.execdom0("/sbin/reboot")
-            except xenrt.XRTFailure, e:
-                if e.reason != "SSH channel closed unexpectedly":
-                    raise
+            self._softReboot()
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):
@@ -5228,10 +5231,7 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            try:
-                self.execdom0("/sbin/reboot", timeout=timeout)
-            except Exception, e:
-                xenrt.TEC().logverbose(str(e))
+            self._softReboot(timeout)
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -6503,7 +6503,7 @@ exit 0
         if not disks:
             disks = self.lookup("OPTION_CARBON_DISKS", None)
 
-        # Temp fix while we work out how to do this properly.
+        # REQ-35: Temp fix while we work out how to do this properly.
         if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
             if disks and "scsi-SATA" in "".join(disks):
                 disks = None
@@ -6527,7 +6527,7 @@ exit 0
         if not disks:
             disks = self.lookup("OPTION_GUEST_DISKS", None)
 
-        # Temp fix while we work out how to do this properly.
+        # REQ-35: Temp fix while we work out how to do this properly.
         if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
             if disks and "scsi-SATA" in "".join(disks):
                 disks = None

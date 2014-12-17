@@ -1740,11 +1740,7 @@ done
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.disableAllFCPorts()
         if upgrade:
-            try:
-                self.execdom0("/sbin/reboot")
-            except xenrt.XRTFailure, e:
-                if e.reason != "SSH channel closed unexpectedly":
-                    raise
+            self._softReboot()
         else:
             self.machine.powerctl.cycle()
             
@@ -10914,7 +10910,7 @@ done
         mount.unmount()
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.disableAllFCPorts()
-        self.execdom0("/sbin/reboot")
+        self._softReboot()
         xenrt.TEC().progress("Rebooted host to start installer.")
         
         installTimeout = 1800 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))

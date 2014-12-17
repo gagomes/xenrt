@@ -333,12 +333,6 @@ class TCWLBFeature(TestFeatureBase):
 
 class TCVirtualGPUFeature(TestFeatureBase):
 
-    def prepare(self, arglist=None):
-        super(TCVirtualGPUFeature, self).prepare(arglist)
-
-        # List of skus where this feature is turned on.
-        self.featureEnabled = ["PerSocketEnterprise", "PerUserEnterprise", "XenDesktop"]
-
     def checkFeature(self):
         # Check flag and feature on licensed host.
         feature =  VirtualGPU()

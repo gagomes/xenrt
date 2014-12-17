@@ -159,7 +159,7 @@ class LicenseBase(xenrt.TestCase, object):
             self.featureFlagValidation(licence)
             self.licenceManager.releaseLicense(self.systemObj)
             self.featureFlagValidation()
-            self.licenseManager.verifyLicenseServer(licence,self.v6,licenseinUse, self.systemObj,reset=True)
+            self.licenceManager.verifyLicenseServer(licence,self.v6,licenseinUse, self.systemObj,reset=True)
 
     def postRun(self):
         self.licenceManager.releaseLicense(self.systemObj)
@@ -178,7 +178,7 @@ class TCRestartHost(LicenseBase):
             self.featureFlagValidation(licence)
             self.licenceManager.releaseLicense(self.systemObj)
             self.featureFlagValidation()
-            self.licenseManager.verifyLicenseServer(licence,self.v6,licenseinUse, self.systemObj,reset=True)
+            self.licenceManager.verifyLicenseServer(licence,self.v6,licenseinUse, self.systemObj,reset=True)
 
 class TCUpgrade(LicenseBase):
  
@@ -199,7 +199,7 @@ class TCUpgrade(LicenseBase):
         if self.addLicenseFile:
             productVer = xenrt.TEC().lookup("PRODUCT_VERSION")
             licence = self.licenceFactory.licence(productVer,self.expectedSku)
-            licenseinUse = self.licenseManager.addLicensesToServer(v6,licence)
+            licenseinUse = self.licenceManager.addLicensesToServer(v6,licence)
         else:
             v6.removeAllLicenses()
 
@@ -219,7 +219,7 @@ class TCUpgrade(LicenseBase):
         self.systemObj.checkLicenseState(edition=licence.getEdition())
         if self.oldLicenseServerName:
             v6 = self.v6
-            licenseinUse = self.licenseManager.addLicensesToServer(v6,licence)
+            licenseinUse = self.licenceManager.addLicensesToServer(v6,licence)
             self.featureFlagValidation(licence)
             self.licenceManager.applyLicense(v6,self.systemObj,licence,licenseinUse)
 
@@ -242,7 +242,7 @@ class TestFeatureBase(LicenseBase):
             self.licence = self.licenceFactory.licenceForHost(self.systemObj.master, sku)
 
             # Apply the currrent license.
-            licenseinUse = self.licenseManager.addLicensesToServer(self.v6,self.licence)
+            licenseinUse = self.licenceManager.addLicensesToServer(self.v6,self.licence)
             self.licenceManager.applyLicense(self.v6, self.systemObj, self.licence,licenseinUse)
             self.systemObj.checkLicenseState(edition=self.licence.getEdition())
 

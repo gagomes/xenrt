@@ -10478,6 +10478,25 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
+
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
+
 #############################################################################
 class TampaXCPHost(TampaHost):
 
@@ -11324,11 +11343,25 @@ class DundeeHost(CreedenceHost):
         else:
             CreedenceHost.iptablesSave(self)
 
-    def getIxgbeConfigFilePath(self):
-        if self.isCentOS7Dom0():
-            return "/etc/modprobe.d/ixgbe.conf"
-        else:
-            return CreedenceHost.getIxgbeConfigFilePath(self)
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe.conf 2> /dev/null; echo -n ''" % ()).strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe.conf"' % (maxVFs))
+
+            self.execdom0('/bin/sh /boot/initrd-*.img.cmd')
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
 #############################################################################
 
@@ -14804,28 +14837,6 @@ class IOvirt:
                 
         return
     
-    def enableVirtualFunctions(self):
-        
-        out = self.getHost().execdom0("grep -v '^#' %s 2> /dev/null; echo -n ''" % (self.getHost().getIxgbeConfigFilePath())).strip()
-        if len(out) > 0:
-            return
-        
-        numPFs = int(self.getHost().execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
-        ixgbe_version = self.host.execdom0("modinfo ixgbe | grep 'version:        '") 
-        if numPFs > 0:
-            if (re.search("NS", ixgbe_version.split()[1])):
-                maxVFs = "63" + (",63" * (numPFs - 1))
-            else:
-                maxVFs = "40" #+ (",40" * (numPFs - 1))
-            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > %s' % (maxVFs, self.getHost().getIxgbeConfigFilePath()))
-
-            self.getHost().execdom0('/bin/sh /boot/initrd-*.img.cmd')
-            self.getHost().reboot()
-            self.getHost().waitForSSH(300, desc="host reboot after enabling virtual functions")
-            
-        return
-
     def __get_node_value__(self, dom, node_name):
 
         nodes = dom.getElementsByTagName(node_name)

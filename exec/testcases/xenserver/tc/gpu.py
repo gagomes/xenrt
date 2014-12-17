@@ -790,7 +790,7 @@ class TC13570(_GPU, SRIOVTests):
         host = hosts[0]
         self.io = xenrt.lib.xenserver.IOvirt(host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
 
     def run(self, arglist=None):
         pool = self.getDefaultPool()

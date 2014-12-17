@@ -105,3 +105,4 @@ class XenServerLicenceSKU(Enum):
     XSPlatinum = "Platinum"  #Tampa version
     XSEnterprise = "Enterprise"  #Tampa version
     XSAdvance = "Advance"    #Tampa version
+

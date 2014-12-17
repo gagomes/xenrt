@@ -36,7 +36,7 @@
     </testcase>
 
     <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature">
-      <arg>edition=PerSocketEnterprise,PerSocketStandard,XenDesktop,PerUserEnterprise</arg>
+      <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
     </testcase>
   </testsequence>
 

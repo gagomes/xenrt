@@ -24,11 +24,11 @@
     <serial group="LicenseFeatures">
 
       <testcase id="xenserver.tc.mulskulicense.TCReadCachingFeature" name="ReadCacheFeature" tc="TC-23741">
-        <arg>edition=PerSocketEnterprise,PerSocketStandard,PerUserEnterprise,XenDesktop</arg>
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 
       <testcase id="xenserver.tc.mulskulicense.TCWLBFeature" name="WLBFeature">
-        <arg>edition=PerSocketEnterprise,PerSocketStandard,PerUserEnterprise,XenDesktop</arg>
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 
     </serial>

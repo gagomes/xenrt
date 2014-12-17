@@ -4762,8 +4762,8 @@ class TCHaRestartProtectedVms(_HATest):
         # Set nTol to 1
         self.pool.setPoolParam("ha-host-failures-to-tolerate", 1)
 
-        self.host1.machine.powerctl.off()
         self.hostsToPowerOn.append(self.host1)
+        self.host1.machine.powerctl.off()        
         self.pool.haLiveset.remove(self.host1.getMyHostUUID())
         self.pool.sleepHA("W",multiply=3)
 

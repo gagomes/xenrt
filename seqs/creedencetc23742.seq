@@ -35,7 +35,7 @@
   <testsequence>
     <!-- reference test-cases to be included in the sequence here: -->
     <!-- The dotted name here reflects the directory structure inside xenrt.git/exec/ -->
-    <testcase id="testcases.xenserver.tc.ha.TCHARestartProtectedVms"/>
+    <testcase id="testcases.xenserver.tc.ha.TCHaRestartProtectedVms"/>
     
   </testsequence>
 </xenrt>

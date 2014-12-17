@@ -4722,55 +4722,52 @@ class TCStorageNICMTU(xenrt.TestCase):
         else:
             log("MTU as expected. %s MTU=%s %s MTU=%s" % (device, ethMTU, bridge, xenbrMTU))
             
-class TCHARestartProtectedVms(_HATest):
-    """Verify that the protected VM's get restarted on other hosts in HA enabled pool in case of Host failure"""
+class TCHaRestartProtectedVms(_HATest):
+    """Verify that the protected VM's get restarted on other hosts in case of Host failure in a HA enabled pool"""
     SR = "nfs"
 
     def prepare(self, arglist=None):
         # Get pool object
         self.pool = self.getDefaultPool()
         self.statefileSR = self.pool.master.getSRs(type=self.SR)
-        
+
         self.host1=self.getHost("RESOURCE_HOST_1")
         self.hostsToPowerOn = []
         #Create a setup given in CA-151670
-        
+
         self.guest1=self.getGuest("Deb1")
         self.guest2=self.getGuest("Deb2")
         self.guest3=self.getGuest("Deb3")
-        
+
         freemem = self.host1.getFreeMemory()
         guestmem = int(0.4*(freemem+self.guest1.memory))
-        
+
         allguests = [self.guest1,self.guest2,self.guest3]
 
         for guest in allguests:
-            xenrt.log(guest)
-            guest.shutdown()            
+            guest.shutdown()
             guest.setMemoryProperties(guestmem,guestmem,guestmem,guestmem)
             guest.start()
-            
+
         self.guest1.setHAPriority(protect=False, restart=False)
         self.guest2.setHAPriority(protect=True, restart=True)
         self.guest3.setHAPriority(protect=False, restart=False)
 
     def run(self, arglist=None):
-        
+
         step("Enable HA on the pool")
         self.pool.enableHA(srs=self.statefileSR)
         # Set nTol to 1
         self.pool.setPoolParam("ha-host-failures-to-tolerate", 1)
-        
+
         self.host1.machine.powerctl.off()
         self.hostsToPowerOn.append(self.host1)
         self.pool.haLiveset.remove(self.host1.getMyHostUUID())
-        self.pool.sleepHA("W",multiply=3)        
-        
-        #Verfiy that the protected guests are up
+        self.pool.sleepHA("W",multiply=3)
+
+        #Verfiy that the protected guest is up
         if not self.guest2.findHost():
             raise xenrt.XRTFailure("Protected Guest %s failed to reappear"%self.guest2.getName())
         else :
             self.guest2.check()
-
-
 

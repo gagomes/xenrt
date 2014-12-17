@@ -159,12 +159,17 @@ def createHost(id=0,
                basicNetwork=True,
                iScsiBootLun=None,
                iScsiBootNets=[],
-               extraConfig=None):
+               extraConfig=None,
+               vHostName=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    machine = str("RESOURCE_HOST_%s" % (id))
+    if vHostName:
+        machine = vHostName
+    else:
+        machine = str("RESOURCE_HOST_%s" % (id))
+    
     if productVersion and not version:
         # If we've asked for a named product version but not provided
         # an input directory for it then look one up in the config
@@ -7908,6 +7913,27 @@ rm -f /etc/xensource/xhad.conf || true
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
                 return joinedPath
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
+
+    def createNestedXenServer(self,
+                              name,
+                              cpus=2,
+                              memory=4096,
+                              disksize=50):
+        name = "vhost_%s" % name
+        mac = xenrt.randomMAC()
+        ip = "1.1.1.1"
+        g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
+        g.createVIF(bridge="NPRI", mac=mac)
+        disksize = disksize * xenrt.GIGA
+        g.createDisk(sizebytes=disksize, sruuid="DEFAULT", bootable=True)
+        g.paramSet("HVM-boot-params-order", "nc")
+
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        createHost(vHostName=name)
+
+
 
 #############################################################################
 

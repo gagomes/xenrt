@@ -20,12 +20,17 @@
           <VLAN network="CLIENT_VLAN" />
         </PHYSICAL>
       </NETWORK>
+      <vm name="ATS">
+        <file>/usr/groups/xenrt/ns/ATS_10_5.xva</file>
+        <network device="0" />
+        <network device="1" bridge="CLIENT_VLAN" />
+      </vm>
       <vm name="client1">
         <distro>debian70</distro>
         <memory>256</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.3/24" />
+        <network device="1" bridge="CLIENT_VLAN" />
         <disk device="0" size="8" />
         <packages>curl,apache2</packages>
       </vm>
@@ -34,7 +39,7 @@
         <memory>256</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.4/24" />
+        <network device="1" bridge="CLIENT_VLAN" />
         <disk device="0" size="8" />
         <packages>curl,apache2</packages>
       </vm>
@@ -53,7 +58,7 @@
         <memory>256</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <network device="1" bridge="SERVER_VLAN" ip="172.16.1.3/24" />
+        <network device="1" bridge="SERVER_VLAN" />
         <disk device="0" size="8" />
         <packages>curl,apache2</packages>
       </vm>
@@ -62,7 +67,7 @@
         <memory>256</memory>
         <vcpus>2</vcpus>
         <network device="0" />
-        <network device="1" bridge="SERVER_VLAN" ip="172.16.1.4/24" />
+        <network device="1" bridge="SERVER_VLAN" />
         <disk device="0" size="8" />
         <packages>curl,apache2</packages>
       </vm>
@@ -80,15 +85,15 @@
       <vm name="NS-VPX1">
         <file>/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva</file>
         <network device="0" />
-        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.1/24" />
-        <network device="2" bridge="SERVER_VLAN" ip="172.16.1.1/24" />
+        <network device="1" bridge="CLIENT_VLAN" />
+        <network device="2" bridge="SERVER_VLAN" />
         <postinstall action="setupNetscalerVPX" />
       </vm>
       <vm name="NS-VPX2">
         <file>/usr/groups/xenrt/NSVPX-XEN-10.5-52.11_nc.xva</file>
         <network device="0" />
-        <network device="1" bridge="CLIENT_VLAN" ip="172.16.0.2/24" />
-        <network device="2" bridge="SERVER_VLAN" ip="172.16.1.2/24" />
+        <network device="1" bridge="CLIENT_VLAN" />
+        <network device="2" bridge="SERVER_VLAN" />
         <postinstall action="setupNetscalerVPX" />
       </vm>
     </host>

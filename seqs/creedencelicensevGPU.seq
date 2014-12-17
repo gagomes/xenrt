@@ -13,13 +13,14 @@
           <file>%LICENSE_SERVER_XVA%</file>
           <postinstall action="installV6LicenseServer"/>
         </vm>
-      </host>
-      <host>
         <vm name="vgpufeaturevm">
           <distro>win7sp1-x86</distro>
           <network device="0" />
           <postinstall action="installDrivers"/>
         </vm>
+      </host>
+      <host>
+        
       </host>  
     </prepare>
 
@@ -45,5 +46,5 @@
 <!--
 <pool>VGPU,VGPUBIG</pool>
 <resources>k1&gt;=1</resources>
-<param>MACHINES_REQUIRED=2</param>
+<param>MACHINES_REQUIRED=1</param>
 -->

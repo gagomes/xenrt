@@ -183,9 +183,9 @@ class CreedenceLicence(Licence):
         if self.sku == XenServerLicenceSKU.PerSocket:
             return "valid-persocket"
         if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS:
-            return "valid-xendesktop-plus.lic"
+            return "valid-xendesktop-plus"
         if self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
-            return "valid-xendesktop-plus-MPS.lic"
+            return "valid-xendesktop-plus-MPS"
         raise ValueError("No license file name found for the SKU %s" % self.sku)
 
     def getLicenceName(self):

@@ -7943,9 +7943,6 @@ rm -f /etc/xensource/xhad.conf || true
         
     def iptablesSave(self):
         self.execdom0("service iptables save")
-        
-    def getIxgbeConfigFilePath(self):
-        return "/etc/modprobe.d/ixgbe"
 
 #############################################################################
 

@@ -4733,7 +4733,9 @@ class TCHaRestartProtectedVms(_HATest):
 
         self.host1=self.getHost("RESOURCE_HOST_1")
         self.hostsToPowerOn = []
-        #Create a setup given in CA-151670
+        #Create a setup given in CA-151670:A pool of 3 host having equal memory 
+        #Each host has a running vm with memory V such that 0.33H <V<0.5H(H being the free memory in each host)
+        #Keep the VM in one of the slaves protected (other VMs unprotected) and power off the host having protected VM
 
         self.guest1=self.getGuest("Deb1")
         self.guest2=self.getGuest("Deb2")

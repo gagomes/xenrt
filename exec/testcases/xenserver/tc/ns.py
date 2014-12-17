@@ -206,7 +206,7 @@ class SRIOVTests(xenrt.TestCase):
     def _createIO(self, host):
         io = xenrt.lib.xenserver.IOvirt(host)
         io.enableIOMMU(restart_host=False)
-        io.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return io
 
     def getSRIOVEthDevices(self):
@@ -1706,7 +1706,7 @@ class NSSRIOV(SRIOVTests):
     def enableSRIOV(self, host):
         iovirt = xenrt.lib.xenserver.IOvirt(host)
         iovirt.enableIOMMU(restart_host=False)
-        iovirt.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return iovirt
         
     def assignVFs(self, iovirt, vpx, eths):
@@ -1960,7 +1960,7 @@ class TC18685(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')
         self.prepVpxForFirstboot(self.host,self.TraffGen)
@@ -2074,7 +2074,7 @@ class TC18823(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.uninstallOnCleanup(self.GOLDEN_VM)
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')

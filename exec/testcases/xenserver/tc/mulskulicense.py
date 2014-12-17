@@ -136,12 +136,13 @@ class LicenseBase(xenrt.TestCase, object):
             license = self.licenceFactory.licenceForPool(self.systemObj,XenServerLicenceSKU.Free)
 
         features = self.licenceFeatureFactory.allFeatureObj(self.systemObj.master)
+        hosts = self.systemObj.getHosts()
         for feature in features:
             if not feature.poolFeatureFlagValue(self.systemObj) == self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
                 license.sku,feature):
                 err.append("Pool level feature flag for feature %s is not same as expected" % (feature.name))
             
-            for host in self.systemObj.hosts:
+            for host in hosts:
                 if not feature.hostFeatureFlagValue(host) == self.licenceFeatureFactory.getFeatureState(host.productVersion,
                 license.sku,feature): 
                     err.append("Host level feature flag for feature %s is not same as expected" % (feature.name))
@@ -184,6 +185,7 @@ class TCUpgrade(LicenseBase):
     def run(self,arglist=None):
 
         v6 = self.v6
+        hosts = self.systemObj.getHosts()
         if self.oldLicenseServerName:
             v6 = self.licenseServer(self.oldLicenseServerName) 
 
@@ -191,7 +193,7 @@ class TCUpgrade(LicenseBase):
             licence = self.licenceFactory.licenceForPool(self.systemObj, self.oldLicenseSku)
             self.licenceManager.addLicensesToServer(v6,licence)
 
-        for host in self.systemObj.hosts:
+        for host in hosts:
             host.license(edition=licence.getEdition,v6server=v6)
         
         if self.addLicenseFile:
@@ -202,15 +204,15 @@ class TCUpgrade(LicenseBase):
             v6.removeAllLicenses()
 
         self.upgradePool()
- 
+        hosts = self.systemObj.getHosts()
         if self.graceExpected:
-            for host in self.systemObj.hosts:
+            for host in hosts:
                 if not self.checkGrace(host):
                     raise xenrt.XRTFailure("Host has not got grace licence")
                 else:
                     self.featureFlagValidation(licence)
         else:
-            for host in self.systemObj.hosts:
+            for host in hosts:
                 if self.checkGrace(host):
                     raise xenrt.XRTFailure("Host has got grace licence")
 
@@ -225,7 +227,7 @@ class TCUpgrade(LicenseBase):
             self.licenceManager.verifyLicenseServer(licence,v6,licenseinUse, self.systemObj)
             self.featureFlagValidation(licence)
         else:
-            for host in self.systemObj.hosts:
+            for host in hosts:
                 if not self.checkLicenseExpired(host):
                     raise xenrt.XRTFailure("Host License has not expired")
                 else: 

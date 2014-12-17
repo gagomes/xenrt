@@ -1209,7 +1209,7 @@ class GenericPlace:
             rf = self._xmlrpc().tempFile()
             self._xmlrpc().createTarball(rf, remotedirectory)
             self.xmlrpcGetFile(rf, f, ignoreHealthCheck=ignoreHealthCheck)
-            xenrt.util.command("tar -xf %s -C %s" % (f, localdirectory))
+            xenrt.util.command("tar -xf %s -C \"%s\"" % (f, localdirectory))
             self.xmlrpcRemoveFile(rf, ignoreHealthCheck=ignoreHealthCheck)
             os.unlink(f)
         except Exception, e:
@@ -3232,7 +3232,7 @@ DHCPServer = 1
             if self.windows:
                 self.xmlrpcExec("netsh firewall set opmode DISABLE")
             else:
-                self.execcmd("/etc/init.d/iptables stop")
+                self.execcmd("service iptables stop")
         except Exception, e:
             xenrt.TEC().warning("Exception disabling firewall: %s" %
                                 (str(e)))
@@ -4736,6 +4736,11 @@ class GenericHost(GenericPlace):
                 version     = self.execdom0("grep ^product-version /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
                 # e.g. "623860"
                 buildNumber = self.execdom0("grep ^build /etc/vmware/hostd/ft-hostd-version").strip().split(" ")[2]
+            elif self.execdom0("virsh list", retval="code") == 0:
+                # It's probably KVM
+                name = "KVM"
+                version = "Linux"
+                buildNumber = ""
             elif self.execdom0("test -e /etc/redhat-release", retval="code") == 0:
                 name = "Linux"
                 version = "RedHat"
@@ -4786,7 +4791,8 @@ class GenericHost(GenericPlace):
             self.findPassword()
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
-                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && service iptables save")
+                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
+                self.iptablesSave()
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
@@ -4877,9 +4883,9 @@ class GenericHost(GenericPlace):
         mac = self.getNICMACAddress(assumedid)
         mac = xenrt.util.normaliseMAC(mac)
         data = self.execdom0("ifconfig -a")
-        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?HWaddr\s+([A-Za-z0-9:]+)", data)
+        intfs = re.findall(r"(eth\d+|p\d+p\d+).*?(HWaddr|\n\s+ether)\s+([A-Za-z0-9:]+)", data)
         for intf in intfs:
-            ieth, imac = intf
+            ieth, _, imac = intf
             if xenrt.util.normaliseMAC(imac) == mac:
                 return ieth
         raise xenrt.XRTError("Could not find interface with MAC %s" % (mac))
@@ -5163,6 +5169,13 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execdom0("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly":
+                raise
+    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5174,7 +5187,7 @@ class GenericHost(GenericPlace):
                           "> /dev/null 2>&1 </dev/null &")
             xenrt.sleep(5)
         else:
-            self.execdom0("/sbin/reboot")
+            self._softReboot()
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):
@@ -5218,10 +5231,7 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            try:
-                self.execdom0("/sbin/reboot", timeout=timeout)
-            except Exception, e:
-                xenrt.TEC().logverbose(str(e))
+            self._softReboot(timeout)
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -6492,6 +6502,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_CARBON_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if not disks:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
         return string.split(disks)[:count]
@@ -6510,6 +6526,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_GUEST_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if disks:
             return string.split(disks)[:count]
         else:
@@ -6859,6 +6881,76 @@ class GenericGuest(GenericPlace):
     def getGuestVIFs(self):
         return self.getMyVIFs()
 
+    def findDistro(self):
+        if self.distro and self.distro !="UNKNOWN":
+            return
+        # windows distro
+        try:
+            osname = self.xmlrpcExec('systeminfo | findstr /C:"OS Name"',returndata=True).splitlines()[2].split(":")[1].strip()
+            osname = osname.strip("Microsoft ")
+            self.windows = True
+
+            matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
+            while len(matchedDistros) == 0 and len(osname.split(" ")) > 3:
+                osname = osname.rsplit(" ",1)[0]
+                matchedDistros = [(d,n) for (d,n) in xenrt.enum.windowsdistros if osname in n]
+
+            if len(matchedDistros) > 1:
+                systype = self.xmlrpcExec('systeminfo | findstr /C:"System Type"',returndata=True).splitlines()[2].split(":")[1].strip()
+                if "x64" not in systype:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" not in d]
+                else:
+                    matchedDistros = [(d,n) for (d,n) in matchedDistros if "x64" in d]
+            if len(matchedDistros) > 1:
+                osname = osname + " "
+                matchedDistros = [(d,n) for (d,n) in matchedDistros if osname in n]
+
+            # At this point if we have more than 1 distro matching, we can proceed with any of them.
+            if len(matchedDistros) >= 1:
+                self.distro = matchedDistros[0][0]
+        except:
+            # linux distros
+            try:
+                release = self.execguest("cat /etc/issue", nolog=True).strip().splitlines()[0].strip()
+                # Debian derived - debian, ubuntu
+                if "Ubuntu" in release:
+                    release = release.split(" ")[1]
+                    if len(release)>5:
+                        release = release[:5]
+                    self.distro = "ubuntu" + str(release.replace(".",""))
+                elif "Debian" in release:
+                    release = self.execguest("cat /etc/debian_version", nolog=True).splitlines()[0].strip()
+                    self.distro = "debian" + str(release.split(".")[0]) + "0"
+                elif  "SUSE" in release:
+                    # sles
+                    release = self.execguest("rpm -qf /etc/SuSE-release", nolog=True).strip()
+                    relversion = release.split("-")[2].replace(".","")
+                    self.distro ="sles" + relversion
+                else:
+                    # rhel derived - rhel, centos, oel
+                    try:
+                        release = self.execguest("cat /etc/oracle-release", nolog=True).splitlines()[0].strip()
+                    except:
+                        try:
+                            release = self.execguest("cat /etc/redhat-release", nolog=True).splitlines()[0].strip()
+                        except:
+                            release = None
+                    if release:
+                        relversion = release.split("release ")[1].split(" ")[0].strip("0")
+                        if "Oracle" in release:
+                            self.distro = "oel" + str(relversion.replace(".",""))
+                        elif "CentOS" in release:
+                            self.distro = "centos" + str(relversion.replace(".",""))
+                        elif "Red Hat" in release:
+                            self.distro = "rhel" + str(relversion.replace(".",""))
+            except:
+                pass
+
+        if self.distro:
+            xenrt.TEC().logverbose("distro identified as %s " % self.distro)
+        else:
+            xenrt.TEC().warning("Failed to identify guest distro")
+
     def check(self):
         """Check the installed guest resources match the specification."""
         ok = 1
@@ -7018,7 +7110,7 @@ class GenericGuest(GenericPlace):
             xenrt.TEC().warning("Unable to check guest vifs.")
 
         if ok == 0:
-            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", False, boolean=True):
+            if xenrt.TEC().lookup("GUEST_CONFIG_WARN_ONLY", True, boolean=True):
                 for r in reasons:
                     xenrt.TEC().warning(r)
             else:
@@ -9461,6 +9553,105 @@ while True:
             self.instance.os.populateFromExisting()
             xenrt.TEC().registry.instancePut(self.name, self)
         return self.instance
+
+    def installPackages(self, packageList):
+        self.enablePublicRepository(doUpdateOnSuccess=False)
+        self.setAptCacheProxy(doUpdateOnSuccess=False)
+        packages = " ".join(packageList)
+        try:
+            if "deb" in self.distro or "ubuntu" in self.distro:
+                self.execguest("apt-get update", level=xenrt.RC_OK)
+                self.execguest("apt-get -y --force-yes install %s" % packages)
+            elif "rhel" in self.distro or "centos" in self.distro or "oel" in self.distro:
+                self.execguest("yum install -y %s" % packages)
+            elif "sles" in self.distro:
+                self.execguest("zypper -n --non-interactive install %s" % packages)
+            else:
+                raise xenrt.XRTError("Not Implemented")
+        except Exception, e:
+            raise xenrt.XRTError("Failed to install packages '%s' on guest %s : %s" % (packages, self, e))
+        self.disablePublicRepository()
+
+    def enablePublicRepository(self, doUpdateOnSuccess=True):
+        try:
+            if "deb" in self.distro or "ubuntu" in self.distro:
+                self.execguest("cp /etc/apt/sources.list /etc/apt/sources.list.orig -n")
+                repoFile = xenrt.TEC().lookup("XENRT_BASE") + xenrt.TEC().lookup("XENRT_LINUX_REPO_LISTS", "/data/linuxrepolist/") + self.distro
+                repoFileContent = xenrt.command("cat %s" % repoFile)
+                self.execguest("echo '%s' >> /etc/apt/sources.list" % repoFileContent, newlineok=True)
+                if doUpdateOnSuccess:
+                    self.execguest("apt-get update")
+            else:
+                raise xenrt.XRTError("Not Implemented")
+        except Exception, e:
+            xenrt.TEC().warning("Failed to add public Repositories: %s" % e)
+
+    def setAptCacheProxy(self, doUpdateOnSuccess=True):
+        try:
+            aptProxy = None
+            if "deb" in self.distro:
+                aptProxy = xenrt.TEC().lookup("APT_PROXY_DEBIAN", None)
+            elif "ubuntu" in self.distro:
+                aptProxy = xenrt.TEC().lookup("APT_PROXY_UBUNTU", None)
+            if aptProxy:
+                self.execguest("echo 'Acquire::http { Proxy \"http://%s\"; };' > /etc/apt/apt.conf.d/02proxy" % aptProxy)
+                if doUpdateOnSuccess:
+                    self.execguest("apt-get update")
+        except Exception, e:
+            xenrt.TEC().warning("Failed to add apt-cache proxy server: %s" % e)
+
+    def disablePublicRepository(self):
+        try:
+            if "deb" in self.distro or "ubuntu" in self.distro:
+                self.execguest("cat /etc/apt/sources.list.orig > /etc/apt/sources.list")
+                self.execguest("apt-get update")
+            else:
+                raise xenrt.XRTError("Not Implemented")
+        except Exception, e:
+            xenrt.TEC().warning("Failed to reset Repositories: %s" % e)
+
+    def xenDesktopTailor(self):
+        # Optimizations from CTX125874, excluding Windows crash dump (because we want them) and IE (because we don't use it)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "AUOptions", "DWORD", 1)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallDay", "DWORD", 0)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update", "ScheduledInstallTime", "DWORD", 3)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\wuauserv", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Dfrg\\BootOptimizeFunction", "Enable", "SZ", "N")
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\OptimalLayout", "EnableAutoLayout", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\sr", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\srservice", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\SystemRestore", "DisableSR", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\FileSystem", "NtfsDisableLastAccessUpdate", "DWORD", 1)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\cisvc", "Start", "DWORD", 4)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Application", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\Security", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\Eventlog\\System", "MaxSize", "DWORD", 65536)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management", "ClearPageFileAtShutdown", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\Services\\WSearch", "Start", "DWORD", 4)
+
+        try:
+            self.winRegDel("HKLM", "SOFTWARE\\Microsoft\Windows\\CurrentVersion\\Run", "Windows Defender")
+        except:
+            pass
+
+
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        if self.xmlrpcFileExists("C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\ngen.exe"):
+            try:
+                self.xmlrpcExec("C:\\Windows\\Microsoft.NET\\Framework\\v2.0.50727\\ngen.exe executeQueuedItems")
+            except:
+                pass
+        self.shutdown()
+        self.paramSet("platform:usb", "false")
+        self.paramSet("platform:hvm_serial", "none")
+        self.paramSet("platform:nousb", "true")
+        self.paramSet("platform:monitor", "null")
+        self.paramSet("platform:parallel", "none")
+        self.start()
 
 class EventObserver(xenrt.XRTThread):
 

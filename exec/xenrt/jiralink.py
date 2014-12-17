@@ -62,7 +62,7 @@ class JiraLink:
         try:
             return str(exception)
         except UnicodeEncodeError:
-            return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, unicode(exception.text, errors='ignore'), exception.url)
+            return 'HTTP {0}: "{1}"\n{2}'.format(exception.status_code, exception.text.encode('ascii', 'ignore'), exception.url)
 
     def attemptToConnect(self):
         """If we've not already established a 'connection' with Jira then

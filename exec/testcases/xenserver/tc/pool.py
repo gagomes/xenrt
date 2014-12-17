@@ -1469,7 +1469,7 @@ class TC7985(xenrt.TestCase):
             raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
 
         for h in self.pool.getHosts():
-            if h.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
+            if not isinstance(h, xenrt.lib.xenserver.DundeeHost) and h.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
                 raise xenrt.XRTFailure("Deployment_Guide-en-US RPM not found after applying hotfix2")
 
     def patch3(self):
@@ -1542,10 +1542,7 @@ class TC8758(xenrt.TestCase):
         # Now manually recover the pool
         self.pool.setMaster(self.host1)
 
-        # Wait 1 minute and then check xapi is running
-        time.sleep(60)
-        cli = self.pool.getCLIInstance() # Need to renew it
-
+        cli = self.pool.getCLIInstance()
         try:
             cli.execute("host-list")
         except:

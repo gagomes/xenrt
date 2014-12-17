@@ -9,7 +9,7 @@
   <prepare>
     <!-- Preparing a iSCSI boot disk on Native Linux -->
     <host productType="nativelinux" productVersion="centos64-x64" id="1" />
-    
+    <host/>
   </prepare>
 
   <testsequence>

@@ -1,0 +1,27 @@
+<xenrt>
+  <variables>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=5G</resources>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <vm name="centos65">
+        <distro>centos65</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+    <testsequence group="CentosUpgrade">
+    <testcase id="testcases.guestops.upgrade.TCCentosUpgrade" tc="TC-23740">
+      <arg>guest=centos65</arg>
+    </testcase>
+  </testsequence>
+</xenrt>

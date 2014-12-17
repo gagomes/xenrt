@@ -7,6 +7,7 @@ import config
 
 import string
 from pyramid.httpexceptions import HTTPServiceUnavailable
+import requests
 
 class XenRTAPIPage(XenRTPage):
 
@@ -130,21 +131,21 @@ class XenRTAPIPage(XenRTPage):
         cur.execute("SELECT machine FROM tblMachines WHERE machine = %s", [machine])
         if cur.fetchone():
             u = []
-            if site:
+            if site is not None:
                 u.append(("site", site))
-            if cluster:
+            if cluster is not None:
                 u.append(("cluster", cluster))
-            if pool:
+            if pool is not None:
                 u.append(("pool", pool))
-            if status:
+            if status is not None:
                 u.append(("status", status))
-            if resources:
+            if resources is not None:
                 u.append(("resources", resources))
-            if flags:
+            if flags is not None:
                 u.append(("flags", flags))
-            if descr:
+            if descr is not None:
                 u.append(("descr", descr))
-            if leasepolicy != None:
+            if leasepolicy is not None:
                 if leasepolicy == "":
                     u.append(("leasepolicy", None))
                 else:
@@ -358,10 +359,35 @@ class XenRTAPIPage(XenRTPage):
                 db.commit()
             finally:
                 cur.close()
+    
+    def isDBMaster(self):
+        try:
+            readDB = app.db.dbReadInstance()
+            readLoc = self.getReadLocation(readDB)
+            if not readLoc:
+                if not config.partner_ha_node:
+                    return "This node is connected to the master database - no partner node exists to check for split brain"
+                try:
+                    r = requests.get("http://%s/xenrt/api/dbchecks/takeovertime" % config.partner_ha_node)
+                    r.raise_for_status()
+                    remote_time = int(r.text.strip())
+                except Exception, e:
+                    return "This node is connected the master database - partner does not seem to be the master database - %s" % str(e)
+                cur = readDB.cursor()
+                cur.execute("SELECT value FROM tblconfig WHERE param='takeover_time'")
+                local_time = int(cur.fetchone()[0].strip())
+                if local_time > remote_time:
+                    return "This node is connected the master database - remote is talking to a writable database, but local database is newer"
+                else:
+                    print "This node is connected to a writable database, but remote database is newer"
+                    raise HTTPServiceUnavailable()
+            else:
+                return None
+        finally:
+            readDB.rollback()
+            readDB.close()
 
-class XenRTMasterURL(XenRTAPIPage):
-    def render(self):
-        return config.masterurl
+        
 
 class XenRTLogServer(XenRTAPIPage):
     def render(self):
@@ -374,35 +400,8 @@ class DumpHeaders(XenRTAPIPage):
             out += "%s: %s\n" % h
         return out
 
-class CheckDBSync(XenRTAPIPage):
-    def render(self):
-        try:
-            check_interval = 0.5
-            timeout = 5
 
-            writeDB = app.db.dbWriteInstance()
-            readDB = app.db.dbReadInstance()
-
-            writeLoc = self.getWriteLocation(writeDB)
-            i = 0
-            while i <= timeout/check_interval:
-                readLoc = self.getReadLocation(readDB)
-                if not readLoc:
-                    return "This node is talking to the master database"
-
-                if readLoc >= writeLoc:
-                    return "This node is in sync, delay = %fs" % (i* check_interval)
-                time.sleep(check_interval)
-                i += 1
-            return HTTPServiceUnavailable()
-        finally:
-            readDB.close()
-            writeDB.close()
-            
-
-PageFactory(XenRTMasterURL, "masterurl", "/api/masterurl", compatAction="getmasterurl")
 PageFactory(XenRTLogServer, "logserver", "/api/logserver", compatAction="getlogserver")
-PageFactory(CheckDBSync, "checkdbsync", "/api/checkdbsync")
 PageFactory(DumpHeaders, "dumpheaders", "/api/dumpheaders")
 
 import app.api.jobs
@@ -415,3 +414,4 @@ import app.api.files
 import app.api.results
 import app.api.guestfile
 import app.api.resources
+import app.api.dbchecks

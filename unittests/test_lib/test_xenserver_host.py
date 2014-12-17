@@ -119,17 +119,6 @@ class TestCheckRpmInstalled(XenRTUnitTestCase):
 
 class TestDundeeHost(XenRTUnitTestCase):
     @patch('xenrt.TEC')
-    def testGetTestHotfix(self, tec):
-        tec_instance = tec.return_value = Mock()
-
-        host = xenrt.lib.xenserver.host.DundeeHost(None, None)
-
-        host.getTestHotfix(1)
-
-        tec_instance.getFile.assert_called_once_with(
-            'xe-phase-1/test-hotfix-1-*.unsigned')
-
-    @patch('xenrt.TEC')
     def testvSwitchCoverageLog(self, tec):
         host = xenrt.lib.xenserver.host.DundeeHost(None, None)
         host.vswitchAppCtl = Mock()
@@ -156,17 +145,6 @@ class TestDundeeHost(XenRTUnitTestCase):
 
 
 class TestCreedenceHost(XenRTUnitTestCase):
-    @patch('xenrt.TEC')
-    def testGetTestHotfix(self, tec):
-        tec_instance = tec.return_value = Mock()
-
-        host = xenrt.lib.xenserver.host.CreedenceHost(None, None)
-
-        host.getTestHotfix(1)
-
-        tec_instance.getFile.assert_called_once_with(
-            'xe-phase-1/test-hotfix-1-*.unsigned')
-
     @patch('xenrt.TEC')
     def testvSwitchCoverageLog(self, tec):
         host = xenrt.lib.xenserver.host.CreedenceHost(None, None)

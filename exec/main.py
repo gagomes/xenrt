@@ -34,8 +34,8 @@ try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
     import xenrt.lib.esx
-except:
-    sys.stderr.write("WARNING: Could not import libvirt classes\n")
+except Exception, e:
+    sys.stderr.write("WARNING: Could not import libvirt classes: %s\n" % (e))
 import localxenrt
 
 #############################################################################

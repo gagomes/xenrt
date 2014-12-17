@@ -1109,7 +1109,7 @@ class PrepareNode:
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 simpleHostNode.setAttribute('id', str(hostId))
                                 simpleHostNode.setAttribute('productType', 'esx')
-                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('CLOUD_ESXI_VERSION', '5.5.0-update01'))
+                                simpleHostNode.setAttribute('productVersion', xenrt.TEC().lookup('ESXI_VERSION', '5.5.0-update02'))
                                 simpleHostNode.setAttribute('noisos', 'yes')
                                 simpleHostNode.setAttribute('installsr', 'no')
                                 simpleHostNode.setAttribute('extraConfig', '{"dc":"%s", "cluster": "%s", "virconn": false}' % (zone['XRT_VMWareDC'], cluster['XRT_VMWareCluster']))
@@ -1477,6 +1477,10 @@ class PrepareNode:
                     for a in x.childNodes:
                         if a.nodeType == a.TEXT_NODE:
                             vm["bootparams"] = expand(str(a.data), params)
+                elif x.localName == "packages":
+                    for a in x.childNodes:
+                        if a.nodeType == a.TEXT_NODE:
+                            vm["packages"] = expand(str(a.data), params).split(",")
 
         self.vms.append(vm)
 

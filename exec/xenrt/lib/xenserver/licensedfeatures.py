@@ -225,6 +225,11 @@ class LicensedFeatureFactory(object):
             return  self.__createDictOfFeatures(WorkloadBalancing(), ReadCaching(), VirtualGPU(),
                                                 Hotfixing(), ExportPoolResourceList(), GPUPassthrough())
         raise ValueError("Feature list for a %s host was not found" % self.__getHostAge(xshost))
+
+    def allFeatureObj(self,xshost):
+        if self.__getHostAge(xshost) == self.__CRE:
+            return [WorkloadBalancing(), ReadCaching(), VirtualGPU(),
+                                                Hotfixing(), ExportPoolResourceList(), GPUPassthrough()]
  
     def getFeatureState(self, productVersion, sku, feature):
         lver = productVersion.lower()

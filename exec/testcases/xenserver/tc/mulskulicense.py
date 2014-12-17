@@ -135,7 +135,7 @@ class LicenseBase(xenrt.TestCase, object):
         if not license:
             license = self.licenceFactory.licenceForPool(self.systemObj,XenServerLicenceSKU.Free)
 
-        features = self.licenceFeatureFactory.allFeatures(self.systemObj.master)
+        features = self.licenceFeatureFactory.allFeatureObj(self.systemObj.master)
         for feature in features:
             if not feature.poolFeatureFlagValue(self.systemObj) == self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
                 license.sku,feature):

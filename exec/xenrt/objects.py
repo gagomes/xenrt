@@ -10668,12 +10668,14 @@ class V6LicenseServer:
             return self.port
         return 27000
 
-    def addLicense(self, license):
+    def addLicense(self, license,useEarlyRelease = None):
         """Add a license to the license server"""
 
         if license in self.licenses:
             raise xenrt.XRTError("License %s is already installed on the "
                                  "license server" % (license))
+        if not os.path.isdir(self.licensedir):
+            self.changeLicenseMode(useEarlyRelease)
 
         # Check the license exists
         l = "%s/%s.lic" % (self.licensedir, license)

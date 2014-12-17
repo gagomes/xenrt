@@ -35,7 +35,7 @@
       <arg>startVM=0</arg>
     </testcase>
 
-    <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature">
+    <testcase id="xenserver.tc.mulskulicense.TCVirtualGPUFeature" name="VirtualGPUFeature" tc="TC-23748">
       <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
     </testcase>
   </testsequence>

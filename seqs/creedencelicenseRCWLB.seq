@@ -27,7 +27,7 @@
         <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 
-      <testcase id="xenserver.tc.mulskulicense.TCWLBFeature" name="WLBFeature">
+      <testcase id="xenserver.tc.mulskulicense.TCWLBFeature" name="WLBFeature" tc="TC-23747">
         <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 

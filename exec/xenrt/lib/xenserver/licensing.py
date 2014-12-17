@@ -203,6 +203,10 @@ class CreedenceLicence(Licence):
             return None
         if self.sku == XenServerLicenceSKU.PerSocket:
             return "CXS_STD_CCS"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusXDS:
+            return "XDS_PLT_CCS"
+        if self.sku == XenServerLicenceSKU.XenDesktopPlusMPS:
+            return "MPS_PLT_CCU"
         raise ValueError("No license server name found for the SKU %s" % self.sku)
 
 

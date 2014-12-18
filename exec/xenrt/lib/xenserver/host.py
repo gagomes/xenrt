@@ -7921,7 +7921,7 @@ rm -f /etc/xensource/xhad.conf || true
                               disksize=50):
         name = "vhost_%s" % name
         mac = xenrt.randomMAC()
-        ip = "1.1.1.1"
+        ip = xenrt.StaticIP4Addr(mac=mac)
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         g.createVIF(bridge="NPRI", mac=mac)
         disksize = disksize * xenrt.GIGA
@@ -7929,7 +7929,7 @@ rm -f /etc/xensource/xhad.conf || true
         g.paramSet("HVM-boot-params-order", "nc")
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
-        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
         createHost(vHostName=name)
 

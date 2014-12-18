@@ -3118,7 +3118,7 @@ fi
         maxVcpusSupported =16
         randomVcpus = random.randint(1,maxVcpusSupported)
 
-        dbVal = int(xenrt.TEC().lookup("FIXED_VPCUS_VAL", "0"))
+        dbVal = int(xenrt.TEC().lookup("FIXED_VCPUS_VAL", "0"))
         if dbVal != 0:
             xenrt.TEC().logverbose("Using vcpus from suite file DB: %d" %dbVal)
             guest.setVCPUs(dbVal)

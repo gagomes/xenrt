@@ -2,6 +2,7 @@
   <variables>
     <OPTION_KEEP_SETUP>yes</OPTION_KEEP_SETUP>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <PREPARE_WORKERS>6</PREPARE_WORKERS>
   </variables>
   <scheduler>
     <resources>memory&gt;=8G</resources>
@@ -99,4 +100,3 @@
     </host>
   </prepare>
 </xenrt>
-

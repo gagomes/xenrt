@@ -3068,7 +3068,6 @@ fi
         elif self.lookup("RND_VCPUS", default=False, boolean=True):
             self.setRandomVcpus(guest)
 
-
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             self.setRandomCoresPerSocket(guest, vcpus)
 
@@ -3120,7 +3119,7 @@ fi
 
         dbVal = int(xenrt.TEC().lookup("FIXED_VCPUS_VAL", "0"))
         if dbVal != 0:
-            xenrt.TEC().logverbose("Using vcpus from suite file DB: %d" %dbVal)
+            xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
             guest.setVCPUs(dbVal)
         else :
             xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)

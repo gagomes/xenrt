@@ -3066,9 +3066,9 @@ fi
         if vcpus != None:
             guest.setVCPUs(vcpus)
         elif self.lookup("RND_VCPUS_VAL", default=False):
-            dbVal = int(xenrt.TEC().lookup("RND_VPCUS_VAL", "0"))
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
-                xenrt.TEC().logverbose("Using Randomly choosen vcpus from DB: %d" %dbVal)
+                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
                 guest.setVCPUs(dbVal)
         elif self.lookup("RND_VCPUS", default=False, boolean=True):
             self.setRandomVcpus(guest)

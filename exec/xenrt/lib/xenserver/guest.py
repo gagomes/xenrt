@@ -4358,7 +4358,7 @@ def createVM(host,
         if vcpus:
             g.setVCPUs(vcpus)
         elif self.lookup("RND_VCPUS_VAL", default=False):
-            dbVal = int(xenrt.TEC().lookup("RND_VPCUS_VAL", "0"))
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
             if dbVal != 0:
                 xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
                 g.setVCPUs(dbVal)

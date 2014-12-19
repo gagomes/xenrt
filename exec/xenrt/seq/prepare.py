@@ -8,6 +8,7 @@ class PrepareNodeParserBase(object):
     def __init__(self, parent, data):
         self.data = data
         self.parent = parent
+        self.containerHosts = []
 
     def expand(self, s):
         return xenrt.seq.expand(s, self.parent.params)
@@ -26,7 +27,6 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             self.handleInstanceNode(x, template=False)
         for x in self.data.get("vlans", []):
             self.handleVLANNode(x)
-        self.containerHosts = []
         
         if "multihosts" in self.data:
             self.handleMultiHostNode(self.data['multihosts'])
@@ -35,14 +35,14 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             self.handleCloudNode(self.data['cloud'])
 
         # Insert preprepare if required for any containerHosts
-        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
+        if len(self.containerHosts) > 0 and self.parent.toplevel.preprepare is None \
            and node.localName != "preprepare":
             preprepareNode = xml.dom.minidom.Element("preprepare")
             for c in self.containerHosts:
                 hostNode = xml.dom.minidom.Element("host")
                 hostNode.setAttribute("id", c)
                 preprepareNode.appendChild(hostNode)
-            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
+            self.parent.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def __minAvailable(self, allocated):
         i = 0
@@ -499,6 +499,16 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             if n.localName == "cloud":
                 self.handleCloudNode(n)
 
+        # Insert preprepare if required for any containerHosts
+        if len(self.containerHosts) > 0 and self.parent.toplevel.preprepare is None \
+           and node.localName != "preprepare":
+            preprepareNode = xml.dom.minidom.Element("preprepare")
+            for c in self.containerHosts:
+                hostNode = xml.dom.minidom.Element("host")
+                hostNode.setAttribute("id", c)
+                preprepareNode.appendChild(hostNode)
+            self.parent.toplevel.preprepare = PrepareNode(self.parent.toplevel, preprepareNode, params)
+
     def handleCloudNode(self, node):
         self.jsonParser.handleCloudNode(yaml.load(self.expand(node.childNodes[0].data)))
     
@@ -689,23 +699,23 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             host['extraConfig'] = {}
         else:
             host['extraConfig'] = yaml.load(extraCfg)
-        container = expand(node.getAttribute("container"), params)
+        container = self.expand(node.getAttribute("container"))
         if container:
             containerHost = int(container)
             host['containerHost'] = containerHost
-            vHostName = expand(node.getAttribute("vname"), params)
+            vHostName = self.expand(node.getAttribute("vname"))
             if vHostName:
                 host['vHostName'] = vHostName
-            vHostCpus = expand(node.getAttribute("vcpus"), params)
+            vHostCpus = self.expand(node.getAttribute("vcpus"))
             if vHostCpus:
                 host['vHostCpus'] = int(vHostCpus)
-            vHostMemory = expand(node.getAttribute("vmemory"), params)
+            vHostMemory = self.expand(node.getAttribute("vmemory"))
             if vHostMemory:
                 host['vHostMemory'] = int(vHostMemory)
-            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
+            vHostDiskSize = self.expand(node.getAttribute("vdisksize"))
             if vHostDiskSize:
                 host['vHostDiskSize'] = int(vHostDiskSize)
-            vHostSR = expand(node.getAttribute("vsr"), params)
+            vHostSR = self.expand(node.getAttribute("vsr"))
             if vHostSR:
                 host['vHostSR'] = vhostSR
 

@@ -112,7 +112,9 @@ class Registry:
         raise Exception("No object found of type %s" % objType)
 
     # Specific operations
+    import traceback
     def hostPut(self, tag, host):
+        xenrt.TEC().logverbose("hostPut(%s, %s):\n" % (tag, host) + traceback.format_exc())
         """Store a host object using a string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
         self.write(path, host)

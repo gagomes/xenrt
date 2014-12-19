@@ -7945,8 +7945,8 @@ rm -f /etc/xensource/xhad.conf || true
         ip = xenrt.StaticIP4Addr(mac=mac)
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         g.createVIF(bridge="NPRI", mac=mac)
-        disksize = disksize * xenrt.GIGA
-        g.createDisk(sizebytes=disksize, sruuid=sr, bootable=True)
+        diskSize = diskSize * xenrt.GIGA
+        g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
         g.paramSet("HVM-boot-params-order", "nc")
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)

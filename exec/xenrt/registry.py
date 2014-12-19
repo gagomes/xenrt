@@ -10,6 +10,7 @@
 
 import sys, string, threading
 import xenrt
+from pprint import pformat
 
 __all__ = ["Registry"]
 
@@ -25,6 +26,7 @@ class Registry:
     def getDeploymentRecord(self):
         # TODO consider pools and clouds
 
+        xenrt.TEC().logverbose('CDR-Registry: \n' + pformat(self.data))
         ret = {"hosts":{}, "vms": {}}
         for h in self.hostList():
             if h.startswith("RESOURCE_HOST_"):

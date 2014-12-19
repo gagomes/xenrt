@@ -7920,7 +7920,7 @@ rm -f /etc/xensource/xhad.conf || true
                               memory=4096,
                               disksize=50):
         name = "vhost_%s" % name
-        mac = xenrt.randomMAC()
+        mac = xenrt.randomMACXenSource()
         ip = xenrt.StaticIP4Addr(mac=mac)
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         g.createVIF(bridge="NPRI", mac=mac)

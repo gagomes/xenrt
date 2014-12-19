@@ -7998,6 +7998,7 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
         return name
 
 #############################################################################

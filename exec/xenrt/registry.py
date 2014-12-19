@@ -11,6 +11,7 @@
 import sys, string, threading
 import xenrt
 from pprint import pformat
+import traceback
 
 __all__ = ["Registry"]
 
@@ -112,7 +113,6 @@ class Registry:
         raise Exception("No object found of type %s" % objType)
 
     # Specific operations
-    import traceback
     def hostPut(self, tag, host):
         xenrt.TEC().logverbose("hostPut(%s, %s):\n" % (tag, host) + traceback.format_exc())
         """Store a host object using a string tag"""

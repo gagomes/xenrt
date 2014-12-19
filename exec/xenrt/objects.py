@@ -3232,7 +3232,7 @@ DHCPServer = 1
             if self.windows:
                 self.xmlrpcExec("netsh firewall set opmode DISABLE")
             else:
-                self.execcmd("/etc/init.d/iptables stop")
+                self.execcmd("service iptables stop")
         except Exception, e:
             xenrt.TEC().warning("Exception disabling firewall: %s" %
                                 (str(e)))
@@ -4805,7 +4805,8 @@ class GenericHost(GenericPlace):
             self.findPassword()
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
-                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && service iptables save")
+                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
+                self.iptablesSave()
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
@@ -5182,6 +5183,13 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execdom0("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly":
+                raise
+    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5193,7 +5201,7 @@ class GenericHost(GenericPlace):
                           "> /dev/null 2>&1 </dev/null &")
             xenrt.sleep(5)
         else:
-            self.execdom0("/sbin/reboot")
+            self._softReboot()
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):
@@ -5237,10 +5245,7 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            try:
-                self.execdom0("/sbin/reboot", timeout=timeout)
-            except Exception, e:
-                xenrt.TEC().logverbose(str(e))
+            self._softReboot(timeout)
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -6511,6 +6516,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_CARBON_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if not disks:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
         return string.split(disks)[:count]
@@ -6529,6 +6540,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_GUEST_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if disks:
             return string.split(disks)[:count]
         else:

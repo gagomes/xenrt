@@ -1017,7 +1017,7 @@ class _TCClockDrift(xenrt.TestCase):
         self._logHostClock()
 
         # Stop the NTP service on the host, so that we can know whether it's VM's clock drifting or host's hardware drifting
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
 
 
     def run(self, arglist=[]):
@@ -1097,7 +1097,7 @@ class _TCClockDrift(xenrt.TestCase):
             f.close()
 
     def postRun(self):
-        self.host.execdom0("/etc/init.d/ntpd start")
+        self.host.execdom0("service ntpd start")
 
 
 class TC9737(_TCClockDrift):
@@ -1279,7 +1279,7 @@ class TC10054(xenrt.TestCase):
 
         # Stop ntpd in dom0 and set the clock in the future
         self.guest.shutdown()
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
         if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.host.execdom0('hwclock --set --date "%s"' % (time.strftime("%b %d %H:%M:%S UTC %Y", ftime)))
@@ -1294,15 +1294,15 @@ class TC10054(xenrt.TestCase):
         ntpcode = self.host.execdom0("ntpstat", retval="code")
         if ntpcode <> 2:
             xenrt.TEC().logverbose("ntpd started, stop it before syncing")
-            self.host.execdom0("/etc/init.d/ntpd stop")
+            self.host.execdom0("service ntpd stop")
         # XRT-8311: ensure local clock is in sync with ntp server right then
         self.host.execdom0("ntpd -q -gx")
-        self.host.execdom0("/etc/init.d/ntpd start")
+        self.host.execdom0("service ntpd start")
 
         ntpcode = self.host.execdom0("ntpstat", retval="code")
         if ntpcode == 2:
             xenrt.TEC().logverbose("ntpd is unreachable (failed to start?), will try to restart")
-            self.host.execdom0("/etc/init.d/ntpd restart")
+            self.host.execdom0("service ntpd restart")
             ntpcode = self.host.execdom0("ntpstat", retval="code")
             if ntpcode == 2: raise xenrt.XRTError("ntpd is unreachable")
         if ntpcode == 1:
@@ -1387,7 +1387,7 @@ class TC20607(TC10054):
 
         # Stop ntpd in dom0 and set the clock in the future
         self.guest.shutdown()
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         ftime = time.gmtime(xenrt.timenow() + 10000)
         self.host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y", ftime)))
                            
@@ -1541,7 +1541,7 @@ class TC13249(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.pool = self.getDefaultPool()
         # disable NTP so the host time won't get set back to current
-        self.host.execdom0("/etc/init.d/ntpd stop")
+        self.host.execdom0("service ntpd stop")
         # print hw/sys time
         self.getAllTimes()
         # save original time

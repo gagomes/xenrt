@@ -6,7 +6,7 @@ ROOT                = $(shell realpath ..)
 
 SITE                = DEV
 WEB_CONTROL_PATH    = http://localhost/control/
-GITPATH             = git://hg.uk.xensource.com/xenrt
+GITPATH             = git@gitlab.citrite.net:xenrt
 
 PRODUCTIONCONFIG    = no
 

@@ -133,7 +133,6 @@ def logInstallEvent(func):
             raise
     return wrapper
 
-
 @logInstallEvent
 def createHost(id=0,
                version=None,
@@ -159,12 +158,23 @@ def createHost(id=0,
                basicNetwork=True,
                iScsiBootLun=None,
                iScsiBootNets=[],
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    machine = str("RESOURCE_HOST_%s" % (id))
+    if containerHost != None:
+        container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+    else:
+        machine = str("RESOURCE_HOST_%s" % (id))
+    
     if productVersion and not version:
         # If we've asked for a named product version but not provided
         # an input directory for it then look one up in the config
@@ -327,6 +337,10 @@ def createHost(id=0,
     host.check()
     host.applyWorkarounds()
     host.postInstall()
+    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
+    if containerHost != None:
+        hostUUID = host.minimalList("host-list")[0]
+        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
@@ -1486,7 +1500,7 @@ fi
 
 # Write a XenRT Insallation cookie
 echo '%s' > $ROOT/xenrt-installation-cookie 
-
+service sshd stop || true
 # Signal XenRT that we've finished
 mkdir /tmp/xenrttmpmount
 mount -t nfs %s /tmp/xenrttmpmount
@@ -1660,6 +1674,11 @@ done
                                                            (self.getName()))))
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
+
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            pxecfg.mbootArgsModule1Add("net.ifnames=0")
+            pxecfg.mbootArgsModule1Add("biosdevname=0")
+
         mac = self.lookup("MAC_ADDRESS", None)
         if mac:
             pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
@@ -1735,7 +1754,7 @@ done
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.disableAllFCPorts()
         if upgrade:
-            self.execdom0("/sbin/reboot")
+            self._softReboot()
         else:
             self.machine.powerctl.cycle()
             
@@ -1857,7 +1876,7 @@ fi
             self.execdom0("iptables -I OUTPUT -p tcp --dport 80 -m state "
                           "--state NEW -d %s -j ACCEPT" %
                           (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
-            self.execdom0("service iptables save")
+            self.iptablesSave()
         if xenrt.TEC().lookup("WORKAROUND_CA136054", False, boolean=True):
             xenrt.TEC().warning("Applying CA-136054 workaround")
             self.execdom0("mkdir -p /usr/lib/xen/bin")
@@ -1975,6 +1994,9 @@ fi
             except xenrt.XRTFailure, e:
                 self.checkForHardwareBootProblem(False)
                 raise
+
+        self.waitForFirstBootScriptsToComplete()
+
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.enableAllFCPorts()
 
@@ -2105,6 +2127,18 @@ fi
             # Check to ensure that there is a multipath topology if we did multipath boot.
             if not len(self.getMultipathInfo()) > 0 :
                 raise xenrt.XRTFailure("There is no multipath topology found with multipath boot")
+
+    def waitForFirstBootScriptsToComplete(self):
+        ret = ""
+        for i in range(10):
+            ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
+            if ret:
+                xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)
+                return
+            else:
+                xenrt.sleep(30)
+
+        xenrt.TEC().logverbose("First boot scripts didn't complete")
 
     def checkHostInstallReport(self, filename):
         """Checks a host installer completion file. If the file is not
@@ -4470,7 +4504,7 @@ fi
 
         xenrt.TEC().logverbose("Finding IP address of new management interface...")
         data = self.execdom0("ifconfig xenbr%s" % (interface[-1]))
-        nip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+        nip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         xenrt.TEC().logverbose("Interface %s appears to have IP %s." %
                                (interface, nip))
 
@@ -6746,7 +6780,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("New interface not UP after configuration")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for new interface")
 
@@ -6793,7 +6827,7 @@ fi
         if not re.search(r"UP", data):
             raise xenrt.XRTFailure("Interface not UP")
         try:
-            ip = re.search(".*inet addr:(?P<ip>[0-9\.]+)", data).group("ip")
+            ip = re.search(".*inet (addr:)?(?P<ip>[0-9\.]+)", data).group("ip")
         except:
             raise xenrt.XRTFailure("No IP address found for interface")
 
@@ -7887,7 +7921,7 @@ rm -f /etc/xensource/xhad.conf || true
         cli.execute("pool-enable-external-auth", string.join(args))
 
     def getSCSIID(self, device):
-        return self.execdom0("scsi_id -g -s /block/%s" % device).strip()
+        return self.execdom0("%s -g -s /block/%s" % (self.scsiIdPath(), device)).strip()
 
     def getFromMemInfo(self, field):
         meminfo = self.execdom0("cat /proc/meminfo")
@@ -7908,6 +7942,45 @@ rm -f /etc/xensource/xhad.conf || true
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
                 return joinedPath
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
+        
+    def snmpdIsEnabled(self):
+        return "3:on" in self.execdom0("/sbin/chkconfig --list snmpd")
+        
+    def disableSnmpd(self):
+        self.execdom0("/sbin/chkconfig snmpd off")
+    
+    def enableSnmpd(self):
+        self.execdom0("/sbin/chkconfig snmpd on")
+        
+    def scsiIdPath(self):
+        return "/sbin/scsi_id"
+        
+    def iptablesSave(self):
+        self.execdom0("service iptables save")
+
+    def createNestedHost(self,
+                         name=None,
+                         cpus=2,
+                         memory=4096,
+                         diskSize=50,
+                         sr=None):
+        if not name:
+            name = xenrt.randomGuestName()
+        if not sr:
+            sr="DEFAULT"
+        name = "vhost_%s" % name
+        mac = xenrt.randomMACXenSource()
+        ip = xenrt.StaticIP4Addr(mac=mac)
+        g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
+        g.createVIF(bridge="NPRI", mac=mac)
+        diskSize = diskSize * xenrt.GIGA
+        g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
+        g.paramSet("HVM-boot-params-order", "nc")
+
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        return name
 
 #############################################################################
 
@@ -8436,14 +8509,14 @@ class MNRHost(Host):
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") != 0:
                     xenrt.TEC().reason("No process found with PID %d" % pid)
                     ok = 0
-                elif self.execdom0("readlink /proc/%d/exe" % pid).strip() != "/sbin/dhclient":
+                elif os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) != "dhclient":
                     xenrt.TEC().reason("Process %d is not /sbin/dhclient" % pid)
                     ok = 0
         elif proto == "static":
             if self.execdom0("test -e /var/run/dhclient-%s.pid" % name, retval="code") == 0:
                 pid = int(self.execdom0("cat /var/run/dhclient-%s.pid" % name).strip())
                 if self.execdom0("test -d /proc/%d" % pid, retval="code") == 0 and \
-                   self.execdom0("readlink /proc/%d/exe" % pid).strip() == "/sbin/dhclient":
+                   os.path.basename(self.execdom0("readlink /proc/%d/exe" % pid).strip()) == "dhclient":
                     ok = 0
                     xenrt.TEC().reason("dhclient (%d) found for static interface" % pid)
 
@@ -8454,24 +8527,22 @@ class MNRHost(Host):
             elif len(ipcfg) > 1:
                 xenrt.TEC().reason("Multiple IP addresses configured on device %s" % name)
             else:
-                m = re.match("inet addr:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "Bcast:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)  " + \
-                             "Mask:([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)", ipcfg[0])
+                m = re.match("inet (addr:)?([0-9\.]+).+?(netmask |Mask:)([0-9\.]+)", ipcfg[0])
 
             if not m:
                 xenrt.TEC().reason("Cannot determine interface configuration for %s" % name)
                 ok = 0
             else:
-                if m.group(1) != ip:
+                if m.group(2) != ip:
                     ok = 0
                     xenrt.TEC().reason("Configuration of %s has "
                                        "IP address %s (expected %s)" %
-                                       (name, m.group(1), ip))
-                if m.group(3) != netmask:
+                                       (name, m.group(2), ip))
+                if m.group(4) != netmask:
                     ok = 0
                     xenrt.TEC().reason("Configuration of %s has "
                                        "NETMASK %s (expected %s)" %
-                                       (name, m.group(2), netmask))
+                                       (name, m.group(4), netmask))
 
             # There is no way to confirm the gateway configured for a
             # given device unless it is actually being usedas the
@@ -8790,7 +8861,7 @@ class MNRHost(Host):
         self.execdom0("iptables -A OUTPUT -o %s -j DROP" %
                       (self.getStorageBridge()))
         # Save the configuration
-        self.execdom0("service iptables save")
+        self.iptablesSave()
 
     def configureForCC(self):
         """Configure the host in Common Criteria mode"""
@@ -10442,6 +10513,25 @@ class TampaHost(BostonHost):
     def getQemuDMWrapper(self):
         return "/opt/xensource/libexec/qemu-dm-wrapper"
 
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe"' % (maxVFs))
+
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
+
 #############################################################################
 class TampaXCPHost(TampaHost):
 
@@ -10874,7 +10964,7 @@ done
         mount.unmount()
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
             self.disableAllFCPorts()
-        self.execdom0("/sbin/reboot")
+        self._softReboot()
         xenrt.TEC().progress("Rebooted host to start installer.")
         
         installTimeout = 1800 + int(self.lookup("ALLOW_EXTRA_HOST_BOOT_SECONDS", "0"))
@@ -11183,7 +11273,10 @@ class DundeeHost(CreedenceHost):
 
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
-        
+
+    def isCentOS7Dom0(self):
+        return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
+
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
@@ -11223,11 +11316,7 @@ class DundeeHost(CreedenceHost):
                 raise xenrt.XRTFailure("firstboot.d %s failed" % f)
 
     def getSCSIID(self, device):
-        # TODO: When CentOS 6.4 userspace in trunk, remove the fallback to -s /block
-        try:
-            return self.execdom0("scsi_id -g --device /dev/%s" % device).strip()
-        except:
-            return self.execdom0("scsi_id -g -s /block/%s" % device).strip()
+        return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"
@@ -11255,7 +11344,56 @@ class DundeeHost(CreedenceHost):
         else:
             ifs=CreedenceHost.getBridgeInterfaces(self, bridge)
         return ifs
+        
+    def snmpdIsEnabled(self):
+        if self.isCentOS7Dom0():
+            return "enabled" in self.execdom0("service snmpd status | cat")
+        else:
+            return CreedenceHost.snmpdIsEnabled(self)
+            
+    def disableSnmpd(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("systemctl disable snmpd")
+        else:
+            CreedenceHost.disableSnmpd(self)
+            
+    def enableSnmpd(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("systemctl enable snmpd")
+        else:
+            CreedenceHost.enableSnmpd(self)
 
+    def scsiIdPath(self):
+        if self.isCentOS7Dom0():
+            return "/usr/lib/udev/scsi_id"
+        else:
+            return CreedenceHost.scsiIdPath(self)
+            
+    def iptablesSave(self):
+        if self.isCentOS7Dom0():
+            self.execdom0("/usr/libexec/iptables/iptables.init save")
+        else:
+            CreedenceHost.iptablesSave(self)
+
+    def enableVirtualFunctions(self):
+
+        out = self.execdom0("grep -v '^#' /etc/modprobe.d/ixgbe.conf 2> /dev/null; echo -n ''" % ()).strip()
+        if len(out) > 0:
+            return
+
+        numPFs = int(self.execdom0('lspci | grep 82599 | wc -l').strip())
+        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
+        ixgbe_version = self.execdom0("modinfo ixgbe | grep 'version:        '") 
+        if numPFs > 0:
+            if (re.search("NS", ixgbe_version.split()[1])):
+                maxVFs = "63" + (",63" * (numPFs - 1))
+            else:
+                maxVFs = "40"
+            self.execdom0('echo "options ixgbe max_vfs=%s" > "/etc/modprobe.d/ixgbe.conf"' % (maxVFs))
+
+            self.execdom0('/bin/sh /boot/initrd-*.img.cmd')
+            self.reboot()
+            self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
 #############################################################################
 
@@ -11871,8 +12009,8 @@ class NFSStorageRepository(StorageRepository):
         except:
             raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
                                    "does not exist" % (self.uuid))
-        nfs = string.split(host.execdom0("mount | grep \" "
-                                          "/var/run/sr-mount/%s \"" %
+        nfs = string.split(host.execdom0("mount | grep \""
+                                          "/run/sr-mount/%s \"" %
                                           (self.uuid)))[0]
         shouldbe = "%s:%s/%s" % (self.server, self.path, self.uuid)
         if nfs != shouldbe:
@@ -12898,7 +13036,7 @@ class Pool:
                     slave.execdom0("iptables -I OUTPUT -p tcp --dport 80 -m state "
                                   "--state NEW -d %s -j ACCEPT" %
                                   (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS")))
-                    slave.execdom0("service iptables save")
+                    slave.iptablesSave()
                 return
             xenrt.sleep(60)
         raise xenrt.XRTFailure("Host %s has not rebooted" % (slave.getName()))
@@ -13181,7 +13319,7 @@ class Pool:
             for h in self.getHosts():
                 failed = False
                 try:
-                    if h.execdom0("ps -ef | grep [x]api",
+                    if h.execdom0("ps -ef | grep \"bin/[x]api \"",
                                   retval="code") == 0:
                         failed = True
                 except:
@@ -14731,27 +14869,6 @@ class IOvirt:
                 
         return
     
-    def enableVirtualFunctions(self):
-        
-        out = self.getHost().execdom0("grep -v '^#' /etc/modprobe.d/ixgbe 2> /dev/null; echo -n ''").strip()
-        if len(out) > 0:
-            return
-        
-        numPFs = int(self.getHost().execdom0('lspci | grep 82599 | wc -l').strip())
-        #we check ixgbe version so as to understand netsclaer VPX specific - NS drivers: in which case, configuration differs slightly. 
-        ixgbe_version = self.host.execdom0("modinfo ixgbe | grep 'version:        '") 
-        if numPFs > 0:
-            if (re.search("NS", ixgbe_version.split()[1])):
-                maxVFs = "63" + (",63" * (numPFs - 1))
-            else:
-                maxVFs = "40" #+ (",40" * (numPFs - 1))
-            self.getHost().execdom0('echo "options ixgbe max_vfs=%s" > /etc/modprobe.d/ixgbe' % maxVFs)
-            #self.getHost().execdom0('echo "options igb max_vfs=7,7,7,7" > /etc/modprobe.d/igb')
-            self.getHost().reboot()
-            self.getHost().waitForSSH(300, desc="host reboot after enabling virtual functions")
-            
-        return
-
     def __get_node_value__(self, dom, node_name):
 
         nodes = dom.getElementsByTagName(node_name)

@@ -169,7 +169,7 @@ def createHost(id=0,
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    if containerHost:
+    if containerHost != None:
         container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
         machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
     else:

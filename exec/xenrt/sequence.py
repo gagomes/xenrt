@@ -1369,8 +1369,8 @@ class PrepareNode:
             if vHostSR:
                 host['vHostSR'] = vhostSR
 
-            if not containerHost in self.containerHosts:
-                self.containerHosts.append(containerHost)
+            if not container in self.containerHosts:
+                self.containerHosts.append(container)
         
         hasAdvancedNet = False
         for x in node.childNodes:

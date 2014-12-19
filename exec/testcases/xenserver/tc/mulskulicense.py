@@ -344,13 +344,13 @@ class TCVirtualGPUFeature(TestFeatureBase):
         enabledList = feature.isEnabled(self.systemObj.master)
         assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
 
-        
+''' 
 class LicenseExpiryBase(LicenseBase):
      #TC for Creedence (and later) license expiration test.
 
 
     def expireLicense(self, allhosts=False):
-        """Select a host and force expire the license of the host."""
+#        """Select a host and force expire the license of the host."""
 
         if allhosts:
             hosts = self.systemObj.getHosts()
@@ -365,7 +365,7 @@ class LicenseExpiryBase(LicenseBase):
         return hosts[0]
 
     def __forceExpireLicense(self, host, expiretime=-1):
-        """ Force Expire license from a host by changing expiry date."""
+#        """ Force Expire license from a host by changing expiry date."""
 
         # Enable the license expires in 5 minutes
         if expiretime < 0:
@@ -382,8 +382,8 @@ class LicenseExpiryBase(LicenseBase):
         xenrt.sleep(330)
 
     def checkLicenseExpired(self, edition, host=None, timeout=1800):
-        """ Checking license expiry while timeout period.
-            Feature limit may not be applied for some time perios."""
+#        """ Checking license expiry while timeout period.
+#            Feature limit may not be applied for some time perios."""
 
 
         host = self.systemObj.master
@@ -401,7 +401,7 @@ class LicenseExpiryBase(LicenseBase):
         return False
 
     def __checkLicenseTimePassed(self, host):
-        """ Checking License is expired by checking time"""
+#        """ Checking License is expired by checking time"""
 
         xenrt.TEC().logverbose("Checking host expiry date is passed.")
         licdet = host.getLicenseDetails()
@@ -430,8 +430,8 @@ class LicenseExpiryBase(LicenseBase):
         return False
 
     def __checkLicenseExpiredFunc(self, host, edition):
-        """ Checking License is expired by checking feature availability.
-        Checking date is not reliable as TC expires license using fist point."""
+#        """ Checking License is expired by checking feature availability.
+#        Checking date is not reliable as TC expires license using fist point."""
 
         xenrt.TEC().logverbose("Checking host feature set.")
         hfeatures = [feature.hostFeatureFlagValue(host, True)
@@ -463,7 +463,7 @@ class LicenseExpiryBase(LicenseBase):
 
 
 class TCLicenseExpiry(LicenseExpiryBase):
-    """ Expiry test case """
+#    """ Expiry test case """
 
     def licenseExpiryTest(self, edition):
         # Assign license and verify it.
@@ -497,10 +497,10 @@ class TCLicenseExpiry(LicenseExpiryBase):
             self.runSubcase("licenseExpiryTest", edition, "Expiry - %s" % edition, "Expiry")
 
 class TCLicenseGrace(LicenseExpiryBase):
-    """Verify the grace license and its expiry in Creedence hosts"""
+#    """Verify the grace license and its expiry in Creedence hosts"""
 
     def disableLicenseServer(self):
-        """Disconnect license server"""
+#        """Disconnect license server"""
         self.v6.stop()
         xenrt.sleep(120)
 
@@ -508,7 +508,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         [host.restartToolstack() for host in self.hosts]
 
     def enableLicenseServer(self):
-        """Re-establish license server connection"""
+#        """Re-establish license server connection"""
 
         self.v6.start()
         xenrt.sleep(120)
@@ -517,7 +517,7 @@ class TCLicenseGrace(LicenseExpiryBase):
         [host.restartToolstack() for host in self.hosts]
 
     def checkGraceLicense(self, host, timeout=3600):
-        """ Checking whether the grace license enabled"""
+#        """ Checking whether the grace license enabled"""
 
         starttime = xenrt.util.timenow()
         while (xenrt.util.timenow() <= starttime + timeout):
@@ -609,3 +609,4 @@ class TCLicenseGrace(LicenseExpiryBase):
                continue
            licence = self.licenceFactory.licenceForPool(self.systemObj, sku) 
            self.runSubcase("licenseGraceTest", licence, "Grace - %s" % licence, "Grace")
+'''

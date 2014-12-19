@@ -130,7 +130,7 @@ class TCRemoteNoseSetup(_TCRemoteNoseBase):
                 testData['configurableData']['netscaler']['password'] = 'nsroot'
                 testData['configurableData']['netscaler']['networkdevicetype'] = 'NetscalerVPXLoadBalancer'
                 testData['configurableData']['netscaler']['publicinterface'] = '1/1'
-                testData['configurableData']['netscaler']['privateinterface'] = '1/2'
+                testData['configurableData']['netscaler']['privateinterface'] = '1/1'
                 testData['configurableData']['netscaler']['numretries'] = '2'
             if self.args['hypervisor'].lower() == "hyperv":
                 testData['service_offering']['memory'] = 512

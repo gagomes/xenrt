@@ -338,7 +338,7 @@ def createHost(id=0,
     host.applyWorkarounds()
     host.postInstall()
     # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
-    if containerHost:
+    if containerHost != None:
         hostUUID = host.minimalList("host-list")[0]
         host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False

@@ -40,9 +40,17 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None):
 
-    machine = str("RESOURCE_HOST_%s" % (id))
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
+
 
     m = xenrt.PhysicalHost(xenrt.TEC().lookup(machine, machine))
     xenrt.GEC().startLogger(m)

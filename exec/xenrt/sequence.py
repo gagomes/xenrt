@@ -922,6 +922,7 @@ class PrepareNode:
         self.controllersForHosts = {}
         self.controllersForPools = {}
         self.preparecount = 0
+        self.containerHosts = []
 
         # Ignore cloud nodes on the first pass
         for n in node.childNodes:
@@ -957,6 +958,16 @@ class PrepareNode:
         for n in node.childNodes:
             if n.localName == "cloud":
                 self.handleCloudNode(n, params)
+
+        # Insert preprepare if required for any containerHosts
+        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
+           and node.localName != "preprepare":
+            preprepareNode = xml.dom.minidom.Element("preprepare")
+            for c in self.containerHosts:
+                hostNode = xml.dom.minidom.Element("host")
+                hostNode.setAttribute("id", c)
+                preprepareNode.appendChild(hostNode)
+            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def __minAvailable(self, allocated):
         i = 0
@@ -1338,6 +1349,28 @@ class PrepareNode:
             host['extraConfig'] = {}
         else:
             host['extraConfig'] = json.loads(extraCfg)
+        container = expand(node.getAttribute("container"), params)
+        if container:
+            containerHost = int(container)
+            host['containerHost'] = containerHost
+            vHostName = expand(node.getAttribute("vname"), params)
+            if vHostName:
+                host['vHostName'] = vHostName
+            vHostCpus = expand(node.getAttribute("vcpus"), params)
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = expand(node.getAttribute("vmemory"), params)
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = expand(node.getAttribute("vsr"), params)
+            if vHostSR:
+                host['vHostSR'] = vhostSR
+
+            if not container in self.containerHosts:
+                self.containerHosts.append(container)
         
         hasAdvancedNet = False
         for x in node.childNodes:

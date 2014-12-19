@@ -133,7 +133,6 @@ def logInstallEvent(func):
             raise
     return wrapper
 
-
 @logInstallEvent
 def createHost(id=0,
                version=None,
@@ -159,12 +158,23 @@ def createHost(id=0,
                basicNetwork=True,
                iScsiBootLun=None,
                iScsiBootNets=[],
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    machine = str("RESOURCE_HOST_%s" % (id))
+    if containerHost != None:
+        container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+    else:
+        machine = str("RESOURCE_HOST_%s" % (id))
+    
     if productVersion and not version:
         # If we've asked for a named product version but not provided
         # an input directory for it then look one up in the config
@@ -327,6 +337,10 @@ def createHost(id=0,
     host.check()
     host.applyWorkarounds()
     host.postInstall()
+    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
+    if containerHost != None:
+        hostUUID = host.minimalList("host-list")[0]
+        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
@@ -7943,6 +7957,30 @@ rm -f /etc/xensource/xhad.conf || true
         
     def iptablesSave(self):
         self.execdom0("service iptables save")
+
+    def createNestedHost(self,
+                         name=None,
+                         cpus=2,
+                         memory=4096,
+                         diskSize=50,
+                         sr=None):
+        if not name:
+            name = xenrt.randomGuestName()
+        if not sr:
+            sr="DEFAULT"
+        name = "vhost_%s" % name
+        mac = xenrt.randomMACXenSource()
+        ip = xenrt.StaticIP4Addr(mac=mac)
+        g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
+        g.createVIF(bridge="NPRI", mac=mac)
+        diskSize = diskSize * xenrt.GIGA
+        g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
+        g.paramSet("HVM-boot-params-order", "nc")
+
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        return name
 
 #############################################################################
 

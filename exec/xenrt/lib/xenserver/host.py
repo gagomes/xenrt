@@ -52,7 +52,6 @@ __all__ = ["Host",
            "Pool",
            "watchForInstallCompletion",
            "createHost",
-           "createNestedHost",
            "hostFactory",
            "CLI_LEGACY_NATIVE",
            "CLI_LEGACY_COMPAT",
@@ -134,18 +133,6 @@ def logInstallEvent(func):
             raise
     return wrapper
 
-def createNestedHost(containerHost=0,
-                     vHostName=None,
-                     vHostCpus=2,
-                     vHostMemory=4096,
-                     vHostDiskSize=50,
-                     vHostSR=None,
-                     **kwargs):
-    host = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
-    vHostName = host.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
-    return createHost(vHostName=vHostName,**kwargs)
-
-
 @logInstallEvent
 def createHost(id=0,
                version=None,
@@ -172,13 +159,19 @@ def createHost(id=0,
                iScsiBootLun=None,
                iScsiBootNets=[],
                extraConfig=None,
-               vHostName=None):
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    if vHostName:
-        machine = vHostName
+    if containerHost:
+        container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
     else:
         machine = str("RESOURCE_HOST_%s" % (id))
     
@@ -345,9 +338,9 @@ def createHost(id=0,
     host.applyWorkarounds()
     host.postInstall()
     # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
-    if vHostName:
+    if containerHost:
         hostUUID = host.minimalList("host-list")[0]
-        host.genParamSet("host", hostUUID, "name-label", vHostName)
+        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):

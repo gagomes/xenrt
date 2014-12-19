@@ -11278,10 +11278,7 @@ class DundeeHost(CreedenceHost):
                 raise xenrt.XRTFailure("firstboot.d %s failed" % f)
 
     def getSCSIID(self, device):
-        if self.isCentOS7Dom0():
-            return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
-        else:
-            Host.getSCSIID(self, device)
+        return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"

@@ -3079,6 +3079,8 @@ fi
 
         if vcpus != None:
             guest.setVCPUs(vcpus)
+        elif self.lookup("RND_VCPUS", default=False, boolean=True):
+            self.setRandomVcpus(guest)
 
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             self.setRandomCoresPerSocket(guest, vcpus)
@@ -3122,6 +3124,22 @@ fi
         if not nodrivers:
             guest.check()
         return guest
+
+    def setRandomVcpus(self,guest):
+        xenrt.log("Setting random vcpus for VM ")
+        #maxVcpusSupported can be made variable later depending on host, guest and proudct limits
+        maxVcpusSupported =16
+        randomVcpus = random.randint(1,maxVcpusSupported)
+        with xenrt.GEC().getLock("RND_VCPUS"):
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
+            if dbVal != 0:
+                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
+                guest.setVCPUs(dbVal)
+            else:
+                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)
+                guest.setVCPUs(randomVcpus)
+                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
+                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
 
     def setRandomCoresPerSocket(self, guest, vcpus):
         log("Setting random cores per socket....")

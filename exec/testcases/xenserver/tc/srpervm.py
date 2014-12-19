@@ -218,6 +218,7 @@ class RebootAllVMs(xenrt.TestCase):
                 i += 1
 
 class LifeCycleAllVMs(xenrt.TestCase):
+
     def run(self, arglist=[]):
 
         failedGuests = []
@@ -248,3 +249,87 @@ class LifeCycleAllVMs(xenrt.TestCase):
         if len(failedGuests) > 0:
             raise xenrt.XRTFailure("Failed to perform health checks on %d/%d guests - %s" %
                                     (len(failedGuests), numOfGuests, ", ".join(failedGuests)))
+
+class MultipathScenarios(xenrt.TestCase):
+
+    PATHS = 2 # 2 paths
+    PATH_TO_FAIL = 1 # this is path connected to FAS2040 NetApp.
+    EXPECTED_MPATHS = 256
+
+    def checkMultipathsConfig(self):
+        """Verify the multipath configuration is correct"""
+
+        mpaths = self.host.getMultipathInfo()
+        if len(mpaths) != self.EXPECTED_MPATHS:
+            raise xenrt.XRTFailure("Incorrect number of mpaths found (%s) Expected: %s" %
+                                                            (len(mpaths), self.EXPECTED_MPATHS))
+
+        for scsiid in mpaths.keys():
+            if len(self.host.getMultipathInfo()[scsiid]) != self.PATHS:
+                raise xenrt.XRTFailure("Incorrect number of mpaths for a given SR with SCSID %s Found: %s Expected: %s" %
+                                                                                    (scsiid, len(mpaths), self.EXPECTED_MPATHS))
+
+    def waitForPathChange(self):
+        """Wait until XenServer reports that the path has failed (and no longer) /recovered"""
+
+        startTime = xenrt.util.timenow()
+        deadline = startTime + 150 # to be precise, the events received during the last 120 seconds.
+        while True:
+            mpathAlert = self.host.minimalList("message-list")
+            for messageUUID in mpathAlert:
+                messageTitle = self.host.genParamGet("message", messageUUID, "name")
+                messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
+
+                if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
+                    break # we found the required message.
+
+                if xenrt.util.timenow() > deadline:
+                    raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
+            xenrt.sleep(15)
+
+    def run(self, arglist=[]):
+
+        args = self.parseArgsKeyValue(arglist)
+
+        linuxCount = int(args.get("linuxvms", "10"))
+        windowsCount = int(args.get("windowsvms", "10"))
+        dataDiskPerVM = int(args.get("datadisk", "2"))
+
+        linuxVMSRs = linuxCount + (linuxCount * dataDiskPerVM) 
+        windowsVMSRs = windowsCount + (windowsCount * dataDiskPerVM) 
+        numberOfSRs = linuxVMSRs + windowsVMSRs
+
+        self.pool = self.getDefaultHost().getPool()
+        self.host = self.pool.master # multipathing is host specific.
+        self.EXPECTED_MPATHS = numberOfSRs
+
+        #1. Verify the multipath configuration is correct.
+        self.checkMultipathsConfig()
+
+        # 2. Note the time and cause the path to fail.
+        startTime = xenrt.util.timenow()
+        self.host.disableFCPort(self.PATH_TO_FAIL)
+
+        # 3. Wait until XenServer reports that the path has failed (and no longer)
+        self.waitForPathChange()
+
+        # 4. Report the elapsed time beween steps 2 and 3.
+        xenrt.TEC().logverbose("Time elapsed between causing the path to fail and its reporting is %s seconds." % 
+                                                                                    (xenrt.util.timenow() - startTime))
+
+        #5 Verify again the multipath configuration is correct.
+        self.checkMultipathsConfig()
+
+        #6. Cause the path to be live again
+        startTime = xenrt.util.timenow()
+        self.host.enableFCPort(self.PATH_TO_FAIL)
+
+        #7. Wait until XenServer reports that the path has recovered (and no longer)
+        self.waitForPathChange()
+
+        #8. Report the elapsed time between steps 5 and 6.
+        xenrt.TEC().logverbose("Time elapsed between causing the path to fail and its reporting is %s seconds." % 
+                                                                                    (xenrt.util.timenow() - startTime))
+
+        #9. Verify again the multipath configuration is correct.
+        self.checkMultipathsConfig()

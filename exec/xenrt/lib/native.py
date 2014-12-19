@@ -46,7 +46,11 @@ def createHost(id=0,
                enableAllPorts=True,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               vHostName=None):
+
+    if vHostName:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py

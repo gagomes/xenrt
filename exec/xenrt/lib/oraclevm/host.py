@@ -39,7 +39,11 @@ def createHost(id=0,
                ipv6=None,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               vHostName=None):
+
+    if vHostName:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     machine = str("RESOURCE_HOST_%s" % (id))
 

@@ -133,6 +133,17 @@ def logInstallEvent(func):
             raise
     return wrapper
 
+def createNestedHost(containerHost=0,
+                     vHostName=None,
+                     vHostCpus=2,
+                     vHostMemory=4096,
+                     vHostDiskSize=50,
+                     vHostSR=None,
+                     **kwargs):
+    host = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
+    vHostName = host.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+    return createHost(vHostName=vHostName,**kwargs)
+
 
 @logInstallEvent
 def createHost(id=0,
@@ -7919,25 +7930,28 @@ rm -f /etc/xensource/xhad.conf || true
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
 
     def createNestedXenServer(self,
-                              name,
+                              name=None,
                               cpus=2,
                               memory=4096,
-                              disksize=50):
+                              diskSize=50,
+                              sr=None):
+        if not name:
+            name = xenrt.randomGuestName()
+        if not sr:
+            sr="DEFAULT"
         name = "vhost_%s" % name
         mac = xenrt.randomMACXenSource()
         ip = xenrt.StaticIP4Addr(mac=mac)
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         g.createVIF(bridge="NPRI", mac=mac)
         disksize = disksize * xenrt.GIGA
-        g.createDisk(sizebytes=disksize, sruuid="DEFAULT", bootable=True)
+        g.createDisk(sizebytes=disksize, sruuid=sr, bootable=True)
         g.paramSet("HVM-boot-params-order", "nc")
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
-        createHost(vHostName=name)
-
-
+        return name
 
 #############################################################################
 

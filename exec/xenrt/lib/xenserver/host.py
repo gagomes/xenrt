@@ -332,6 +332,10 @@ def createHost(id=0,
     host.check()
     host.applyWorkarounds()
     host.postInstall()
+    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
+    if vHostName:
+        hostUUID = host.minimalList("host-list")[0]
+        host.genParamSet("host", hostUUID, "name-label", vHostName)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):

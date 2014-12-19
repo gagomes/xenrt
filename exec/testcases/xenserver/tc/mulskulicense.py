@@ -15,6 +15,7 @@ from xenrt.lib import assertions
 from xenrt.enum import XenServerLicenceSKU
 from xenrt.lib.xenserver.licensedfeatures import *
 
+
 class LicenseBase(xenrt.TestCase, object):
 
     def __init__(self):
@@ -115,7 +116,7 @@ class LicenseBase(xenrt.TestCase, object):
         if '19700101T00:00:00Z' != licenseInfo['expiry']:
             return False
 
-        return True 
+        return True
 
     def featureFlagValidation(self,license=None):
         #No license if license has expired or host/pool is not licensed
@@ -129,10 +130,10 @@ class LicenseBase(xenrt.TestCase, object):
             if not feature.poolFeatureFlagValue(self.systemObj) == self.licenceFeatureFactory.getFeatureState(self.systemObj.master.productVersion,
                 license.sku,feature):
                 err.append("Pool level feature flag for feature %s is not same as expected" % (feature.name))
-            
+
             for host in hosts:
                 if not feature.hostFeatureFlagValue(host) == self.licenceFeatureFactory.getFeatureState(host.productVersion,
-                license.sku,feature): 
+                license.sku,feature):
                     err.append("Host level feature flag for feature %s is not same as expected" % (feature.name))
 
         if err:
@@ -152,6 +153,7 @@ class LicenseBase(xenrt.TestCase, object):
     def postRun(self):
         self.licenceManager.releaseLicense(self.systemObj)
 
+
 class TCRestartHost(LicenseBase):
 
     def run(self,arglist=None):
@@ -168,14 +170,15 @@ class TCRestartHost(LicenseBase):
             self.featureFlagValidation()
             self.licenceManager.verifyLicenseServer(licence,self.v6,licenseinUse, self.systemObj,reset=True)
 
+
 class TCUpgrade(LicenseBase):
- 
+
     def run(self,arglist=None):
 
         v6 = self.v6
         hosts = self.systemObj.getHosts()
         if self.oldLicenseServerName:
-            v6 = self.licenseServer(self.oldLicenseServerName) 
+            v6 = self.licenseServer(self.oldLicenseServerName)
 
         if self.oldLicenseSku != XenServerLicenceSKU.Free:
             licence = self.licenceFactory.licenceForPool(self.systemObj, self.oldLicenseSku)
@@ -183,7 +186,7 @@ class TCUpgrade(LicenseBase):
 
         for host in hosts:
             host.license(edition=licence.getEdition,v6server=v6)
-        
+
         if self.addLicenseFile:
             productVer = xenrt.TEC().lookup("PRODUCT_VERSION")
             licence = self.licenceFactory.licence(productVer,self.expectedSku)
@@ -218,8 +221,9 @@ class TCUpgrade(LicenseBase):
             for host in hosts:
                 if not self.checkLicenseExpired(host):
                     raise xenrt.XRTFailure("Host License has not expired")
-                else: 
+                else:
                     self.featureFlagValidation()
+
 
 class TestFeatureBase(LicenseBase):
 
@@ -246,6 +250,7 @@ class TestFeatureBase(LicenseBase):
         currentSKU: The current license sku being tested.
         """
         pass
+
 
 class TCReadCachingFeature(TestFeatureBase):
 
@@ -344,7 +349,7 @@ class TCVirtualGPUFeature(TestFeatureBase):
         enabledList = feature.isEnabled(self.systemObj.master)
         assertions.assertFalse(True in enabledList, "vGPU is enabled after removing license and lifecycle operation.")
 
-''' 
+'''
 class LicenseExpiryBase(LicenseBase):
      #TC for Creedence (and later) license expiration test.
 
@@ -559,7 +564,7 @@ class TCLicenseGrace(LicenseExpiryBase):
                 self.licenceManager.releaseLicense(self.systemObj)
                 raise xenrt.XRTFailure("The host %s is failed to aquire grace license" % host)
             else:
-                self.featureFlagValidation(licence)             
+                self.featureFlagValidation(licence)
 
         # Force the hosts to regain its orignal licenses.
         self.enableLicenseServer()
@@ -589,7 +594,7 @@ class TCLicenseGrace(LicenseExpiryBase):
             self.licenceManager.releaseLicense(self.systemObj)
             raise xenrt.XRTFailure("License is not expired properly.")
         else:
-            self.featureFlagValidation() 
+            self.featureFlagValidation()
 
         # Check whether the hosts license expired.
         self.systemObj.checkLicenseState(edition=licence.getEdition())
@@ -607,6 +612,6 @@ class TCLicenseGrace(LicenseExpiryBase):
                # Free license does not require grace license test.
                xenrt.TEC().logverbose("Free license does not require grace license test")
                continue
-           licence = self.licenceFactory.licenceForPool(self.systemObj, sku) 
+           licence = self.licenceFactory.licenceForPool(self.systemObj, sku)
            self.runSubcase("licenseGraceTest", licence, "Grace - %s" % licence, "Grace")
 '''

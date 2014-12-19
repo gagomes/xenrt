@@ -52,6 +52,7 @@ __all__ = ["Host",
            "Pool",
            "watchForInstallCompletion",
            "createHost",
+           "createNestedHost",
            "hostFactory",
            "CLI_LEGACY_NATIVE",
            "CLI_LEGACY_COMPAT",
@@ -7929,12 +7930,12 @@ rm -f /etc/xensource/xhad.conf || true
                 return joinedPath
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
 
-    def createNestedXenServer(self,
-                              name=None,
-                              cpus=2,
-                              memory=4096,
-                              diskSize=50,
-                              sr=None):
+    def createNestedHost(self,
+                         name=None,
+                         cpus=2,
+                         memory=4096,
+                         diskSize=50,
+                         sr=None):
         if not name:
             name = xenrt.randomGuestName()
         if not sr:

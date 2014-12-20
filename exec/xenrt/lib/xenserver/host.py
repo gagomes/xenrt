@@ -2132,7 +2132,7 @@ fi
         ret = ""
         for i in range(10):
             ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
-            if ret:
+            if "success" in ret:
                 xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)
                 return
             else:

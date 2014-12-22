@@ -283,6 +283,7 @@ class MultipathScenarios(xenrt.TestCase):
 
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
                     found = True # we found the required message.
+                    break
 
             if xenrt.util.timenow() > deadline:
                 raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")

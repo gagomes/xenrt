@@ -39,9 +39,11 @@
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
+  <!-- 
     <serial group="LifeCycle">
       <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
     </serial>
+  -->
     <serial group="Multipath">
       <testcase id="xenserver.tc.srpervm.MultipathScenarios">
         <arg>linuxvms=8</arg>

@@ -253,10 +253,11 @@ class LifeCycleAllVMs(xenrt.TestCase):
 class MultipathScenarios(xenrt.TestCase):
 
     PATHS = 2 # 2 paths
+    PATH_FACTOR = 1
     PATH_TO_FAIL = 1 # this is path connected to FAS2040 NetApp.
     EXPECTED_MPATHS = 256
 
-    def checkMultipathsConfig(self):
+    def checkMultipathsConfig(self, disabled=False):
         """Verify the multipath configuration is correct"""
 
         mpaths = self.host.getMultipathInfo()
@@ -264,11 +265,16 @@ class MultipathScenarios(xenrt.TestCase):
             raise xenrt.XRTFailure("Incorrect number of mpaths found (%s) Expected: %s" %
                                                             (len(mpaths), self.EXPECTED_MPATHS))
 
+        if disabled:
+            expectedPaths = self.PATHS - (self.PATH_FACTOR * self.PATHS)
+        else:
+            expectedPaths = self.PATHS
+
         for scsiid in mpaths.keys():
             paths = len(self.host.getMultipathInfo()[scsiid])
-            if paths != self.PATHS:
+            if paths != expectedPaths:
                 raise xenrt.XRTFailure("Incorrect number of mpaths for a given SR with SCSID %s Found: %s Expected: %s" %
-                                                                                    (scsiid, paths, self.PATHS))
+                                                                                                (scsiid, paths, expectedPaths))
 
     def waitForPathChange(self):
         """Wait until XenServer reports that the path has failed (and no longer) /recovered"""

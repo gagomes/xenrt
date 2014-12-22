@@ -252,29 +252,54 @@ class LifeCycleAllVMs(xenrt.TestCase):
 
 class MultipathScenarios(xenrt.TestCase):
 
-    PATHS = 2 # 2 paths
+    # The following params are totally depend on the current storage configuration.
+    PATHS = 2
     PATH_FACTOR = 1
-    PATH_TO_FAIL = 1 # this is path connected to FAS2040 NetApp.
-    EXPECTED_MPATHS = 256
+    PATH_TO_FAIL = 1 # this is the path connected to FAS2040 NetApp. 
+
+    EXPECTED_MPATHS = 256 # will be calculated.
+    ATTEMPTS = 10
 
     def checkMultipathsConfig(self, disabled=False):
         """Verify the multipath configuration is correct"""
 
-        mpaths = self.host.getMultipathInfo()
-        if len(mpaths) != self.EXPECTED_MPATHS:
-            raise xenrt.XRTFailure("Incorrect number of mpaths found (%s) Expected: %s" %
-                                                            (len(mpaths), self.EXPECTED_MPATHS))
+        attempts = 1
+        while True:
+            xenrt.TEC().logverbose("Finding the total number of devices. Attempt %s " % attempts)
+            mpaths = self.host.getMultipathInfo()
+            if len(mpaths) != self.EXPECTED_MPATHS:
+                attempts = attempts + 1
+            else:
+                xenrt.TEC().logverbose("Total number of devices in the system = %s" % len(mpaths))
+                break # expected result.
+
+            if attempts > self.ATTEMPTS:
+                raise xenrt.XRTFailure("Incorrect number of devices even after attempting %s times"
+                                                                            " Found (%s) Expected: %s" %
+                                                            ((attempts-1), len(mpaths), self.EXPECTED_MPATHS))
+            xenrt.sleep(60) # wait for a minute.
 
         if disabled:
-            expectedPaths = self.PATHS - (self.PATH_FACTOR * self.PATHS)
+            expectedDevicePaths = self.PATHS - (self.PATH_FACTOR * self.PATHS)
         else:
-            expectedPaths = self.PATHS
+            expectedDevicePaths = self.PATHS
 
         for scsiid in mpaths.keys():
-            paths = len(self.host.getMultipathInfo()[scsiid])
-            if paths != expectedPaths:
-                raise xenrt.XRTFailure("Incorrect number of mpaths for a given SR with SCSID %s Found: %s Expected: %s" %
-                                                                                                (scsiid, paths, expectedPaths))
+            attempts = 1
+            while True:
+                xenrt.TEC().logverbose("Finding the device paths for scsiid %s. Attempt %s " % (scsiid, attempts))
+                paths = len(self.host.getMultipathInfo()[scsiid])
+                if paths != expectedDevicePaths:
+                    attempts = attempts + 1
+                else:
+                    xenrt.TEC().logverbose("Number of device paths = %s" % paths)
+                    break # expected result.
+
+                if attempts > self.ATTEMPTS:
+                    raise xenrt.XRTFailure("Incorrect number of device paths even after attempting %s times"
+                                                                                    " Found (%s) Expected: %s" %
+                                                                        ((attempts-1), paths, expectedDevicePaths))
+                xenrt.sleep(30) # wait for 30 seconds.
 
     def waitForPathChange(self):
         """Wait until XenServer reports that the path has failed (and no longer) /recovered"""
@@ -289,6 +314,7 @@ class MultipathScenarios(xenrt.TestCase):
                 messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
 
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
+                    xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")
                     found = True # we found the required message.
                     break
 

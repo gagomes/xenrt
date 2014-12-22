@@ -250,14 +250,14 @@ class LifeCycleAllVMs(xenrt.TestCase):
             raise xenrt.XRTFailure("Failed to perform health checks on %d/%d guests - %s" %
                                     (len(failedGuests), numOfGuests, ", ".join(failedGuests)))
 
-class MultipathScenarios(xenrt.TestCase):
+class FCMPathScenario(xenrt.TestCase):
 
     # The following params are totally depend on the current storage configuration.
     PATHS = 2
     PATH_FACTOR = 1
-    PATH_TO_FAIL = 1 # this is the path connected to FAS2040 NetApp. 
+    PATH_TO_FAIL = 1 # this is the path connected to FAS2040 NetApp.
 
-    EXPECTED_MPATHS = 256 # will be calculated.
+    EXPECTED_MPATHS = None # will be calculated.
     ATTEMPTS = 10
 
     def checkMultipathsConfig(self, disabled=False):
@@ -363,7 +363,7 @@ class MultipathScenarios(xenrt.TestCase):
         self.waitForPathChange()
 
         #8. Report the elapsed time between steps 5 and 6.
-        xenrt.TEC().logverbose("Time elapsed between causing the path to fail and its reporting is %s seconds." % 
+        xenrt.TEC().logverbose("Time elapsed between causing the path to enable and its reporting is %s seconds." % 
                                                                                     (xenrt.util.timenow() - startTime))
 
         #9. Verify again the multipath configuration is correct.

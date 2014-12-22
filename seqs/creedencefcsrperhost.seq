@@ -45,7 +45,7 @@
     </serial>
   -->
     <serial group="Multipath">
-      <testcase id="xenserver.tc.srpervm.MultipathScenarios">
+      <testcase id="xenserver.tc.srpervm.FCMPathScenario">
         <arg>linuxvms=8</arg>
         <arg>windowsvms=0</arg>
         <arg>datadisk=2</arg>

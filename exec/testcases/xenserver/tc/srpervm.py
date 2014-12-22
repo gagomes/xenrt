@@ -327,7 +327,7 @@ class MultipathScenarios(xenrt.TestCase):
                                                                                     (xenrt.util.timenow() - startTime))
 
         #5 Verify again the multipath configuration is correct.
-        self.checkMultipathsConfig()
+        self.checkMultipathsConfig(True)
 
         #6. Cause the path to be live again
         startTime = xenrt.util.timenow()

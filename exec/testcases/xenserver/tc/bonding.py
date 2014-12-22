@@ -3186,7 +3186,7 @@ class TC14909(xenrt.TestCase):
         if int(pifmtu) != 9000:
             errors.append("Bond PIF MTU is %s, expecting 9000" % (pifmtu))
         ifconfig = self.host.execdom0("ifconfig %s" % (self.bond[0]))
-        if not "MTU:9000" in ifconfig:
+        if not "MTU:9000" in ifconfig and not "mtu 9000" in ifconfig:
             errors.append("Bond device MTU is not 9000")
 
         if len(errors) > 0:

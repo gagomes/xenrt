@@ -274,17 +274,18 @@ class MultipathScenarios(xenrt.TestCase):
 
         startTime = xenrt.util.timenow()
         deadline = startTime + 150 # to be precise, the events received during the last 120 seconds.
-        while True:
+        found = False
+        while not found:
             mpathAlert = self.host.minimalList("message-list")
             for messageUUID in mpathAlert:
                 messageTitle = self.host.genParamGet("message", messageUUID, "name")
                 messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
 
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
-                    break # we found the required message.
+                    found = True # we found the required message.
 
-                if xenrt.util.timenow() > deadline:
-                    raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
             xenrt.sleep(15)
 
     def run(self, arglist=[]):

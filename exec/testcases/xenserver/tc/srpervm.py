@@ -265,9 +265,10 @@ class MultipathScenarios(xenrt.TestCase):
                                                             (len(mpaths), self.EXPECTED_MPATHS))
 
         for scsiid in mpaths.keys():
-            if len(self.host.getMultipathInfo()[scsiid]) != self.PATHS:
+            paths = len(self.host.getMultipathInfo()[scsiid])
+            if paths != self.PATHS:
                 raise xenrt.XRTFailure("Incorrect number of mpaths for a given SR with SCSID %s Found: %s Expected: %s" %
-                                                                                    (scsiid, len(mpaths), self.EXPECTED_MPATHS))
+                                                                                    (scsiid, paths, self.PATHS))
 
     def waitForPathChange(self):
         """Wait until XenServer reports that the path has failed (and no longer) /recovered"""

@@ -40,7 +40,7 @@
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleBefore" />
     </serial>
     <serial group="Multipath">
       <testcase id="xenserver.tc.srpervm.FCMPathScenario">
@@ -50,7 +50,7 @@
       </testcase>
     </serial>
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleAfter"/>
     </serial>
   </testsequence>
 

@@ -197,7 +197,7 @@ class FileManager(object):
         """
         Fetch a file which is accessible using ssh rather than web url
         """
-        sftpHostDetails = xenrt.TEC().lookup("XVA_IMPORT_SERVER_DETAILS", []).split(",")
+        sftpHostDetails = xenrt.TEC().lookup("XVA_IMPORT_SERVER_DETAILS", None).split(",")
         for hostdetail in sftpHostDetails:
             try:
                 username = hostdetail.lsplit("@", 1)[0]

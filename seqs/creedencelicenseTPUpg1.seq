@@ -35,25 +35,28 @@
 
   <testsequence>
    <serial group="TampaUpgWithOldLicServer" blocker="yes">      
-      <testcase id="xenserver.tc.mulskulicense.TCTPOldLicenseServerUpg" name="TC23340" tc="TC-23340">
-        <arg>expectededition=enterprise-per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23340" tc="TC-23340">
+        <arg>expectedesku=PerSocketEnterprise</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=advanced</arg>
+        <arg>oldlicensesku=Advance</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
       </testcase>  
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCTPOldLicenseServerUpg" name="TC23341" tc="TC-23341">
-        <arg>expectededition=enterprise-per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23341" tc="TC-23341">
+        <arg>expectedesku=PerSocketEnterprise</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=platinum</arg>
+        <arg>oldlicensesku=Platinum</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCTPOldLicenseServerUpg" name="TC23342" tc="TC-23342">
-        <arg>expectededition=xendesktop</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23342" tc="TC-23342">
+        <arg>expectedesku=XenDesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=enterprise-xd</arg>
+        <arg>oldlicensesku=enterprise-xd</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
       </testcase> 
    </serial>   
     

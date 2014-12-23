@@ -30,15 +30,15 @@
     <serial group="PoolLicense">
 
       <testcase id="xenserver.tc.mulskulicense.LicenseBase" name="LicenseBasic" tc="TC-23363">
-        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktopXDS,XenDesktopMPS</arg>
+        <arg>sku=PerSocketEnterprise,PerUserEnterprise,PerConcurrentUserEnterprise,PerSocketStandard,XenDesktop,XenDesktopXDS,XenDesktopMPS</arg>
       </testcase>
 
       <testcase id="xenserver.tc.mulskulicense.TCLicenseExpiry" name="LicenseExpiry" tc="TC-23339">
-        <arg>edition=enterprise-per-socket,xendesktop</arg>
+        <arg>edition=PerSocketEnterprise,XenDesktop</arg>
       </testcase>
 
       <testcase id="xenserver.tc.mulskulicense.TCLicenseGrace" name="LicenseGrace" tc="TC-23338">
-        <arg>edition=enterprise-per-socket,xendesktop</arg>
+        <arg>edition=PerSocketEnterprise,XenDesktop</arg>
       </testcase>
 
     </serial>

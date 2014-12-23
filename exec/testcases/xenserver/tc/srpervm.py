@@ -336,7 +336,7 @@ class FCMPathScenario(xenrt.TestCase):
         numberOfSRs = linuxVMSRs + windowsVMSRs
 
         self.pool = self.getDefaultHost().getPool()
-        self.host = self.pool.master # multipathing is host specific.
+        self.host = self.pool.master # multipathing is host specific. hence master.
         self.EXPECTED_MPATHS = numberOfSRs
 
         #1. verify the multipath configuration is correct.
@@ -357,21 +357,21 @@ class FCMPathScenario(xenrt.TestCase):
         #5 verify again the multipath configuration is correct.
         self.checkMultipathsConfig(True)
 
-        #6. cause the path to be live again
+        #6. cause the path to be live again.
         enableStartTime = xenrt.util.timenow()
         self.host.enableFCPort(self.PATH_TO_FAIL)
 
         #7. wait until XenServer reports that the path has recovered (and no longer)
         self.waitForPathChange()
 
-        #8. report the elapsed time between steps 5 and 6.
+        #8. report the elapsed time between steps 6 and 7.
         xenrt.TEC().logverbose("Time taken to recover the path is %s seconds." % 
                                             (xenrt.util.timenow() - enableStartTime))
 
         #9. verify again the multipath configuration is correct.
         self.checkMultipathsConfig()
 
-        #10. report the elapsed time between steps 5 and 6.
+        #10. report the elapsed time between steps 2 and 9.
         xenrt.TEC().logverbose("Time between path failure and recovery on a single host without HA enabled is %s seconds" % 
                                                                                             (xenrt.util.timenow() - startTime))
 

@@ -124,7 +124,7 @@ class FileManager(object):
                     else:
                         self.__getSingleFile(url, sharedLocation)
                 except Exception, e:
-                    xenrt.TEC().logverbose("Attempting sftp fetch, getFile using http failed : %s" % e)
+                    xenrt.TEC().logverbose("Attempting sftp fetch, getFile using http failed : %s" % str(e))
                     self.__getSingleFileViaSftp(filename, sharedLocation)
 
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
@@ -209,8 +209,8 @@ class FileManager(object):
                 sftp.copyFrom(filepath, sharedLocation)
                 sftp.close()
                 break
-            except:
-                pass
+            except Exception, e:
+                xenrt.TEC().logverbose("SFTP fetchFile exception: %s" % (str(e)))
 
 
     @property

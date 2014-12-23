@@ -128,7 +128,11 @@ class ManagementServer(object):
                     self.place.execcmd("echo 'proxy=http://%s' >> /etc/yum.conf" % proxy)
                 self.place.execcmd("wget -O mysql-repo.rpm %s/rpms/mysql-community-release-el7-5.noarch.rpm" % xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP"))
                 self.place.execcmd("yum install -y mysql-repo.rpm")
-                self.place.execcmd('yum -y install mysql-server mysql')
+                if xenrt.TEC().lookup("WORKAROUND_CS30447", False, boolean=True):
+                    xenrt.TEC().warning("Using workaround for CS-30447")
+                    self.place.execcmd("yum -y install mysql-community-server-5.6.21 mysql")
+                else:
+                    self.place.execcmd('yum -y install mysql-server mysql')
         self.place.execcmd('service %s restart' % self.db)
         self.place.execcmd('chkconfig %s on' % self.db)
 

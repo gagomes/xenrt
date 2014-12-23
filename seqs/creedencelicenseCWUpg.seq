@@ -36,62 +36,46 @@
 
   <testsequence>
    <serial group="LicensedCWUpgrade">      
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="LicenseCWCRUPG1" tc="TC-23365">
-        <arg>expectededition=enterprise-per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG1" tc="TC-23366">
+        <arg>expectedsku=PerSocketEnterprise</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=per-socket</arg>
+        <arg>oldlicensesku=PerSocket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
       </testcase>  
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="LicenseCWCRUPG2" tc="TC-23366">
-        <arg>expectededition=enterprise-per-socket</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG2" tc="TC-23367">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicensesku=PerSocket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>addlicfiles</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG3" tc="TC-23367">
-        <arg>expectededition=enterprise-per-socket</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG3" tc="TC-23365">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicensesku=PerSocket</arg>
         <arg>newlicenseserver=LicenseServer</arg>
       </testcase> 
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerExp" name="LicenseCWCRUPG4" tc="TC-23368">
-        <arg>expectededition=xendesktop</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG4" tc="TC-23368">
+        <arg>expectedsku=XenDesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=xendesktop</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWOldLicenseServerUpg" name="LicenseCWCRUPG5" tc="TC-23369">
-        <arg>expectededition=xendesktop</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=xendesktop</arg>
-        <arg>newlicenseserver=LicenseServer</arg>
-      </testcase>
-      <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG6" tc="TC-23370">
-        <arg>expectededition=xendesktop</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=xendesktop</arg>
-        <arg>newlicenseserver=LicenseServer</arg>
-      </testcase>
-      <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG7" tc="TC-23371">
-        <arg>expectededition=enterprise-per-socket</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=per-socket</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG5" tc="TC-23369">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
         <arg>addlicfiles</arg>
       </testcase>
       <action action="prepare"/>
-      <testcase id="xenserver.tc.mulskulicense.TCCWNewLicenseServer" name="LicenseCWCRUPG8" tc="TC-12345">
-        <arg>expectededition=xendesktop</arg>
-        <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicenseedition=xendesktop</arg>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="LicenseCWCRUPG6" tc="TC-23370">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
-        <arg>addlicfiles</arg>
       </testcase>
    </serial>   
     

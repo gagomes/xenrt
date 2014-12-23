@@ -1,7 +1,7 @@
 
 import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
 import time, urlparse, glob, re, requests
-import xenrt, xenrt.util
+import xenrt, xenrt.util, xenrt.ssh
 
 __all__ = ["getFileManager"]
 
@@ -113,15 +113,20 @@ class FileManager(object):
                 f = open("%s.fetching" % sharedLocation, "w")
                 f.write(str(xenrt.GEC().jobid()) or "nojob")
                 f.close()
-                
-                if multiple:
-                    self.__getMultipleFiles(url, sharedLocation)
-                elif fnr.directory:
-                    self.__getDirectory(url, sharedLocation)
-                elif fnr.singleFileWithWildcard:
-                    self.__getSingleFileWithWildcard(url, sharedLocation)
-                else:
-                    self.__getSingleFile(url, sharedLocation)
+
+                try:
+                    if multiple:
+                        self.__getMultipleFiles(url, sharedLocation)
+                    elif fnr.directory:
+                        self.__getDirectory(url, sharedLocation)
+                    elif fnr.singleFileWithWildcard:
+                        self.__getSingleFileWithWildcard(url, sharedLocation)
+                    else:
+                        self.__getSingleFile(url, sharedLocation)
+                except Exception, e:
+                    xenrt.TEC().logverbose("Attempting sftp fetch, getFile using http failed : %s" % e)
+                    self.__getSingleFileViaSftp(filepath, sharedLocation)
+
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
                 os.link(sharedLocation, perJobLocation) 
 
@@ -187,7 +192,27 @@ class FileManager(object):
             xenrt.TEC().logverbose("HTTP multiple fetchFile exception: %s" % (str(e)))
             return None
         return True
-    
+
+    def __getSingleFileViaSftp(self, filepath, sharedLocation):
+        """
+        Fetch a file which is accessible using ssh rather than web url
+        """
+        sftpHostDetails = xenrt.TEC().lookup("XVA_IMPORT_SERVER_DETAILS", []).split(",")
+        for hostdetail in sftpHostDetails:
+            try:
+                username = hostdetail.lsplit("@", 1)[0]
+                ip = hostdetail.lsplit("@", 1)[1]
+                ip = ip.lsplit(" ")[0]
+                password = hostdetail.lsplit(" ")[1]
+                
+                sftp = xenrt.ssh.SFTPSession(ip=ip, username=username, password=password, level=xenrt.RC_FAIL)
+                sftp.copyFrom(filepath, sharedLocation)
+                sftp.close()
+                break
+            except:
+                pass
+
+
     @property
     def __proxyflag(self):
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)

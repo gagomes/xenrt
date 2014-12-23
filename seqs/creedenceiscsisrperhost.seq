@@ -32,7 +32,7 @@
 
   <testsequence>
     <serial group="Config">
-      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
+      <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI" blocker="yes">
         <arg>linuxvms=4</arg>
         <arg>windowsvms=0</arg>
         <arg>datadisk=2</arg>

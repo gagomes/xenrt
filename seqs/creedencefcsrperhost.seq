@@ -30,7 +30,7 @@
 
   <testsequence>
     <serial group="Config">
-      <testcase id="xenserver.tc.srpervm.SetupSRsFC">
+      <testcase id="xenserver.tc.srpervm.SetupSRsFC" blocker="yes">
         <arg>linuxvms=32</arg>
         <arg>windowsvms=0</arg>
         <arg>datadisk=7</arg>

@@ -8,8 +8,9 @@
   </variables>
 
   <scheduler>
-    <pool>4CLFCQ,4CLFCE</pool>
+    <resources>NPRI&gt;=1/NSEC&gt;=1/IPRI&gt;=1</resources>
     <param>MACHINES_REQUIRED=1</param>
+    <param>SITE=SVCL02</param>
     <flags>iscsi</flags>
   </scheduler>
 
@@ -32,17 +33,32 @@
   <testsequence>
     <serial group="Config">
       <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI">
-        <arg>linuxvms=32</arg>
+        <arg>linuxvms=4</arg>
         <arg>windowsvms=0</arg>
-        <arg>datadisk=7</arg>
+        <arg>datadisk=2</arg>
       </testcase>
     </serial>
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
+
+<!--
+
     <serial group="LifeCycle">
       <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
     </serial>
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIMPathScenario">
+        <arg>linuxvms=4</arg>
+        <arg>windowsvms=0</arg>
+        <arg>datadisk=2</arg>
+      </testcase>
+    </serial>
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
+    </serial>
+    
+-->
   </testsequence>
 
 </xenrt>

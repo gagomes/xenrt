@@ -125,7 +125,7 @@ class FileManager(object):
                         self.__getSingleFile(url, sharedLocation)
                 except Exception, e:
                     xenrt.TEC().logverbose("Attempting sftp fetch, getFile using http failed : %s" % e)
-                    self.__getSingleFileViaSftp(filepath, sharedLocation)
+                    self.__getSingleFileViaSftp(filename, sharedLocation)
 
                 os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
                 os.link(sharedLocation, perJobLocation) 

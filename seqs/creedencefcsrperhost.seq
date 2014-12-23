@@ -31,24 +31,22 @@
   <testsequence>
     <serial group="Config">
       <testcase id="xenserver.tc.srpervm.SetupSRsFC">
-        <arg>linuxvms=8</arg>
+        <arg>linuxvms=32</arg>
         <arg>windowsvms=0</arg>
-        <arg>datadisk=2</arg>
+        <arg>datadisk=7</arg>
       </testcase>
     </serial>
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
-  <!-- 
     <serial group="LifeCycle">
       <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
     </serial>
-  -->
     <serial group="Multipath">
       <testcase id="xenserver.tc.srpervm.FCMPathScenario">
-        <arg>linuxvms=8</arg>
+        <arg>linuxvms=32</arg>
         <arg>windowsvms=0</arg>
-        <arg>datadisk=2</arg>
+        <arg>datadisk=7</arg>
       </testcase>
     </serial>
     <serial group="LifeCycle">

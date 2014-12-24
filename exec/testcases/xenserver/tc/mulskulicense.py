@@ -167,7 +167,7 @@ class TCUpgrade(LicenseBase):
             self.licenceManager.addLicensesToServer(v6,licence,getLicenseInUse=False)
 
         for host in hosts:
-            host.license(edition=licence.getEdition(),v6server=v6)
+            host.license(edition=licence.getEdition(), usev6testd=False, v6server=v6)
 
         if self.addLicenseFile:
             productVer = xenrt.TEC().lookup("PRODUCT_VERSION")

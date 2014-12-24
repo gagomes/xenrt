@@ -254,6 +254,19 @@ class _TCXSA(xenrt.TestCase):
                     raise
                     
             self.host.execdom0("xe vm-list")
+    
+    def replaceHvmloader(self, path):
+        """Replace hvmloader with file at given 'path'"""
+        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
+        hvmloader = xenrt.TEC().getFile(path)
+        hvmloaderPath = "/usr/lib/xen/boot/hvmloader"
+        sftp = self.host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (hvmloader, hvmloaderPath))
+            sftp.copyTo(hvmloader, hvmloaderPath)
+        finally:
+            sftp.close()
 
 class TCXSA24(_TCXSA):
     VULN = 24
@@ -524,27 +537,22 @@ class TCXSA111(_TCXSA):
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
-        url = "http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111"
-        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
     
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
         self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % vm)
         try:
             self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
-        except:
-            pass
-
-        serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
-        xenrt.TEC().logverbose(serlog)
+        except Exception, e:
+            xenrt.TEC().logverbose("Exception raised while starting VM - %s" % str(e))
         
         try:
             self.checkHost()
-        except:
+        except Exception, e:
             # host crashed
+            xenrt.TEC().logverbose("Exception raised while checking host - %s" % str(e))
             raise xenrt.XRTFailure("Unexpected output. Host crashed")
-            self.host.reboot()
             
         xenrt.TEC().logverbose("Expected output: Host didn't crash")
         
@@ -564,9 +572,7 @@ class TCXSA112(_TCXSA):
         self.host.execdom0("sed -e 's/\(append .*xen\S*.gz\)/\\0 loglvl=all guest_loglvl=all/' /boot/extlinux.conf > tmp && mv tmp /boot/extlinux.conf -f")
         self.host.reboot()
         
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
-        url = "http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112"
-        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+        self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-112")
         
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -575,7 +581,7 @@ class TCXSA112(_TCXSA):
         try:
             self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
         except:
-            pass
+            xenrt.TEC().logverbose("Exception raised while starting VM - %s" % str(e))
         self.checkHost()
         serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
         xenrt.TEC().logverbose(serlog)

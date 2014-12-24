@@ -52,7 +52,7 @@
       <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23342" tc="TC-23342">
         <arg>expectedesku=XenDesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
-        <arg>oldlicensesku=enterprise-xd</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>
         <arg>grace</arg>
       </testcase> 

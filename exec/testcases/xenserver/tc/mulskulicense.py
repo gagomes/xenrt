@@ -164,7 +164,7 @@ class TCUpgrade(LicenseBase):
 
         if self.oldLicenseSku != XenServerLicenceSKU.Free:
             licence = self.licenceFactory.licenceForPool(self.systemObj, self.oldLicenseSku)
-            self.licenceManager.addLicensesToServer(v6,licence)
+            self.licenceManager.addLicensesToServer(v6,licence,getLicenseInUse=False)
 
         for host in hosts:
             host.license(edition=licence.getEdition,v6server=v6)

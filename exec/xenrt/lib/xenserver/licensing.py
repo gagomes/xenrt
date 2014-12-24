@@ -6,9 +6,11 @@ __all__ = ["CreedenceLicence", "TampaLicence", "ClearwaterLicence", "XenServerLi
 
 
 class LicenceManager(object):
-    def addLicensesToServer(self, v6, license):
+    def addLicensesToServer(self, v6, license,getLicenseInUse = True):
+        licenseinUse = 0
         v6.addLicense(license.getLicenceFileName())
-        totalLicenses, licenseinUse = v6.getLicenseInUse(license.getLicenceName())
+        if getLicenseInUse:
+            totalLicenses, licenseinUse = v6.getLicenseInUse(license.getLicenceName())
         return licenseinUse
 
     def applyLicense(self, v6, hostOrPool, license,licenseinUse):

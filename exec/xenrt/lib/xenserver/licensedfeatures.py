@@ -194,7 +194,7 @@ class CreedenceEnabledFeatures(object):
             return [WorkloadBalancing().name,ReadCaching().name,VirtualGPU().name,
                     Hotfixing().name, ExportPoolResourceList().name, GPUPassthrough().name]
         if self.sku == XenServerLicenceSKU.XenDesktop:
-            return [Hotfixing().name, GPUPassthrough().name]
+            return [Hotfixing().name, GPUPassthrough().name,WorkloadBalancing().name,VirtualGPU().name]
         if self.sku == XenServerLicenceSKU.PerSocketStandard:
             return [Hotfixing().name, GPUPassthrough().name]
         if self.sku == XenServerLicenceSKU.Free:

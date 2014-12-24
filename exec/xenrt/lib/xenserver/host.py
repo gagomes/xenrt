@@ -11241,7 +11241,7 @@ class CreedenceHost(ClearwaterHost):
             args.append("license-server-port=%s" % (v6server.getPort()))
 
         cli.execute("host-apply-edition", string.join(args))
-        self.checkHostLicenseState(sku)
+        self.checkLicenseState(sku)
 
     def licensedFeatures(self):
         return LicensedFeatureFactory().allFeatures(self)

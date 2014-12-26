@@ -99,6 +99,7 @@
     <parallel workers="2" group="Stress">
       <testcase id="cloud.tc.stress.TCInstanceLifecycleStress" name="centos1" tc="TC-21639" sku="${TESTED_HYPERVISOR}/Basic/centos1">
         <arg>distro=centos64_x86-64</arg>
+        <arg>memory_snapshot=yes</arg>
       </testcase>
       <testcase id="cloud.tc.stress.TCInstanceLifecycleStress" name="debian1" tc="TC-21639" sku="${TESTED_HYPERVISOR}/Basic/debian1">
         <arg>distro=debian70_x86-32</arg>

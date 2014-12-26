@@ -291,6 +291,7 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
                 if len(systemVmsStillInState) == 0:
                     xenrt.TEC().logverbose('System VMs [%s] exited state: %s in %d sec' % (systemVmNameList, state, (datetime.now() - startTime).seconds))
                     xenrt.TEC().logverbose('  New States: %s' % (pformat(map(lambda x:(x.name, x.state), hostData))))
+                    allSystemVmsReachedState = True
                     break
                 else:
                     xenrt.TEC().logverbose('Waiting for the following system VMs to exit state %s: %s' % (state, pformat(map(lambda x:(x.name, x.state), systemVmsStillInState))))

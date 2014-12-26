@@ -7282,7 +7282,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
         try:
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
-            if e.data and re.search("Lost connection to the server.", e.data):
+            if e.data and re.search("You attempted an operation which involves a host which could not be contacted.", e.data):
                 pass
             else:
                 raise e

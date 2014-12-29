@@ -169,9 +169,10 @@ class TCUpgrade(LicenseBase):
         for host in hosts:
             host.license(edition=licence.getEdition(), usev6testd=False, v6server=v6)
 
+        productVer = xenrt.TEC().lookup("PRODUCT_VERSION")
+        licence = self.licenceFactory.licence(productVer,self.expectedSku)
+
         if self.addLicenseFile:
-            productVer = xenrt.TEC().lookup("PRODUCT_VERSION")
-            licence = self.licenceFactory.licence(productVer,self.expectedSku)
             licenseinUse = self.licenceManager.addLicensesToServer(v6,licence)
         else:
             v6.removeAllLicenses()

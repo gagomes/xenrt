@@ -28,10 +28,10 @@ class LicenseBase(xenrt.TestCase, object):
         self.newLicenseServerName = 'LicenseServer'
         self.oldLicenseEdition = None
         self.oldLicenseServerName = None
-        self.graceExpected = True
-        self.addLicFiles = True
+        self.graceExpected = False
         self.systemObj = None
         self.v6 = None
+        self.addLicenseFile = False 
 
     def prepare(self,arglist):
 
@@ -74,9 +74,9 @@ class LicenseBase(xenrt.TestCase, object):
             if arg.startswith('expectedsku'):
                 self.expectedSku = arg.split('=')[1]
             if arg.startswith('grace'):
-                self.graceExpected = False
+                self.graceExpected = True
             if arg.startswith('addlicfiles'):
-                self.addLicenseFile = False
+                self.addLicenseFile = True
 
     def checkGrace(self,host):
 

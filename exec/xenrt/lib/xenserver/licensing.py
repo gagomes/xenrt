@@ -111,7 +111,7 @@ class TampaLicence(Licence):
         if self.sku == XenServerLicenceSKU.XSAdvance:
             return "valid-advanced"
         if self.sku == XenServerLicenceSKU.XenDesktop:
-            return "valid-enterpise-xd"
+            return "valid-enterprise-xd"
         if self.sku == XenServerLicenceSKU.Free:
             return None
         raise ValueError("No license file name found for the SKU %s" % self.sku)

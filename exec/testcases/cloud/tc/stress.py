@@ -1,13 +1,13 @@
 import xenrt
 
 import random
+from datetime import datetime
 
 class TCInstanceLifecycleStress(xenrt.TestCase):
     def prepare(self, arglist):
         self.args = self.parseArgsKeyValue(arglist)
 
         self.cloud = self.getDefaultToolstack()
-        self.memorySnapshot = self.args.get("memory_snapshot") and True or False
         self.instance = self.cloud.createInstance(distro=self.args['distro'], hypervisorType=self.args.get("hypervisor"), name=self.args.get("instancename"))
         self._createSnapshot("%s-base" % self.instance.name)
         self.getLogsFrom(self.instance)
@@ -18,29 +18,94 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
         ops = {"StopStart": "stopStart",
                "Reboot": "reboot",
                "Migrate": "migrate",
-               "SnapRevert": "snapRevert",
-               "SnapDelete": "snapDelete",
-               "MultiSnapDelete": "multiSnapDelete",
-               "MultiSnapRevert": "multiSnapRevert",
+               "SnapRevert(D)": "snapRevertDisk",
+               "SnapDelete(D)": "snapDeleteDisk",
+               "MultiSnapRevert(D)": "multiSnapRevertDisk",
+               "MultiSnapDelete(D)": "multiSnapDeleteDisk",
+               "SnapRevert(DM)": "snapRevertDiskAndMem",
+               "SnapDelete(DM)": "snapDeleteDiskAndMem",
+               "MultiSnapRevert(DM)": "multiSnapRevertDiskAndMem",
+               "MultiSnapDelete(DM)": "multiSnapDeleteDiskAndMem",
                "CloneDelete": "cloneDelete"}
 
         for i in xrange(int(self.args.get("iterations", 400))):
             op = random.choice(ops.keys())
-            if self.runSubcase(ops[op], (), "Iter-%d" % i, op) != xenrt.RESULT_PASS:
+            startTime = datetime.now()
+            if self.runSubcase(ops[op], (), "Iter-%d-%s" % (i, self.args.get("distro")), op) != xenrt.RESULT_PASS:
                 break
+            xenrt.TEC().comment('Iter-%d for %s: Operation: %s took %d minute(s)' % (i, self.args.get("distro"), op, (datetime.now() - startTime).seconds / 60))
 
-    def _createSnapshot(self, name):
-        return self.instance.createSnapshot(name, memory=self.memorySnapshot)
-
-    def _snapshotRevert(self, snapshotName):
+    def _snapshotRevert(self, snapshotName, memorySnapshot):
         """A user is only permitted to revert to a disk only snapshots for
            an instance that is stopped."""
-        if not self.memorySnapshot:
+        if not memorySnapshot:
             self.instance.setPowerState(xenrt.PowerState.down)
 
         self.instance.revertToSnapshot(snapshotName)
-        if not self.memorySnapshot:
+        if not memorySnapshot:
             self.instance.setPowerState(xenrt.PowerState.up)
+
+    def _snapRevert(self, memorySnapshot=False):
+        snapName = xenrt.randomGuestName()
+        self.instance.createSnapshot(snapName, memory=memorySnapshot)
+        self._snapshotRevert(snapName, memorySnapshot)
+        self.instance.deleteSnapshot(snapName)
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+
+    def _snapDelete(self, memorySnapshot=False):
+        snapName = xenrt.randomGuestName()
+        self.instance.createSnapshot(snapName, memory=memorySnapshot)
+        self.instance.deleteSnapshot(snapName)
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+
+    def _multiSnapRevert(self, memorySnapshot=False):
+        snapNames = [xenrt.randomGuestName() for x in range(self.snapCount)]
+        for s in snapNames:
+            self.instance.createSnapshot(s, memory=memorySnapshot)
+        for s in snapNames:
+            self._snapshotRevert(s, memorySnapshot)
+
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+
+        for s in snapNames:
+            self.instance.deleteSnapshot(s)
+
+    def _multiSnapDelete(self, memorySnapshot=False):
+        snapNames = [xenrt.randomGuestName() for x in range(self.snapCount)]
+        for s in snapNames:
+            self.instance.createSnapshot(s, memory=memorySnapshot)
+        for s in snapNames:
+            self.instance.deleteSnapshot(s)
+
+        # Revert to base snapshot to prevent snapshot chain getting too long
+        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+
+    def snapRevertDisk(self):
+        self._snapRevert()
+
+    def snapDeleteDisk(self):
+        self._snapDelete()
+
+    def multiSnapRevertDisk(self):
+        self._multiSnapRevert()
+
+    def multiSnapDeleteDisk(self):
+        self._multiSnapDelete()
+
+    def snapRevertDiskAndMem(self):
+        self._snapRevert(memorySnapshot=True)
+
+    def snapDeleteDiskAndMem(self):
+        self._snapDelete(memorySnapshot=True)
+
+    def multiSnapRevertDiskAndMem(self):
+        self._multiSnapRevert(memorySnapshot=True)
+
+    def multiSnapDeleteDiskAndMem(self):
+        self._multiSnapDelete(memorySnapshot=True)
 
     def stopStart(self):
         self.instance.stop()
@@ -56,44 +121,6 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
             return
         migrateTo = random.choice(migrateToList)
         self.instance.migrate(migrateTo)
-
-    def snapRevert(self):
-        snapName = xenrt.randomGuestName()
-        self._createSnapshot(snapName)
-        self._snapshotRevert(snapName)
-        self.instance.deleteSnapshot(snapName)
-        # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name)
-
-    def snapDelete(self):
-        snapName = xenrt.randomGuestName()
-        self._createSnapshot(snapName)
-        self.instance.deleteSnapshot(snapName)
-        # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name)
-
-    def multiSnapRevert(self):
-        snapNames = [xenrt.randomGuestName() for x in range(self.snapCount)]
-        for s in snapNames:
-            self._createSnapshot(s)
-        for s in snapNames:
-            self._snapshotRevert(s)
-
-        # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name)
-
-        for s in snapNames:
-            self.instance.deleteSnapshot(s)
-
-    def multiSnapDelete(self):
-        snapNames = [xenrt.randomGuestName() for x in range(self.snapCount)]
-        for s in snapNames:
-            self._createSnapshot(s)
-        for s in snapNames:
-            self.instance.deleteSnapshot(s)
-
-        # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name)
 
     def cloneDelete(self):
         templateName = xenrt.randomGuestName()

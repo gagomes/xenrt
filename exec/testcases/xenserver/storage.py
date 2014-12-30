@@ -455,7 +455,12 @@ class TCMultipleVDI(xenrt.TestCase):
                 for j in range(0, (len(devices) - nvbds)):
                     dtr = self.disksToClean.pop()
                     if hotremove:
-                        g.unplugDisk(dtr)
+                        try:
+                            g.unplugDisk(dtr)
+                        except: 
+                            # trying once more with delay
+                            xenrt.sleep(120)
+                            g.unplugDisk(dtr)
                     g.removeDisk(dtr)
 
             if g.getState() == "DOWN":            

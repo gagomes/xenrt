@@ -9,7 +9,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
 
         self.cloud = self.getDefaultToolstack()
         self.instance = self.cloud.createInstance(distro=self.args['distro'], hypervisorType=self.args.get("hypervisor"), name=self.args.get("instancename"))
-        self._createSnapshot("%s-base" % self.instance.name)
+        self.instance.createSnapshot("%s-base" % self.instance.name)
         self.getLogsFrom(self.instance)
 
         self.snapCount = self.args.get("snapcount", 9)
@@ -51,14 +51,14 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
         self._snapshotRevert(snapName, memorySnapshot)
         self.instance.deleteSnapshot(snapName)
         # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+        self._snapshotRevert("%s-base" % self.instance.name)
 
     def _snapDelete(self, memorySnapshot=False):
         snapName = xenrt.randomGuestName()
         self.instance.createSnapshot(snapName, memory=memorySnapshot)
         self.instance.deleteSnapshot(snapName)
         # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+        self._snapshotRevert("%s-base" % self.instance.name)
 
     def _multiSnapRevert(self, memorySnapshot=False):
         snapNames = [xenrt.randomGuestName() for x in range(self.snapCount)]
@@ -68,7 +68,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
             self._snapshotRevert(s, memorySnapshot)
 
         # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+        self._snapshotRevert("%s-base" % self.instance.name)
 
         for s in snapNames:
             self.instance.deleteSnapshot(s)
@@ -81,7 +81,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
             self.instance.deleteSnapshot(s)
 
         # Revert to base snapshot to prevent snapshot chain getting too long
-        self._snapshotRevert("%s-base" % self.instance.name, memorySnapshot)
+        self._snapshotRevert("%s-base" % self.instance.name)
 
     def snapRevertDisk(self):
         self._snapRevert()

@@ -34,7 +34,7 @@
   <testsequence>
    <serial group="TampaUpgWithOldLicServer" blocker="yes">      
       <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23340" tc="TC-23340">
-        <arg>expectedesku=PerSocketEnterprise</arg>
+        <arg>expectedsku=PerSocketEnterprise</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicensesku=Advance</arg>
         <arg>newlicenseserver=LicenseServer</arg>
@@ -42,7 +42,7 @@
       </testcase>  
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23341" tc="TC-23341">
-        <arg>expectedesku=PerSocketEnterprise</arg>
+        <arg>expectedsku=PerSocketEnterprise</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicensesku=Platinum</arg>
         <arg>newlicenseserver=LicenseServer</arg>
@@ -50,7 +50,7 @@
       </testcase>
       <action action="prepare"/>
       <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23342" tc="TC-23342">
-        <arg>expectedesku=XenDesktop</arg>
+        <arg>expectedsku=XenDesktop</arg>
         <arg>oldlicenseserver=oldLicenseServer</arg>
         <arg>oldlicensesku=XenDesktop</arg>
         <arg>newlicenseserver=LicenseServer</arg>

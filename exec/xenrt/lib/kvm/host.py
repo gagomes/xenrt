@@ -441,7 +441,7 @@ EOF
         self.execdom0("touch /var/lib/xenrt/cloudTailored")
 
     def installJSVC(self):
-        self.execdom0("yum install -y java-1.6.0 java*1.7* jakarta-commons-daemon")
+        self.execdom0("yum install -y java-1.6.0 java-1.7.0-openjdk jakarta-commons-daemon")
         # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
         #  java-1.7.0, so we need to update-alternatives to use it - GRR!)
         if not '1.7.0' in self.execdom0('java -version').strip():

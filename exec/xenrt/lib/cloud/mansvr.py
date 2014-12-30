@@ -250,7 +250,7 @@ class ManagementServer(object):
         if self.place.distro.startswith("rhel6") or self.place.distro.startswith("centos6"):
             if self.version in ['4.4', '4.5']:
                 # Check if Java 1.7.0 is installed
-                self.place.execcmd('yum -y install java*1.7*')
+                self.place.execcmd('yum -y install java-1.7.0-openjdk')
                 if not '1.7.0' in self.place.execcmd('java -version').strip():
                     javaDir = self.place.execcmd('update-alternatives --display java | grep "^/usr/lib.*1.7.0"').strip()
                     self.place.execcmd('update-alternatives --set java %s' % (javaDir.split()[0]))

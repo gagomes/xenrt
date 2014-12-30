@@ -14,8 +14,11 @@
 
   <testsequence group="HostOps">
     <testcase id="xenserver.tc.logging.TC6710" prio="3" />
+    <!--
+    xenops is not availble in Dundee. These 2 TCs will always fail.
     <testcase id="xenserver.cli.TCRioQoSBasic" tc="TC-6967" prio="3" />
     <testcase id="xenserver.cli.TCRioCPUControl" tc="TC-6968" prio="3" />
+    -->
     <testcase id="xenserver.tc.host.TC6858" prio="2" />
     <testcase id="xenserver.tc.host.TC8253" prio="3" />
     <testcase id="xenserver.tc.host.TC8254" prio="3" />

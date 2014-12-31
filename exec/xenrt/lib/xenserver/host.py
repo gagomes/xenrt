@@ -6959,10 +6959,19 @@ fi
             else:
                 return "g%s" % (self.execdom0("cat /etc/group | grep %s | cut -d ':' -f 3" % (subject.name)).strip())
         else:
-            s = self.execdom0("/opt/likewise/bin/lw-find-%s-by-name %s\\\\%s" % 
-                              (subject, 
-                               subject.server.domainname.encode("utf-8"), 
-                               subject.name.encode("utf-8"))).strip()
+            cli = self.getCLIInstance()
+            auth_type = cli.execute('host-param-get', 'param-name=external-auth-type uuid=%s' % self.getMyHostUUID()).strip()
+            is_opt_pbis_exists = self.execdom0("test -e /opt/pbis", retval="code") == 0
+            if (auth_type == "AD") and (is_opt_pbis_exists):
+                s = self.execdom0("/opt/pbis/bin/find-%s-by-name %s\\\\%s" % 
+                                  (subject, 
+                                   subject.server.domainname.encode("utf-8"), 
+                                   subject.name.encode("utf-8"))).strip()
+            else:
+                s = self.execdom0("/opt/likewise/bin/lw-find-%s-by-name %s\\\\%s" % 
+                                  (subject, 
+                                   subject.server.domainname.encode("utf-8"), 
+                                   subject.name.encode("utf-8"))).strip()
             return re.search("SID:\s+(?P<sid>.*)", s).group("sid")
 
     def getSubjectUUID(self, subject):

@@ -48,6 +48,8 @@ class _XSAutoCertKit(xenrt.TestCase):
         if not acklocation:
             if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
+                    if host.isCentOS7Dom0(self):
+                        raise xenrt.XRTError("CA-146164 is not re-producible with trunk-c7")
                     branch = "trunk"
                     build = "88907"
                 elif "x86_64" in host.execdom0("uname -a"):
@@ -58,7 +60,10 @@ class _XSAutoCertKit(xenrt.TestCase):
                     build = "88844"
             else:
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    branch = "trunk"
+                    if host.isCentOS7Dom0(self):
+                        branch = "trunk-c7"
+                    else:
+                        branch = "trunk"
                 elif "x86_64" in host.execdom0("uname -a"):
                     branch = "creedence-autocertkit"
                 else:

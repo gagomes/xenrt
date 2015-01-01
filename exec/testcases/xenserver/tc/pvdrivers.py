@@ -1029,3 +1029,23 @@ class CA90861Frequency(xenrt.TestCase):
         if success < iterations:
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
 
+class TCToolsUninstall(xenrt.TestCase):
+    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        #step("Upgrade host")
+        self.host.upgrade()
+        self.host.applyRequiredPatches()
+    
+    
+    def run(self, arglist=None):
+        #step("Remove uninstaller file")
+        self.guest.xmlrpcRemoveFile("C:\Program files\citrix\xentools\uninstaller.exe")
+        
+        #step("Install 6.2 PV tools")
+        self.guest.installTools()
+        self.guest.waitForAgent(60)
+        self.guest.reboot()
+        v = self.guest.getPVDriverVersion()
+        xenrt.TEC.logverbose(v)

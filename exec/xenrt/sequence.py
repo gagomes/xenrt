@@ -1329,6 +1329,9 @@ class PrepareNode:
                 host["noisos"] = True
             else:
                 host["noisos"] = False
+        defaultHost = expand(node.getAttribute("default"), params)
+        if defaultHost and defaultHost[0] in ('y', 't', '1', 'Y', 'T'):
+            host['default'] = True
         host["suppackcds"] = expand(node.getAttribute("suppackcds"), params)
         disablefw = expand(node.getAttribute("disablefw"), params)
         if disablefw:
@@ -1367,7 +1370,7 @@ class PrepareNode:
                 host['vHostDiskSize'] = int(vHostDiskSize)
             vHostSR = expand(node.getAttribute("vsr"), params)
             if vHostSR:
-                host['vHostSR'] = vhostSR
+                host['vHostSR'] = vHostSR
 
             if not container in self.containerHosts:
                 self.containerHosts.append(container)
@@ -2200,12 +2203,16 @@ class HostInstallWorker(_InstallWorker):
         specProductType = "xenserver"
         specProductVersion = None
         specVersion = None
+        defaultHost = False
         if work.has_key("productType"):
             specProductType = work["productType"]
         if work.has_key("productVersion"):
             specProductVersion = work["productVersion"]
         if work.has_key("version"):
             specVersion = work["version"]
+        if work.has_key("default"):
+            defaultHost = work['default']
+            del work['default']
 
         if specProductType == "xenserver":
             if versionPath and not specProductVersion and not specVersion:
@@ -2252,32 +2259,35 @@ class HostInstallWorker(_InstallWorker):
             else:
                 # Normal install of the default or host-specified version
                 xenrt.TEC().setInputDir(None)
-                xenrt.lib.xenserver.host.createHost(**work)
+                host = xenrt.lib.xenserver.host.createHost(**work)
         elif specProductType == "nativelinux":
             if specProductType is None:
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
             work["noisos"] = True
-            xenrt.lib.native.createHost(**work)
+            host = xenrt.lib.native.createHost(**work)
         elif specProductType == "nativewindows":
             if specProductType is None:
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
             work["noisos"] = True
-            xenrt.lib.nativewindows.createHost(**work)
+            host = xenrt.lib.nativewindows.createHost(**work)
         elif specProductType == "kvm":
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            xenrt.lib.kvm.createHost(**work)
+            host = xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
             # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            xenrt.lib.esx.createHost(**work)
+            host = xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
             work["noisos"] = True
-            xenrt.lib.hyperv.createHost(**work)
+            host = xenrt.lib.hyperv.createHost(**work)
         elif specProductType == "oss":
             work["noisos"] = True
-            xenrt.lib.oss.createHost(**work)
+            host = xenrt.lib.oss.createHost(**work)
         else:
             raise xenrt.XRTError("Unknown productType: %s" % (specProductType))
+
+        if defaultHost:
+            xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""

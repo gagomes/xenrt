@@ -108,6 +108,12 @@ class Registry:
         path = "/xenrt/specific/host/%s" % (tag)
         return self.read(path)
 
+    def hostGetDefault(self):
+        h = self.hostGet("RESOURCE_HOST_DEFAULT")
+        if not h:
+            h = self.hostGet("RESOURCE_HOST_0")
+        return h
+
     def hostDelete(self, tag):
         path = "/xenrt/specific/host/%s" % (tag)
         self.delete(path)

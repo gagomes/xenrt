@@ -876,21 +876,20 @@ class TC7258(_PoolTest):
     def run(self, arglist=None):
         # Simulate a slave crash by stopping the xapi service and destroying the running VM
         self.host1.execdom0("service xapi stop")
-        self.host1.execdom0("/opt/xensource/debug/destroy_domain -domid %s" %
-                            (self.guest.getDomid()))
-        time.sleep(5)
+        self.host1.execdom0("xl destroy %s" % (self.guest.getDomid()))
+        xenrt.sleep(5)
         # Verify the VM has stopped
         doms = self.host1.listDomains()
         if doms.has_key(self.guest.uuid):
             raise xenrt.XRTError("VM did not stop after being destroyed")
         # Wait 11 minutes (660 seconds)
-        time.sleep(660)
+        xenrt.sleep(660)
         # Verify the master has listed the slave host as offline
         slaves = self.pool.getSlavesStatus()
         if slaves[self.host1.getMyHostUUID()] == "true":
             raise xenrt.XRTFailure("Master failed to notice slave offline after"
                                    " 11 minutes")
-        
+
         # Verify the master still shows the VM was running
         ps = self.host0.parseListForParam("vm-list",
                                           self.guest.uuid,

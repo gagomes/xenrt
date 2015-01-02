@@ -1676,8 +1676,8 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if self._host:
             return self.getHost(self._host)
         else:
-            self._host = "RESOURCE_HOST_0"
-            return self.getHost("RESOURCE_HOST_0")
+            self._host = "RESOURCE_HOST_DEFAULT"
+            return self.getHost("RESOURCE_HOST_DEFAULT")
 
     def getDefaultToolstack(self):
         t = self.tec.gec.registry.toolstackGetDefault()

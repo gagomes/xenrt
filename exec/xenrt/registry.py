@@ -106,11 +106,8 @@ class Registry:
     def hostGet(self, tag):
         """Look up a host object by string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
-        return self.read(path)
-
-    def hostGetDefault(self):
-        h = self.hostGet("RESOURCE_HOST_DEFAULT")
-        if not h:
+        h = self.read(path)
+        if not h and tag == "RESOURCE_HOST_DEFAULT":
             h = self.hostGet("RESOURCE_HOST_0")
         return h
 

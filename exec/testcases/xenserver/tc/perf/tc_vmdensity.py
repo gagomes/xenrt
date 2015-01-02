@@ -1520,7 +1520,7 @@ class HostConfigIntelliCache(HostConfig):
                 h.enableCaching(sr=sr_uuid)
             h.execdom0("xe host-enable uuid=%s" % h.getMyHostUUID())
 
-        out=host.execdom0('IFS=","; for vm in $(xe vm-list is-control-domain=false --minimal); do for vdi in $(xe vbd-list vm-uuid=$vm device=hda|grep vdi-uuid|awk \'{print $4}\'); do echo "vm=$vm -> vdi=$vdi"; xe vdi-param-set uuid=$vdi allow-caching=true on-boot=reset; done;  done') 
+        out=host.execdom0('IFS=","; for vm in $(xe vm-list is-control-domain=false --minimal); do for vdi in $(xe vbd-list vm-uuid=$vm device=hda|grep vdi-uuid|awk \'{print $4}\') $(xe vbd-list vm-uuid=$vm device=xvda|grep vdi-uuid|awk \'{print $4}\'); do echo "vm=$vm -> vdi=$vdi"; xe vdi-param-set uuid=$vdi allow-caching=true on-boot=reset; done;  done') 
         xenrt.TEC().logverbose("intellicache vdi-set: %s" % out)
     
 #in this experiment, vm_start is part of the preparation

@@ -1979,6 +1979,15 @@ exit /B 1
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
 
+    def setupDomainServer(self):
+        self.installDrivers()
+        self.installPowerShell()
+        self.enablePowerShellUnrestricted()
+        self.disableFirewall()
+        domain = "xenrt" + "".join(random.sample("abcdefghijklmnopqrstuvwxyz",8)) + ".com"
+        xenrt.TEC().lookup("DEFAULT_DOMAIN", domain)
+        adServer = xenrt.ActiveDirectoryServer(self, domainname=domain)
+
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",
                                                "device",

@@ -1040,11 +1040,11 @@ class TCToolsUninstall(xenrt.TestCase):
 
     def run(self, arglist=None):
         #step("Remove uninstaller file")
-        self.guest.xmlrpcRemoveFile("C:\Program files\citrix\xentools\uninstaller.exe")
+        self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
 
         #step("Install 6.2 PV tools")
         self.guest.installTools()
         self.guest.waitForAgent(60)
         self.guest.reboot()
         v = self.guest.getPVDriverVersion()
-        xenrt.TEC.logverbose(v)
+        xenrt.TEC().logverbose(v)

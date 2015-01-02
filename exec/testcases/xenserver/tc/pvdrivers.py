@@ -1037,12 +1037,11 @@ class TCToolsUninstall(xenrt.TestCase):
         #step("Upgrade host")
         self.host.upgrade()
         self.host.applyRequiredPatches()
-    
-    
+
     def run(self, arglist=None):
         #step("Remove uninstaller file")
         self.guest.xmlrpcRemoveFile("C:\Program files\citrix\xentools\uninstaller.exe")
-        
+
         #step("Install 6.2 PV tools")
         self.guest.installTools()
         self.guest.waitForAgent(60)

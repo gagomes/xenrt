@@ -876,7 +876,7 @@ class TC7258(_PoolTest):
     def run(self, arglist=None):
         # Simulate a slave crash by stopping the xapi service and destroying the running VM
         self.host1.execdom0("service xapi stop")
-        self.host1.execdom0("/opt/xensource/debug/destroy_domain -domid %s" %
+        self.host1.execdom0("xl destroy %s" %
                             (self.guest.getDomid()))
         time.sleep(5)
         # Verify the VM has stopped

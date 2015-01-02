@@ -329,6 +329,7 @@ ifeq ($(DODHCPD6),yes)
 	$(SUDO) mkdir -p /var/log/dibbler
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/dibbler
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/dibbler-server /etc/init.d/
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/logrotate /etc/logrotate.d/dibbler
 	$(SUDO) update-rc.d dibbler-server defaults
 	-$(SUDO) mv $(ROOT)/$(XENRT)/dibbler-server.conf $(DHCPD6)
 	-$(SUDO) /etc/init.d/dibbler-server stop 

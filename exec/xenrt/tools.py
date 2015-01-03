@@ -1659,7 +1659,7 @@ def productCodeName(version):
     print xenrt.TEC().lookup(["PRODUCT_CODENAMES",version], "ERROR: Could not find product codename")
 
 def listGuests():
-    print "\n".join(sorted(xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() + [x + "-x64" for x in xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() if xenrt.TEC().lookup(["GUEST_LIMITATIONS", x, "MAXMEMORY64"], )]))
+    print "\n".join(sorted(xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() + [x + "-x64" for x in xenrt.TEC().lookup("GUEST_LIMITATIONS").keys() if xenrt.TEC().lookup(["GUEST_LIMITATIONS", x, "MAXMEMORY64"], None)]))
 
 def netPortControl(machinename, ethid, enable):
     machine = xenrt.PhysicalHost(machinename, ipaddr="0.0.0.0")

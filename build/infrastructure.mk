@@ -380,7 +380,8 @@ network-uninstall:
 tftp:
 	$(info Installing TFTP...)
 	$(call BACKUP,$(INETD))
-	$(SUDO) mkdir -p $(TFTPROOT)
+	$(SUDO) mkdir -p /local/tftpboot
+	$(SUDO) ln -sfT /local/tftpboot $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/pxelinux.cfg
 	$(SUDO) sed -i 's#/srv/tftp#$(TFTPROOT)#g' /etc/default/tftpd-hpa
 	$(SUDO) /etc/init.d/tftpd-hpa restart

@@ -1371,6 +1371,9 @@ class PrepareNode:
             vHostSR = expand(node.getAttribute("vsr"), params)
             if vHostSR:
                 host['vHostSR'] = vHostSR
+            vNetworks = expand(node.getAttribute("vnetworks"), params)
+            if vNetworks:
+                host['vNetworks'] = vNetworks.split(",")
 
             if not container in self.containerHosts:
                 self.containerHosts.append(container)

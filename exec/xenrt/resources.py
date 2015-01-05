@@ -2994,7 +2994,7 @@ class _StaticIPAddr(_NetworkResourceFromRange):
 class StaticIP4Addr(object):
     def __init__(self, network="NPRI", mac=None, name=None):
         if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
-            self._delegate = StaticIP4AddrDHCP(network, mac, name)
+            self._delegate = StaticIP4AddrDHCP(network=network, mac=mac, name=name)
         else:
             if mac:
                 raise xenrt.XRTError("MAC-based reservations not supported")

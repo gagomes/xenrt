@@ -23,7 +23,7 @@
   
   <prepare>
     <pool>
-      <host container="0" vname="testxs0" />
+      <host container="0" vname="xs0" />
     </pool>
   </prepare>
 

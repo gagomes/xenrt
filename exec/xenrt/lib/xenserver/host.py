@@ -7343,7 +7343,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 pass
             else:
                 raise e
-        time.sleep(300)
+        xenrt.sleep(5)
         
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network

@@ -103,6 +103,12 @@
                 <xs:attribute name="alias" use="optional" type="xs:string" />
                 <xs:attribute name="ipv6" use="optional" type="ipv6Type" />
                 <xs:attribute name="cpufreqgovernor" use="optional" type="xs:string" />
+                <xs:attribute name="container" use="optional" type="xs:string" />
+                <xs:attribute name="vname" use="optional" type="xs:string" />
+                <xs:attribute name="vcpus" use="optional" type="xs:string" />
+                <xs:attribute name="vmemory" use="optional" type="xs:string" />
+                <xs:attribute name="vdisksize" use="optional" type="xs:string" />
+                <xs:attribute name="vsr" use="optional" type="xs:string" />
               </xs:complexType>
             </xs:element>
           </xs:choice>

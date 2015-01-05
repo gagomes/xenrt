@@ -172,7 +172,7 @@ def createHost(id=0,
 
     if containerHost != None:
         container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
-        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR, networks=vNetworks)
     else:
         machine = str("RESOURCE_HOST_%s" % (id))
     

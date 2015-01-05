@@ -8003,6 +8003,8 @@ rm -f /etc/xensource/xhad.conf || true
         diskSize = diskSize * xenrt.GIGA
         g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
         g.paramSet("HVM-boot-params-order", "nc")
+        if xenrt.TEC().lookup("NESTED_HVM", False, boolean=True):
+            g.paramSet("platform:exp-nested-hvm", "1")
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())

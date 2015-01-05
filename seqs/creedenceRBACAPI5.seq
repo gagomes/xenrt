@@ -6,6 +6,7 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
   </variables>
 
   <preprepare>

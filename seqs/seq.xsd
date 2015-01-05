@@ -123,6 +123,7 @@
           <xs:attribute name="vmemory" use="optional" type="xs:string" />
           <xs:attribute name="vdisksize" use="optional" type="xs:string" />
           <xs:attribute name="vsr" use="optional" type="xs:string" />
+          <xs:attribute name="vnetworks" use="optional" type="xs:string" />
         </xs:complexType>
       </xs:element>
     </xs:sequence>

@@ -2,7 +2,7 @@ from server import PageFactory
 from app.api import XenRTAPIPage
 from pyramid.httpexceptions import HTTPFound
 
-import traceback, StringIO, string, time, random, sys, calendar
+import traceback, StringIO, string, time, random, sys, calendar, math
 
 import config, app
 
@@ -124,6 +124,7 @@ class XenRTSchedule(XenRTAPIPage):
 
                     # If the job explicitly asked for named machine(s) then check
                     # their availability.
+                    # TODO: Add ACL checking to this logic
                     if details.has_key("MACHINE"):
                         if details.has_key("USERID"):
                             leasedmachineslist = self.scm_machine_list(status="idle", leasecheck=details['USERID'])
@@ -443,6 +444,7 @@ class XenRTSchedule(XenRTAPIPage):
             s, c = cluster
             if verbose:
                 outfh.write("  checking site %s, cluster %s...\n" % (s, c))
+
             # Check the available shared resources on the site
             if details.has_key("SHAREDRESOURCES"):
                 sharedresourcesavailable = self.site_available_shared_resources(s)
@@ -463,6 +465,12 @@ class XenRTSchedule(XenRTAPIPage):
             if len(clusters[cluster]) < number:
                 if verbose:
                     outfh.write("    too small (%u < %u)\n" % (len(clusters[cluster]), number))
+                continue
+
+            # Check there are no ACL restrictions
+            if not self.check_acl_for_machines(clusters[cluster], details['USERID'], selected, number):
+                if verbose:
+                    outfh.write("    not allowed by ACL\n")
                 continue
 
             selx = []
@@ -595,5 +603,179 @@ class XenRTSchedule(XenRTAPIPage):
         # If we get here then we were not able to find sufficient machines
         # in any cluster.
         return False
-                
+
+    def get_acls_for_machines(self, machines):
+        if len(machines) == 0:
+            return {}
+
+        db = self.getDB()
+        policies = {}
+        cur = db.cursor()
+        cur.execute("SELECT aclid, COUNT(machine) FROM tblmachines WHERE machine IN (%s) AND aclid IS NOT NULL GROUP BY aclid" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            policies[int(rc[0])] = int(rc[1])
+        db.commit()
+        cur.close()
+
+        if len(policies.keys()) == 0:
+            return policies
+
+        cur = db.cursor()
+        cur.execute("SELECT a.parent, COUNT(m.machine) FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid=a.aclid WHERE machine IN (%s) AND a.parent IS NOT NULL GROUP BY a.parent" %
+                    (','.join(map(lambda m: "'%s'" % m, machines))))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            p = int(rc[0])
+            if policies.has_key(p):
+                policies[p] += int(rc[1])
+            else:
+                policies[p] = int(rc[1])
+        db.commit()
+        cur.close()
+
+        return policies      
+
+    def check_acl_for_machines(self, machines, userid, already_selected=[], number=1):
+        # Identify the policies we need to check
+        policies = self.get_acls_for_machines(machines)
+        if len(policies.keys()) == 0:
+            # No policies for these machines, so all are OK
+            return True
+
+        # Identify policies any already selected machines are in, and increment the counts
+        existingPolicies = self.get_acls_for_machines(already_selected)
+        for p in existingPolicies.keys():
+            if policies.has_key(p):
+                policies[p] += existingPolicies[p]
+
+        # Go through each policy and check if we're OK
+        for p in policies.keys():
+            if not self.check_acl(p, userid, policies[p]):
+                return False
+
+        return True
+
+    def get_machines_in_acl(self, aclid):
+        db = self.getDB()
+        machines = {}
+        cur = db.cursor()
+        cur.execute("SELECT machine, userid, status, leaseTo FROM tblmachines AS m INNER JOIN tblacls AS a ON m.aclid = a.aclid WHERE (m.aclid = %d OR a.parent = %d)",
+                    (aclid, aclid))
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            if rc[2] in ["scheduled", "slaved", "running"] or rc[3] is not None:
+                machines[rc[0]] = rc[1]
+            else:
+                machines[rc[0]] = None
+        db.commit()
+        cur.close()
+
+        return machines
+
+    def get_acl(self, aclid):
+        db = self.getDB()
+        entries = []
+        cur = db.cursor()
+        cur.execute("SELECT type, userid, grouplimit, grouppercent, userlimit, userpercent, maxleasehours FROM tblaclentries WHERE aclid=%d ORDER BY prio", aclid)
+        while True:
+            rc = cur.fetchone()
+            if not rc:
+                break
+            entry = object()
+            entry.entryType = rc[0]                                                           
+            entry.userid = rc[1]                                                              
+            def __int(data):
+                return data is None and data or int(data)
+
+            entry.grouplimit = __int(rc[2])                                              
+            entry.grouppercent = __int(rc[3])                                            
+            entry.userlimit = __int(rc[4])                                               
+            entry.userpercent = __int(rc[5])                                             
+            entry.maxleasehours = __int(rc[6])          
+            entries.append(entry)
+
+        return entries
+
+    def check_acl(self, aclid, userid, number):
+        """Returns True if the given user can have 'number' additional machines under this acl"""
+        # Identify all machines that use this aclid and who the active user is in each case (including where this aclid is a parent)
+        machines = self.get_machines_in_acl(aclid)
+        usergroups = self._groups_for_userid(userid) 
+        usercount = number # Count of machines this user has
+        for m in machines:
+            if machines[m] == userid:
+                usercount += 1     
+        userpercent = int(math.ceil((usercount * 100.0) / len(machines)))
+        groupcache = None
+
+
+        # Go through the acl entries
+        for e in self.get_acl(aclid):
+            if e.entryType == 'user':
+                if e.userid != userid:
+                    # Another user - remove their usage from our data
+                    # otherwise we might double count them if they're a member of a group as well
+                    for m in machines:
+                        if machines[m] == e.userid:
+                            machines[m] = None
+                    continue
+                else:
+                    # Our user - check their usage
+                    if e.userlimit is not None and usercount > e.userlimit:
+                        return False
+                    if e.userpercent is not None and userpercent > e.userpercent:
+                            return False
+
+                    # We've hit an exact user match, so we ignore any further rules
+                    return True
+            else:
+                if e.userid in usergroups:
+                    # A group our user is in - identify if any other users in the acl are in the same group and check the overall usage and per user usage
+                    if groupcache is None:
+                        # Need to build the groupcache
+                        groupcache = {}
+                        users = set(machines.values())
+                        for u in users:
+                            if u == userid:
+                                continue
+                            for g in self._groups_for_userid(u):
+                                if groupcache.has_key(g):
+                                    groupcache[g].append(u)
+                                else:
+                                    groupcache[g] = [u]
+
+                    groupcount = usercount
+                    if groupcache.has_key(e.userid):
+                        for u in groupcache[e.userid]:
+                            groupcount += len(filter(lambda m: m == u, machines.values()))
+                    grouppercent = int(math.ceil((groupcount * 100.0) / len(machines)))
+
+                    if e.grouplimit is not None and groupcount > e.grouplimit:
+                        return False
+                    if e.grouppercent is not None and grouppercent > e.grouppercent:
+                        return False
+
+                    # Check the user limits as well
+                    if e.userlimit is not None and usercount > e.userlimit:
+                        return False
+                    if e.userpercent is not None and userpercent > e.userpercent:
+                        return False
+
+                # We've hit a successful group match, so we ignore any further rules
+                return True
+
+        return True
+
+    def _groups_for_userid(self, userid):
+        # TODO
+        return []
+
 PageFactory(XenRTSchedule, "schedule", "/api/schedule", compatAction="schedule")

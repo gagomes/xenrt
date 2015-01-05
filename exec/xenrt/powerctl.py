@@ -373,8 +373,8 @@ class IPMI(_PowerCtlBase):
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
         if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
-            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-                self.ipmi("chassis bootdev pxe")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+                self.ipmi("chassis bootdev pxe options=persistent")
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
             self.ipmi("chassis power on")
@@ -405,8 +405,8 @@ class IPMI(_PowerCtlBase):
             if self.machine.consoleLogger:
                 self.machine.consoleLogger.reload()
             
-        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-            self.ipmi("chassis bootdev pxe")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+            self.ipmi("chassis bootdev pxe options=persistent")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
             if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":

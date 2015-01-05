@@ -10403,6 +10403,7 @@ write $computers.psbase.get_Children()
 ReplicaOrNewDomain=Domain
 NewDomain=Forest
 NewDomainDNSName=%s
+ForestLevel=0
 DomainNetbiosName=%s
 DomainLevel=0
 InstallDNS=Yes

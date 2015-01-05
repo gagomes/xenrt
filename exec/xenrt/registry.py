@@ -106,7 +106,10 @@ class Registry:
     def hostGet(self, tag):
         """Look up a host object by string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
-        return self.read(path)
+        h = self.read(path)
+        if not h and tag == "RESOURCE_HOST_DEFAULT":
+            h = self.hostGet("RESOURCE_HOST_0")
+        return h
 
     def hostDelete(self, tag):
         path = "/xenrt/specific/host/%s" % (tag)

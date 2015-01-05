@@ -45,3 +45,4 @@ CREATE INDEX idx_expiry ON leases USING btree (expiry);
 CREATE INDEX idx_mac ON leases USING btree (mac);
 ALTER TABLE leases ADD COLUMN reserved character varying(20);
 ALTER TABLE leases ADD COLUMN reservedtime integer;
+ALTER TABLE leases ADD COLUMN reservedname character varying(50);

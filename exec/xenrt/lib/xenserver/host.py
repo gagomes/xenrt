@@ -7993,7 +7993,7 @@ rm -f /etc/xensource/xhad.conf || true
             name = xenrt.randomGuestName()
         if not sr:
             sr="DEFAULT"
-        name = "vhost_%s" % name
+        name = "vhost-%s" % name
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         if not networks:
             networks = ["NPRI"]

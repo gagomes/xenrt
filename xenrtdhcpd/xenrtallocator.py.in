@@ -109,6 +109,14 @@ class XenRTDHCPAllocator(object):
         else:
             return None
 
+    def _findHostName(self, addr):
+        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
+        r = self.cur.fetchone()
+        if r:
+            return r[0]
+        else:
+            return None
+
     def _renewLease(self, intf, mac, ip):
         intfcfg = self.config['interfaces'][intf]
         self._sql("SELECT addr FROM leases WHERE addr='%s' AND mac='%s' AND interface='%s'" % (ip, mac.lower(), intf))
@@ -176,6 +184,9 @@ class XenRTDHCPAllocator(object):
         subnet = intfaddr.make_net(intfdetails['netmask'])[0].strNormal()
 
         if not hostname:
+            hostname = self._findHostName(ip)
+
+        if not hostname:
             hostname="localhost"
         #    hostname = "xenrt-%s" % ip.replace(".","-")
 
@@ -220,16 +231,22 @@ class XenRTDHCPAllocator(object):
             self.interfaceInfo[intf] = netifaces.ifaddresses(intf)[netifaces.AF_INET][0]
         return self.interfaceInfo[intf]
 
-    def reserveSingleAddress(self, intf, data, mac=None):
+    def reserveSingleAddress(self, intf, data, mac=None, name=None):
         with self.lock:
             self._sql("SELECT addr FROM leases WHERE interface='%s' AND reserved IS NULL AND (mac IS NULL or expiry < %d) ORDER BY addr LIMIT 1;" % (intf, int(time.time()))) 
             r = self.cur.fetchone()
             if not r:
                 raise Exception("No address available")
             if mac:
-                self._sql("UPDATE leases SET reserved='%s',mac='%s',reservedtime=%d WHERE addr='%s'" % (data, mac.lower(), int(time.time()), r[0]))
+                macstr = "'%s'" % mac.lower()
             else:
-                self._sql("UPDATE leases SET reserved='%s',mac=NULL,reservedtime=%d WHERE addr='%s'" % (data, int(time.time()), r[0]))
+                macstr= "NULL"
+            if name:
+                namestr = "'%s'" % name
+            else:
+                namestr = "NULL"
+            
+            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), r[0]))
 
             return r[0]
         
@@ -312,9 +329,9 @@ class XMLRPCAllocator(object):
     def __init__(self, parent):
         self.parent = parent
 
-    def reserveSingleAddress(self, intf, data, mac=None):
+    def reserveSingleAddress(self, intf, data, mac=None, name=None):
         _logger.info("Request for single address on %s with data %s" % (intf, data))
-        return self.parent.reserveSingleAddress(intf, data, mac)
+        return self.parent.reserveSingleAddress(intf, data, mac, name)
 
     def reserveAddressRange(self, intf, size, data):
         return self.parent.reserveAddressRange(intf, size, data)

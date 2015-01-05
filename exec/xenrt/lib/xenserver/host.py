@@ -164,14 +164,15 @@ def createHost(id=0,
                vHostCpus=2,
                vHostMemory=4096,
                vHostDiskSize=50,
-               vHostSR=None):
+               vHostSR=None,
+               vNetworks=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
     if containerHost != None:
         container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
-        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR, networks=vNetworks)
     else:
         machine = str("RESOURCE_HOST_%s" % (id))
     
@@ -337,10 +338,6 @@ def createHost(id=0,
     host.check()
     host.applyWorkarounds()
     host.postInstall()
-    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
-    if containerHost != None:
-        hostUUID = host.minimalList("host-list")[0]
-        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
@@ -7990,24 +7987,44 @@ rm -f /etc/xensource/xhad.conf || true
                          cpus=2,
                          memory=4096,
                          diskSize=50,
-                         sr=None):
+                         sr=None,
+                         networks=None):
         if not name:
             name = xenrt.randomGuestName()
         if not sr:
             sr="DEFAULT"
         name = "vhost_%s" % name
-        mac = xenrt.randomMACXenSource()
-        ip = xenrt.StaticIP4Addr(mac=mac)
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
-        g.createVIF(bridge="NPRI", mac=mac)
+        if not networks:
+            networks = ["NPRI"]
+        if networks[0] != "NPRI":
+            raise xenrt.XRTError("First network must be NPRI")
+        netDetails = []
+        for i in range(len(networks)):
+            mac = xenrt.randomMACXenSource()
+            if i == 0:
+                nicname = name
+            else:
+                nicname = "%s-nic%d" % (name, i)
+            ip = xenrt.StaticIP4Addr(mac=mac, network=networks[i], name=name)
+            g.createVIF(bridge=networks[i], mac=mac)
+            netDetails.append((mac, ip))
         diskSize = diskSize * xenrt.GIGA
         g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
         g.paramSet("HVM-boot-params-order", "nc")
         if xenrt.TEC().lookup("NESTED_HVM", False, boolean=True):
             g.paramSet("platform:exp-nested-hvm", "1")
-
+        
+        (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+
+        for i in range(1, len(netDetails)):
+            (mac, ip) = netDetails[i]
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'MAC_ADDRESS'], mac)
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'IP_ADDRESS'], ip.getAddr())
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'NETWORK'], networks[i])
+
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
         xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
         return name

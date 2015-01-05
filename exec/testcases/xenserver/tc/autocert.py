@@ -48,7 +48,7 @@ class _XSAutoCertKit(xenrt.TestCase):
         if not acklocation:
             if xenrt.TEC().lookup("TEST_CA-146164", False, boolean=True):
                 if isinstance(host, xenrt.lib.xenserver.DundeeHost):
-                    if host.isCentOS7Dom0(self):
+                    if host.isCentOS7Dom0():
                         raise xenrt.XRTError("CA-146164 is not re-producible with trunk-c7")
                     branch = "trunk"
                     build = "88907"

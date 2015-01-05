@@ -338,10 +338,6 @@ def createHost(id=0,
     host.check()
     host.applyWorkarounds()
     host.postInstall()
-    # The DHCP server won't give the name out for dynamic nested XenServers, so set it explicitly here
-    if containerHost != None:
-        hostUUID = host.minimalList("host-list")[0]
-        host.genParamSet("host", hostUUID, "name-label", machine)
     papp = False
     
     if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
@@ -8004,10 +8000,14 @@ rm -f /etc/xensource/xhad.conf || true
         if networks[0] != "NPRI":
             raise xenrt.XRTError("First network must be NPRI")
         netDetails = []
-        for n in networks:
+        for i in range(len(networks)):
             mac = xenrt.randomMACXenSource()
-            ip = xenrt.StaticIP4Addr(mac=mac, network=n)
-            g.createVIF(bridge=n, mac=mac)
+            if i == 0:
+                nicname = name
+            else:
+                nicname = "%s-nic%d" % (name, i)
+            ip = xenrt.StaticIP4Addr(mac=mac, network=networks[i], name=name)
+            g.createVIF(bridge=networks[i], mac=mac)
             netDetails.append((mac, ip))
         diskSize = diskSize * xenrt.GIGA
         g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)

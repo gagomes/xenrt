@@ -124,7 +124,6 @@ class XenRTSchedule(XenRTAPIPage):
 
                     # If the job explicitly asked for named machine(s) then check
                     # their availability.
-                    # TODO: Add ACL checking to this logic
                     if details.has_key("MACHINE"):
                         if details.has_key("USERID"):
                             leasedmachineslist = self.scm_machine_list(status="idle", leasecheck=details['USERID'])
@@ -171,6 +170,11 @@ class XenRTSchedule(XenRTAPIPage):
                                     schedulable = False
 
                             if not schedulable:
+                                continue
+                            # Do one ACL check at this stage
+                            if not self.check_acl_for_machines(selected, details['USERID'], number=len(selected)):
+                                if verbose:
+                                    outfh.write("  at least one specified machine not allowed by ACL\n")
                                 continue
                     else:
                         if details.has_key("SITE"):

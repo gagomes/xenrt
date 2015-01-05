@@ -110,7 +110,7 @@ class XenRTDHCPAllocator(object):
             return None
 
     def _findHostName(self, addr):
-        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL")
+        self._sql("SELECT reservedname FROM leases WHERE addr='%s' AND reserved IS NOT NULL" % addr)
         r = self.cur.fetchone()
         if r:
             return r[0]
@@ -246,7 +246,7 @@ class XenRTDHCPAllocator(object):
             else:
                 namestr = "NULL"
             
-            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d WHERE addr='%s'" % (data, macstr, namestr, int(time.time()), r[0]))
+            self._sql("UPDATE leases SET reserved='%s',reservedname=%s,mac=%s,reservedtime=%d WHERE addr='%s'" % (data, namestr, macstr, int(time.time()), r[0]))
 
             return r[0]
         

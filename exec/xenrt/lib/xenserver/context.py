@@ -291,7 +291,8 @@ class Host(_Entity):
                 try: self.ref.execdom0("xe host-apply-edition edition=platinum")
                 except Exception, e:
                     xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-                
+
+            self.ref.waitForEnabled(300)            
             self.live = False
 
 class Default(_Entity): 

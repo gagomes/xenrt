@@ -7340,10 +7340,10 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
             if e.data and re.search("Lost connection to the server.", e.data):
+                xenrt.sleep(5) # give the server a few seconds to come back
                 pass
             else:
                 raise e
-        time.sleep(300)
         
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network

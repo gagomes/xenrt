@@ -1280,7 +1280,7 @@ class PrepareNode:
             if not host['vHostName']:
                 host['vHostName'] = xenrt.randomGuestName()
             if not host['name']:
-                host['name'] = host['vHostName']
+                host['name'] = "vhost-%s" % host['vHostName']
             vHostCpus = expand(node.getAttribute("vcpus"), params)
             if vHostCpus:
                 host['vHostCpus'] = int(vHostCpus)

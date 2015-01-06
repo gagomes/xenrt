@@ -24,6 +24,7 @@ class Registry:
 
     # Generic operations
     def write(self, path, value):
+        xenrt.TEC().logverbose("Storing object of type %s at path %s" % (value.__class__.__name__, path))
         self.mylock.acquire()
         try:
             self.data[path] = value

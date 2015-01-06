@@ -8018,6 +8018,7 @@ rm -f /etc/xensource/xhad.conf || true
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
         for i in range(1, len(netDetails)):
             (mac, ip) = netDetails[i]
@@ -8026,7 +8027,7 @@ rm -f /etc/xensource/xhad.conf || true
             xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'NETWORK'], networks[i])
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
-        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
 #############################################################################

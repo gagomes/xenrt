@@ -1193,7 +1193,10 @@ class PrepareNode:
                 host["pool"] = pool["name"]
                 hosts.append(host)
                 if not pool["master"]:
-                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+                    if host.has_key("vHostName"):
+                        pool["master"] = "vhost-%s" % host["vHostName"]
+                    else:
+                        pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
             elif x.localName == "allhosts":
                 # Create a host for each machine known to this job
                 if x.hasAttribute("start"):
@@ -1272,9 +1275,9 @@ class PrepareNode:
         if container:
             containerHost = int(container)
             host['containerHost'] = containerHost
-            vHostName = expand(node.getAttribute("vname"), params)
-            if vHostName:
-                host['vHostName'] = vHostName
+            host['vHostName'] = expand(node.getAttribute("vname"), params)
+            if not host['vHostName']:
+                host['vHostName'] = xenrt.randomGuestName() 
             vHostCpus = expand(node.getAttribute("vcpus"), params)
             if vHostCpus:
                 host['vHostCpus'] = int(vHostCpus)

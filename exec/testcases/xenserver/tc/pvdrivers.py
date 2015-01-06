@@ -71,6 +71,107 @@ class TC8369(xenrt.TestCase):
         if self.runSubcase("checkDrivers", (), "Drivers", "Check") == xenrt.RESULT_PASS:
             self.runSubcase("checkCerts", (), "Certs", "Check")
 
+class TestSignedComponents(xenrt.TestCase):
+    """Verify the digital signature of Windows tools and XenCenter"""
+    # JIRA TC-23774
+
+    DISTRO = "win81-x64"
+
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+
+        self.guest = xenrt.lib.xenserver.guest.createVM(\
+            self.host,
+            xenrt.randomGuestName(),
+            self.DISTRO,
+            vifs=xenrt.lib.xenserver.Guest.DEFAULT,
+            notools=True)
+        self.uninstallOnCleanup(self.guest)
+
+    def run(self, arglist=None):
+
+        # Copy a version of signtool.exe that takes command line
+        # arguments
+        try:
+           self.guest.xmlrpcSendFile("%s/distutils/signtool.exe" %
+                            (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
+                            "c:\\signtool.exe")
+        except Exception, ex:
+            raise xenrt.XRTError("Unable to send signtool.exe. Failed with %s " % str(ex))
+
+        # Get the XenCenterSetup.exe
+        try:
+           exe = xenrt.TEC().getFile("xe-phase-1/client_install/XenCenterSetup.exe")
+        except Exception, ex:
+            raise xenrt.XRTError("Unable to fetch the XenCenterSetup.exe. Failed with %s " % str(ex))
+        self.guest.xmlrpcSendFile(exe, "c:\\XenCenterSetup.exe")
+
+        # Verify the digital signature of XenCenterSetup.exe
+        self.verifySignature("c:\\XenCenterSetup.exe")
+
+        # Change the guest date to past the certificate expiry date of XenCenterSetup.exe
+        self.changeGuestDate("c:\\XenCenterSetup.exe")
+
+        # If the build is signed then we should be able to install
+        self.guest.installCarbonWindowsGUI()
+
+        # Get the installwizard.msi
+        try:
+           msi = xenrt.TEC().getFile("xe-phase-1/client_install/installwizard.msi")
+        except Exception, ex:
+            raise xenrt.XRTError("Unable to fetch the installwizard.msi. Failed with %s " % str(ex))
+        self.guest.xmlrpcSendFile(msi, "c:\\installwizard.msi")
+
+        # Verify the digital signature of installwizard.msi
+        self.verifySignature("c:\\installwizard.msi")
+
+        # Change the guest date to past the certificate expiry date of installwizard.msi
+        self.changeGuestDate("c:\\installwizard.msi")
+
+        # If the build is signed we should be able to install
+        self.guest.installDrivers()
+        self.guest.waitForAgent(180)
+        self.guest.reboot()
+        self.guest.check()
+
+    def verifySignature(self,app_path):
+        """Uses signtool.exe to verify the digital signature of exe/msi files"""
+
+        xenrt.TEC().logverbose("signtool verifying the digital signature of  %s" % (app_path))
+        try :
+            self.guest.xmlrpcExec("c:\\signtool.exe verify /pa %s " % (app_path),
+                                   returndata=True)
+        except Exception,ex:
+            raise xenrt.XRTFailure("Signtool verification failed. Failed with %s"
+                                   "Build %s is not digitally signed and thus cannot be installed on VM."
+            % (str(ex),app_path))
+        xenrt.TEC().logverbose("Build %s is signed with valid certifcate and"
+                               " can be installed on VM " % (app_path))
+
+    def changeGuestDate(self,app_path):
+        """Change the guest date to past the expiry date of certificate"""
+
+        xenrt.TEC().logverbose("Signtool is verifying the certificate expiry"
+                               " year of signed %s" % (app_path))
+        data = self.guest.xmlrpcExec("c:\\signtool.exe verify /pa /v %s" % (app_path),
+                                   returndata=True)
+        s = data.split("Issued to: Citrix")[1].split("Expires: ")[1]
+        expiry_year = s[:s.index("SHA1")].strip().split()[-1]
+        xenrt.TEC().logverbose("Build %s is digitally signed and certificate"
+                                " expires in the year %s " %(app_path,expiry_year))
+
+        # Change guest date to past the cert expiry date
+        month,date,year = time.localtime()[1],time.localtime()[2],(int(expiry_year)+1)
+        new_date = str(month)+"-"+str(date)+"-"+str(year)
+        xenrt.TEC().logverbose("Setting the guest date to past the cert expiry date")
+        try:
+            self.guest.xmlrpcExec("sc stop w32time")
+            self.guest.xmlrpcExec("w32tm /unregister")
+        except:
+            pass
+        self.guest.xmlrpcExec("echo %s | date" % (new_date))
+        xenrt.TEC().logverbose("The guest date set to %s " % (new_date))
+
 class _LinuxKernelUpdate(xenrt.TestCase):
     """Installing PV tools to a VM replaces the kernel with a Citrix kernel"""
 

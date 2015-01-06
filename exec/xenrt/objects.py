@@ -1442,10 +1442,18 @@ class GenericPlace:
                             self.getVIFs().items())[0]
         self.configureDNS(primarynic[0], adserver.place.getIP())
         self.reboot()
-        self.xmlrpcExec("netsh firewall set allowedprogram "
+        try:
+            self.xmlrpcExec("netsh firewall set allowedprogram "
                         "program=c:\\python24\\python.exe "
                         "name=XMLRPCDaemon "
                         "mode=ENABLE "
+                        "profile=DOMAIN",ignoreHealthCheck=True)
+        except:
+            self.xmlrpcExec("netsh advfirewall firewall add rule "
+                        "name=XMLRPCDaemon "
+                        "dir=in action=allow "
+                        "program=c:\\python24\\python.exe "
+                        "enable=yes "
                         "profile=DOMAIN")
         script = r"""
 Const JOIN_DOMAIN = 1

@@ -1268,12 +1268,38 @@ class PrepareNode:
         host = {}        
         host["pool"] = None
 
-        host["id"] = expand(node.getAttribute("id"), params)
-        if not host["id"]:
-            host["id"] = str(id)
-        host["name"] = expand(node.getAttribute("alias"), params)
-        if not host["name"]:
-            host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
+        container = expand(node.getAttribute("container"), params)
+        if container:
+            containerHost = int(container)
+            host['containerHost'] = containerHost
+            vHostName = expand(node.getAttribute("vname"), params)
+            if vHostName:
+                host['vHostName'] = vHostName
+            vHostCpus = expand(node.getAttribute("vcpus"), params)
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = expand(node.getAttribute("vmemory"), params)
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = expand(node.getAttribute("vsr"), params)
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = expand(node.getAttribute("vnetworks"), params)
+            if vNetworks:
+                host['vNetworks'] = vNetworks.split(",")
+
+            if not container in self.containerHosts:
+                self.containerHosts.append(container)
+        else:
+            host["id"] = expand(node.getAttribute("id"), params)
+            if not host["id"]:
+                host["id"] = str(id)
+            host["name"] = expand(node.getAttribute("alias"), params)
+            if not host["name"]:
+                host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
         host["version"] = expand(node.getAttribute("version"), params)
         if not host["version"] or host["version"] == "DEFAULT":
             host["version"] = None
@@ -1352,31 +1378,6 @@ class PrepareNode:
             host['extraConfig'] = {}
         else:
             host['extraConfig'] = json.loads(extraCfg)
-        container = expand(node.getAttribute("container"), params)
-        if container:
-            containerHost = int(container)
-            host['containerHost'] = containerHost
-            vHostName = expand(node.getAttribute("vname"), params)
-            if vHostName:
-                host['vHostName'] = vHostName
-            vHostCpus = expand(node.getAttribute("vcpus"), params)
-            if vHostCpus:
-                host['vHostCpus'] = int(vHostCpus)
-            vHostMemory = expand(node.getAttribute("vmemory"), params)
-            if vHostMemory:
-                host['vHostMemory'] = int(vHostMemory)
-            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
-            if vHostDiskSize:
-                host['vHostDiskSize'] = int(vHostDiskSize)
-            vHostSR = expand(node.getAttribute("vsr"), params)
-            if vHostSR:
-                host['vHostSR'] = vHostSR
-            vNetworks = expand(node.getAttribute("vnetworks"), params)
-            if vNetworks:
-                host['vNetworks'] = vNetworks.split(",")
-
-            if not container in self.containerHosts:
-                self.containerHosts.append(container)
         
         hasAdvancedNet = False
         for x in node.childNodes:

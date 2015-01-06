@@ -333,7 +333,8 @@ def createHost(id=0,
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
-    xenrt.TEC().registry.hostPut(name, host)
+    if name:
+        xenrt.TEC().registry.hostPut(name, host)
 
     host.check()
     host.applyWorkarounds()

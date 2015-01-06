@@ -2203,7 +2203,7 @@ class _InstallWorker(xenrt.XRTThread):
 class HostInstallWorker(_InstallWorker):
     """Worker thread for parallel host installs"""
     def doWork(self, work):
-        if not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
+        if work.has_key("id") and not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
             raise xenrt.XRTError("We require RESOURCE_HOST_%s but it has not been specified." % (work["id"]))
         initialVersion = xenrt.TEC().lookup("INITIAL_INSTALL_VERSION", None)
         versionPath = xenrt.TEC().lookup("INITIAL_VERSION_PATH", None)

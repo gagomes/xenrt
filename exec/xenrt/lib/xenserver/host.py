@@ -7960,10 +7960,11 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
     def _findXenBinary(self, binary):
-        xenguestfiles = self.execdom0("find /usr -type f -name xenguest")
-        paths = xenguestfiles.strip().split("\n")
-        if paths:
-            return paths[0]
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin", "/usr/libexec/xen/bin/xenguest"]
+        for p in paths:
+            joinedPath = os.path.join(p, binary)
+            if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
+                return joinedPath
         raise xenrt.XRTError("Couldn't find xen binary %s" % binary)
         
     def snmpdIsEnabled(self):

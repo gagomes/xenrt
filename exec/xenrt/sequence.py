@@ -1271,13 +1271,16 @@ class PrepareNode:
         host = {}        
         host["pool"] = None
 
+        host["name"] = expand(node.getAttribute("alias"), params)
         container = expand(node.getAttribute("container"), params)
         if container:
             containerHost = int(container)
             host['containerHost'] = containerHost
             host['vHostName'] = expand(node.getAttribute("vname"), params)
             if not host['vHostName']:
-                host['vHostName'] = xenrt.randomGuestName() 
+                host['vHostName'] = xenrt.randomGuestName()
+            if not host['name']:
+                host['name'] = host['vHostName']
             vHostCpus = expand(node.getAttribute("vcpus"), params)
             if vHostCpus:
                 host['vHostCpus'] = int(vHostCpus)
@@ -1300,7 +1303,6 @@ class PrepareNode:
             host["id"] = expand(node.getAttribute("id"), params)
             if not host["id"]:
                 host["id"] = str(id)
-            host["name"] = expand(node.getAttribute("alias"), params)
             if not host["name"]:
                 host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
         host["version"] = expand(node.getAttribute("version"), params)

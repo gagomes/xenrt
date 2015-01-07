@@ -17,6 +17,7 @@ class FileNameResolver(object):
         self.__resolveVariableSubstitutions()
         self.__resolveInputDir()
         self.__resolveHttpFetch()
+        self.__resolveLatest()
         # Finally, we tidy up the path
         self.__removeMultipleSlashes()
 
@@ -78,6 +79,17 @@ class FileNameResolver(object):
           and not self.__url.startswith("/"):
             self.__url = "%s/%s" % (xenrt.TEC().getInputDir(), self.__url)
         pass
+
+    def __resolveLatest(self):
+        m = re.match("(.+?)/([^/]*latest)/(.+)", self.__url)
+        if m:
+            try:
+                r = requests.get("%s/%s/manifest" % (m.group(1), m.group(2)))
+                r.raise_for_status()
+                buildnum = [x.strip().split()[-1] for x in r.content.splitlines() if x.startswith("@install-image")][0]
+                self.__url = "%s/%s/%s" % (m.group(1), buildnum, m.group(3))
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning, could not determine build number for /latest - error: %s" % str(e))
 
     def __resolveHttpFetch(self):
         """If the file doesn't begin with an HTTP path, it needs the HTTP exporter prepending"""

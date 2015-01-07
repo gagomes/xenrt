@@ -6746,7 +6746,7 @@ fi
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("--force")
         cli.execute("host-disable-external-auth", string.join(args)).strip()
-        self.removeDNSServer(authserver.place.getIP())
+        self.resetToDefaultNetworking()
 
     def disableMultipathing(self, mpp_rdac=False):
         self.setHostParam("other-config:multipathing", "false")
@@ -7345,7 +7345,22 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 pass
             else:
                 raise e
-        
+    
+    def resetToDefaultNetworking(self):
+        cli = self.getCLIInstance()
+        pifuuid = self.minimalList("pif-list",args="host-uuid=%s management=true" % (self.getMyHostUUID()))[0]
+        args = []
+        args.append("uuid=%s" % (pifuuid))
+        args.append("mode=dhcp")
+        try:
+            cli.execute("pif-reconfigure-ip", string.join(args))
+        except xenrt.XRTException, e:
+            if e.data and re.search("Lost connection to the server.", e.data):
+                xenrt.sleep(5) # give the server a few seconds to come back
+                pass
+            else:
+                raise e
+
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network
         interface. This is used for storage traffic for example. Takes
@@ -7961,7 +7976,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
     def _findXenBinary(self, binary):
-        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin"]
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin", "/usr/libexec/xen/bin/xenguest"]
         for p in paths:
             joinedPath = os.path.join(p, binary)
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
@@ -13769,7 +13784,7 @@ class Pool:
             args.append("config:pass=%s" % (authserver.place.password))
         cli.execute("pool-disable-external-auth", string.join(args)).strip()
         for host in self.slaves.values() + [self.master]:
-            host.removeDNSServer(authserver.place.getIP())
+            host.resetToDefaultNetworking()
 
     def addRole(self, subject, role):
         self.master.addRole(subject, role)

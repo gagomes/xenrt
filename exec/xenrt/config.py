@@ -1678,9 +1678,12 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-28-4.2-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-vmware.ova"
 
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
-        
+
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-32"] = "Ubuntu 14.04 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Ubuntu 14.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-32"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit)"

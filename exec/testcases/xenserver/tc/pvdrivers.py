@@ -1035,8 +1035,9 @@ class TCToolsUninstall(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.guest = self.host.getGuest("VMWin2k8")
         #step("Upgrade host")
-        self.host.upgrade()
+        self.host = self.host.upgrade()
         self.host.applyRequiredPatches()
+        self.guest.start()
 
     def run(self, arglist=None):
         #step("Remove uninstaller file")

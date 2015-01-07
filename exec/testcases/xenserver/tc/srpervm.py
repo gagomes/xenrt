@@ -255,7 +255,7 @@ class FCMPathScenario(xenrt.TestCase):
 
     # The following params are totally depend on the current storage configuration.
     PATHS = 2
-    PATH_FACTOR = 1
+    PATH_FACTOR = 0.5
     PATH_TO_FAIL = 1 # this is the path connected to FAS2040 NetApp.
 
     EXPECTED_MPATHS = None # will be calculated.

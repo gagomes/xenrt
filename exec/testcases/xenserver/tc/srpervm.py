@@ -462,4 +462,4 @@ class ISCSIMPathScenario(xenrt.TestCase):
         self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
 
         # Fix the path
-        self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j ACCEPT" % (interface, port))
+        # self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j ACCEPT" % (interface, port))

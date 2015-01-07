@@ -292,7 +292,6 @@ class Host(_Entity):
                 except Exception, e:
                     xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
                 
-            xenrt.sleep(150) # adding some delay for the toolstack to initialise
             self.live = False
 
 class Default(_Entity): 

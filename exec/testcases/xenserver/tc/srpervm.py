@@ -450,4 +450,16 @@ class ISCSIMPathScenario(xenrt.TestCase):
     """Test multipath failover scenarios over iscsi"""
 
     def run(self, arglist=[]):
-        pass # to be implemented.
+        self.pool = self.getDefaultHost().getPool()
+        self.host = self.pool.master
+
+        # Fail path
+        # Using IP tables block the port on interface, think it is enough for XS to pick up on.
+        
+        # Port 3260, and then desired interface.
+        interface = "eth0"
+        port = 3260
+        self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
+
+        # Fix the path
+        self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j ACCEPT" % (interface, port))

@@ -164,6 +164,7 @@ def usage(fd):
     --poweroff <machine>                  Power off a machine
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
+    --bootto <device>                     When power cycleing, boot a machine with a specific target (e.g. "bios")
     --nmi <machine>                       Sent NMI to a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
@@ -244,6 +245,7 @@ cleanupvcenter = False
 powercontrol = False
 powerhost = None
 poweroperation = None
+bootto = None
 bootdiskless = False
 boothost = None
 bootwinpe = None
@@ -360,6 +362,7 @@ try:
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
+                                      'bootto=',
                                       'nmi=',
                                       'mconfig=',
                                       'bootdiskless=',
@@ -738,6 +741,9 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "cycle"
+            aux = True
+        elif flag == "--bootto":
+            bootto = value 
             aux = True
         elif flag == "--nmi":
             powercontrol = True
@@ -2074,6 +2080,9 @@ if powercontrol:
     elif poweroperation == "off":
         machine.powerctl.off()
     elif poweroperation == "cycle":
+        if bootto:
+            machine.powerctl.setBootDev(bootto)
+            config.setVariable("IPMI_SET_PXE", "no")
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()

@@ -7343,8 +7343,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             if e.data and re.search("Lost connection to the server.", e.data):
                 pass
             else:
-                raise e
-        
+                raise
         xenrt.sleep(5) # give the server a few seconds to update resolv.conf
     
     def resetToDefaultNetworking(self):
@@ -7359,7 +7358,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             if e.data and re.search("Lost connection to the server.", e.data):
                 pass
             else:
-                raise e
+                raise
         xenrt.sleep(5) # give the server a few seconds to update resolv.conf
 
     def setIPAddressOnSecondaryInterface(self, assumedid):

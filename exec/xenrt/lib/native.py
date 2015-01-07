@@ -504,6 +504,17 @@ class NativeLinuxHost(xenrt.GenericHost):
         a string containing XML or a XML DOM node."""
         pass
 
+    def getAssumedId(self, friendlyname):
+        # NET_A -> eth0         recorded in /var/xenrtnetname
+        #       -> MAC          ip addr
+        #       -> assumedid    h.listSecondaryNICs()
+        eth = self.execcmd("grep '^%s	' /var/xenrtnetname" % (friendlyname)).strip().split("	")[1]
+        mac = self.execcmd("ip addr show dev %s | fgrep link/ether | awk '{print $2}'" % (eth)).strip()
+
+        nics = self.listSecondaryNICs(macaddr=mac)
+        xenrt.TEC().logverbose("getAssumedId (native linux host): network '%s' corresponds to NICs with assumedids %s" % (friendlyname, nics))
+        return nics[0]
+
     def installIperf(self, version=""):
         """Install iperf into the host"""
 

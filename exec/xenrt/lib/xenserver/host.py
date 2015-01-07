@@ -4535,6 +4535,35 @@ fi
         info = xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
         return dict([(key,info[key]) for key in info if len(info[key]) > 0])
 
+    def getAssumedId(self, friendlyname):
+	# Get the network-uuid
+	netuuid = self.getNetworkUUID(friendlyname)
+	xenrt.TEC().logverbose("getAssumedId: network uuid of network '%s' is %s" % (friendlyname, netuuid))
+	if netuuid == '':
+            raise XRTError("couldn't get network uuid for network '%s'" % (friendlyname))
+
+	# Look up PIF for this network
+	args = "host-uuid=%s" % (self.getMyHostUUID())
+	pifuuid = self.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+	xenrt.TEC().logverbose("getAssumedId: PIF on network %s is %s" % (netuuid, pifuuid))
+	if pifuuid == '':
+            raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+	# Get the assumed enumeration ID for this PIF
+	pifdev = self.genParamGet("pif", pifuuid, "device")
+	xenrt.TEC().logverbose("getAssumedId: PIF with uuid %s is %s" % (pifuuid, pifdev))
+	if pifdev.startswith("bond"):
+            # Get the first bond-slave
+            bonduuid = self.genParamGet("pif", pifuuid, "bond-master-of")
+            slaveuuids = self.genParamGet("bond", bonduuid, "slaves").split("; ")
+            pifuuid = slaveuuids[0]
+            pifdev = self.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("getAssumedId: bond uuid is %s; using first slave (uuid %s, device %s)" % (bonduuid, pifuuid, pifdev))
+
+	assumedid = self.getNICEnumerationId(pifdev)
+	xenrt.TEC().logverbose("getAssumedId: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
+	return assumedid
+
     def getSecondaryNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "eth2") for the
         assumed enumeration ID (integer)"""

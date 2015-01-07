@@ -39,9 +39,12 @@
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
+
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleBefore" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleWithAllPaths" />
     </serial>
+
+    <!--
     <serial group="Multipath">
       <testcase id="xenserver.tc.srpervm.FCMPathScenario">
         <arg>linuxvms=4</arg>
@@ -49,10 +52,33 @@
         <arg>datadisk=2</arg>
       </testcase>
     </serial>
-    <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleAfter"/>
+    -->
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.FailMultipath">
+        <arg>linuxvms=4</arg>
+        <arg>windowsvms=0</arg>
+        <arg>datadisk=2</arg>
+      </testcase>
     </serial>
-  </testsequence>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleAfterPathFail" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.RecoverMultipath">
+        <arg>linuxvms=4</arg>
+        <arg>windowsvms=0</arg>
+        <arg>datadisk=2</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleAfterPathRecover" />
+    </serial>
+
+</testsequence>
 
 </xenrt>
 

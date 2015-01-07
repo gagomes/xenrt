@@ -7343,7 +7343,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 xenrt.sleep(5) # give the server a few seconds to come back
                 pass
             else:
-                raise e
+                raise
     
     def resetToDefaultNetworking(self):
         cli = self.getCLIInstance()
@@ -7358,7 +7358,7 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
                 xenrt.sleep(5) # give the server a few seconds to come back
                 pass
             else:
-                raise e
+                raise
 
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network

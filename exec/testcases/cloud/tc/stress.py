@@ -33,7 +33,7 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
             startTime = datetime.now()
             if self.runSubcase(self.STRESS_OPS[op], (), "Iter-%d-%s" % (i, self.args.get("distro")), op) != xenrt.RESULT_PASS:
                 break
-            xenrt.TEC().comment('Iter-%d for %s: Operation: %s took %d minute(s)' % (i, self.args.get("distro"), op, (datetime.now() - startTime).seconds / 60))
+            xenrt.TEC().comment('Iter-%d for %s(%s): Operation: %s took %d minute(s)' % (i, self.instance.name, self.args.get("distro"), op, (datetime.now() - startTime).seconds / 60))
 
     def _snapshotRevert(self, snapshotName, memorySnapshot):
         """A user is only permitted to revert to a disk only snapshots for

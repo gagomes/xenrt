@@ -1,0 +1,51 @@
+<xenrt>
+
+  <default name="ADSERVERDISTRO" value="ws08r2-x64" />
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="ADServer">
+        <distro>${ADSERVERDISTRO}</distro>
+        <arch>x86-64</arch>
+        <vcpus>2</vcpus>
+        <postinstall action="setupDomainServer" />
+        <network device="0" />
+        <network device="1" />
+        <disk device="0" size="40" />
+      </vm>
+      <vm name="ws08r2Client">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <network device="1" />
+        <disk device="0" size="32" />
+      </vm>
+      <vm name="ws12r2Client">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+      <vm name="ws2k3Client">
+        <distro>w2k3eesp2</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="32" />
+      </vm>
+    </host>
+  </prepare>
+
+</xenrt>

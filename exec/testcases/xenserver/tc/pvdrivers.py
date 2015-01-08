@@ -1035,17 +1035,27 @@ class TCToolsUninstall(xenrt.TestCase):
         self.host = self.getDefaultHost()
         self.guest = self.host.getGuest("VMWin2k8")
         #step("Upgrade host")
-        self.host = self.host.upgrade()
+        self.host = self.host.upgrade(xenrt.TEC().lookup("PRODUCT_VERSION", None))
         self.host.applyRequiredPatches()
         self.guest.start()
+        #Upgrade host's guest object
+        g = self.host.guestFactory()(self.guest.getName())
+        self.guest.populateSubclass(g)
+        g.host = self.host
+        self.host.guests[g.getName()] = g
+        xenrt.TEC().registry.guestPut(g.getName(), g)
+        self.guest = g
 
     def run(self, arglist=None):
         #step("Remove uninstaller file")
         self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
 
         #step("Install 6.2 PV tools")
-        self.guest.installTools()
-        self.guest.waitForAgent(60)
-        self.guest.reboot()
+        try:
+            self.guest.installDrivers()
+            self.guest.waitForAgent(60)
+        except Exception, e:
+            raise xenrt.XRTFailure(str(e))
+        
         v = self.guest.getPVDriverVersion()
-        xenrt.TEC().logverbose(v)
+        xenrt.TEC().logverbose("Found tools version: %s" % v)

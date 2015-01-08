@@ -10843,7 +10843,9 @@ class V6LicenseServer:
             self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
             xenrt.sleep(5)
 
-            #Add the root to lmadmin group so the root has priviledges to lmreread
+            #Add the root to lmadmin group so the root has priviledges to lmreread                       
+            self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
+            xenrt.sleep(5)
             self.place.writeToConsole("sed -i 's/lmadmin:x:500:/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
 
@@ -10894,12 +10896,14 @@ class V6LicenseServer:
             return self.port
         return 27000
 
-    def addLicense(self, license):
+    def addLicense(self, license, useEarlyRelease = None):
         """Add a license to the license server"""
 
         if license in self.licenses:
             raise xenrt.XRTError("License %s is already installed on the "
                                  "license server" % (license))
+        if not os.path.isdir(self.licensedir):
+            self.changeLicenseMode(useEarlyRelease)
 
         # Check the license exists
         l = "%s/%s.lic" % (self.licensedir, license)

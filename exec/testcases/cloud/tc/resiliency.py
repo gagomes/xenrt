@@ -258,7 +258,7 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
         for pod in pods:
             self.waitForHostState(podid=pod.id, state='Up', timeout=600)
 
-    def waitForSystemVmAgentState(self, podid, state, timeout=300, pollPeriod=20):
+    def waitForSystemVmAgentState(self, podid, state, timeout=300, pollPeriod=20, exitState=False):
         """Wait for all System VMs (associated with the Pod) to reach the specified state"""
         allSystemVmsReachedState = False
         startTime = datetime.now()
@@ -269,27 +269,37 @@ class _TCCloudResiliencyBase(xenrt.TestCase):
             self.logCloudHostInfo()
             if len(systemVmData) != len(hostData):
                 xenrt.TEC().warning('Inconsistent System VM and Host data reported by MS')
-#            xenrt.xrtAssert(len(systemVmData) == len(hostData), 'Inconsistent System VM and Host data reported by MS')
             xenrt.TEC().logverbose('System VM State: %s' % (pformat(map(lambda x:(x.name, x.state), systemVmData))))
-            systemVmsNotInState = filter(lambda x:x.state != state, hostData)
-            if len(systemVmsNotInState) == 0:
-                if state == 'Up':
-                    # Check that the system VMs are also all Running
-                    systemVmsUpButNotInRunningState = filter(lambda x:x.state != 'Running', systemVmData)
-                    if len(systemVmsUpButNotInRunningState) > 0:
-                        xenrt.TEC().warning('System VM(s) %s reported as Up but not Running' % (pformat(map(lambda x:(x.name, x.state), systemVmsUpButNotInRunningState))))
-                        continue
+            if not exitState:
+                systemVmsNotInState = filter(lambda x:x.state != state, hostData)
+                if len(systemVmsNotInState) == 0:
+                    if state == 'Up':
+                        # Check that the system VMs are also all Running
+                        systemVmsUpButNotInRunningState = filter(lambda x:x.state != 'Running', systemVmData)
+                        if len(systemVmsUpButNotInRunningState) > 0:
+                            xenrt.TEC().warning('System VM(s) %s reported as Up but not Running' % (pformat(map(lambda x:(x.name, x.state), systemVmsUpButNotInRunningState))))
+                            continue
 
-                xenrt.TEC().logverbose('System VMs [%s] reached state: %s in %d sec' % (systemVmNameList, state, (datetime.now() - startTime).seconds))
-                allSystemVmsReachedState = True
-                break
+                    xenrt.TEC().logverbose('System VMs [%s] reached state: %s in %d sec' % (systemVmNameList, state, (datetime.now() - startTime).seconds))
+                    allSystemVmsReachedState = True
+                    break
+                else:
+                    xenrt.TEC().logverbose('Waiting for the following system VMs to reach state %s: %s' % (state, pformat(map(lambda x:(x.name, x.state), systemVmsNotInState))))
+                    xenrt.sleep(pollPeriod)
             else:
-                xenrt.TEC().logverbose('Waiting for the following system VMs to reach state %s: %s' % (state, pformat(map(lambda x:(x.name, x.state), systemVmsNotInState))))
-                xenrt.sleep(pollPeriod)
+                systemVmsStillInState = filter(lambda x:x.state == state, hostData)
+                if len(systemVmsStillInState) == 0:
+                    xenrt.TEC().logverbose('System VMs [%s] exited state: %s in %d sec' % (systemVmNameList, state, (datetime.now() - startTime).seconds))
+                    xenrt.TEC().logverbose('  New States: %s' % (pformat(map(lambda x:(x.name, x.state), hostData))))
+                    allSystemVmsReachedState = True
+                    break
+                else:
+                    xenrt.TEC().logverbose('Waiting for the following system VMs to exit state %s: %s' % (state, pformat(map(lambda x:(x.name, x.state), systemVmsStillInState))))
+                    xenrt.sleep(pollPeriod)
 
         self.logCloudHostInfo()
         if not allSystemVmsReachedState:
-            raise xenrt.XRTFailure('Not all System VMs reached state %s in %d seconds' % (state, timeout))
+            raise xenrt.XRTFailure('Not all System VMs %s state %s in %d seconds' % (exitState and 'exited' or 'reached', state, timeout))
 
     def waitForHostState(self, podid, state, timeout=300, pollPeriod=20):
         """Wait for all Hosts (associated with the Pod) to reach the specified state"""
@@ -380,8 +390,8 @@ class TCPriStoreSysVMs(_TCCloudResiliencyBase):
 
         # Stop the storage VM (simulate the outage)
         self.storageVM.shutdown(force=True)
-        # Wait for the system VMs to reach the disconnected state
-        self.waitForSystemVmAgentState(self.podid, state='Disconnected', timeout=600)
+        # Wait for the system VMs to exit the Up state
+        self.waitForSystemVmAgentState(self.podid, state='Up', timeout=600, exitState=True)
         
         self.storageVM.start()
         # Wait for the system VMs to recover

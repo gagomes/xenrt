@@ -4958,8 +4958,7 @@ class _CHIN(_Controller):
         self.pool.associateDVS(self.controller)
         xenrt.TEC().logverbose("CHINMAP: %s" % (self.CHINMAP))
         self.chins = self.CHIN.generate(self.pool, self.CHINMAP)
-        self.guests = map(self.getGuest, 
-                          filter(lambda x:not x == self.CONTROLLER, xenrt.TEC().registry.guestList()))
+        self.guests = [self.getGuest(gn) for gn in self.pool.master.listGuests()]
         for guest in self.guests:
             self.setupGuestTcpDump(guest)
         for chin in self.chins.values():

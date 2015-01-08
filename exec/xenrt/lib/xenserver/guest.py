@@ -4357,6 +4357,8 @@ def createVM(host,
         # The install method doesn't do this for us.
         if vcpus:
             g.setVCPUs(vcpus)
+        elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
+            host.setRandomVcpus(g)
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):

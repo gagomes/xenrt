@@ -2114,7 +2114,8 @@ class TCUpgrade(_ResetOnBootBase):
         self.checkSMCapability()
         
         # Upgrade geusts.
-        xenrt.TEC().logverbose("Upgrading guests starts.")
+        # Work-around for crash with Windows driver update.
+        #xenrt.TEC().logverbose("Upgrading guests starts.")
         ####################################################
         # This is to save time on upgrading PV driver.
         # Not required for small number of target VMs.
@@ -2123,9 +2124,9 @@ class TCUpgrade(_ResetOnBootBase):
             #tasks.append(xenrt.PTask(installPV, guest))
         #xenrt.pfarm(tasks)
         ####################################################
-        for guest in self.guests:
-            installPV(guest)
-        xenrt.TEC().logverbose("Upgrading guests is done.")
+        #for guest in self.guests:
+        #    installPV(guest)
+        #xenrt.TEC().logverbose("Upgrading guests is done.")
 
         # Check all VDIs have proper on-boot flags as they are set.
         xenrt.TEC().logverbose("Checking on-boot flag after upgrade.")

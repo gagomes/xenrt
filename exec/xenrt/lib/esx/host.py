@@ -43,7 +43,8 @@ def createHost(id=0,
                vHostCpus=2,
                vHostMemory=4096,
                vHostDiskSize=50,
-               vHostSR=None):
+               vHostSR=None,
+               vNetworks=None):
 
     if containerHost != None:
         raise xenrt.XRTError("Nested hosts not supported for this host type")
@@ -205,6 +206,28 @@ class ESXHost(xenrt.lib.libvirt.Host):
     def getDefaultInterface(self):
         """Return the first *physical nic* on the host. See output from 'esxcfg-nics -l'"""
         return "vmnic0"
+
+    def getAssumedId(self, friendlyname):
+        # NET_A -> vmnic8       esxcfg-vswitch -l
+        #       -> MAC          esxcfg-nics -l
+        #       -> assumedid    h.listSecondaryNICs()
+
+        # Find out which NIC(s) are on this network
+        nics = self.execcmd("esxcfg-vswitch -l | grep '^  %s ' | awk '{print $4}'" % (friendlyname)).strip().split('\n')
+        xenrt.TEC().logverbose("getAssumedId (ESXHost %s): network '%s' corresponds to NICs %s" % (self, friendlyname, nics))
+
+        def nicToAssumedId(nic):
+            # Get the MAC address
+            nicmac = self.execcmd("esxcfg-nics -l | grep '^%s ' | awk '{print $7}'" % (nic)).strip().split('\n')[0]
+            xenrt.TEC().logverbose("getAssumedId (ESXHost %s): NIC '%s' has MAC address %s" % (self, nic, nicmac))
+
+            # Convert MAC to assumedid
+            assumedid = self.listSecondaryNICs(macaddr=nicmac)[0]
+            xenrt.TEC().logverbose("getAssumedId (ESXHost %s): MAC %s corresponds to assumedid %d" % (self, nicmac, assumedid))
+
+            return assumedid
+
+        return nicToAssumedId(nics[0])
 
     def getNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "vmnic0") for the

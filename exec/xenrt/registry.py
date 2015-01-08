@@ -37,6 +37,7 @@ class Registry:
 
     # Generic operations
     def write(self, path, value):
+        xenrt.TEC().logverbose("Storing object of type %s at path %s" % (value.__class__.__name__, path))
         self.mylock.acquire()
         try:
             self.data[path] = value
@@ -119,7 +120,10 @@ class Registry:
     def hostGet(self, tag):
         """Look up a host object by string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
-        return self.read(path)
+        h = self.read(path)
+        if not h and tag == "RESOURCE_HOST_DEFAULT":
+            h = self.hostGet("RESOURCE_HOST_0")
+        return h
 
     def hostDelete(self, tag):
         path = "/xenrt/specific/host/%s" % (tag)

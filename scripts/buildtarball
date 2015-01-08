@@ -81,6 +81,7 @@ if os.path.exists(input2):
 if os.path.exists(input3):
     os.system("cp -a %s %s" % (input3,workdir))
 os.system("cp -a %s %s" % (input1,workdir))
+os.system("cp -a %s %s" % (input1,workdir)) # For some reason this sometimes only works on the second attempt
 
 # Check the manifest
 f = file("%s/%s/Manifest" % (workdir,test),"r")

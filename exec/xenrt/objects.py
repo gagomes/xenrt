@@ -4255,7 +4255,8 @@ class GenericHost(GenericPlace):
             x.machine.setHost(x)
 
     def getDeploymentRecord(self):
-        ret = {"access": {"ipaddress": self.getIP()},
+        ret = {"access": {"hostname": self.getName(),
+                          "ipaddress": self.getIP()},
                "os": {"family": self.productType,
                       "version": self.productVersion}}
         if self.windows:
@@ -6765,12 +6766,13 @@ class GenericGuest(GenericPlace):
         x.instance = self.instance
 
     def getDeploymentRecord(self):
-        ret = {"access": {"ipaddress": self.mainip}, "os": {}}
+        ret = {"access": {"vmname": self.getName(),
+                          "ipaddress": self.getIP()}, "os": {}}
         if self.windows:
             ret['access']['username'] = "Administrator"
             ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
-                                                                    "ADMINISTRATOR_PASSWORD"],
-                                                                    "xensource")
+                                                            "ADMINISTRATOR_PASSWORD"],
+                                                            "xensource")
             ret['os']['family'] = "windows"
             ret['os']['version'] = self.distro
         else:

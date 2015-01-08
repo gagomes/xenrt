@@ -1570,7 +1570,7 @@ class PrepareNode:
 
             raise
 
-        self.__createDeploymentRecord()
+#        self.__createDeploymentRecord()
 
     def __createDeploymentRecord(self):
         deploymentRec = {}

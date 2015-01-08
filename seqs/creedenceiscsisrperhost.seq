@@ -10,8 +10,7 @@
   <scheduler>
     <resources>NPRI&gt;=1/NSEC&gt;=1/IPRI&gt;=1</resources>
     <param>MACHINES_REQUIRED=1</param>
-    <param>SITE=SVCL02</param>
-    <flags>iscsi</flags>
+    <flags>iscsi,netapp</flags>
   </scheduler>
 
   <prepare>

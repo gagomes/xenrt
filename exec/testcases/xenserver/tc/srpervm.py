@@ -449,17 +449,42 @@ class RecoverMultipath(FCMultipathScenario):
 class ISCSIMPathScenario(xenrt.TestCase):
     """Test multipath failover scenarios over iscsi"""
 
+    def waitForPathChange(self):
+        """Wait until XenServer reports that the path has failed (and no longer) /recovered"""
+
+        startTime = xenrt.util.timenow()
+        deadline = startTime + 150 # to be precise, the events received during the last 120 seconds.
+        found = False
+        while not found:
+            mpathAlert = self.host.minimalList("message-list")
+            for messageUUID in mpathAlert:
+                messageTitle = self.host.genParamGet("message", messageUUID, "name")
+                messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
+
+                if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
+                    xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")
+                    found = True # we found the required message.
+                    break
+
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
+            xenrt.sleep(15)
+
     def run(self, arglist=[]):
         self.pool = self.getDefaultHost().getPool()
         self.host = self.pool.master
 
-        # Fail path
-        # Using IP tables block the port on interface, think it is enough for XS to pick up on.
-        
         # Port 3260, and then desired interface.
         interface = "eth0"
         port = 3260
-        self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
+
+        # For each host in the pool, can do the steps.
+        for host in pool.getHosts():
+            # Fail path
+            # Using IP tables block the port on interface, think it is enough for XS to pick up on.
+            host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
+
+            self.waitForPathChange()
 
         # Fix the path
         # self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j ACCEPT" % (interface, port))

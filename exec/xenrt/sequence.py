@@ -1042,7 +1042,7 @@ class PrepareNode:
                             for h in xrange(cluster['XRT_Hosts']):
                                 simpleHostNode = xml.dom.minidom.Element('host')
                                 if cluster.has_key('XRT_ContainerHostIds'):
-                                    simpleHostNode.setAttribute('container', cluster['XRT_ContainerHostIds'][h])
+                                    simpleHostNode.setAttribute('container', str(cluster['XRT_ContainerHostIds'][h]))
                                 else:
                                     hostId = self.__minAvailableHost(poolHosts)
                                     poolHosts.append(int(hostId))
@@ -1282,7 +1282,7 @@ class PrepareNode:
 
         host["name"] = expand(node.getAttribute("alias"), params)
         container = expand(node.getAttribute("container"), params)
-        if container:
+        if container != None:
             containerHost = int(container)
             host['containerHost'] = containerHost
             host['vHostName'] = expand(node.getAttribute("vname"), params)

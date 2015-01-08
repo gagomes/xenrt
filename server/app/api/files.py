@@ -51,7 +51,7 @@ class XenRTJobFileDownload(XenRTAPIPage):
             server = details['LOG_SERVER']
 
         if server != self.request.host:
-            return HTTPFound(location="http://%s%s" % (server, self.request.path))
+            return HTTPFound(location="http://%s%s" % (server, self.request.path_qs))
 
         filename = self.request.matchdict['filename']
         (ctype, encoding) = mimetypes.guess_type(filename)

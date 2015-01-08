@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import urllib, time,sys
+import urllib, time, sys, calendar
 lines = [x.strip() for x in urllib.urlopen("http://xenrt.hq.xensource.com/share/control/api/job/list?filter_JOBSTATUS=running&fields=STARTED,JOBDESC,DEPS,USERID").readlines()]
 
 longjobs = []
@@ -14,7 +14,12 @@ for l in lines:
         if desc.strip() == "":
             desc = "%s - %s" % (seq.strip(), user.strip())
 
-        length = time.time() - time.mktime(date)
+        if "lh" in desc.lower(): # Long Haul
+            continue
+        if "longhaul" in desc.lower(): # Long Haul
+            continue
+
+        length = time.time() - calendar.timegm(date)
         if length > 3600 * 24 * 5:
             longjobs.append("%s (%s)" % (job, desc))
 

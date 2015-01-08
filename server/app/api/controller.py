@@ -25,6 +25,8 @@ class XenRTPower(XenRTAPIPage):
 
             # Form a command line to launch the suite
             cmd = ["%s/exec/main.py" % config.sharedir, powerargs[powerop], machine]
+            if form.has_key("bootdev"):
+                cmd.append("--bootdev %s" % form['bootdev'])
             self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
             self.request.response.content_type="text/plain"
             return self.request.response

@@ -1678,9 +1678,12 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.1"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate-2013-07-12-master-xen.vhd.bz2"
 
         self.config["CLOUD_CONFIG"]["4.2"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.1"])
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-28-4.2-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.2"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvmtemplate64-2014-10-31-master-vmware.ova"
 
         self.config["CLOUD_CONFIG"]["4.3"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.2"])
-        
+
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-32"] = "Ubuntu 14.04 (32-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["ubuntu1404_x86-64"] = "Ubuntu 14.04 (64-bit)"
         self.config["CLOUD_CONFIG"]["4.3"]["OS_NAMES"]["sles113_x86-32"] = "SUSE Linux Enterprise Server 11 SP3 (32-bit)"
@@ -1713,10 +1716,10 @@ class Config:
         self.config["CLOUD_CONFIG"]["4.4"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-master-kvm.qcow2.bz2"
 
         self.config["CLOUD_CONFIG"]["4.5"] = copy.deepcopy(self.config["CLOUD_CONFIG"]["4.4"])
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-11-19-4.5.0.0-xen.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-11-19-4.5.0.0-kvm.qcow2.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-11-19-4.5.0.0-hyperv.vhd.bz2"
-        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-11-19-4.5.0.0-vmware.ova"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["xenserver"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-xen.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-kvm.qcow2.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["hyperv"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-hyperv.vhd.bz2"
+        self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["vmware"] = "/usr/groups/xenrt/cloud/systemvm64template-2014-12-18-4.5.0.0-vmware.ova"
         # LXC currently uses KVM for System VMs, so use the KVM template
         self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["lxc"] = self.config["CLOUD_CONFIG"]["4.5"]["SYSTEM_TEMPLATES"]["kvm"]
 
@@ -3261,6 +3264,9 @@ class Config:
         # Whetstone - xapi, vgpu, guest-templates, xen-hyp. Rolls up XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62E014, XS62E017
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1011"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1011/88409/hotfix-XS62ESP1011/XS62ESP1011.xsupdate"
         
+        # Esperado - xs-tools. Rolls up XS62E015, XS62ESP1003
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1012/90176/hotfix-XS62ESP1012/XS62ESP1012.xsupdate"
+        
         # Ronan - blktap, guest-templates, openssl, perf-tools, sm, vgpu, vhd-tool, xapi-core, xapi-networkd, xapi-xe, xapi-xenopsd, xen-device-model, xen-hypervisor, xen-tools
         # Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1013"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1013/88548/hotfix-XS62ESP1013/XS62ESP1013.xsupdate"
@@ -3411,11 +3417,11 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF17"] = self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E017"]
         elif branch == "SP1":
             self.config["CARBON_PATCHES_CLEARWATER"]["HF00"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF03"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1015"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

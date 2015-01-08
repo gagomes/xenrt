@@ -2992,9 +2992,9 @@ class _StaticIPAddr(_NetworkResourceFromRange):
         return self.addr
 
 class StaticIP4Addr(object):
-    def __init__(self, network="NPRI", mac=None):
+    def __init__(self, network="NPRI", mac=None, name=None):
         if xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True):
-            self._delegate = StaticIP4AddrDHCP(network, mac)
+            self._delegate = StaticIP4AddrDHCP(network=network, mac=mac, name=name)
         else:
             if mac:
                 raise xenrt.XRTError("MAC-based reservations not supported")
@@ -3016,11 +3016,11 @@ class StaticIP4AddrFileBased(_StaticIPAddr):
     POOLEND = "STATICPOOLEND"
 
 class StaticIP4AddrDHCP(object):
-    def __init__(self, network, mac=None, ip=None):
+    def __init__(self, network, mac=None, ip=None, name=None):
         if ip:
             self.addr = ip
         else:
-            self.addr = DhcpXmlRpc().reserveSingleAddress(self.networkToInterface(network), self.lockData(), mac)
+            self.addr = DhcpXmlRpc().reserveSingleAddress(self.networkToInterface(network), self.lockData(), mac, name)
         xenrt.TEC().gec.registerCallback(self, mark=True, order=1)
 
     def getAddr(self):

@@ -138,7 +138,6 @@ def logInstallEvent(func):
             raise
     return wrapper
 
-
 @logInstallEvent
 def createHost(id=0,
                version=None,
@@ -164,12 +163,24 @@ def createHost(id=0,
                basicNetwork=True,
                iScsiBootLun=None,
                iScsiBootNets=[],
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
 
-    machine = str("RESOURCE_HOST_%s" % (id))
+    if containerHost != None:
+        container = xenrt.GEC().registry.hostGet("RESOURCE_HOST_%d" % containerHost)
+        machine = container.createNestedHost(name=vHostName, cpus=vHostCpus, memory=vHostMemory, diskSize=vHostDiskSize, sr=vHostSR, networks=vNetworks)
+    else:
+        machine = str("RESOURCE_HOST_%s" % (id))
+    
     if productVersion and not version:
         # If we've asked for a named product version but not provided
         # an input directory for it then look one up in the config
@@ -327,7 +338,8 @@ def createHost(id=0,
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
-    xenrt.TEC().registry.hostPut(name, host)
+    if name:
+        xenrt.TEC().registry.hostPut(name, host)
 
     host.check()
     host.applyWorkarounds()
@@ -2123,7 +2135,7 @@ fi
         ret = ""
         for i in range(10):
             ret = self.execdom0("cat /etc/firstboot.d/state/99-remove-firstboot-flag || true").strip()
-            if ret:
+            if "success" in ret:
                 xenrt.TEC().logverbose("First boot scripts completed: %s" % ret)
                 return
             else:
@@ -3070,6 +3082,8 @@ fi
 
         if vcpus != None:
             guest.setVCPUs(vcpus)
+        elif self.lookup("RND_VCPUS", default=False, boolean=True):
+            self.setRandomVcpus(guest)
 
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
             self.setRandomCoresPerSocket(guest, vcpus)
@@ -3113,6 +3127,22 @@ fi
         if not nodrivers:
             guest.check()
         return guest
+
+    def setRandomVcpus(self,guest):
+        xenrt.log("Setting random vcpus for VM ")
+        #maxVcpusSupported can be made variable later depending on host, guest and proudct limits
+        maxVcpusSupported =16
+        randomVcpus = random.randint(1,maxVcpusSupported)
+        with xenrt.GEC().getLock("RND_VCPUS"):
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
+            if dbVal != 0:
+                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
+                guest.setVCPUs(dbVal)
+            else:
+                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)
+                guest.setVCPUs(randomVcpus)
+                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
+                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
 
     def setRandomCoresPerSocket(self, guest, vcpus):
         log("Setting random cores per socket....")
@@ -4511,6 +4541,35 @@ fi
         data = self.execdom0("ethtool -k %s 2> /dev/null" % (interface))
         info = xenrt.util.strlistToDict(data.splitlines(), sep=":", keyonly=False)
         return dict([(key,info[key]) for key in info if len(info[key]) > 0])
+
+    def getAssumedId(self, friendlyname):
+	# Get the network-uuid
+	netuuid = self.getNetworkUUID(friendlyname)
+	xenrt.TEC().logverbose("getAssumedId: network uuid of network '%s' is %s" % (friendlyname, netuuid))
+	if netuuid == '':
+            raise XRTError("couldn't get network uuid for network '%s'" % (friendlyname))
+
+	# Look up PIF for this network
+	args = "host-uuid=%s" % (self.getMyHostUUID())
+	pifuuid = self.parseListForUUID("pif-list", "network-uuid", netuuid, args)
+	xenrt.TEC().logverbose("getAssumedId: PIF on network %s is %s" % (netuuid, pifuuid))
+	if pifuuid == '':
+            raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+
+	# Get the assumed enumeration ID for this PIF
+	pifdev = self.genParamGet("pif", pifuuid, "device")
+	xenrt.TEC().logverbose("getAssumedId: PIF with uuid %s is %s" % (pifuuid, pifdev))
+	if pifdev.startswith("bond"):
+            # Get the first bond-slave
+            bonduuid = self.genParamGet("pif", pifuuid, "bond-master-of")
+            slaveuuids = self.genParamGet("bond", bonduuid, "slaves").split("; ")
+            pifuuid = slaveuuids[0]
+            pifdev = self.genParamGet("pif", pifuuid, "device")
+            xenrt.TEC().logverbose("getAssumedId: bond uuid is %s; using first slave (uuid %s, device %s)" % (bonduuid, pifuuid, pifdev))
+
+	assumedid = self.getNICEnumerationId(pifdev)
+	xenrt.TEC().logverbose("getAssumedId: PIF %s corresponds to assumedid %d" % (pifdev, assumedid))
+	return assumedid
 
     def getSecondaryNIC(self, assumedid):
         """ Return the product enumeration name (e.g. "eth2") for the
@@ -6722,7 +6781,7 @@ fi
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
         args.append("--force")
         cli.execute("host-disable-external-auth", string.join(args)).strip()
-        self.removeDNSServer(authserver.place.getIP())
+        self.resetToDefaultNetworking()
 
     def disableMultipathing(self, mpp_rdac=False):
         self.setHostParam("other-config:multipathing", "false")
@@ -6933,10 +6992,19 @@ fi
             else:
                 return "g%s" % (self.execdom0("cat /etc/group | grep %s | cut -d ':' -f 3" % (subject.name)).strip())
         else:
-            s = self.execdom0("/opt/likewise/bin/lw-find-%s-by-name %s\\\\%s" % 
-                              (subject, 
-                               subject.server.domainname.encode("utf-8"), 
-                               subject.name.encode("utf-8"))).strip()
+            cli = self.getCLIInstance()
+            auth_type = cli.execute('host-param-get', 'param-name=external-auth-type uuid=%s' % self.getMyHostUUID()).strip()
+            is_opt_pbis_exists = self.execdom0("test -e /opt/pbis", retval="code") == 0
+            if (auth_type == "AD") and (is_opt_pbis_exists):
+                s = self.execdom0("/opt/pbis/bin/find-%s-by-name %s\\\\%s" % 
+                                  (subject, 
+                                   subject.server.domainname.encode("utf-8"), 
+                                   subject.name.encode("utf-8"))).strip()
+            else:
+                s = self.execdom0("/opt/likewise/bin/lw-find-%s-by-name %s\\\\%s" % 
+                                  (subject, 
+                                   subject.server.domainname.encode("utf-8"), 
+                                   subject.name.encode("utf-8"))).strip()
             return re.search("SID:\s+(?P<sid>.*)", s).group("sid")
 
     def getSubjectUUID(self, subject):
@@ -7310,9 +7378,24 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             if e.data and re.search("Lost connection to the server.", e.data):
                 pass
             else:
-                raise e
-        time.sleep(300)
-        
+                raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+    
+    def resetToDefaultNetworking(self):
+        cli = self.getCLIInstance()
+        pifuuid = self.minimalList("pif-list",args="host-uuid=%s management=true" % (self.getMyHostUUID()))[0]
+        args = []
+        args.append("uuid=%s" % (pifuuid))
+        args.append("mode=dhcp")
+        try:
+            cli.execute("pif-reconfigure-ip", string.join(args))
+        except xenrt.XRTException, e:
+            if e.data and re.search("Lost connection to the server.", e.data):
+                pass
+            else:
+                raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
+
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network
         interface. This is used for storage traffic for example. Takes
@@ -7928,7 +8011,7 @@ rm -f /etc/xensource/xhad.conf || true
             self.execdom0('/opt/xensource/libexec/xen-cmdline --set-%s %s=%s' % (set, key, value))
 
     def _findXenBinary(self, binary):
-        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin"]
+        paths = ["/usr/lib64/xen/bin", "/usr/lib/xen/bin", "/opt/xensource/bin", "/usr/libexec/xen/bin/xenguest"]
         for p in paths:
             joinedPath = os.path.join(p, binary)
             if self.execdom0('ls %s' % (joinedPath), retval="code") == 0:
@@ -7949,6 +8032,54 @@ rm -f /etc/xensource/xhad.conf || true
         
     def iptablesSave(self):
         self.execdom0("service iptables save")
+
+    def createNestedHost(self,
+                         name=None,
+                         cpus=2,
+                         memory=4096,
+                         diskSize=50,
+                         sr=None,
+                         networks=None):
+        if not name:
+            name = xenrt.randomGuestName()
+        if not sr:
+            sr="DEFAULT"
+        name = "vhost-%s" % name
+        g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
+        if not networks:
+            networks = ["NPRI"]
+        if networks[0] != "NPRI":
+            raise xenrt.XRTError("First network must be NPRI")
+        netDetails = []
+        for i in range(len(networks)):
+            mac = xenrt.randomMACXenSource()
+            if i == 0:
+                nicname = name
+            else:
+                nicname = "%s-nic%d" % (name, i)
+            ip = xenrt.StaticIP4Addr(mac=mac, network=networks[i], name=name)
+            g.createVIF(bridge=networks[i], mac=mac)
+            netDetails.append((mac, ip))
+        diskSize = diskSize * xenrt.GIGA
+        g.createDisk(sizebytes=diskSize, sruuid=sr, bootable=True)
+        g.paramSet("HVM-boot-params-order", "nc")
+        if xenrt.TEC().lookup("NESTED_HVM", False, boolean=True):
+            g.paramSet("platform:exp-nested-hvm", "1")
+        
+        (mac, ip) = netDetails[0]
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
+
+        for i in range(1, len(netDetails)):
+            (mac, ip) = netDetails[i]
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'MAC_ADDRESS'], mac)
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'IP_ADDRESS'], ip.getAddr())
+            xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'NETWORK'], networks[i])
+
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
+        return name
 
 #############################################################################
 
@@ -11316,10 +11447,7 @@ class DundeeHost(CreedenceHost):
                 raise xenrt.XRTFailure("firstboot.d %s failed" % f)
 
     def getSCSIID(self, device):
-        if self.isCentOS7Dom0():
-            return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
-        else:
-            Host.getSCSIID(self, device)
+        return self.execdom0("%s -g --device /dev/%s" % (self.scsiIdPath(), device)).strip()
             
     def getAlternativesDir(self):
         return "/usr/lib/xcp/alternatives"
@@ -13723,7 +13851,7 @@ class Pool:
             args.append("config:pass=%s" % (authserver.place.password))
         cli.execute("pool-disable-external-auth", string.join(args)).strip()
         for host in self.slaves.values() + [self.master]:
-            host.removeDNSServer(authserver.place.getIP())
+            host.resetToDefaultNetworking()
 
     def addRole(self, subject, role):
         self.master.addRole(subject, role)

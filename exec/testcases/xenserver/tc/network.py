@@ -2286,7 +2286,7 @@ sock.close()
             self.guest.start()
 
         #stop iptables on host
-        self.host.execdom0("/etc/init.d/iptables stop")
+        self.host.execdom0("service iptables stop")
 
         #start recv.py on host, try-except block needed because this will throw ssh timed out exception
         try:

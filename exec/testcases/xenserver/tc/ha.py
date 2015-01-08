@@ -4713,8 +4713,8 @@ class TCStorageNICMTU(xenrt.TestCase):
         except: pass
 
         step("Verify %s and %s MTU are same" % (device, bridge))
-        ethMTU = slave.execcmd("ifconfig %s | grep -Eo 'MTU:[0-9]+'|  grep -oE '[0-9]+'" % (device))
-        xenbrMTU = slave.execcmd("ifconfig %s | grep -Eo 'MTU:[0-9]+'|  grep -oE '[0-9]+'" % (bridge))
+        ethMTU = slave.execcmd("ifconfig %s | grep -Eoi 'MTU:? ?[0-9]+'|  grep -oE '[0-9]+'" % (device))
+        xenbrMTU = slave.execcmd("ifconfig %s | grep -Eoi 'MTU:? ?[0-9]+'|  grep -oE '[0-9]+'" % (bridge))
         if ethMTU != xenbrMTU and ethMTU != "9000":
             raise xenrt.XRTFailure("MTU not as expected. %s MTU=%s %s MTU=%s" % (device, ethMTU, bridge, xenbrMTU))
         else:

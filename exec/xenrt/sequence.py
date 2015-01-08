@@ -922,6 +922,7 @@ class PrepareNode:
         self.controllersForHosts = {}
         self.controllersForPools = {}
         self.preparecount = 0
+        self.containerHosts = []
 
         # Ignore cloud nodes on the first pass
         for n in node.childNodes:
@@ -957,6 +958,16 @@ class PrepareNode:
         for n in node.childNodes:
             if n.localName == "cloud":
                 self.handleCloudNode(n, params)
+
+        # Insert preprepare if required for any containerHosts
+        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
+           and node.localName != "preprepare":
+            preprepareNode = xml.dom.minidom.Element("preprepare")
+            for c in self.containerHosts:
+                hostNode = xml.dom.minidom.Element("host")
+                hostNode.setAttribute("id", c)
+                preprepareNode.appendChild(hostNode)
+            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def __minAvailable(self, allocated):
         i = 0
@@ -1182,7 +1193,10 @@ class PrepareNode:
                 host["pool"] = pool["name"]
                 hosts.append(host)
                 if not pool["master"]:
-                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+                    if host.has_key("vHostName"):
+                        pool["master"] = "vhost-%s" % host["vHostName"]
+                    else:
+                        pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
             elif x.localName == "allhosts":
                 # Create a host for each machine known to this job
                 if x.hasAttribute("start"):
@@ -1257,12 +1271,40 @@ class PrepareNode:
         host = {}        
         host["pool"] = None
 
-        host["id"] = expand(node.getAttribute("id"), params)
-        if not host["id"]:
-            host["id"] = str(id)
         host["name"] = expand(node.getAttribute("alias"), params)
-        if not host["name"]:
-            host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
+        container = expand(node.getAttribute("container"), params)
+        if container:
+            containerHost = int(container)
+            host['containerHost'] = containerHost
+            host['vHostName'] = expand(node.getAttribute("vname"), params)
+            if not host['vHostName']:
+                host['vHostName'] = xenrt.randomGuestName()
+            if not host['name']:
+                host['name'] = "vhost-%s" % host['vHostName']
+            vHostCpus = expand(node.getAttribute("vcpus"), params)
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = expand(node.getAttribute("vmemory"), params)
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = expand(node.getAttribute("vsr"), params)
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = expand(node.getAttribute("vnetworks"), params)
+            if vNetworks:
+                host['vNetworks'] = vNetworks.split(",")
+
+            if not container in self.containerHosts:
+                self.containerHosts.append(container)
+        else:
+            host["id"] = expand(node.getAttribute("id"), params)
+            if not host["id"]:
+                host["id"] = str(id)
+            if not host["name"]:
+                host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
         host["version"] = expand(node.getAttribute("version"), params)
         if not host["version"] or host["version"] == "DEFAULT":
             host["version"] = None
@@ -1318,6 +1360,9 @@ class PrepareNode:
                 host["noisos"] = True
             else:
                 host["noisos"] = False
+        defaultHost = expand(node.getAttribute("default"), params)
+        if defaultHost and defaultHost[0] in ('y', 't', '1', 'Y', 'T'):
+            host['default'] = True
         host["suppackcds"] = expand(node.getAttribute("suppackcds"), params)
         disablefw = expand(node.getAttribute("disablefw"), params)
         if disablefw:
@@ -2160,19 +2205,23 @@ class _InstallWorker(xenrt.XRTThread):
 class HostInstallWorker(_InstallWorker):
     """Worker thread for parallel host installs"""
     def doWork(self, work):
-        if not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
+        if work.has_key("id") and not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
             raise xenrt.XRTError("We require RESOURCE_HOST_%s but it has not been specified." % (work["id"]))
         initialVersion = xenrt.TEC().lookup("INITIAL_INSTALL_VERSION", None)
         versionPath = xenrt.TEC().lookup("INITIAL_VERSION_PATH", None)
         specProductType = "xenserver"
         specProductVersion = None
         specVersion = None
+        defaultHost = False
         if work.has_key("productType"):
             specProductType = work["productType"]
         if work.has_key("productVersion"):
             specProductVersion = work["productVersion"]
         if work.has_key("version"):
             specVersion = work["version"]
+        if work.has_key("default"):
+            defaultHost = work['default']
+            del work['default']
 
         if specProductType == "xenserver":
             if versionPath and not specProductVersion and not specVersion:
@@ -2219,32 +2268,35 @@ class HostInstallWorker(_InstallWorker):
             else:
                 # Normal install of the default or host-specified version
                 xenrt.TEC().setInputDir(None)
-                xenrt.lib.xenserver.host.createHost(**work)
+                host = xenrt.lib.xenserver.host.createHost(**work)
         elif specProductType == "nativelinux":
             if specProductType is None:
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Linux host type.")
             work["noisos"] = True
-            xenrt.lib.native.createHost(**work)
+            host = xenrt.lib.native.createHost(**work)
         elif specProductType == "nativewindows":
             if specProductType is None:
                 raise xenrt.XRTError("We require a ProductVersion specifying the native Windows host type.")
             work["noisos"] = True
-            xenrt.lib.nativewindows.createHost(**work)
+            host = xenrt.lib.nativewindows.createHost(**work)
         elif specProductType == "kvm":
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            xenrt.lib.kvm.createHost(**work)
+            host = xenrt.lib.kvm.createHost(**work)
         elif specProductType == "esx":
             # Ideally, we would have set the PRODUCT_VERSION in handleHostNode, but for XenServer we rely on work["productVersion"] remaining None even when PRODUCT_VERSION being set
             work["productVersion"] = specProductVersion or xenrt.TEC().lookup("PRODUCT_VERSION", None)
-            xenrt.lib.esx.createHost(**work)
+            host = xenrt.lib.esx.createHost(**work)
         elif specProductType == "hyperv":
             work["noisos"] = True
-            xenrt.lib.hyperv.createHost(**work)
+            host = xenrt.lib.hyperv.createHost(**work)
         elif specProductType == "oss":
             work["noisos"] = True
-            xenrt.lib.oss.createHost(**work)
+            host = xenrt.lib.oss.createHost(**work)
         else:
             raise xenrt.XRTError("Unknown productType: %s" % (specProductType))
+
+        if defaultHost:
+            xenrt.TEC().registry.hostPut("RESOURCE_HOST_DEFAULT", host)
 
 class GuestInstallWorker(_InstallWorker):
     """Worker thread for parallel guest installs"""

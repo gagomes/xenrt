@@ -18,8 +18,10 @@ import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
 import xenrt.lib.xenserver.jobtests
+from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
+from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -61,6 +63,7 @@ __all__ = ["Host",
            "BostonPool",
            "TampaPool",
            "ClearwaterPool",
+           "CreedencePool",
            "RollingPoolUpdate",
            "Tile",
            "IOvirt",
@@ -92,8 +95,10 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Creedence", "Dundee"):
+    if mastertype in ("Clearwater", "Dundee"):
         return xenrt.lib.xenserver.ClearwaterPool
+    elif mastertype in ("Creedence"):
+        return xenrt.lib.xenserver.CreedencePool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
     elif mastertype in ("MNR", "Cowley", "Oxford"):
@@ -4213,7 +4218,8 @@ fi
         data = cli.execute("host-license-view", "host-uuid=%s" %
                                                 (self.getMyHostUUID()))
         params = ["sku_type", "version", "serialnumber", "expiry", "name",
-                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply"]
+                  "company", "sku_marketing_name", "grace", "earlyrelease","restrict_hotfix_apply",
+                  "restrict_read_caching", "restrict_wlb", "restrict_vgpu"]
         returnData = {}
         for p in params:
             r = re.search(r"%s.*: (.*)" % (p), data)
@@ -4234,7 +4240,7 @@ fi
                 except:
                     pass
             finally:
-                self.logoutAPISession(session)            
+                self.logoutAPISession(session)
 
         return returnData
 
@@ -10625,6 +10631,18 @@ class TampaHost(BostonHost):
             self.reboot()
             self.waitForSSH(300, desc="host reboot after enabling virtual functions")
 
+    def validLicenses(self, xenserverOnly=False):
+        """
+        Get a licence object which contains the details of a licence settings
+        for a given SKU
+        sku: XenServerLicenceSKU member
+        """
+        factory = XenServerLicenceFactory()
+        if xenserverOnly:
+            return factory.xenserverOnlyLicences(self)
+        return factory.allLicences(self)
+
+
 #############################################################################
 class TampaXCPHost(TampaHost):
 
@@ -11318,8 +11336,11 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="free", usev6testd=True):
-
+    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True):
+        """
+        In order to keep backwards compatability "sku" arg is called sku
+        but really it needs the edition to be passed in
+        """
         cli = self.getCLIInstance()
         args = []
         args.append("host-uuid=%s" % (self.getMyHostUUID()))
@@ -11345,14 +11366,31 @@ class CreedenceHost(ClearwaterHost):
                               (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
                 self.execdom0("service v6d restart")
 
-            sku = "per-socket"
-
         args.append("edition=%s" % sku)
         if v6server:
             args.append("license-server-address=%s" % (v6server.getAddress()))
             args.append("license-server-port=%s" % (v6server.getPort()))
 
         cli.execute("host-apply-edition", string.join(args))
+        self.checkLicenseState(sku)
+
+    def licensedFeatures(self):
+        return LicensedFeatureFactory().allFeatures(self)
+
+    def checkLicenseState(self, edition):
+
+        details = self.getLicenseDetails()
+
+        if not details.has_key("edition"):
+            raise xenrt.XRTFailure("Host %s doesnt have any license edition" % (self.getName()))
+        if not (edition == details["edition"]):
+            raise xenrt.XRTFailure("Host %s is not licensed with %s. Is has got edition %s" % (self.getName() , edition , details["edition"]))
+
+        xenrt.TEC().logverbose("Edition is same on host as expected")
+
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
+
 
 #############################################################################
 class DundeeHost(CreedenceHost):
@@ -14258,8 +14296,6 @@ class ClearwaterPool(TampaPool):
 
     def checkLicenseState(self, edition):
 
-        failure = []
-
         poolEdition = ""
         poolLicenseState = self.getPoolParam("license-state")
         
@@ -14271,15 +14307,6 @@ class ClearwaterPool(TampaPool):
 
         if not (edition == poolEdition):
             raise xenrt.XRTFailure("Pool edition is not similar to %s" % edition)
-
-        #for h in self.getHosts():
-        #    try:
-        #        h.checkHostLicenseState(edition ,licensed)
-        #    except Exception, e:
-        #        failure.append(str(e))
-        if failure:
-            xenrt.TEC().logverbose("Following hosts have not got same editions")
-            raise xenrt.XRTFailure(failure)
 
     def getNoOfSockets(self):
 
@@ -14314,6 +14341,39 @@ class ClearwaterPool(TampaPool):
         cli.execute("pool-apply-edition", string.join(args))
 
         self.checkLicenseState(edition)
+
+#############################################################################
+
+class CreedencePool(ClearwaterPool):
+    """A pool of Creedence Hosts """
+
+    def hostFactory(self):
+        return xenrt.lib.xenserver.CreedenceHost
+
+    def license(self,v6server=None, sku="enterprise-per-socket", usev6testd=True):
+
+        args = []
+        cli = self.master.getCLIInstance()
+        args.append("uuid=%s" % (self.getUUID()))
+        args.append("edition=%s" % (sku))
+
+        if v6server:
+            args.append("license-server-address=%s" % (v6server.getAddress()))
+            args.append("license-server-port=%s" % (v6server.getPort()))
+
+        cli.execute("pool-apply-edition", string.join(args))
+
+        self.checkLicenseState(sku)
+
+    def licenseApply(self, v6server, licenseObj):
+        self.license(v6server,sku=licenseObj.getEdition())
+
+    def validLicenses(self, xenserverOnly=False):
+        """
+        option: xenserverOnly - return the SKUs for just XenServer
+        """
+
+        return self.master.validLicenses(xenserverOnly=xenserverOnly)
 
 #############################################################################
 

@@ -19,3 +19,5 @@ from xenrt.lib.xenserver.wsman import *
 from xenrt.lib.xenserver.jobtests import *
 from xenrt.lib.xenserver.dr import *
 from xenrt.lib.xenserver.objects import *
+from xenrt.lib.xenserver.licensedfeatures import *
+from xenrt.lib.xenserver.licensing import *

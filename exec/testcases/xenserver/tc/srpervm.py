@@ -453,7 +453,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         """Wait until XenServer reports that the path has failed (and no longer) /recovered"""
 
         startTime = xenrt.util.timenow()
-        deadline = startTime + 150 # to be precise, the events received during the last 120 seconds.
+        deadline = startTime + 240 # to be precise, the events received during the last 240 seconds.
         found = False
         while not found:
             mpathAlert = self.host.minimalList("message-list")
@@ -467,7 +467,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                     break
 
             if xenrt.util.timenow() > deadline:
-                raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
+                raise xenrt.XRTError("The multipath alert is not received during the last 240 seconds")
             xenrt.sleep(15)
 
     def run(self, arglist=[]):

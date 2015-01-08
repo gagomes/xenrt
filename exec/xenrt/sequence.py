@@ -797,11 +797,13 @@ class TestSequence(Serial):
     def runThis(self):
         xenrt.GEC().sequence = self
         try:
+            xenrt.TEC().logverbose("Starting preprepare")
             self.doPreprepare()
             if xenrt.TEC().lookup("PAUSE_AFTER_PREPREPARE", False, boolean=True):
                 xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "yes")
                 xenrt.TEC().tc.pause("Preprepare completed")
                 xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "no")
+            xenrt.TEC().logverbose("Starting prepare")
             self.doPrepare()
             if xenrt.TEC().lookup("PAUSE_AFTER_PREPARE", False, boolean=True):
                 xenrt.GEC().dbconnect.jobUpdate("PREPARE_PAUSED", "yes")
@@ -962,6 +964,7 @@ class PrepareNode:
         # Insert preprepare if required for any containerHosts
         if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
            and node.localName != "preprepare":
+            xenrt.TEC().logverbose("Creating preprepare node becuase we have nested hosts")
             preprepareNode = xml.dom.minidom.Element("preprepare")
             for c in self.containerHosts:
                 hostNode = xml.dom.minidom.Element("host")

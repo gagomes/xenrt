@@ -1420,7 +1420,7 @@ class TC10555(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
 
         # Check the memory is reporting a sensible free value
-        time.sleep(180)
+        time.sleep(420)
         m = self.guest.getDataSourceValue("memory_internal_free")
         if m < 1.0:
             raise xenrt.XRTError("Memory free value not sensible before test")

@@ -458,7 +458,8 @@ class TCMultipleVDI(xenrt.TestCase):
                         try:
                             g.unplugDisk(dtr)
                         except: 
-                            # trying once more with delay
+                            # Trying unplugging disk once more after 120 seconds
+                            xenrt.TEC().logverbose("Pausing for 120 seconds")
                             xenrt.sleep(120)
                             g.unplugDisk(dtr)
                     g.removeDisk(dtr)

@@ -1193,7 +1193,10 @@ class PrepareNode:
                 host["pool"] = pool["name"]
                 hosts.append(host)
                 if not pool["master"]:
-                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+                    if host.has_key("vHostName"):
+                        pool["master"] = "vhost-%s" % host["vHostName"]
+                    else:
+                        pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
             elif x.localName == "allhosts":
                 # Create a host for each machine known to this job
                 if x.hasAttribute("start"):
@@ -1268,12 +1271,40 @@ class PrepareNode:
         host = {}        
         host["pool"] = None
 
-        host["id"] = expand(node.getAttribute("id"), params)
-        if not host["id"]:
-            host["id"] = str(id)
         host["name"] = expand(node.getAttribute("alias"), params)
-        if not host["name"]:
-            host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
+        container = expand(node.getAttribute("container"), params)
+        if container:
+            containerHost = int(container)
+            host['containerHost'] = containerHost
+            host['vHostName'] = expand(node.getAttribute("vname"), params)
+            if not host['vHostName']:
+                host['vHostName'] = xenrt.randomGuestName()
+            if not host['name']:
+                host['name'] = "vhost-%s" % host['vHostName']
+            vHostCpus = expand(node.getAttribute("vcpus"), params)
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = expand(node.getAttribute("vmemory"), params)
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = expand(node.getAttribute("vsr"), params)
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = expand(node.getAttribute("vnetworks"), params)
+            if vNetworks:
+                host['vNetworks'] = vNetworks.split(",")
+
+            if not container in self.containerHosts:
+                self.containerHosts.append(container)
+        else:
+            host["id"] = expand(node.getAttribute("id"), params)
+            if not host["id"]:
+                host["id"] = str(id)
+            if not host["name"]:
+                host["name"] = str("RESOURCE_HOST_%s" % (host["id"]))
         host["version"] = expand(node.getAttribute("version"), params)
         if not host["version"] or host["version"] == "DEFAULT":
             host["version"] = None
@@ -1352,31 +1383,6 @@ class PrepareNode:
             host['extraConfig'] = {}
         else:
             host['extraConfig'] = json.loads(extraCfg)
-        container = expand(node.getAttribute("container"), params)
-        if container:
-            containerHost = int(container)
-            host['containerHost'] = containerHost
-            vHostName = expand(node.getAttribute("vname"), params)
-            if vHostName:
-                host['vHostName'] = vHostName
-            vHostCpus = expand(node.getAttribute("vcpus"), params)
-            if vHostCpus:
-                host['vHostCpus'] = int(vHostCpus)
-            vHostMemory = expand(node.getAttribute("vmemory"), params)
-            if vHostMemory:
-                host['vHostMemory'] = int(vHostMemory)
-            vHostDiskSize = expand(node.getAttribute("vdisksize"), params)
-            if vHostDiskSize:
-                host['vHostDiskSize'] = int(vHostDiskSize)
-            vHostSR = expand(node.getAttribute("vsr"), params)
-            if vHostSR:
-                host['vHostSR'] = vHostSR
-            vNetworks = expand(node.getAttribute("vnetworks"), params)
-            if vNetworks:
-                host['vNetworks'] = vNetworks.split(",")
-
-            if not container in self.containerHosts:
-                self.containerHosts.append(container)
         
         hasAdvancedNet = False
         for x in node.childNodes:
@@ -2199,7 +2205,7 @@ class _InstallWorker(xenrt.XRTThread):
 class HostInstallWorker(_InstallWorker):
     """Worker thread for parallel host installs"""
     def doWork(self, work):
-        if not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
+        if work.has_key("id") and not xenrt.TEC().lookup("RESOURCE_HOST_%s" % (work["id"]), False):
             raise xenrt.XRTError("We require RESOURCE_HOST_%s but it has not been specified." % (work["id"]))
         initialVersion = xenrt.TEC().lookup("INITIAL_INSTALL_VERSION", None)
         versionPath = xenrt.TEC().lookup("INITIAL_VERSION_PATH", None)

@@ -333,7 +333,8 @@ def createHost(id=0,
         xenrt.TEC().logverbose("After changing cpufreq governor: %s" % (output,))
 
     xenrt.TEC().registry.hostPut(machine, host)
-    xenrt.TEC().registry.hostPut(name, host)
+    if name:
+        xenrt.TEC().registry.hostPut(name, host)
 
     host.check()
     host.applyWorkarounds()
@@ -7369,10 +7370,10 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
             if e.data and re.search("Lost connection to the server.", e.data):
-                xenrt.sleep(5) # give the server a few seconds to come back
                 pass
             else:
                 raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
     
     def resetToDefaultNetworking(self):
         cli = self.getCLIInstance()
@@ -7384,10 +7385,10 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
             if e.data and re.search("Lost connection to the server.", e.data):
-                xenrt.sleep(5) # give the server a few seconds to come back
                 pass
             else:
                 raise
+        xenrt.sleep(5) # give the server a few seconds to update resolv.conf
 
     def setIPAddressOnSecondaryInterface(self, assumedid):
         """Enable a DHCP IP address on a non-management dom0 network
@@ -8037,7 +8038,7 @@ rm -f /etc/xensource/xhad.conf || true
             name = xenrt.randomGuestName()
         if not sr:
             sr="DEFAULT"
-        name = "vhost_%s" % name
+        name = "vhost-%s" % name
         g = self.createGenericEmptyGuest(memory=memory, vcpus=cpus, name=name)
         if not networks:
             networks = ["NPRI"]
@@ -8062,6 +8063,7 @@ rm -f /etc/xensource/xhad.conf || true
         (mac, ip) = netDetails[0]
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'MAC_ADDRESS'], mac)
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'HOST_ADDRESS'], ip.getAddr())
+        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
 
         for i in range(1, len(netDetails)):
             (mac, ip) = netDetails[i]
@@ -8070,7 +8072,7 @@ rm -f /etc/xensource/xhad.conf || true
             xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'NICS', 'NIC%d' % i, 'NETWORK'], networks[i])
 
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
-        xenrt.GEC().dbconnect.jobUpdate("VXS_%s" % ip.getAddr(), name)
+        xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
 #############################################################################

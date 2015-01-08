@@ -22,6 +22,7 @@ class TestSeqPrepareParsing(XenRTUnitTestCase):
         self.addTC(TC5)
         self.addTC(TC6)
         self.addTC(TC7)
+        self.addTC(TC8)
         self.run_for_many(self.tcs, self.__test_seq_prepare_parsing)
 
     @patch("uuid.uuid4")
@@ -558,3 +559,24 @@ class TC7(BaseTC):
   ]
 }
 """
+
+# Basic pool with specified hosts
+class TC8(BaseTC):
+    XML = """
+    <pool id="0">
+      <host container="0" vname="xs1" />
+      <host container="0" vname="xs2" />
+    </pool>
+"""
+    
+    JSON = """{
+    "pools": [
+        { 
+            "id": 0,
+            "hosts": [
+                { "container": 0, "vname": "xs1"},
+                { "container": 0, "vname": "xs2"}
+            ]
+        }
+    ]
+}"""

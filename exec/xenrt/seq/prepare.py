@@ -8,7 +8,6 @@ class PrepareNodeParserBase(object):
     def __init__(self, parent, data):
         self.data = data
         self.parent = parent
-        self.containerHosts = []
 
     def expand(self, s):
         return xenrt.seq.expand(s, self.parent.params)
@@ -34,16 +33,6 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         if "cloud" in self.data:
             self.handleCloudNode(self.data['cloud'])
 
-        # Insert preprepare if required for any containerHosts
-        if len(self.containerHosts) > 0 and self.parent.toplevel.preprepare is None \
-           and node.localName != "preprepare":
-            xenrt.TEC().logverbose("Creating preprepare node becuase we have nested hosts")
-            preprepareNode = xml.dom.minidom.Element("preprepare")
-            for c in self.containerHosts:
-                hostNode = xml.dom.minidom.Element("host")
-                hostNode.setAttribute("id", c)
-                preprepareNode.appendChild(hostNode)
-            self.parent.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def __minAvailable(self, allocated):
         i = 0
@@ -243,7 +232,10 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
             host['pool'] = pool['name']
             hosts.append(host)
             if not pool["master"]:
-                pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
+                if host.has_key("vHostName"):
+                    pool["master"] = "vhost-%s" % host["vHostName"]
+                else:
+                    pool["master"] = "RESOURCE_HOST_%s" % (host["id"])
 
         if "multihosts" in node:
             hosts.extend(self.handleMultiHostNode(node['multihosts'], pool))
@@ -309,8 +301,33 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
         host = {}        
         host["pool"] = None
 
-        host["id"] = str(node['id'])
-        host["name"] = node.get("name", str("RESOURCE_HOST_%s" % (host["id"])))
+        container = node.get("container")
+        if container != None:
+            host['containerHost'] = int(container)
+            host['vHostName'] = node.get("vname", xenrt.randomGuestName())
+            host['name'] = node.get("name", "vhost-%s" % host['vHostName'])
+            vHostCpus = node.get("vcpus")
+            if vHostCpus:
+                host['vHostCpus'] = int(vHostCpus)
+            vHostMemory = node.get("vmemory")
+            if vHostMemory:
+                host['vHostMemory'] = int(vHostMemory)
+            vHostDiskSize = node.get("vdisksize")
+            if vHostDiskSize:
+                host['vHostDiskSize'] = int(vHostDiskSize)
+            vHostSR = node.get("vsr")
+            if vHostSR:
+                host['vHostSR'] = vHostSR
+            vNetworks = node.get("vnetworks")
+            if vNetworks:
+                host['vNetworks'] = vNetworks
+
+            if not str(container) in self.parent.containerHosts:
+                self.parent.containerHosts.append(str(container))
+            
+        else:
+            host["id"] = str(node['id'])
+            host["name"] = node.get("name", str("RESOURCE_HOST_%s" % (host["id"])))
         host["version"] = node.get("version")
         host["productType"] = node.get("product_type", xenrt.TEC().lookup("PRODUCT_TYPE", "xenserver"))
         host["productVersion"] = node.get("product_version")
@@ -509,16 +526,6 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             if n.localName == "cloud":
                 self.handleCloudNode(n)
 
-        # Insert preprepare if required for any containerHosts
-        if len(self.containerHosts) > 0 and self.parent.toplevel.preprepare is None \
-           and node.localName != "preprepare":
-            preprepareNode = xml.dom.minidom.Element("preprepare")
-            for c in self.containerHosts:
-                hostNode = xml.dom.minidom.Element("host")
-                hostNode.setAttribute("id", c)
-                preprepareNode.appendChild(hostNode)
-            self.parent.toplevel.preprepare = PrepareNode(self.parent.toplevel, preprepareNode, params)
-
     def handleCloudNode(self, node):
         self.jsonParser.handleCloudNode(yaml.load(self.expand(node.childNodes[0].data)))
     
@@ -657,8 +664,8 @@ class PrepareNodeParserXML(PrepareNodeParserBase):
             if vNetworks:
                 host['vNetworks'] = vNetworks.split(",")
 
-            if not container in self.containerHosts:
-                self.containerHosts.append(container)
+            if not container in self.parent.containerHosts:
+                self.parent.containerHosts.append(container)
         else:
             host["id"] = self.expand(node.getAttribute("id"))
             if not host["id"]:
@@ -945,6 +952,7 @@ class PrepareNode:
         self.controllersForPools = {}
         self.preparecount = 0
         self.params = params
+        self.containerHosts = []
 
         parser = None
         for n in node.childNodes:
@@ -956,6 +964,17 @@ class PrepareNode:
             parser = xenrt.seq.PrepareNodeParserXML(self, node)
 
         parser.parse()
+
+        # Insert preprepare if required for any containerHosts
+        if len(self.containerHosts) > 0 and self.toplevel.preprepare is None \
+           and node.localName != "preprepare":
+            xenrt.TEC().logverbose("Creating preprepare node becuase we have nested hosts")
+            preprepareNode = xml.dom.minidom.Element("preprepare")
+            for c in self.containerHosts:
+                hostNode = xml.dom.minidom.Element("host")
+                hostNode.setAttribute("id", c)
+                preprepareNode.appendChild(hostNode)
+            self.toplevel.preprepare = PrepareNode(self.toplevel, preprepareNode, params)
 
     def debugDisplay(self):
         xenrt.TEC().logverbose("Hosts:\n" + pprint.pformat(self.hosts))

@@ -1030,16 +1030,16 @@ class PrepareNode:
                         if cluster.has_key('XRT_MasterHostId'):
                             cluster['XRT_MasterHostName'] = "RESORUCE_HOST_%d" % cluster['XRT_MasterHostId']
                         if not cluster.has_key('XRT_MasterHostName'):
-                            if cluster.has_key('XRT_HostContainerId'):
-                                cluster['XRT_HostContainerIds'] = [cluster['XRT_HostContainerId']] * cluster['XRT_Hosts']
+                            if cluster.has_key('XRT_ContainerHostId'):
+                                cluster['XRT_ContainerHostIds'] = [cluster['XRT_ContainerHostId']] * cluster['XRT_Hosts']
                             simplePoolNode = xml.dom.minidom.Element('pool')
                             poolId = self.__minAvailablePool()
                             simplePoolNode.setAttribute('id', poolId)
                             poolHosts = []
                             for h in xrange(cluster['XRT_Hosts']):
                                 simpleHostNode = xml.dom.minidom.Element('host')
-                                if cluster.has_key['XRT_HostContainerIds']:
-                                    simpleHostNode.setAttribute('container', cluster['XRT_HostContainerIds'][h])
+                                if cluster.has_key['XRT_ContainerHostIds']:
+                                    simpleHostNode.setAttribute('container', cluster['XRT_ContainerHostIds'][h])
                                 else:
                                     hostId = self.__minAvailableHost(poolHosts)
                                     poolHosts.append(int(hostId))

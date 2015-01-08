@@ -1437,7 +1437,12 @@ class GenericPlace:
 
         return self.winRegLookup('HKLM', 'SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters', 'ReceiverMaximumProtocol')
 
-    def joinDomain(self, adserver):
+    def joinDomain(self, adserver, computerName=None, adminUserName="Administrator", adminPassword=None):
+        if not computerName:
+            computerName=self.getName()
+        if not adminPassword:
+            adminPassword = adserver.place.password
+
         primarynic = filter(lambda (a,(b,c,d)):d == self.host.getPrimaryBridge(),
                             self.getVIFs().items())[0]
         self.configureDNS(primarynic[0], adserver.place.getIP())
@@ -1449,52 +1454,23 @@ class GenericPlace:
                         "mode=ENABLE "
                         "profile=DOMAIN",ignoreHealthCheck=True)
         except:
-            self.xmlrpcExec("netsh advfirewall firewall add rule "
-                        "name=XMLRPCDaemon "
-                        "dir=in action=allow "
-                        "program=c:\\python24\\python.exe "
-                        "enable=yes "
-                        "profile=DOMAIN")
-        script = r"""
-Const JOIN_DOMAIN = 1
-strDomain = "%s"
-strPassword = "%s"
-strUser = "%s"
-Set objNetwork = CreateObject("WScript.Network")
-strComputer = objNetwork.ComputerName
-Set objComputer = _
-GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" & _
-strComputer & "\root\cimv2:Win32_ComputerSystem.Name='" _
-& strComputer & "'")
-ReturnValue = objComputer.JoinDomainOrWorkGroup(strDomain, _
-strPassword, _
-strDomain & "\" & strUser, _
-NULL, _
-JOIN_DOMAIN)
-""" % (adserver.domainname, adserver.place.password, "Administrator")
-        t = self.xmlrpcTempDir()
-        self.xmlrpcWriteFile("%s\\join.vbs" % (t), script)
-        self.xmlrpcExec("cscript //B %s\\join.vbs" % (t))
-        self.xmlrpcDelTree(t)
+            self.xmlrpcExec("netsh advfirewall set domainprofile state off")
+
+        self.rename(computerName)
+
+        script = """$domain = "%s";
+$password = "%s" | ConvertTo-SecureString -asPlainText -Force;
+$username = "$domain\%s";
+$credential = New-Object System.Management.Automation.PSCredential($username,$password);
+Add-Computer -DomainName $domain -Credential $credential
+""" % (adserver.domainname, adminPassword, adminUserName)
+
+        self.xmlrpcExec(script, returndata=True, powershell=True ,ignoreHealthCheck=True)
+        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (adserver.domainname, adminUserName))
         self.reboot()
 
     def leaveDomain(self, adserver):
-        script = r"""
-strPassword = "%s"
-strUser = "%s"
-Set objNetwork = CreateObject("WScript.Network")
-strComputer = objNetwork.ComputerName
-Set objComputer = _
-GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" & _
-strComputer & "\root\cimv2:Win32_ComputerSystem.Name='" _
-& strComputer & "'")
-ReturnValue = objComputer.UnJoinDomainOrWorkGroup(strPassword, _
-strDomain & "\" & strUser, NULL)
-""" % (adserver.place.password, "Administrator")
-        t = self.xmlrpcTempDir()
-        self.xmlrpcWriteFile("%s\\leave.vbs" % (t), script)
-        self.xmlrpcExec("cscript //B %s\\leave.vbs" % (t))
-        self.xmlrpcDelTree(t)
+        self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP", returndata=True, powershell=True ,ignoreHealthCheck=True)
         self.reboot()
 
     def configureAutoLogon(self, user):

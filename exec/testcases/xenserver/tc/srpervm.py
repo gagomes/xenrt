@@ -482,8 +482,9 @@ class ISCSIMPathScenario(xenrt.TestCase):
         for host in self.pool.getHosts():
             # Fail path
             # Using IP tables block the port on interface, think it is enough for XS to pick up on.
-            host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
-
+            # host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
+            host.execdom0("iptables -I INPUT -i %s -j DROP" % (interface))
+            
             self.waitForPathChange()
 
         # Fix the path

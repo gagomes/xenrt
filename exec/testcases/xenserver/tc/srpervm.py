@@ -479,7 +479,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         port = 3260
 
         # For each host in the pool, can do the steps.
-        for host in pool.getHosts():
+        for host in self.pool.getHosts():
             # Fail path
             # Using IP tables block the port on interface, think it is enough for XS to pick up on.
             host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))

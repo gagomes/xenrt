@@ -1449,7 +1449,7 @@ class GenericPlace:
         self.reboot()
         try:
             self.xmlrpcExec("netsh firewall set allowedprogram "
-                        "program=c:\\python24\\python.exe "
+                        "program=c:\\python27\\python.exe "
                         "name=XMLRPCDaemon "
                         "mode=ENABLE "
                         "profile=DOMAIN",ignoreHealthCheck=True)

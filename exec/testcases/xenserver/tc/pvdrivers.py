@@ -1029,8 +1029,9 @@ class CA90861Frequency(xenrt.TestCase):
         if success < iterations:
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
 
-class TCToolsUninstall(xenrt.TestCase):
+class TCToolsMissingUninstall(xenrt.TestCase):
     """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    #TC-23775
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
         self.guest = self.host.getGuest("VMWin2k8")

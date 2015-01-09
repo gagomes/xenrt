@@ -1,5 +1,5 @@
 <xenrt>
-  
+  <!--XenTools upgrade tests -->
   <default name="OLD_PRODUCT_VERSION" value="Boston"/>
   <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
   
@@ -22,6 +22,6 @@
   </prepare>
 
   <testsequence>
-    <testcase id="xenserver.tc.pvdrivers.TCToolsUninstall" />
+    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC23775" tc="TC-23775" />
   </testsequence>
 </xenrt>

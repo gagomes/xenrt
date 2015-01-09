@@ -11518,6 +11518,7 @@ class DundeeHost(CreedenceHost):
     def getInstaller(self):
         if not self.installer:
             self.installer = xenrt.lib.xenserver.install.DundeeInstaller(self)
+        return self.installer
 
     def install(self,
                 *args,

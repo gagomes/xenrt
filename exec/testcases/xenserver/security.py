@@ -542,10 +542,7 @@ class TCXSA111(_TCXSA):
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
         self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % vm)
-        try:
-            self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
-        except Exception, e:
-            xenrt.TEC().logverbose("Exception raised while starting VM - %s" % str(e))
+        self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
 
         self.checkHost()
 
@@ -569,11 +566,8 @@ class TCXSA112(_TCXSA):
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
         self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=4" % vm)
-        
-        try:
-            self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
-        except:
-            xenrt.TEC().logverbose("Exception raised while starting VM - %s" % str(e))
+        self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
+    
         self.checkHost()
         serlog = string.join(self.host.machine.getConsoleLogHistory(), "\n")
         xenrt.TEC().logverbose(serlog)

@@ -509,7 +509,7 @@ fi""" % (usb, usb)
     def postInstallWriteCookie(self):
         return """
 # Write a XenRT Insallation cookie
-echo '%s' > $ROOT/xenrt-installation-cookie 
+echo '%s' > root/xenrt-installation-cookie 
 """ % self.host.installationCookie
 
     @property

@@ -1055,7 +1055,9 @@ class TCToolsUninstall(xenrt.TestCase):
             self.guest.installDrivers()
             self.guest.waitForAgent(60)
         except Exception, e:
-            raise xenrt.XRTFailure(str(e))
+            raise xenrt.XRTFailure("Tools installation failed with Exception: %s" % str(e))
         
-        v = self.guest.getPVDriverVersion()
-        xenrt.TEC().logverbose("Found tools version: %s" % v)
+        if self.guest.paramGet("PV-drivers-up-to-date"):
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")

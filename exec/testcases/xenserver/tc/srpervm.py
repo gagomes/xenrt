@@ -461,6 +461,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                 messageTitle = self.host.genParamGet("message", messageUUID, "name")
                 messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
 
+                xenrt.TEC().logverbose("AlertName : %s -- %s" % (messageTitle, messageTime))
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
                     xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")
                     found = True # we found the required message.
@@ -469,6 +470,8 @@ class ISCSIMPathScenario(xenrt.TestCase):
             if xenrt.util.timenow() > deadline:
                 raise xenrt.XRTError("The multipath alert is not received during the last 240 seconds")
             xenrt.sleep(15)
+
+        xenrt.TEC().logverbose("FOUND : %s" % (found))
 
     def run(self, arglist=[]):
         self.pool = self.getDefaultHost().getPool()

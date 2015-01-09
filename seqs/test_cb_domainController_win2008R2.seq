@@ -21,6 +21,9 @@
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <network device="1" />
         <disk device="0" size="24" />
@@ -30,6 +33,9 @@
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <network device="1" />
         <disk device="0" size="24" />
@@ -41,7 +47,9 @@
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <disk device="0" size="40" />
       </vm>
@@ -50,7 +58,9 @@
         <arch>x86-64</arch>
         <memory>2048</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <disk device="0" size="32" />
       </vm>
@@ -58,7 +68,9 @@
         <distro>w2k3eesp2</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <disk device="0" size="32" />
       </vm>
@@ -66,7 +78,9 @@
         <distro>w2k3eesp2</distro>
         <memory>1024</memory>
         <vcpus>2</vcpus>
-        <postinstall action="installDrivers" />
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
         <network device="0" />
         <disk device="0" size="16" />
       </vm>

@@ -17,6 +17,7 @@ import IPy
 import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
+import xenrt.lib.xenserver.install
 import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
@@ -11516,7 +11517,7 @@ class DundeeHost(CreedenceHost):
 
     def getInstaller(self):
         if not self.installer:
-            self.installer = xenrt.lib.host.installer.DundeeInstaller(self)
+            self.installer = xenrt.lib.xenserver.install.DundeeInstaller(self)
 
     def install(self,
                 *args,

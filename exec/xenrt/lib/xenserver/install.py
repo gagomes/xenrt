@@ -8,6 +8,10 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
+import sys, string, os.path, glob, re, stat, os, traceback
+import xenrt
+import xenrt.lib.xenserver
+
 class DundeeInstaller(object):
     def __init__(self, host):
         self.host = host
@@ -112,7 +116,7 @@ class DundeeInstaller(object):
         dstfile = "%s/XS-REPOSITORY-LIST" % self.packdir.dir
         os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
 
-        self.setupExtraInstallPackages(self.packdir, extracds, suppackcds)
+        self.setupExtraInstallPackages(extracds, suppackcds)
 
         # Create an NFS directory for the installer to signal completion
         self.signaldir = xenrt.NFSDirectory()
@@ -536,7 +540,7 @@ sleep 30
             raise xenrt.XRTError("No CD image supplied.")
         xenrt.checkFileExists(self.host.cd)
 
-    def setupExtraInstallPackages(self, self.packdir, extracds, suppackcds): 
+    def setupExtraInstallPackages(self, extracds, suppackcds): 
         workdir = xenrt.TEC().getWorkdir()
         # If we have any extra CDs, copy the extra packages as well
         if extracds:

@@ -468,7 +468,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                 messageTitle = self.host.genParamGet("message", messageUUID, "name")
                 messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
 
-                xenrt.TEC().logverbose("AlertName : %s" % (messageTitle, messageTime))
+                xenrt.TEC().logverbose("AlertName : %s" % (messageTitle))
 
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
                     xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")

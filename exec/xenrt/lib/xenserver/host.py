@@ -11626,7 +11626,7 @@ class DundeeHost(CreedenceHost):
         self.createPostInstallFiles(upgrade,
                                     pidir,
                                     overlay)
-        answerfileUrl = packdir.getURL("%s-%s" % (self.getName(), ansfile))
+        answerfileUrl = packdir.getURL(ansfile)
 
         # Get a PXE directory to put boot files in
         pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun)

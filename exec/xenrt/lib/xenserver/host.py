@@ -3644,7 +3644,7 @@ fi
             self.dom0uuid = self.getInventoryItem("CONTROL_DOMAIN_UUID")
         return self.dom0uuid
         
-    def applyPatch(self, patchfile, returndata=False, applyGuidance=False):
+    def applyPatch(self, patchfile, returndata=False, applyGuidance=False, patchClean=False):
         """Upload and apply a patch to the host"""
         
         self.addHotfixFistFile(patchfile)
@@ -3710,6 +3710,9 @@ fi
             guidance = self.genParamGet("patch", patch_uuid,"after-apply-guidance")
             self.applyGuidance(guidance)
         
+        if patchClean:
+            cli.execute("patch-clean", "uuid=\"%s\"" %(patch_uuid))
+            
         if returndata:
             return data
     
@@ -13693,7 +13696,7 @@ class Pool:
         else:
             return None
 
-    def applyPatch(self, patchfile, returndata=False, applyGuidance=False):
+    def applyPatch(self, patchfile, returndata=False, applyGuidance=False, patchClean=False):
         """Upload and apply a patch to the pool"""
         
         for h in self.getHosts():
@@ -13728,6 +13731,9 @@ class Pool:
                     xenrt.TEC().logverbose("Restarting toolstack on slave %s after patch-apply based on after-apply-guidance" % (slave.getName()))
                     slave.restartToolstack()
                 
+        if patchClean:
+            cli.execute("patch-pool-clean", "uuid=\"%s\"" %(patch_uuid))
+            
         if returndata:
             return data
 

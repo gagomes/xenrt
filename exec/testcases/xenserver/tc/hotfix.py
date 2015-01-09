@@ -39,7 +39,7 @@ class _Hotfix(xenrt.TestCase):
                 self.host.reboot()
                 self.slave.reboot()
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                 self.host.reboot()
                 
                 if "XS" in hf:
@@ -220,7 +220,7 @@ class _Hotfix(xenrt.TestCase):
                 if self.POOLED:
                     self.pool.applyPatch(xenrt.TEC().getFile(patch))
                 else:
-                    self.host.applyPatch(xenrt.TEC().getFile(patch))
+                    self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                     
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
@@ -249,7 +249,7 @@ class _Hotfix(xenrt.TestCase):
                     raise xenrt.XRTFailure("slave /etc/xensource/pool.conf changed after hotfix application")
             
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
             patches2 = self.host.minimalList("patch-list")
             self.host.execdom0("xe patch-list")
             if len(patches2) <= len(patches):

@@ -461,7 +461,8 @@ class ISCSIMPathScenario(xenrt.TestCase):
                 messageTitle = self.host.genParamGet("message", messageUUID, "name")
                 messageTime = xenrt.parseXapiTime(self.host.genParamGet("message", messageUUID, "timestamp"))
 
-                xenrt.TEC().logverbose("AlertName : %s -- %s" % (messageTitle, messageTime))
+                xenrt.TEC().logverbose("AlertName : %s" % (messageTitle, messageTime))
+
                 if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
                     xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")
                     found = True # we found the required message.
@@ -478,7 +479,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         self.host = self.pool.master
 
         # Port 3260, and then desired interface.
-        interface = "eth0"
+        interface = "eth1"
         port = 3260
 
         # For each host in the pool, can do the steps.
@@ -487,7 +488,6 @@ class ISCSIMPathScenario(xenrt.TestCase):
             # Using IP tables block the port on interface, think it is enough for XS to pick up on.
             # host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j DROP" % (interface, port))
             host.execdom0("iptables -I INPUT -i %s -j DROP" % (interface))
-            host.execdom0("iptables -I OUTPUT -o %s -j DROP" % (interface))
             
             self.waitForPathChange()
 

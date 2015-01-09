@@ -8,10 +8,10 @@
   </variables>
 
   <scheduler>
-  <pool>VMX,SVM</pool>
+    <pool>VMX,SVM</pool>
     <resources>NPRI&gt;=1/NSEC&gt;=1</resources>
-    <param>SITE=SVCL07</param>
     <param>MACHINES_REQUIRED=1</param>
+    <param>SITE=SVCL07</param>
     <flags>iscsi,netapp</flags>
   </scheduler>
 

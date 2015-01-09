@@ -319,7 +319,7 @@ class FileManager(object):
         try:
             xenrt.TEC().logverbose("fileExists %s" % filename)
             self.lock.acquire()
-            fnr = FileNameResolver(filername)
+            fnr = FileNameResolver(filename)
             if self.__availableInCache(fnr):
                 return True
             return self._isFetchable(fnr.url)

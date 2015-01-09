@@ -4547,14 +4547,14 @@ fi
 	netuuid = self.getNetworkUUID(friendlyname)
 	xenrt.TEC().logverbose("getAssumedId: network uuid of network '%s' is %s" % (friendlyname, netuuid))
 	if netuuid == '':
-            raise XRTError("couldn't get network uuid for network '%s'" % (friendlyname))
+            raise xenrt.XRTError("couldn't get network uuid for network '%s'" % (friendlyname))
 
 	# Look up PIF for this network
 	args = "host-uuid=%s" % (self.getMyHostUUID())
 	pifuuid = self.parseListForUUID("pif-list", "network-uuid", netuuid, args)
 	xenrt.TEC().logverbose("getAssumedId: PIF on network %s is %s" % (netuuid, pifuuid))
 	if pifuuid == '':
-            raise XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
+            raise xenrt.XRTError("couldn't get PIF uuid for network with uuid '%s'" % (netuuid))
 
 	# Get the assumed enumeration ID for this PIF
 	pifdev = self.genParamGet("pif", pifuuid, "device")

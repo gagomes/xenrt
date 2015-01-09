@@ -534,11 +534,11 @@ class TCXSA87(TCXSA29):
 class TCXSA111(_TCXSA):
     """Test to verify XSA-111"""
     # Jira TC-23744
-    
+
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
         self.replaceHvmloader("http://files.uk.xensource.com/usr/groups/xenrt/xsa_test_files/test-hvm-xsa-111")
-    
+
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
         self.host.execdom0("xe vm-cd-add uuid=%s cd-name=\"win7-x86.iso\" device=3" % vm)
@@ -546,22 +546,14 @@ class TCXSA111(_TCXSA):
             self.host.execdom0("xe vm-start uuid=%s" % vm, timeout=30)
         except Exception, e:
             xenrt.TEC().logverbose("Exception raised while starting VM - %s" % str(e))
-        
-        try:
-            self.checkHost()
-        except Exception, e:
-            # host crashed
-            xenrt.TEC().logverbose("Exception raised while checking host - %s" % str(e))
-            raise xenrt.XRTFailure("Unexpected output. Host crashed")
-            
+
+        self.checkHost()
+
         xenrt.TEC().logverbose("Expected output: Host didn't crash")
-        
+
     def postRun(self):
         self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
-        self.host.reboot()
 
-        
-        
 class TCXSA112(_TCXSA):
     """Test to verify XSA-112"""
     # Jira TC-23745
@@ -595,4 +587,3 @@ class TCXSA112(_TCXSA):
     
     def postRun(self):
         self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
-        self.host.reboot()

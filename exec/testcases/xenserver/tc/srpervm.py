@@ -449,6 +449,13 @@ class RecoverMultipath(FCMultipathScenario):
 class ISCSIMPathScenario(xenrt.TestCase):
     """Test multipath failover scenarios over iscsi"""
 
+    def checkMultipathsConfig(self, disabled=False):
+        """Verify the multipath configuration is correct"""
+
+        mpaths = self.host.getMultipathInfo()
+        xenrt.TEC().logverbose("Should be 12 SRs with current test config.")
+        xenrt.TEC().logverbose("Number of active 'paths' : %s" % len(mpaths))
+
     def waitForPathChange(self):
         """Wait until XenServer reports that the path has failed (and no longer) /recovered"""
 
@@ -482,6 +489,9 @@ class ISCSIMPathScenario(xenrt.TestCase):
         interface = "eth1"
         port = 3260
 
+        # Check number of paths.
+        self.checkMultipathsConfig()
+        
         # For each host in the pool, can do the steps.
         for host in self.pool.getHosts():
             # Fail path
@@ -490,6 +500,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
             host.execdom0("iptables -I INPUT -i %s -j DROP" % (interface))
             
             self.waitForPathChange()
-
+        
+        self.checkMultipathsConfig()
         # Fix the path
         # self.host.execdom0("iptables -I INPUT -i %s -p tcp --destination-port %s -j ACCEPT" % (interface, port))

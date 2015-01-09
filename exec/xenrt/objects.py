@@ -1459,7 +1459,7 @@ Add-Computer -DomainName $domain -Credential $credential
 """ % (adserver.domainname, adminPassword, adminUserName)
 
         self.xmlrpcExec(script, returndata=True, powershell=True ,ignoreHealthCheck=True)
-        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (adserver.domainname, adminUserName))
+        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (adserver.domainname, adminUserName), level=xenrt.RC_OK)
         self.reboot()
 
     def leaveDomain(self):

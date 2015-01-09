@@ -11526,7 +11526,7 @@ class DundeeHost(CreedenceHost):
                 overlay=None,
                 suppackcds=None):    
 
-
+        xenrt.TEC().logverbose("Using DundeeHost.install")
         self.extrapi = ""
         if not upgrade:
             # Default for primary disk only if not an upgrade

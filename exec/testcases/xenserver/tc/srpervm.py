@@ -486,7 +486,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         self.host = self.pool.master
 
         # Port 3260, and then desired interface.
-        interface = "eth1"
+        interface = "eth0"
         port = 3260
 
         # Check number of paths.

@@ -5036,7 +5036,7 @@ if __name__ == "__main__":
         t = xenrt.TEC().tempFile()
         with open(t, 'w') as f:
             f.write(plugin)
-            sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
+        sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
         self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
         
     def run(self, arglist=None):

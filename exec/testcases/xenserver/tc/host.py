@@ -5038,6 +5038,7 @@ if __name__ == "__main__":
             f.write(plugin)
         sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
         self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
+        sftp.close()
         
     def run(self, arglist=None):
         step("Call plugin from the master host")

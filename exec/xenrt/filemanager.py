@@ -9,6 +9,7 @@ fm = None
 
 class FileNameResolver(object):
     def __init__(self, fn, multipleFiles=False):
+        self.__fn = fn
         self.__url = fn
         self.__multiple = multipleFiles
         self.__singleWildcard = False
@@ -25,6 +26,10 @@ class FileNameResolver(object):
         self.__resolveDirectory()
         self.__resolveWildCards()
         self.__resolveArchive()
+
+    @property
+    def fn(self):
+        return self.__fn
 
     @property
     def url(self):
@@ -45,6 +50,10 @@ class FileNameResolver(object):
     @property
     def singleFileWithWildcard(self):
         return self.__singleWildcard
+
+    @property
+    def isSimpleFile(self):
+        return not (self.multipleFiles or self.singleFileWithWildcard or self.directory)
         
     def __resolveDirectory(self):
         if self.__localName.endswith("/"):
@@ -115,7 +124,7 @@ class FileManager(object):
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
-            cache = self._availableInCache(localName)
+            cache = self.__availableInCache(fnr)
             if cache:
                 return cache
 
@@ -237,7 +246,9 @@ class FileManager(object):
             xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
             os.unlink(sharedLocation) 
 
-    def _availableInCache(self, filename):
+    def __availableInCache(self, fnr):
+
+        filename = fnr.localName
         # First try the per-job cache
         perJobLocation = self._perJobCacheLocation(filename)
         sharedLocation = self._sharedCacheLocation(filename)
@@ -259,6 +270,28 @@ class FileManager(object):
         if os.path.exists(sharedLocation):
             # If it is, hardlink it to the per-job cache
             xenrt.TEC().logverbose("Found file in shared cache")
+
+            if fnr.isSimpleFile:
+                # Check the content length matches (i.e. the file hasn't been updated underneath us)
+                expectedLength = None
+                try:
+                    r = requests.head(fnr.url, allow_redirects=True)
+                    # We only trust the content-length if we got a 200 code, and the length is
+                    # >10M, this is to avoid situations where we have a script providing the
+                    # file where a HEAD request will give the size of the script not the file
+                    # it provides
+                    if r.status_code == 200 and 'content-length' in r.headers and \
+                       r.headers['content-length'] > (10 * xenrt.MEGA):
+                        expectedLength = int(r.headers['content-length'])
+                except:
+                    # File is currently not available for some reason, still valid to use it from the cache
+                    pass
+
+                if expectedLength:
+                    s = os.stat(sharedLocation)
+                    if s.st_size != expectedLength:
+                        raise xenrt.XRTError("found in shared cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
+
             os.link(sharedLocation, perJobLocation) 
 
             # Return the cache location in the per-job cache
@@ -286,10 +319,10 @@ class FileManager(object):
         try:
             xenrt.TEC().logverbose("fileExists %s" % filename)
             self.lock.acquire()
-            filename = FileNameResolver(filename).url
-            if self._availableInCache(filename):
+            fnr = FileNameResolver(filename)
+            if self.__availableInCache(fnr):
                 return True
-            return self._isFetchable(filename)
+            return self._isFetchable(fnr.url)
         finally:
             self.lock.release()
     

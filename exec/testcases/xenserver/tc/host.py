@@ -5033,14 +5033,10 @@ if __name__ == "__main__":
 
         self.slave = self.pool.slaves.values()[0]
         sftp = self.slave.sftpClient()
-        try:
-            t = xenrt.TEC().tempFile()
-            f = file(t, "w")
+        t = xenrt.TEC().tempFile()
+        with open(t, 'w') as f:
             f.write(plugin)
-            f.close()
             sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
-        finally:
-            sftp.close()
         self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
         
     def run(self, arglist=None):
@@ -5051,10 +5047,9 @@ if __name__ == "__main__":
         args.append("plugin=braindump")
         args.append("fn=main")
         args.append("args:brain-size=$(( 310*1024 ))")
-        try:
-            output = cli.execute("host-call-plugin", string.join(args), timeout=600)
-            if "brain" in output:
-                xenrt.TEC().logverbose("Expected output: %s" % (output))
-        except Exception, e:
-            raise xenrt.XRTFailure("Unexpected Exception raised output: %s" %  str(e))
+        output = cli.execute("host-call-plugin", string.join(args), timeout=600)
+        if "brain" in output:
+            xenrt.TEC().logverbose("Expected output: %s" % (output))
+        else:
+            raise xenrt.XRTFailure("Unexpected output: %s" % (output))
 

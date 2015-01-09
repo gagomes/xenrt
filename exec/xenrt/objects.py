@@ -1438,6 +1438,7 @@ class GenericPlace:
         return self.winRegLookup('HKLM', 'SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters', 'ReceiverMaximumProtocol')
 
     def joinDomain(self, adserver, computerName=None, adminUserName="Administrator", adminPassword=None):
+        # works with ws2008 and ws2012
         if not computerName:
             computerName=self.getName()
         if not adminPassword:
@@ -1469,8 +1470,12 @@ Add-Computer -DomainName $domain -Credential $credential
         self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (adserver.domainname, adminUserName))
         self.reboot()
 
-    def leaveDomain(self, adserver):
-        self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP", returndata=True, powershell=True ,ignoreHealthCheck=True)
+    def leaveDomain(self):
+        # works with ws2008 and ws2012
+        try:
+            self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP -force", returndata=True, powershell=True ,ignoreHealthCheck=True)
+        except:
+            self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP", returndata=True, powershell=True ,ignoreHealthCheck=True)
         self.reboot()
 
     def configureAutoLogon(self, user):

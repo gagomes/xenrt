@@ -1448,15 +1448,7 @@ class GenericPlace:
                             self.getVIFs().items())[0]
         self.configureDNS(primarynic[0], adserver.place.getIP())
         self.reboot()
-        try:
-            self.xmlrpcExec("netsh firewall set allowedprogram "
-                        "program=c:\\python27\\python.exe "
-                        "name=XMLRPCDaemon "
-                        "mode=ENABLE "
-                        "profile=DOMAIN",ignoreHealthCheck=True)
-        except:
-            self.xmlrpcExec("netsh advfirewall set domainprofile state off")
-
+        self.xmlrpcExec("netsh advfirewall set domainprofile state off")
         self.rename(computerName)
 
         script = """$domain = "%s";

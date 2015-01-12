@@ -32,8 +32,8 @@ class SignedComponent(object):
             guest.xmlrpcExec("c:\\signtool.exe verify /pa /v %s" % (testFile),
                                    returndata=True)
         except Exception, e:
-            xenrt.TEC().logverbose("signtool fails to verify the build %s: %s" % (testFile))
-            raise xenrt.XRTFailure(" %s build is not digitally signed and thus cannot be"
+            xenrt.TEC().logverbose("signtool fails to verify the build %s " % (testFile))
+            raise xenrt.XRTFailure("%s build is not digitally signed and thus cannot be"
                                    " installed on VM. " % (testFile))
         xenrt.TEC().logverbose("The %s build is digitally signed with valid certificate" % (testFile))
 

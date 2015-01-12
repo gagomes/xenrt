@@ -190,7 +190,8 @@ class _VMScalability(_Scalability):
 
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             step("Optimizing hosts for scalability testing")
-            xenrt.pfarm ([xenrt.PTask(self.optimizeDom0, host) for host in self.hosts])
+            for host in self.hosts:
+                self.optimizeDom0(host)
 
         step("Getting existing guest information")
         self.optimizeExistingGuests(host)

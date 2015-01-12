@@ -491,7 +491,10 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                          None)
 
         cli = self.getDefaultHost().getCLIInstance()
-        xml = cli.execute("sr-probe", "type=iscsi device-config:target=%s" % self.FILER_IP)
+        try:
+            xml = cli.execute("sr-probe", "type=iscsi device-config:target=%s" % self.FILER_IP)
+        except Exception, e:
+            xml = str(e.data)
         self.CONTROLLER_IP = re.search(r"<IPAddress>(.*)</IPAddress>", xml, re.MULTILINE|re.DOTALL).group(1).strip()
         xenrt.TEC().logverbose("Filer IP : %s" % self.FILER_IP)
         xenrt.TEC().logverbose("Pciked controller IP : %s" % self.CONTROLLER_IP)
@@ -606,4 +609,58 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                                                         (xenrt.util.timenow() - startTime))
 
         # 12. Verify again the multipath configuration is correct.
+        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]
+
+class ISCSIPathFail(ISCSIMPathScenario):
+    """Test multipath failover scenarios over iscsi"""
+
+    # Don't think I use the PATH variable.
+
+    def run(self, arglist=[]):
+        self.setTestParams(arglist)
+
+        # 1. Verify multipath configuration is correct.
+        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]
+
+        overallDisableTime = xenrt.util.timenow()
+        for host in self.pool.getHosts():
+            disableTime = xenrt.util.timenow()
+            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Note the time and cause the path to fail.
+            self.waitForPathChange(host) # 3. Wait until XenServer reports that the path has failed (and no longer)
+
+            # 4. Report the elapsed time beween steps 2 and 3 for every host.
+            xenrt.TEC().logverbose("Time taken to fail the path on host %s is %s seconds." % 
+                                                (host, (xenrt.util.timenow() - disableTime)))
+
+        # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
+        xenrt.TEC().logverbose("The overall time taken to fail the path is %s seconds." % 
+                                                (xenrt.util.timenow() - overallDisableTime))
+
+        # 6. Verify again the multipath configuration is correct.
+        [self.checkMultipathsConfig(x, True) for x in self.pool.getHosts()]
+
+class ISCSIPathRecover(ISCSIMPathScenario):
+
+    def run(self, arglist=[]):
+
+        self.setTestParams(arglist)
+
+        # 1. Verify the multipath configuration is correct.
+        [self.checkMultipathsConfig(x, True) for x in self.pool.getHosts()]
+
+        overallEnableTime = xenrt.util.timenow()
+        for host in self.pool.getHosts():
+            enableTime = xenrt.util.timenow()
+            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 7. Cause the path to be live again.
+            self.waitForPathChange(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
+
+            # 4. Report the elapsed time beween steps 2 and 3 for every host.
+            xenrt.TEC().logverbose("Time taken to recover the path on host %s is %s seconds." % 
+                                                        (host, (xenrt.util.timenow() - enableTime)))
+
+        # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
+        xenrt.TEC().logverbose("The overall time taken to recover the path is %s seconds." % 
+                                                            (xenrt.util.timenow() - overallEnableTime))
+
+        # 6. Verify again the multipath configuration is correct.
         [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]

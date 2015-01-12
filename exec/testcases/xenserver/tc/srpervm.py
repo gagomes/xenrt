@@ -449,6 +449,23 @@ class RecoverMultipath(FCMultipathScenario):
 class ISCSIMPathScenario(xenrt.TestCase):
     """Test multipath failover scenarios over iscsi"""
 
+    def setTestParams(self, arglist):
+        """Set test case params"""
+
+        args = self.parseArgsKeyValue(arglist)
+
+        linuxCount = int(args.get("linuxvms", "10"))
+        windowsCount = int(args.get("windowsvms", "10"))
+        dataDiskPerVM = int(args.get("datadisk", "2"))
+        self.ATTEMPTS = int(args.get("loop", "10"))
+
+        linuxVMSRs = linuxCount + (linuxCount * dataDiskPerVM)
+        windowsVMSRs = windowsCount + (windowsCount * dataDiskPerVM)
+        self.EXPECTED_MPATHS = linuxVMSRs + windowsVMSRs
+
+        # Obtain the pool object to retrieve its hosts.
+        self.pool = self.getDefaultHost().getPool()
+
     def checkMultipathsConfig(self, disabled=False):
         """Verify the multipath configuration is correct"""
 
@@ -485,10 +502,12 @@ class ISCSIMPathScenario(xenrt.TestCase):
         self.pool = self.getDefaultHost().getPool()
         self.host = self.pool.master
 
-        # Port 3260, and then desired interface.
-        interface = "eth0"
-        port = 3260
+        # For each host.
+        # Going to block the same IP, because they are in the same site.
 
+        # Just need to figure out the IP once I think.
+            # Can do it with the other setup.
+        
         # Check number of paths.
         self.checkMultipathsConfig()
         

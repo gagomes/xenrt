@@ -169,6 +169,8 @@ class TCXenServerInstall(xenrt.TestCase):
             else:
                 if bootloader:
                     kwargs = {"bootloader": bootloader}
+                else:
+                    kwargs = {}
                 handle = host.install(interfaces=interfaces,
                                       primarydisk=primarydisk,
                                       guestdisks=disks,

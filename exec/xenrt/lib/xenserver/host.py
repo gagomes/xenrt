@@ -11979,6 +11979,7 @@ class CVSMStorageRepository(StorageRepository):
         pass
 
 class DummyStorageRepository(StorageRepository):
+    SHARED=True
 
     def create(self, size):
         self._create("dummy", {}, physical_size=size)

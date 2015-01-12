@@ -8,6 +8,7 @@
 
 import xenrt, re
 import testcases.benchmarks.workloads
+import xml.etree.ElementTree as ET
 
 class SetupSRsBase(xenrt.TestCase):
     PROTOCOL=None
@@ -476,7 +477,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         # Obtain the pool object to retrieve its hosts.
         self.pool = self.getDefaultHost().getPool()
 
-
+        # Set up for specific site. Going to assume that there is only one filer.
         filerdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
         filers = filerdict.keys()
         if len(filers) == 0:
@@ -490,14 +491,26 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                           "TARGET"],
                                          None)
 
+        # Want to find the IP of a controller, so can block that IP on the host.
         cli = self.getDefaultHost().getCLIInstance()
         try:
             xml = cli.execute("sr-probe", "type=iscsi device-config:target=%s" % self.FILER_IP)
         except Exception, e:
             xml = str(e.data)
-        self.CONTROLLER_IP = re.search(r"<IPAddress>(.*)</IPAddress>", xml, re.MULTILINE|re.DOTALL).group(1).strip()
+
+        cleanXML = ""
+
+        for line in xml.splitlines(1):
+            if not line.startswith("Error"):
+                cleanXML += line
+
+        root = ET.fromstring(cleanXML)
+
+        # First <TGT>, <IPAddress>
+        self.CONTROLLER_IP = root[0][1].text.strip()
+
         xenrt.TEC().logverbose("Filer IP : %s" % self.FILER_IP)
-        xenrt.TEC().logverbose("Pciked controller IP : %s" % self.CONTROLLER_IP)
+        xenrt.TEC().logverbose("Picked controller IP : %s" % self.CONTROLLER_IP)
 
     def checkMultipathsConfig(self, host, disabled=False):
         """Verify the host multipath configuration is correct"""

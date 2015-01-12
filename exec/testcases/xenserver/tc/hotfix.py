@@ -39,7 +39,7 @@ class _Hotfix(xenrt.TestCase):
                 self.host.reboot()
                 self.slave.reboot()
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                 self.host.reboot()
                 
                 if "XS" in hf:
@@ -220,7 +220,7 @@ class _Hotfix(xenrt.TestCase):
                 if self.POOLED:
                     self.pool.applyPatch(xenrt.TEC().getFile(patch))
                 else:
-                    self.host.applyPatch(xenrt.TEC().getFile(patch))
+                    self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                     
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
@@ -249,7 +249,7 @@ class _Hotfix(xenrt.TestCase):
                     raise xenrt.XRTFailure("slave /etc/xensource/pool.conf changed after hotfix application")
             
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
             patches2 = self.host.minimalList("patch-list")
             self.host.execdom0("xe patch-list")
             if len(patches2) <= len(patches):
@@ -635,7 +635,7 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016"]
     
     
 # Upgrades

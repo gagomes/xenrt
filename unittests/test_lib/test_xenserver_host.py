@@ -32,7 +32,7 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearWaterGetsRandomCores(self, tec, gec, rand):
         """Clearwater hosts do get random called when setting sockets"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
+        tec.return_value.lookup = Mock(return_value=0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertTrue(rand.called)
 
@@ -41,7 +41,7 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testClearwaterGetsSocketsSet(self, tec, gec):
         """For a CLR host the number of sockets should be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
+        tec.return_value.lookup = Mock(return_value=0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertTrue(self.__sockets.called)
 
@@ -51,7 +51,7 @@ class TestCoresPerSocket(XenRTUnitTestCase):
         """For a CLR host the number of sockets should be set if the
         cores per socket value has been pulled from the database"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.ClearwaterHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 4)
+        tec.return_value.lookup = Mock(return_value=4)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertTrue(self.__sockets.called)
 
@@ -60,7 +60,7 @@ class TestCoresPerSocket(XenRTUnitTestCase):
     def testTampaDoesntGetSocketsSet(self, tec, gec):
         """For TAM hosts expect the number of sockets not to be set"""
         host = self.__setMocksOnHost(xenrt.lib.xenserver.host.TampaHost(None, None))
-        tec.return_value.lookup = Mock(return_value = 0)
+        tec.return_value.lookup = Mock(return_value=0)
         host.setRandomCoresPerSocket(self.__guest, 23)
         self.assertFalse(self.__sockets.called)
 
@@ -202,3 +202,35 @@ class TestNFSv4StorageRepository(XenRTUnitTestCase):
             },
             sr.dconf
         )
+
+
+class TestHostLicenceBehaviourForCreedence(XenRTUnitTestCase):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.CreedenceHost(None, None)
+
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.allLicences")
+    @patch('xenrt.TEC')
+    def testAllSKUsReturnListOfLicences(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses()
+        self.assertTrue(fac.called)
+
+    @patch("xenrt.lib.xenserver.licensing.XenServerLicenceFactory.xenserverOnlyLicences")
+    @patch('xenrt.TEC')
+    def testXenServerOnlySKUsReturnListOfLicences(self, tec, fac):
+        host = self._getHost()
+        host.validLicenses(True)
+        self.assertTrue(fac.called)
+
+
+class TestHostLicenceBehaviourForTampa(TestHostLicenceBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.TampaHost(None, None)
+
+
+class TestHostLicenceBehaviourForClearwater(TestHostLicenceBehaviourForCreedence):
+
+    def _getHost(self):
+        return xenrt.lib.xenserver.host.ClearwaterHost(None, None)

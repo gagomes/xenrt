@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+<xenrt>
+
+  <!-- Verify Tampa to Creedence upgrade license tests 1 -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Tampa"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235/"/>
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>    
+  </variables>
+
+ <preprepare>
+      <host id="0">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+        <vm name="oldLicenseServer">
+          <file>%OLD_LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+ </preprepare>
+
+  <prepare>     
+        <pool id="0">
+        <host id="1" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>                 
+        <host id="2" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}" license="no"/>
+        <storage type="nfs" name="nfssr" default="true"/>
+        </pool> 
+  </prepare>
+
+  <testsequence>
+   <serial group="TampaUpgWithOldLicServer" blocker="yes">      
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23340" tc="TC-23340">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicensesku=Advance</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
+      </testcase>  
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23341" tc="TC-23341">
+        <arg>expectedsku=PerSocketEnterprise</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicensesku=Platinum</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
+      </testcase>
+      <action action="prepare"/>
+      <testcase id="xenserver.tc.mulskulicense.TCUpgrade" name="TC23342" tc="TC-23342">
+        <arg>expectedsku=XenDesktop</arg>
+        <arg>oldlicenseserver=oldLicenseServer</arg>
+        <arg>oldlicensesku=XenDesktop</arg>
+        <arg>newlicenseserver=LicenseServer</arg>
+        <arg>grace</arg>
+      </testcase> 
+   </serial>   
+    
+  </testsequence>
+</xenrt>

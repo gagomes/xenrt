@@ -325,6 +325,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
         a string containing XML or a XML DOM node."""
         pass
 
+    def getAssumedId(self, friendlyname):
+        # cloudbrX -> MAC         virsh iface-mac
+        #          -> assumedid   h.listSecondaryNICs
+
+        brname = friendlyname
+        nicmac = self.execvirt("virsh iface-mac %s" % brname).strip()
+        assumedids = self.listSecondaryNICs(macaddr=nicmac)
+        xenrt.TEC().logverbose("getAssumedId (KVMHost: %s): MAC %s corresponds to assumedids %s" % (self, nicmac, assumedids))
+        return assumedids[0]
+
     def tailorForCloudStack(self, isCCP, isLXC=False):
         """Tailor this host for use with ACS/CCP"""
 

@@ -97,28 +97,28 @@
 
   <testsequence>
     <parallel workers="8" group="Stress">
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos1" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/centos1">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos1" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/centos1">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos2" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/centos2">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos2" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/centos2">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos3" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/centos3">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos3" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/centos3">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos4" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/centos4">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="centos4" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/centos4">
         <arg>distro=centos64_x86-64</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian1" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/debian1">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian1" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/debian1">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian2" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/debian2">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian2" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/debian2">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian3" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/debian3">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian3" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/debian3">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
-      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian4" tc="TC-999111" sku="${TESTED_HYPERVISOR}/Basic/debian4">
+      <testcase id="cloud.tc.stress.TCStopStartInstanceStress" name="debian4" tc="TC-23776" sku="${TESTED_HYPERVISOR}/Basic/debian4">
         <arg>distro=debian70_x86-32</arg>
       </testcase>
     </parallel>

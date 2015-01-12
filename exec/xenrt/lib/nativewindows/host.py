@@ -103,6 +103,39 @@ class WindowsHost(xenrt.GenericHost):
         self.distro = "ws12r2-x64"
         return
 
+    def bootPythonWinPE(self):
+        # Construct a PXE target
+        pxe1 = xenrt.PXEBoot()
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe1.setSerial(serport, serbaud)
+        pxe2 = xenrt.PXEBoot()
+        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe2.setSerial(serport, serbaud)
+        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
+        if chain:
+            pxe1.addEntry("local", boot="chainlocal", options=chain)
+        else:
+            pxe1.addEntry("local", boot="local")
+
+        pxe1.addEntry("ipxe", boot="ipxe")
+        pxe1.setDefault("ipxe")
+        pxe1.writeOut(self.machine)
+
+        winpe = pxe2.addEntry("winpe", boot="memdisk")
+        winpe.setInitrd("%s/wininstall/netinstall/python/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
+        winpe.setArgs("iso raw")
+        
+        pxe2.setDefault("winpe")
+        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
+        ipxescript = """set 209:string pxelinux.cfg/%s
+chain tftp://${next-server}/pxelinux.0
+""" % os.path.basename(filename)
+        pxe2.writeIPXEConfig(self.machine, ipxescript)
+
+        self.machine.powerctl.cycle()
+
     def installWindows(self):
         # Construct a PXE target
         pxe1 = xenrt.PXEBoot()

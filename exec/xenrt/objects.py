@@ -10317,19 +10317,24 @@ write $computers.psbase.get_Children()
         data = self.place.xmlrpcExec(script, powershell=True, returndata=True)
         return re.findall("{CN=([^,]+)", data)
 
-    def __init__(self, place, username="Administrator", password=None, domainname=None):
+    def __init__(self, place, username="Administrator", password=None, domainname=None, dontinstall=False):
         self.users = []
         self.groups = []
         self.type = "AD"
         self.place = place
-
-        if self.place.xmlrpcWindowsVersion() < "6.0":
-            raise xenrt.XRTError("XenRT only supports Active Directory on "
-                                 "Vista and higher.")
-
         self.place.superuser = username
-        if password:
-            self.place.password = password
+        self.place.password = password
+        self.domainname = domainname
+        self.netbiosname = None
+
+        if not dontinstall:
+            self.prepare()
+            self.install()
+
+    def prepare(self):
+        if float(self.place.xmlrpcWindowsVersion()) < 6.0:
+            raise xenrt.XRTError("XenRT only supports Active Directory on Windows Server 2008 and higher.")
+
         if not self.place.password:
             self.place.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                       "ADMINISTRATOR_PASSWORD"])
@@ -10339,30 +10344,33 @@ write $computers.psbase.get_Children()
         else:
             self.place.logFetchExclude = ["security"]
 
-        data = self.place.xmlrpcExec("servermanagercmd -q", returndata=True)
         activeDirectoryConfigured = False
+        currentDomainName = None
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            data = self.place.xmlrpcExec("servermanagercmd -q", returndata=True)
+        else:
+            data = self.place.xmlrpcExec("Get-WindowsFeature AD-Domain-Services",powershell=True, returndata=True)
         if re.search("\[X\].*Active Directory Domain Services", data):
             try:
-                self.domainname = unicode(string.lower(self.place.xmlrpcGetEnvVar("USERDNSDOMAIN")))
+                currentDomainName = unicode(string.lower(self.place.xmlrpcGetEnvVar("USERDNSDOMAIN")))
                 activeDirectoryConfigured = True
             except:
-                # No domain - AD is probably not set up
-                self.domainname = None
+                pass
             self.netbiosname = unicode(self.place.xmlrpcGetEnvVar("USERDOMAIN"))
-            if domainname and not domainname == self.domainname:
+            if self.domainname and not self.domainname == currentDomainName:
                 # re-install to change the domain name
                 self.uninstall()
                 self.install()
+            else:
+                self.domainname = currentDomainName
 
         if activeDirectoryConfigured:
             xenrt.TEC().logverbose("Active Directory server already installed. "
                                    "(Domain: %s)" % (self.domainname))
         else:
             extension = str(random.randint(0, 0x7fff))
-            if domainname == None:
+            if self.domainname == None:
                 self.domainname = u"xenrt%s.local" % (extension)
-            else:
-                self.domainname = domainname
             self.netbiosname = u"XENRTXENRT%s" % (string.upper(extension))
             self.install()
 
@@ -10378,7 +10386,23 @@ write $computers.psbase.get_Children()
     def install(self):
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
+        self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
+        
+        self.rename(self.getName())
+        
         # Set up a new AD domain.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            self.installOnWS2008()
+        elif float(self.place.xmlrpcWindowsVersion()) == 6.3:
+            self.installOnWS2012()
+        else:
+            raise xenrt.XRTError("Unimplemented")
+        # This manages to get switched back on during the AD install.
+        self.place.disableWindowsPasswordComplexityCheck()
+        self.place.reboot()
+        xenrt.TEC().logverbose("Installed Active Directory Server. (Domain: %s)" % (self.domainname))
+
+    def installOnWS2008(self):
         dcpromo = """
 [DCInstall]
 ReplicaOrNewDomain=Domain
@@ -10410,14 +10434,32 @@ RebootOnSuccess=No
                              "DependOnService",
                              "MULTI_SZ",
                               current + ["DNS"])
-        self.place.reboot()
-        # This manages to get switched back on during the AD install.
-        self.place.disableWindowsPasswordComplexityCheck()
-        xenrt.TEC().logverbose("Installed Active Directory Server. (Domain: %s)" % (self.domainname))
+
+    def installOnWS2012(self):
+        self.place.xmlrpcExec("install-WindowsFeature AD-Domain-Services",powershell=True)
+        psscript = """Import-Module ADDSDeployment;
+Install-ADDSForest `
+-CreateDnsDelegation:$false `
+-DatabasePath "C:\Windows\NTDS" `
+-DomainMode "Win2008" `
+-DomainName "%s" `
+-DomainNetbiosName "%s" `
+-ForestMode "Win2008" `
+-InstallDns:$true `
+-LogPath "C:\Windows\NTDS" `
+-NoRebootOnCompletion:$true `
+-SysvolPath "C:\Windows\SYSVOL" `
+-Force:$true `
+-Confirm:$false `
+-SafeModeAdministratorPassword `
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
+        self.place.xmlrpcExec(script,powershell=True,returndata=True)
+        self.place.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (self.domainname, "Administrator"), level=xenrt.RC_OK)
 
     def uninstall(self):
         # "Demote" the AD controller.
-        dcpromo = """
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            dcpromo = """
 [DCInstall]
 UserName=%s
 Password=%s
@@ -10426,11 +10468,25 @@ AdministratorPassword=%s
 IsLastDCInDomain=Yes
 RebootOnSuccess=Yes
 """ % (self.place.superuser, self.place.password, self.place.password)
-        self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
-        self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
-                               timeout=1800, returnerror=False)
-        self.place.xmlrpcRemoveFile("c:\\ad.txt")
-        xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
+            self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
+            self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
+                                   timeout=1800, returnerror=False)
+            self.place.xmlrpcRemoveFile("c:\\ad.txt")
+            xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
+        elif float(self.place.xmlrpcWindowsVersion()) == 6.3:
+            script = """Uninstall-ADDSDomainController `
+-NoRebootOnCompletion:$true `
+-confirm:$false `
+-LastDomainControllerInDomain:$true `
+-IgnoreLastDnsServerForZone:$true `
+-LocalAdministratorPassword:$true `
+-RemoveApplicationPartitions:$true `
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
+            self.place.xmlrpcExec(script,powershell=True,returndata=True)
+            self.place.disableWindowsPasswordComplexityCheck()
+            self.place.reboot()
+            self.place.xmlrpcExec("uninstall-WindowsFeature AD-Domain-Services",powershell=True)
+            self.place.reboot()
 
     def debugDump(self, fd=sys.stdout):
         fd.write("AD groups and users on %s\n" % (self.place.getName()))

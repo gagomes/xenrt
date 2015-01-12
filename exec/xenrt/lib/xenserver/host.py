@@ -17,6 +17,7 @@ import IPy
 import xenrt
 import xenrt.lib.xenserver
 import xenrt.lib.xenserver.guest
+import xenrt.lib.xenserver.install
 import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
@@ -591,7 +592,6 @@ class Host(xenrt.GenericHost):
         self.i_extracds = None
         self.i_upgrade = None
         self.i_async = None
-        self.i_installsource = None
         self.i_suppackcds = None
         self.rebootingforbugtool = False
         self.defaultsr = None
@@ -649,7 +649,6 @@ class Host(xenrt.GenericHost):
         x.i_extracds = self.i_extracds
         x.i_upgrade = self.i_upgrade
         x.i_async = self.i_async
-        x.i_installsource = self.i_installsource
         x.i_suppackcds = self.i_suppackcds
         x.defaultsr = self.defaultsr
         x.srs = self.srs
@@ -714,7 +713,6 @@ class Host(xenrt.GenericHost):
                      ntpserver=self.i_ntpserver, nameserver=self.i_nameserver,
                      hostname=self.i_hostname, extracds=self.i_extracds,
                      upgrade=self.i_upgrade, async=self.i_async, 
-                     installsource=self.i_installsource, 
                      suppackcds=self.i_suppackcds)
     
     def install(self,
@@ -731,7 +729,6 @@ class Host(xenrt.GenericHost):
                 upgrade=False,
                 riotorio=False,
                 async=False,
-                installsource=None,
                 installSRType=None,
                 bootloader=None,
                 overlay=None,
@@ -757,7 +754,6 @@ class Host(xenrt.GenericHost):
             self.i_extracds = extracds
             self.i_upgrade = upgrade
             self.i_async = async
-            self.i_installsource = installsource
             self.i_suppackcds = suppackcds
             self.resetDisk()
 
@@ -783,18 +779,17 @@ class Host(xenrt.GenericHost):
                 xenrt.TEC().warning("Exception getting bugtool before upgrade:"
                                     " %s" % (str(e)))
 
-        if not installsource:
-            # Check and lookup variables and files
-            if not cd:
-                imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
-                xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
-                imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
-                                               xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
-                cd = xenrt.TEC().getFile(os.path.join(imagePath, imageName), imageName)
-            if not cd:
-                raise xenrt.XRTError("No CD image supplied.")
-            xenrt.checkFileExists(cd)
-            self.cd = cd
+        # Check and lookup variables and files
+        if not cd:
+            imageName = xenrt.TEC().lookup("CARBON_CD_IMAGE_NAME", 'main.iso')
+            xenrt.TEC().logverbose("Using XS install image name: %s" % (imageName))
+            imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
+                                           xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+            cd = xenrt.TEC().getFile(os.path.join(imagePath, imageName), imageName)
+        if not cd:
+            raise xenrt.XRTError("No CD image supplied.")
+        xenrt.checkFileExists(cd)
+        self.cd = cd
 
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
@@ -817,139 +812,133 @@ class Host(xenrt.GenericHost):
         # Get a PXE directory to put boot files in
         pxe = xenrt.PXEBoot(iSCSILUN = self.bootLun)
         use_mboot_img = xenrt.TEC().lookup("USE_MBOOT_IMG", False, boolean=True)
-        
-        if installsource:
-            packdir, mountpoint = installsource
-            pidir = xenrt.WebDirectory()
-            pxe.copyIn("%s/boot/*" % (mountpoint))
-            pxe.copyIn("%s/install.img" % (mountpoint))
+       
+        # Pull installer boot files from CD image and put into PXE
+        # directory
+        xenrt.TEC().logverbose("Using ISO %s" % (cd))
+        mount = xenrt.MountISO(cd)
+        mountpoint = mount.getMount()
+        pxe.copyIn("%s/boot/*" % (mountpoint))
+        instimg = xenrt.TEC().lookup("CUSTOM_INSTALL_IMG", None)
+        if instimg:
+            pxe.copyIn(xenrt.TEC().getFile(instimg), "install.img")
         else:
-            # Pull installer boot files from CD image and put into PXE
-            # directory
-            xenrt.TEC().logverbose("Using ISO %s" % (cd))
-            mount = xenrt.MountISO(cd)
-            mountpoint = mount.getMount()
-            pxe.copyIn("%s/boot/*" % (mountpoint))
-            instimg = xenrt.TEC().lookup("CUSTOM_INSTALL_IMG", None)
-            if instimg:
-                pxe.copyIn(xenrt.TEC().getFile(instimg), "install.img")
-            else:
-                pxe.copyIn("%s/install.img" % (mountpoint))
-            # For NetScaler SDX
-            if use_mboot_img:
-                imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
-                                               xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
-                pxe.copyIn(xenrt.TEC().getFile(os.path.join(imagePath, "mboot.img")), "mboot.img")
-            # Copy installer packages to a web/nfs directory
-            if source == "url":
-                packdir = xenrt.WebDirectory()
-                pidir = xenrt.WebDirectory()
-            elif source == "nfs":
-                packdir = xenrt.NFSDirectory()
-                pidir = xenrt.NFSDirectory()
-            else:
-                raise xenrt.XRTError("Unknown install source method '%s'." %
-                                     (source))
-            if os.path.exists("%s/packages" % (mountpoint)):
-                # Pre 0.4.3-1717 layout
-                packdir.copyIn("%s/packages/*" % (mountpoint))
-            else:
-                # Split ISO layout
-                packdir.copyIn("%s/packages.*" % (mountpoint))
+            pxe.copyIn("%s/install.img" % (mountpoint))
+        # For NetScaler SDX
+        if use_mboot_img:
+            imagePath = xenrt.TEC().lookup("CD_PATH_%s" % self.productVersion.upper(), 
+                                           xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+            pxe.copyIn(xenrt.TEC().getFile(os.path.join(imagePath, "mboot.img")), "mboot.img")
+        # Copy installer packages to a web/nfs directory
+        if source == "url":
+            packdir = xenrt.WebDirectory()
+            pidir = xenrt.WebDirectory()
+        elif source == "nfs":
+            packdir = xenrt.NFSDirectory()
+            pidir = xenrt.NFSDirectory()
+        else:
+            raise xenrt.XRTError("Unknown install source method '%s'." %
+                                 (source))
+        if os.path.exists("%s/packages" % (mountpoint)):
+            # Pre 0.4.3-1717 layout
+            packdir.copyIn("%s/packages/*" % (mountpoint))
+        else:
+            # Split ISO layout
+            packdir.copyIn("%s/packages.*" % (mountpoint))
 
-            # If there's an XS-REPOSITORY-LIST, copy it in
+        # If there's an XS-REPOSITORY-LIST, copy it in
+        if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
+            packdir.copyIn("%s/XS-REPOSITORY-LIST" % (mountpoint))
+            dstfile = "%s/XS-REPOSITORY-LIST" % packdir.dir
+            os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
+
+        # If we have any extra CDs, copy the extra packages as well
+        if extracds:
+            ecds = extracds
+        else:
+            ecds = self.getDefaultAdditionalCDList()
+        if ecds:
+            for ecdi in string.split(ecds, ","):
+                if os.path.exists(ecdi):
+                    # XRT-813 transition, remove this eventually
+                    ecd = ecdi
+                else:
+                    ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
+                                              os.path.basename(ecdi))
+                if not ecd:
+                    raise xenrt.XRTError("Couldn't find %s." % (ecdi))
+                xenrt.TEC().logverbose("Using extra CD %s" % (ecd))
+                emount = xenrt.MountISO(ecd)
+                emountpoint = emount.getMount()
+                packdir.copyIn("%s/packages.*" % (emountpoint))
+                emount.unmount()
+
+        # If we have any supplemental pack CDs, copy their contents as well
+        # and contruct the XS-REPOSITORY-LIST file
+        if suppackcds is None:
+            suppackcds = self.getSupplementalPackCDs()
+        supptarballs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_TGZS", None)
+        suppdirs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_DIRS", None)
+        
+        if suppackcds or supptarballs or suppdirs:
+            repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
+            repo = file(repofile, "w")
             if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
-                packdir.copyIn("%s/XS-REPOSITORY-LIST" % (mountpoint))
-                dstfile = "%s/XS-REPOSITORY-LIST" % packdir.dir
-                os.chmod(dstfile, os.stat(dstfile)[stat.ST_MODE]|stat.S_IWUSR)
-
-            # If we have any extra CDs, copy the extra packages as well
-            if extracds:
-                ecds = extracds
-            else:
-                ecds = self.getDefaultAdditionalCDList()
-            if ecds:
-                for ecdi in string.split(ecds, ","):
-                    if os.path.exists(ecdi):
-                        # XRT-813 transition, remove this eventually
-                        ecd = ecdi
-                    else:
-                        ecd = xenrt.TEC().getFile("xe-phase-1/%s" % (os.path.basename(ecdi)),
-                                                  os.path.basename(ecdi))
-                    if not ecd:
-                        raise xenrt.XRTError("Couldn't find %s." % (ecdi))
-                    xenrt.TEC().logverbose("Using extra CD %s" % (ecd))
-                    emount = xenrt.MountISO(ecd)
-                    emountpoint = emount.getMount()
-                    packdir.copyIn("%s/packages.*" % (emountpoint))
-                    emount.unmount()
-
-            # If we have any supplemental pack CDs, copy their contents as well
-            # and contruct the XS-REPOSITORY-LIST file
-            if suppackcds is None:
-                suppackcds = self.getSupplementalPackCDs()
-            supptarballs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_TGZS", None)
-            suppdirs = xenrt.TEC().lookup("SUPPLEMENTAL_PACK_DIRS", None)
-            
-            if suppackcds or supptarballs or suppdirs:
-                repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
-                repo = file(repofile, "w")
-                if os.path.exists("%s/XS-REPOSITORY-LIST" % (mountpoint)):
-                    f = file("%s/XS-REPOSITORY-LIST" % (mountpoint), "r")
-                    repo.write(f.read())
-                    f.close()
-                if supptarballs:
-                    for supptar in supptarballs.split(","):
-                        tarball = xenrt.TEC().getFile(supptar)
-                        if not tarball:
-                            tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
-                        if not tarball:
-                            tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
-                        if not tarball:
-                            raise xenrt.XRTError("Couldn't find %s." % (supptar))
-                        xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
-                        tdir = xenrt.TEC().tempDir()
-                        xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir)) 
-                        mnt = xenrt.MountISO("%s/*.iso" % (tdir))
-                        extrapi = file("%s/post-install.sh" % (tdir)).read()
-                        extrapi = re.sub("exit.*", "", extrapi)
-                        packdir.copyIn("%s/*" % (mnt.getMount()),
-                                       "/packages.%s/" % (os.path.basename(tarball).strip(".tgz")))
-                        repo.write("packages.%s\n" % (os.path.basename(tarball).strip(".tgz")))
-                if suppackcds:    
-                    for spcdi in string.split(suppackcds, ","):
-                        # Try a fetch from the inputdir first
-                        spcd = xenrt.TEC().getFile(spcdi)
-                        if not spcd:
-                            # Try the local test inputs
-                            spcd = "%s/suppacks/%s" % (\
-                                xenrt.TEC().lookup("TEST_TARBALL_ROOT"),
-                                os.path.basename(spcdi))
-                            if not os.path.exists(spcd):
-                                raise xenrt.XRTError(\
-                                    "Supplemental pack CD not found locally or "
-                                    "remotely: %s" % (spcdi))
-                                
-                        xenrt.TEC().comment("Using supplemental pack CD %s" % (spcd))
-                        spmount = xenrt.MountISO(spcd)
-                        spmountpoint = spmount.getMount()
-                        packdir.copyIn("%s/*" % (spmountpoint),
-                                       "/packages.%s/" % (os.path.basename(spcdi)))
-                        repo.write("packages.%s\n" % (os.path.basename(spcdi)))
-                if suppdirs:
-                    for sd in string.split(suppdirs, ","):
-                        tgz = xenrt.TEC().getFile(sd)
-                        if not tgz:
-                            raise xenrt.XRTError("Supplemental pack dir not found: %s" % sd)
-                        t = xenrt.resources.TempDirectory()
-                        xenrt.util.command("tar -C %s -xvzf %s" % (t.dir, tgz))
-                        packdir.copyIn("%s/*" % t.dir, "/packages.%s/" % os.path.basename(tgz))
-                        repo.write("packages.%s\n" % (os.path.basename(tgz)))
-                        t.remove()
-                repo.close()
-                packdir.copyIn(repofile)
-                xenrt.TEC().copyToLogDir(repofile,
-                                         target="XS-REPOSITORY-LIST-%s" % self.getName())
+                f = file("%s/XS-REPOSITORY-LIST" % (mountpoint), "r")
+                repo.write(f.read())
+                f.close()
+            if supptarballs:
+                for supptar in supptarballs.split(","):
+                    tarball = xenrt.TEC().getFile(supptar)
+                    if not tarball:
+                        tarball = xenrt.TEC().getFile("xe-phase-1/%s" % (supptar))
+                    if not tarball:
+                        tarball = xenrt.TEC().getFile("xe-phase-2/%s" % (supptar))
+                    if not tarball:
+                        raise xenrt.XRTError("Couldn't find %s." % (supptar))
+                    xenrt.TEC().comment("Using supplemental pack tarball %s." % (tarball))
+                    tdir = xenrt.TEC().tempDir()
+                    xenrt.util.command("tar -zxf %s -C %s" % (tarball, tdir)) 
+                    mnt = xenrt.MountISO("%s/*.iso" % (tdir))
+                    extrapi = file("%s/post-install.sh" % (tdir)).read()
+                    extrapi = re.sub("exit.*", "", extrapi)
+                    packdir.copyIn("%s/*" % (mnt.getMount()),
+                                   "/packages.%s/" % (os.path.basename(tarball).strip(".tgz")))
+                    repo.write("packages.%s\n" % (os.path.basename(tarball).strip(".tgz")))
+            if suppackcds:    
+                for spcdi in string.split(suppackcds, ","):
+                    # Try a fetch from the inputdir first
+                    spcd = xenrt.TEC().getFile(spcdi)
+                    if not spcd:
+                        # Try the local test inputs
+                        spcd = "%s/suppacks/%s" % (\
+                            xenrt.TEC().lookup("TEST_TARBALL_ROOT"),
+                            os.path.basename(spcdi))
+                        if not os.path.exists(spcd):
+                            raise xenrt.XRTError(\
+                                "Supplemental pack CD not found locally or "
+                                "remotely: %s" % (spcdi))
+                            
+                    xenrt.TEC().comment("Using supplemental pack CD %s" % (spcd))
+                    spmount = xenrt.MountISO(spcd)
+                    spmountpoint = spmount.getMount()
+                    packdir.copyIn("%s/*" % (spmountpoint),
+                                   "/packages.%s/" % (os.path.basename(spcdi)))
+                    repo.write("packages.%s\n" % (os.path.basename(spcdi)))
+            if suppdirs:
+                for sd in string.split(suppdirs, ","):
+                    tgz = xenrt.TEC().getFile(sd)
+                    if not tgz:
+                        raise xenrt.XRTError("Supplemental pack dir not found: %s" % sd)
+                    t = xenrt.resources.TempDirectory()
+                    xenrt.util.command("tar -C %s -xvzf %s" % (t.dir, tgz))
+                    packdir.copyIn("%s/*" % t.dir, "/packages.%s/" % os.path.basename(tgz))
+                    repo.write("packages.%s\n" % (os.path.basename(tgz)))
+                    t.remove()
+            repo.close()
+            packdir.copyIn(repofile)
+            xenrt.TEC().copyToLogDir(repofile,
+                                     target="XS-REPOSITORY-LIST-%s" % self.getName())
 
         # Create an NFS directory for the installer to signal completion
         nfsdir = xenrt.NFSDirectory()
@@ -1678,10 +1667,6 @@ done
         
         pxecfg.mbootArgsModule1Add("output=ttyS0")
 
-        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
-            pxecfg.mbootArgsModule1Add("net.ifnames=0")
-            pxecfg.mbootArgsModule1Add("biosdevname=0")
-
         mac = self.lookup("MAC_ADDRESS", None)
         if mac:
             pxecfg.mbootArgsModule1Add("answerfile_device=%s" % (mac))
@@ -1749,9 +1734,8 @@ done
             ipfname = os.path.basename(ipxefile)
             xenrt.TEC().copyToLogDir(ipxefile,target="%s.ipxe.txt" % (ipfname))
 
-        if not installsource:
-            # We're done with the ISO now
-            mount.unmount()
+        # We're done with the ISO now
+        mount.unmount()
         
         # Reboot the host into the installer
         if self.lookup("INSTALL_DISABLE_FC", False, boolean=True):
@@ -11408,6 +11392,8 @@ class DundeeHost(CreedenceHost):
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTGro)
         self.registerJobTest(xenrt.lib.xenserver.jobtests.JTDeadLetter)
 
+        self.installer = None
+
     def isCentOS7Dom0(self):
         return xenrt.TEC().lookup("CENTOS7_DOM0", False, boolean=True)
 
@@ -11528,6 +11514,19 @@ class DundeeHost(CreedenceHost):
             self.execdom0('/bin/sh /boot/initrd-*.img.cmd')
             self.reboot()
             self.waitForSSH(300, desc="host reboot after enabling virtual functions")
+
+    def getInstaller(self):
+        if not self.installer:
+            self.installer = xenrt.lib.xenserver.install.DundeeInstaller(self)
+        return self.installer
+
+    def install(self,
+                *args,
+                **kwargs):
+
+        xenrt.TEC().logverbose("Using DundeeHost.install")
+
+        self.getInstaller().install(*args, **kwargs)
 
 #############################################################################
 

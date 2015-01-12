@@ -12,6 +12,7 @@
 # for users of this package - internal references are to the submodules
 from xenrt.lib.xenserver.cli import *
 from xenrt.lib.xenserver.host import *
+from xenrt.lib.xenserver.install import *
 from xenrt.lib.xenserver.guest import *
 from xenrt.lib.xenserver.xsconsole import *
 from xenrt.lib.xenserver.cimxml import *

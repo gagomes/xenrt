@@ -44,7 +44,7 @@
     </serial>
 
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleWithAllPaths" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="WithAllPaths" />
     </serial>
 
     <serial group="Multipath">
@@ -55,7 +55,7 @@
       </testcase>
     </serial>
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="LifeCycleWithRemovedPath" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterRecover" />
     </serial>
 
   </testsequence>

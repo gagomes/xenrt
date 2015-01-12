@@ -3276,10 +3276,9 @@ class Config:
         
         # Guy - bash. Rolls up XS62E014,XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1015"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1015/89778/hotfix-XS62ESP1015/XS62ESP1015.xsupdate"
-
-
-
-
+        
+        # Nautilus - sm, xen-hyp, xen-tools, xapi, kexec, iSL. Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011, XS62ESP1013, XS62ESP1015
+        self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1016/90390/hotfix-XS62ESP1016/XS62ESP1016.xsupdate"
 
 
         return
@@ -3420,8 +3419,8 @@ class Config:
             self.config["CARBON_PATCHES_CLEARWATER"]["HF04"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF09"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1009"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF14"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1014"]
-            self.config["CARBON_PATCHES_CLEARWATER"]["HF15"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1015"]
             self.config["CARBON_PATCHES_CLEARWATER"]["HF12"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"]
+            self.config["CARBON_PATCHES_CLEARWATER"]["HF16"] = self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1016"]
 
     def readFromFile(self, filename, path=None):
         """Read config from an XML file."""

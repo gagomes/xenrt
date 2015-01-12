@@ -6,7 +6,7 @@
 # copyrighted material is governed by and subject to terms and
 # conditions as licensed by Citrix Systems, Inc. All other rights reserved.
 
-import xenrt, re
+import xenrt
 import testcases.benchmarks.workloads
 import xml.etree.ElementTree as ET
 
@@ -452,7 +452,6 @@ class ISCSIMPathScenario(xenrt.TestCase):
     # Based on current config of site.
     AVAILABLE_PATHS = 2
     PATH_FACTOR = 0.5
-    PATH = None # This is the path connected to FAS2040 NetApp.
 
     EXPECTED_MPATHS = None # Will be calculated.
     ATTEMPTS =  None
@@ -475,7 +474,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         self.EXPECTED_MPATHS = linuxVMSRs + windowsVMSRs
 
         # Obtain the pool object to retrieve its hosts.
-        self.pool = self.getDefaultHost().getPool()
+        self.pool = self.getDefaultPool()
 
         # Set up for specific site. Going to assume that there is only one filer.
         filerdict = xenrt.TEC().lookup("NETAPP_FILERS", None)
@@ -542,7 +541,10 @@ class ISCSIMPathScenario(xenrt.TestCase):
             attempts = 1
             while True:
                 xenrt.TEC().logverbose("Finding the device paths for scsiid %s. Attempt %s " % (scsiid, attempts))
-                paths = len(host.getMultipathInfo()[scsiid])
+                info = host.getMultipathInfo()[scsiid]
+                paths = len(info)
+                xenrt.TEC().logverbose("Length : %s \n%s" % (len(info), info))
+                xenrt.TEC().logverbose(info)
                 if paths != expectedDevicePaths:
                     attempts = attempts + 1
                 else:

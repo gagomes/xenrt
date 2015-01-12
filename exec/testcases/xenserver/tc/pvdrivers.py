@@ -9,7 +9,9 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, os.path
+from datetime import datetime
 import xenrt
+from xenrt.lib.xenserver.signedpackages import *
 
 class TC8369(xenrt.TestCase):
     """Verify Windows PV drivers install to a Windows 2008 x64 VM without a test certificate"""

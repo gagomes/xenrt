@@ -530,7 +530,6 @@ class ISCSIMPathScenario(xenrt.TestCase):
             xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
 
             mpaths = host.getMultipathInfo(onlyActive=True)
-            xenrt.TEC().logverbose(mpaths)
 
             if len(mpaths) != self.EXPECTED_MPATHS:
                 raise xenrt.XRTFailure("Incorrect number of devices (attempt %s) "
@@ -558,7 +557,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         # 1. Verify multipath configuration is correct.
         [self.checkPathCount(x) for x in self.pool.getHosts()]
 
-        startTime = xenrt.util.timenow() # used in step (12)
+        startTime = xenrt.util.timenow() # used in step (10)
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
@@ -570,7 +569,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                                 (host, (xenrt.util.timenow() - disableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
-        xenrt.TEC().logverbose("The overall time taken to fail the path is %s seconds." % 
+        xenrt.TEC().logverbose("The overall time taken to fail the path (all hosts) is %s seconds." % 
                                                     (xenrt.util.timenow() - overallDisableTime))
 
         overallEnableTime = xenrt.util.timenow()
@@ -584,7 +583,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                                         (host, (xenrt.util.timenow() - enableTime)))
 
         # 9. Report the elapsed time beween steps 7 and 8 for all hosts.
-        xenrt.TEC().logverbose("The overall time taken to recover the path is %s seconds." % 
+        xenrt.TEC().logverbose("The overall time taken to recover the path (all hosts) is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
 
         #10. Report the elapsed time between steps 2 and 10.
@@ -613,7 +612,7 @@ class ISCSIPathFail(ISCSIMPathScenario):
                                                 (host, (xenrt.util.timenow() - disableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
-        xenrt.TEC().logverbose("The overall time taken to fail the path is %s seconds." % 
+        xenrt.TEC().logverbose("The overall time taken to fail the path (all hosts) is %s seconds." % 
                                                 (xenrt.util.timenow() - overallDisableTime))
 
 
@@ -637,5 +636,5 @@ class ISCSIPathRecover(ISCSIMPathScenario):
                                                         (host, (xenrt.util.timenow() - enableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
-        xenrt.TEC().logverbose("The overall time taken to recover the path is %s seconds." % 
+        xenrt.TEC().logverbose("The overall time taken to recover the path (all hosts) is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))

@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, urllib, os.path, xmlrpclib
+import re, urllib, os.path, xmlrpclib, shutil
 
 import xenrt
 
@@ -113,9 +113,22 @@ class WindowsHost(xenrt.GenericHost):
         winpe.xmlrpc.exec_shell("diskpart.exe /s x:\\diskpart.txt")
         winpe.reboot()
 
+        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), self.distro)
+        mount = xenrt.MountISO(iso)
+        nfsdir = xenrt.NFSDirectory()
+        xenrt.command("ln -sfT %s %s/iso" % (mount.getMount(), nfsdir.path()))
+
+        os.makedirs("%s/custom" % nfsdir.path())
+        shutil.copy("%s/iso/Autounattend.xml" % nfsdir.path(), "%s/custom/Autounattend.xml" % nfsdir.path())
+
+        xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\install\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
+        shutil.copytree("%s/iso/$OEM$" % nfsdir.path(), "%s/custom/oem" % nfsdir.path())
+
+        winpe.xmlrpc.exec_shell("net use y: %s\\iso" % nfsdir.getCIFSPath()) 
+        winpe.xmlrpc.exec_shell("net use z: %s\\custom" % nfsdir.getCIFSPath()) 
+
         # Mount the install share and start the installer
-        winpe.xmlrpc.exec_shell("net use z: \\\\%s\\share\\wininstall\\netinstall\\%s" % (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), self.distro))
-        winpe.xmlrpc.start_shell("z:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\$OEM$")
+        winpe.xmlrpc.start_shell("y:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\oem")
 
         # Now Construct a PXE target for local boot
         pxe = xenrt.PXEBoot()

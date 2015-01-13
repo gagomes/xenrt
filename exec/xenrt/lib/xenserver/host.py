@@ -2716,7 +2716,7 @@ fi
     def installIperf(self, version=""):
         """Installs the iperf application on the host"""
         if self.execdom0("test -f /usr/bin/iperf", retval="code") != 0:
-            if self.productVersion=="Dundee":
+            if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
                 self.execdom0("yum install kernel-headers --disableexcludes=all -y")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base,updates,extras install -y  gcc-c++")
             self.execdom0("yum --disablerepo=citrix --enablerepo=base install -y make")

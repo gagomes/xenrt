@@ -54,9 +54,20 @@
         <arg>datadisk=2</arg>
       </testcase>
     </serial>
+
     <serial group="LifeCycle">
       <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterRecover" />
     </serial>
+
+    <!-- Fail -->
+
+    <!-- Lifecycle -->
+
+    <!-- Recover -->
+
+    <!-- Lifecycle -->
+
+    <!-- Full -->
 
   </testsequence>
 

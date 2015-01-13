@@ -105,7 +105,7 @@ class WindowsHost(xenrt.GenericHost):
 
     def installWindows(self):
         # Set up the ISO
-        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), self.distro)
+        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), self.productVersion)
         mount = xenrt.MountISO(iso)
         nfsdir = xenrt.NFSDirectory()
         xenrt.command("ln -sfT %s %s/iso" % (mount.getMount(), nfsdir.path()))
@@ -274,34 +274,50 @@ class WinPE(object):
         self.xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.host.getIP())
 
     def boot(self):
-        # Construct a PXE target
-        pxe1 = xenrt.PXEBoot()
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe1.setSerial(serport, serbaud)
-        pxe2 = xenrt.PXEBoot()
-        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe2.setSerial(serport, serbaud)
+        if not xenrt.TEC().lookup("IPXE_UNSUPPORTED", False, boolean=True):
+            # Construct a PXE target
+            pxe1 = xenrt.PXEBoot()
+            serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+            serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+            pxe1.setSerial(serport, serbaud)
+            pxe2 = xenrt.PXEBoot()
+            serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+            serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+            pxe2.setSerial(serport, serbaud)
         
-        pxe1.addEntry("ipxe", boot="ipxe")
-        pxe1.setDefault("ipxe")
-        pxe1.writeOut(self.host.machine)
+            pxe1.addEntry("ipxe", boot="ipxe")
+            pxe1.setDefault("ipxe")
+            pxe1.writeOut(self.host.machine)
 
-        winpe = pxe2.addEntry("winpe", boot="memdisk")
-        if self.host.distro.endswith("-x64"):
-            arch = "amd64"
-        else:
-            arch = "x86"
-        winpe.setInitrd("%s/tftp/winpe/winpe-%s.iso" % (xenrt.TEC().lookup("LOCALURL"), arch))
-        winpe.setArgs("iso raw")
+            winpe = pxe2.addEntry("winpe", boot="memdisk")
+            if self.host.distro.endswith("-x64"):
+                arch = "amd64"
+            else:
+                arch = "x86"
+            winpe.setInitrd("%s/tftp/winpe/winpe-%s.iso" % (xenrt.TEC().lookup("LOCALURL"), arch))
+            winpe.setArgs("iso raw")
         
-        pxe2.setDefault("winpe")
-        filename = pxe2.writeOut(self.host.machine, suffix="_ipxe")
-        ipxescript = """set 209:string pxelinux.cfg/%s
+            pxe2.setDefault("winpe")
+            filename = pxe2.writeOut(self.host.machine, suffix="_ipxe")
+            ipxescript = """set 209:string pxelinux.cfg/%s
 chain tftp://${next-server}/pxelinux.0
 """ % os.path.basename(filename)
-        pxe2.writeIPXEConfig(self.host.machine, ipxescript)
+            pxe2.writeIPXEConfig(self.host.machine, ipxescript)
+        else:
+            pxe = xenrt.PXEBoot()
+            serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+            serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+            pxe.setSerial(serport, serbaud)
+            winpe = pxe.addEntry("winpe", boot="memdisk")
+            if self.host.distro.endswith("-x64"):
+                arch = "amd64"
+            else:
+                arch = "x86"
+            winpe.setInitrd("winpe/winpe-%s.iso" % arch)
+            winpe.setArgs("iso raw")
+        
+            pxe.setDefault("winpe")
+            filename = pxe.writeOut(self.host.machine)
 
         self.host.machine.powerctl.cycle()
         xenrt.sleep(60)

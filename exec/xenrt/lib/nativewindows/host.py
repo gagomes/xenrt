@@ -274,6 +274,10 @@ class WinPE(object):
         self.xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.host.getIP())
 
     def boot(self):
+        if self.host.productVersion.endswith("-x64"):
+            arch = "amd64"
+        else:
+            arch = "x86"
         if not xenrt.TEC().lookup("IPXE_UNSUPPORTED", False, boolean=True):
             # Construct a PXE target
             pxe1 = xenrt.PXEBoot()
@@ -290,10 +294,6 @@ class WinPE(object):
             pxe1.writeOut(self.host.machine)
 
             winpe = pxe2.addEntry("winpe", boot="memdisk")
-            if self.host.distro.endswith("-x64"):
-                arch = "amd64"
-            else:
-                arch = "x86"
             winpe.setInitrd("%s/tftp/winpe/winpe-%s.iso" % (xenrt.TEC().lookup("LOCALURL"), arch))
             winpe.setArgs("iso raw")
         
@@ -309,12 +309,8 @@ chain tftp://${next-server}/pxelinux.0
             serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
             pxe.setSerial(serport, serbaud)
             winpe = pxe.addEntry("winpe", boot="memdisk")
-            if self.host.distro.endswith("-x64"):
-                arch = "amd64"
-            else:
-                arch = "x86"
-            winpe.setInitrd("winpe/winpe-%s.iso" % arch)
             winpe.setArgs("iso raw")
+            winpe.setInitrd("winpe/winpe-%s.iso" % arch)
         
             pxe.setDefault("winpe")
             filename = pxe.writeOut(self.host.machine)

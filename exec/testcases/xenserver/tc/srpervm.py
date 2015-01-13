@@ -511,88 +511,58 @@ class ISCSIMPathScenario(xenrt.TestCase):
         xenrt.TEC().logverbose("Filer IP : %s" % self.FILER_IP)
         xenrt.TEC().logverbose("Picked controller IP : %s" % self.CONTROLLER_IP)
 
-    def checkMultipathsConfig(self, host, disabled=False):
-        """Verify the host multipath configuration is correct"""
-
-        xenrt.TEC().logverbose("checkMultipathsConfig on %s" % host)
-
-        attempts = 1
-        while True:
-            xenrt.TEC().logverbose("Finding the total number of devices. Attempt %s " % attempts)
-            mpaths = host.getMultipathInfo()
-            if len(mpaths) != self.EXPECTED_MPATHS:
-                attempts = attempts + 1
-            else:
-                xenrt.TEC().logverbose("Total number of devices in the system = %s" % len(mpaths))
-                break # expected result.
-
-            if attempts > self.ATTEMPTS:
-                raise xenrt.XRTFailure("Incorrect number of devices even after attempting %s times"
-                                                                            " Found (%s) Expected: %s" %
-                                                            ((attempts-1), len(mpaths), self.EXPECTED_MPATHS))
-            xenrt.sleep(30) # wait for 30 seconds.
+    def checkPathCount(self, host, disabled=False):
+        """Verify the host multipath path count for every device"""
 
         if disabled:
             expectedDevicePaths = self.AVAILABLE_PATHS - (self.PATH_FACTOR * self.AVAILABLE_PATHS)
+            pathState = "disabling"
         else:
             expectedDevicePaths = self.AVAILABLE_PATHS
+            pathState = "enabling"
 
-        for scsiid in mpaths.keys():
-            attempts = 1
-            while True:
-                xenrt.TEC().logverbose("Finding the device paths for scsiid %s. Attempt %s " % (scsiid, attempts))
-                info = host.getMultipathInfo()[scsiid]
-                paths = len(info)
-                xenrt.TEC().logverbose("Length : %s \n%s" % (len(info), info))
-                xenrt.TEC().logverbose(info)
-                if paths != expectedDevicePaths:
-                    attempts = attempts + 1
-                else:
-                    xenrt.TEC().logverbose("Number of device paths = %s" % paths)
-                    break # expected result.
+        xenrt.TEC().logverbose("checkPathCount on %s after %s the path" % (host, pathState))
 
-                if attempts > self.ATTEMPTS:
-                    raise xenrt.XRTFailure("Incorrect number of device paths even after attempting %s times"
-                                                                                    " Found (%s) Expected: %s" %
-                                                                        ((attempts-1), paths, expectedDevicePaths))
-                xenrt.sleep(15) # wait for 15 seconds.
+        attempts = 1
+        deadline=xenrt.timenow()+ 120 # 120 seconds
 
-    def waitForPathChange(self, host):
-        """Wait until XenServer reports that the path has failed (and no longer) /recovered on a host"""
+        while True:
+            xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
 
-        xenrt.TEC().logverbose("waitForPathChange on %s" % host)
+            mpaths = host.getMultipathInfo()
 
-        startTime = xenrt.util.timenow()
-        deadline = startTime + 150 # to be precise, the events received during the last 120 seconds.
-        found = False
-        while not found:
-            mpathAlert = host.minimalList("message-list")
-            for messageUUID in mpathAlert:
-                messageTitle = host.genParamGet("message", messageUUID, "name")
-                messageTime = xenrt.parseXapiTime(host.genParamGet("message", messageUUID, "timestamp"))
+            if len(mpaths) != self.EXPECTED_MPATHS:
+                raise xenrt.XRTFailure("Incorrect number of devices (attempt %s) "
+                                                        " Found (%s) Expected: %s" %
+                                        ((attempts), len(mpaths), self.EXPECTED_MPATHS))
 
-                if messageTitle == "MULTIPATH_PERIODIC_ALERT" and messageTime > startTime:
-                    xenrt.TEC().logverbose("MULTIPATH_PERIODIC_ALERT FOUND")
-                    found = True # we found the required message.
+            deviceMultipathCountList = [len(mpaths[scsiid]) for scsiid in mpaths.keys()]
+            xenrt.TEC().logverbose("deviceMultipathCountList : " % deviceMultipathCountList)
+            if not len(set(deviceMultipathCountList)) > 1: # ensures that all the entries in the list is same.
+                if expectedDevicePaths in deviceMultipathCountList: # expcted paths.
+                    if(xenrt.timenow() > deadline):
+                        xenrt.TEC().warning("Time to report that all the paths have changed is more than 2 minutes")
                     break
 
-            if xenrt.util.timenow() > deadline:
-                raise xenrt.XRTError("The multipath alert is not received during the last 120 seconds")
-            xenrt.sleep(15)
+            if attempts > self.ATTEMPTS:
+                raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempts)
+
+            attempts = attempts + 1
+            xenrt.sleep(30) # wait for 30 seconds.
 
     def run(self, arglist=[]):
 
         self.setTestParams(arglist)
 
         # 1. Verify multipath configuration is correct.
-        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]
+        [self.checkPathCount(x) for x in self.pool.getHosts()]
 
         startTime = xenrt.util.timenow() # used in step (12)
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
             host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Note the time and cause the path to fail.
-            self.waitForPathChange(host) # 3. Wait until XenServer reports that the path has failed (and no longer)
+            self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
             xenrt.TEC().logverbose("Time taken to fail the path on host %s is %s seconds." % 
@@ -602,29 +572,23 @@ class ISCSIMPathScenario(xenrt.TestCase):
         xenrt.TEC().logverbose("The overall time taken to fail the path is %s seconds." % 
                                                     (xenrt.util.timenow() - overallDisableTime))
 
-        # 6. Verify again the multipath configuration is correct.
-        [self.checkMultipathsConfig(x, True) for x in self.pool.getHosts()]
-
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 7. Cause the path to be live again.
-            self.waitForPathChange(host) # 8. Wait until XenServer reports that the path has recovered (and no longer)
+            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 6. Cause the path to be live again.
+            self.checkPathCount(host) # 7. Wait until XenServer reports that the path has recovered (and no longer)
 
-            # 9. Report the elapsed time beween steps 7 and 8 for every host.
+            # 8. Report the elapsed time beween steps 7 and 8 for every host.
             xenrt.TEC().logverbose("Time taken to recover the path on host %s is %s seconds." % 
                                                         (host, (xenrt.util.timenow() - enableTime)))
 
-        # 10. Report the elapsed time beween steps 7 and 8 for all hosts.
+        # 9. Report the elapsed time beween steps 7 and 8 for all hosts.
         xenrt.TEC().logverbose("The overall time taken to recover the path is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
 
-        #11. Report the elapsed time between steps 2 and 10.
+        #10. Report the elapsed time between steps 2 and 10.
         xenrt.TEC().logverbose("The complete time between path failure and recovery is %s seconds" % 
                                                                         (xenrt.util.timenow() - startTime))
-
-        # 12. Verify again the multipath configuration is correct.
-        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]
 
 class ISCSIPathFail(ISCSIMPathScenario):
     """Test multipath failover scenarios over iscsi"""
@@ -635,13 +599,13 @@ class ISCSIPathFail(ISCSIMPathScenario):
         self.setTestParams(arglist)
 
         # 1. Verify multipath configuration is correct.
-        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]
+        [self.checkPathCount(x) for x in self.pool.getHosts()]
 
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
             host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Note the time and cause the path to fail.
-            self.waitForPathChange(host) # 3. Wait until XenServer reports that the path has failed (and no longer)
+            self.checkPathCount(host) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
             xenrt.TEC().logverbose("Time taken to fail the path on host %s is %s seconds." % 
@@ -651,8 +615,6 @@ class ISCSIPathFail(ISCSIMPathScenario):
         xenrt.TEC().logverbose("The overall time taken to fail the path is %s seconds." % 
                                                 (xenrt.util.timenow() - overallDisableTime))
 
-        # 6. Verify again the multipath configuration is correct.
-        [self.checkMultipathsConfig(x, True) for x in self.pool.getHosts()]
 
 class ISCSIPathRecover(ISCSIMPathScenario):
 
@@ -661,13 +623,13 @@ class ISCSIPathRecover(ISCSIMPathScenario):
         self.setTestParams(arglist)
 
         # 1. Verify the multipath configuration is correct.
-        [self.checkMultipathsConfig(x, True) for x in self.pool.getHosts()]
+        [self.checkPathCount(x, True) for x in self.pool.getHosts()]
 
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 7. Cause the path to be live again.
-            self.waitForPathChange(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
+            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Cause the path to be live again.
+            self.checkPathCount(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
             xenrt.TEC().logverbose("Time taken to recover the path on host %s is %s seconds." % 
@@ -676,6 +638,3 @@ class ISCSIPathRecover(ISCSIMPathScenario):
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
         xenrt.TEC().logverbose("The overall time taken to recover the path is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
-
-        # 6. Verify again the multipath configuration is correct.
-        [self.checkMultipathsConfig(x) for x in self.pool.getHosts()]

@@ -538,7 +538,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
                                         ((attempts), len(mpaths), self.EXPECTED_MPATHS))
 
             deviceMultipathCountList = [len(mpaths[scsiid]) for scsiid in mpaths.keys()]
-            xenrt.TEC().logverbose("deviceMultipathCountList : " % deviceMultipathCountList)
+            xenrt.TEC().logverbose("deviceMultipathCountList : %s" % deviceMultipathCountList)
             if not len(set(deviceMultipathCountList)) > 1: # ensures that all the entries in the list is same.
                 if expectedDevicePaths in deviceMultipathCountList: # expcted paths.
                     if(xenrt.timenow() > deadline):

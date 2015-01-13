@@ -1,0 +1,45 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <host id="0">
+      <vm name="ADController">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="setupDomainServer" />
+        <network device="0" />
+        <network device="1" />
+        <disk device="0" size="32" />
+      </vm>
+      <vm name="ws2008client">
+        <distro>ws08r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+        <network device="0" />
+        <network device="1" />
+        <disk device="0" size="24" />
+      </vm>
+      <vm name="ws2012client">
+        <distro>ws12r2-x64</distro>
+        <arch>x86-64</arch>
+        <memory>2048</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+        <network device="0" />
+        <disk device="0" size="40" />
+      </vm>
+    </host>
+  </prepare>
+
+</xenrt>

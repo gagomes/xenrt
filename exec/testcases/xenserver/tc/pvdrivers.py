@@ -1035,6 +1035,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
         self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
 
     def run(self, arglist=None):
         #step("Remove uninstaller file")

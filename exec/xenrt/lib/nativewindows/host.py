@@ -104,15 +104,7 @@ class WindowsHost(xenrt.GenericHost):
         return
 
     def installWindows(self):
-        # First boot into winpe
-        winpe = WinPE(self)
-        winpe.boot()
-
-        # Wipe the disks and reboot
-        winpe.xmlrpc.write_file("x:\\diskpart.txt", "list disk\nselect disk 0\nclean\nexit")
-        winpe.xmlrpc.exec_shell("diskpart.exe /s x:\\diskpart.txt")
-        winpe.reboot()
-
+        # Set up the ISO
         iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), self.distro)
         mount = xenrt.MountISO(iso)
         nfsdir = xenrt.NFSDirectory()
@@ -123,6 +115,21 @@ class WindowsHost(xenrt.GenericHost):
 
         xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\install\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
         shutil.copytree("%s/iso/$OEM$" % nfsdir.path(), "%s/custom/oem" % nfsdir.path())
+
+        with open("%s/custom/oem/$1/install/runonce.cmd", "w") as f:
+            f.write("%systemdrive%\install\python\python.cmd\r\n")
+            f.write("EXIT\r\n")
+
+        
+        # First boot into winpe
+        winpe = WinPE(self)
+        winpe.boot()
+
+        # Wipe the disks and reboot
+        winpe.xmlrpc.write_file("x:\\diskpart.txt", "list disk\nselect disk 0\nclean\nexit")
+        winpe.xmlrpc.exec_shell("diskpart.exe /s x:\\diskpart.txt")
+        winpe.reboot()
+
 
         winpe.xmlrpc.exec_shell("net use y: %s\\iso" % nfsdir.getCIFSPath()) 
         winpe.xmlrpc.exec_shell("net use z: %s\\custom" % nfsdir.getCIFSPath()) 

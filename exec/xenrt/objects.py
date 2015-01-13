@@ -10488,6 +10488,7 @@ RebootOnSuccess=Yes
 -RemoveApplicationPartitions:$true `
 -LocalAdministratorPassword: `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
+            self.place.disableWindowsPasswordComplexityCheck()
             self.place.xmlrpcExec(script,powershell=True,returndata=True)
             self.place.winRegDel("HKLM",
                            "software\\microsoft\\windows nt\\currentversion\\winlogon",

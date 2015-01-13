@@ -403,7 +403,9 @@ tftp:
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
-	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
+ifdef WINDOWS_ISOS
+	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
+endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
 
 .PHONY: tftp-uninstall

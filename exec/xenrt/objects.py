@@ -10387,7 +10387,7 @@ write $computers.psbase.get_Children()
         self.place.disableWindowsPasswordComplexityCheck()
         self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
 
-        self.place.rename(self.place.getName())
+        self.place.rename(self.netbiosname)
 
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
@@ -10480,8 +10480,8 @@ RebootOnSuccess=Yes
 -confirm:$false `
 -LastDomainControllerInDomain:$true `
 -IgnoreLastDnsServerForZone:$true `
--LocalAdministratorPassword:$true `
 -RemoveApplicationPartitions:$true `
+-LocalAdministratorPassword: `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
             self.place.xmlrpcExec(script,powershell=True,returndata=True)
             self.place.disableWindowsPasswordComplexityCheck()

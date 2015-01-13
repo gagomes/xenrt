@@ -110,7 +110,7 @@ class WindowsHost(xenrt.GenericHost):
 
         # Wipe the disks and reboot
         winpe.xmlrpc.write_file("x:\\diskpart.txt", "list disk\nselect disk 0\nclean\nexit")
-        winpe.xmlrpc.exec_shell("diskpark.exe /s x:\\diskpart.txt")
+        winpe.xmlrpc.exec_shell("diskpart.exe /s x:\\diskpart.txt")
         winpe.reboot()
 
         # Mount the install share and start the installer

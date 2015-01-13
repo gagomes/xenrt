@@ -2,6 +2,11 @@
 
   <!-- Create 256 iSCSI SRs on a single host and use it in a number of guests -->
 
+  <default name="LINUXVMS" value="4" />
+  <default name="WINDOWSVMS" value="0" />
+  <default name="DATADISK" value="2" />
+  <default name="LOOP" value="100" />
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
@@ -34,11 +39,13 @@
   <testsequence>
     <serial group="Config">
       <testcase id="xenserver.tc.srpervm.SetupSRsiSCSI" blocker="yes">
-        <arg>linuxvms=4</arg>
-        <arg>windowsvms=0</arg>
-        <arg>datadisk=2</arg>
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
       </testcase>
     </serial>
+    
     <serial group="Copy">
       <testcase id="xenserver.tc.srpervm.CopyVMs" />
     </serial>
@@ -48,10 +55,24 @@
     </serial>
 
     <serial group="Multipath">
-      <testcase id="xenserver.tc.srpervm.ISCSIMPathScenario">
-        <arg>linuxvms=4</arg>
-        <arg>windowsvms=0</arg>
-        <arg>datadisk=2</arg>
+      <testcase id="xenserver.tc.srpervm.ISCSIPathFail">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterFail" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIPathRecover">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
       </testcase>
     </serial>
 
@@ -59,15 +80,14 @@
       <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterRecover" />
     </serial>
 
-    <!-- Fail -->
-
-    <!-- Lifecycle -->
-
-    <!-- Recover -->
-
-    <!-- Lifecycle -->
-
-    <!-- Full -->
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.ISCSIMPathScenario">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
 
   </testsequence>
 

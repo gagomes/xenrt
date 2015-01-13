@@ -155,6 +155,9 @@ class WindowsHost(xenrt.GenericHost):
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
+
+        mount.unmount()
+
         try:
             self.xmlrpcUpdate()
         except:

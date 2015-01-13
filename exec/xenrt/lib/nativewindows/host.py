@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import re, urllib, os.path
+import re, urllib, os.path, xmlrpclib
 
 import xenrt
 
@@ -103,90 +103,34 @@ class WindowsHost(xenrt.GenericHost):
         self.distro = "ws12r2-x64"
         return
 
-    def bootPythonWinPE(self):
-        # Construct a PXE target
-        pxe1 = xenrt.PXEBoot()
-        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe1.setSerial(serport, serbaud)
-        pxe2 = xenrt.PXEBoot()
-        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe2.setSerial(serport, serbaud)
-        chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
-        if chain:
-            pxe1.addEntry("local", boot="chainlocal", options=chain)
-        else:
-            pxe1.addEntry("local", boot="local")
-
-        pxe1.addEntry("ipxe", boot="ipxe")
-        pxe1.setDefault("ipxe")
-        pxe1.writeOut(self.machine)
-
-        winpe = pxe2.addEntry("winpe", boot="memdisk")
-        winpe.setInitrd("%s/wininstall/netinstall/python/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
-        winpe.setArgs("iso raw")
-        
-        pxe2.setDefault("winpe")
-        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
-        ipxescript = """set 209:string pxelinux.cfg/%s
-chain tftp://${next-server}/pxelinux.0
-""" % os.path.basename(filename)
-        pxe2.writeIPXEConfig(self.machine, ipxescript)
-
-        self.machine.powerctl.cycle()
-
     def installWindows(self):
-        # Construct a PXE target
-        pxe1 = xenrt.PXEBoot()
+        # First boot into winpe
+        winpe = WinPE(self)
+        winpe.boot()
+
+        # Wipe the disks and reboot
+        winpe.xmlrpc.write_file("x:\\diskpart.txt", "list disk\nselect disk 0\nclean\nexit")
+        winpe.xmlrpc.exec_shell("diskpark.exe /s x:\\diskpart.txt")
+        winpe.reboot()
+
+        # Mount the install share and start the installer
+        winpe.xmlrpc.exec_shell("net use z: \\\\%s\\share\\wininstall\\netinstall\\%s" % (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), self.distro))
+        winpe.xmlrpc.start_shell("z:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\$OEM$")
+
+        # Now Construct a PXE target for local boot
+        pxe = xenrt.PXEBoot()
+        pxe.clearIPXEConfig(self.machine)
         serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
         serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe1.setSerial(serport, serbaud)
-        pxe2 = xenrt.PXEBoot()
-        serport = self.lookup("SERIAL_CONSOLE_PORT", "0")
-        serbaud = self.lookup("SERIAL_CONSOLE_BAUD", "115200")
-        pxe2.setSerial(serport, serbaud)
+        pxe.setSerial(serport, serbaud)
         chain = self.lookup("PXE_CHAIN_LOCAL_BOOT", None)
         if chain:
-            pxe1.addEntry("local", boot="chainlocal", options=chain)
+            pxe.addEntry("local", boot="chainlocal", options=chain)
         else:
-            pxe1.addEntry("local", boot="local")
+            pxe.addEntry("local", boot="local")
 
-        pxe1.addEntry("ipxe", boot="ipxe")
-        pxe1.setDefault("ipxe")
-        pxe1.writeOut(self.machine)
-
-        wipe = pxe2.addEntry("wipe", boot="memdisk")
-        wipe.setInitrd("%s/wininstall/netinstall/wipe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
-        wipe.setArgs("iso raw")
-        
-        wininstall = pxe2.addEntry("wininstall", boot="memdisk")
-        wininstall.setInitrd("%s/wininstall/netinstall/%s/winpe/winpe.iso" % (xenrt.TEC().lookup("LOCALURL"), self.productVersion))
-        wininstall.setArgs("iso raw")
-       
-
-        pxe2.setDefault("wipe")
-        filename = pxe2.writeOut(self.machine, suffix="_ipxe")
-        ipxescript = """set 209:string pxelinux.cfg/%s
-chain tftp://${next-server}/pxelinux.0
-""" % os.path.basename(filename)
-        pxe2.writeIPXEConfig(self.machine, ipxescript)
-
-        self.machine.powerctl.cycle()
-        # Wait for the iPXE file to be accessed for wiping - once it has, we can switch to proper install
-        pxe1.waitForIPXEStamp(self.machine)
-        xenrt.sleep(30) # 30s to allow PXELINUX to load
-        pxe2.setDefault("wininstall")
-        pxe2.writeOut(self.machine, suffix="_ipxe")
-        pxe2.writeIPXEConfig(self.machine, ipxescript)
-        
-        # Wait for the iPXE file to be accessed again - once it has, we can clean it up ready for local boot
-        
-        pxe1.waitForIPXEStamp(self.machine)
-        xenrt.sleep(30) # 30s to allow PXELINUX to load
-        pxe2.clearIPXEConfig(self.machine)
-        pxe1.setDefault("local")
-        pxe1.writeOut(self.machine)
+        pxe.setDefault("local")
+        pxe.writeOut(self.machine)
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
@@ -300,4 +244,54 @@ chain tftp://${next-server}/pxelinux.0
     def isEnabled(self):
         return True
 
+class WinPE(object):
+    def __init__(self, host):
+        self.host = host
+        self.xmlrpc = xmlrpclib.ServerProxy("http://%s:8080" % self.host.getIP())
 
+    def boot(self):
+        # Construct a PXE target
+        pxe1 = xenrt.PXEBoot()
+        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe1.setSerial(serport, serbaud)
+        pxe2 = xenrt.PXEBoot()
+        serport = self.host.lookup("SERIAL_CONSOLE_PORT", "0")
+        serbaud = self.host.lookup("SERIAL_CONSOLE_BAUD", "115200")
+        pxe2.setSerial(serport, serbaud)
+        
+        pxe1.addEntry("ipxe", boot="ipxe")
+        pxe1.setDefault("ipxe")
+        pxe1.writeOut(self.host.machine)
+
+        winpe = pxe2.addEntry("winpe", boot="memdisk")
+        winpe.setInitrd("%s/wininstall/netinstall/python/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
+        winpe.setArgs("iso raw")
+        
+        pxe2.setDefault("winpe")
+        filename = pxe2.writeOut(self.host.machine, suffix="_ipxe")
+        ipxescript = """set 209:string pxelinux.cfg/%s
+chain tftp://${next-server}/pxelinux.0
+""" % os.path.basename(filename)
+        pxe2.writeIPXEConfig(self.host.machine, ipxescript)
+
+        self.host.machine.powerctl.cycle()
+        xenrt.sleep(60)
+        self.waitForBoot()
+
+    def waitForBoot(self):
+        deadline = xenrt.util.timenow() + 1800
+        while True:
+            try:
+                if self.xmlrpc.file_exists("x:\\execdaemonwinpe.py") and not self.xmlrpc.file_exists("x:\\waiting.stamp"):
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Timed out waiting for WinPE boot")
+            xenrt.sleep(15)
+
+    def reboot(self):
+        self.xmlrpc.write_file("x:\\waiting.stamp", "")
+        self.xmlrpc.start_shell("wpeutil reboot")
+        self.waitForBoot()

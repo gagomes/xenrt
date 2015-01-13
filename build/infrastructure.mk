@@ -597,7 +597,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

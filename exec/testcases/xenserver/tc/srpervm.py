@@ -530,6 +530,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
             xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
 
             mpaths = host.getMultipathInfo()
+            xenrt.TEC().logverbose(mpaths)
 
             if len(mpaths) != self.EXPECTED_MPATHS:
                 raise xenrt.XRTFailure("Incorrect number of devices (attempt %s) "

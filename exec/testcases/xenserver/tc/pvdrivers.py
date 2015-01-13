@@ -1035,17 +1035,6 @@ class TCToolsMissingUninstall(xenrt.TestCase):
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
         self.guest = self.host.getGuest("VMWin2k8")
-        #step("Upgrade host")
-        self.host = self.host.upgrade(xenrt.TEC().lookup("PRODUCT_VERSION", None))
-        self.host.applyRequiredPatches()
-        self.guest.start()
-        #Upgrade host's guest object
-        g = self.host.guestFactory()(self.guest.getName())
-        self.guest.populateSubclass(g)
-        g.host = self.host
-        self.host.guests[g.getName()] = g
-        xenrt.TEC().registry.guestPut(g.getName(), g)
-        self.guest = g
 
     def run(self, arglist=None):
         #step("Remove uninstaller file")
@@ -1058,7 +1047,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
         except Exception, e:
             raise xenrt.XRTFailure("Tools installation failed with Exception: %s" % str(e))
         
-        if self.guest.paramGet("PV-drivers-up-to-date"):
+        if guest.pvDriversUpToDate():
             xenrt.TEC().logverbose("Tools are upto date")
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")

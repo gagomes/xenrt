@@ -10,7 +10,15 @@ class WinPEExec(object):
 
     def start_shell(self, cmd):
         subprocess.Popen(cmd, shell=True)
-        
+
+    def write_file(self, fname, content):
+        with open(fname, "w") as f:
+            f.write(content)
+
+    def read_file(self, fname):
+        with open(fname) as f:
+            return f.read()
+
 xmlrpc = SimpleXMLRPCServer(("0.0.0.0", 8080), allow_none=True)
 xmlrpc.register_introspection_functions()
 xmlrpc.register_instance(WinPEExec())

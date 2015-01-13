@@ -505,8 +505,8 @@ class ISCSIMPathScenario(xenrt.TestCase):
 
         root = ET.fromstring(cleanXML)
 
-        # First <TGT>, <IPAddress>
-        self.CONTROLLER_IP = root[0][1].text.strip()
+        # Second <TGT>, <IPAddress>
+        self.CONTROLLER_IP = root[1][1].text.strip()
 
         xenrt.TEC().logverbose("Filer IP : %s" % self.FILER_IP)
         xenrt.TEC().logverbose("Picked controller IP : %s" % self.CONTROLLER_IP)

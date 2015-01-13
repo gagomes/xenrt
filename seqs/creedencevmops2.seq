@@ -13,7 +13,6 @@
   <testsequence group="VMOps">
     <testcase id="xenserver.tc.vmlifecycle.TC10555" prio="3"/>
     <testcase id="xenserver.tc.vmlifecycle.TC10556" prio="3"/>
-    <testcase id="xenserver.tc.pvdrivers.TestSignedComponents" prio="3" tc="TC-23774"/>
     <serial group="EA-1213">
       <testcase id="xenserver.tc.vmlifecycle.TC18175" prio="3"/>
       <testcase id="xenserver.tc.vmlifecycle.TC18173" prio="3"/>

@@ -10484,7 +10484,6 @@ RebootOnSuccess=Yes
 -LocalAdministratorPassword: `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
             self.place.xmlrpcExec(script,powershell=True,returndata=True)
-            self.place.disableWindowsPasswordComplexityCheck()
             self.place.reboot()
             self.place.xmlrpcExec("uninstall-WindowsFeature AD-Domain-Services",powershell=True)
             self.place.reboot()

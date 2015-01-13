@@ -1986,7 +1986,7 @@ exit /B 1
         self.disableFirewall()
         domain = "xenrt" + "".join(random.sample("abcdefghijklmnopqrstuvwxyz",8)) + ".com"
         xenrt.TEC().lookup("DEFAULT_DOMAIN", domain)
-        adServer = xenrt.ActiveDirectoryServer(self, domainname=domain)
+        xenrt.ActiveDirectoryServer(self, domainname=domain)
 
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",

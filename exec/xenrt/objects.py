@@ -10490,9 +10490,6 @@ RebootOnSuccess=Yes
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
             self.place.disableWindowsPasswordComplexityCheck()
             self.place.xmlrpcExec(script,powershell=True,returndata=True)
-            self.place.winRegDel("HKLM",
-                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
-                           "DefaultDomainName")
             self.place.reboot()
             self.place.xmlrpcExec("uninstall-WindowsFeature AD-Domain-Services",powershell=True)
             self.place.reboot()

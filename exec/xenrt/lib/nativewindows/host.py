@@ -286,7 +286,11 @@ class WinPE(object):
         pxe1.writeOut(self.host.machine)
 
         winpe = pxe2.addEntry("winpe", boot="memdisk")
-        winpe.setInitrd("%s/wininstall/netinstall/python/winpe.iso" % (xenrt.TEC().lookup("LOCALURL")))
+        if self.host.distro.endswith("-x64"):
+            arch = "amd64"
+        else:
+            arch = "x86"
+        winpe.setInitrd("%s/tftp/winpe/winpe-%s.iso" % (xenrt.TEC().lookup("LOCALURL"), arch))
         winpe.setArgs("iso raw")
         
         pxe2.setDefault("winpe")

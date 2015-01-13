@@ -529,7 +529,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         while True:
             xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
 
-            mpaths = host.getMultipathInfo()
+            mpaths = host.getMultipathInfo(onlyActive=True)
             xenrt.TEC().logverbose(mpaths)
 
             if len(mpaths) != self.EXPECTED_MPATHS:

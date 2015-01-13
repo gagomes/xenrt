@@ -10388,7 +10388,7 @@ write $computers.psbase.get_Children()
         self.place.disableWindowsPasswordComplexityCheck()
         self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
 
-        self.place.rename(self.getName())
+        self.place.rename(self.place.getName())
 
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:

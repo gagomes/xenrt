@@ -114,8 +114,8 @@ class WindowsHost(xenrt.GenericHost):
         shutil.copy("%s/iso/Autounattend.xml" % nfsdir.path(), "%s/custom/Autounattend.xml" % nfsdir.path())
 
         xenrt.command("""sed -i "s#<CommandLine>.*</CommandLine>#<CommandLine>c:\\\\install\\\\runonce.cmd</CommandLine>#" %s/custom/Autounattend.xml""" % nfsdir.path())
-        xenrt.command("chmod u+w %s/custom/oem/$1/install" % nfsdir.path())
         shutil.copytree("%s/iso/$OEM$" % nfsdir.path(), "%s/custom/oem" % nfsdir.path())
+        xenrt.command("chmod u+w %s/custom/oem/$1/install" % nfsdir.path())
 
         with open("%s/custom/oem/$1/install/runonce.cmd" % nfsdir.path(), "w") as f:
             f.write("%systemdrive%\install\python\python.cmd\r\n")

@@ -1983,7 +1983,7 @@ exit /B 1
         self.installPowerShell()
         self.enablePowerShellUnrestricted()
         self.disableFirewall()
-        xenrt.TEC().lookup("DEFAULT_DOMAIN", None)
+        domain = xenrt.TEC().lookup("DEFAULT_DOMAIN", None)
         xenrt.ActiveDirectoryServer(self, domainname=domain)
 
     def getVIFUUID(self, name):

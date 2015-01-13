@@ -10387,9 +10387,9 @@ write $computers.psbase.get_Children()
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
         self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
-        
-        self.rename(self.getName())
-        
+
+        self.place.rename(self.getName())
+
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
             self.installOnWS2008()
@@ -10397,6 +10397,8 @@ write $computers.psbase.get_Children()
             self.installOnWS2012()
         else:
             raise xenrt.XRTError("Unimplemented")
+
+        self.place.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (self.domainname, "Administrator"), level=xenrt.RC_OK)
         # This manages to get switched back on during the AD install.
         self.place.disableWindowsPasswordComplexityCheck()
         self.place.reboot()
@@ -10454,7 +10456,6 @@ Install-ADDSForest `
 -SafeModeAdministratorPassword `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
         self.place.xmlrpcExec(script,powershell=True,returndata=True)
-        self.place.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (self.domainname, "Administrator"), level=xenrt.RC_OK)
 
     def uninstall(self):
         # "Demote" the AD controller.
@@ -10472,6 +10473,7 @@ RebootOnSuccess=Yes
             self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
                                    timeout=1800, returnerror=False)
             self.place.xmlrpcRemoveFile("c:\\ad.txt")
+            self.place.reboot()
             xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
         elif float(self.place.xmlrpcWindowsVersion()) == 6.3:
             script = """Uninstall-ADDSDomainController `

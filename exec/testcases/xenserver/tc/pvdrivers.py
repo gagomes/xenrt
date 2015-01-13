@@ -1047,7 +1047,7 @@ class TCToolsMissingUninstall(xenrt.TestCase):
         except Exception, e:
             raise xenrt.XRTFailure("Tools installation failed with Exception: %s" % str(e))
         
-        if guest.pvDriversUpToDate():
+        if self.guest.pvDriversUpToDate():
             xenrt.TEC().logverbose("Tools are upto date")
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")

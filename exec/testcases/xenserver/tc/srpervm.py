@@ -447,6 +447,21 @@ class RecoverMultipath(FCMultipathScenario):
         self.EXPECTED_MPATHS = self.NO_OF_SRS
         self.checkMultipathsConfig()
 
+class EnableHA(xenrt.TestCase):
+    """Enable HA on pool of hosts"""
+
+    def run(self, arglist=[]):
+
+        self.pool = self.getDefaultHost().getPool()
+
+        hasrType = "nfs"
+        srs = self.pool.master.getSRs(type=hasrType)
+        if len(srs) < 1:
+            raise xenrt.XRTError("Couldn't find an %s SR" % (hasrType))
+        sruuid = srs[0]
+
+        self.pool.enableHA(srs=[sruuid])
+        
 class ISCSIMPathScenario(xenrt.TestCase):
     """Test multipath failover scenarios over iscsi"""
     # Based on current config of site.

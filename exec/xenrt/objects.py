@@ -10387,7 +10387,7 @@ write $computers.psbase.get_Children()
         self.place.disableWindowsPasswordComplexityCheck()
         self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
 
-        self.place.rename(self.netbiosname)
+        self.place.rename(self.place.getName())
 
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
@@ -10455,6 +10455,11 @@ Install-ADDSForest `
 -SafeModeAdministratorPassword `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
         self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
+        self.place.winRegAdd("HKLM",
+                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
+                           "DefaultDomainName",
+                           "SZ",
+                            self.netbiosname)
 
     def uninstall(self):
         # "Demote" the AD controller.
@@ -10484,6 +10489,9 @@ RebootOnSuccess=Yes
 -LocalAdministratorPassword: `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
             self.place.xmlrpcExec(script,powershell=True,returndata=True)
+            self.place.winRegDel("HKLM",
+                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
+                           "DefaultDomainName")
             self.place.reboot()
             self.place.xmlrpcExec("uninstall-WindowsFeature AD-Domain-Services",powershell=True)
             self.place.reboot()

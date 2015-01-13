@@ -10329,7 +10329,6 @@ write $computers.psbase.get_Children()
 
         if not dontinstall:
             self.prepare()
-            self.install()
 
     def prepare(self):
         if float(self.place.xmlrpcWindowsVersion()) < 6.0:
@@ -10455,7 +10454,7 @@ Install-ADDSForest `
 -Confirm:$false `
 -SafeModeAdministratorPassword `
 (ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
-        self.place.xmlrpcExec(script,powershell=True,returndata=True)
+        self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
 
     def uninstall(self):
         # "Demote" the AD controller.

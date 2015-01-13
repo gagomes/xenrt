@@ -687,14 +687,8 @@ sleep 30
         
         pxecfg.mbootArgsKernelAdd("watchdog")
         pxecfg.mbootArgsKernelAdd("com%s=%s,8n1" % (comport, serbaud))
-        if isinstance(self, xenrt.lib.xenserver.MNRHost):
-            pxecfg.mbootArgsKernelAdd("console=com%s,vga" % (comport))
-        else:
-            pxecfg.mbootArgsKernelAdd("console=com%s,tty" % (comport))
-        if isinstance(self, xenrt.lib.xenserver.TampaHost):
-            pxecfg.mbootArgsKernelAdd("dom0_mem=752M,max:752M")
-        else:
-            pxecfg.mbootArgsKernelAdd("dom0_mem=752M")
+        pxecfg.mbootArgsKernelAdd("console=com%s,vga" % (comport))
+        pxecfg.mbootArgsKernelAdd("dom0_mem=752M,max:752M")
         pxecfg.mbootArgsKernelAdd("dom0_max_vcpus=2")
         if xen_extra_args:
             pxecfg.mbootArgsKernelAdd(xen_extra_args)

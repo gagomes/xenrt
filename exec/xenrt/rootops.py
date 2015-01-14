@@ -128,9 +128,9 @@ def mountWinISO(distro):
             if attempts > 6:
                 raise xenrt.XRTError("Couldn't get Windows ISO lock.")
     try:
-        sudo("mkdir -p %s" % mountpoint)
         mounts = xenrt.command("mount")
         if not "%s on %s" % (iso, mountpoint) in mounts:
+            sudo("mkdir -p %s" % mountpoint)
             sudo("mount -o loop %s %s" % (iso, mountpoint))
         return mountpoint
     finally:

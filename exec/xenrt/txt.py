@@ -655,9 +655,10 @@ class TXTErrorParser(object):
         data = []
         for fname in filename:
             for m in cls.MARKERS:
-                try:
+                grep = "grep '%s' %s" % (m, fname)
+                if host.execcmd("grep '%s' %s" % (m, fname), retval="code") < 1:
                     data += host.execcmd("grep '%s' %s" % (m, fname)).split('\n')
-                except:
+                else:
                     warning("grep failed for %s in file %s - no data found" % (m, fname))
         return cls(data)
 

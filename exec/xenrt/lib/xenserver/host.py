@@ -12897,8 +12897,14 @@ class Pool:
         
             # Perform the master switch
             cli = self.getCLIInstance()
-            cli.execute("pool-designate-new-master", "host-uuid=%s" %
-                        (host.getMyHostUUID()))
+            try:
+                cli.execute("pool-designate-new-master", "host-uuid=%s" %
+                            (host.getMyHostUUID()))
+            except xenrt.XRTException, e:
+                if e.data and re.search("Lost connection to the server.", e.data):
+                    pass
+                else:
+                    raise
             xenrt.sleep(300)
         
         # Update harness metadata

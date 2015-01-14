@@ -449,7 +449,7 @@ class _BlockedOperations(xenrt.TestCase):
             self.guest = self.host.createGenericLinuxGuest(name=self.GUEST)
             xenrt.TEC().registry.guestPut(self.guest.getName(), self.guest)
             self.guest.shutdown()
-            self.guest.paramSet("VCPUs-max", "4")
+            self.guest.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
         self.guest.paramClear("blocked-operations")
         try: self.guest.lifecycleOperation(self.PREPARE)
         except: pass
@@ -460,7 +460,7 @@ class _BlockedOperations(xenrt.TestCase):
                 xenrt.TEC().registry.guestPut(self.control.getName(),
                                               self.control)
                 self.control.shutdown()
-                self.control.paramSet("VCPUs-max", "4")
+                self.control.paramSet("VCPUs-max", str(self.guest.getMaxSupportedVCPUCount()))
             self.control.paramClear("blocked-operations")
             try: self.control.lifecycleOperation(self.PREPARE)
             except: pass

@@ -130,7 +130,7 @@ def mountWinISO(distro):
         mounts = xenrt.command("mount")
         if not ("on /winmedia/%s") in mounts:
             sudo("mount -o loop %s/%s.iso /winmedia/%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro, distro))
-        return "/winmedia/%s"
+        return "/winmedia/%s" % distro
     finally:
         isolock.release()
 

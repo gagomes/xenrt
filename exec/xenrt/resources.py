@@ -126,6 +126,9 @@ class NFSDirectory(DirectoryResource):
         url = self.getURL(relpath)
         return string.replace(url, "nfs://", "")
 
+    def getCIFSPath(self):
+        return "\\\\%s\\scratch\\nfs\\%s" % (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"), os.path.basename(self.path()))
+
     def getHostAndPath(self, relpath):
         url = self.getURL(relpath)
         r = re.search(r"nfs://([^:]+):(/.+)", url)

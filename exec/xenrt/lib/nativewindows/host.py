@@ -158,10 +158,6 @@ class WindowsHost(xenrt.GenericHost):
 
         # Wait for Windows to be ready
         self.waitForDaemon(7200)
-        pids = xenrt.command("smbstatus 2>/dev/null | grep \"%s/iso\" | awk '{print $1}' | sort | uniq" % os.path.basename(nfsdir.path()))
-        if pids.strip():
-            for p in pids.splitlines():
-                xenrt.sudo("kill -9 %s" % p.strip())
 
         try:
             self.xmlrpcUpdate()

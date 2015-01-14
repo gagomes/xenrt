@@ -115,6 +115,7 @@ def mountWinISO(distro):
     """Mount a Windows ISO globally for the controller"""
 
     isolock = xenrt.resources.CentralResource()
+    mountpoint = "/winmedia/%s" % distro
     attempts = 0
     while True:
         try:
@@ -126,11 +127,11 @@ def mountWinISO(distro):
             if attempts > 6:
                 raise xenrt.XRTError("Couldn't get Windows ISO lock.")
     try:
-        sudo("mkdir -p /winmedia/%s" % distro)
+        sudo("mkdir -p %s" % mountpoint)
         mounts = xenrt.command("mount")
-        if not ("on /winmedia/%s") in mounts:
-            sudo("mount -o loop %s/%s.iso /winmedia/%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro, distro))
-        return "/winmedia/%s" % distro
+        if not ("on %s" % mountpoint) in mounts:
+            sudo("mount -o loop %s/%s.iso %s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro, mountpoint))
+        return mountpoint
     finally:
         isolock.release()
 

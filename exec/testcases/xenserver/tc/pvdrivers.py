@@ -10,6 +10,7 @@
 
 import socket, re, string, time, traceback, sys, random, copy, os.path
 import xenrt
+from xenrt.lazylog import step
 
 class TC8369(xenrt.TestCase):
     """Verify Windows PV drivers install to a Windows 2008 x64 VM without a test certificate"""
@@ -1038,15 +1039,12 @@ class TCToolsMissingUninstall(xenrt.TestCase):
         self.guest.start()
 
     def run(self, arglist=None):
-        #step("Remove uninstaller file")
+        step("Remove uninstaller file")
         self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
 
-        #step("Install 6.2 PV tools")
-        try:
-            self.guest.installDrivers()
-            self.guest.waitForAgent(60)
-        except Exception, e:
-            raise xenrt.XRTFailure("Tools installation failed with Exception: %s" % str(e))
+        step("Install 6.2 PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
         
         if self.guest.pvDriversUpToDate():
             xenrt.TEC().logverbose("Tools are upto date")

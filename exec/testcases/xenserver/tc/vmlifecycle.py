@@ -397,15 +397,15 @@ class TC17439(_TC6869):
     """ Xenmotion of a sles 11.1 with "VCPUs-max > VCPU """
     xenrt.TEC().config.setVariable("VMLIFECYCLE_ITERS", "1")
     def installVM(self, host):
-    	sr = None
-    	sruuids = host.getSRs()
-    	for sruuid in sruuids:
+        sr = None
+        sruuids = host.getSRs()
+        for sruuid in sruuids:
             if host.getSRParam(uuid=sruuid, param='type') == 'nfs':
                 sr = sruuid
                 break
-    	if sr: 
+        if sr: 
             self.guest = host.createBasicGuest(distro="sles111",sr=sr) 
-    	else:
+        else:
             raise xenrt.XRTFailure("NFS SR not found on host")
 
         _setVCPUMax(self.guest)
@@ -1719,7 +1719,7 @@ class _TCWinTimeZoneLifeCycle(testcases.xenserver.tc.guest._WinTimeZone):
         
     def localhostMigrate(self, timeZoneOffset, iterations=2):
         for i in range(iterations):
-            self.guest.migrateVM(guest.host, live='true')
+            self.guest.migrateVM(self.guest.host, live='true')
             self.verifyGuestTime(self.guest, self.host, timeZoneOffset)
 
     def poolMigrate(self, timeZoneOffset, iterations=2):

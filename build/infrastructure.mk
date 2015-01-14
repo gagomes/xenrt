@@ -376,6 +376,16 @@ network-uninstall:
 	$(call RESTORE,$(MODULES))
 	$(call RESTORE,$(INTERFACES))
 
+$(TFTPROOT)/ipxe.embedded.0:
+	$(info Building undionly.kpxe)
+	mkdir -p $(SHAREDIR)/ipxe
+	rsync -axl $(TEST_INPUTS)/ipxe/src $(SHAREDIR)/ipxe
+	echo "#!ipxe" > $(SHAREDIR)/ipxe/src/ipxe.script
+	echo dhcp >> $(SHAREDIR)/ipxe/src/ipxe.script
+	echo chain http://`ip addr | grep 'state UP' -A2 | grep inet | head -1 | awk '{print $$2}' | cut -d "/" -f 1`/tftp/default-ipxe.cgi >> $(SHAREDIR)/ipxe/src/ipxe.script
+	make -C $(SHAREDIR)/ipxe/src bin/undionly.kpxe EMBED=ipxe.script
+	$(SUDO) cp $(SHAREDIR)/ipxe/src/bin/undionly.kpxe $@
+
 .PHONY: tftp
 tftp:
 	$(info Installing TFTP...)
@@ -407,6 +417,7 @@ ifdef WINDOWS_ISOS
 	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
 endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
+	-make $(TFTPROOT)/ipxe.embedded.0
 
 .PHONY: tftp-uninstall
 tftp-uninstall:

@@ -10396,7 +10396,7 @@ write $computers.psbase.get_Children()
         self.domainMode = xenrt.TEC().lookup("ADSERVER_DOMAINMODE", "Win2008")
         ## DCPromo setup requires numeric value rather than windows version string.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
-            modeLevels = {'2':"Win2003", '3':"Win2008", '4':"Win2008R2", '5':"Win2012", '6':"Win2012R2"}
+            modeLevels = {'0':"Win2000", '2':"Win2003", '3':"Win2008", '4':"Win2008R2"}
 
             forestLevelList = [key for key,value in modeLevels.iteritems() if value == self.forestMode]
             if len(forestLevelList) != 1:

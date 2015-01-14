@@ -570,7 +570,7 @@ sleep 30
         if suppackcds or supptarballs or suppdirs:
             repofile = "%s/XS-REPOSITORY-LIST" % (workdir)
             repo = file(repofile, "w")
-            f = file("%s/XS-REPOSITORY-LIST" % (self.packdir), "r")
+            f = file("%s/XS-REPOSITORY-LIST" % (self.packdir.dir), "r")
             repo.write(f.read())
             f.close()
             if supptarballs:

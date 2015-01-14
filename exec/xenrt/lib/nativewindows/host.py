@@ -125,16 +125,20 @@ class WindowsHost(xenrt.GenericHost):
         # First boot into winpe
         winpe = WinPE(self)
         winpe.boot()
-
+        
+        xenrt.TEC().logverbose("WinPE booted, wiping disk")
         # Wipe the disks and reboot
         winpe.xmlrpc.write_file("x:\\diskpart.txt", "list disk\nselect disk 0\nclean\nexit")
         winpe.xmlrpc.exec_shell("diskpart.exe /s x:\\diskpart.txt")
+        xenrt.TEC().logverbose("Rebooting WinPE")
         winpe.reboot()
 
+        xenrt.TEC().logverbose("WinPE rebooted, mounting shares")
 
         winpe.xmlrpc.exec_shell("net use y: %s\\iso" % nfsdir.getCIFSPath()) 
         winpe.xmlrpc.exec_shell("net use z: %s\\custom" % nfsdir.getCIFSPath()) 
 
+        xenrt.TEC().logverbose("Starting installer")
         # Mount the install share and start the installer
         winpe.xmlrpc.start_shell("y:\\setup.exe /unattend:z:\\autounattend.xml /m:z:\\oem")
 

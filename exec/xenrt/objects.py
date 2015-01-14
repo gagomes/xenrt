@@ -10398,12 +10398,12 @@ write $computers.psbase.get_Children()
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
             modeLevels = {'2':"Win2003", '3':"Win2008", '4':"Win2008R2", '5':"Win2012", '6':"Win2012R2"}
 
-            forestLevelList = [key for key,value in modeLevels.iteritems() if (key == self.forestMode) or (value == self.forestMode)]
+            forestLevelList = [key for key,value in modeLevels.iteritems() if value == self.forestMode]
             if len(forestLevelList) != 1:
                 raise xenrt.XRTError("Unknown forest level : '%s' " % self.forestMode)
             self.forestMode = forestLevelList[0]
 
-            domainLevelList = [key for key,value in modeLevels.iteritems() if (key == self.domainMode) or (value == self.domainMode)]
+            domainLevelList = [key for key,value in modeLevels.iteritems() if value == self.domainMode]
             if len(domainLevelList) != 1:
                 raise xenrt.XRTError("Unknown forest level : '%s' " % self.domainMode)
             self.domainMode = domainLevelList[0]

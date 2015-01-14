@@ -3,7 +3,7 @@
 # Operations on windows signed components 
 #
 
-import string
+import sys, string, traceback
 from abc import ABCMeta, abstractmethod, abstractproperty
 from datetime import datetime
 import xenrt
@@ -25,19 +25,18 @@ class SignedComponent(object):
     def installPackages(self,guest):
         pass
 
-    @abstractmethod
     def verifySignature(self,guest,testFile):
         xenrt.TEC().logverbose("signtool is verifying the %s build" % (testFile))
         try:
             guest.xmlrpcExec("c:\\signtool.exe verify /pa /v %s" % (testFile),
                                    returndata=True)
         except Exception, e:
-            xenrt.TEC().logverbose("signtool fails to verify the build %s " % (testFile))
-            raise xenrt.XRTFailure("%s build is not digitally signed and thus cannot be"
-                                   " installed on VM. " % (testFile))
+            sys.stderr.write(str(e))
+            traceback.print_exc(file=sys.stderr)
+            raise xenrt.XRTFailure("signtool fails to verify the % build and thus can not be installed!"
+                                   % (testFile))
         xenrt.TEC().logverbose("The %s build is digitally signed with valid certificate" % (testFile))
 
-    @abstractmethod
     def getCertExpiryDate(self,guest,testFile):
         """ Returns the certificate expiry date of signed exe"""
         data = guest.xmlrpcExec("c:\\signtool.exe verify /pa /v %s" % (testFile),
@@ -50,7 +49,6 @@ class SignedComponent(object):
         expiryDate=datetime.strptime(expiryDate,"%a %b %d %H:%M:%S %Y").strftime("%m-%d-%y")
         return expiryDate
 
-    @abstractmethod
     def changeGuestDate(self,guest,newDate):
         """Set the guest date to newDate"""
         xenrt.TEC().logverbose("Test tring to change the guest date to past the cert expiry date")
@@ -77,15 +75,6 @@ class SignedXenCenter(SignedComponent):
     def installPackages(self,guest):
         guest.installCarbonWindowsGUI()
 
-    def verifySignature(self,guest,testFile):
-        super(SignedXenCenter,self).verifySignature(guest,testFile)
-
-    def getCertExpiryDate(self,guest,testFile):
-        return super(SignedXenCenter,self).getCertExpiryDate(guest,testFile)
-
-    def changeGuestDate(self,guest,newDate):
-        super(SignedXenCenter,self).changeGuestDate(guest,newDate)
-
 class SignedWindowsTools(SignedComponent):
 
     def fetchFile(self):
@@ -103,11 +92,3 @@ class SignedWindowsTools(SignedComponent):
         guest.reboot()
         guest.check()
 
-    def verifySignature(self,guest,testFile):
-        super(SignedWindowsTools,self).verifySignature(guest,testFile)
-
-    def getCertExpiryDate(self,guest,testFile):
-        return super(SignedWindowsTools,self).getCertExpiryDate(guest,testFile)
-
-    def changeGuestDate(self,guest,newDate):
-        super(SignedWindowsTools,self).changeGuestDate(guest,newDate)

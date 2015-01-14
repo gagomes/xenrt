@@ -105,10 +105,9 @@ class WindowsHost(xenrt.GenericHost):
 
     def installWindows(self):
         # Set up the ISO
-        iso = "%s/%s.iso" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), self.productVersion)
-        mount = xenrt.MountISO(iso)
+        mount = xenrt.mountWinISO(self.productVersion)
         nfsdir = xenrt.NFSDirectory()
-        xenrt.command("ln -sfT %s %s/iso" % (mount.getMount(), nfsdir.path()))
+        xenrt.command("ln -sfT %s %s/iso" % (mount, nfsdir.path()))
 
         os.makedirs("%s/custom" % nfsdir.path())
         shutil.copy("%s/iso/Autounattend.xml" % nfsdir.path(), "%s/custom/Autounattend.xml" % nfsdir.path())
@@ -163,7 +162,6 @@ class WindowsHost(xenrt.GenericHost):
         if pids.strip():
             for p in pids.splitlines():
                 xenrt.sudo("kill -9 %s" % p.strip())
-        mount.unmount()
 
         try:
             self.xmlrpcUpdate()

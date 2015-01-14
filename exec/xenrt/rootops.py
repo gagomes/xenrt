@@ -14,6 +14,7 @@ import xenrt, xenrt.util
 # Symbols we want to export from the package.
 __all__ = ["MountISO",
            "MountNFS",
+           "mountWinISO",
            "nmap",
            "sudo"]
     
@@ -109,6 +110,30 @@ class MountNFS(Mount):
 class MountSMB(Mount):
     def __init__(self, smb, domain, username, password, retry=True):
        Mount.__init__(self, smb, options="username=%s,password=%s,domain=%s" % (username, password, domain), mtype="cifs", retry=retry)
+
+def mountWinISO(distro):
+    """Mount a Windows ISO globally for the controller"""
+
+    isolock = xenrt.resources.CentralResource()
+    attempts = 0
+    while True:
+        try:
+            isolock.acquire("WIN_ISO_%s" % distro)
+            break
+        except:
+            xenrt.sleep(10)
+            attempts += 1
+            if attempts > 6:
+                raise xenrt.XRTError("Couldn't get Windows ISO lock.")
+    try:
+        sudo("mkdir -p /winmedia/%s" % distro)
+        mounts = xenrt.command("mount")
+        if not ("on /winmedia/%s") in mounts:
+            sudo("mount -o loop %s/%s.iso /winmedia/%s" % (xenrt.TEC().lookup("EXPORT_ISO_LOCAL_STATIC"), distro, distro))
+        return "/winmedia/%s"
+    finally:
+        isolock.release()
+
 
 def nmap(target, xmlfile, output):
     """Run nmap against the specified target."""

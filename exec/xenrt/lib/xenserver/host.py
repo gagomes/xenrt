@@ -7611,17 +7611,17 @@ rm -f /etc/xensource/xhad.conf || true
 
         # Make an attempt at clearing out logs
         try:
-            self.execdom0("/etc/init.d/syslog stop || true")
-            self.execdom0("rm -f /var/log/messages*")
-            self.execdom0("rm -f /var/log/xensource*")
-            self.execdom0("rm -fr /var/log/xen/* || true")
+            self.execdom0("service syslog stop || true")
+            self.execdom0("rm -f /var/log/messages* || true")
+            self.execdom0("touch /var/log/messages")
+            self.execdom0("rm -f /var/log/xensource* || true")
+            self.execdom0("touch /var/log/xensource")
+            self.execdom0("rm -rf /var/log/xen/* || true")
             self.execdom0("rm -f /var/log/xha*")
-            self.execdom0("mv -f /var/crash /var/crash_`date +%d%m%Y-%H%M%S` "
-                          "|| true")
+            self.execdom0("mv -f /var/crash /var/crash_`date +%d%m%Y-%H%M%S` || true")
             self.execdom0("mkdir -p /var/crash")
         except:
-            xenrt.TEC().logverbose("Exception while cleaning up logs in "
-                                   "resetToFreshInstall")
+            xenrt.TEC().logverbose("Exception while cleaning up logs in resetToFreshInstall")
 
         # Delete any fist points that exist
         self.execdom0("rm -f /tmp/fist_*")
@@ -12897,8 +12897,14 @@ class Pool:
         
             # Perform the master switch
             cli = self.getCLIInstance()
-            cli.execute("pool-designate-new-master", "host-uuid=%s" %
-                        (host.getMyHostUUID()))
+            try:
+                cli.execute("pool-designate-new-master", "host-uuid=%s" %
+                            (host.getMyHostUUID()))
+            except xenrt.XRTException, e:
+                if e.data and re.search("Lost connection to the server.", e.data):
+                    pass
+                else:
+                    raise
             xenrt.sleep(300)
         
         # Update harness metadata

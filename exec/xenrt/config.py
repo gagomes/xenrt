@@ -3138,7 +3138,9 @@ class Config:
         
         # Guy: xen-hyp. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019,XS61E020, XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E045"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E045/89781/hotfix-XS61E045/XS61E045.xsupdate"
-      
+        
+        # Lull: xen-hyp, xapi, xen-device-model, xenbugtool. Rolls up XS61E003, XS61E004, XS61E006, XS61E008, XS61E009, XS61E012, XS61E013, XS61E017, XS61E019, XS61E020,XS61E021, XS61E022, XS61E023, XS61E024, XS61E025, XS61E026, XS61E027, XS61E032, XS61E033, XS61E036, XS61E037, XS61E041, XS61E043, XS61E045
+        self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E046"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E046/89882/hotfix-XS61E046/XS61E046.xsupdate"
       
       
       
@@ -3401,7 +3403,7 @@ class Config:
         self.config["CARBON_PATCHES_TAMPA"]["HF40"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E040"]
         self.config["CARBON_PATCHES_TAMPA"]["HF42"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E042"]
         self.config["CARBON_PATCHES_TAMPA"]["HF44"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E044"]
-        self.config["CARBON_PATCHES_TAMPA"]["HF45"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E045"]
+        self.config["CARBON_PATCHES_TAMPA"]["HF46"] = self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E046"]
 
         if not self.config.has_key("CARBON_PATCHES_CLEARWATER"):
             self.config["CARBON_PATCHES_CLEARWATER"] = {}

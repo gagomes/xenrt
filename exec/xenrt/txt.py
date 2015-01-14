@@ -7,7 +7,7 @@ from math import ceil
 from hashlib import sha1
 from Crypto.Util.strxor import strxor
 from Crypto.Util.number import long_to_bytes
-from  xenrt.lazylog import log, step, warning
+from  xenrt.lazylog import log, step
 
 
 __all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller", "TXTErrorParser"]
@@ -659,7 +659,7 @@ class TXTErrorParser(object):
                 if host.execcmd(grep, retval="code") < 1:
                     data += host.execcmd(grep).split('\n')
                 else:
-                    warning("grep failed for %s in file %s - no data found" % (m, fname))
+                    log("grep failed for %s in file %s - no data found" % (m, fname))
         return cls(data)
 
     def __locateKeyLines(self, marker):

@@ -12,7 +12,6 @@ class FileNameResolver(object):
         self.__fn = fn
         self.__url = fn
         self.__multiple = multipleFiles
-        self.__fm = fm
         self.__singleWildcard = False
         self.__directory = False
         # This order is important. First we need to subst the variables, then add the input dir, then convert to HTTP.

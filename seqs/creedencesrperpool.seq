@@ -2,13 +2,18 @@
 
   <!-- Create 256 Fibre Channel SRs on pool of hosts and use it in a number of guests -->
 
+  <default name="LINUXVMS" value="32" />
+  <default name="WINDOWSVMS" value="0" />
+  <default name="DATADISK" value="7" />
+  <default name="LOOP" value="100" />
+
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <OPTION_DOM0_MEM>4096</OPTION_DOM0_MEM>
   </variables>
 
   <scheduler>
-    <pool>4CLFCQ,4CLFCE</pool>
+    <pool>4CLFCQ</pool>
     <param>MACHINES_REQUIRED=4</param>
   </scheduler>
 
@@ -32,20 +37,64 @@
   </prepare>
 
   <testsequence>
+
     <serial group="Config">
-      <testcase id="xenserver.tc.srpervm.SetupSRsFC">
-        <arg>linuxvms=32</arg>
-        <arg>windowsvms=0</arg>
-        <arg>datadisk=7</arg>
+      <testcase id="xenserver.tc.srpervm.SetupSRsFC" blocker="yes" >
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
       </testcase>
     </serial>
+
+    <serial group="HA">
+      <testcase id="xenserver.tc.srpervm.EnableHA" blocker="yes" />
+    </serial>
+
     <serial group="Copy">
-      <testcase id="xenserver.tc.srpervm.CopyVMs" />
+      <testcase id="xenserver.tc.srpervm.CopyVMs" blocker="yes" />
     </serial>
+
     <serial group="LifeCycle">
-      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" />
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="WithAllPaths" />
     </serial>
-  </testsequence>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.PathFail">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterPathFail" />
+    </serial>
+
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.PathRecover">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+    <serial group="LifeCycle">
+      <testcase id="xenserver.tc.srpervm.LifeCycleAllVMs" name="AfterPathRecover" />
+    </serial>
+
+    <!-- Fail and recover a random path in a single testcase to obtain the total timings. -->
+    <serial group="Multipath">
+      <testcase id="xenserver.tc.srpervm.FCMPathScenario">
+        <arg>linuxvms=${LINUXVMS}</arg>
+        <arg>windowsvms=${WINDOWSVMS}</arg>
+        <arg>datadisk=${DATADISK}</arg>
+        <arg>loop=${LOOP}</arg>
+      </testcase>
+    </serial>
+
+</testsequence>
 
 </xenrt>
-

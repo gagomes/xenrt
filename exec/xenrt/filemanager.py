@@ -12,6 +12,7 @@ class FileNameResolver(object):
         self.__fn = fn
         self.__url = fn
         self.__multiple = multipleFiles
+        self.__fm = fm
         self.__singleWildcard = False
         self.__directory = False
         # This order is important. First we need to subst the variables, then add the input dir, then convert to HTTP.
@@ -19,6 +20,7 @@ class FileNameResolver(object):
         self.__resolveInputDir()
         self.__resolveHttpFetch()
         self.__resolveLatest()
+        self.__useArchiveIfNeeded()
         # Finally, we tidy up the path
         self.__removeMultipleSlashes()
 
@@ -110,6 +112,20 @@ class FileNameResolver(object):
         """Some of these substitutions tends to leave double or triple-slashes. Replace all of them that aren't protocol separators"""
         while re.search("[^:]//", self.__url):
             self.__url = re.sub("([^:])//", "\\1/", self.__url)
+
+    def __useArchiveIfNeeded(self):
+        
+        rootBuildPath = "/usr/groups/xen/carbon/"
+        rootArchivePath = "/nfs/archive/builds/carbon/"
+
+        m = re.match("(.*%s.+?/\d+)/.*" % rootBuildPath, self.__url)
+        if not m:
+            return
+        buildDir = m.group(1)
+        archiveDir = buildDir.replace(rootBuildPath, rootArchivePath)
+
+        if not xenrt.isUrlFetchable(buildDir) and xenrt.isUrlFetchable(archiveDir):
+            self.__url = self.__url.replace(rootBuildPath, rootArchivePath)
 
 class FileManager(object):
     def __init__(self):
@@ -322,19 +338,10 @@ class FileManager(object):
             fnr = FileNameResolver(filename)
             if self.__availableInCache(fnr):
                 return True
-            return self._isFetchable(fnr.url)
+            return xenrt.isUrlFetchable(fnr.url)
         finally:
             self.lock.release()
     
-    def _isFetchable(self, filename):
-        # Split remote in to host and path
-        xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
-        try:
-            r = requests.head(filename, allow_redirects=True)
-            return (r.status_code == 200)
-        except:
-            return False
-
 def getFileManager():
     global fm
     if not fm:

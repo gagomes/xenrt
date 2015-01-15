@@ -10,7 +10,7 @@
 
 import time, fnmatch, sys, os.path, time, os, popen2, random, string, socket, threading
 import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
-import calendar, types, fcntl, resource
+import calendar, types, fcntl, resource, requests
 import xenrt, xenrt.ssh
 import IPy
 import xml.sax.saxutils
@@ -85,7 +85,8 @@ __all__ = ["timenow",
            "dictToXML",
            "getNetworkParam",
            "getCCPInputs",
-           "getCCPCommit"
+           "getCCPCommit",
+           "isUrlFetchable"
            ]
 
 def sleep(secs, log=True):
@@ -1473,3 +1474,12 @@ def getCCPCommit(distro):
         return rh7Commit
     else:
         return defaultCommit
+
+def isUrlFetchable(filename):
+    xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
+    try:
+        r = requests.head(filename, allow_redirects=True)
+        return (r.status_code == 200)
+    except:
+        return False
+

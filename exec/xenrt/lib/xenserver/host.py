@@ -10872,7 +10872,7 @@ class ClearwaterHost(TampaHost):
             line = line.replace('any cpu', 'any-cpu')
 
             fields = line.split()
-            if len(fields) != 7:
+            if len(fields) < 7:
                 xenrt.TEC().warning("Invalid data from %s: %s" % (command, line))
             else:
                 domId = int(fields[1])

@@ -91,7 +91,7 @@ __all__ = ["timenow",
 
 def sleep(secs, log=True):
     if log:
-        xenrt.TEC().logverbose("Sleeping for %d seconds - called from %s" % (secs, traceback.extract_stack(limit=2)[0]))
+        xenrt.TEC().logverbose("Sleeping for %s seconds - called from %s" % (secs, traceback.extract_stack(limit=2)[0]))
     time.sleep(secs)
 
 def parseXMLConfigString(configString):

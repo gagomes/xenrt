@@ -257,14 +257,14 @@ class _TCXSA(xenrt.TestCase):
     
     def replaceHvmloader(self, path):
         """Replace hvmloader with file at given 'path'"""
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
+        self.hvmloaderPath = self.host.execdom0("find /usr/ -type f -name hvmloader").strip()
+        self.host.execdom0("cp -f {0} {0}.backup".format(self.hvmloaderPath))
         hvmloader = xenrt.TEC().getFile(path)
-        hvmloaderPath = "/usr/lib/xen/boot/hvmloader"
         sftp = self.host.sftpClient()
         try:
             xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
-                                        % (hvmloader, hvmloaderPath))
-            sftp.copyTo(hvmloader, hvmloaderPath)
+                                        % (hvmloader, self.hvmloaderPath))
+            sftp.copyTo(hvmloader, self.hvmloaderPath)
         finally:
             sftp.close()
 
@@ -329,10 +329,7 @@ class TCXSA23(_TCXSA):
     
     def prepare(self, arglist=None):
         _TCXSA.prepare(self, arglist)
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader /usr/lib/xen/boot/hvmloader.backup")
-        
-        url = "http://hg.uk.xensource.com/closed/xen-hypercall-fuzzer.hg/raw-file/tip/misc/hvmloader-xen-4.1-xsa23"
-        self.host.execdom0("wget '%s' -O /usr/lib/xen/boot/hvmloader" % url)
+        self.replaceHvmloader("http://hg.uk.xensource.com/closed/xen-hypercall-fuzzer.hg/raw-file/tip/misc/hvmloader-xen-4.1-xsa23")
     
     def run(self, arglist=None):
         vm = self.host.execdom0("xe vm-install new-name-label=vm template-name=\"Other install media\"").strip()
@@ -549,7 +546,7 @@ class TCXSA111(_TCXSA):
         xenrt.TEC().logverbose("Expected output: Host didn't crash")
 
     def postRun(self):
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))
 
 class TCXSA112(_TCXSA):
     """Test to verify XSA-112"""
@@ -580,4 +577,4 @@ class TCXSA112(_TCXSA):
             raise xenrt.XRTFailure("Unexpected output in serial logs")
     
     def postRun(self):
-        self.host.execdom0("cp -f /usr/lib/xen/boot/hvmloader.backup /usr/lib/xen/boot/hvmloader")
+        self.host.execdom0("cp -f {0}.backup {0}".format(self.hvmloaderPath))

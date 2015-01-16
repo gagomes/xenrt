@@ -3900,7 +3900,10 @@ exit /B 1
         return reply
 
     def sendSysRq(self, key):
-        self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
+        if isinstance(self.getHost(), xenrt.lib.xenserver.DundeeHost):
+            self.getHost().execdom0("xl sysrq %u %s" %(self.getDomid(),key))
+        else:    
+            self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
                                 "-domid %u -key %s" % (self.getDomid(), key))
 
     def pretendToHaveXenTools(self):

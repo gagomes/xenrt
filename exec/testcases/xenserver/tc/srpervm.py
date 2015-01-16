@@ -315,7 +315,7 @@ class FCMPathScenario(xenrt.TestCase):
                 raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempts)
 
             attempts = attempts + 1
-            xenrt.sleep(30) # wait for 30 seconds.
+            xenrt.sleep(0.5) # we want to know as soon as possible when all paths are down/up.
 
     def run(self, arglist=[]):
 
@@ -334,10 +334,12 @@ class FCMPathScenario(xenrt.TestCase):
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
+            xenrt.TEC().value("PathFail_%s" % host, (xenrt.util.timenow() - disableTime), "s")
             xenrt.TEC().logverbose("Time taken to fail the path on host %s is %s seconds." % 
                                                 (host, (xenrt.util.timenow() - disableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
+        xenrt.TEC().value("PathFail_AllHosts", (xenrt.util.timenow() - overallDisableTime), "s")
         xenrt.TEC().logverbose("The overall time taken to fail the path (all hosts) is %s seconds." % 
                                                     (xenrt.util.timenow() - overallDisableTime))
 
@@ -348,14 +350,17 @@ class FCMPathScenario(xenrt.TestCase):
             self.checkPathCount(host) # 7. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 8. Report the elapsed time beween steps 6 and 7 for every host.
+            xenrt.TEC().value("PathRecover_%s" % host, (xenrt.util.timenow() - enableTime), "s")
             xenrt.TEC().logverbose("Time taken to recover the path on host %s is %s seconds." % 
                                                         (host, (xenrt.util.timenow() - enableTime)))
 
         # 9. Report the elapsed time beween steps 7 and 8 for all hosts.
+        xenrt.TEC().value("PathRecover_AllHosts", (xenrt.util.timenow() - overallEnableTime), "s")
         xenrt.TEC().logverbose("The overall time taken to recover the path (all hosts) is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
 
         #11. Report the elapsed time between steps 2 and 10.
+        xenrt.TEC().value("PathFail_And_Recover", (xenrt.util.timenow() - startTime), "s")
         xenrt.TEC().logverbose("The complete time between path failure and recovery is %s seconds" % 
                                                                         (xenrt.util.timenow() - startTime))
 
@@ -378,10 +383,12 @@ class PathFail(FCMPathScenario):
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
+            xenrt.TEC().value("PathFail_%s" % host, (xenrt.util.timenow() - disableTime), "s")
             xenrt.TEC().logverbose("Time taken to fail the path on host %s is %s seconds." % 
                                                 (host, (xenrt.util.timenow() - disableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
+        xenrt.TEC().value("PathFail_AllHosts", (xenrt.util.timenow() - overallDisableTime), "s")
         xenrt.TEC().logverbose("The overall time taken to fail the path (all hosts) is %s seconds." % 
                                                 (xenrt.util.timenow() - overallDisableTime))
 
@@ -404,10 +411,12 @@ class PathRecover(FCMPathScenario):
             self.checkPathCount(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
+            xenrt.TEC().value("PathRecover_%s" % host, (xenrt.util.timenow() - enableTime), "s")
             xenrt.TEC().logverbose("Time taken to recover the path on host %s is %s seconds." % 
                                                         (host, (xenrt.util.timenow() - enableTime)))
 
         # 5. Report the elapsed time beween steps 2 and 3 for all hosts.
+        xenrt.TEC().value("PathRecover_AllHosts", (xenrt.util.timenow() - overallEnableTime), "s")
         xenrt.TEC().logverbose("The overall time taken to recover the path (all hosts) is %s seconds." % 
                                                             (xenrt.util.timenow() - overallEnableTime))
 

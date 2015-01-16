@@ -890,7 +890,7 @@ class TC9284(xenrt.TestCase):
             self.guest.migrateVM(self.host, live="true")
         except Exception, e:
             #CA-148483 workaround
-            if "VM didn't acknowledge the need to shutdown" in str(e):
+            if "VM didn't acknowledge the need to shutdown" in str(e) or "Failed_to_acknowledge_shutdown_request" in str(e):
                 xenrt.TEC().logverbose("Migration failed as expected")
                 time.sleep(60)
                 try:

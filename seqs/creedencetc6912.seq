@@ -21,6 +21,7 @@
         <vm name="ws08sp2-x86">
           <distro>ws08sp2-x86</distro>
           <memory>1024</memory>
+          <vcpus>8</vcpus>
           <network device="0"/>
           <postinstall action="installDrivers"/>
           <postinstall action="shutdown"/>
@@ -28,6 +29,7 @@
         <vm name="ws08sp2-x64">
           <distro>ws08sp2-x64</distro>
           <memory>1024</memory>
+          <vcpus>8</vcpus>
           <network device="0"/>
           <postinstall action="installDrivers"/>
           <postinstall action="shutdown"/>
@@ -35,6 +37,7 @@
         <vm name="ws08r2-x64">
           <distro>ws08r2-x64</distro>
           <memory>1024</memory>
+          <vcpus>8</vcpus>
           <network device="0"/>
           <postinstall action="installDrivers"/>
           <postinstall action="shutdown"/>

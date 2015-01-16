@@ -692,11 +692,7 @@ default slave {
                 elif consoletype == "slave":
                     f.write("console %s { include slave; master %s;%s }\n" % (consolename, entries[i]["CONSERVER_ADDRESS"], aliases))
                 elif consoletype == "ipmi":
-                    if entries[i].has_key("IPMI_INTERFACE"):
-                        intf = entries[i]["IPMI_INTERFACE"]
-                    else:
-                        intf = "lanplus"
-                    f.write("console %s { include ipmi; exec \"ipmitool -H %s -I %s -U %s -P %s sol activate\"; %s }\n" % (consolename, entries[i]["BMC_ADDRESS"], intf, entries[i]["IPMI_USERNAME"], entries[i]["IPMI_PASSWORD"], aliases))
+                    f.write("console %s { include ipmi; exec \"ipmitool -H %s -I lanplus -U %s -P %s sol activate\"; %s }\n" % (consolename, entries[i]["BMC_ADDRESS"], entries[i]["IPMI_USERNAME"], entries[i]["IPMI_PASSWORD"], aliases))
                 elif consoletype == "ssh":
                     extra = ""
                     if not entries[i].has_key("CONSOLE_SSH_ADDRESS"):

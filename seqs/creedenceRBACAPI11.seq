@@ -6,13 +6,11 @@
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
     <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
   </variables>
 
-  <prepare>
-    <pool>
-      <host id="0" />
-    </pool>
-    <host id="1" >
+  <preprepare>
+    <host id="0">
       <vm name="AUTHSERVER">
         <distro>ws08sp2-x86</distro>
         <network device="0"/>
@@ -20,7 +18,13 @@
         <postinstall action="installPowerShell"/>
         <postinstall action="enablePowerShellUnrestricted"/>
       </vm>
-    </host>
+    </host> 
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" />
+    </pool>
   </prepare>
 
   <testsequence>

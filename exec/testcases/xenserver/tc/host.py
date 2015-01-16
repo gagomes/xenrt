@@ -5008,3 +5008,53 @@ class TCCheckLocalDVD(xenrt.TestCase):
             self.virtualmedia.unmountCD()
         except:
             pass
+
+class TCSlaveConnectivity(xenrt.TestCase):
+    #TC-23773
+    """Test case for SCTX-1562- slave servers lost connection to master server 
+    on receiving error for writing a packet that exceeds the 300k limit"""
+    def prepare(self, arglist):
+        step("Create plugin on the slave host")
+        self.pool = self.getDefaultPool()
+        plugin="""#!/usr/bin/python
+import XenAPIPlugin
+BRAIN_STR = "brain!"
+
+def main(session, args):
+    try:
+        size = int(args["brain-size"])
+        return (BRAIN_STR * (size / len(BRAIN_STR) + 1))[:size]
+    except KeyError:
+        raise RuntimeError("No argument found with key 'brain-size'.")
+
+if __name__ == "__main__":
+    XenAPIPlugin.dispatch({"main": main})
+"""
+
+        self.slave = self.pool.slaves.values()[0]
+        sftp = self.slave.sftpClient()
+        t = xenrt.TEC().tempFile()
+        with open(t, 'w') as f:
+            f.write(plugin)
+        sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
+        self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
+        sftp.close()
+        
+    def run(self, arglist=None):
+        step("Call plugin from the master host")
+        cli = self.pool.master.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.slave.getMyHostUUID()))
+        args.append("plugin=braindump")
+        args.append("fn=main")
+        args.append("args:brain-size=$(( 310*1024 ))")
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=600)
+            if "brain" in output:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            if "Client_requested_size_over_limit" not in str(e):
+                raise
+

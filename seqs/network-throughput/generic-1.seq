@@ -7,7 +7,7 @@
 
     <prepare>
       <pool>
-        <host id="0" license="platinum">
+        <host id="0">
             <NETWORK>
                 <PHYSICAL network="NPRI">
                     <MANAGEMENT mode="static" />

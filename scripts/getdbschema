@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "You will be asked for the root password for db.xenrt.citrite.net..."
+ssh root@db.xenrt.citrite.net "su - postgres -c 'pg_dump --schema-only xenrt'" > $1

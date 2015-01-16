@@ -73,8 +73,8 @@ class _VMScalability(_Scalability):
     MAX = 0
     TRYMAX = False # TRY to load the MAXimum possible VMs, by disabling some features
     LOOPS = 0
-    DISTRO = "LINUX"
-    ARCH = "x86-32"
+    DISTRO = "debian70"
+    ARCH = "x86-64"
     MEMORY=384
     CHECKHEALTH = False
     CHECKREACHABLE = False
@@ -190,7 +190,8 @@ class _VMScalability(_Scalability):
 
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             step("Optimizing hosts for scalability testing")
-            xenrt.pfarm ([xenrt.PTask(self.optimizeDom0, host) for host in self.hosts])
+            for host in self.hosts:
+                self.optimizeDom0(host)
 
         step("Getting existing guest information")
         self.optimizeExistingGuests(host)
@@ -352,6 +353,7 @@ class _VMScalability(_Scalability):
         self.nbrOfFailThresholds = len(self.hosts)
         self.nbrOfFails = 0
         self.failedGuests = []
+        self.vmDomid = 0
         xenrt.pfarm ([xenrt.PTask(self.createVmCloneThread, host, tailor_guest= tailor_guest) for host in self.hosts])
         self.nbrOfGuests = self.currentNbrOfGuests - self.nbrOfFails
 
@@ -444,20 +446,25 @@ class _VMScalability(_Scalability):
                 elif operation == "start":
                     g.start(specifyOn = False)
                 passed = True
-            except:
+            except Exception, e:
                 if iterationNbr == None:
-                    xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
+                    xenrt.TEC().warning("Guest %s failed to %s" % (g.getName(), operation))
+                    xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
                 else:
                     xenrt.TEC().warning("LOOP %s: Guest %s failed to %s" % (iterationNbr, g.getName(), operation))
-
+                    xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
+                    
             self.lock.acquire()
             if passed:
                 self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
             self.lock.release()
 
+            if g.getDomid() <= 1:
+                raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
+
+
     def loopingTest(self):
         nbrOfThreads = min(5*len(self.hosts),25)
-
         xenrt.TEC().logverbose("Shutting down all Guests")
         self.guestsPendingOperation = [g for g in self.guests]
         self.nbrOfPassedGuests = 0
@@ -665,11 +672,11 @@ class TC19270(_VMScalability):
     CHECKREACHABLE=True
     CHECKHEALTH=True
     TRYMAX = True
-    NET_BRIDGE = True
+    NET_BRIDGE = False
     #DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
-    DOM0CPUS = True
+    DOM0CPUS = False
 
 class TC19271(_VMScalability):
     """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""

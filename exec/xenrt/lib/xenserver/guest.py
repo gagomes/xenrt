@@ -1979,6 +1979,13 @@ exit /B 1
         xenrt.GEC().registry.objPut("netscaler", self.name, netscaler)
         netscaler.applyLicense(netscaler.getLicenseFileFromXenRT())
 
+    def setupDomainServer(self):
+        self.installPowerShell()
+        self.enablePowerShellUnrestricted()
+        self.disableFirewall()
+        domain = xenrt.TEC().lookup("DEFAULT_DOMAIN", None)
+        xenrt.ActiveDirectoryServer(self, domainname=domain)
+
     def getVIFUUID(self, name):
         return self.getHost().parseListForUUID("vif-list",
                                                "device",
@@ -2784,7 +2791,7 @@ exit /B 1
             sruuid = self.chooseSR()
         cli = host.getCLIInstance()
         args = []
-        args.append("filename=%s" % (image))
+        args.append("filename='%s'" % (image))
         args.append("sr-uuid=%s" % (sruuid))
         if preserve:
             args.append("preserve=true")
@@ -3893,7 +3900,10 @@ exit /B 1
         return reply
 
     def sendSysRq(self, key):
-        self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
+        if isinstance(self.getHost(), xenrt.lib.xenserver.DundeeHost):
+            self.getHost().execdom0("xl sysrq %u %s" %(self.getDomid(),key))
+        else:    
+            self.getHost().execdom0("/opt/xensource/debug/xenops sysrq_domain "
                                 "-domid %u -key %s" % (self.getDomid(), key))
 
     def pretendToHaveXenTools(self):
@@ -4153,6 +4163,12 @@ exit /B 1
         network = self.host.getNetworkUUID(bridge)
         return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
 
+    def installXenMobileAppliance(self):
+        self.lifecycleOperation("vm-start", specifyOn=True)
+        time.sleep(60)
+        app = xenrt.XenMobileApplianceServer(self)
+        app.doFirstbootUnattendedSetup() 
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):
@@ -4357,6 +4373,8 @@ def createVM(host,
         # The install method doesn't do this for us.
         if vcpus:
             g.setVCPUs(vcpus)
+        elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
+            host.setRandomVcpus(g)
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):

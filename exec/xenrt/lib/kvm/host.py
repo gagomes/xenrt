@@ -45,7 +45,8 @@ def createHost(id=0,
                vHostCpus=2,
                vHostMemory=4096,
                vHostDiskSize=50,
-               vHostSR=None):
+               vHostSR=None,
+               vNetworks=None):
 
     if containerHost != None:
         raise xenrt.XRTError("Nested hosts not supported for this host type")
@@ -324,6 +325,16 @@ class KVMHost(xenrt.lib.libvirt.Host):
         a string containing XML or a XML DOM node."""
         pass
 
+    def getAssumedId(self, friendlyname):
+        # cloudbrX -> MAC         virsh iface-mac
+        #          -> assumedid   h.listSecondaryNICs
+
+        brname = friendlyname
+        nicmac = self.execvirt("virsh iface-mac %s" % brname).strip()
+        assumedids = self.listSecondaryNICs(macaddr=nicmac)
+        xenrt.TEC().logverbose("getAssumedId (KVMHost: %s): MAC %s corresponds to assumedids %s" % (self, nicmac, assumedids))
+        return assumedids[0]
+
     def tailorForCloudStack(self, isCCP, isLXC=False):
         """Tailor this host for use with ACS/CCP"""
 
@@ -441,7 +452,7 @@ EOF
         self.execdom0("touch /var/lib/xenrt/cloudTailored")
 
     def installJSVC(self):
-        self.execdom0("yum install -y java-1.6.0 java*1.7* jakarta-commons-daemon")
+        self.execdom0("yum install -y java-1.6.0 java-1.7.0-openjdk jakarta-commons-daemon")
         # (we need java-1.6.0 as the package has a dependency on it, but it actually fails unless you run
         #  java-1.7.0, so we need to update-alternatives to use it - GRR!)
         if not '1.7.0' in self.execdom0('java -version').strip():

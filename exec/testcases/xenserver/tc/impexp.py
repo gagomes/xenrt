@@ -47,21 +47,15 @@ class _ImpExpBase(xenrt.TestCase):
         pass
 
     def run(self,arglist):
-        host = None
-        try:
-            # Get a host to use.
-            host = self.getDefaultHost()
-            self.host = host
-            self.preRun(host)
-            guest = self.createGuest(host,
-                                     distro=self.DISTRO,
-                                     srtype=self.SRTYPE,
-                                     disksize=self.DISKSIZE)
-            self.guest = guest
-            self.guestsToClean.append(guest)
-        except xenrt.XRTFailure, e:
-            # Not a failure of the testcase.
-            raise xenrt.XRTError(e.reason)
+        host = self.getDefaultHost()
+        self.host = host
+        self.preRun(host)
+        guest = self.createGuest(host,
+                                 distro=self.DISTRO,
+                                 srtype=self.SRTYPE,
+                                 disksize=self.DISKSIZE)
+        self.guest = guest
+        self.guestsToClean.append(guest)
 
         origvifs = guest.getVIFs()
 

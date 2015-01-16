@@ -939,7 +939,7 @@ class _TCClockDrift(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         cpu_info = self.host.execdom0("cat /proc/cpuinfo")
-        cpu_num = len(self.host.execdom0("/opt/xensource/debug/xenops pcpuinfo").strip().split('\n'))
+        cpu_num = int(self.host.execdom0("xe host-cpu-info --minimal").strip())
 
         if cpu_info.find(self.HARCH.lower()) < 0:
             raise xenrt.XRTError("Not running on %s hardware" % self.HARCH)
@@ -1420,7 +1420,7 @@ class TC10555(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
 
         # Check the memory is reporting a sensible free value
-        time.sleep(180)
+        time.sleep(420)
         m = self.guest.getDataSourceValue("memory_internal_free")
         if m < 1.0:
             raise xenrt.XRTError("Memory free value not sensible before test")

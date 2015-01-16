@@ -5,9 +5,6 @@
 
   <prepare>
     <host container="0" vname="test1" />
-    <host container="0" vname="test2" />
-    <host container="0" vname="test3" />
-    <host container="0" vname="test4" />
   </prepare>
 </xenrt>
 

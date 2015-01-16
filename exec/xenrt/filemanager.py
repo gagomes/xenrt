@@ -9,6 +9,7 @@ fm = None
 
 class FileNameResolver(object):
     def __init__(self, fn, multipleFiles=False):
+        self.__fn = fn
         self.__url = fn
         self.__multiple = multipleFiles
         self.__singleWildcard = False
@@ -17,6 +18,8 @@ class FileNameResolver(object):
         self.__resolveVariableSubstitutions()
         self.__resolveInputDir()
         self.__resolveHttpFetch()
+        self.__resolveLatest()
+        self.__useArchiveIfNeeded()
         # Finally, we tidy up the path
         self.__removeMultipleSlashes()
 
@@ -24,6 +27,10 @@ class FileNameResolver(object):
         self.__resolveDirectory()
         self.__resolveWildCards()
         self.__resolveArchive()
+
+    @property
+    def fn(self):
+        return self.__fn
 
     @property
     def url(self):
@@ -44,6 +51,10 @@ class FileNameResolver(object):
     @property
     def singleFileWithWildcard(self):
         return self.__singleWildcard
+
+    @property
+    def isSimpleFile(self):
+        return not (self.multipleFiles or self.singleFileWithWildcard or self.directory)
         
     def __resolveDirectory(self):
         if self.__localName.endswith("/"):
@@ -79,6 +90,17 @@ class FileNameResolver(object):
             self.__url = "%s/%s" % (xenrt.TEC().getInputDir(), self.__url)
         pass
 
+    def __resolveLatest(self):
+        m = re.match("(.+?)/([^/]*latest)/(.+)", self.__url)
+        if m:
+            try:
+                r = requests.get("%s/%s/manifest" % (m.group(1), m.group(2)))
+                r.raise_for_status()
+                buildnum = [x.strip().split()[-1] for x in r.content.splitlines() if x.startswith("@install-image")][0]
+                self.__url = "%s/%s/%s" % (m.group(1), buildnum, m.group(3))
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning, could not determine build number for /latest - error: %s" % str(e))
+
     def __resolveHttpFetch(self):
         """If the file doesn't begin with an HTTP path, it needs the HTTP exporter prepending"""
         if    not self.__url.startswith("http://") \
@@ -89,6 +111,20 @@ class FileNameResolver(object):
         """Some of these substitutions tends to leave double or triple-slashes. Replace all of them that aren't protocol separators"""
         while re.search("[^:]//", self.__url):
             self.__url = re.sub("([^:])//", "\\1/", self.__url)
+
+    def __useArchiveIfNeeded(self):
+        
+        rootBuildPath = "/usr/groups/xen/carbon/"
+        rootArchivePath = "/nfs/archive/builds/carbon/"
+
+        m = re.match("(.*%s.+?/\d+)/.*" % rootBuildPath, self.__url)
+        if not m:
+            return
+        buildDir = m.group(1)
+        archiveDir = buildDir.replace(rootBuildPath, rootArchivePath)
+
+        if not xenrt.isUrlFetchable(buildDir) and xenrt.isUrlFetchable(archiveDir):
+            self.__url = self.__url.replace(rootBuildPath, rootArchivePath)
 
 class FileManager(object):
     def __init__(self):
@@ -103,7 +139,7 @@ class FileManager(object):
             fnr = FileNameResolver(filename, multiple)
             url = fnr.url
             localName = fnr.localName
-            cache = self._availableInCache(localName)
+            cache = self.__availableInCache(fnr)
             if cache:
                 return cache
 
@@ -251,7 +287,9 @@ class FileManager(object):
             xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
             os.unlink(sharedLocation) 
 
-    def _availableInCache(self, filename):
+    def __availableInCache(self, fnr):
+
+        filename = fnr.localName
         # First try the per-job cache
         perJobLocation = self._perJobCacheLocation(filename)
         sharedLocation = self._sharedCacheLocation(filename)
@@ -273,6 +311,28 @@ class FileManager(object):
         if os.path.exists(sharedLocation):
             # If it is, hardlink it to the per-job cache
             xenrt.TEC().logverbose("Found file in shared cache")
+
+            if fnr.isSimpleFile:
+                # Check the content length matches (i.e. the file hasn't been updated underneath us)
+                expectedLength = None
+                try:
+                    r = requests.head(fnr.url, allow_redirects=True)
+                    # We only trust the content-length if we got a 200 code, and the length is
+                    # >10M, this is to avoid situations where we have a script providing the
+                    # file where a HEAD request will give the size of the script not the file
+                    # it provides
+                    if r.status_code == 200 and 'content-length' in r.headers and \
+                       r.headers['content-length'] > (10 * xenrt.MEGA):
+                        expectedLength = int(r.headers['content-length'])
+                except:
+                    # File is currently not available for some reason, still valid to use it from the cache
+                    pass
+
+                if expectedLength:
+                    s = os.stat(sharedLocation)
+                    if s.st_size != expectedLength:
+                        raise xenrt.XRTError("found in shared cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
+
             os.link(sharedLocation, perJobLocation) 
 
             # Return the cache location in the per-job cache
@@ -300,22 +360,13 @@ class FileManager(object):
         try:
             xenrt.TEC().logverbose("fileExists %s" % filename)
             self.lock.acquire()
-            filename = FileNameResolver(filename).url
-            if self._availableInCache(filename):
+            fnr = FileNameResolver(filename)
+            if self.__availableInCache(fnr):
                 return True
-            return self._isFetchable(filename)
+            return xenrt.isUrlFetchable(fnr.url)
         finally:
             self.lock.release()
     
-    def _isFetchable(self, filename):
-        # Split remote in to host and path
-        xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
-        try:
-            r = requests.head(filename, allow_redirects=True)
-            return (r.status_code == 200)
-        except:
-            return False
-
 def getFileManager():
     global fm
     if not fm:

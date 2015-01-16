@@ -7282,8 +7282,8 @@ logger "Stopping xentrace loop, host has less than 512M disk space free"
         try:
             cli.execute("pif-reconfigure-ip", string.join(args))
         except xenrt.XRTException, e:
-            if e.data and (re.search("Lost connection to the server.", e.data) or
-                           re.search("You attempted an operation which involves a host which could not be contacted.", e.data)):
+            if e.data and (("Lost connection to the server." in e.data) or
+                           ("You attempted an operation which involves a host which could not be contacted." in e.data)):
                 pass
             else:
                 raise e
@@ -13571,7 +13571,7 @@ class Pool:
             try:
                 cli.execute("pool-enable-external-auth", string.join(args)).strip()
             except xenrt.XRTException, e:
-                if e.data and re.search("External authentication in this pool is already enabled for at least one host.", e.data):
+                if e.data and "External authentication in this pool is already enabled for at least one host." in e.data:
                     pass
                 else:
                     raise

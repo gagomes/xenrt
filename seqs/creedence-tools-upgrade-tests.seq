@@ -1,0 +1,31 @@
+<xenrt>
+  <!--XenTools upgrade tests -->
+  <default name="OLD_PRODUCT_VERSION" value="Boston"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.0.0/RTM-50762"/>
+  
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+      <vm name="VMWin2k8">
+        <distro>ws08-x86</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installDrivers" />
+        <network device="0" />
+        <disk device="0" size="24" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+    <testcase id="xenserver.install.TCApplyReqdPatches"/>
+    <testcase id="xenserver.tc.pvdrivers.TCToolsMissingUninstall" name="TC23775" tc="TC-23775" />
+  </testsequence>
+</xenrt>

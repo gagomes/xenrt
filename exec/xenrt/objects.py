@@ -9307,6 +9307,88 @@ sleep (3000)
             if self.xmlrpcDirExists(targetPath):
                 self.xmlrpcDelTree(targetPath)
 
+    def isGPUBeingUtilized(self, gpuType):
+        """Find if a GPU is being utilized on a linux vm.
+        Only works for X, Y, Z.
+        @param gpuType: Something.
+        """
+
+        # Need some sort of distro list that this function will work on.
+        workingDistros = []
+        isUbuntu = False
+
+        # Might need bools to keep track of two tests.
+            # Or optionally return early under failure.
+            # Would make cleaner towards end of code.
+
+        # Check if linux guest I think.
+            # Only for certain distros?
+            # Any checks.
+        if self.windows == True:
+            raise xenrt.XRTError("Function can only be used for certain linux distros. %s" % workingDistros)
+
+        if self.distro not in workingDistros:
+            raise xenrt.XRTError("Function can only be used for certain linux distros. %s" % workingDistros)
+
+        if self.distro == "UbuntuSomeIdentifier":
+            isUbuntu = True
+        # Would be nice to outline actual distro, or group beforehand.
+        # Ubuntu | Rhel bases.
+
+        # Check if the given type of gpu is present.
+        componentList = self.execguest("sudo lspci | grep %s" % gpuType)
+
+        # Check if there is a card present.
+
+        # 0:00.0 VGA|Audio ... NVIDIA|AMD|Intel
+        pciid = None
+
+        for line in componentList.splitlines():
+            if "VGA" in line:
+                pciid = componentList.split(" ")[0]
+                break # Avoid parsing the rest of the list, which are likely unrelated components.
+
+        lspciOut = self.execguest("sudo lspci -v -s %s" % pciid)
+
+        # Check if "Kernel driver in use: " is in last line.
+        if "Kernel driver in use: " in [line for line in result.splitlines()][-1]:
+            pass # The first test is a pass, could else to return false.
+
+        # Use / install lshw.
+            # Can run command to see if it's there perhaps.
+            # Or could check the os type. (Ubuntu will have, others not.)
+
+            # Need to figure out if Ubuntu or not beforehand.
+            # self.distro ~~~
+            # Could be some weird actions if not.
+
+        if not isUbuntu:
+            # Install lshw.
+            # Only RHEL based os left possible, all the same steps.
+            # Get .rpm from distmaster.
+            # "yum -y install xyz.rpm"
+            pass
+
+        # Using lshw, get the deets.
+
+        # Not aware of possible errors, but might need a try block just in case.
+        xml = execguest("sudo lshw -xml -c video")
+
+        # Parse the lshw output.
+        root = ET.fromstring(xml)
+        desiredNode = None
+        for child in root:
+            if child.attrib["handle"].endswith(pciid):
+                desiredNode = child
+                break
+
+        if "claimed" in desiredNode.attrib:
+            if desiredNode.attrib["claimed"] == True:
+                # Second test has passed two.
+                pass
+            else:
+                return False
+
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):
 
         def getScriptToBeExecuted(timeInsecs,FileNameToBeWritten,FileNameForTimeDiff,vmName):

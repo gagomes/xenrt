@@ -10394,11 +10394,10 @@ write $computers.psbase.get_Children()
         xenrt.sleep(60)
 
     def install(self):
+        self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
+        self.place.rename(self.place.getName())
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
-        self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
-
-        self.place.rename(self.place.getName())
 
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
@@ -10408,10 +10407,9 @@ write $computers.psbase.get_Children()
         else:
             raise xenrt.XRTError("Unimplemented")
 
-        self.place.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (self.domainname, "Administrator"), level=xenrt.RC_OK)
+        self.place.reboot()
         # This manages to get switched back on during the AD install.
         self.place.disableWindowsPasswordComplexityCheck()
-        self.place.reboot()
         xenrt.TEC().logverbose("Installed Active Directory Server. (Domain: %s)" % (self.domainname))
 
     def installOnWS2008(self):

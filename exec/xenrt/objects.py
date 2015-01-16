@@ -27,7 +27,8 @@ time.strptime('2014-06-12','%Y-%m-%d')
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
-           "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]
+           "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
+           "XenMobileApplianceServer"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -11781,6 +11782,107 @@ class DVSCWebServices:
         body = { 'other_servers' : "%s:%s" % (ipaddress, port),
                  'use_vmanager' : use_vmanager}
         self.putAsJson("netflow/%s" % pool_node['uid'], body)
+
+class XenMobileApplianceServer:
+    """An object to represent a XenMobile Appliance Server"""
+
+    def __init__(self, guest):
+        self.guest = guest
+        self.password = "adminadmin"
+        self.host = self.guest.getHost()
+
+    def doFirstbootUnattendedSetup(self):
+        """ Answer the first boot questions"""
+        mac, _, _ = self.guest.getVIF("eth0")
+        ip = xenrt.StaticIP4Addr(mac=mac).getAddr()
+        _, netmask = self.host.getNICNetworkAndMask(0)
+        gateway = self.host.getGateway()
+        dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()
+
+        # choose root passwd
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # retype root passwd
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # type static-ip
+        self.guest.writeToConsole("%s\\n" % ip)
+        xenrt.sleep(5)
+        # type netmask
+        self.guest.writeToConsole("%s\\n" % netmask)
+        xenrt.sleep(5)
+        # type gateway
+        self.guest.writeToConsole("%s\\n" % gateway)
+        xenrt.sleep(5)
+        # type dns
+        self.guest.writeToConsole("%s\\n" % dns)
+        xenrt.sleep(5)
+        # no secondary dns
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(15)
+        # generate random passphrase y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # Federal Information Processing Standard (FIPS) mode n
+        self.guest.writeToConsole("%s\\n" % "n")
+        xenrt.sleep(5)
+        # Database connection l
+        self.guest.writeToConsole("%s\\n" % "l")
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(15)
+        # XenMobile hostname:
+        self.guest.writeToConsole("%s\\n" % ip)
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(15)
+        # HTTP port - default to 80
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # HTTPs port - default to 443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # HTTPs port no cert - default to 8443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # HTTPs management - default to 4443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # same password for all certs -default y
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # username - default to administrator
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(5)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(5)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # Upgrade from previous release - default n
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(120)
 
 class ConversionApplianceServer:
     """An object to represent a Conversion Appliance Server"""

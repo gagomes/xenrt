@@ -4160,6 +4160,12 @@ exit /B 1
         network = self.host.getNetworkUUID(bridge)
         return self.host.genParamGet("network", network, "other-config", "xenrtnetname")
 
+    def installXenMobileAppliance(self):
+        self.lifecycleOperation("vm-start", specifyOn=True)
+        time.sleep(120)
+        app = xenrt.XenMobileApplianceServer(self)
+        app.doFirstbootUnattendedSetup() 
+
 #############################################################################
 
 def parseSequenceVIFs(guest, host, vifs):

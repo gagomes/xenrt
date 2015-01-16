@@ -4162,7 +4162,7 @@ exit /B 1
 
     def installXenMobileAppliance(self):
         self.lifecycleOperation("vm-start", specifyOn=True)
-        time.sleep(120)
+        time.sleep(60)
         app = xenrt.XenMobileApplianceServer(self)
         app.doFirstbootUnattendedSetup() 
 

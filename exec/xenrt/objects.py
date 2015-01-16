@@ -11801,88 +11801,87 @@ class XenMobileApplianceServer:
 
         # choose root passwd
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # retype root passwd
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # type static-ip
         self.guest.writeToConsole("%s\\n" % ip)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # type netmask
         self.guest.writeToConsole("%s\\n" % netmask)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # type gateway
         self.guest.writeToConsole("%s\\n" % gateway)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # type dns
         self.guest.writeToConsole("%s\\n" % dns)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # no secondary dns
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(15)
+        xenrt.sleep(5)
         # generate random passphrase y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # Federal Information Processing Standard (FIPS) mode n
         self.guest.writeToConsole("%s\\n" % "n")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # Database connection l
         self.guest.writeToConsole("%s\\n" % "l")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(15)
+        xenrt.sleep(10)
         # XenMobile hostname:
         self.guest.writeToConsole("%s\\n" % ip)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(15)
+        xenrt.sleep(2)
         # HTTP port - default to 80
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # HTTPs port - default to 443
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # HTTPs port no cert - default to 8443
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # HTTPs management - default to 4443
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # same password for all certs -default y
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # password
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # password
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
         xenrt.sleep(5)
         # username - default to administrator
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # password
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # password
         self.guest.writeToConsole("%s\\n" % self.password)
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # commit settings y
         self.guest.writeToConsole("%s\\n" % "y")
-        xenrt.sleep(5)
+        xenrt.sleep(2)
         # Upgrade from previous release - default n
         self.guest.writeToConsole("%s\\n" % "")
-        xenrt.sleep(120)
 
 class ConversionApplianceServer:
     """An object to represent a Conversion Appliance Server"""

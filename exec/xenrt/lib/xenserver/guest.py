@@ -2791,7 +2791,7 @@ exit /B 1
             sruuid = self.chooseSR()
         cli = host.getCLIInstance()
         args = []
-        args.append("filename=%s" % (image))
+        args.append("filename='%s'" % (image))
         args.append("sr-uuid=%s" % (sruuid))
         if preserve:
             args.append("preserve=true")

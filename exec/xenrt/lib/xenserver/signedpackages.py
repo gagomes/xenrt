@@ -30,11 +30,10 @@ class SignedComponent(object):
         try:
             guest.xmlrpcExec("c:\\signtool.exe verify /pa /v %s" % (testFile),
                                    returndata=True)
-        except Exception, e:
-            sys.stderr.write(str(e))
-            traceback.print_exc(file=sys.stderr)
-            raise xenrt.XRTFailure("signtool fails to verify the % build and thus can not be installed!"
-                                   % (testFile))
+        except Exception:
+            xenrt.TEC().logverbose("The %s build is not verified and cannot be installed"
+                                    " on the VM"% (testFile))
+            raise
         xenrt.TEC().logverbose("The %s build is digitally signed with valid certificate" % (testFile))
 
     def getCertExpiryDate(self,guest,testFile):
@@ -58,6 +57,7 @@ class SignedComponent(object):
         except Exception, e:
                 xenrt.TEC().logverbose("Exception disabling w32time "
                                        "service: %s" % (str(e)))
+                traceback.print_exc(file=sys.stderr)
         guest.xmlrpcExec("echo %s | date" % (newDate.strftime("%m-%d-%Y")))
         xenrt.TEC().logverbose("The guest date set to %s " % (newDate))
 

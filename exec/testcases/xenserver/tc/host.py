@@ -5048,9 +5048,13 @@ if __name__ == "__main__":
         args.append("plugin=braindump")
         args.append("fn=main")
         args.append("args:brain-size=$(( 310*1024 ))")
-        output = cli.execute("host-call-plugin", string.join(args), timeout=600)
-        if "brain" in output:
-            xenrt.TEC().logverbose("Expected output: %s" % (output))
-        else:
-            raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=600)
+            if "brain" in output:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            if "Client_requested_size_over_limit" not in str(e):
+                raise
 

@@ -939,7 +939,7 @@ class _TCClockDrift(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         cpu_info = self.host.execdom0("cat /proc/cpuinfo")
-        cpu_num = len(self.host.execdom0("/opt/xensource/debug/xenops pcpuinfo").strip().split('\n'))
+        cpu_num = int(self.host.execdom0("xe host-cpu-info --minimal").strip())
 
         if cpu_info.find(self.HARCH.lower()) < 0:
             raise xenrt.XRTError("Not running on %s hardware" % self.HARCH)

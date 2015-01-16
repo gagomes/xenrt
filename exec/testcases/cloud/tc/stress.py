@@ -4,6 +4,19 @@ import random
 from datetime import datetime
 
 class TCInstanceLifecycleStress(xenrt.TestCase):
+    STRESS_OPS = { "StopStart": "stopStart",
+                   "Reboot": "reboot",
+                   "Migrate": "migrate",
+                   "SnapRevert(D)": "snapRevertDisk",
+                   "SnapDelete(D)": "snapDeleteDisk",
+                   "MultiSnapRevert(D)": "multiSnapRevertDisk",
+                   "MultiSnapDelete(D)": "multiSnapDeleteDisk",
+                   "SnapRevert(DM)": "snapRevertDiskAndMem",
+                   "SnapDelete(DM)": "snapDeleteDiskAndMem",
+                   "MultiSnapRevert(DM)": "multiSnapRevertDiskAndMem",
+                   "MultiSnapDelete(DM)": "multiSnapDeleteDiskAndMem",
+                   "CloneDelete": "cloneDelete" }
+
     def prepare(self, arglist):
         self.args = self.parseArgsKeyValue(arglist)
 
@@ -15,25 +28,12 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
         self.snapCount = self.args.get("snapcount", 9)
     
     def run(self, arglist):
-        ops = {"StopStart": "stopStart",
-               "Reboot": "reboot",
-               "Migrate": "migrate",
-               "SnapRevert(D)": "snapRevertDisk",
-               "SnapDelete(D)": "snapDeleteDisk",
-               "MultiSnapRevert(D)": "multiSnapRevertDisk",
-               "MultiSnapDelete(D)": "multiSnapDeleteDisk",
-               "SnapRevert(DM)": "snapRevertDiskAndMem",
-               "SnapDelete(DM)": "snapDeleteDiskAndMem",
-               "MultiSnapRevert(DM)": "multiSnapRevertDiskAndMem",
-               "MultiSnapDelete(DM)": "multiSnapDeleteDiskAndMem",
-               "CloneDelete": "cloneDelete"}
-
         for i in xrange(int(self.args.get("iterations", 400))):
-            op = random.choice(ops.keys())
+            op = random.choice(self.STRESS_OPS.keys())
             startTime = datetime.now()
-            if self.runSubcase(ops[op], (), "Iter-%d-%s" % (i, self.args.get("distro")), op) != xenrt.RESULT_PASS:
+            if self.runSubcase(self.STRESS_OPS[op], (), "Iter-%d-%s" % (i, self.args.get("distro")), op) != xenrt.RESULT_PASS:
                 break
-            xenrt.TEC().comment('Iter-%d for %s: Operation: %s took %d minute(s)' % (i, self.args.get("distro"), op, (datetime.now() - startTime).seconds / 60))
+            xenrt.TEC().comment('Iter-%d for %s(%s): Operation: %s took %d minute(s)' % (i, self.instance.name, self.args.get("distro"), op, (datetime.now() - startTime).seconds / 60))
 
     def _snapshotRevert(self, snapshotName, memorySnapshot):
         """A user is only permitted to revert to a disk only snapshots for
@@ -132,3 +132,6 @@ class TCInstanceLifecycleStress(xenrt.TestCase):
 
         self.cloud.cloudApi.deleteTemplate(id=templateid)
 
+class TCStopStartInstanceStress(TCInstanceLifecycleStress):
+    """Simple stress test that just stops and starts instances"""
+    STRESS_OPS = { "StopStart": "stopStart" }

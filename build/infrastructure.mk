@@ -376,6 +376,16 @@ network-uninstall:
 	$(call RESTORE,$(MODULES))
 	$(call RESTORE,$(INTERFACES))
 
+$(TFTPROOT)/ipxe.embedded.0:
+	$(info Building undionly.kpxe)
+	mkdir -p $(SHAREDIR)/ipxe
+	rsync -axl $(TEST_INPUTS)/ipxe/src $(SHAREDIR)/ipxe
+	echo "#!ipxe" > $(SHAREDIR)/ipxe/src/ipxe.script
+	echo dhcp >> $(SHAREDIR)/ipxe/src/ipxe.script
+	echo chain http://`ip addr | grep 'state UP' -A2 | grep inet | head -1 | awk '{print $$2}' | cut -d "/" -f 1`/tftp/default-ipxe.cgi >> $(SHAREDIR)/ipxe/src/ipxe.script
+	make -C $(SHAREDIR)/ipxe/src bin/undionly.kpxe EMBED=ipxe.script
+	$(SUDO) cp $(SHAREDIR)/ipxe/src/bin/undionly.kpxe $@
+
 .PHONY: tftp
 tftp:
 	$(info Installing TFTP...)
@@ -403,8 +413,11 @@ tftp:
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
-	$(SUDO) ln -sfT $(WEBROOT)/wininstall/netinstall/default $(TFTPROOT)/winpe
+ifdef WINDOWS_ISOS
+	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
+endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
+	-make $(TFTPROOT)/ipxe.embedded.0
 
 .PHONY: tftp-uninstall
 tftp-uninstall:
@@ -597,7 +610,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 

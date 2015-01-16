@@ -65,7 +65,14 @@ class PXEBootEntryIPXE(PXEBootEntry):
         PXEBootEntry.__init__(self, cfg, label)
 
     def generate(self):
-        return """
+        if xenrt.TEC().lookup("EXTERNAL_PXE", False, boolean=True):
+            self.cfg.copyIn("/tftpboot/ipxe.embedded.0") 
+            return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, self.cfg.makeBootPath("ipxe.embedded.0"))
+        else:
+            return """
 LABEL %s
     KERNEL %s
 """ % (self.label, xenrt.TEC().lookup("IPXE_KERNEL", "ipxe.0"))

@@ -5363,6 +5363,8 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
             pxecfg.linuxArgsKernelAdd("biosdevname=0")
             pxecfg.linuxArgsKernelAdd("net.ifnames=0")
+            pxecfg.linuxArgsKernelAdd("console=tty0")
+            pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
             if re.search(r"(rhel|oel|centos)6", distro):
@@ -7589,12 +7591,19 @@ class GenericGuest(GenericPlace):
 
             # Enable sysrq if possible
             try:
-                self.execguest("if [ -e /etc/sysctl.conf ]; then "
-                               "  mv /etc/sysctl.conf /etc/sysctl.conf.orig; "
-                               "  sed -re's/kernel.sysrq = 0/kernel.sysrq = 1/' "
-                               "     < /etc/sysctl.conf.orig > /etc/sysctl.conf; "
-                               "   echo 1 > /proc/sys/kernel/sysrq; "
-                               "fi")
+                sysctlFileisPresent= (self.execguest("if [ -e /etc/sysctl.conf ]; then echo $?; fi;",retval="code") == 0)
+                if sysctlFileisPresent:
+                # Check if kernel.sysrq is present in sysctl.conf
+                    kernelSysrqisPresent = (self.execguest("grep -q 'kernel.sysrq' '/etc/sysctl.conf' && echo $?",retval="code") == 0)
+                    if kernelSysrqisPresent:
+                        self.execguest("mv /etc/sysctl.conf /etc/sysctl.conf.orig;"
+                                 "sed -re's/kernel.sysrq = 0/kernel.sysrq = 1/' "
+                                 "< /etc/sysctl.conf.orig > /etc/sysctl.conf; "
+                                 "echo 1 > /proc/sys/kernel/sysrq; ")
+                    else:
+                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf;"
+                                   "echo 1 > /proc/sys/kernel/sysrq; "
+                                   "fi")
             except:
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))
@@ -8221,6 +8230,8 @@ class GenericGuest(GenericPlace):
                                       (pxe.makeBootPath("initrd.img")))
             if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
+                pxecfg.linuxArgsKernelAdd("console=tty0")
+                pxecfg.linuxArgsKernelAdd("console=hvc0")
             else:
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=ttyS0,9600n8")

@@ -1881,11 +1881,7 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
         
         step("Enable complete Memory dump option")
-        self.guest.winRegAdd("HKLM",
-                 "SYSTEM\\CurrentControlSet\\Control\\CrashControl",
-                 "CrashDumpEnabled",
-                 "DWORD",
-                 1)
+        self.guest.enableFullCrashDump()
         
         step("Set boot driver flag=1")
         self.guest.winRegAdd("HKLM",
@@ -1901,7 +1897,7 @@ class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
             self.guest.xmlrpcRemoveFile("c:\\windows\\MEMORY.DMP")
         
         step("Crash the guest")
-        self.host.execdom0("/usr/lib/xen/bin/crash_guest %u" %(self.guest.getDomid()))
+        self.guest.crash()
         xenrt.sleep(100)
         self.guest.reboot(force=True)
         

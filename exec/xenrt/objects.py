@@ -4236,6 +4236,21 @@ class GenericHost(GenericPlace):
         if x.machine:
             x.machine.setHost(x)
 
+    def getDeploymentRecord(self):
+        ret = {"access": {"hostname": self.getName(),
+                          "ipaddress": self.getIP()},
+               "os": {"family": self.productType,
+                      "version": self.productVersion}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                                    "ADMINISTRATOR_PASSWORD"],
+                                                                    "xensource")
+        else: 
+            ret['access']['username'] = "root"
+            ret['access']['password'] = self.password
+        return ret
+
     def getOS(self):
         if not self.os:
             if self.windows or not self.arch:
@@ -6733,6 +6748,28 @@ class GenericGuest(GenericPlace):
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
         x.instance = self.instance
+
+    def getDeploymentRecord(self):
+        ret = {"access": {"vmname": self.getName(),
+                          "ipaddress": self.getIP()}, "os": {}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                            "ADMINISTRATOR_PASSWORD"],
+                                                            "xensource")
+            ret['os']['family'] = "windows"
+            ret['os']['version'] = self.distro
+        else:
+            ret['access']['username'] = "root"
+            ret['access']['password'] = "xenroot"
+            ret['os']['family'] = "linux"
+            arch = self.arch or "x86-32"
+            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+        if self.host:
+            ret['host'] = self.host.getName()
+        else:
+            ret['host'] = None
+        return ret
 
     def setHost(self, host):
         if host and host.replaced:

@@ -57,7 +57,6 @@ class SignedComponent(object):
         except Exception, e:
                 xenrt.TEC().logverbose("Exception disabling w32time "
                                        "service: %s" % (str(e)))
-                traceback.print_exc(file=sys.stderr)
         guest.xmlrpcExec("echo %s | date" % (newDate.strftime("%m-%d-%Y")))
         xenrt.TEC().logverbose("The guest date set to %s " % (newDate))
 

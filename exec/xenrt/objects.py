@@ -11832,6 +11832,7 @@ class XenMobileApplianceServer:
         """ Answer the first boot questions"""
         mac, _, _ = self.guest.getVIF("eth0")
         ip = xenrt.StaticIP4Addr(mac=mac).getAddr()
+        self.guest.mainip = ip
         _, netmask = self.host.getNICNetworkAndMask(0)
         gateway = self.host.getGateway()
         dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()

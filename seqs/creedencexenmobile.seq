@@ -6,7 +6,7 @@
   <prepare>
     <host id="0">
       <vm name="XenMobile XVA">
-        <file user="yes">%XENMOBILEXVA%</file>
+        <file user="yes">%XENMOBILE_XVA%</file>
         <postinstall action="installXenMobileAppliance" />
       </vm>
     </host>

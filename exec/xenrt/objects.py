@@ -11825,7 +11825,7 @@ class XenMobileApplianceServer:
 
     def __init__(self, guest):
         self.guest = guest
-        self.password = "adminadmin"
+        self.password = xenrt.TEC().lookup("XENMOBILE_PASSWORD", "adminadmin")
         self.host = self.guest.getHost()
 
     def doFirstbootUnattendedSetup(self):

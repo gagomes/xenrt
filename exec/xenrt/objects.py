@@ -9313,36 +9313,43 @@ sleep (3000)
         @param gpuType: Something.
         """
 
-        # Need some sort of distro list that this function will work on.
-        workingDistros = []
+        # List of distro versions that function works with
+        workingDistros = ["rhel", "centos", "oel", "ubuntu"]
         isUbuntu = False
 
-        # Might need bools to keep track of two tests.
-            # Or optionally return early under failure.
-            # Would make cleaner towards end of code.
+        lspciCheck = False
+        lshwCheck = False
+
+        self.findDistro()
 
         # Check if linux guest I think.
             # Only for certain distros?
             # Any checks.
-        if self.windows == True:
-            raise xenrt.XRTError("Function can only be used for certain linux distros. %s" % workingDistros)
 
-        if self.distro not in workingDistros:
-            raise xenrt.XRTError("Function can only be used for certain linux distros. %s" % workingDistros)
+        # Work out the disto.
+            # Windows / Linux flavor
 
+        # Is this a valid check for windows?
+        if self.distro.lower().startswith("windows"):
+            raise xenrt.XRTError("Function cannot be used with windows guest. Working distros: %s" % workingDistros)
+
+        # Might not need the previous check.
+        if any(self.distro.lower().startswith(d) for d in workingDistros):
+            raise xenrt.XRTError("Function can only be used for certain linux distros. Woring distros: %s" % workingDistros)
+
+        # Check if it is Ubuntu.
         if self.distro == "UbuntuSomeIdentifier":
             isUbuntu = True
         # Would be nice to outline actual distro, or group beforehand.
         # Ubuntu | Rhel bases.
 
-        # Check if the given type of gpu is present.
+        # Check if the given type of GPU is present.
         componentList = self.execguest("sudo lspci | grep %s" % gpuType)
 
-        # Check if there is a card present.
+        # Check if there is a GPU present.
 
         # 0:00.0 VGA|Audio ... NVIDIA|AMD|Intel
         pciid = None
-
         for line in componentList.splitlines():
             if "VGA" in line:
                 pciid = componentList.split(" ")[0]
@@ -9351,25 +9358,15 @@ sleep (3000)
         lspciOut = self.execguest("sudo lspci -v -s %s" % pciid)
 
         # Check if "Kernel driver in use: " is in last line.
-        if "Kernel driver in use: " in [line for line in result.splitlines()][-1]:
-            pass # The first test is a pass, could else to return false.
+        if "Kernel driver in use: " not in [line for line in lspciOut.splitlines()][-1]:
+            return False # No kernel driver in use, ie. GPU not utilized.
 
-        # Use / install lshw.
-            # Can run command to see if it's there perhaps.
-            # Or could check the os type. (Ubuntu will have, others not.)
 
-            # Need to figure out if Ubuntu or not beforehand.
-            # self.distro ~~~
-            # Could be some weird actions if not.
-
+        # Install lshw if needed.
         if not isUbuntu:
-            # Install lshw.
-            # Only RHEL based os left possible, all the same steps.
             # Get .rpm from distmaster.
-            # "yum -y install xyz.rpm"
+            self.execguest("yum -y install xyz.rpm")
             pass
-
-        # Using lshw, get the deets.
 
         # Not aware of possible errors, but might need a try block just in case.
         xml = execguest("sudo lshw -xml -c video")
@@ -9383,11 +9380,11 @@ sleep (3000)
                 break
 
         if "claimed" in desiredNode.attrib:
-            if desiredNode.attrib["claimed"] == True:
-                # Second test has passed two.
-                pass
-            else:
-                return False
+            if desiredNode.attrib["claimed"] != True:
+                return False # GPU is unclaimed.
+
+        # Both tests for the GPU being utilized passed.
+        return True
 
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):
 

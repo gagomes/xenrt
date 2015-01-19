@@ -44,7 +44,7 @@ __all__ = ["Host",
            "NetAppStorageRepository",
            "EQLStorageRepository",
            "ISOStorageRepository",
-           "CIFSStorageRepository",
+           "CIFSISOStorageRepository",
            "FCStorageRepository",
            "SharedSASStorageRepository",
            "ISCSIHBAStorageRepository",
@@ -11992,7 +11992,7 @@ class DummyStorageRepository(StorageRepository):
     def create(self, size):
         self._create("dummy", {}, physical_size=size)
 
-class CIFSStorageRepository(StorageRepository):
+class CIFSISOStorageRepository(StorageRepository):
 
     def create(self,
                server,

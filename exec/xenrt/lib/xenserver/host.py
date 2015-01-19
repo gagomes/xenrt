@@ -4071,7 +4071,7 @@ fi
 
     def enableCaching(self, sr=None):
         if not sr:
-            cacheDisk = self.lookup("INTELLICACHE_DISK", None)
+            cacheDisk = self.TEC().lookup("INTELLICACHE_DISK", None)
             if not cacheDisk:
                 sr = self.getLocalSR()
             else:

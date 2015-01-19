@@ -459,8 +459,9 @@ class _VMScalability(_Scalability):
                 self.nbrOfPassedGuests = self.nbrOfPassedGuests+1
             self.lock.release()
 
-            if g.getDomid() == 1:
-                raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
+            # disabled crash detection - this stops the test working after a reboot.
+            #if g.getDomid() == 1:
+            #    raise xenrt.XRTFailure("Guest %s domid %s less than one - looks like host has crashed" % (g.getName(),g.getDomid()))
 
 
     def loopingTest(self):

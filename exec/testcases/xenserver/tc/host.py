@@ -914,17 +914,12 @@ class TC8341(xenrt.TestCase):
     def getMountCount(self, max=False):
         if max: pattern = "Maximum mount count"
         else: pattern = "Mount count"
-        count = int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
+        cmd = "tune2fs -l %s | grep '%s' | cut -d ':' -f 2"
+        count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
         if max and count <= 0:
             xenrt.TEC().logverbose("Maximum mount count was %d. Changing it to 30 for tests." % count)
             self.host.execdom0("tune2fs -c 30 %s" % self.rootdisk)
-            count = int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
+            count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
             if count != 30:
                 raise xenrt.XRTError("Failed to change 'Maximum mount count' to 30.")
 

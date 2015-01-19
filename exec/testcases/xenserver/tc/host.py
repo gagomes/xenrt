@@ -914,11 +914,22 @@ class TC8341(xenrt.TestCase):
     def getMountCount(self, max=False):
         if max: pattern = "Maximum mount count"
         else: pattern = "Mount count"
-        return int(self.host.execdom0("tune2fs -l %s | "
+        count = int(self.host.execdom0("tune2fs -l %s | "
                                       "grep '%s' | "
                                       "cut -d ':' -f 2" % 
                                       (self.rootdisk, pattern)).strip())
- 
+        if max and count <= 0:
+            xenrt.TEC().logverbose("Maximum mount count was %d. Changing it to 30 for tests." % count)
+            self.host.execdom0("tune2fs -c 30 %s" % self.rootdisk)
+            count = int(self.host.execdom0("tune2fs -l %s | "
+                                      "grep '%s' | "
+                                      "cut -d ':' -f 2" % 
+                                      (self.rootdisk, pattern)).strip())
+            if count != 30:
+                raise xenrt.XRTError("Failed to change 'Maximum mount count' to 30.")
+
+        return count
+
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
         volume = "/"
@@ -935,7 +946,7 @@ class TC8341(xenrt.TestCase):
                                (self.rootdisk, maxmountcount))
         xenrt.TEC().logverbose("Setting mount count to 'Maximum mount count' - 1. (%s)" %
                                (maxmountcount - 1))
-        self.host.execdom0("tune2fs -C %s %s" % (maxmountcount - 1, self.rootdisk))
+        self.host.execdom0("tune2fs -C %d %s" % (maxmountcount - 1, self.rootdisk))
         # Knock the mount count up to 'Maximum mount count'.
         self.host.reboot()
         # Try for a FSCK. If this passes we're good to go.

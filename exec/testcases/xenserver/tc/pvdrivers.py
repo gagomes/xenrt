@@ -10,6 +10,7 @@
 
 import socket, re, string, time, traceback, sys, random, copy, os.path
 import xenrt
+from xenrt.lazylog import step
 
 class TC8369(xenrt.TestCase):
     """Verify Windows PV drivers install to a Windows 2008 x64 VM without a test certificate"""
@@ -1029,3 +1030,23 @@ class CA90861Frequency(xenrt.TestCase):
         if success < iterations:
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
 
+class TCToolsMissingUninstall(xenrt.TestCase):
+    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    #TC-23775
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+
+    def run(self, arglist=None):
+        step("Remove uninstaller file")
+        self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
+
+        step("Install 6.2 PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")

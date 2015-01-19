@@ -36,6 +36,7 @@ __all__ = ["Host",
            "ClearwaterHost",
            "NFSStorageRepository",
            "NFSv4StorageRepository",
+           "SMBStorageRepository",
            "FileStorageRepository",
            "FileStorageRepositoryNFS",
            "ISCSIStorageRepository",
@@ -12162,6 +12163,49 @@ class NFSStorageRepository(StorageRepository):
 
 class NFSv4StorageRepository(NFSStorageRepository):
     EXTRA_DCONF = {'nfsversion': '4'}
+
+class SMBStorageRepository(StorageRepository):
+    """Models a SMB SR"""
+
+    SHARED = True
+
+    def create(self, serverpath=None, path=None, user=None, password=None, domain=None):
+        if not serverpath:
+            share = xenrt.ExternalSMBShare(version=3)
+            serverpath = share.getMount()
+
+        dconf = {}
+        smconf = {}
+        dconf["server"] = serverpath 
+        self.serverpath = serverpath
+        adConfig = xenrt.getADConfig() 
+        dconf['username'] = user or adConfig.adminUser
+        dconf['password'] = password or adConfig.adminPassword
+        self._create("cifs",
+                     dconf)
+
+    def check(self):
+        StorageRepository.checkCommon(self, "cifs")
+        if self.host.pool:
+            self.checkOnHost(self.host.pool.master)
+            for slave in self.host.pool.slaves.values():
+                self.checkOnHost(slave)
+        else:
+            self.checkOnHost(self.host)
+
+    def checkOnHost(self, host):
+        try:
+            host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        except:
+            raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+                                   "does not exist" % (self.uuid))
+        smb = string.split(host.execdom0("mount | grep \""
+                                          "/run/sr-mount/%s \"" %
+                                          (self.uuid)))[0]
+        shouldbe = "%s/%s" % (self.serverpath, self.uuid)
+        if smb != shouldbe:
+            raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+                                   (smb, shouldbe))
 
 
 class ISCSIStorageRepository(StorageRepository):

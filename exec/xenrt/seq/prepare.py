@@ -1218,6 +1218,9 @@ class PrepareNode:
                             else:
                                 sr = xenrt.productLib(host=host).NFSStorageRepository(host, s["name"])
                             sr.create(server, path, nosubdir=nosubdir)
+                    elif s["type"] == "smb":
+                        sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
+                        sr.create()
                     elif s["type"] == "iso":
                         sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
                         server, path = s["path"].split(":")

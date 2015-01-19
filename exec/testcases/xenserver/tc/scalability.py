@@ -17,7 +17,6 @@ class _Scalability(xenrt.TestCase):
     """Base class for all the VM/VBD/VIF Scalability tests"""
 
     def __init__(self, tcid=None):
-        self.lock = threading.RLock()
         xenrt.TestCase.__init__(self, tcid)
         self.host = None
         self.guests = []
@@ -74,8 +73,8 @@ class _VMScalability(_Scalability):
     MAX = 0
     TRYMAX = False # TRY to load the MAXimum possible VMs, by disabling some features
     LOOPS = 0
-    DISTRO = "LINUX"
-    ARCH = "x86-32"
+    DISTRO = "debian70"
+    ARCH = "x86-64"
     MEMORY=384
     CHECKHEALTH = False
     CHECKREACHABLE = False
@@ -353,6 +352,7 @@ class _VMScalability(_Scalability):
         self.nbrOfFailThresholds = len(self.hosts)
         self.nbrOfFails = 0
         self.failedGuests = []
+        self.vmDomid = 0
         xenrt.pfarm ([xenrt.PTask(self.createVmCloneThread, host, tailor_guest= tailor_guest) for host in self.hosts])
         self.nbrOfGuests = self.currentNbrOfGuests - self.nbrOfFails
 
@@ -440,7 +440,7 @@ class _VMScalability(_Scalability):
                 elif operation == "start":
                     g.start(specifyOn = False)
                 passed = True
-            except:
+            except Exception, e:
                 if iterationNbr == None:
                     xenrt.TEC().warning("Guest %s failed to %s." % (g.getName(), operation))
                     xenrt.TEC().logverbose("Guest %s failed to %s : %s" % (g.getName(), operation, str(e)))
@@ -664,11 +664,11 @@ class TC19270(_VMScalability):
     CHECKREACHABLE=True
     CHECKHEALTH=True
     TRYMAX = True
-    NET_BRIDGE = True
+    NET_BRIDGE = False
     #DOM0MEM = 8192
     MEMORY=128
     ARCH = "x86-64"
-    DOM0CPUS = True
+    DOM0CPUS = False
 
 class TC19271(_VMScalability):
     """Test for ability to run the supported number of Windows VMs by disabling some guest features and adjusting Dom0 memory"""
@@ -1510,12 +1510,9 @@ class _TCCloneVMs(_TimedTestCase):
         while True:
             with self.lock:
                 item = None
-                try:
-                    # Get a VM spec from the queue
-                    if len(self.vmSpecs) > 0:
-                        item = self.vmSpecs.pop()
-                finally:
-                    ""
+                # Get a VM spec from the queue
+                if len(self.vmSpecs) > 0:
+                    item = self.vmSpecs.pop()
             # If we didn't get a VM, then they're all cloned, so finish the thread
             if not item:
                 break
@@ -1669,11 +1666,9 @@ class _TCScaleVMOp(_TimedTestCase):
             with self.lock:
                 vm = None
                 # Get a VM from the queue
-                try:
-                    if len(self.vmsToOp) > 0:
-                        vm = self.vms[self.vmsToOp.pop()]
-                finally:
-                    ""
+                if len(self.vmsToOp) > 0:
+                    vm = self.vms[self.vmsToOp.pop()]
+
             if not vm:
                 # If we didn't get a VM, then theye've all been operated on, so we can exit the loop
                 break

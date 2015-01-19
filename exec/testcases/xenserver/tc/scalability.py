@@ -242,7 +242,7 @@ class _VMScalability(_Scalability):
 
         if self.DOM0CPUS or self.DOM0MEM or self.NET_BRIDGE:
             #rebooting the host
-            host.reboot(timeout=3600)
+            host.reboot(timeout=7200)
 
     def optimizeExistingGuests(self, host):
         for gname in host.listGuests():

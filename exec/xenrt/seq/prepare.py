@@ -395,8 +395,8 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
 
     def handleVMGroupNode(self, node):
         vmgroup = []
-        basename = x['basename']
-        number = x['number']
+        basename = node['basename']
+        number = node['number']
         for i in range(number):
             x = copy.deepcopy(node)
             del x['basename']

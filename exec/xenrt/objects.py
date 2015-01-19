@@ -9364,9 +9364,9 @@ sleep (3000)
 
         # Install lshw if needed.
         if not isUbuntu:
-            # Get .rpm from distmaster.
-            self.execguest("yum -y install xyz.rpm")
-            pass
+            master.execdom0("wget -nv '%slshw.tgz' -O | tar -zx -C /tmp" %
+                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64.rpm")
 
         # Not aware of possible errors, but might need a try block just in case.
         xml = execguest("sudo lshw -xml -c video")

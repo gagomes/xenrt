@@ -1511,7 +1511,7 @@ class HostConfigIntelliCache(HostConfig):
             
         for h in hosts:
             #Enable IntelliCache on the host, using that SR:
-            cacheDisk = self.TEC().lookup("INTELLICACHE_DISK", None) # must be an ext SR
+            cacheDisk = xenrt.TEC().lookup("INTELLICACHE_DISK", None) # must be an ext SR
             xenrt.TEC().logverbose("intellicache disk = %s" % (cacheDisk,))
             h.execdom0("xe host-disable uuid=%s" % h.getMyHostUUID())
             h.enableCaching()

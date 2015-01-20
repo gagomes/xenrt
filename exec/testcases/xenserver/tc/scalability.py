@@ -691,6 +691,10 @@ class TC19271(_VMScalability):
     #NET_BRIDGE = True
     DOM0CPUS = True
     FLOW_EVT_THRESHOLD = 8192
+    
+    def postRun(self):
+        # don't do any cleanup - it takes ages
+        pass
 
 class TC14899(_VMScalability):
     """Test that 160 cores can all be used"""

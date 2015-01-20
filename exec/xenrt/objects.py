@@ -9366,6 +9366,7 @@ sleep (3000)
             if self.distro.lower().startswith("centos"):
                 self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                xenrt.sleep(2)
                 self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
             # Rhel / OEL
             else:

@@ -10375,6 +10375,8 @@ write $computers.psbase.get_Children()
         self.place.password = password
         self.domainname = domainname
         self.netbiosname = None
+        self.forestMode = None
+        self.domainMode = None
 
         if not dontinstall:
             self.prepare()
@@ -10437,6 +10439,23 @@ write $computers.psbase.get_Children()
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
 
+        # Set forest mode and domain mode
+        self.forestMode = xenrt.TEC().lookup("ADSERVER_FORESTMODE", "Win2008")
+        self.domainMode = xenrt.TEC().lookup("ADSERVER_DOMAINMODE", "Win2008")
+        ## DCPromo setup requires numeric value rather than windows version string.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            modeLevels = {'0':"Win2000", '2':"Win2003", '3':"Win2008", '4':"Win2008R2"}
+
+            forestLevelList = [key for key,value in modeLevels.iteritems() if value == self.forestMode]
+            if len(forestLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.forestMode)
+            self.forestMode = forestLevelList[0]
+
+            domainLevelList = [key for key,value in modeLevels.iteritems() if value == self.domainMode]
+            if len(domainLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.domainMode)
+            self.domainMode = domainLevelList[0]
+
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
             self.installOnWS2008()
@@ -10456,9 +10475,9 @@ write $computers.psbase.get_Children()
 ReplicaOrNewDomain=Domain
 NewDomain=Forest
 NewDomainDNSName=%s
-ForestLevel=0
+ForestLevel=%s
 DomainNetbiosName=%s
-DomainLevel=0
+DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
@@ -10467,7 +10486,7 @@ LogPath="C:\Windows\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
-""" % (self.domainname, self.netbiosname, self.place.password)
+""" % (self.domainname, self.forestMode, self.netbiosname, self.domainMode, self.place.password)
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
         self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt\n"
                               "netsh advfirewall set domainprofile "
@@ -10489,10 +10508,10 @@ RebootOnSuccess=No
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
 -DatabasePath "C:\Windows\NTDS" `
--DomainMode "Win2008" `
+-DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
--ForestMode "Win2008" `
+-ForestMode "%s" `
 -InstallDns:$true `
 -LogPath "C:\Windows\NTDS" `
 -NoRebootOnCompletion:$true `
@@ -10500,7 +10519,7 @@ Install-ADDSForest `
 -Force:$true `
 -Confirm:$false `
 -SafeModeAdministratorPassword `
-(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainMode, self.domainname, self.netbiosname, self.forestMode, self.place.password)
         self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
         self.place.winRegAdd("HKLM",
                            "software\\microsoft\\windows nt\\currentversion\\winlogon",

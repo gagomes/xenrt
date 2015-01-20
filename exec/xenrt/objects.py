@@ -9328,7 +9328,7 @@ sleep (3000)
             # Windows / Linux flavor
 
         # Is this a valid check for windows?
-        if self.distro.lower().startswith("windows"):
+        if self.distro.lower().startswith("win"):
             raise xenrt.XRTError("Function cannot be used with windows guest. Working distros: %s" % workingDistros)
 
         # Might not need the previous check.

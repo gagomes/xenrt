@@ -12184,7 +12184,7 @@ class SMBStorageRepository(StorageRepository):
             else:
                 dconf['username'] = "%s" % user
         else:
-            dconf['username'] = "%s\\\\%s" % (adConfig.domain, adConfig.adminUser)
+            dconf['username'] = "%s\\\\%s" % (adConfig.domainName, adConfig.adminUser)
         dconf['password'] = password or adConfig.adminPassword
         self._create("cifs",
                      dconf)

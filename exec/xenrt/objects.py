@@ -9335,7 +9335,7 @@ sleep (3000)
             raise xenrt.XRTError("Function cannot be used with windows guest. Working distros: %s" % workingDistros)
 
         # Might not need the previous check.
-        if any(self.distro.lower().startswith(d) for d in workingDistros):
+        if any([self.distro.lower().startswith(d) for d in workingDistros]):
             raise xenrt.XRTError("Function can only be used for certain linux distros. Woring distros: %s" % workingDistros)
 
         # Check if it is Ubuntu.

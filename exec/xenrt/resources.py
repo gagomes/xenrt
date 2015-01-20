@@ -765,7 +765,7 @@ class ExternalSMBShare(_ExternalFileShare):
         return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
 
     def getUNCPath(self):
-        return "\\\\%s%s" % (self.address, self.subdir.replace("/", "\\")
+        return "\\\\%s%s" % (self.address, self.subdir.replace("/", "\\"))
 
     def getEscapedUNCPath(self):
         return self.getUNCPath().replace("\\", "\\\\")

@@ -9352,7 +9352,7 @@ sleep (3000)
         lspciOut = self.execguest("lspci -v -s %s" % pciid)
 
         # Check if "Kernel driver in use: " is in last line.
-        loLastline = [line for line in lspciOut.splitlines()][-1]
+        loLastLine = [line for line in lspciOut.splitlines()][-1]
         xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
 
         if "Kernel driver in use: " not in loLastLine:

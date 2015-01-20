@@ -9320,20 +9320,9 @@ sleep (3000)
         self.findDistro()
         xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
 
-        # Check if linux guest I think.
-            # Only for certain distros?
-            # Any checks.
-
-        # Work out the disto.
-            # Windows / Linux flavor
-
-        # Is this a valid check for windows?
-        if self.distro.lower().startswith("win"):
-            raise xenrt.XRTError("Function cannot be used with windows guest. Working distros: %s" % workingDistros)
-
         # Might not need the previous check.
         if not any([self.distro.lower().startswith(d) for d in workingDistros]):
-            raise xenrt.XRTError("Function can only be used for certain linux distros. Woring distros: %s" % workingDistros)
+            raise xenrt.XRTError("Function can only be used with certain linux distros. Current distro: %s. Woring distros: %s" % (self.distro, workingDistros))
 
         # Check if it is Ubuntu.
         if self.distro.lower().startswith("ubuntu"):

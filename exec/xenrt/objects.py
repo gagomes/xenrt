@@ -9369,7 +9369,7 @@ sleep (3000)
             else:
                 self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-                xenrt.sleep(2)
+                self.execguest("ls /tmp/lshw/")
                 self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
                 
 

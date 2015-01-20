@@ -17,6 +17,7 @@ import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
 import XenAPI
+import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 

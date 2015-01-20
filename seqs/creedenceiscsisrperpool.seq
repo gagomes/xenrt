@@ -4,7 +4,7 @@
 
   <!-- Create 256 iSCSI SRs on a single host and use it in a number of guests -->
 
-  <default name="LINUXVMS" value="32" />
+  <default name="LINUXVMS" value="16" />
   <default name="WINDOWSVMS" value="0" />
   <default name="DATADISK" value="7" />
   <default name="LOOP" value="100" />

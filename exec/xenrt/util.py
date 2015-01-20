@@ -1306,29 +1306,33 @@ def canCleanJobResources(jobid):
     return ret
 
 def staleMachines(jobid):
-    jobid = str(jobid)
-    xrs = xenrt.ctrl.XenRTStatus(None)
-    jobdict = xrs.run([jobid])
-    machines = []
-    ret = []
-    for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
-        if jobdict.has_key(k):
-            machines.extend(jobdict[k].split(","))
-    for m in machines:
-        xenrt.TEC().logverbose("Checking whether machine %s is running a new job" % m)
-        mcmd = xenrt.ctrl.XenRTMachine(None)
-        machinedict = mcmd.run([m])
-        mjob = machinedict['JOBID']
-        if mjob == jobid:
-            ret.append(m)
-        else:
-            xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
-            mjobcmd = xenrt.ctrl.XenRTStatus(None)
-            mjobdict = xrs.run([mjob])
-            if mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
-                # This is a new job that will clean the hardware, so don't prevent resources being cleaned
-                xenrt.TEC().logverbose("Marking machine as stale, as last job used --existing")
+    try:
+        jobid = str(jobid)
+        xrs = xenrt.ctrl.XenRTStatus(None)
+        jobdict = xrs.run([jobid])
+        machines = []
+        ret = []
+        for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
+            if jobdict.has_key(k):
+                machines.extend(jobdict[k].split(","))
+        for m in machines:
+            xenrt.TEC().logverbose("Checking whether machine %s is running a new job" % m)
+            mcmd = xenrt.ctrl.XenRTMachine(None)
+            machinedict = mcmd.run([m])
+            mjob = machinedict['JOBID']
+            if mjob == jobid:
                 ret.append(m)
+            else:
+                xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
+                mjobcmd = xenrt.ctrl.XenRTStatus(None)
+                mjobdict = xrs.run([mjob])
+                if mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
+                    # This is a new job that will clean the hardware, so don't prevent resources being cleaned
+                    xenrt.TEC().logverbose("Marking machine as stale, as last job used --existing")
+                    ret.append(m)
+    except Exception, e:
+        xenrt.TEC().logverbose("Warning: could not determine stale machines for job %s: %s" % (jobid, str(e)))
+        ret = []
     return ret
 
 def xrtAssert(condition, text):

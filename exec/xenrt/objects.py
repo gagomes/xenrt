@@ -9317,9 +9317,6 @@ sleep (3000)
         workingDistros = ["rhel", "centos", "oel", "ubuntu"]
         isUbuntu = False
 
-        lspciCheck = False
-        lshwCheck = False
-
         self.findDistro()
         xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
 
@@ -9345,7 +9342,7 @@ sleep (3000)
         # Ubuntu | Rhel bases.
 
         # Check if the given type of GPU is present.
-        componentList = self.execguest("sudo lspci | grep %s" % gpuType)
+        componentList = self.execguest("lspci | grep %s" % gpuType)
 
         # Check if there is a GPU present.
 
@@ -9356,7 +9353,7 @@ sleep (3000)
                 pciid = componentList.split(" ")[0]
                 break # Avoid parsing the rest of the list, which are likely unrelated components.
 
-        lspciOut = self.execguest("sudo lspci -v -s %s" % pciid)
+        lspciOut = self.execguest("lspci -v -s %s" % pciid)
 
         # Check if "Kernel driver in use: " is in last line.
         if "Kernel driver in use: " not in [line for line in lspciOut.splitlines()][-1]:
@@ -9370,7 +9367,7 @@ sleep (3000)
             self.execguest("yum -y install /tmp/lshw-2.17-1.el7.rf.x86_64.rpm")
 
         # Not aware of possible errors, but might need a try block just in case.
-        xml = execguest("sudo lshw -xml -c video")
+        xml = execguest("lshw -xml -c video")
 
         # Parse the lshw output.
         root = ET.fromstring(xml)

@@ -9321,6 +9321,7 @@ sleep (3000)
         lshwCheck = False
 
         self.findDistro()
+        xenrt.TEC().logverbose("Distro name is: %s" % self.distro)
 
         # Check if linux guest I think.
             # Only for certain distros?

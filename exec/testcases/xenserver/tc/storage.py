@@ -1385,7 +1385,7 @@ class TC6723(xenrt.TestCase):
     def doCreate(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -1477,7 +1477,7 @@ class TC10860(TC6723):
     def doCreateWithSecret(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -4382,7 +4382,7 @@ class TCPbdDuplicateSecret(xenrt.TestCase):
     def run(self, arglist=None):
         # Attach the share as a CIFS ISO to the pool.
         sharename, user, password = self.exports[0]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,"cifstest")
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,"cifstest")
 
         self.srs.append(sr)
 

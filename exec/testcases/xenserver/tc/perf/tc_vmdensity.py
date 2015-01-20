@@ -1815,7 +1815,13 @@ class Experiment_vmrun(Experiment):
                         out=host.execdom0("%s set %s" % (host._findXenBinary("host-cpu-tune"), tunevcpus))
                         xenrt.TEC().logverbose(out)
                     reboot=True 
-           
+                elif "intelliram" in dom0param:
+                    self.host_config_intelli_ram.start(host)
+                elif "intellicache" in dom0param:
+                    self.host_config_intelli_cache.start(host)
+                elif "intellicachessd" in dom0param:
+                    self.host_config_intelli_cache.start(host, use_ssd=True)
+
             for xenopsparam in self.xenopsparams: 
                 if "=" in xenopsparam:
                     xn=xenopsparam.split("=")
@@ -2360,12 +2366,6 @@ MachinePassword=%s
                 self.host_load_dyn_dom0_vcpus.start(host,pin=dom0param)
             elif "cpunr" in dom0param:
                 self.host_load_set_dom0_vcpus.start(host,pin=dom0param)
-            elif "intelliram" in dom0param:
-                self.host_config_intelli_ram.start(host)
-            elif "intellicache" in dom0param:
-                self.host_config_intelli_cache.start(host)
-            elif "intellicachessd" in dom0param:
-                self.host_config_intelli_cache.start(host, use_ssd=True)
         #print the vcpu state in dom0
         self.print_vcpu_list(host)
 

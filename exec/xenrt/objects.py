@@ -9362,15 +9362,9 @@ sleep (3000)
 
         # Install lshw if needed.
         if not isUbuntu:
-            # OEL
-            if self.distro.lower().startswith("oel"):
-                self.execguest("yum -y install lshw")
-            # Rhel / Centos
-            else:
-                self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-                self.execguest("ls /tmp/lshw/")
-                self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
+            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
+                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
                 
 
         # Not aware of possible errors, but might need a try block just in case.

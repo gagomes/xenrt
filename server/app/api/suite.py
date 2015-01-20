@@ -78,4 +78,4 @@ class XenRTSuiteStatus(XenRTAPIPage):
 
         return out 
 
-PageFactory(XenRTSuiteStatus, "suitestatus", "/api/suite/status", compatAction="suitestatus")
+PageFactory(XenRTSuiteStatus, "/api/suite/status", compatAction="suitestatus")

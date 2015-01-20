@@ -386,8 +386,8 @@ class XenRTPerfData(XenRTAPIPage):
             return "ERROR updating database"
 
 
-PageFactory(XenRTSubResults, "subresults", "/api/results/subresults", compatAction="subresults")
-PageFactory(XenRTLogData, "logdata", "/api/results/logdata", compatAction="logdata")
-PageFactory(XenRTEvent, "event", "/api/results/event", compatAction="event")
-PageFactory(XenRTSetResult, "setresult", "/api/results/setresult", compatAction="setresult")
-PageFactory(XenRTPerfData, "perfdata", "/api/results/perfdata", compatAction="perfdata")
+PageFactory(XenRTSubResults, "/api/results/subresults", compatAction="subresults")
+PageFactory(XenRTLogData, "/api/results/logdata", compatAction="logdata")
+PageFactory(XenRTEvent, "/api/results/event", compatAction="event")
+PageFactory(XenRTSetResult, "/api/results/setresult", compatAction="setresult")
+PageFactory(XenRTPerfData, "/api/results/perfdata", compatAction="perfdata")

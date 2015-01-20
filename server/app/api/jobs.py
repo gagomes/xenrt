@@ -285,6 +285,21 @@ class XenRTList(XenRTJobPage):
                         rl.append("")
                 fd.write(string.join(rl, "\t") + "\n")
 
+class XenRTListV2(XenRTList):
+    def render(self):
+        status = self.request.params.get('status')
+        if status == None:
+            statuses = [app.constants.JOB_STATUS_NEW, app.constants.JOB_STATUS_RUNNING]
+        elif status == "running":
+            statuses = [app.constants.JOB_STATUS_RUNNING]
+        elif status == "new":
+            statuses = [app.constants.JOB_STATUS_NEW]
+        jobs = []
+        for s in statuses:
+            jobs.extend(self.get_jobs(s))
+        return jobs
+
+
 class XenRTSubmit(XenRTJobPage):
     WRITE = True
 
@@ -585,18 +600,18 @@ class XenRTWarnings(XenRTJobPage):
         
         return out
 
-PageFactory(XenRTStatus, "status", "/api/job/status", compatAction="status")
-PageFactory(XenRTJobEmail, "email", "/api/job/email", compatAction="email")
-PageFactory(XenRTRawEmail, "email_raw", "/api/email_raw")
-PageFactory(XenRTList, "list", "/api/job/list", compatAction="list")
-PageFactory(XenRTSubmit, "submit", "/api/job/submit", compatAction="submit")
-PageFactory(XenRTComplete, "complete", "/api/job/complete", compatAction="complete")
-PageFactory(XenRTUpdate, "update", "/api/job/update", compatAction="update")
-PageFactory(XenRTRemove, "remove", "/api/job/remove", compatAction="remove")
-PageFactory(XenRTDetailID, "detailid", "/api/job/detailid", compatAction="detailid")
-PageFactory(XenRTJobIDFromDetailID, "jobidfromdetailid", "/api/job/jobidfromdetailid", compatAction="jobidfromdetailid")
-PageFactory(XenRTJobIDsFromDetailIDs, "jobidsfromdetailids", "/api/job/jobidsfromdetailids", compatAction="jobidsfromdetailids")
-PageFactory(XenRTShowLog, "showlog", "/api/job/log", compatAction="showlog")
-PageFactory(XenRTJobGroup, "jobgroup", "/api/job/group", compatAction="jobgroup")
-PageFactory(XenRTWarnings, "warnings", "/api/job/warnings", compatAction="warnings")
+PageFactory(XenRTStatus, "/api/job/status", compatAction="status")
+PageFactory(XenRTJobEmail, "/api/job/email", compatAction="email")
+PageFactory(XenRTRawEmail, "/api/email_raw")
+PageFactory(XenRTList, "/api/job/list", compatAction="list")
+PageFactory(XenRTSubmit, "/api/job/submit", compatAction="submit")
+PageFactory(XenRTComplete, "/api/job/complete", compatAction="complete")
+PageFactory(XenRTUpdate, "/api/job/update", compatAction="update")
+PageFactory(XenRTRemove, "/api/job/remove", compatAction="remove")
+PageFactory(XenRTDetailID, "/api/job/detailid", compatAction="detailid")
+PageFactory(XenRTJobIDFromDetailID, "/api/job/jobidfromdetailid", compatAction="jobidfromdetailid")
+PageFactory(XenRTJobIDsFromDetailIDs, "/api/job/jobidsfromdetailids", compatAction="jobidsfromdetailids")
+PageFactory(XenRTShowLog, "/api/job/log", compatAction="showlog")
+PageFactory(XenRTJobGroup, "/api/job/group", compatAction="jobgroup")
+PageFactory(XenRTWarnings, "/api/job/warnings", compatAction="warnings")
 

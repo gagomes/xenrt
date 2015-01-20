@@ -125,6 +125,7 @@ class XenRTPage(Page):
 
 
 import app.api
+import app.apiv2
 import app.ui
 import app.compat
 import app.signal

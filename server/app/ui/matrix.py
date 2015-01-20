@@ -73,4 +73,4 @@ class XenRTMatrix(XenRTPage):
         out += "</tr></table>"
         return {"title": "Matrix", "main": out}
 
-PageFactory(XenRTMatrix, "matrix", "/matrix", renderer="__main__:templates/default.pt")
+PageFactory(XenRTMatrix, "/matrix", renderer="__main__:templates/default.pt")

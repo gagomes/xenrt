@@ -9362,10 +9362,14 @@ sleep (3000)
 
         # Install lshw if needed.
         if not isUbuntu:
-            #self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-            #                                    (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y install lshw")
-            #self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
+            # Centos
+            if self.distro.lower().startswith("centos"):
+                self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
+                                                (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+                self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
+            # Rhel / OEL
+            else:
+                self.execguest("yum -y install lshw")
 
         # Not aware of possible errors, but might need a try block just in case.
         xml = self.execguest("lshw -xml -c video")

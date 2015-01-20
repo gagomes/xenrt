@@ -1724,6 +1724,11 @@ class Experiment_vmrun(Experiment):
  
             host = self.tc.getDefaultHost()
             host.defaultsr = name_defaultsr # hack: because esx doesn't have a pool class to set up the defaultsr when creating the host via sequence above with 'default' option in <storage>
+            pool = self.tc.getDefaultPool()
+            if pool:
+                sr_uuid = host.parseListForUUID("sr-list", "name-label", name_defaultsr)
+                pool.setPoolParam("default-SR", sr_uuid)
+
             set_dom0disksched(host,self.dom0disksched) 
             patch_qemu_wrapper(host,self.qemuparams)
 

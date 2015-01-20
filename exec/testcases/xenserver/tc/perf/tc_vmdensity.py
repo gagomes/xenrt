@@ -1511,13 +1511,10 @@ class HostConfigIntelliCache(HostConfig):
             
         for h in hosts:
             #Enable IntelliCache on the host, using that SR:
-            sr_uuid = h.getLocalSR()  # This must be a ext SR
+            cacheDisk = self.TEC().lookup("INTELLICACHE_DISK", None) # must be an ext SR
+            xenrt.TEC().logverbose("intellicache disk = %s" % (cacheDisk,))
             h.execdom0("xe host-disable uuid=%s" % h.getMyHostUUID())
-            #h.execdom0("xe host-enable-local-storage-caching uuid=%s sr-uuid=%s" % (h.getMyHostUUID(), sr_uuid))
-            if use_ssd:
-                h.enableCaching()
-            else:
-                h.enableCaching(sr=sr_uuid)
+            h.enableCaching()
             h.execdom0("xe host-enable uuid=%s" % h.getMyHostUUID())
 
         out=host.execdom0('IFS=","; for vm in $(xe vm-list is-control-domain=false --minimal); do for vdi in $(xe vbd-list vm-uuid=$vm device=hda|grep vdi-uuid|awk \'{print $4}\') $(xe vbd-list vm-uuid=$vm device=xvda|grep vdi-uuid|awk \'{print $4}\'); do echo "vm=$vm -> vdi=$vdi"; xe vdi-param-set uuid=$vdi allow-caching=true on-boot=reset; done;  done') 

@@ -9379,7 +9379,7 @@ sleep (3000)
                 break
 
         if "claimed" in desiredNode.attrib:
-            if desiredNode.attrib["claimed"] != True:
+            if desiredNode.attrib["claimed"] != "true":
                 return False # GPU is unclaimed.
 
         # Both tests for the GPU being utilized passed.

@@ -285,21 +285,6 @@ class XenRTList(XenRTJobPage):
                         rl.append("")
                 fd.write(string.join(rl, "\t") + "\n")
 
-class XenRTListV2(XenRTList):
-    def render(self):
-        status = self.request.params.get('status')
-        if status == None:
-            statuses = [app.constants.JOB_STATUS_NEW, app.constants.JOB_STATUS_RUNNING]
-        elif status == "running":
-            statuses = [app.constants.JOB_STATUS_RUNNING]
-        elif status == "new":
-            statuses = [app.constants.JOB_STATUS_NEW]
-        jobs = []
-        for s in statuses:
-            jobs.extend(self.get_jobs(s))
-        return jobs
-
-
 class XenRTSubmit(XenRTJobPage):
     WRITE = True
 

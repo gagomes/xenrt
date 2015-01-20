@@ -9352,7 +9352,10 @@ sleep (3000)
         lspciOut = self.execguest("lspci -v -s %s" % pciid)
 
         # Check if "Kernel driver in use: " is in last line.
-        if "Kernel driver in use: " not in [line for line in lspciOut.splitlines()][-1]:
+        loLastline = [line for line in lspciOut.splitlines()][-1]
+        xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
+
+        if "Kernel driver in use: " not in loLastLine:
             return False # No kernel driver in use, ie. GPU not utilized.
 
 

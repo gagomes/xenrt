@@ -9363,14 +9363,10 @@ sleep (3000)
         if not isUbuntu:
             self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
                                                 (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y localinstall /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
-
-        # lshw-2.17-1.e17.rf.x86_64.rpm
-        # lshw-2.17-1.el7.rf.x86_64.rpm
-
+            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.el7.rf.x86_64.rpm")
 
         # Not aware of possible errors, but might need a try block just in case.
-        xml = execguest("lshw -xml -c video")
+        xml = self.execguest("lshw -xml -c video")
 
         # Parse the lshw output.
         root = ET.fromstring(xml)

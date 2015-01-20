@@ -9341,6 +9341,9 @@ sleep (3000)
         # Would be nice to outline actual distro, or group beforehand.
         # Ubuntu | Rhel bases.
 
+        if not isUbuntu:
+            self.execguest("yum -y install pciutils")
+            
         # Check if the given type of GPU is present.
         componentList = self.execguest("lspci | grep %s" % gpuType)
 

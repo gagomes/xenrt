@@ -3056,7 +3056,7 @@ fi
         guest.primaryMAC=primaryMAC
         guest.reservedIP=reservedIP
         repository = None
-        
+
         if guest.windows:
             isoname = xenrt.DEFAULT
         else:
@@ -3071,13 +3071,16 @@ fi
                     raise xenrt.XRTError("No HTTP repository for %s %s" %
                                          (arch, distro))
 
+        guest.distro = distro
+        guest.arch = arch
+
         if vcpus != None:
             guest.setVCPUs(vcpus)
         elif self.lookup("RND_VCPUS", default=False, boolean=True):
-            self.setRandomVcpus(guest)
+            guest.setRandomVcpus()
 
         if self.lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            self.setRandomCoresPerSocket(guest, vcpus)
+            guest.setRandomCoresPerSocket(self, vcpus)
 
         if memory != None:
             guest.setMemory(memory)
@@ -3086,7 +3089,6 @@ fi
                 disksize = 8192 # 8GB (in MB) by default
             else:
                 disksize = guest.DEFAULT
-        guest.arch = arch
         if primaryMAC:
             if bridge:
                 br = bridge
@@ -3118,60 +3120,6 @@ fi
         if not nodrivers:
             guest.check()
         return guest
-
-    def setRandomVcpus(self,guest):
-        xenrt.log("Setting random vcpus for VM ")
-        #maxVcpusSupported can be made variable later depending on host, guest and proudct limits
-        maxVcpusSupported =16
-        randomVcpus = random.randint(1,maxVcpusSupported)
-        with xenrt.GEC().getLock("RND_VCPUS"):
-            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
-            if dbVal != 0:
-                xenrt.TEC().logverbose("Using vcpus from DB: %d" %dbVal)
-                guest.setVCPUs(dbVal)
-            else:
-                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" %randomVcpus)
-                guest.setVCPUs(randomVcpus)
-                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
-                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
-
-    def setRandomCoresPerSocket(self, guest, vcpus):
-        log("Setting random cores per socket....")
-
-        if not isinstance(self, xenrt.lib.xenserver.ClearwaterHost) or not guest.windows:
-            log("Refusing to set cores-per-socket on anything prior \
-                to Clearwater or non-windows guests")
-            return
-
-        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
-        cpuCoresOnHost = self.getCPUCores()
-        socketsOnHost  = self.getNoOfSockets()
-        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
-        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
-
-        if vcpus != None:
-            # This gives us all the factors of the vcpus specified
-            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
-            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
-
-            # This eliminates the factors that would exceed the host's cores per socket
-            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
-            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
-
-            # Then choose a value from here
-            coresPerSocket = random.choice(validCoresPerSocket)
-
-            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
-                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
-
-                if dbVal in validCoresPerSocket:
-                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
-                    guest.setCoresPerSocket(dbVal)
-                else:
-                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
-                    guest.setCoresPerSocket(coresPerSocket)
-                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
-                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def getDefaultAdditionalCDList(self):
         """Return a list of additional CDs to be installed.

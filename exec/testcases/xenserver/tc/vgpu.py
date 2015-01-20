@@ -3910,6 +3910,6 @@ class TCRonanTest(xenrt.TestCase):
         ubuntu = self.host.getGuest("Ubuntu1404")
         windows = self.host.getGuest("Windows7")
 
-        xenrt.TEC().logverbose("Centos: %s" % centos.isGPUBeingUtilized("NVIDIA"))
         xenrt.TEC().logverbose("Ubuntu: %s" % ubuntu.isGPUBeingUtilized("NVIDIA"))
+        xenrt.TEC().logverbose("Centos: %s" % centos.isGPUBeingUtilized("NVIDIA"))
         xenrt.TEC().logverbose("Windows: %s" % windows.isGPUBeingUtilized("NVIDIA"))

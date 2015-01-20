@@ -9336,7 +9336,7 @@ sleep (3000)
             raise xenrt.XRTError("Function can only be used for certain linux distros. Woring distros: %s" % workingDistros)
 
         # Check if it is Ubuntu.
-        if self.distro == "UbuntuSomeIdentifier":
+        if self.distro.lower().startswith("ubuntu"):
             isUbuntu = True
         # Would be nice to outline actual distro, or group beforehand.
         # Ubuntu | Rhel bases.

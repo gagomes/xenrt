@@ -12169,17 +12169,22 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, serverpath=None, path=None, user=None, password=None, domain=None):
+    def create(self, serverpath=None, user=None, password=None, domain=None):
         if not serverpath:
             share = xenrt.ExternalSMBShare(version=3)
-            serverpath = share.getMount()
+            serverpath = share.getEscapedUNCPath()
 
         dconf = {}
         smconf = {}
         dconf["server"] = serverpath 
-        self.serverpath = serverpath
-        adConfig = xenrt.getADConfig() 
-        dconf['username'] = user or adConfig.adminUser
+        adConfig = xenrt.getADConfig()
+        if user:
+            if domain:
+                dconf['username'] = "%s\\\\%s" % (domain, user)
+            else:
+                dconf['username'] = "%s" % user
+        else:
+            dconf['username'] = "%s\\\\%s" % (adConfig.domain, adConfig.adminUser)
         dconf['password'] = password or adConfig.adminPassword
         self._create("cifs",
                      dconf)
@@ -12194,18 +12199,20 @@ class SMBStorageRepository(StorageRepository):
             self.checkOnHost(self.host)
 
     def checkOnHost(self, host):
-        try:
-            host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
-        except:
-            raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
-                                   "does not exist" % (self.uuid))
-        smb = string.split(host.execdom0("mount | grep \""
-                                          "/run/sr-mount/%s \"" %
-                                          (self.uuid)))[0]
-        shouldbe = "%s/%s" % (self.serverpath, self.uuid)
-        if smb != shouldbe:
-            raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
-                                   (smb, shouldbe))
+        pass
+        # TODO update this to use the correct paths
+        #try:
+        #    host.execdom0("test -d /var/run/sr-mount/%s" % (self.uuid))
+        #except:
+        #    raise xenrt.XRTFailure("SR mountpoint /var/run/sr-mount/%s "
+        #                           "does not exist" % (self.uuid))
+        #smb = string.split(host.execdom0("mount | grep \""
+        #                                  "/run/sr-mount/%s \"" %
+        #                                  (self.uuid)))[0]
+        #shouldbe = "%s/%s" % (self.serverpath, self.uuid)
+        #if smb != shouldbe:
+        #    raise xenrt.XRTFailure("Mounted path '%s' is not '%s'" %
+        #                           (smb, shouldbe))
 
 
 class ISCSIStorageRepository(StorageRepository):

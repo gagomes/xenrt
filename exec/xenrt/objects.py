@@ -9343,9 +9343,13 @@ sleep (3000)
 
         if not isUbuntu:
             self.execguest("yum -y install pciutils")
-            
+
         # Check if the given type of GPU is present.
-        componentList = self.execguest("lspci | grep %s" % gpuType)
+        try:
+            componentList = self.execguest("lspci | grep %s" % gpuType)
+        except:
+            xenrt.TEC().logverbose("Could not find any devices of the given name: %s" % gpuType)
+            return False
 
         # Check if there is a GPU present.
 

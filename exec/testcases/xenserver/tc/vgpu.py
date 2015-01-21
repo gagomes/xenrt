@@ -3898,16 +3898,3 @@ class TCcheckNvidiaDriver(xenrt.TestCase):
 
         if host.execdom0("grep -e 'nvidia: disagrees about version of symbol' -e 'nvidia: Unknown symbol' /var/log/kern.log", retval="code") == 0:
             raise xenrt.XRTFailure("NVIDIA driver is not correctly built for the current host kernel")
-
-class TCRonanTest(xenrt.TestCase):
-    """Class to temporarily test functionality, of isGPUBeingUtilized()"""
-
-    def run(self, arglist=None):
-
-        self.host = self.getDefaultHost()
-
-        ubuntu = self.host.getGuest("Ubuntu1204")
-        rhel = self.host.getGuest("RHEL6")        
-        
-        xenrt.TEC().logverbose("Ubuntu: %s" % ubuntu.isGPUBeingUtilized("NVIDIA"))
-        xenrt.TEC().logverbose("RHEL: %s" % rhel.isGPUBeingUtilized("NVIDIA"))

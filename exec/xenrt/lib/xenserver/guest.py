@@ -1358,7 +1358,7 @@ exit /B 1
 
         self.enlightenedDrivers = False
 
-    def waitForAgent(self, timeout):
+    def waitForAgent(self, timeout, checkPvDriversUpToDate=True):
         """Wait for guest agent to come up"""
 
         deadline = xenrt.util.timenow() + timeout
@@ -1389,10 +1389,11 @@ exit /B 1
                 xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
                 xenrt.sleep(5)
 
-                for i in range(48):
-                    if self.pvDriversUpToDate():
-                        break
-                    xenrt.sleep(10)
+                if checkPvDriversUpToDate:
+                    for i in range(48):
+                        if self.pvDriversUpToDate():
+                            break
+                        xenrt.sleep(10)
                 return xenrt.RC_OK
 
             xenrt.sleep(5)
@@ -5156,7 +5157,7 @@ class TampaGuest(BostonGuest):
     def installLegacyDrivers(self):
         self.installDrivers(useLegacy=True)
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
@@ -5285,7 +5286,7 @@ class TampaGuest(BostonGuest):
                 xenrt.sleep(120)
 
         # wait for guest agent
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
 
         self.enlightenedDrivers = True
 

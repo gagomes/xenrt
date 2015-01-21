@@ -26,6 +26,8 @@ class XenRTAPIv2Swagger(XenRTPage):
 PageFactory(XenRTAPIv2Swagger, "/swagger.json", reqType="GET", contentType="application/json")
 
 class XenRTAPIv2Page(XenRTPage):
+    REQUIRE_AUTH_IF_ENABLED = True
+    
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)
         ret = []

@@ -1385,7 +1385,7 @@ class ISCSINativeLinuxLun(ISCSILun):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
-class SMBVMShare(object):
+class SMBVMShare(CentralResource):
     """ A tempory SMB share in a VM """
     
     def __init__(self,hostIndex=None,sizeMB=None, guestName="xenrt-smb", distro="ws12r2-x64"):
@@ -1399,7 +1399,7 @@ class SMBVMShare(object):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self._createSMBVM(sizeMB, distro)
+            self.guest = self.host.createBasicGuest(distro=distro, disksize = 20*xenrt.KILO + sizeMB)
         else:
             self.guest = self.host.guests[self.guestName]
         
@@ -1419,11 +1419,6 @@ class SMBVMShare(object):
 
     def getLinuxUNCPath(self):
         return self.getUNCPath().replace("\\", "/")
-
-
-
-    def _createSMBVM(self, sizeMB, distro):
-        self.guest = self.host.createSMBVM(distro=distro, disksize = 20*xenrt.KILO + sizeMB)
 
     def acquire(self):
         pass

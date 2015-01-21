@@ -1432,6 +1432,28 @@ class VMSMBShare(CentralResource):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
+class SpecifiedSMBShare(object):
+    def __init__(self,
+                 addr,
+                 shareName,
+                 user,
+                 password,
+                 domain=None):
+        self.addr = addr
+        self.shareName = shareName
+        self.domain = domain
+        self.user = user
+        self.password = password
+
+    def getUNCPath(self):
+        return "\\\\%s\\%s" % (self.addr, self.shareName)
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
+
 class ISCSIVMLun(ISCSILun):
     """ A tempory LUN in a VM """
     

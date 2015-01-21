@@ -10,7 +10,7 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
         else:
             return status
 
-    def getJobs(self, limit, status=[], users=[], excludeusers=[], srs=[], ids=[]):
+    def getJobs(self, limit, status=[], users=[], excludeusers=[], srs=[], ids=[], getParams=False, getResults=False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
@@ -106,18 +106,24 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
                 jobs[j]['machines'] = mlist.split(",")
             jobs[j]['description'] = jobs[j]['params'].get("JOBDESC", jobs[j]['params'].get("DEPS"))
 
-        
-        cur.execute("SELECT jobid, result, detailid, test, phase FROM tblresults WHERE jobid IN (%s) ORDER BY detailid" % jobidlist, jobs.keys())
-        while True:
-            rc = cur.fetchone()
-            if not rc:
-                break
-            jobs[rc[0]]['results'].append({
-                "result": rc[1].strip(),
-                "detailid": rc[2],
-                "test": rc[3].strip(),
-                "phase": rc[4].strip()
-            })
+        if getResults:
+            for j in jobs.keys():
+                jobs[j]['results'] = []
+            cur.execute("SELECT jobid, result, detailid, test, phase FROM tblresults WHERE jobid IN (%s) ORDER BY detailid" % jobidlist, jobs.keys())
+            while True:
+                rc = cur.fetchone()
+                if not rc:
+                    break
+                jobs[rc[0]]['results'].append({
+                    "result": rc[1].strip(),
+                    "detailid": rc[2],
+                    "test": rc[3].strip(),
+                    "phase": rc[4].strip()
+                })
+
+        if not getParams: # We need to get most of the data anyway to populate the main fields, disabling this just speeds up the HTTP
+            for j in jobs.keys():
+                del jobs[j]['params']
 
         return jobs
 
@@ -125,15 +131,15 @@ class XenRTListJobs(XenRTGetJobsBase):
 
     def render(self):
 
-        status = self.request.params.getall("status")
-        ids = [int(x) for x in self.request.params.getall("jobid")]
+        status = self.getMultiParam("status")
+        ids = [int(x) for x in self.getMultiParam("jobid")]
         if not status and not ids:
             status = ['new', 'running']
-        users = self.request.params.getall("user")
-        excludeusers = self.request.params.getall("excludeuser")
+        users = self.getMultiParam("user")
+        excludeusers = self.getMultiParam("excludeuser")
         limit = int(self.request.params.get("limit", 0))
        
-        suiteruns = self.request.params.getall("suiterun")
+        suiteruns = self.getMultiParam("suiterun")
 
         if not limit and ('removed' in status or 'done' in status):
             limit = 100
@@ -142,15 +148,18 @@ class XenRTListJobs(XenRTGetJobsBase):
 
         limit = min(limit, 10000)
 
-        return self.getJobs(limit, status=status, users=users, srs=suiteruns, excludeusers=excludeusers, ids=ids)
+        params = self.request.params.get("params", "false") == "true"
+        results = self.request.params.get("results", "false") == "true"
+
+        return self.getJobs(limit, status=status, users=users, srs=suiteruns, excludeusers=excludeusers, ids=ids, getParams=params, getResults=results)
 
 class XenRTGetJob(XenRTGetJobsBase):
     def render(self):
         job = int(self.request.matchdict['job'])
-        jobs = self.getJobs(1, ids=[job])
+        jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True)
         if not job in jobs:
             return HTTPNotFound()
         return jobs[job]
 
-PageFactory(XenRTListJobs, "/api/v2/job", reqType="GET", contentType="application/json")
+PageFactory(XenRTListJobs, "/api/v2/jobs", reqType="GET", contentType="application/json")
 PageFactory(XenRTGetJob, "/api/v2/job/{job}", reqType="GET", contentType="application/json")

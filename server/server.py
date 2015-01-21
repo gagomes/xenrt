@@ -33,7 +33,7 @@ class Server(object):
         name = str(uuid.uuid4())
         self.appconfig.add_route(name, location, request_method=reqType)
         self.appconfig.add_view(function, route_name=name, renderer=renderer)
-    
+
     def getApp(self):
         ### Add code to add static locations here ###
         self.appconfig.add_static_view(name='static', path='__main__:static')

@@ -21,7 +21,7 @@ __all__ = ["WebDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
-           "SMBVMShare",
+           "VMSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -763,6 +763,9 @@ class ExternalSMBShare(_ExternalFileShare):
 
     def mount(self, path):
         ad = xenrt.getADConfig()
+        self.user = ad.adminUser
+        self.password = ad.adminPassword
+        self.domain = ad.domainName
         return xenrt.rootops.MountSMB(path, ad.domainName, ad.adminUser, ad.adminPassword)
 
     def getUNCPath(self):
@@ -1385,7 +1388,7 @@ class ISCSINativeLinuxLun(ISCSILun):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
-class SMBVMShare(CentralResource):
+class VMSMBShare(CentralResource):
     """ A tempory SMB share in a VM """
     
     def __init__(self,hostIndex=None,sizeMB=None, guestName="xenrt-smb", distro="ws12r2-x64"):
@@ -1399,7 +1402,7 @@ class SMBVMShare(CentralResource):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self.guest = self.host.createBasicGuest(distro=distro, disksize = 20*xenrt.KILO + sizeMB)
+            self.guest = self.host.createBasicGuest(distro=distro, name=guestName, disksize = 20*xenrt.KILO + sizeMB)
         else:
             self.guest = self.host.guests[self.guestName]
         
@@ -1407,9 +1410,12 @@ class SMBVMShare(CentralResource):
             self.guest.xmlrpcCreateDir("c:\\shares")
         shareName = xenrt.randomGuestName()
         self.guest.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
-        self.guest.xmlrpcExec("net share %s=c:\\shares\\%s" % (shareName, shareName))
+        self.guest.xmlrpcExec("net share %s=c:\\shares\\%s /grant:Everyone,FULL" % (shareName, shareName))
         self.guest.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
         self.shareName = shareName
+        self.domain = None
+        self.user = "Administrator"
+        self.password = "xensource"
 
     def getUNCPath(self):
         return "\\\\%s\\%s" % (self.guest.mainip, self.shareName)

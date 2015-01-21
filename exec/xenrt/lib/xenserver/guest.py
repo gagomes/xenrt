@@ -5317,7 +5317,7 @@ class TampaGuest(BostonGuest):
             self.checkPVDevices()
 
         for i in range(12):
-            if self.pvDriversUpToDate():
+            if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
 

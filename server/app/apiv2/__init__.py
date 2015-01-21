@@ -23,7 +23,7 @@ class XenRTAPIv2Swagger(XenRTPage):
             spec = ordered_load(f, yaml.SafeLoader)
         return spec
 
-PageFactory(XenRTAPIv2Swagger, "/api/v2/swagger.json", reqType="GET", contentType="application/json")
+PageFactory(XenRTAPIv2Swagger, "/swagger.json", reqType="GET", contentType="application/json")
 
 class XenRTAPIv2Page(XenRTPage):
     def getMultiParam(self, paramName, delimiter=","):

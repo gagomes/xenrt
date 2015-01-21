@@ -21,6 +21,7 @@ __all__ = ["WebDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
+           "SMBVMShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -770,6 +771,9 @@ class ExternalSMBShare(_ExternalFileShare):
     def getEscapedUNCPath(self):
         return self.getUNCPath().replace("\\", "\\\\")
 
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
+
     def setPermissions(self, td):
         pass
 
@@ -1374,6 +1378,52 @@ class ISCSINativeLinuxLun(ISCSILun):
         self.initiatorcount = None
         self.initiatorstart = None
         self.initiatornames = {}
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+class SMBVMShare(object):
+    """ A tempory SMB share in a VM """
+    
+    def __init__(self,hostIndex=None,sizeMB=None, guestName="xenrt-smb", distro="ws12r2-x64"):
+        if not hostIndex:
+            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_0")
+        else:
+            self.host = xenrt.TEC().registry.hostGet("RESOURCE_HOST_%s" % hostIndex)
+        if not sizeMB:
+            sizeMB = 50*xenrt.KILO
+        self.guestName = guestName
+
+        # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
+        if not self.host.guests.has_key(self.guestName):
+            self._createSMBVM(sizeMB, distro)
+        else:
+            self.guest = self.host.guests[self.guestName]
+        
+        if not self.guest.xmlrpcDirExists("c:\\shares"):
+            self.guest.xmlrpcCreateDir("c:\\shares")
+        shareName = xenrt.randomGuestName()
+        self.guest.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
+        self.guest.xmlrpcExec("net share %s=c:\\shares\\%s" % (shareName, shareName))
+        self.guest.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
+        self.shareName = shareName
+
+    def getUNCPath(self):
+        return "\\\\%s\\%s" % (self.guest.mainip, self.shareName)
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
+
+
+
+    def _createSMBVM(self, sizeMB, distro):
+        self.guest = self.host.createSMBVM(distro=distro, disksize = 20*xenrt.KILO + sizeMB)
 
     def acquire(self):
         pass

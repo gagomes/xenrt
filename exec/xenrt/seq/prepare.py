@@ -1209,8 +1209,12 @@ class PrepareNode:
 
                         server, path = xenrt.ExternalNFSShare(jumbo=jumbo, network=network, version=nfsVersion).getMount().split(":")
                         if filesr:
+                            if s["options"] and "vm" in s["options"].split(","):
+                                vm = True
+                            else:
+                                vm = False
                             sr = xenrt.productLib(host=host).FileStorageRepositoryNFS(host, s["name"])
-                            sr.create(server, path)
+                            sr.create(server, path, vm=vm)
                         else:
                             if nfsVersion == "4":
                                 sr = xenrt.productLib(host=host).NFSv4StorageRepository(host, s["name"])

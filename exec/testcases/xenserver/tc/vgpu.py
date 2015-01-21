@@ -3906,13 +3906,8 @@ class TCRonanTest(xenrt.TestCase):
 
         self.host = self.getDefaultHost()
 
-        centos = self.host.getGuest("CentOS7")
-        ubuntu = self.host.getGuest("Ubuntu1404")
-        rhel = self.host.getGuest("RHEL7")
-        oel = self.host.getGuest("OEL7")
-
+        ubuntu = self.host.getGuest("Ubuntu1204")
+        rhel = self.host.getGuest("RHEL6")        
         
-        xenrt.TEC().logverbose("OEL: %s" % oel.isGPUBeingUtilized("NVIDIA"))
         xenrt.TEC().logverbose("Ubuntu: %s" % ubuntu.isGPUBeingUtilized("NVIDIA"))
-        xenrt.TEC().logverbose("Centos: %s" % centos.isGPUBeingUtilized("NVIDIA"))
         xenrt.TEC().logverbose("RHEL: %s" % rhel.isGPUBeingUtilized("NVIDIA"))

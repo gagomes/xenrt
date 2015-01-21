@@ -326,4 +326,5 @@ minimal-check: install
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
 	xmllint --schema $(XSD) seqs/*.seq --noout
+	./checkyaml server/app/apiv2/swagger.yaml
 	rm $(XSD)

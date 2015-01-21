@@ -15,7 +15,7 @@ produces:
 paths:
   /jobs:
     get:
-      description: Gets jobs matching paameters
+      description: Gets jobs matching parameters
       tags:
         - jobs
       parameters:
@@ -60,6 +60,14 @@ paths:
           type: array
           items:
             type: string
+          collectionFormat: multi
+        -
+          name: jobid
+          in: query
+          description: Get a specific job - can specify multiple
+          type: array
+          items:
+            type: integer
           collectionFormat: multi
         -
           name: limit

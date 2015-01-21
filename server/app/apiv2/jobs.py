@@ -137,14 +137,9 @@ class XenRTListJobs(XenRTGetJobsBase):
             status = ['new', 'running']
         users = self.getMultiParam("user")
         excludeusers = self.getMultiParam("excludeuser")
-        limit = int(self.request.params.get("limit", 0))
+        limit = int(self.request.params.get("limit", 100))
        
         suiteruns = self.getMultiParam("suiterun")
-
-        if not limit and ('removed' in status or 'done' in status):
-            limit = 100
-        elif not limit:
-            limit = 10000
 
         limit = min(limit, 10000)
 

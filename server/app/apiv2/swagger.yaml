@@ -64,7 +64,7 @@ paths:
         -
           name: limit
           in: query
-          description: Limit the number of results. Defaults to 100 if "done" or "removed" jobs are requested.
+          description: Limit the number of results. Defaults to 100, hard limited to 10000
           required: false
           type: integer
         -
@@ -100,3 +100,8 @@ tags:
   -
     name: jobs
     description: Operations on XenRT jobs
+security:
+  citrite:
+securityDefinitions:
+  citrite:
+    type: basic

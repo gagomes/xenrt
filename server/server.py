@@ -37,6 +37,7 @@ class Server(object):
     def getApp(self):
         ### Add code to add static locations here ###
         self.appconfig.add_static_view(name='static', path='__main__:static')
+        self.appconfig.add_static_view(name='swagger', path='__main__:swagger')
         app = self.appconfig.make_wsgi_app()
         return app
 

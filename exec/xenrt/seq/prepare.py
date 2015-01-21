@@ -136,7 +136,6 @@ class PrepareNodeParserJSON(PrepareNodeParserBase):
                             self.handlePoolNode(simplePoolNode)
                             poolSpec = filter(lambda x:x['id'] == str(poolId), self.parent.pools)[0]
                             cluster['XRT_MasterHostName'] = poolSpec['master']
-                            self.handlePoolNode(simplePoolNode)
                     elif cluster['hypervisor'].lower() == "kvm":
                         if not cluster.has_key('XRT_KVMHostIds'):
                             hostIds = []

@@ -1,0 +1,115 @@
+swagger: '2.0'
+
+info:
+  version: "1.0.0"
+  title: XenRT API
+basePath: /xenrt/api/v2
+host: api-dev.xenrt.citrite.net
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /jobs:
+    get:
+      description: Gets jobs matching parameters
+      tags:
+        - jobs
+      parameters:
+        -
+          name: status
+          in: query
+          description: Filter on job status. Any of "new", "running", "removed", "done" - can specify multiple
+          required: false
+          type: array
+          items:
+            type: string
+            enum:
+              - new
+              - running
+              - done
+              - removed
+          collectionFormat: multi
+          default: new,running
+        -
+          name: user
+          in: query
+          description: Filter on user - can specify multiple
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+        -
+          name: excludeuser
+          in: query
+          description: Exclude jobs from this user from the results. Can specify multiple
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+        -
+          name: suiterun
+          in: query
+          description: Filter on suite run - can specify multiple
+          required: false
+          type: array
+          items:
+            type: string
+          collectionFormat: multi
+        -
+          name: jobid
+          in: query
+          description: Get a specific job - can specify multiple
+          type: array
+          items:
+            type: integer
+          collectionFormat: multi
+        -
+          name: limit
+          in: query
+          description: Limit the number of results. Defaults to 100, hard limited to 10000
+          required: false
+          type: integer
+        -
+          name: params
+          in: query
+          description: Return all job parameters. Defaults to false
+          type: boolean
+          default: false
+          required: false
+        -
+          name: results
+          in: query
+          description: Return the results from all testcases in the job. Defaults to false
+          type: boolean
+          default: false
+          required: false
+      responses:
+        200:
+          description: Successful response
+  /job/{id}:
+    get:
+      description: Gets a specific job object
+      tags:
+        - jobs
+      parameters:
+        -
+          name: id
+          in: path
+          description: Job ID to fetch
+          required: true
+          type: integer
+tags:
+  -
+    name: jobs
+    description: Operations on XenRT jobs
+security:
+  citrite:
+securityDefinitions:
+  citrite:
+    type: basic

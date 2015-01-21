@@ -596,4 +596,4 @@ class XenRTSchedule(XenRTAPIPage):
         # in any cluster.
         return False
                 
-PageFactory(XenRTSchedule, "schedule", "/api/schedule", compatAction="schedule")
+PageFactory(XenRTSchedule, "/api/schedule", compatAction="schedule")

@@ -112,5 +112,5 @@ class XenRTDetailFrame(XenRTPage):
         cur.close()
         return {"title": "Job Detail", "main": out}
 
-PageFactory(XenRTStatusFrame, "statusframe", "/statusframe", renderer="__main__:templates/default.pt")
-PageFactory(XenRTDetailFrame, "detailframe", "/detailframe", renderer="__main__:templates/default.pt")
+PageFactory(XenRTStatusFrame, "/statusframe", renderer="__main__:templates/default.pt")
+PageFactory(XenRTDetailFrame, "/detailframe", renderer="__main__:templates/default.pt")

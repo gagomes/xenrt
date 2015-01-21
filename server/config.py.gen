@@ -16,6 +16,7 @@ cfg['tmp_base'] = "/tmp"
 cfg['max_db_connections'] = "8"
 cfg['db_sync_timeout'] = "60"
 cfg['partner_ha_node'] = ""
+cfg['auth_enabled'] = "@authenabled@"
 # Parse a site config file
 cf = "%s/site.xml" % (confdir)
 if os.path.exists(cf):

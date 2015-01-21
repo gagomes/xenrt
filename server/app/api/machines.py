@@ -711,13 +711,13 @@ class XenRTMachineDashboardJSON(XenRTMachinePage):
             
     
 
-PageFactory(XenRTMList, "mlist", "/api/machine/list", compatAction="mlist2")
-PageFactory(XenRTMStatus, "mstatus", "/api/machine/setstatus", compatAction="mstatus")
-PageFactory(XenRTMDefine, "mdefine", "/api/machine/define", compatAction="mdefine")
-PageFactory(XenRTMUnDefine, "mundefine", "/api/machine/undefine", compatAction="mundefine")
-PageFactory(XenRTBorrow, "borrow", "/api/machine/borrow", compatAction="borrow")
-PageFactory(XenRTReturn, "return", "/api/machine/return", compatAction="return")
-PageFactory(XenRTMachine, "machine", "/api/machine/details", compatAction="machine")
-PageFactory(XenRTMUpdate, "mupdate", "/api/machine/update", compatAction="mupdate")
-PageFactory(XenRTUtilisation, "utilisation", "/api/machine/utilisation", compatAction="utilisation")
-PageFactory(XenRTMachineDashboardJSON, "machinedashboardjson", "/api/machine/dashboardjson", contentType="application/json")
+PageFactory(XenRTMList, "/api/machine/list", compatAction="mlist2")
+PageFactory(XenRTMStatus, "/api/machine/setstatus", compatAction="mstatus")
+PageFactory(XenRTMDefine, "/api/machine/define", compatAction="mdefine")
+PageFactory(XenRTMUnDefine,"/api/machine/undefine", compatAction="mundefine")
+PageFactory(XenRTBorrow, "/api/machine/borrow", compatAction="borrow")
+PageFactory(XenRTReturn, "/api/machine/return", compatAction="return")
+PageFactory(XenRTMachine, "/api/machine/details", compatAction="machine")
+PageFactory(XenRTMUpdate, "/api/machine/update", compatAction="mupdate")
+PageFactory(XenRTUtilisation, "/api/machine/utilisation", compatAction="utilisation")
+PageFactory(XenRTMachineDashboardJSON, "/api/machine/dashboardjson", contentType="application/json")

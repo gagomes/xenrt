@@ -61,6 +61,6 @@ class IsUsable(XenRTAPIPage):
             readDB.rollback()
             readDB.close()
             
-PageFactory(IsMaster, "ismaster", "/api/dbchecks/ismaster")
-PageFactory(TakeoverTime, "takeovertime", "/api/dbchecks/takeovertime")
-PageFactory(IsUsable, "dbisusable", "/api/dbchecks/isusable")
+PageFactory(IsMaster, "/api/dbchecks/ismaster")
+PageFactory(TakeoverTime, "/api/dbchecks/takeovertime")
+PageFactory(IsUsable, "/api/dbchecks/isusable")

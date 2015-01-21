@@ -9310,45 +9310,43 @@ sleep (3000)
 
     def isGPUBeingUtilized(self, gpuType):
         """Find if a GPU is being utilized on a linux vm.
-        Only works for X, Y, Z.
-        @param gpuType: Something.
+        Designed for use with Ubuntu1404, RHEL7, OEL7, CentOS7.
+        Raises XRTError if used with a different distro, although older versions of above fail gracefully.
+        @param gpuType: The brand of the GPU which should be checked against. eg. "NVIDIA"
+        @rtype: boolean
         """
 
-        # List of distro versions that function works with
+        # List of compatible distros.
         workingDistros = ["rhel", "centos", "oel", "ubuntu"]
         isUbuntu = False
 
         self.findDistro()
         xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
 
-        # Might not need the previous check.
         if not any([self.distro.lower().startswith(d) for d in workingDistros]):
             raise xenrt.XRTError("Function can only be used with certain linux distros. Current distro: %s. Woring distros: %s" % (self.distro, workingDistros))
 
-        # Check if it is Ubuntu.
+        # Some different dependencies between Ubuntu and RHEL based systems.
         if self.distro.lower().startswith("ubuntu"):
             isUbuntu = True
-        # Would be nice to outline actual distro, or group beforehand.
-        # Ubuntu | Rhel bases.
 
         if not isUbuntu:
             self.execguest("yum -y install pciutils")
 
-        # Check if the given type of GPU is present.
+        # Check if the GPU of given type is present.
         try:
             componentList = self.execguest("lspci | grep %s" % gpuType)
         except:
             xenrt.TEC().logverbose("Could not find any devices of the given name: %s" % gpuType)
             return False
 
-        # Check if there is a GPU present.
-
-        # 0:00.0 VGA|Audio ... NVIDIA|AMD|Intel
+        # Identify pciid of GPU.
+        # Sample output to parse: "0:00.0 VGA|Audio ... NVIDIA|AMD|Intel"
         pciid = None
         for line in componentList.splitlines():
             if "VGA" in line:
                 pciid = componentList.split(" ")[0]
-                break # Avoid parsing the rest of the list, which are likely unrelated components.
+                break
 
         lspciOut = self.execguest("lspci -v -s %s" % pciid)
 
@@ -9366,11 +9364,9 @@ sleep (3000)
                                             (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
             self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
                 
-
-        # Not aware of possible errors, but might need a try block just in case.
         xml = self.execguest("lshw -xml -c video")
 
-        # Parse the lshw output.
+        # Parse the lshw output, look for node with right pciid.
         root = ET.fromstring(xml)
         desiredNode = None
         for child in root:

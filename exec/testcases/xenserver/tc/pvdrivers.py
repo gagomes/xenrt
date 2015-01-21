@@ -1050,3 +1050,23 @@ class TCToolsMissingUninstall(xenrt.TestCase):
             xenrt.TEC().logverbose("Tools are upto date")
         else:
             raise xenrt.XRTFailure("Guest tools are out of date")
+
+class TCBootStartDriverUpgrade(xenrt.TestCase):
+    """Test for CA-158777 upgrade issue with boot start driver"""
+    DISTRO = "win7sp1-x86"
+
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, drivers=False)
+
+        # Install the Esperado PV drivers
+        self.guest.installDrivers(source="/usr/groups/xenrt/pvtools/esperado.tgz")
+
+        # Make xenvif boot start
+        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.guest.reboot()
+
+    def run(self, arglist=None):
+        # Attempt to upgrade the PV drivers
+        self.guest.installDrivers()
+

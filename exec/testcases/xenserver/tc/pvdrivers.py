@@ -1053,11 +1053,17 @@ class TCToolsMissingUninstall(xenrt.TestCase):
 
 class TCBootStartDriverUpgrade(xenrt.TestCase):
     """Test for CA-158777 upgrade issue with boot start driver"""
-    DISTRO = "win7sp1-x86"
 
     def prepare(self, arglist=None):
         self.host = self.getDefaultHost()
-        self.guest = self.host.createGenericWindowsGuest(distro=self.DISTRO, drivers=False)
+
+        distro = "win7sp1-x86"
+        if arglist:
+            args = xenrt.util.strlistToDict(arglist)
+            if args.has_key("distro"):
+                distro = args["distro"]
+
+        self.guest = self.host.createGenericWindowsGuest(distro=distro, drivers=False)
 
         # Install the Esperado PV drivers
         self.guest.installDrivers(source="/usr/groups/xenrt/pvtools/esperado.tgz", expectUpToDate=False)

@@ -1,0 +1,9 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <testsequence group="ISORepack">
+    <testcase id="testcases.xenserver.host.TCIsoChecksums"/>
+  </testsequence>
+</xenrt>

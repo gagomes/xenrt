@@ -4836,6 +4836,49 @@ class TCDom0Checksums(xenrt.TestCase):
         f = open("%s/md5sums.txt" % (xenrt.TEC().getLogdir()), "w")
         f.write(out)
         f.close()
+
+class TCIsoChecksums(xenrt.TestCase):
+    """Testcase to compare checksums on a XenServer ISO with a reference ISO"""
+
+    def run(self, arglist):
+        # We expect the input dir we have will point to the original ISO, the
+        # repacked ISO will be pointed to by the REPACKED_ISO variable
+        imagePath = xenrt.TEC().lookup("CD_PATH_%s" % xenrt.TEC().lookup("PRODUCT_VERSION"),
+                                       xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
+        originalIso = xenrt.TEC().getFile(os.path.join(imagePath, "main.iso"))
+        repackedIso = xenrt.TEC().getFile(xenrt.TEC().lookup("REPACKED_ISO"))
+
+        logdir = xenrt.TEC().getLogdir()
+
+        # Checksum all files on the ISOs
+        xenrt.TEC().delimit("Comparing ISO contents")
+        originalMount = xenrt.MountISO(originalIso)
+        originalSums = xenrt.command("find %s -type f | sort | xargs md5sum" % originalMount.getMount(), timeout=1800)
+        originalMount.unmount()
+        f = open("%s/original_md5s.txt" % logdir, "w")
+        f.write(originalSums)
+        f.close()
+        repackMount = xenrt.MountISO(repackedIso)
+        repackSums = xenrt.command("find %s -type f | sort | xargs md5sum" % repackMount.getMount(), timeout=1800)
+        repackMount.unmount()
+        f = open("%s/repack_md5s.txt" % logdir, "w")
+        f.write(repackSums)
+        f.close()
+
+        diff = xenrt.command("diff -u %s/original_md5s.txt %s/repack_md5s.txt" % (logdir, logdir))
+        f = open("%s/md5_diff.txt" % logdir, "w")
+        f.write(diff)
+        f.close()
+
+        xenrt.TEC().logverbose("ISO contents diff written to md5_diff.txt")
+
+        # Compare the boot sectors
+        xenrt.TEC().delimit("Comparing ISO boot sectors")
+        origBoot = xenrt.command("dd if=%s bs=2048 count=1" % originalIso, strip=True)
+        repackBoot = xenrt.command("dd if=%s bs=2048 count=1" % repackedIso, strip=True)
+        if origBoot != repackBoot:
+            raise xenrt.XRTFailure("Boot sector checksums differ", data="Original %s, Repack %s" % (origBoot, repackBoot))
+
         
 class TC21452(xenrt.TestCase):
     """Testcase to verify whether logrotate -v -f works(CA-108965)"""

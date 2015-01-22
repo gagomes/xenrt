@@ -219,7 +219,7 @@ class XenRTGetJob(XenRTGetJobsBase):
     RESPONSES = { "200": {"description": "Successful response"}}
 
     def render(self):
-        job = int(self.request.matchdict['job'])
+        job = int(self.request.matchdict['id'])
         jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True)
         if not job in jobs:
             return HTTPNotFound()

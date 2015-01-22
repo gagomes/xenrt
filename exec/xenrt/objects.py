@@ -9167,6 +9167,58 @@ class GenericGuest(GenericPlace):
 
         return gpuMake
 
+    def installIntelGPUDriver(self):
+        """This function installs the Intel Iris and HD Graphics Driver on Windows guest 7/8/8.1"""
+
+        xenrt.TEC().logverbose("Installing Intel Iris and HD Graphics Driver on guest %s" %
+                                                                                self.getName())
+
+        if not self.windows:
+            raise xenrt.XRTError("Intel Iris and HD Graphics Driver is only available for Windows guests.")
+
+        currentVersion = xenrt.TEC().lookup("INTEL_GPU_DRIVER_VERSION", None)
+        if not currentVersion:
+            raise xenrt.XRTError("The current Intel Iris and HD Graphics Driver version is not described")
+
+        tarBall = "intelgpudriver.tgz"
+        if self.xmlrpcGetArch() == "amd64":
+            fileName = "win64_%s.exe" % currentVersion
+        else:
+            fileName = "win32_%s.exe" % currentVersion
+
+        try:
+            urlPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+            url = "%s/intelgpudriver/%s" % (urlPrefix, fileName)
+            installFile = xenrt.TEC().getFile(url)
+            if not installFile:
+                raise xenrt.XRTError("Failed to fetch Intel Iris and HD Graphics Driver from distmaster.")
+
+            tempDir = xenrt.TEC().tempDir()
+            xenrt.command("cp %s %s" % (installFile, tempDir))
+            xenrt.command("cd %s && tar -cvf %s %s" %
+                          (tempDir, tarBall, fileName))
+            self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
+
+            self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+
+            returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+                                          level=xenrt.RC_OK, returnerror=False, returnrc=True,
+                                          timeout = 600)
+
+            # Wait for some time to settle down with driver installer.
+            xenrt.sleep(30)
+
+            if returncode == 0:
+                xenrt.TEC().logverbose("Intel Iris and HD Graphics Driver installation successful")
+                # Because of /noreboot option, the setup may require guest reboot.
+                self.reboot()
+            else:
+                raise xenrt.XRTError("Intel Iris and HD Graphics Driver installation failed! (return code = %d)" %
+                                                                                                        (returncode,))
+
+        except xenrt.XRTError as e:
+            raise e
+
     def installGPUDriver(self):
 
         xenrt.TEC().logverbose("Installing GPU driver on vm %s" % self.getName())

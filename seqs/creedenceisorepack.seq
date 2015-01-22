@@ -12,6 +12,7 @@
   <prepare>
     <host id="0" version="${PIDIR_CREEDENCE}"/> <!-- The 'original' host -->
     <host id="1"/>                              <!-- The 'repacked' host -->
+    <host id="2" version="${PIDIR_CREEDENCE}"/> <!-- The 'hotfixed' host -->
   </prepare>
 
   <testsequence>
@@ -19,10 +20,11 @@
       <testcase id="testcases.xenserver.tc.host.TCIsoChecksums" />
       <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCOriginalChecksums" host="RESOURCE_HOST_0" />
       <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCRepackedChecksums" host="RESOURCE_HOST_1" />
+      <serial>
+        <testcase id="testcases.xenserver.tc.hotfix.TCApplyHotfixes" host="RESOURCE_HOST_2" />
+        <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCHotfixedChecksums" host="RESOURCE_HOST_2" />
+      </serial>
     </parallel>
-    <serial group="HotfixCompare">
-      <testcase id="testcases.xenserver.tc.hotfix.TCApplyHotfixes" />
-      <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCHotfixedChecksums" host="RESOURCE_HOST_0" />
-    </serial>
+    <testcase id="testcases.xenserver.tc.host.TCDiffChecksums" />
   </testsequence>
 </xenrt>

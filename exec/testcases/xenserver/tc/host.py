@@ -4837,6 +4837,30 @@ class TCDom0Checksums(xenrt.TestCase):
         f.write(out)
         f.close()
 
+class TCDiffChecksums(xenrt.TestCase):
+    def run(self, arglist):
+        logdir = xenrt.TEC().getLogdir()
+        logServer = xenrt.TEC().lookup("LOG_SERVER")
+        jobid = xenrt.GEC().jobid()
+
+        # Retrieve the checksum files
+        xenrt.command("wget -O %s/original.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCOriginalChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/repacked.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCRepackedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+        xenrt.command("wget -O %s/hotfixed.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCHotfixedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
+
+        # Output the diffs
+        self.diff("original", "repacked", "originalVsRepacked.txt")
+        self.diff("original", "hotfixed", "originalVsHotfixed.txt")
+        self.diff("repacked", "hotfixed", "repackedVsHotfixed.txt")
+
+    def diff(self, a, b, output):
+        logdir = xenrt.TEC().getLogdir()
+        diff = xenrt.command("diff -u %s/%s.txt %s/%s.txt" % (logdir, a, logdir, b), ignoreerrors=True)
+        f = open("%s/%s" % (logdir, output), "w")
+        f.write(diff)
+        f.close()
+        xenrt.TEC().logverbose("%s vs %s host diff at %s" % (a, b, output)
+
 class TCIsoChecksums(xenrt.TestCase):
     """Testcase to compare checksums on a XenServer ISO with a reference ISO"""
 

@@ -447,8 +447,8 @@ class ISCSIMPathScenario(xenrt.TestCase):
     EXPECTED_MPATHS = None # Will be calculated.
     ATTEMPTS = None
 
-    FILER_IP = None
-    CONTROLLER_IP = None # To be calculated.
+    filerIP = None
+    controllerIP = None # To be calculated.
 
     def setTestParams(self, arglist):
         """Set test case params"""
@@ -476,7 +476,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
             raise xenrt.XRTError("Unexpected number of filers. Expected: 1 Present: %s" % len(filers))
         filerName = filers[0]
 
-        self.FILER_IP = xenrt.TEC().lookup(["NETAPP_FILERS",
+        self.filerIP = xenrt.TEC().lookup(["NETAPP_FILERS",
                                           filerName,
                                           "TARGET"],
                                          None)
@@ -484,7 +484,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         # Want to find the IP of a controller, so can block that IP on the host.
         cli = self.getDefaultHost().getCLIInstance()
         try:
-            xml = cli.execute("sr-probe", "type=iscsi device-config:target=%s" % self.FILER_IP)
+            xml = cli.execute("sr-probe", "type=iscsi device-config:target=%s" % self.filerIP)
         except Exception, e:
             xml = str(e.data)
 
@@ -497,10 +497,10 @@ class ISCSIMPathScenario(xenrt.TestCase):
         root = ET.fromstring(cleanXML)
 
         # Second <TGT>, <IPAddress>
-        self.CONTROLLER_IP = root[1][1].text.strip()
+        self.controllerIP = root[1][1].text.strip()
 
-        xenrt.TEC().logverbose("Filer IP : %s" % self.FILER_IP)
-        xenrt.TEC().logverbose("Picked controller IP : %s" % self.CONTROLLER_IP)
+        xenrt.TEC().logverbose("Filer IP : %s" % self.filerIP)
+        xenrt.TEC().logverbose("Picked controller IP : %s" % self.controllerIP)
 
     def checkPathCount(self, host, disabled=False):
         """Verify the host multipath path count for every device"""
@@ -552,7 +552,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
-            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Note the time and cause the path to fail.
+            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.controllerIP)) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -568,7 +568,7 @@ class ISCSIMPathScenario(xenrt.TestCase):
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 6. Cause the path to be live again.
+            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.controllerIP)) # 6. Cause the path to be live again.
             self.checkPathCount(host) # 7. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 8. Report the elapsed time beween steps 6 and 7 for every host.
@@ -600,7 +600,7 @@ class ISCSIPathFail(ISCSIMPathScenario):
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             disableTime = xenrt.util.timenow()
-            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Note the time and cause the path to fail.
+            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.controllerIP)) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -626,7 +626,7 @@ class ISCSIPathRecover(ISCSIMPathScenario):
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.CONTROLLER_IP)) # 2. Cause the path to be live again.
+            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.controllerIP)) # 2. Cause the path to be live again.
             self.checkPathCount(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.

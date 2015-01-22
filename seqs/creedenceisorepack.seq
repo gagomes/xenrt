@@ -7,6 +7,7 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
+    <APPLY_ALL_RELEASED_HFXS>no</APPLY_ALL_RELEASED_HFXS>
   </variables>
 
   <prepare>

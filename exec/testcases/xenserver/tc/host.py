@@ -4841,12 +4841,14 @@ class TCIsoChecksums(xenrt.TestCase):
     """Testcase to compare checksums on a XenServer ISO with a reference ISO"""
 
     def run(self, arglist):
-        # We expect the input dir we have will point to the original ISO, the
-        # repacked ISO will be pointed to by the REPACKED_ISO variable
-        imagePath = xenrt.TEC().lookup("CD_PATH_%s" % xenrt.TEC().lookup("PRODUCT_VERSION"),
+        # We expect the input dir will be the directory with the repacked ISO
+        # We can find the old directory by looking up PIDIR_<PRODUCT_VERSION>
+
+        productVersion = xenrt.TEC().lookup("PRODUCT_VERSION")
+        imagePath = xenrt.TEC().lookup("CD_PATH_%s" % productVersion,
                                        xenrt.TEC().lookup('CD_PATH', 'xe-phase-1'))
-        originalIso = xenrt.TEC().getFile(os.path.join(imagePath, "main.iso"))
-        repackedIso = xenrt.TEC().getFile(xenrt.TEC().lookup("REPACKED_ISO"))
+        originalIso = xenrt.TEC().getFile(os.path.join(xenrt.TEC().lookup("PIDIR_%s" % productVersion), imagePath, "main.iso"))
+        repackedIso = xenrt.TEC().getFile(os.path.join(imagePath, "main.iso"))
 
         logdir = xenrt.TEC().getLogdir()
 

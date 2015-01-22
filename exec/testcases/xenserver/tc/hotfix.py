@@ -2060,6 +2060,18 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
                 return line.split("=")[-1].strip('"')
         return None
 
+class TCApplyHotfixes(xenrt.TestCase):
+    """Apply a defined set of hotfixes to the host"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+        patches = xenrt.TEC().lookup("BUNDLED_HOTFIX", {})
+        patchIdents = patches.keys()
+        patchIdents.sort()
+        for p in patchIdents:
+            self.host.applyPatch(patches[p])
+        self.host.reboot()
+
 class TCRollingPoolUpdate(xenrt.TestCase):
     """
     Upgrade and install all HFXs for the 'to' release on a pool.

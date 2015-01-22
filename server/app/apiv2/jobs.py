@@ -1,5 +1,6 @@
 from app.apiv2 import XenRTAPIv2Page, RegisterAPI
 from pyramid.httpexceptions import *
+import calendar
 
 class XenRTGetJobsBase(XenRTAPIv2Page):
 
@@ -9,23 +10,44 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
         else:
             return status
 
-    def getJobs(self, limit, status=[], users=[], excludeusers=[], srs=[], ids=[], getParams=False, getResults=False):
+    def getJobs(self, 
+                limit,
+                status=[],
+                users=[],
+                excludeusers=[],
+                srs=[],
+                ids=[],
+                detailids=[],
+                machines=[],
+                getParams=False,
+                getResults=False,
+                getLog=False):
         cur = self.getDB().cursor()
         params = []
         conditions = []
+        joinquery = ""
         if srs:
-            joinquery = "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
+            joinquery += "INNER JOIN tbljobgroups g ON g.jobid = j.jobid "
             srcond = []
             for s in srs:
                 srcond.append("g.gid=%s")
                 params.append("SR%s" % str(s))
             conditions.append("(%s)" % " OR ".join(srcond))
-        else:
-            joinquery = ""
 
         if ids:
             conditions.append("j.jobid IN (%s)" % (", ".join(["%s"] * len(ids))))
             params.extend(ids)
+
+        if detailids:
+            joinquery += "INNER JOIN tblresults r ON r.jobid = j.jobid "
+            conditions.append("r.detailid IN (%s)" % (", ").join(["%s"] * len(detailids)))
+            params.extend(detailids)
+
+        if machines:
+            joinquery += "INNER JOIN tblevents e ON j.jobid=e.edata::int "
+            conditions.append("e.etype='JobStart'")
+            conditions.append("e.subject IN (%s)" % (", ").join(["%s"] * len(machines)))
+            params.extend(machines)
 
         if status:
             statuscond = []
@@ -40,15 +62,12 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
             conditions.append("(%s)" % " OR ".join(statuscond))
 
         if users:
-            usercond = []
-            for u in users:
-                usercond.append("j.userid=%s")
-                params.append(u)
-            conditions.append("(%s)" % " OR ".join(usercond))
+            conditions.append("j.userid IN (%s)" % (", ").join(["%s"] * len(users)))
+            params.extend(users)
 
-        for u in excludeusers:
-            conditions.append("j.userid!=%s")
-            params.append(u)
+        if excludeusers:
+            conditions.append("j.userid NOT IN (%s)" % (", ").join(["%s"] * len(excludeusers)))
+            params.extend(excludeusers)
             
 
         params.append(limit)
@@ -104,21 +123,41 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
             if mlist:
                 jobs[j]['machines'] = mlist.split(",")
             jobs[j]['description'] = jobs[j]['params'].get("JOBDESC", jobs[j]['params'].get("DEPS"))
+            jobs[j]['id'] = j
 
         if getResults:
             for j in jobs.keys():
-                jobs[j]['results'] = []
+                jobs[j]['results'] = {}
             cur.execute("SELECT jobid, result, detailid, test, phase FROM tblresults WHERE jobid IN (%s) ORDER BY detailid" % jobidlist, jobs.keys())
+            detailids = {}
             while True:
                 rc = cur.fetchone()
                 if not rc:
                     break
-                jobs[rc[0]]['results'].append({
+                jobs[rc[0]]['results'][rc[2]] ={
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip()
-                })
+                }
+                detailids[rc[2]] = rc[0]
+            if getLog:
+                for j in jobs.keys():
+                    for d in jobs[j]['results'].keys():
+                        jobs[j]['results'][d]['log'] = []
+                if len(detailids.keys()) > 0:
+                    detailidlist = ", ".join(["%s"] * len(detailids.keys()))
+                    cur.execute("SELECT detailid, ts, key, value FROM tbldetails WHERE DETAILID IN (%s) ORDER BY ts" % detailidlist, detailids.keys())
+                    while True:
+                        rc = cur.fetchone()
+                        if not rc:
+                            break
+                        jobs[detailids[rc[0]]]['results'][rc[0]]['log'].append({
+                            "ts": calendar.timegm(rc[1].timetuple()),
+                            "type": rc[2],
+                            "log": rc[3].strip()
+                            })
+
 
         if not getParams: # We need to get most of the data anyway to populate the main fields, disabling this just speeds up the HTTP
             for j in jobs.keys():
@@ -161,10 +200,23 @@ class XenRTListJobs(XenRTGetJobsBase):
           'required': False,
           'type': 'array'},
          {'collectionFormat': 'multi',
+          'description': 'Filter on machine the job was executed on - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'machine',
+          'required': False,
+          'type': 'array'},
+         {'collectionFormat': 'multi',
           'description': 'Get a specific job - can specify multiple',
           'in': 'query',
           'items': {'type': 'integer'},
           'name': 'jobid',
+          'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Find a job with a specific detail ID - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'integer'},
+          'name': 'detailid',
           'type': 'array'},
          {'description': 'Limit the number of results. Defaults to 100, hard limited to 10000',
           'in': 'query',
@@ -182,6 +234,12 @@ class XenRTListJobs(XenRTGetJobsBase):
           'in': 'query',
           'name': 'results',
           'required': False,
+          'type': 'boolean'},
+         {'default': False,
+          'description': 'Return the log items for all testcases in the job. Must also specify results. Defaults to false',
+          'in': 'query',
+          'name': 'logitems',
+          'required': False,
           'type': 'boolean'}]
     RESPONSES = { "200": {"description": "Successful response"}}
     TAGS = ["jobs"]
@@ -190,9 +248,11 @@ class XenRTListJobs(XenRTGetJobsBase):
 
         status = self.getMultiParam("status")
         ids = [int(x) for x in self.getMultiParam("jobid")]
+        detailids = [int(x) for x in self.getMultiParam("detailid")]
         if not status and not ids:
             status = ['new', 'running']
         users = self.getMultiParam("user")
+        machines = self.getMultiParam("machine")
         excludeusers = self.getMultiParam("excludeuser")
         limit = int(self.request.params.get("limit", 100))
        
@@ -202,8 +262,19 @@ class XenRTListJobs(XenRTGetJobsBase):
 
         params = self.request.params.get("params", "false") == "true"
         results = self.request.params.get("results", "false") == "true"
+        logitems = self.request.params.get("logitems", "false") == "true"
 
-        return self.getJobs(limit, status=status, users=users, srs=suiteruns, excludeusers=excludeusers, ids=ids, getParams=params, getResults=results)
+        return self.getJobs(limit, 
+                            status=status,
+                            users=users,
+                            srs=suiteruns,
+                            excludeusers=excludeusers,
+                            ids=ids,
+                            detailids=detailids,
+                            machines=machines,
+                            getParams=params,
+                            getResults=results,
+                            getLog=logitems)
 
 class XenRTGetJob(XenRTGetJobsBase):
     PATH = "/job/{id}"
@@ -215,12 +286,19 @@ class XenRTGetJob(XenRTGetJobsBase):
          'in': 'path',
          'required': True,
          'description': 'Job ID to fetch',
-         'type': 'integer'}]
+         'type': 'integer'},
+         {'default': False,
+          'description': 'Return the log items for all testcases in the job. Defaults to false',
+          'in': 'query',
+          'name': 'logitems',
+          'required': False,
+          'type': 'boolean'}]
     RESPONSES = { "200": {"description": "Successful response"}}
 
     def render(self):
         job = int(self.request.matchdict['id'])
-        jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True)
+        logitems = self.request.params.get("logitems", "false") == "true"
+        jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True, getLog=logitems)
         if not job in jobs:
             return HTTPNotFound()
         return jobs[job]

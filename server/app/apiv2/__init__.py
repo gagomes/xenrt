@@ -35,7 +35,8 @@ class XenRTAPIv2Swagger(XenRTPage):
             "security": {"Basic": {}},
             "securityDefinitions": {"Basic": {"type": "basic"}},
             "tags": [
-                {"name": "jobs", "description": "Operations on XenRT jobs"}
+                {"name": "jobs", "description": "Operations on XenRT jobs"},
+                {"name": "machines", "description": "Operations on XenRT machines"}
             ]
         }
         global _apiReg
@@ -64,7 +65,9 @@ class XenRTAPIv2Page(XenRTPage):
             ret.extend(p.split(delimiter))
         return ret
 
-    pass
+    def generateInCondition(self, fieldname, items):
+        return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))
 
 
 import app.apiv2.jobs
+import app.apiv2.machines

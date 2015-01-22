@@ -1058,15 +1058,18 @@ class TCBootStartDriverUpgrade(xenrt.TestCase):
         self.host = self.getDefaultHost()
 
         distro = "win7sp1-x86"
+        startDrivers = xenrt.TEC().lookup("START_DRIVERS", "/usr/groups/xenrt/pvtools/esperado.tgz")
         if arglist:
             args = xenrt.util.strlistToDict(arglist)
             if args.has_key("distro"):
                 distro = args["distro"]
+            elif args.has_key("startdrivers"):
+                startDrivers = args["startdrivers"]
 
         self.guest = self.host.createGenericWindowsGuest(distro=distro, drivers=False)
 
         # Install the Esperado PV drivers
-        self.guest.installDrivers(source="/usr/groups/xenrt/pvtools/esperado.tgz", expectUpToDate=False)
+        self.guest.installDrivers(source=startDrivers, expectUpToDate=False)
 
         # Make xenvif boot start
         self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)

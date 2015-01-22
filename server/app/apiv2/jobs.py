@@ -216,6 +216,7 @@ class XenRTGetJob(XenRTGetJobsBase):
          'required': True,
          'description': 'Job ID to fetch',
          'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
 
     def render(self):
         job = int(self.request.matchdict['job'])

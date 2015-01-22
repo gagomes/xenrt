@@ -10,7 +10,7 @@ class ApiRegistration(object):
 
     def registerAPI(self, cls):
         self.apis.append(cls)
-        PageFactory(cls, cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
+        PageFactory(cls, "/api/v2%s" % cls.PATH, reqType = cls.REQTYPE, contentType = cls.PRODUCES)
 
 
 global _apiReg
@@ -26,7 +26,7 @@ class XenRTAPIv2Swagger(XenRTPage):
         spec = {
             "swagger": "2.0",
             "info": {"version": "1.0.0", "title": "XenRT API"},
-            "basePath": "%s/api/v2" % u.path,
+            "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,
             "schemes": [u.scheme],
             "consumes": ["application/json"],
@@ -42,7 +42,7 @@ class XenRTAPIv2Swagger(XenRTPage):
         for cls in _apiReg.apis:
             if not cls.PATH in spec['paths']:
                 spec['paths'][cls.PATH] = {}
-            spec['paths'][cls.REQTYPE.lower()] = {
+            spec['paths'][cls.PATH][cls.REQTYPE.lower()] = {
                 "description": cls.DESCRIPTION,
                 "tags": cls.TAGS,
                 "parameters": cls.PARAMS,

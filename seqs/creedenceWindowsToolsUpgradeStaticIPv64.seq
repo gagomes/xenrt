@@ -10,7 +10,6 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <PREPARE_WORKERS>6</PREPARE_WORKERS>
-    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
   <prepare>
@@ -104,14 +103,14 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19904" sku="RTM" name="TC19904_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19905" sku="RTM" name="TC19905_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19906" sku="RTM" name="TC19906_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19907" sku="RTM" name="TC19907_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20720" sku="RTM" name="TC20720_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20721" sku="RTM" name="TC20721_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20722" sku="RTM" name="TC20722_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20723" sku="RTM" name="TC20723_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19904" sku="SP1" name="TC19904_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19905" sku="SP1" name="TC19905_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19906" sku="SP1" name="TC19906_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19907" sku="SP1" name="TC19907_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20720" sku="SP1" name="TC20720_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20721" sku="SP1" name="TC20721_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20722" sku="SP1" name="TC20722_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20723" sku="SP1" name="TC20723_SP1"/>
     </serial>
   </testsequence>
 

@@ -251,7 +251,8 @@ def check_input(commandline):
     Check that an argument conforms to the format specified in XRT-66. Return 0
     if the input is correctly formed, 1 otherwise.
     """	
-
+    if commandline == "":
+        return 0
     if re.match('([A-Za-z0-9_]+(<=|>=|=|<|>)[0-9]+[kMGT]?/)*([A-Za-z0-9_]+(<=|>=|=|>|<)[0-9]+[kMGT]?$)', 
 		commandline) == None:
         return 1

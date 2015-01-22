@@ -10,7 +10,6 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <PREPARE_WORKERS>6</PREPARE_WORKERS>
-    <HFX_BRANCH_CLEARWATER>RTM</HFX_BRANCH_CLEARWATER>
   </variables>
 
   <prepare>
@@ -22,6 +21,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
         <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -49,6 +49,7 @@
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
         <network device="1" bridge="internal"/>
+        <postinstall action="disableIPv6"/>
         <postinstall action="installDrivers"/>
         <postinstall action="shutdown"/>
       </vm>
@@ -71,7 +72,7 @@
         <postinstall action="shutdown"/>
       </vm>
       <vm name="ws12r2-x64">
-        <distro>ws12-x64</distro>
+        <distro>ws12r2-x64</distro>
         <memory>${GUESTMEMORY}</memory>
         <vcpus>${GUESTVCPUS}</vcpus>
         <network device="0"/>
@@ -104,14 +105,14 @@
       </testcase>
     </serial>
     <serial group="UpgVM">
-      <testcase id="xenserver.tc.upgrade.TC19904" sku="RTM" name="TC19904_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19905" sku="RTM" name="TC19905_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19906" sku="RTM" name="TC19906_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC19907" sku="RTM" name="TC19907_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20720" sku="RTM" name="TC20720_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20721" sku="RTM" name="TC20721_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20722" sku="RTM" name="TC20722_RTM"/>
-      <testcase id="xenserver.tc.upgrade.TC20723" sku="RTM" name="TC20723_RTM"/>
+      <testcase id="xenserver.tc.upgrade.TC19900" sku="SP1" name="TC19900_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19901" sku="SP1" name="TC19901_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19902" sku="SP1" name="TC19902_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC19903" sku="SP1" name="TC19903_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20716" sku="SP1" name="TC20716_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20717" sku="SP1" name="TC20717_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20718" sku="SP1" name="TC20718_SP1"/>
+      <testcase id="xenserver.tc.upgrade.TC20719" sku="SP1" name="TC20719_SP1"/>
     </serial>
   </testsequence>
 

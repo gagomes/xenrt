@@ -11296,7 +11296,7 @@ class CreedenceHost(ClearwaterHost):
                              retval="code") != 0:
                 self.execdom0("mv -f /opt/xensource/libexec/v6d "
                               "/opt/xensource/libexec/v6d.orig")
-                rpm = xenrt.TEC().getFile("xe-phase-1/v6-test.rpm", "v6-test.rpm")
+                rpm = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/v6testd-0*.rpm", "v6-test.rpm")
                 if rpm:
                     sftp = self.sftpClient()
                     try:
@@ -11304,11 +11304,9 @@ class CreedenceHost(ClearwaterHost):
                     finally:
                         sftp.close()
                     self.execdom0("rpm -i --force /tmp/v6-test.rpm")
+                    self.execdom0("service v6d restart")
                 else:
-                    self.execdom0("cp -f %s/utils/v6testd-cre-l "
-                                  "/opt/xensource/libexec/v6d" %
-                              (xenrt.TEC().lookup("REMOTE_SCRIPTDIR")))
-                self.execdom0("service v6d restart")
+                    xenrt.XRTError("v6testd RPM nor found")
 
         args.append("edition=%s" % sku)
         if v6server:
@@ -12117,23 +12115,18 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, serverpath=None, user=None, password=None, domain=None):
-        if not serverpath:
+    def create(self, share=None):
+        if not share:
             share = xenrt.ExternalSMBShare(version=3)
-            serverpath = share.getEscapedUNCPath()
 
         dconf = {}
         smconf = {}
-        dconf["server"] = serverpath 
-        adConfig = xenrt.getADConfig()
-        if user:
-            if domain:
-                dconf['username'] = "%s\\\\%s" % (domain, user)
-            else:
-                dconf['username'] = "%s" % user
+        dconf["server"] = share.getLinuxUNCPath() 
+        if share.domain:
+            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
         else:
-            dconf['username'] = "%s\\\\%s" % (adConfig.domainName, adConfig.adminUser)
-        dconf['password'] = password or adConfig.adminPassword
+            dconf['username'] = share.user
+        dconf['password'] = share.password
         self._create("cifs",
                      dconf)
 

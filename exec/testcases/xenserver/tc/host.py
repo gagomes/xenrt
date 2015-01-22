@@ -4859,7 +4859,7 @@ class TCDiffChecksums(xenrt.TestCase):
         f = open("%s/%s" % (logdir, output), "w")
         f.write(diff)
         f.close()
-        xenrt.TEC().logverbose("%s vs %s host diff at %s" % (a, b, output)
+        xenrt.TEC().logverbose("%s vs %s host diff at %s" % (a, b, output))
 
 class TCIsoChecksums(xenrt.TestCase):
     """Testcase to compare checksums on a XenServer ISO with a reference ISO"""

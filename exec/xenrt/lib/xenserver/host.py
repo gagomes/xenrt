@@ -12117,23 +12117,18 @@ class SMBStorageRepository(StorageRepository):
 
     SHARED = True
 
-    def create(self, serverpath=None, user=None, password=None, domain=None):
-        if not serverpath:
+    def create(self, share=None):
+        if not share:
             share = xenrt.ExternalSMBShare(version=3)
-            serverpath = share.getEscapedUNCPath()
 
         dconf = {}
         smconf = {}
-        dconf["server"] = serverpath 
-        adConfig = xenrt.getADConfig()
-        if user:
-            if domain:
-                dconf['username'] = "%s\\\\%s" % (domain, user)
-            else:
-                dconf['username'] = "%s" % user
+        dconf["server"] = share.getLinuxUNCPath() 
+        if share.domain:
+            dconf['username'] = "%s\\\\%s" % (share.domain, share.user)
         else:
-            dconf['username'] = "%s\\\\%s" % (adConfig.domainName, adConfig.adminUser)
-        dconf['password'] = password or adConfig.adminPassword
+            dconf['username'] = share.user
+        dconf['password'] = share.password
         self._create("cifs",
                      dconf)
 

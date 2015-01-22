@@ -4,6 +4,6 @@
   </variables>
 
   <testsequence group="ISORepack">
-    <testcase id="testcases.xenserver.host.TCIsoChecksums"/>
+    <testcase id="testcases.xenserver.tc.host.TCIsoChecksums"/>
   </testsequence>
 </xenrt>

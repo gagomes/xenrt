@@ -4848,10 +4848,43 @@ class TCDiffChecksums(xenrt.TestCase):
         xenrt.command("wget -O %s/repacked.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCRepackedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
         xenrt.command("wget -O %s/hotfixed.txt http://%s/xenrt/logs/job/%d/IsoRepack/TCHotfixedChecksums/binary/md5sums.txt" % (logdir, logServer, jobid))
 
+        # Filter each file to remove known volatile entries
+        self.filterChecksums("%s/original.txt" % logdir)
+        self.filterChecksums("%s/repacked.txt" % logdir)
+        self.filterChecksums("%s/hotifxed.txt" % logdir)
+
         # Output the diffs
         self.diff("original", "repacked", "originalVsRepacked.txt")
         self.diff("original", "hotfixed", "originalVsHotfixed.txt")
         self.diff("repacked", "hotfixed", "repackedVsHotfixed.txt")
+
+    def filterChecksums(self, checksumFile):
+        f = open(checksumFile, "r")
+        entries = f.read().splitlines()
+        f.close()
+        filteredEntries = []
+        for e in entries:
+            es = e.split()
+            path = es[1]
+            if path in ["/boot/ldlinux.sys", "/etc/adjtime", "/etc/fstab",
+                        "/etc/issue", "/etc/mtab", "/etc/ntp.conf.predhclient",
+                        "/etc/openvswitch/conf.db", "/etc/xensource/boot_time_cpus",
+                        "/etc/xensource-inventory", "/etc/xensource/ptoken",
+                        "/etc/xensource/xapi-ssl.pem", "/var/lib/likewise/db/registry.db",
+                        "/var/lib/nfs/statd/state", "/var/lib/ntp/drift",
+                        "/var/lib/random-seed"]:
+                continue
+
+            if any([path.startswith(sw) for sw in ["/boot/initrd", "/etc/blkid/blkid",
+                                                   "/etc/firstboot.d/data/", "/etc/firstboot.d/state/",
+                                                   "/etc/lvm/backup/", "/etc/lvm/cache/", "/etc/ssh/ssh_host_",
+                                                   "/etc/sysconfig/network-scripts/interface-rename-data/",
+                                                   "/var/run/", "/var/xapi/"]]):
+                continue
+            filteredEntries.append(e)
+        f = open(checksumFile, "w")
+        f.write("\n".join(filteredEntries))
+        f.close()
 
     def diff(self, a, b, output):
         logdir = xenrt.TEC().getLogdir()

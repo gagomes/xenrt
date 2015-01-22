@@ -1,5 +1,4 @@
-from server import PageFactory
-from app.apiv2 import XenRTAPIv2Page
+from app.apiv2 import XenRTAPIv2Page, RegisterAPI
 from pyramid.httpexceptions import *
 
 class XenRTGetJobsBase(XenRTAPIv2Page):
@@ -128,6 +127,64 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
         return jobs
 
 class XenRTListJobs(XenRTGetJobsBase):
+    PATH = "/jobs"
+    REQTYPE = "GET"
+    DESCRIPTION = "Get jobs matching parameters"
+    PARAMS = [
+         {'collectionFormat': 'multi',
+          'default': 'new,running',
+          'description': 'Filter on job status. Any of "new", "running", "removed", "done" - can specify multiple',
+          'in': 'query',
+          'items': {'enum': ['new', 'running', 'done', 'removed'], 'type': 'string'},
+          'name': 'status',
+          'required': False,
+          'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on user - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'user',
+          'required': False,
+          'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Exclude jobs from this user from the results. Can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'excludeuser',
+          'required': False,
+          'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Filter on suite run - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'string'},
+          'name': 'suiterun',
+          'required': False,
+          'type': 'array'},
+         {'collectionFormat': 'multi',
+          'description': 'Get a specific job - can specify multiple',
+          'in': 'query',
+          'items': {'type': 'integer'},
+          'name': 'jobid',
+          'type': 'array'},
+         {'description': 'Limit the number of results. Defaults to 100, hard limited to 10000',
+          'in': 'query',
+          'name': 'limit',
+          'required': False,
+          'type': 'integer'},
+         {'default': False,
+          'description': 'Return all job parameters. Defaults to false',
+          'in': 'query',
+          'name': 'params',
+          'required': False,
+          'type': 'boolean'},
+         {'default': False,
+          'description': 'Return the results from all testcases in the job. Defaults to false',
+          'in': 'query',
+          'name': 'results',
+          'required': False,
+          'type': 'boolean'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    TAGS = ["jobs"]
 
     def render(self):
 
@@ -149,6 +206,18 @@ class XenRTListJobs(XenRTGetJobsBase):
         return self.getJobs(limit, status=status, users=users, srs=suiteruns, excludeusers=excludeusers, ids=ids, getParams=params, getResults=results)
 
 class XenRTGetJob(XenRTGetJobsBase):
+    PATH = "/job/{id}"
+    REQTYPE = "GET"
+    DESCRIPTION = "Gets a specific job object"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to fetch',
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+
     def render(self):
         job = int(self.request.matchdict['job'])
         jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True)
@@ -156,5 +225,5 @@ class XenRTGetJob(XenRTGetJobsBase):
             return HTTPNotFound()
         return jobs[job]
 
-PageFactory(XenRTListJobs, "/api/v2/jobs", reqType="GET", contentType="application/json")
-PageFactory(XenRTGetJob, "/api/v2/job/{job}", reqType="GET", contentType="application/json")
+RegisterAPI(XenRTListJobs)
+RegisterAPI(XenRTGetJob)

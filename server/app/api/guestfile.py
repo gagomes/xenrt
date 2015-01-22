@@ -46,4 +46,4 @@ class XenRTGuestFile(XenRTAPIPage):
             traceback.print_exc()
             return "ERROR Exception occurred, see error_log for details"
 
-PageFactory(XenRTGuestFile, "guestfile", "/guestfile/{filename}")
+PageFactory(XenRTGuestFile, "/guestfile/{filename}")

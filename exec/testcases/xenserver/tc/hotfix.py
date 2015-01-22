@@ -1903,7 +1903,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             #Run sub-tests
             self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
             self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
-            self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
             self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
             self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
             
@@ -1950,13 +1949,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         if regexValue.count('^') != 1 or regexValue.count('\.') != 2 or regexValue.count('$') != 1:
             raise xenrt.XRTFailure("VERSION_REGEX value %s was misformed" % regexValue)
 
-    def _checkBostonPreCheckUuid(self, metadata, contents): 
-        bostonUuid="95ac709c-e408-423f-8d22-84b8134a149e"  
-        expectedLabel="XS60E001"
-        versionRegex="^6\.0\.0$"
-        verifySubstring = "verify_update"
-        self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
-        
     def _checkSanibelBuildRegex(self, metadata):
         """
         If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:

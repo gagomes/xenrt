@@ -289,6 +289,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@user@#$(USERNAME)#g' $@
 	sed -i 's#@group@#$(GROUPNAME)#g' $@
 	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)
@@ -302,6 +303,7 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	sed -i 's#@vardir@#$(VARDIR)#g' $@.tmp
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@.tmp
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@.tmp
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@.tmp
 	python $@.tmp > $@
 	rm $@.tmp
 	chmod --reference $@.gen $@
@@ -324,4 +326,5 @@ minimal-check: install
 	$(eval XSD = $(shell mktemp))
 	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
 	xmllint --schema $(XSD) seqs/*.seq --noout
+	./checkyaml server/app/apiv2/swagger.yaml
 	rm $(XSD)

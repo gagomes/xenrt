@@ -1219,7 +1219,10 @@ class PrepareNode:
                             sr.create(server, path, nosubdir=nosubdir)
                     elif s["type"] == "smb":
                         vm = s["options"] and "vm" in s["options"].split(",")
-                        if vm:
+                        hostIndexes = [y.group(1) for y in [re.match("host-(\d)", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndexes[0])
+                        elif vm:
                             share = xenrt.VMSMBShare()
                         else:
                             share = xenrt.ExternalSMBShare(version=3)

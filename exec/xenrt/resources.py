@@ -21,7 +21,9 @@ __all__ = ["WebDirectory",
            "FTPDirectory",
            "ExternalNFSShare",
            "ExternalSMBShare",
+           "NativeWindowsSMBShare",
            "VMSMBShare",
+           "SpecifiedSMBShare",
            "ISCSIIndividualLun",
            "ISCSILun",
            "ISCSIVMLun",
@@ -1388,7 +1390,44 @@ class ISCSINativeLinuxLun(ISCSILun):
     def release(self, atExit=False):
         CentralResource.release(self, atExit)
 
-class VMSMBShare(CentralResource):
+class _WindowsSMBShare(CentralResource):
+    """Base class for Windows-based SMB shares"""
+    def createShare(self):
+        if not self.place.xmlrpcDirExists("c:\\shares"):
+            self.place.xmlrpcCreateDir("c:\\shares")
+        shareName = xenrt.randomGuestName()
+        self.place.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
+        self.place.xmlrpcExec("net share %s=c:\\shares\\%s /grant:Everyone,FULL" % (shareName, shareName))
+        self.place.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
+        self.shareName = shareName
+        self.domain = None
+        self.user = "Administrator"
+        self.password = "xensource"
+
+
+    def acquire(self):
+        pass
+    
+    def release(self, atExit=False):
+        CentralResource.release(self, atExit)
+
+    def getUNCPath(self):
+        return "\\\\%s\\%s" % (self.place.getIP(), self.shareName)
+
+    def getEscapedUNCPath(self):
+        return self.getUNCPath().replace("\\", "\\\\")
+
+    def getLinuxUNCPath(self):
+        return self.getUNCPath().replace("\\", "/")
+
+
+class NativeWindowsSMBShare(_WindowsSMBShare):
+    """SMB share on a native (bare metal) windows host"""
+    def __init__(self, hostName="RESOURCE_HOST_0"):
+        self.place = xenrt.GEC().registry.hostGet(hostName)
+        self.createShare()
+
+class VMSMBShare(_WindowsSMBShare):
     """ A tempory SMB share in a VM """
     
     def __init__(self,hostIndex=None,sizeMB=None, guestName="xenrt-smb", distro="ws12r2-x64"):
@@ -1402,37 +1441,13 @@ class VMSMBShare(CentralResource):
 
         # Check if we already have the VM on this host, if we don't, then create it, otherwise attach to the existing one.
         if not self.host.guests.has_key(self.guestName):
-            self.guest = self.host.createBasicGuest(distro=distro, name=guestName, disksize = 20*xenrt.KILO + sizeMB)
+            self.place = self.host.createBasicGuest(distro=distro, name=guestName, disksize = 20*xenrt.KILO + sizeMB)
         else:
-            self.guest = self.host.guests[self.guestName]
+            self.place = self.host.guests[self.guestName]
+        self.createShare()
         
-        if not self.guest.xmlrpcDirExists("c:\\shares"):
-            self.guest.xmlrpcCreateDir("c:\\shares")
-        shareName = xenrt.randomGuestName()
-        self.guest.xmlrpcCreateDir("c:\\shares\\%s" % shareName)
-        self.guest.xmlrpcExec("net share %s=c:\\shares\\%s /grant:Everyone,FULL" % (shareName, shareName))
-        self.guest.xmlrpcExec("icacls c:\\shares\\%s /grant Users:(OI)(CI)F" % shareName)
-        self.shareName = shareName
-        self.domain = None
-        self.user = "Administrator"
-        self.password = "xensource"
-
-    def getUNCPath(self):
-        return "\\\\%s\\%s" % (self.guest.mainip, self.shareName)
-
-    def getEscapedUNCPath(self):
-        return self.getUNCPath().replace("\\", "\\\\")
-
-    def getLinuxUNCPath(self):
-        return self.getUNCPath().replace("\\", "/")
-
-    def acquire(self):
-        pass
-    
-    def release(self, atExit=False):
-        CentralResource.release(self, atExit)
-
 class SpecifiedSMBShare(object):
+    """SMB share created elsewhere, suitable for passing to SMBStorageRepository"""
     def __init__(self,
                  addr,
                  shareName,

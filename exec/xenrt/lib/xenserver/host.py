@@ -11306,7 +11306,7 @@ class CreedenceHost(ClearwaterHost):
                     self.execdom0("rpm -i --force /tmp/v6-test.rpm")
                     self.execdom0("service v6d restart")
                 else:
-                     xenrt.XRTError(("v6testd RPM nor found")
+                    xenrt.XRTError("v6testd RPM nor found")
 
         args.append("edition=%s" % sku)
         if v6server:

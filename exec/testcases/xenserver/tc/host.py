@@ -4873,12 +4873,25 @@ class TCIsoChecksums(xenrt.TestCase):
         xenrt.TEC().logverbose("ISO contents diff written to md5_diff.txt")
 
         # Compare the boot sectors
-        xenrt.TEC().delimit("Comparing ISO boot sectors")
-        origBoot = xenrt.command("dd if=%s bs=2048 count=1" % originalIso, strip=True)
-        repackBoot = xenrt.command("dd if=%s bs=2048 count=1" % repackedIso, strip=True)
+        xenrt.TEC().delimit("Comparing ISO boot images")
+        origBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), originalIso), strip=True)
+        repackBoot = xenrt.command("%s/geteltorito %s | md5sum | awk '{print $1}'" % (xenrt.TEC().lookup("LOCAL_SCRIPTDIR"), repackedIso), strip=True)
         if origBoot != repackBoot:
-            raise xenrt.XRTFailure("Boot sector checksums differ", data="Original %s, Repack %s" % (origBoot, repackBoot))
+            raise xenrt.XRTFailure("Boot image checksums differ", data="Original %s, Repack %s" % (origBoot, repackBoot))
 
+        # Compare the volume label
+        xenrt.TEC().delimit("Comparing ISO volume labels")
+        origLabel = xenrt.command("file -b %s" % originalIso, strip=True)
+        repackLabel = xenrt.command("file -b %s" % repackedIso, strip=True)
+        if origLabel != repackLabel:
+            raise xenrt.XRTFailure("ISO volume labels differ", data="Original %s, Repack %s" % (origLabel, repackLabel))
+
+        # Output isoinfo for reference
+        xenrt.TEC().delimit("Getting isoinfo")
+        xenrt.TEC().logverbose("Original ISO:")
+        xenrt.command("isoinfo -d -i %s" % originalIso)
+        xenrt.TEC().logverbose("Repacked ISO:")
+        xenrt.command("isoinfo -d -i %s" % repackedIso)
         
 class TC21452(xenrt.TestCase):
     """Testcase to verify whether logrotate -v -f works(CA-108965)"""

@@ -66,6 +66,7 @@ __all__ = ["Host",
            "TampaPool",
            "ClearwaterPool",
            "CreedencePool",
+           "DundeePool",
            "RollingPoolUpdate",
            "Tile",
            "IOvirt",
@@ -97,10 +98,12 @@ def hostFactory(hosttype):
 
 
 def poolFactory(mastertype):
-    if mastertype in ("Clearwater", "Dundee"):
-        return xenrt.lib.xenserver.ClearwaterPool
+    if mastertype in ("Dundee"):
+        return xenrt.lib.xenserver.DundeePool
     elif mastertype in ("Creedence", "Cream"):
         return xenrt.lib.xenserver.CreedencePool
+    elif mastertype in ("Clearwater"):
+        return xenrt.lib.xenserver.ClearwaterPool
     elif mastertype in ("Boston", "BostonXCP", "Sanibel", "SanibelCC", "Tampa", "TampaXCP", "Tallahassee"):
         return xenrt.lib.xenserver.BostonPool
     elif mastertype in ("MNR", "Cowley", "Oxford"):

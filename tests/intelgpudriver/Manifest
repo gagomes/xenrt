@@ -1,0 +1,7 @@
+# Description: Intel Iris and HD Graphics Driver on Windows guests.
+# Status: Downloadable
+# Compiled and Supplied by Intel for XenServer releases.
+b41332ccdb67a97297f0778f05cfec40  ./win32_153614.exe
+5cc7bbaa288a46e09a341d4347ca28c0  ./win64_153614.exe
+e8c9c394f48e22283e9a937ebc24ec89  ./win32_15367.exe
+63fe11931f1d6a86139c0db7a896227d  ./win64_15367.exe

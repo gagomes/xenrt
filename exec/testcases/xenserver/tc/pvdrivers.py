@@ -38,6 +38,9 @@ class TC8369(xenrt.TestCase):
         # so that we can compare to this after driver install
         self.certsBefore = self.guest.getWindowsCertList()
 
+        # Signtool is required for digital signature verification
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
+
     def checkCerts(self):
         """Since Tampa the Windows PV driver installer will automatically
         install test certificates if the drivers are unsigned. This
@@ -60,6 +63,21 @@ class TC8369(xenrt.TestCase):
         if len(newCerts) > 0:
             raise xenrt.XRTFailure("Certificate(s) installed by PV driver installer")
 
+        # The tools installer can also install test signed drivers - we need to
+        # verify that it hasn't done so
+        drivers = self.guest.xmlrpcGlobpath("C:\\Program Files\\Citrix\\XenTools\\*\\*.sys")
+        if len(drivers) == 0:
+            drivers = self.guest.xmlrpcGlobpath("C:\\Program Files (x86)\\Citrix\\XenTools\\*\\*.sys")
+        signFailures = []
+        for d in drivers:
+            try:
+                self.guest.xmlrpcExec("c:\\signtool\\signtool.exe /kp /v %s" % d, returndata=True)
+            except:
+                signFailures.append(d)
+
+        if len(signFailures) > 0:
+            raise xenrt.XRTFailure("Incorrectly signed PV drivers detected", data="Signature issues with: %s" % str(signFailures))
+
     def checkDrivers(self):
         """Check that the PV drivers can be installed and that the VM
         operates afterwards. This is done without any additional
@@ -74,6 +92,11 @@ class TC8369(xenrt.TestCase):
         if self.runSubcase("checkDrivers", (), "Drivers", "Check") == xenrt.RESULT_PASS:
             self.runSubcase("checkCerts", (), "Certs", "Check")
 
+class TC23788(TC8369):
+    """Verify Windows PV drivers install to a Windows 7 x86 VM without a test certificate"""
+
+    DISTRO = "win7sp1-x86"
+
 class TestSignedComponent(xenrt.TestCase):
     """ Verify the digital signature of signed XenCenter and Windows drivers/tools"""
 
@@ -83,9 +106,7 @@ class TestSignedComponent(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
 
         # Signtool is required for digital signature verification of binary
-        self.guest.xmlrpcSendFile("%s/distutils/signtool.exe" %
-                                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
-                                  "c:\\signtool.exe")
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
 
     def run(self, arglist=None):
 

@@ -455,9 +455,9 @@ class TCMultipleVDI(xenrt.TestCase):
                 for j in range(0, (len(devices) - nvbds)):
                     dtr = self.disksToClean.pop()
                     if hotremove:
-                        g.unplugDisk(dtr)
-                    g.removeDisk(dtr)
-
+                        xenrt.sleep(30)
+                        g.unplugDisk(dtr) 
+                    g.removeDisk(dtr)   
             if g.getState() == "DOWN":            
                 g.start()
                 if g.distro and "vista" in g.distro:

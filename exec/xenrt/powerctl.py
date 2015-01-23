@@ -53,6 +53,9 @@ class _PowerCtlBase:
     def setVerbose(self):
         self.verbose = True
 
+    def setBootDev(self, dev, persistent=False):
+        raise xenrt.XRTError("Unsupported")
+
 class Dummy(_PowerCtlBase):
 
     def off(self):
@@ -356,6 +359,12 @@ class IPMI(_PowerCtlBase):
         elif re.search("is on", status):
             return "on"
 
+    def setBootDev(self, dev, persist=False):
+        cmd = "chassis bootdev %s" % dev
+        if persist:
+            cmd += " options=persistent"
+        self.ipmi(cmd)
+
     def triggerNMI(self):
         self.ipmi("chassis power diag")
 
@@ -373,8 +382,11 @@ class IPMI(_PowerCtlBase):
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
         if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
-            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-                self.ipmi("chassis bootdev pxe")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+                try:
+                    self.setBootDev("pxe", True)
+                except:
+                    xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
             self.ipmi("chassis power on")
@@ -405,8 +417,11 @@ class IPMI(_PowerCtlBase):
             if self.machine.consoleLogger:
                 self.machine.consoleLogger.reload()
             
-        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-            self.ipmi("chassis bootdev pxe")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+            try:
+                self.setBootDev("pxe", True)
+            except:
+                xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
             if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":

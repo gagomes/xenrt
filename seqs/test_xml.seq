@@ -1,0 +1,23 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=4G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <vm name="Debian Wheezy 7.0">
+        <distro>debian70</distro>
+        <memory>256</memory>
+        <vcpus>2</vcpus>
+        <network device="0" />
+        <disk device="0" size="8" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

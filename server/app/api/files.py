@@ -51,7 +51,7 @@ class XenRTJobFileDownload(XenRTAPIPage):
             server = details['LOG_SERVER']
 
         if server != self.request.host:
-            return HTTPFound(location="http://%s%s" % (server, self.request.path))
+            return HTTPFound(location="http://%s%s" % (server, self.request.path_qs))
 
         filename = self.request.matchdict['filename']
         (ctype, encoding) = mimetypes.guess_type(filename)
@@ -139,6 +139,6 @@ class XenRTUpload(XenRTAPIPage):
 
         cur.close()
 
-PageFactory(XenRTDownload, "download", "/api/files/download", compatAction="download")
-PageFactory(XenRTJobFileDownload, "jobfiledownload", "/api/getjobfile/{job}/{filename}")
-PageFactory(XenRTUpload, "upload", "/api/files/upload", compatAction="upload")
+PageFactory(XenRTDownload, "/api/files/download", compatAction="download")
+PageFactory(XenRTJobFileDownload, "/api/getjobfile/{job}/{filename}")
+PageFactory(XenRTUpload, "/api/files/upload", compatAction="upload")

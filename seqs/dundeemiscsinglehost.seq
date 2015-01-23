@@ -14,17 +14,20 @@
       <testcase id="xenserver.tc.license.TC20922" />
     </serial>
     -->
-    <serial group="HFX952">
-      <testcase id="xenserver.tc.host.TC20917" />
-    </serial>
     <serial group="DecryptHotfix">
       <testcase id="testcases.xenserver.tc.hotfix.TCDecryptHotfix" tc="TC-21698" />
     </serial>
-    <serial group="SCTX1879">
-      <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
-    </serial>
     <serial group="hfx1003">
       <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
+    </serial>
+    <serial group="SCTX-1421">
+      <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
+    </serial>
+    <serial group="HFX952">
+      <testcase id="xenserver.tc.host.TC20917" />
+    </serial>
+    <serial group="SCTX1879">
+      <testcase id="xenserver.tc.guest.TC21711" tc="TC-21711" />
     </serial>
   </testsequence>
 </xenrt>

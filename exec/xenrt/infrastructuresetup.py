@@ -692,11 +692,7 @@ default slave {
                 elif consoletype == "slave":
                     f.write("console %s { include slave; master %s;%s }\n" % (consolename, entries[i]["CONSERVER_ADDRESS"], aliases))
                 elif consoletype == "ipmi":
-                    if entries[i].has_key("IPMI_INTERFACE"):
-                        intf = entries[i]["IPMI_INTERFACE"]
-                    else:
-                        intf = "lanplus"
-                    f.write("console %s { include ipmi; exec \"ipmitool -H %s -I %s -U %s -P %s sol activate\"; %s }\n" % (consolename, entries[i]["BMC_ADDRESS"], intf, entries[i]["IPMI_USERNAME"], entries[i]["IPMI_PASSWORD"], aliases))
+                    f.write("console %s { include ipmi; exec \"ipmitool -H %s -I lanplus -U %s -P %s sol activate\"; %s }\n" % (consolename, entries[i]["BMC_ADDRESS"], entries[i]["IPMI_USERNAME"], entries[i]["IPMI_PASSWORD"], aliases))
                 elif consoletype == "ssh":
                     extra = ""
                     if not entries[i].has_key("CONSOLE_SSH_ADDRESS"):
@@ -1003,7 +999,7 @@ def portConfig(config,switch,port,network):
             print "no vlan %s untagged %s" % (v, port)
         for v in extravlanstoadd:
             print "vlan %s tagged %s" % (v, port)
-    elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5", "DellN2048"):
+    elif swtype in ("DellM6348", "DellPC8024", "DellPC62xx", "DellM6348v5", "DellN2048", "DellN4032"):
         print "interface %s" % port
         print "switchport mode general"
         print "switchport general pvid %s" % nativevlan
@@ -1014,7 +1010,7 @@ def portConfig(config,switch,port,network):
         print "switchport general allowed vlan remove %s" % ",".join(vlanstoremove)
         print "switchport general allowed vlan add %s tagged" % ",".join(extravlanstoadd)
         print "spanning-tree portfast"
-        if swtype not in ("DellN2048"):
+        if swtype not in ("DellN2048", "DellN4032"):
             print "mtu 9216"
         print "exit"
     elif swtype in ("CiscoC3750G", "CiscoC2960X"):
@@ -1130,7 +1126,7 @@ def portName(config, switch, unit, port):
         return "GigabitEthernet %d/%s" % (int(unit)-1, port)
     elif swtype == "DellPC62xx":
         return "ethernet %s/g%s" % (unit, port)
-    elif swtype == "DellPC8024":
+    elif swtype in ("DellPC8024", "DellN4032"):
         return "TenGigabitEthernet %s/0/%s" % (unit, port)
     elif swtype in ("CiscoC3750G", "CiscoC2960X"):
         return "GigabitEthernet %s/0/%s" % (unit, port)

@@ -11,6 +11,7 @@
 import socket, re, string, time, traceback, sys, random, copy, os.path
 from datetime import datetime
 import xenrt
+from xenrt.lazylog import step
 from xenrt.lib.xenserver.signedpackages import SignedXenCenter, SignedWindowsTools
 
 class TC8369(xenrt.TestCase):
@@ -1072,4 +1073,53 @@ class CA90861Frequency(xenrt.TestCase):
         xenrt.TEC().logverbose("%d/%d iterations completed successfully" % (success, iterations))
         if success < iterations:
             raise xenrt.XRTFailure("VM failed to boot successfully at least once")
+
+class TCToolsMissingUninstall(xenrt.TestCase):
+    """Test for SCTX-1634. Verify upgrade of XenTools from XS 6.0 to XS 6.2 is successfull"""
+    #TC-23775
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.getGuest("VMWin2k8")
+        self.guest.start()
+
+    def run(self, arglist=None):
+        step("Remove uninstaller file")
+        self.guest.xmlrpcRemoveFile("C:\\Program files\\citrix\\xentools\\uninstaller.exe")
+
+        step("Install 6.2 PV tools")
+        self.guest.installDrivers()
+        self.guest.waitForAgent(60)
+        
+        if self.guest.pvDriversUpToDate():
+            xenrt.TEC().logverbose("Tools are upto date")
+        else:
+            raise xenrt.XRTFailure("Guest tools are out of date")
+
+class TCBootStartDriverUpgrade(xenrt.TestCase):
+    """Test for CA-158777 upgrade issue with boot start driver"""
+
+    def prepare(self, arglist=None):
+        self.host = self.getDefaultHost()
+
+        distro = "win7sp1-x86"
+        startDrivers = xenrt.TEC().lookup("START_DRIVERS", "/usr/groups/xenrt/pvtools/esperado.tgz")
+        if arglist:
+            args = xenrt.util.strlistToDict(arglist)
+            if args.has_key("distro"):
+                distro = args["distro"]
+            elif args.has_key("startdrivers"):
+                startDrivers = args["startdrivers"]
+
+        self.guest = self.host.createGenericWindowsGuest(distro=distro, drivers=False)
+
+        # Install the Esperado PV drivers
+        self.guest.installDrivers(source=startDrivers, expectUpToDate=False)
+
+        # Make xenvif boot start
+        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.guest.reboot()
+
+    def run(self, arglist=None):
+        # Attempt to upgrade the PV drivers
+        self.guest.installDrivers()
 

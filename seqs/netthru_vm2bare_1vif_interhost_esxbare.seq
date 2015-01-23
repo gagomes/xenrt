@@ -28,7 +28,6 @@
           <vcpus>1</vcpus>
           <memory>512</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-0-2v">
@@ -37,7 +36,6 @@
           <vcpus>2</vcpus>
           <memory>512</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-0-4v">
@@ -46,7 +44,6 @@
           <vcpus>4</vcpus>
           <memory>512</memory>
           <postinstall action="installTools"/>
-          <postinstall action="changeToVMXNet3"/>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 

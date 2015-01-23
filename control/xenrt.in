@@ -3115,13 +3115,15 @@ class _XenRTControllerOperation(XenRTCommand):
         site = None
         self.overrideconsole = None
         try:
-            optlist, optx = getopt.getopt(args, 's:',['override-console='])
+            optlist, optx = getopt.getopt(args, 's:',['override-console=', 'bootdev='])
             for argpair in optlist:
                 (flag, value) = argpair
                 if flag == "-s":
                     site = value
                 elif flag == "--override-console":
                     self.overrideconsole = value
+                elif flag == "--bootdev":
+                    self.bootdev = value
                 else:
                     sys.stderr.write("Unknown argument '%s'\n" % (flag))
                     return None
@@ -3238,6 +3240,7 @@ class XenRTPower(_XenRTControllerOperation):
             sys.stderr.write("Invalid usage\n")
             return None
         machine = args[0]
+        self.bootdev = None
         addr = self.getControllerAddrForMachine(machine, args[2:])
         if not addr:
             sys.stderr.write("Controller for machine %s not found\n" % machine)
@@ -3249,6 +3252,8 @@ class XenRTPower(_XenRTControllerOperation):
             return None
         details["powerop"] = args[1]
         details["machine"] = machine
+        if self.bootdev:
+            details['bootdev'] = self.bootdev
         u = urlopen_with_retry("http://%s/share/control/queue.cgi" % addr + "?" + urllib.urlencode(details),
                            proxies=self.proxies)
         data = u.read()

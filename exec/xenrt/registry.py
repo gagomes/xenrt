@@ -22,8 +22,33 @@ class Registry:
     def dump(self):
         xenrt.TEC().logverbose(self.data)
 
+    def getDeploymentRecord(self):
+        # TODO consider pools and clouds
+        ret = {"hosts":[], "vms": []}
+
+        # First check hosts that are specifed by hostname
+        tmpHostnameList = []
+        for h in self.hostList():
+            if not h.startswith("RESOURCE_HOST_"):
+                if not h in tmpHostnameList:
+                    ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                    tmpHostnameList.append(h)
+                else:
+                    xenrt.TEC().warning('There are two registry entries for hostname key: %s' % (h))
+        # Nowe check hosts that are held in the registry against RESOURCE_HOST_ keys
+        for h in self.hostList():
+            if h.startswith("RESOURCE_HOST_") and not self.hostGet(h).getName() in tmpHostnameList:
+                ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                tmpHostnameList.append(self.hostGet(h).getName())
+
+        # Add guests
+        for g in self.guestList():
+            ret['vms'].append(self.guestGet(g).getDeploymentRecord())
+        return ret
+
     # Generic operations
     def write(self, path, value):
+        xenrt.TEC().logverbose("Storing object of type %s at path %s" % (value.__class__.__name__, path))
         self.mylock.acquire()
         try:
             self.data[path] = value
@@ -106,7 +131,10 @@ class Registry:
     def hostGet(self, tag):
         """Look up a host object by string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
-        return self.read(path)
+        h = self.read(path)
+        if not h and tag == "RESOURCE_HOST_DEFAULT":
+            h = self.hostGet("RESOURCE_HOST_0")
+        return h
 
     def hostDelete(self, tag):
         path = "/xenrt/specific/host/%s" % (tag)

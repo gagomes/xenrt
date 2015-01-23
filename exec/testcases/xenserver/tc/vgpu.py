@@ -3848,6 +3848,7 @@ class TCcreatevGPU(VGPUAllocationModeBase):
     def run(self,arglist):
 
         vgpuType = None
+        startVM = "True"   #reason for being string is because we are getting string from seq file
         for arg in arglist:
             if arg.startswith('vgputype'):
                 vgpuType = arg.split('=')[1]
@@ -3855,6 +3856,8 @@ class TCcreatevGPU(VGPUAllocationModeBase):
                 vmName = arg.split('=')[1]
             if arg.startswith('distro'):
                 self.REQUIRED_DISTROS[0] = int(arg.split('=')[1])
+            if arg.startswith('startVM'):
+                startVM = arg.split('=')[1]
 
         if not vmName:
             raise xenrt.XRTError("VM Name not passed")
@@ -3872,7 +3875,8 @@ class TCcreatevGPU(VGPUAllocationModeBase):
         self.vGPUCreator[int(vgpuType)] = VGPUInstaller(self.host, int(vgpuType))
 
         self.configureVGPU(int(vgpuType), g)
-        g.setState("UP")
+        if startVM == "True":
+            g.setState("UP")
 
         g.snapshot('aftervGPU')
 

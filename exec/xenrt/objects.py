@@ -27,7 +27,8 @@ time.strptime('2014-06-12','%Y-%m-%d')
 
 __all__ = ["GenericPlace", "GenericHost", "NetPeerHost", "GenericGuest", "productLib",
            "RunOnLocation", "ActiveDirectoryServer", "PAMServer", "CVSMServer",
-           "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver"]
+           "WlbApplianceServer", "DemoLinuxVM", "ConversionApplianceServer","EventObserver",
+           "XenMobileApplianceServer"]
 
 class MyHTTPConnection(httplib.HTTPConnection):
     XENRT_SOCKET_TIMEOUT = 600
@@ -1437,56 +1438,37 @@ class GenericPlace:
 
         return self.winRegLookup('HKLM', 'SYSTEM\\CurrentControlSet\\services\\xenvif\\Parameters', 'ReceiverMaximumProtocol')
 
-    def joinDomain(self, adserver):
+    def joinDomain(self, adserver, computerName=None, adminUserName="Administrator", adminPassword=None):
+        # works with ws2008 and ws2012
+        if not computerName:
+            computerName=self.getName()
+        if not adminPassword:
+            adminPassword = adserver.place.password
+
         primarynic = filter(lambda (a,(b,c,d)):d == self.host.getPrimaryBridge(),
                             self.getVIFs().items())[0]
         self.configureDNS(primarynic[0], adserver.place.getIP())
         self.reboot()
-        self.xmlrpcExec("netsh firewall set allowedprogram "
-                        "program=c:\\python24\\python.exe "
-                        "name=XMLRPCDaemon "
-                        "mode=ENABLE "
-                        "profile=DOMAIN")
-        script = r"""
-Const JOIN_DOMAIN = 1
-strDomain = "%s"
-strPassword = "%s"
-strUser = "%s"
-Set objNetwork = CreateObject("WScript.Network")
-strComputer = objNetwork.ComputerName
-Set objComputer = _
-GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" & _
-strComputer & "\root\cimv2:Win32_ComputerSystem.Name='" _
-& strComputer & "'")
-ReturnValue = objComputer.JoinDomainOrWorkGroup(strDomain, _
-strPassword, _
-strDomain & "\" & strUser, _
-NULL, _
-JOIN_DOMAIN)
-""" % (adserver.domainname, adserver.place.password, "Administrator")
-        t = self.xmlrpcTempDir()
-        self.xmlrpcWriteFile("%s\\join.vbs" % (t), script)
-        self.xmlrpcExec("cscript //B %s\\join.vbs" % (t))
-        self.xmlrpcDelTree(t)
+        self.xmlrpcExec("netsh advfirewall set domainprofile state off")
+        self.rename(computerName)
+
+        script = """$domain = "%s";
+$password = "%s" | ConvertTo-SecureString -asPlainText -Force;
+$username = "$domain\%s";
+$credential = New-Object System.Management.Automation.PSCredential($username,$password);
+Add-Computer -DomainName $domain -Credential $credential
+""" % (adserver.domainname, adminPassword, adminUserName)
+
+        self.xmlrpcExec(script, returndata=True, powershell=True ,ignoreHealthCheck=True)
+        self.xmlrpcExec("net localgroup Administrators %s\\%s /add" % (adserver.domainname, adminUserName), level=xenrt.RC_OK)
         self.reboot()
 
-    def leaveDomain(self, adserver):
-        script = r"""
-strPassword = "%s"
-strUser = "%s"
-Set objNetwork = CreateObject("WScript.Network")
-strComputer = objNetwork.ComputerName
-Set objComputer = _
-GetObject("winmgmts:{impersonationLevel=Impersonate}!\\" & _
-strComputer & "\root\cimv2:Win32_ComputerSystem.Name='" _
-& strComputer & "'")
-ReturnValue = objComputer.UnJoinDomainOrWorkGroup(strPassword, _
-strDomain & "\" & strUser, NULL)
-""" % (adserver.place.password, "Administrator")
-        t = self.xmlrpcTempDir()
-        self.xmlrpcWriteFile("%s\\leave.vbs" % (t), script)
-        self.xmlrpcExec("cscript //B %s\\leave.vbs" % (t))
-        self.xmlrpcDelTree(t)
+    def leaveDomain(self):
+        # works with ws2008 and ws2012
+        try:
+            self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP -force", returndata=True, powershell=True ,ignoreHealthCheck=True)
+        except:
+            self.xmlrpcExec("Add-Computer -WorkGroupName WORKGROUP", returndata=True, powershell=True ,ignoreHealthCheck=True)
         self.reboot()
 
     def configureAutoLogon(self, user):
@@ -3232,7 +3214,7 @@ DHCPServer = 1
             if self.windows:
                 self.xmlrpcExec("netsh firewall set opmode DISABLE")
             else:
-                self.execcmd("/etc/init.d/iptables stop")
+                self.execcmd("service iptables stop")
         except Exception, e:
             xenrt.TEC().warning("Exception disabling firewall: %s" %
                                 (str(e)))
@@ -4254,6 +4236,21 @@ class GenericHost(GenericPlace):
         if x.machine:
             x.machine.setHost(x)
 
+    def getDeploymentRecord(self):
+        ret = {"access": {"hostname": self.getName(),
+                          "ipaddress": self.getIP()},
+               "os": {"family": self.productType,
+                      "version": self.productVersion}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                                    "ADMINISTRATOR_PASSWORD"],
+                                                                    "xensource")
+        else: 
+            ret['access']['username'] = "root"
+            ret['access']['password'] = self.password
+        return ret
+
     def getOS(self):
         if not self.os:
             if self.windows or not self.arch:
@@ -4791,7 +4788,8 @@ class GenericHost(GenericPlace):
             self.findPassword()
 
             if xenrt.TEC().lookup("TAILOR_CLEAR_IPTABLES", False, boolean=True):
-                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X && service iptables save")
+                self.execdom0("iptables -P INPUT ACCEPT && iptables -P OUTPUT ACCEPT && iptables -P FORWARD ACCEPT && iptables -F && iptables -X")
+                self.iptablesSave()
 
             # Copy the test scripts to the guest
             xrt = xenrt.TEC().lookup("XENRT_BASE", "/usr/share/xenrt")
@@ -5168,6 +5166,13 @@ class GenericHost(GenericPlace):
     def getGuestUUID(self, guest):
         return None
 
+    def _softReboot(self, timeout=300):
+        try:
+            self.execdom0("/sbin/reboot", timeout=timeout)
+        except xenrt.XRTFailure, e:
+            if e.reason != "SSH channel closed unexpectedly":
+                raise
+    
     def reboot(self,forced=False,timeout=600):
         """Reboot the host and verify it boots"""
         # Some ILO controllers have broken serial on boot
@@ -5179,7 +5184,7 @@ class GenericHost(GenericPlace):
                           "> /dev/null 2>&1 </dev/null &")
             xenrt.sleep(5)
         else:
-            self.execdom0("/sbin/reboot")
+            self._softReboot()
         rebootTime = xenrt.util.timenow()
         xenrt.sleep(180)
         for i in range(3):
@@ -5223,10 +5228,7 @@ class GenericHost(GenericPlace):
                     # Re-tailor because the scripts live in ramdisk
                     self.tailor()
                 return
-            try:
-                self.execdom0("/sbin/reboot", timeout=timeout)
-            except Exception, e:
-                xenrt.TEC().logverbose(str(e))
+            self._softReboot(timeout)
             rebootTime = xenrt.util.timenow()
             xenrt.sleep(180)
         raise xenrt.XRTFailure("Host !%s has not rebooted" % self.getName())
@@ -5377,6 +5379,8 @@ class GenericHost(GenericPlace):
             pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
             pxecfg.linuxArgsKernelAdd("biosdevname=0")
             pxecfg.linuxArgsKernelAdd("net.ifnames=0")
+            pxecfg.linuxArgsKernelAdd("console=tty0")
+            pxecfg.linuxArgsKernelAdd("console=hvc0")
         else:
             pxecfg.linuxArgsKernelAdd("root=/dev/ram0")
             if re.search(r"(rhel|oel|centos)6", distro):
@@ -6497,6 +6501,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_CARBON_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if not disks:
             disks = string.join(map(lambda x:"sd"+chr(97+x), range(count)))
         return string.split(disks)[:count]
@@ -6515,6 +6525,12 @@ exit 0
             pass
         if not disks:
             disks = self.lookup("OPTION_GUEST_DISKS", None)
+
+        # REQ-35: Temp fix while we work out how to do this properly.
+        if isinstance(self, xenrt.lib.xenserver.DundeeHost) and self.isCentOS7Dom0():
+            if disks and "scsi-SATA" in "".join(disks):
+                disks = None
+
         if disks:
             return string.split(disks)[:count]
         else:
@@ -6732,6 +6748,28 @@ class GenericGuest(GenericPlace):
         x.tailored = self.tailored
         x.reservedIP = self.reservedIP
         x.instance = self.instance
+
+    def getDeploymentRecord(self):
+        ret = {"access": {"vmname": self.getName(),
+                          "ipaddress": self.getIP()}, "os": {}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                            "ADMINISTRATOR_PASSWORD"],
+                                                            "xensource")
+            ret['os']['family'] = "windows"
+            ret['os']['version'] = self.distro
+        else:
+            ret['access']['username'] = "root"
+            ret['access']['password'] = "xenroot"
+            ret['os']['family'] = "linux"
+            arch = self.arch or "x86-32"
+            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+        if self.host:
+            ret['host'] = self.host.getName()
+        else:
+            ret['host'] = None
+        return ret
 
     def setHost(self, host):
         if host and host.replaced:
@@ -7591,12 +7629,19 @@ class GenericGuest(GenericPlace):
 
             # Enable sysrq if possible
             try:
-                self.execguest("if [ -e /etc/sysctl.conf ]; then "
-                               "  mv /etc/sysctl.conf /etc/sysctl.conf.orig; "
-                               "  sed -re's/kernel.sysrq = 0/kernel.sysrq = 1/' "
-                               "     < /etc/sysctl.conf.orig > /etc/sysctl.conf; "
-                               "   echo 1 > /proc/sys/kernel/sysrq; "
-                               "fi")
+                sysctlFileisPresent= (self.execguest("if [ -e /etc/sysctl.conf ]; then echo $?; fi;",retval="code") == 0)
+                if sysctlFileisPresent:
+                # Check if kernel.sysrq is present in sysctl.conf
+                    kernelSysrqisPresent = (self.execguest("grep -q 'kernel.sysrq' '/etc/sysctl.conf' && echo $?",retval="code") == 0)
+                    if kernelSysrqisPresent:
+                        self.execguest("mv /etc/sysctl.conf /etc/sysctl.conf.orig;"
+                                 "sed -re's/kernel.sysrq = 0/kernel.sysrq = 1/' "
+                                 "< /etc/sysctl.conf.orig > /etc/sysctl.conf; "
+                                 "echo 1 > /proc/sys/kernel/sysrq; ")
+                    else:
+                        self.execguest("echo 'kernel.sysrq = 1' >> /etc/sysctl.conf;"
+                                   "echo 1 > /proc/sys/kernel/sysrq; "
+                                   "fi")
             except:
                 xenrt.TEC().warning("Error enabling syslog in %s" %
                                     (self.getName()))
@@ -8223,6 +8268,8 @@ class GenericGuest(GenericPlace):
                                       (pxe.makeBootPath("initrd.img")))
             if distro.startswith("oel7") or distro.startswith("centos7") or distro.startswith("rhel7"):
                 pxecfg.linuxArgsKernelAdd("inst.repo=%s" % repository)
+                pxecfg.linuxArgsKernelAdd("console=tty0")
+                pxecfg.linuxArgsKernelAdd("console=hvc0")
             else:
                 pxecfg.linuxArgsKernelAdd("console=tty0")
                 pxecfg.linuxArgsKernelAdd("console=ttyS0,9600n8")
@@ -10319,19 +10366,25 @@ write $computers.psbase.get_Children()
         data = self.place.xmlrpcExec(script, powershell=True, returndata=True)
         return re.findall("{CN=([^,]+)", data)
 
-    def __init__(self, place, username="Administrator", password=None, domainname=None):
+    def __init__(self, place, username="Administrator", password=None, domainname=None, dontinstall=False):
         self.users = []
         self.groups = []
         self.type = "AD"
         self.place = place
-
-        if self.place.xmlrpcWindowsVersion() < "6.0":
-            raise xenrt.XRTError("XenRT only supports Active Directory on "
-                                 "Vista and higher.")
-
         self.place.superuser = username
-        if password:
-            self.place.password = password
+        self.place.password = password
+        self.domainname = domainname
+        self.netbiosname = None
+        self.forestMode = None
+        self.domainMode = None
+
+        if not dontinstall:
+            self.prepare()
+
+    def prepare(self):
+        if float(self.place.xmlrpcWindowsVersion()) < 6.0:
+            raise xenrt.XRTError("XenRT only supports Active Directory on Windows Server 2008 and higher.")
+
         if not self.place.password:
             self.place.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
                                                       "ADMINISTRATOR_PASSWORD"])
@@ -10341,30 +10394,33 @@ write $computers.psbase.get_Children()
         else:
             self.place.logFetchExclude = ["security"]
 
-        data = self.place.xmlrpcExec("servermanagercmd -q", returndata=True)
         activeDirectoryConfigured = False
+        currentDomainName = None
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            data = self.place.xmlrpcExec("servermanagercmd -q", returndata=True)
+        else:
+            data = self.place.xmlrpcExec("Get-WindowsFeature AD-Domain-Services",powershell=True, returndata=True)
         if re.search("\[X\].*Active Directory Domain Services", data):
             try:
-                self.domainname = unicode(string.lower(self.place.xmlrpcGetEnvVar("USERDNSDOMAIN")))
+                currentDomainName = unicode(string.lower(self.place.xmlrpcGetEnvVar("USERDNSDOMAIN")))
                 activeDirectoryConfigured = True
             except:
-                # No domain - AD is probably not set up
-                self.domainname = None
+                pass
             self.netbiosname = unicode(self.place.xmlrpcGetEnvVar("USERDOMAIN"))
-            if domainname and not domainname == self.domainname:
+            if self.domainname and not self.domainname == currentDomainName:
                 # re-install to change the domain name
                 self.uninstall()
                 self.install()
+            else:
+                self.domainname = currentDomainName
 
         if activeDirectoryConfigured:
             xenrt.TEC().logverbose("Active Directory server already installed. "
                                    "(Domain: %s)" % (self.domainname))
         else:
             extension = str(random.randint(0, 0x7fff))
-            if domainname == None:
+            if self.domainname == None:
                 self.domainname = u"xenrt%s.local" % (extension)
-            else:
-                self.domainname = domainname
             self.netbiosname = u"XENRTXENRT%s" % (string.upper(extension))
             self.install()
 
@@ -10378,17 +10434,50 @@ write $computers.psbase.get_Children()
         xenrt.sleep(60)
 
     def install(self):
+        self.place.xmlrpcExec("netsh advfirewall set domainprofile state off")
+        self.place.rename(self.place.getName())
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
+
+        # Set forest mode and domain mode
+        self.forestMode = xenrt.TEC().lookup("ADSERVER_FORESTMODE", "Win2008")
+        self.domainMode = xenrt.TEC().lookup("ADSERVER_DOMAINMODE", "Win2008")
+        ## DCPromo setup requires numeric value rather than windows version string.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            modeLevels = {'0':"Win2000", '2':"Win2003", '3':"Win2008", '4':"Win2008R2"}
+
+            forestLevelList = [key for key,value in modeLevels.iteritems() if value == self.forestMode]
+            if len(forestLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.forestMode)
+            self.forestMode = forestLevelList[0]
+
+            domainLevelList = [key for key,value in modeLevels.iteritems() if value == self.domainMode]
+            if len(domainLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.domainMode)
+            self.domainMode = domainLevelList[0]
+
         # Set up a new AD domain.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            self.installOnWS2008()
+        elif float(self.place.xmlrpcWindowsVersion()) == 6.3:
+            self.installOnWS2012()
+        else:
+            raise xenrt.XRTError("Unimplemented")
+
+        self.place.reboot()
+        # This manages to get switched back on during the AD install.
+        self.place.disableWindowsPasswordComplexityCheck()
+        xenrt.TEC().logverbose("Installed Active Directory Server. (Domain: %s)" % (self.domainname))
+
+    def installOnWS2008(self):
         dcpromo = """
 [DCInstall]
 ReplicaOrNewDomain=Domain
 NewDomain=Forest
 NewDomainDNSName=%s
-ForestLevel=0
+ForestLevel=%s
 DomainNetbiosName=%s
-DomainLevel=0
+DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
@@ -10397,7 +10486,7 @@ LogPath="C:\Windows\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
-""" % (self.domainname, self.netbiosname, self.place.password)
+""" % (self.domainname, self.forestMode, self.netbiosname, self.domainMode, self.place.password)
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
         self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt\n"
                               "netsh advfirewall set domainprofile "
@@ -10412,14 +10501,36 @@ RebootOnSuccess=No
                              "DependOnService",
                              "MULTI_SZ",
                               current + ["DNS"])
-        self.place.reboot()
-        # This manages to get switched back on during the AD install.
-        self.place.disableWindowsPasswordComplexityCheck()
-        xenrt.TEC().logverbose("Installed Active Directory Server. (Domain: %s)" % (self.domainname))
+
+    def installOnWS2012(self):
+        self.place.xmlrpcExec("install-WindowsFeature AD-Domain-Services",powershell=True)
+        psscript = """Import-Module ADDSDeployment;
+Install-ADDSForest `
+-CreateDnsDelegation:$false `
+-DatabasePath "C:\Windows\NTDS" `
+-DomainMode "%s" `
+-DomainName "%s" `
+-DomainNetbiosName "%s" `
+-ForestMode "%s" `
+-InstallDns:$true `
+-LogPath "C:\Windows\NTDS" `
+-NoRebootOnCompletion:$true `
+-SysvolPath "C:\Windows\SYSVOL" `
+-Force:$true `
+-Confirm:$false `
+-SafeModeAdministratorPassword `
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainMode, self.domainname, self.netbiosname, self.forestMode, self.place.password)
+        self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
+        self.place.winRegAdd("HKLM",
+                           "software\\microsoft\\windows nt\\currentversion\\winlogon",
+                           "DefaultDomainName",
+                           "SZ",
+                            self.netbiosname)
 
     def uninstall(self):
         # "Demote" the AD controller.
-        dcpromo = """
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            dcpromo = """
 [DCInstall]
 UserName=%s
 Password=%s
@@ -10428,11 +10539,26 @@ AdministratorPassword=%s
 IsLastDCInDomain=Yes
 RebootOnSuccess=Yes
 """ % (self.place.superuser, self.place.password, self.place.password)
-        self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
-        self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
-                               timeout=1800, returnerror=False)
-        self.place.xmlrpcRemoveFile("c:\\ad.txt")
-        xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
+            self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
+            self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt",
+                                   timeout=1800, returnerror=False)
+            self.place.xmlrpcRemoveFile("c:\\ad.txt")
+            self.place.reboot()
+            xenrt.TEC().logverbose("Uninstalled Active Directory Server. (Domain: %s)" % (self.domainname))
+        elif float(self.place.xmlrpcWindowsVersion()) == 6.3:
+            script = """Uninstall-ADDSDomainController `
+-NoRebootOnCompletion:$true `
+-confirm:$false `
+-LastDomainControllerInDomain:$true `
+-IgnoreLastDnsServerForZone:$true `
+-RemoveApplicationPartitions:$true `
+-LocalAdministratorPassword: `
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.place.password)
+            self.place.disableWindowsPasswordComplexityCheck()
+            self.place.xmlrpcExec(script,powershell=True,returndata=True)
+            self.place.reboot()
+            self.place.xmlrpcExec("uninstall-WindowsFeature AD-Domain-Services",powershell=True)
+            self.place.reboot()
 
     def debugDump(self, fd=sys.stdout):
         fd.write("AD groups and users on %s\n" % (self.place.getName()))
@@ -10791,7 +10917,9 @@ class V6LicenseServer:
             self.place.writeToConsole("sed -i \"s@#baseurl=http://mirror.centos.org/centos/\$releasever/os/\$basearch/@baseurl=%s@\" /etc/yum.repos.d/*\\n" % xenrt.TEC().lookup(["RPM_SOURCE","centos55","x86-64","HTTP"]))
             xenrt.sleep(5)
 
-            #Add the root to lmadmin group so the root has priviledges to lmreread
+            #Add the root to lmadmin group so the root has priviledges to lmreread                       
+            self.place.writeToConsole("sed -i 's/lmadmin:x:500:ctxlsuser/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
+            xenrt.sleep(5)
             self.place.writeToConsole("sed -i 's/lmadmin:x:500:/lmadmin:x:500:ctxlsuser,root/g' /etc/group \\n")
             xenrt.sleep(5)
 
@@ -10842,12 +10970,14 @@ class V6LicenseServer:
             return self.port
         return 27000
 
-    def addLicense(self, license):
+    def addLicense(self, license, useEarlyRelease = None):
         """Add a license to the license server"""
 
         if license in self.licenses:
             raise xenrt.XRTError("License %s is already installed on the "
                                  "license server" % (license))
+        if not os.path.isdir(self.licensedir):
+            self.changeLicenseMode(useEarlyRelease)
 
         # Check the license exists
         l = "%s/%s.lic" % (self.licensedir, license)
@@ -11708,6 +11838,107 @@ class DVSCWebServices:
         body = { 'other_servers' : "%s:%s" % (ipaddress, port),
                  'use_vmanager' : use_vmanager}
         self.putAsJson("netflow/%s" % pool_node['uid'], body)
+
+class XenMobileApplianceServer:
+    """An object to represent a XenMobile Appliance Server"""
+
+    def __init__(self, guest):
+        self.guest = guest
+        self.password = xenrt.TEC().lookup("XENMOBILE_PASSWORD", "adminadmin")
+        self.host = self.guest.getHost()
+
+    def doFirstbootUnattendedSetup(self):
+        """ Answer the first boot questions"""
+        mac, _, _ = self.guest.getVIF("eth0")
+        ip = xenrt.StaticIP4Addr(mac=mac).getAddr()
+        self.guest.mainip = ip
+        _, netmask = self.host.getNICNetworkAndMask(0)
+        gateway = self.host.getGateway()
+        dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()
+
+        # choose root passwd
+        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        xenrt.sleep(2)
+        # retype root passwd
+        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
+        xenrt.sleep(2)
+        # type static-ip
+        self.guest.writeToConsole("%s\\n" % ip)
+        xenrt.sleep(2)
+        # type netmask
+        self.guest.writeToConsole("%s\\n" % netmask)
+        xenrt.sleep(2)
+        # type gateway
+        self.guest.writeToConsole("%s\\n" % gateway)
+        xenrt.sleep(2)
+        # type dns
+        self.guest.writeToConsole("%s\\n" % dns)
+        xenrt.sleep(2)
+        # no secondary dns
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # generate random passphrase y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(2)
+        # Federal Information Processing Standard (FIPS) mode n
+        self.guest.writeToConsole("%s\\n" % "n")
+        xenrt.sleep(2)
+        # Database connection l
+        self.guest.writeToConsole("%s\\n" % "l")
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(10)
+        # XenMobile hostname:
+        self.guest.writeToConsole("%s\\n" % ip)
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(2)
+        # HTTP port - default to 80
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # HTTPs port - default to 443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # HTTPs port no cert - default to 8443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # HTTPs management - default to 4443
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(2)
+        # same password for all certs -default y
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(2)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(5)
+        # username - default to administrator
+        self.guest.writeToConsole("%s\\n" % "")
+        xenrt.sleep(2)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(2)
+        # password
+        self.guest.writeToConsole("%s\\n" % self.password)
+        xenrt.sleep(2)
+        # commit settings y
+        self.guest.writeToConsole("%s\\n" % "y")
+        xenrt.sleep(2)
+        # Upgrade from previous release - default n
+        self.guest.writeToConsole("%s\\n" % "")
 
 class ConversionApplianceServer:
     """An object to represent a Conversion Appliance Server"""

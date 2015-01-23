@@ -39,7 +39,7 @@ class _Hotfix(xenrt.TestCase):
                 self.host.reboot()
                 self.slave.reboot()
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                 self.host.reboot()
                 
                 if "XS" in hf:
@@ -220,7 +220,7 @@ class _Hotfix(xenrt.TestCase):
                 if self.POOLED:
                     self.pool.applyPatch(xenrt.TEC().getFile(patch))
                 else:
-                    self.host.applyPatch(xenrt.TEC().getFile(patch))
+                    self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
                     
             except xenrt.XRTFailure, e:
                 if "required_version" in e.data and "6.2_vGPU_Tech_Preview" in e.data:
@@ -249,7 +249,7 @@ class _Hotfix(xenrt.TestCase):
                     raise xenrt.XRTFailure("slave /etc/xensource/pool.conf changed after hotfix application")
             
             else:
-                self.host.applyPatch(xenrt.TEC().getFile(patch))
+                self.host.applyPatch(xenrt.TEC().getFile(patch), patchClean=True)
             patches2 = self.host.minimalList("patch-list")
             self.host.execdom0("xe patch-list")
             if len(patches2) <= len(patches):
@@ -621,7 +621,7 @@ class _TampaRTM(_Hotfix):
     INITIAL_VERSION = "Tampa"
     
 class _TampaHFd(_TampaRTM):
-    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045"]
+    INITIAL_HOTFIXES = ["XS61E001", "XS61E003", "XS61E004", "XS61E008", "XS61E009", "XS61E010", "XS61E013", "XS61E015", "XS61E017",  "XS61E018", "XS61E019", "XS61E020", "XS61E021", "XS61E022", "XS61E023", "XS61E024", "XS61E025", "XS61E026", "XS61E027", "XS61E028", "XS61E029", "XS61E030", "XS61E032", "XS61E033", "XS61E034", "XS61E035", "XS61E036", "XS61E037", "XS61E038", "XS61E039", "XS61E040", "XS61E041", "XS61E042", "XS61E043", "XS61E044", "XS61E045", "XS61E046"]
     
 class _ClearwaterRTM(_Hotfix):
     INITIAL_VERSION = "Clearwater"
@@ -635,7 +635,14 @@ class _ClearwaterSP1(_ClearwaterRTM):
     INITIAL_HOTFIXES = ["XS62ESP1"]
     
 class _ClearwaterSP1HFd(_ClearwaterSP1):
-    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015"]
+    INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016"]
+    
+class _CreedenceRTM(_Hotfix):
+    INITIAL_VERSION = "Creedence"
+    INITIAL_BRANCH = "RTM"
+    
+class _CreedenceRTMHFd(_CreedenceRTM):
+    INITIAL_HOTFIXES = []
     
     
 # Upgrades
@@ -809,6 +816,10 @@ class TC20927(_ClearwaterSP1HFd):
     """Apply hotfix to XenServer 6.2 SP1 with all previous released hotfixes applied"""
     pass
     
+class TC23786(_CreedenceRTMHFd):
+    """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -881,7 +892,19 @@ class TC19912(_TampaRTM):
 class TC20945(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2RTM (should fail)"""
     NEGATIVE = True
+
+class TC23783(_ClearwaterRTM):
+    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    NEGATIVE = True
     
+class TC23785(_ClearwaterSP1):
+    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+
+class TC23784(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
+    pass
+
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
     NEGATIVE = True
@@ -985,6 +1008,9 @@ class TC20946(_ClearwaterSP1):
     """Apply hotfix to XenServer 6.2 SP1 (pool)"""
     POOLED = True
     
+class TC23787(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
 #############################################################################
 # Upgrade with a rollup
 
@@ -1903,7 +1929,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             #Run sub-tests
             self.runSubcase("_checkDuplicateLines", (h, tmp, contents, hotfixHead), hotfixName, "Duplicate lines in CONTENTS")
             self.runSubcase("_checkVersionRegex", (hotfixHead), hotfixName, "Version regex formatting")
-            self.runSubcase("_checkBostonPreCheckUuid", (hotfixHead, contents), hotfixName, "Boston pre-check uuid")
             self.runSubcase("_checkSanibelBuildRegex", (hotfixHead), hotfixName, "Sanibel build regex value")
             self.runSubcase("_checkSweeneyBuildRegex", (hotfixHead), hotfixName, "Sweeney build regex value") 
             
@@ -1950,13 +1975,6 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
         if regexValue.count('^') != 1 or regexValue.count('\.') != 2 or regexValue.count('$') != 1:
             raise xenrt.XRTFailure("VERSION_REGEX value %s was misformed" % regexValue)
 
-    def _checkBostonPreCheckUuid(self, metadata, contents): 
-        bostonUuid="95ac709c-e408-423f-8d22-84b8134a149e"  
-        expectedLabel="XS60E001"
-        versionRegex="^6\.0\.0$"
-        verifySubstring = "verify_update"
-        self._checkPreCheckUuidNotMatchingLabel(metadata, contents, bostonUuid, expectedLabel, versionRegex, verifySubstring)
-        
     def _checkSanibelBuildRegex(self, metadata):
         """
         If the unsigned hotfix url contains sanibel-lcm then the unsigned hotfix contents must contain:

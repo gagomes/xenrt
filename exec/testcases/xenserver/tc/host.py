@@ -914,11 +914,17 @@ class TC8341(xenrt.TestCase):
     def getMountCount(self, max=False):
         if max: pattern = "Maximum mount count"
         else: pattern = "Mount count"
-        return int(self.host.execdom0("tune2fs -l %s | "
-                                      "grep '%s' | "
-                                      "cut -d ':' -f 2" % 
-                                      (self.rootdisk, pattern)).strip())
- 
+        cmd = "tune2fs -l %s | grep '%s' | cut -d ':' -f 2"
+        count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
+        if max and count <= 0:
+            xenrt.TEC().logverbose("Maximum mount count was %d. Changing it to 30 for tests." % count)
+            self.host.execdom0("tune2fs -c 30 %s" % self.rootdisk)
+            count = int(self.host.execdom0(cmd % (self.rootdisk, pattern)).strip())
+            if count != 30:
+                raise xenrt.XRTError("Failed to change 'Maximum mount count' to 30.")
+
+        return count
+
     def prepare(self, arglist):
         self.host = self.getDefaultHost()
         volume = "/"
@@ -935,7 +941,7 @@ class TC8341(xenrt.TestCase):
                                (self.rootdisk, maxmountcount))
         xenrt.TEC().logverbose("Setting mount count to 'Maximum mount count' - 1. (%s)" %
                                (maxmountcount - 1))
-        self.host.execdom0("tune2fs -C %s %s" % (maxmountcount - 1, self.rootdisk))
+        self.host.execdom0("tune2fs -C %d %s" % (maxmountcount - 1, self.rootdisk))
         # Knock the mount count up to 'Maximum mount count'.
         self.host.reboot()
         # Try for a FSCK. If this passes we're good to go.
@@ -1458,20 +1464,18 @@ class TC8913(xenrt.TestCase):
         data = self.host.execdom0("service snmpd status | cat")
         if "running" in data:
             self.wasrunning = True
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
+        if self.host.snmpdIsEnabled():
             self.wasenabled = True
 
     def run(self, arglist=None):
         # Enable snmpd service
-        self.host.execdom0("/sbin/chkconfig snmpd on")
+        self.host.enableSnmpd()
 
         # Reboot
         self.host.reboot()
 
         # Check the service is still enabled
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
+        if not self.host.snmpdIsEnabled():
             raise xenrt.XRTFailure("snmpd service disabled after reboot")
 
         # Make sure the snmpd service is reported as running
@@ -1489,7 +1493,7 @@ class TC8913(xenrt.TestCase):
             if not self.wasrunning:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC8914(xenrt.TestCase):
     """Dom0 SNMP (when enabled by hacking dom0) can be quiered for SNMPv2-MIB::sysContact and SNMPv2-MIB::sysLocation"""
@@ -1505,9 +1509,8 @@ class TC8914(xenrt.TestCase):
         if not "running" in data:
             self.wasrunning = False
             self.host.execdom0("service snmpd start")
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        if not self.host.snmpdIsEnabled():
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Back up the old config
@@ -1524,7 +1527,7 @@ class TC8914(xenrt.TestCase):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        self.host.iptablesSave()
 
     def checkSNMP(self):
         for com in ["xenrtsnmprw", "xenrtsnmpro"]:
@@ -1594,7 +1597,7 @@ syslocation XenRT syslocation
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC9989(xenrt.TestCase):
     """Verify SNMP is disabled by default in Dom0."""
@@ -1604,7 +1607,7 @@ class TC9989(xenrt.TestCase):
 
         # Make sure the snmpd service is reported as stopped
         data = self.host.execdom0("service snmpd status | cat")
-        if not "stopped" in data:
+        if not "inactive" in data and not "stopped" in data:
             raise xenrt.XRTFailure("snmpd service is not stopped")
 
         # Make sure the snmpd process is not running
@@ -1612,10 +1615,9 @@ class TC9989(xenrt.TestCase):
         if "snmpd" in data:
             raise xenrt.XRTFailure("snmpd process is running")
 
-        # Make sure the snmpd service is not enabled in chkconfig
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if "3:on" in data:
-            raise xenrt.XRTFailure("snmpd service is enabled in chkconfig")
+        # Make sure the snmpd service is not enabled
+        if self.host.snmpdIsEnabled():
+            raise xenrt.XRTFailure("snmpd service is enabled")
 
 class _SNMPConfigTest(xenrt.TestCase):
     SNMPCONF = "/etc/snmp/snmpd.conf"
@@ -1665,7 +1667,7 @@ class TC9991(_SNMPConfigTest):
             r = re.match(r'view\s+\S+\s+included\s+(\S+)', line)
             if r:
                 subtree = r.group(1)
-                if subtree not in self.MIB_II_SUBTREES:
+                if subtree not in self.MIB_II_SUBTREES and subtree != ".1":
                     unsupported_subtrees.append(subtree)
 
         if unsupported_subtrees:
@@ -1700,9 +1702,8 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("service snmpd start")
             xenrt.TEC().logverbose("Waiting 60s after starting snmpd (CA-70508)...")
             time.sleep(60)
-        data = self.host.execdom0("/sbin/chkconfig --list snmpd")
-        if not "3:on" in data:
-            self.host.execdom0("/sbin/chkconfig snmpd on")
+        if not self.host.snmpdIsEnabled():
+            self.host.enableSnmpd()
             self.wasenabled = False
 
         # Make sure the firewall allows SNMP through
@@ -1714,7 +1715,7 @@ class TC9993(_SNMPConfigTest):
             self.host.execdom0("iptables -I RH-Firewall-1-INPUT 1 -m state "
                                "--state NEW -m udp -p udp --dport %u "
                                "-j ACCEPT" % (port))
-        self.host.execdom0("service iptables save")
+        self.host.iptablesSave()
 
         # Find the community name
         for line in self.snmp_config_lines:
@@ -1760,7 +1761,7 @@ class TC9993(_SNMPConfigTest):
             else:
                 self.host.execdom0("service snmpd stop")
             if not self.wasenabled:
-                self.host.execdom0("/sbin/chkconfig snmpd off")
+                self.host.disableSnmpd()
 
 class TC9995(TC9993):
     """Stress test system with large number of VIFs while SNMP daemon is processing queries"""
@@ -5013,3 +5014,53 @@ class TCCheckLocalDVD(xenrt.TestCase):
             self.virtualmedia.unmountCD()
         except:
             pass
+
+class TCSlaveConnectivity(xenrt.TestCase):
+    #TC-23773
+    """Test case for SCTX-1562- slave servers lost connection to master server 
+    on receiving error for writing a packet that exceeds the 300k limit"""
+    def prepare(self, arglist):
+        step("Create plugin on the slave host")
+        self.pool = self.getDefaultPool()
+        plugin="""#!/usr/bin/python
+import XenAPIPlugin
+BRAIN_STR = "brain!"
+
+def main(session, args):
+    try:
+        size = int(args["brain-size"])
+        return (BRAIN_STR * (size / len(BRAIN_STR) + 1))[:size]
+    except KeyError:
+        raise RuntimeError("No argument found with key 'brain-size'.")
+
+if __name__ == "__main__":
+    XenAPIPlugin.dispatch({"main": main})
+"""
+
+        self.slave = self.pool.slaves.values()[0]
+        sftp = self.slave.sftpClient()
+        t = xenrt.TEC().tempFile()
+        with open(t, 'w') as f:
+            f.write(plugin)
+        sftp.copyTo(t, "/etc/xapi.d/plugins/braindump")
+        self.slave.execdom0("chmod +x /etc/xapi.d/plugins/braindump")
+        sftp.close()
+        
+    def run(self, arglist=None):
+        step("Call plugin from the master host")
+        cli = self.pool.master.getCLIInstance()
+        args = []
+        args.append("host-uuid=%s" % (self.slave.getMyHostUUID()))
+        args.append("plugin=braindump")
+        args.append("fn=main")
+        args.append("args:brain-size=$(( 310*1024 ))")
+        try:
+            output = cli.execute("host-call-plugin", string.join(args), timeout=600)
+            if "brain" in output:
+                xenrt.TEC().logverbose("Expected output: %s" % (output))
+            else:
+                raise xenrt.XRTFailure("Unexpected output: %s" % (output))
+        except Exception, e:
+            if "Client_requested_size_over_limit" not in str(e):
+                raise
+

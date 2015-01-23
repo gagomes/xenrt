@@ -46,7 +46,17 @@ def createHost(id=0,
                enableAllPorts=True,
                noipv4=False,
                basicNetwork=True,
-               extraConfig=None):
+               extraConfig=None,
+               containerHost=None,
+               vHostName=None,
+               vHostCpus=2,
+               vHostMemory=4096,
+               vHostDiskSize=50,
+               vHostSR=None,
+               vNetworks=None):
+
+    if containerHost != None:
+        raise xenrt.XRTError("Nested hosts not supported for this host type")
 
     # noisos isn't used here, it is present in the arg list to
     # allow its use as a flag in PrepareNode in sequence.py
@@ -493,6 +503,17 @@ class NativeLinuxHost(xenrt.GenericHost):
         """Verify the topology specified by XML on this host. Takes either
         a string containing XML or a XML DOM node."""
         pass
+
+    def getAssumedId(self, friendlyname):
+        # NET_A -> eth0         recorded in /var/xenrtnetname
+        #       -> MAC          ip addr
+        #       -> assumedid    h.listSecondaryNICs()
+        eth = self.execcmd("grep '^%s	' /var/xenrtnetname" % (friendlyname)).strip().split("	")[1]
+        mac = self.execcmd("ip addr show dev %s | fgrep link/ether | awk '{print $2}'" % (eth)).strip()
+
+        nics = self.listSecondaryNICs(macaddr=mac)
+        xenrt.TEC().logverbose("getAssumedId (native linux host): network '%s' corresponds to NICs with assumedids %s" % (friendlyname, nics))
+        return nics[0]
 
     def installIperf(self, version=""):
         """Install iperf into the host"""

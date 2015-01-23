@@ -1,0 +1,5 @@
+#!/usr/bin/python
+
+import sys, yaml
+with open(sys.argv[1]) as f:
+    yaml.load(f.read())

@@ -1113,20 +1113,20 @@ class PrepareNode:
                 if self.preparecount == 1:
                     for host in masters:
                         if not host.has_key("noisos") or not host["noisos"]:
-                            self.srs.append({"host":host["name"], 
-                                             "name":"XenRT ISOs",
-                                             "type":"iso",
-                                             "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
-                                             "default":False,
-                                             "blkbackPoolSize":""})
+                            self.srs.insert(0, {"host":host["name"], 
+                                                "name":"XenRT ISOs",
+                                                "type":"iso",
+                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "default":False,
+                                                "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
                             if isos2:
-                                self.srs.append({"host":host["name"],
-                                                 "name":"XenRT static ISOs",
-                                                 "type":"iso",
-                                                 "path":isos2,
-                                                 "default":False,
-                                                 "blkbackPoolSize":""})
+                                self.srs.insert(0, {"host":host["name"],
+                                                    "name":"XenRT static ISOs",
+                                                    "type":"iso",
+                                                    "path":isos2,
+                                                    "default":False,
+                                                    "blkbackPoolSize":""})
 
                 # If needed, create lun groups
                 iscsihosts = {}

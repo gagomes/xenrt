@@ -9398,9 +9398,9 @@ while True:
         guestArch=self.execguest("uname -p")
 
         if guestArch == "x86_64":
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64",default=defaultFilename)
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X64")
         else :
-            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86",default=defaultFilename)
+            drivername=xenrt.TEC().lookup("PVHVM_GPU_NVDIA_X86")
 
         #Get the file and put it into the VM
         urlprefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
@@ -9429,7 +9429,7 @@ while True:
         
     def installRhelGpuDrivers(self,drivername):
         self.execcmd("sed -i 's/GRUB_CMDLINE_LINUX.*\s[a-z,A_Z,0-9]*/& rdblacklist=nouveau/' /etc/default/grub")
-        self.execcmd("sudo grub2-mkconfig -o /boot/grub2/grub.cfg")
+        self.execcmd("grub2-mkconfig -o /boot/grub2/grub.cfg")
         self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/blacklist.conf ")
         self.execcmd("echo 'blacklist nvidiafb' >> /etc/modprobe.d/blacklist.conf ")
         self.execcmd("echo 'blacklist nouveau' >> /etc/modprobe.d/disable-nouveau.conf ")

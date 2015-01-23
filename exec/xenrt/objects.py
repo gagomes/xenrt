@@ -9315,10 +9315,8 @@ sleep (3000)
         @param gpuType: The brand of the GPU which should be checked against. eg. "NVIDIA"
         @rtype: boolean
         """
-
         # List of compatible distros.
         workingDistros = ["rhel", "centos", "oel", "ubuntu"]
-        isUbuntu = False
 
         self.findDistro()
         xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
@@ -9326,12 +9324,12 @@ sleep (3000)
         if not any([self.distro.lower().startswith(d) for d in workingDistros]):
             raise xenrt.XRTError("Function can only be used with certain linux distros. Current distro: %s. Woring distros: %s" % (self.distro, workingDistros))
 
-        # Some different dependencies between Ubuntu and RHEL based systems.
-        if self.distro.lower().startswith("ubuntu"):
-            isUbuntu = True
-
-        if not isUbuntu:
+        # RHEL based systems need to install lspci/lshw
+        if not self.distro.lower().startswith("ubuntu"):
             self.execguest("yum -y install pciutils")
+            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
+                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
 
         # Check if the GPU of given type is present.
         try:
@@ -9342,31 +9340,44 @@ sleep (3000)
 
         # Identify pciid of GPU.
         # Sample output to parse: "0:00.0 VGA|Audio ... NVIDIA|AMD|Intel"
+        pciid = self._findPciID(componentList)
+        if not pciid:
+            xenrt.TEC().logverbose("Could not find any graphics devices of the given name: %s" % gpuType)
+            return False
+
+        lspciOut = self.execguest("lspci -v -s %s" % pciid)
+        inUse = _isKernelDriverInUse(lspciOut)
+        if not inUse:
+            return False
+                
+        xml = self.execguest("lshw -xml -c video")
+        claimed = _isGPUClaimed(xml)
+        if not claimed:
+            return False
+
+        # Both tests for the GPU being utilized passed.
+        return True
+
+    def _findPciID(self, componentList):
+        """Find the pciid from the lspci output components list."""
         pciid = None
         for line in componentList.splitlines():
             if "VGA" in line:
                 pciid = componentList.split(" ")[0]
                 break
+        return pciid
 
-        lspciOut = self.execguest("lspci -v -s %s" % pciid)
-
+    def _isKernelDriverInUse(self, lspciOut):
+        """Parse the input to figure out if Kernel Driver in use from lspci output."""
         # Check if "Kernel driver in use: " is in second last line.
         loLastLine = [line for line in lspciOut.splitlines()][-2]
         xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
 
         if "Kernel driver in use: " not in loLastLine:
             return False # No kernel driver in use, ie. GPU not utilized.
+        return True
 
-
-        # Install lshw if needed.
-        if not isUbuntu:
-            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
-                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
-            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
-                
-        xml = self.execguest("lshw -xml -c video")
-
-        # Parse the lshw output, look for node with right pciid.
+    def _isGPUClaimed(self, xml):
         root = ET.fromstring(xml)
         desiredNode = None
         for child in root:
@@ -9377,8 +9388,6 @@ sleep (3000)
         if "claimed" in desiredNode.attrib:
             if desiredNode.attrib["claimed"] != "true":
                 return False # GPU is unclaimed.
-
-        # Both tests for the GPU being utilized passed.
         return True
 
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):

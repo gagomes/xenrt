@@ -73,7 +73,7 @@ class TC8369(xenrt.TestCase):
         signFailures = []
         for d in drivers:
             try:
-                self.guest.xmlrpcExec("c:\\signtool.exe /kp /v %s" % d, returnData=True)
+                self.guest.xmlrpcExec("c:\\signtool.exe /kp /v %s" % d, returndata=True)
             except:
                 signFailures.append(d)
 

@@ -1389,7 +1389,7 @@ exit /B 1
                 xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
                 xenrt.sleep(5)
 
-                if checkPvDriversUpToDate:
+                if not xenrt.TEC().lookup("NO_TOOLS_UP_TO_DATE_CHK", False, boolean=True) and checkPvDriversUpToDate:
                     for i in range(48):
                         if self.pvDriversUpToDate():
                             break

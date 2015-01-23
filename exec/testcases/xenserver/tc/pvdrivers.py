@@ -9,8 +9,10 @@
 #
 
 import socket, re, string, time, traceback, sys, random, copy, os.path
+from datetime import datetime
 import xenrt
 from xenrt.lazylog import step
+from xenrt.lib.xenserver.signedpackages import SignedXenCenter, SignedWindowsTools
 
 class TC8369(xenrt.TestCase):
     """Verify Windows PV drivers install to a Windows 2008 x64 VM without a test certificate"""
@@ -71,6 +73,48 @@ class TC8369(xenrt.TestCase):
     def run(self, arglist):
         if self.runSubcase("checkDrivers", (), "Drivers", "Check") == xenrt.RESULT_PASS:
             self.runSubcase("checkCerts", (), "Certs", "Check")
+
+class TestSignedComponent(xenrt.TestCase):
+    """ Verify the digital signature of signed XenCenter and Windows drivers/tools"""
+
+    def prepare(self, arglist=None):
+        self.args  = self.parseArgsKeyValue(arglist)
+        self.guest = self.getGuest(self.args['guest'])
+        self.uninstallOnCleanup(self.guest)
+
+        # Signtool is required for digital signature verification of binary
+        self.guest.xmlrpcSendFile("%s/distutils/signtool.exe" %
+                                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
+                                  "c:\\signtool.exe")
+
+    def run(self, arglist=None):
+
+        # Get the instance of the components we are testing
+        testObjects=[SignedXenCenter(),SignedWindowsTools()]
+        for testObj in testObjects:
+            testComponent = testObj.description()
+            self.declareTestcase("TestSignedComponent",testComponent)
+            self.runSubcase("doTest", (testObj,testComponent), "TestSignedComponent",testComponent)
+
+    def doTest(self,testObj,fileToVerify):
+
+        # Fetch the file from the package 
+        exe=testObj.fetchFile()
+        self.guest.xmlrpcSendFile(exe,fileToVerify)
+
+        # Verify the digital signature of the binary
+        testObj.verifySignature(self.guest,fileToVerify)
+
+        # Get the Certificate expiry date of signed binary
+        expiryDate=testObj.getCertExpiryDate(self.guest,fileToVerify)
+
+        # Set a new guest date so as to past the cert expiry date. We add a year to it
+        expiryYear=datetime.strptime(expiryDate,"%m-%d-%y").strftime("%Y")
+        newDate=datetime.strptime(expiryDate,"%m-%d-%y").replace(year=int(expiryYear)+1)
+        testObj.changeGuestDate(self.guest,newDate)
+
+        # If the binary is digitally signed with valid certificate we should be able to install
+        testObj.installPackages(self.guest)
 
 class _LinuxKernelUpdate(xenrt.TestCase):
     """Installing PV tools to a VM replaces the kernel with a Citrix kernel"""

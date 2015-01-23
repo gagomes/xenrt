@@ -1,0 +1,5 @@
+# Description: Microsoft signtool.exe utility
+# Status: downloadable
+# Obtaining:
+# Download and install the Windows SDK and extract signtool.exe
+d891bf5a8a6c8d818520a0c0c830043f  ./signtool.exe

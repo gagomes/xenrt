@@ -39,9 +39,7 @@ class TC8369(xenrt.TestCase):
         self.certsBefore = self.guest.getWindowsCertList()
 
         # Signtool is required for digital signature verification
-        self.guest.xmlrpcSendFile("%s/distutils/signtool.exe" %
-                                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
-                                  "c:\\signtool.exe")
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
 
     def checkCerts(self):
         """Since Tampa the Windows PV driver installer will automatically
@@ -73,7 +71,7 @@ class TC8369(xenrt.TestCase):
         signFailures = []
         for d in drivers:
             try:
-                self.guest.xmlrpcExec("c:\\signtool.exe /kp /v %s" % d, returndata=True)
+                self.guest.xmlrpcExec("c:\\signtool\\signtool.exe /kp /v %s" % d, returndata=True)
             except:
                 signFailures.append(d)
 
@@ -108,9 +106,7 @@ class TestSignedComponent(xenrt.TestCase):
         self.uninstallOnCleanup(self.guest)
 
         # Signtool is required for digital signature verification of binary
-        self.guest.xmlrpcSendFile("%s/distutils/signtool.exe" %
-                                  (xenrt.TEC().lookup("LOCAL_SCRIPTDIR")),
-                                  "c:\\signtool.exe")
+        self.guest.xmlrpcUnpackTarball("%s/signtool.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\")
 
     def run(self, arglist=None):
 

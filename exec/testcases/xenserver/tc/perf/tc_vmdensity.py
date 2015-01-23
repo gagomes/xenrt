@@ -2738,6 +2738,7 @@ class Experiment_vmrun_cron(Experiment_vmrun):
                         last_n_running = n_running 
                     time.sleep(0.1)
 
+            vmt.daemon = True # kills this thread automatically if main thread exits
             vmt.start()
             self.vmstart_threads.append(vmt)
 

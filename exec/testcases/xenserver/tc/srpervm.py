@@ -514,18 +514,18 @@ class ISCSIMPathScenario(xenrt.TestCase):
 
         xenrt.TEC().logverbose("checkPathCount on %s after %s the path" % (host, pathState))
 
-        attempts = 1
         deadline=xenrt.timenow()+ 120 # 120 seconds
 
-        while True:
-            xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempts))
+        correctPathCount = False
+        for attempt in range(1, self.ATTEMPTS+1):
+            xenrt.TEC().logverbose("Finding the device paths. Attempt %s " % (attempt))
 
             mpaths = host.getMultipathInfo(onlyActive=True)
 
             if len(mpaths) != self.EXPECTED_MPATHS:
                 raise xenrt.XRTFailure("Incorrect number of devices (attempt %s) "
                                                         " Found (%s) Expected: %s" %
-                                        ((attempts), len(mpaths), self.EXPECTED_MPATHS))
+                                        ((attempt), len(mpaths), self.EXPECTED_MPATHS))
 
             deviceMultipathCountList = [len(mpaths[scsiid]) for scsiid in mpaths.keys()]
             xenrt.TEC().logverbose("deviceMultipathCountList : %s" % str(deviceMultipathCountList))
@@ -533,13 +533,13 @@ class ISCSIMPathScenario(xenrt.TestCase):
                 if expectedDevicePaths in deviceMultipathCountList: # expcted paths.
                     if(xenrt.timenow() > deadline):
                         xenrt.TEC().warning("Time to report that all the paths have changed is more than 2 minutes")
+                    correctPathCount = True
                     break
 
-            if attempts > self.ATTEMPTS:
-                raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempts)
+            xenrt.sleep(0.5)
 
-            attempts = attempts + 1
-            xenrt.sleep(0.5) # we want to know as soon as possible when all paths are down/up.
+        if not correctPathCount:
+            raise xenrt.XRTFailure("Incorrect number of device paths found even after attempting %s times" % attempt)
 
     def run(self, arglist=[]):
 

@@ -4851,7 +4851,7 @@ class TCDiffChecksums(xenrt.TestCase):
         # Filter each file to remove known volatile entries
         self.filterChecksums("%s/original.txt" % logdir)
         self.filterChecksums("%s/repacked.txt" % logdir)
-        self.filterChecksums("%s/hotifxed.txt" % logdir)
+        self.filterChecksums("%s/hotfixed.txt" % logdir)
 
         # Output the diffs
         self.diff("original", "repacked", "originalVsRepacked.txt")

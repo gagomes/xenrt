@@ -834,7 +834,8 @@ class _TC8095(xenrt.TestCase):
             finally:
                 if tracepid:
                     try:
-                        # Stop the tcpdump
+                        # Wait for tcpdump to flush its output and stop
+                        time.sleep(5)
                         self.host.execdom0("kill -TERM %s" % (tracepid))
                         time.sleep(2)
                     except:

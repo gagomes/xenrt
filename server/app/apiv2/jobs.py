@@ -300,7 +300,7 @@ class XenRTGetJob(XenRTGetJobsBase):
         logitems = self.request.params.get("logitems", "false") == "true"
         jobs = self.getJobs(1, ids=[job], getParams=True, getResults=True, getLog=logitems)
         if not job in jobs:
-            return HTTPNotFound()
+            raise XenRTAPIError(HTTPNotFound, "Job not found")
         return jobs[job]
 
 RegisterAPI(XenRTListJobs)

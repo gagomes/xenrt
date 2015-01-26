@@ -3337,9 +3337,8 @@ class Config:
         for h in hfKeys:
             if not started:
                 if h == startPoint:
-                    started = True
-                else:
-                    continue
+                    started = True # Get the next fix
+                continue
 
             hotfixes.append(allHotfixes[h])
             if stopPoint and h == stopPoint:

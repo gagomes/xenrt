@@ -2085,7 +2085,7 @@ class TCApplyHotfixesToPoint(xenrt.TestCase):
             stop = args["stop"]
 
         host = self.getDefaultHost()
-        release = xenrt.TEC().lookup("PRODUCT_VERSION")
+        release = host.productVersion
         branch = xenrt.TEC().lookup("HFX_BRANCH_%s" % release, "RTM")
         hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startPoint=start, stopPoint=stop)
         for h in hotfixes:

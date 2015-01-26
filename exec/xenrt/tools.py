@@ -1923,4 +1923,88 @@ def newGuestsInstalls():
     print tccode
     print seqcode
 
+def driverUpgradeMatrix():
+    oldRelease = "Clearwater"
+    oldInputDir = "/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"
+    newRelease = "Creedence"
+    branches = ["RTM", "SP1"]
+    distros = ["win7sp1-x86", "win7sp1-x64"]
 
+    for b in branches:
+        _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, b, distros)
+
+def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
+
+    vmPrepare = ""
+    for d in distros:
+        vmPrepare += """      <vm name="%s">
+        <distro>%s</distro>
+        <network device="0"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
+      </vm>
+""" % (d, d)
+
+    prepTCs = ""
+    upgTCs = ""
+    start = None
+    hotfixes = xenrt.TEC().lookup(["TOOLS_HOTFIXES", oldRelease, branch])
+    if branch == "RTM":
+        hotfixes.insert(0, "RTM")
+    for h in hotfixes:
+        if h != "RTM":
+            prepTCs += """      <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixTo%s">
+""" % h
+            if start:
+                prepTCs += """        <arg>start=%s</arg>
+""" % start
+            prepTCs += """        <arg>stop=%s</arg>
+      </testcase>
+""" % h
+
+        for d in distros:
+            prepTCs += """      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrep%s_%s">
+        <arg>template=%s</arg>
+        <arg>tag=%s_%s</arg>
+      </testcase>
+""" % (d, h, d, d, h)
+            upgTCs += """      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpg%s_%s">
+        <arg>tag=%s_%s</arg>
+      </testcase>
+""" % (d, h, d, h)
+
+        start = h
+
+    seq = """<xenrt>
+
+  <!-- Driver upgrade test sequence -->
+
+  <default name="OLD_PRODUCT_VERSION" value="%s"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="%s"/>
+
+  <variables>
+    <PRODUCT_VERSION>%s</PRODUCT_VERSION>
+    <HFX_BRANCH_%s>%s</HFX_BRANCH_%s>
+  </variables>
+
+  <prepare>
+    <host productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}">
+%s    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="PrepareVMs">
+%s    </serial>
+    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+    <serial group="UpgradeVMs">
+%s    </serial>
+  </testsequence>
+</xenrt>
+""" % (oldRelease, oldInputDir, newRelease, oldRelease.upper(), branch, oldRelease.upper(), vmPrepare, prepTCs, upgTCs)
+
+    seqName = "seqs/%spvupg_%s_%s.seq" % (newRelease.lower(), oldRelease.lower(), branch)
+    with open(seqName, "w") as f:
+        f.write(seq)
+    print "Wrote %s" % seqName

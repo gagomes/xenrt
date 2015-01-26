@@ -23,7 +23,7 @@ from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
-import xenrt.lib.xenserver.iptablesutil
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
 
 # Symbols we want to export from the package.
 __all__ = ["Host",

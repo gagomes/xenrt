@@ -1852,8 +1852,10 @@ fi
     def _upgrade(self, newVersion, suppackcds=None):
         # Upgrade to the current version
         self.install(upgrade=True, suppackcds=suppackcds)
-        
+       
         if not xenrt.TEC().lookup("OPTION_NO_AUTO_PATCH", False, boolean=True):
+            # Wait to allow Xapi database to be written out
+            xenrt.sleep(300)
             self.applyRequiredPatches()
 
     def applyWorkarounds(self):

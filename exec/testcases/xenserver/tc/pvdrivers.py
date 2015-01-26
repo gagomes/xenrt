@@ -75,7 +75,7 @@ class TC8369(xenrt.TestCase):
                     stexe = "signtool_x64.exe"
                 else:
                     stexe = "signtool_x86.exe"
-                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v %s" % (stexe, d), returndata=True)
+                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v \"%s\"" % (stexe, d), returndata=True)
             except:
                 signFailures.append(d)
 

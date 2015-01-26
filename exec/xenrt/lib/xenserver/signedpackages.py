@@ -28,7 +28,11 @@ class SignedComponent(object):
     def verifySignature(self,guest,testFile):
         xenrt.TEC().logverbose("signtool is verifying the %s build" % (testFile))
         try:
-            guest.xmlrpcExec("c:\\signtool\\signtool.exe verify /pa /v %s" % (testFile),
+            if guest.xmlrpcGetArch() == "amd64":
+                stexe = "signtool_x64.exe"
+            else:
+                stexe = "signtool_x86.exe"
+            guest.xmlrpcExec("c:\\signtool\\%s verify /pa /v %s" % (stexe, testFile),
                                    returndata=True)
         except Exception:
             xenrt.TEC().logverbose("The %s build is not verified and cannot be installed"
@@ -38,7 +42,11 @@ class SignedComponent(object):
 
     def getCertExpiryDate(self,guest,testFile):
         """ Returns the certificate expiry date of signed exe"""
-        data = guest.xmlrpcExec("c:\\signtool\\signtool.exe verify /pa /v %s" % (testFile),
+        if guest.xmlrpcGetArch() == "amd64":
+            stexe = "signtool_x64.exe"
+        else:
+            stexe = "signtool_x86.exe"
+        data = guest.xmlrpcExec("c:\\signtool\\%s verify /pa /v %s" % (stexe, testFile),
                                    returndata=True)
         s = data.split("Issued to: Citrix")[1].split("Expires: ")[1]
         expiryDate = s[:s.index("SHA1")].strip()

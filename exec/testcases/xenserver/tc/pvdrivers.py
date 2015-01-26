@@ -71,7 +71,11 @@ class TC8369(xenrt.TestCase):
         signFailures = []
         for d in drivers:
             try:
-                self.guest.xmlrpcExec("c:\\signtool\\signtool.exe /kp /v %s" % d, returndata=True)
+                if self.guest.xmlrpcGetArch() == "amd64":
+                    stexe = "signtool_x64.exe"
+                else:
+                    stexe = "signtool_x86.exe"
+                self.guest.xmlrpcExec("c:\\signtool\\%s verify /kp /v %s" % (stexe, d), returndata=True)
             except:
                 signFailures.append(d)
 

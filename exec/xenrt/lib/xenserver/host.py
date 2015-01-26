@@ -23,6 +23,7 @@ from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
 from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
+import xenrt.lib.xenserver.iptablesutil
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -8075,6 +8076,10 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'CONTAINER_HOST'], self.getIP())
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
+
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
 
 #############################################################################
 

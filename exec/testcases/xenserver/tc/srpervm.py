@@ -529,8 +529,9 @@ class ISCSIMPathScenario(xenrt.TestCase):
         startTime = xenrt.util.timenow() # used in step (12)
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
+            iptablesFirewall = host.getIpTablesFirewall()
             disableTime = xenrt.util.timenow()
-            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.filerIP)) # 2. Note the time and cause the path to fail.
+            iptablesFirewall.blockIP(self.filerIP) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -545,8 +546,9 @@ class ISCSIMPathScenario(xenrt.TestCase):
 
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
+            iptablesFirewall = host.getIpTablesFirewall()
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.filerIP)) # 6. Cause the path to be live again.
+            iptablesFirewall.unblockIP(self.filerIP) # 6. Cause the path to be live again.
             self.checkPathCount(host) # 7. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 8. Report the elapsed time beween steps 6 and 7 for every host.
@@ -577,8 +579,9 @@ class ISCSIPathFail(ISCSIMPathScenario):
 
         overallDisableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
+            iptablesFirewall = host.getIpTablesFirewall()
             disableTime = xenrt.util.timenow()
-            host.execdom0("iptables -I INPUT -s %s -j DROP" % (self.filerIP)) # 2. Note the time and cause the path to fail.
+            iptablesFirewall.blockIP(self.filerIP) # 2. Note the time and cause the path to fail.
             self.checkPathCount(host, True) # 3. Wait until XenServer reports that the path has failed (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.
@@ -603,8 +606,9 @@ class ISCSIPathRecover(ISCSIMPathScenario):
 
         overallEnableTime = xenrt.util.timenow()
         for host in self.pool.getHosts():
+            iptablesFirewall = host.getIpTablesFirewall()
             enableTime = xenrt.util.timenow()
-            host.execdom0("iptables -D INPUT -s %s -j DROP" % (self.filerIP)) # 2. Cause the path to be live again.
+            iptablesFirewall.unblockIP(self.filerIP) # 2. Cause the path to be live again.
             self.checkPathCount(host) # 3. Wait until XenServer reports that the path has recovered (and no longer)
 
             # 4. Report the elapsed time beween steps 2 and 3 for every host.

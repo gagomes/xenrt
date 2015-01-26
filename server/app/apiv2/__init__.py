@@ -61,8 +61,12 @@ class XenRTAPIv2Swagger(XenRTPage):
                 "description": cls.DESCRIPTION,
                 "tags": cls.TAGS,
                 "parameters": cls.PARAMS,
-                "responses": cls.RESPONSES
+                "responses": cls.RESPONSES,
+                "consumes": [cls.CONSUMES],
+                "produces": [cls.PRODUCES]
             }
+            if cls.PARAM_ORDER:
+                spec['paths'][cls.PATH][cls.REQTYPE.lower()]['paramOrder'] = cls.PARAM_ORDER
             if cls.OPERATION_ID:
                 spec['paths'][cls.PATH][cls.REQTYPE.lower()]['operationId'] = cls.OPERATION_ID
             spec['definitions'].update(cls.DEFINITIONS)
@@ -76,6 +80,7 @@ class XenRTAPIv2Page(XenRTPage):
     CONSUMES = "application/json"
     DEFINITIONS = {}
     OPERATION_ID = None
+    PARAM_ORDER = []
     
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)
@@ -90,3 +95,4 @@ class XenRTAPIv2Page(XenRTPage):
 import app.apiv2.bindings
 import app.apiv2.jobs
 import app.apiv2.machines
+import app.apiv2.files

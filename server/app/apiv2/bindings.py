@@ -14,72 +14,116 @@ class Path(object):
         self.argdesc = []
         self.jsonParams = []
         self.formParams = []
+        self.fileParams = []
         self.pathParams = []
         self.queryParams = []
         self.parseParams()
+
+    def pythonParamName(self, param):
+        if param == "file":
+            return "filepath"
+        else:
+            return param
 
     @property
     def methodContent(self):
         ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
         for p in self.pathParams:
-            ret += """        path = path.replace("{%s}", %s)\n""" % (p, p)
+            q = self.pythonParamName(p)
+            ret += """        path = path.replace("{%s}", %s)\n""" % (p, q)
         ret += """        paramdict = {}\n"""
+        ret += """        files = {}\n"""
         for p in self.queryParams:
-            ret += """        if %s != None:\n            paramdict['%s'] = self.__serializeForQuery(%s)\n""" % (p, p, p)
+            q = self.pythonParamName(p)
+            ret += """        if %s != None:\n            paramdict['%s'] = self.__serializeForQuery(%s)\n""" % (q, p, q)
         ret += """        payload = {}\n"""
         if self.jsonParams:
             ret += """        j = {}\n"""
             for p in self.jsonParams:
-                ret += """        if %s != None:\n            j['%s'] = %s\n""" % (p, p, p)
+                q = self.pythonParamName(p)
+                ret += """        if %s != None:\n            j['%s'] = %s\n""" % (q, p, q)
             ret += """        payload = json.dumps(j)\n"""
         elif self.formParams:
             for p in self.formParams:
-                ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (p, p, p)
+                q = self.pythonParamName(p)
+                if p in self.fileParams:
+                    ret += """        if %s != None:\n            files['%s'] = (os.path.basename(%s), open(%s, 'rb'))\n""" % (q, p, q, q)
+                else:
+                    ret += """        if %s != None:\n            payload['%s'] = %s\n""" % (q, p, q)
         if self.method == "get":
             ret += """        r = requests.get(path, params=paramdict, auth=(self.user, self.password))\n"""
         else:
-            ret += """        r = requests.%s(path, params=paramdict, data=payload, auth=(self.user, self.password))\n""" % self.method
+            ret += """        r = requests.%s(path, params=paramdict, data=payload, files=files, auth=(self.user, self.password))\n""" % self.method
         ret += """        self.__raiseForStatus(r)\n"""
-        ret += """        return r.json()"""
+        if 'application/json' in self.data['produces']:
+            ret += """        return r.json()"""
+        else:
+            ret += """        return r.content"""
         return ret
 
     def parseParams(self):
+        args = []
+        argdesc = {}
         for p in self.data.get('parameters', []):
             if p['in'] == "body":
                 objType = self.definitions[p['schema']['$ref'].split("/")[-1]]
                 for q in [x for x in objType['properties'].keys() if x in objType.get('required', [])]:
                     self.jsonParams.append(q)
-                    self.args.append(q)
-                    self.argdesc.append("%s: %s" % (q, objType['properties'][q]['description']))
+                    args.append((q,))
+                    argdesc[q] = objType['properties'][q].get('description', "")
                 for q in [x for x in objType['properties'].keys() if x not in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     if objType['properties'][q]['type'] == "boolean":
                         default = "False"
                     else:
                         default = "None"
-                    self.args.append("%s=%s" % (q, default))
-                    self.argdesc.append("%s: %s" % (q, objType['properties'][q]['description']))
+                    args.append((q, default))
+                    argdesc[q] = objType['properties'][q].get('description', "")
             else:
                 if p['in'] == "path":
                     self.pathParams.append(p['name'])
                 elif p['in'] == "query":
                     self.queryParams.append(p['name'])
-                self.argdesc.append("%s: %s" % (p['name'], p['description']))
+                elif p['in'] == "formData":
+                    self.formParams.append(p['name'])
+
+                if p.get('type') == "file":
+                    self.fileParams.append(p['name'])
+                argdesc[p['name']] = p.get('description',"")
                 if p.get('required'):
                     if not p.get('default'):
-                        self.args.append(p['name'])
+                        args.append((p['name'],))
                     else:
                         if p['type'] == "string" or (p['type'] == "array" and p['items']['type'] == "string"):
                             default = "\"%s\"" % p['default']
                         else:
                             default = p['default']
-                        self.args.append("%s=%s" % (p['name'], default))
+                        args.append((p['name'], default))
                 else:
                     if p.get('type') == "boolean":
                         default = "False"
                     else:
                         default = "None"
-                    self.args.append("%s=%s" % (p['name'], default))
+                    args.append((p['name'], default))
+        for p in self.data.get('paramOrder', []):
+            pp = [x for x in args if x[0] == p]
+            if not pp:
+                pp = [(p,)]
+            pname = self.pythonParamName(pp[0][0])
+            if len(pp[0]) == 1:
+                self.args.append(pname)
+            else:
+                self.args.append("%s=%s" % (pname, pp[0][1]))
+
+            self.argdesc.append("%s: %s" % (pname, argdesc.get(pp[0][0], "")))
+        for p in args:
+            if not p[0] in self.data.get('paramOrder', []):
+                pname = self.pythonParamName(p[0])
+                if len(p) == 1:
+                    self.args.append(pname)
+                else:
+                    self.args.append("%s=%s" % (pname, p[1]))
+                self.argdesc.append("%s: %s" % (pname, argdesc.get(p[0], "")))
 
     @property
     def methodSignature(self):
@@ -108,6 +152,7 @@ class Path(object):
 
     @property
     def methodParams(self):
+        args = []
         return ", ".join(self.args)
 
 class PythonBindings(XenRTAPIv2Swagger):
@@ -129,6 +174,7 @@ class PythonBindings(XenRTAPIv2Swagger):
 import requests
 import json
 import httplib
+import os.path
 
 class XenRTAPIException(Exception):
     def __init__(self, code, reason, canForce):
@@ -165,8 +211,8 @@ class XenRT(object):
             else:
                 reason = None
                 canForce = False
-        except Exception, e:
-            print e
+        except:
+            pass
         else:
             if reason:
                 raise XenRTAPIException(response.status_code,

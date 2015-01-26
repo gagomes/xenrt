@@ -298,6 +298,7 @@ class LeaseMachine(_MachineBase):
         }
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "lease_machine"
+    PARAM_ORDER = ['name', 'duration', 'reason', 'force']
 
     def lease(self, machine, user, duration, reason, force):
         leaseFrom = time.strftime("%Y-%m-%d %H:%M:%S",
@@ -404,7 +405,7 @@ class ReturnMachine(_MachineBase):
                 params = {}
             jsonschema.validate(params, self.DEFINITIONS['leasereturn'])
         except Exception, e:
-            raise XenRTAPIError(HTTPBadRequest, str(e))
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
         self.return_machine(self.request.matchdict['name'], self.getUser(), params.get('force', False))
         return {}
 

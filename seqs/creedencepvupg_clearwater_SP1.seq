@@ -94,6 +94,6 @@
       <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62ESP1012">
         <arg>tag=win7sp1-x64_XS62ESP1012</arg>
       </testcase>
-    </serial>
+    </parallel>
   </testsequence>
 </xenrt>

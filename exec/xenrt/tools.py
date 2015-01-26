@@ -2002,7 +2002,7 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
       <arg>input=DEFAULT</arg>
     </testcase>
     <parallel group="UpgradeVMs">
-%s    </serial>
+%s    </parallel>
   </testsequence>
 </xenrt>
 """ % (oldRelease, oldInputDir, newRelease, oldRelease.upper(), branch, oldRelease.upper(), vmPrepare, prepTCs, upgTCs)

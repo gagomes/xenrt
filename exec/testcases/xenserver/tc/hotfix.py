@@ -2069,7 +2069,7 @@ class TCApplyHotfixes(xenrt.TestCase):
         patchIdents = patches.keys()
         patchIdents.sort()
         for p in patchIdents:
-            self.host.applyPatch(xenrt.TEC().getFile(patches[p]))
+            self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
         self.host.reboot()
 
 class TCRollingPoolUpdate(xenrt.TestCase):

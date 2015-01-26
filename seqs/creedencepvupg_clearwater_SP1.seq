@@ -8,6 +8,7 @@
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <HFX_BRANCH_CLEARWATER>SP1</HFX_BRANCH_CLEARWATER>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
   <prepare>
@@ -32,43 +33,49 @@
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1">
         <arg>stop=XS62ESP1</arg>
       </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1">
-        <arg>template=win7sp1-x86</arg>
-        <arg>tag=win7sp1-x86_XS62ESP1</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1">
-        <arg>template=win7sp1-x64</arg>
-        <arg>tag=win7sp1-x64_XS62ESP1</arg>
-      </testcase>
+      <parallel>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=win7sp1-x86_XS62ESP1</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=win7sp1-x64_XS62ESP1</arg>
+        </testcase>
+      </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1003">
         <arg>start=XS62ESP1</arg>
         <arg>stop=XS62ESP1003</arg>
       </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1003">
-        <arg>template=win7sp1-x86</arg>
-        <arg>tag=win7sp1-x86_XS62ESP1003</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1003">
-        <arg>template=win7sp1-x64</arg>
-        <arg>tag=win7sp1-x64_XS62ESP1003</arg>
-      </testcase>
+      <parallel>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1003">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=win7sp1-x86_XS62ESP1003</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1003">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=win7sp1-x64_XS62ESP1003</arg>
+        </testcase>
+      </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1012">
         <arg>start=XS62ESP1003</arg>
         <arg>stop=XS62ESP1012</arg>
       </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1012">
-        <arg>template=win7sp1-x86</arg>
-        <arg>tag=win7sp1-x86_XS62ESP1012</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1012">
-        <arg>template=win7sp1-x64</arg>
-        <arg>tag=win7sp1-x64_XS62ESP1012</arg>
-      </testcase>
+      <parallel>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1012">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=win7sp1-x86_XS62ESP1012</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1012">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=win7sp1-x64_XS62ESP1012</arg>
+        </testcase>
+      </parallel>
     </serial>
     <testcase id="xenserver.install.TCXenServerUpgrade">
       <arg>input=DEFAULT</arg>
     </testcase>
-    <serial group="UpgradeVMs">
+    <parallel group="UpgradeVMs">
       <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62ESP1">
         <arg>tag=win7sp1-x86_XS62ESP1</arg>
       </testcase>

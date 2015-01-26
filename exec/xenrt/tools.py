@@ -1962,16 +1962,18 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
       </testcase>
 """ % h
 
+        prepTCs += "      <parallel>\n"
         for d in distros:
-            prepTCs += """      <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrep%s_%s">
-        <arg>template=%s</arg>
-        <arg>tag=%s_%s</arg>
-      </testcase>
+            prepTCs += """        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrep%s_%s">
+          <arg>template=%s</arg>
+          <arg>tag=%s_%s</arg>
+        </testcase>
 """ % (d, h, d, d, h)
             upgTCs += """      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpg%s_%s">
         <arg>tag=%s_%s</arg>
       </testcase>
 """ % (d, h, d, h)
+        prepTCs += "      </parallel>\n"
 
         start = h
 
@@ -1985,6 +1987,7 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
   <variables>
     <PRODUCT_VERSION>%s</PRODUCT_VERSION>
     <HFX_BRANCH_%s>%s</HFX_BRANCH_%s>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
   </variables>
 
   <prepare>
@@ -1998,7 +2001,7 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
     <testcase id="xenserver.install.TCXenServerUpgrade">
       <arg>input=DEFAULT</arg>
     </testcase>
-    <serial group="UpgradeVMs">
+    <parallel group="UpgradeVMs">
 %s    </serial>
   </testsequence>
 </xenrt>

@@ -9346,7 +9346,12 @@ sleep (3000)
             if "claimed" in desiredNode.attrib:
                 if desiredNode.attrib["claimed"] != "true":
                     return False # GPU is unclaimed.
+            else:
+                return False
             return True
+
+        if not gpuType:
+            return False
 
         # List of compatible distros.
         workingDistros = ["rhel", "centos", "oel", "ubuntu"]

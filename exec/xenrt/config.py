@@ -2378,6 +2378,14 @@ class Config:
         self.config["HOTFIXES"]["Clearwater"] = {"RTM": {}, "SP1": {}}
         self.config["HOTFIXES"]["Creedence"] = {"RTM": {}}
 
+        self.config["TOOLS_HOTFIXES"] = {}
+        self.config["TOOLS_HOTFIXES"]["Boston"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Sanibel"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["SanibelCC"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Tampa"] = {"RTM": []}
+        self.config["TOOLS_HOTFIXES"]["Clearwater"] = {"RTM": [], "SP1": []}
+        self.config["TOOLS_HOTFIXES"]["Creedence"] = {"RTM": []}
+
         self.config["DEFAULT_HOTFIX_BRANCH"] = {}
         self.config["DEFAULT_HOTFIX_BRANCH"]["Clearwater"] = "SP1"
         self.config["DEFAULT_HOTFIX_BRANCH"]["Creedence"] = "RTM"
@@ -3212,6 +3220,7 @@ class Config:
       
         # MuddyWaters: tools iso. Limited availability hotfix. Rolls up nothing.
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E008"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E008/76367/hotfix-XS62E008/XS62E008.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["RTM"].append("XS62E008")
       
         # Blunt: xen-hypervisor, xen-tools. Rolls up XS62E002.
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E009"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E009/76024/hotfix-XS62E009/XS62E009.xsupdate"
@@ -3230,6 +3239,7 @@ class Config:
         
         # MrToad: xen-tools . Rools up XS62E008
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E015"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E015/83715/hotfix-XS62E015/XS62E015.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["RTM"].append("XS62E015")
         
         # Burglarbill: sm, blktap . Rools up XS62E011
         self.config["HOTFIXES"]["Clearwater"]["RTM"]["XS62E016"] = "/usr/groups/release/XenServer-6.x/XS-6.2/hotfixes/XS62E016/85780/hotfix-XS62E016/XS62E016.xsupdate"
@@ -3240,12 +3250,14 @@ class Config:
 
         # 6.2 SP1 (St. Nicholas) - start of SP1 branch, rolls up all previous hotfixes
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/RTM-77323/hotfix-XS62ESP1/XS62ESP1.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1")
         
         # Carabosse - xen-hypervisor, xen-tools . Rolls up XS62E014 
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1002"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1002/77446/hotfix-XS62ESP1002/XS62ESP1002.xsupdate"
         
         # MrToad - xen-tools . Rolls up XS62E015 
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1003"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1003/83753/hotfix-XS62ESP1003/XS62ESP1003.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1003")
 
         # Fox -Xapi, SM, Blktap, xen. Rolls up XS62ESP1002, XS62E014
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1004"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1004/84037/hotfix-XS62ESP1004/XS62ESP1004.xsupdate"
@@ -3270,6 +3282,7 @@ class Config:
         
         # Esperado - xs-tools. Rolls up XS62E015, XS62ESP1003
         self.config["HOTFIXES"]["Clearwater"]["SP1"]["XS62ESP1012"] = "/usr/groups/release/XenServer-6.x/XS-6.2-SP1/hotfixes/XS62ESP1012/90176/hotfix-XS62ESP1012/XS62ESP1012.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Clearwater"]["SP1"].append("XS62ESP1012")
         
         # Ronan - blktap, guest-templates, openssl, perf-tools, sm, vgpu, vhd-tool, xapi-core, xapi-networkd, xapi-xe, xapi-xenopsd, xen-device-model, xen-hypervisor, xen-tools
         # Rolls up XS62E014, XS62E017, XS62ESP1002, XS62ESP1004, XS62ESP1006, XS62ESP1007, XS62ESP1008, XS62ESP1011

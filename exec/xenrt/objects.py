@@ -9315,6 +9315,39 @@ sleep (3000)
         @param gpuType: The brand of the GPU which should be checked against. eg. "NVIDIA"
         @rtype: boolean
         """
+
+        def findPciID(componentList):
+            """Find the pciid from the lspci output components list."""
+            pciid = None
+            for line in componentList.splitlines():
+                if "VGA" in line:
+                    pciid = componentList.split(" ")[0]
+                    break
+            return pciid
+
+        def isKernelDriverInUse(lspciOut):
+            """Parse the input to figure out if Kernel Driver in use from lspci output."""
+            # Check if "Kernel driver in use: " is in second last line.
+            loLastLine = [line for line in lspciOut.splitlines()][-2]
+            xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
+
+            if "Kernel driver in use: " not in loLastLine:
+                return False # No kernel driver in use, ie. GPU not utilized.
+            return True
+
+        def isGPUClaimed(xml):
+            root = ET.fromstring(xml)
+            desiredNode = None
+            for child in root:
+                if child.attrib["handle"].endswith(pciid):
+                    desiredNode = child
+                    break
+
+            if "claimed" in desiredNode.attrib:
+                if desiredNode.attrib["claimed"] != "true":
+                    return False # GPU is unclaimed.
+            return True
+
         # List of compatible distros.
         workingDistros = ["rhel", "centos", "oel", "ubuntu"]
 
@@ -9340,54 +9373,22 @@ sleep (3000)
 
         # Identify pciid of GPU.
         # Sample output to parse: "0:00.0 VGA|Audio ... NVIDIA|AMD|Intel"
-        pciid = self._findPciID(componentList)
+        pciid = findPciID(componentList)
         if not pciid:
             xenrt.TEC().logverbose("Could not find any graphics devices of the given name: %s" % gpuType)
             return False
 
         lspciOut = self.execguest("lspci -v -s %s" % pciid)
-        inUse = _isKernelDriverInUse(lspciOut)
+        inUse = isKernelDriverInUse(lspciOut)
         if not inUse:
             return False
                 
         xml = self.execguest("lshw -xml -c video")
-        claimed = _isGPUClaimed(xml)
+        claimed = isGPUClaimed(xml)
         if not claimed:
             return False
 
         # Both tests for the GPU being utilized passed.
-        return True
-
-    def _findPciID(self, componentList):
-        """Find the pciid from the lspci output components list."""
-        pciid = None
-        for line in componentList.splitlines():
-            if "VGA" in line:
-                pciid = componentList.split(" ")[0]
-                break
-        return pciid
-
-    def _isKernelDriverInUse(self, lspciOut):
-        """Parse the input to figure out if Kernel Driver in use from lspci output."""
-        # Check if "Kernel driver in use: " is in second last line.
-        loLastLine = [line for line in lspciOut.splitlines()][-2]
-        xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
-
-        if "Kernel driver in use: " not in loLastLine:
-            return False # No kernel driver in use, ie. GPU not utilized.
-        return True
-
-    def _isGPUClaimed(self, xml):
-        root = ET.fromstring(xml)
-        desiredNode = None
-        for child in root:
-            if child.attrib["handle"].endswith(pciid):
-                desiredNode = child
-                break
-
-        if "claimed" in desiredNode.attrib:
-            if desiredNode.attrib["claimed"] != "true":
-                return False # GPU is unclaimed.
         return True
 
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):

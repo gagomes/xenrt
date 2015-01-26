@@ -1131,6 +1131,11 @@ at > c:\\xenrtatlog.txt
         if self.getState() in ['UP', 'PAUSED']:
             self.reboot()
 
+    def setDriversBootStart(self):
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
+        self.reboot()
+
     def installDrivers(self, source=None, extrareboot=False):
         """Install PV drivers into a guest"""
 

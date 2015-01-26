@@ -1141,11 +1141,58 @@ class TCBootStartDriverUpgrade(xenrt.TestCase):
         self.guest.installDrivers(source=startDrivers, expectUpToDate=False)
 
         # Make xenvif boot start
-        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
-        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
-        self.guest.reboot()
+        self.guest.setDriversBootStart()
 
     def run(self, arglist=None):
         # Attempt to upgrade the PV drivers
         self.guest.installDrivers()
+
+class TCPrepareDriverUpgrade(xenrt.TestCase):
+    """Utility test which prepares a clone of a template VM with a specified set of tools"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        template = args["template"]
+        hotfixTag = args["tag"]
+
+        # Clone the template VM
+        templateVM = self.getGuest(template)
+        guest = templateVM.cloneVM(name=hotfixTag)
+
+        # Install drivers
+        guest.start()
+        guest.installDrivers()
+
+        # Shutdown the clone
+        guest.shutdown()
+        xenrt.TEC().registry.guestPut(hotfixTag, guest)
+
+class TCTestDriverUpgrade(xenrt.TestCase):
+    """Test upgrading the drivers in the guest"""
+
+    def run(self, arglist):
+        args = xenrt.util.strlistToDict(arglist)
+        hotfixTag = args["tag"]
+
+        # Find the VM and snapshot it
+        guest = self.getGuest(hotfixTag)
+        snapshot = guest.snapshot()
+
+        xenrt.TEC().delimit("Testing normal driver upgrade")
+        guest.start()
+
+        # Try upgrading drivers
+        guest.installDrivers()
+
+        # Revert to snapshot, make existing drivers boot start
+        xenrt.TEC().delimit("Reverting to snapshot")
+        guest.shutdown()
+        guest.revert(snapshot)
+
+        xenrt.TEC().delimit("Testing boot start driver upgrade")
+        guest.start()
+        guest.setDriversBootStart()
+
+        # Try upgrading drivers
+        guest.installDrivers()
 

@@ -3325,6 +3325,28 @@ class Config:
         elif self.config.has_key("FROM_PRODUCT_INPUTDIR"):
             self.config["FROM_REVISION"] = getRevisionfromInputdir(self.config["FROM_PRODUCT_INPUTDIR"])
 
+    def getAllHotfixes(self, release, branch="RTM", startPoint=None, stopPoint=None):
+        if not self.config["HOTFIXES"].has_key(release) or not self.config["HOTFIXES"][release].has_key(branch):
+            raise xenrt.XRTError("Could not find hotfixes for %s (%s)" % (release, branch))
+
+        allHotfixes = self.config["HOTFIXES"][release][branch]
+        hfKeys = allHotfixes.keys()
+        hfKeys.sort()
+        hotfixes = []
+        started = startPoint is None
+        for h in hfKeys:
+            if not started:
+                if h == startPoint:
+                    started = True
+                else:
+                    continue
+
+            hotfixes.append(allHotfixes[h])
+            if stopPoint and h == stopPoint:
+                break
+
+        return hotfixes
+
     def addAllHotfixes(self):
         """Adds config entries for all released hotfixes so they get applied after host installation"""
             

@@ -96,6 +96,7 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade kerberos
 	$(SUDO) easy_install --upgrade pywinrm
 	$(SUDO) easy_install --upgrade pyyaml
+	$(SUDO) easy_install --upgrade jsonschema
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
 	$(SUDO) apt-get install -y --force-yes python-m2crypto

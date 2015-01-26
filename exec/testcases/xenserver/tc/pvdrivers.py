@@ -1142,6 +1142,7 @@ class TCBootStartDriverUpgrade(xenrt.TestCase):
 
         # Make xenvif boot start
         self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xenvif", "Start", "DWORD", 0)
+        self.guest.winRegAdd("HKLM", "SYSTEM\\CurrentControlSet\\services\\xennet", "Start", "DWORD", 0)
         self.guest.reboot()
 
     def run(self, arglist=None):

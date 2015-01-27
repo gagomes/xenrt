@@ -13,14 +13,6 @@ class _FilesBase(_JobsBase):
         shutil.copyfileobj(fh, fout)
         fout.close()
         
-    def getDetailId(self, job, phase, test):
-        job = self.getJobs(1, ids=[job], getResults=True)[job]
-        return [x['detailid'] for x in job['results'].values() if x['phase'] == phase and x['test'] == test][0]
-
-    def getServer(self, job, locationParam):
-        job = int(job)
-        return self.getJobs(1, ids=[job], getParams=True)[job]['params'][locationParam]
-        
 
 class FileGet(_FilesBase):
     REQTYPE="GET"
@@ -29,7 +21,12 @@ class FileGet(_FilesBase):
     PRODUCES="application/octet-stream"
 
     def render(self):
-        (job, filename) = self.request.matchdict["file"].split(".", 1)
+        fn = self.request.matchdict["file"]
+        if "." in fn:
+            (job, filename) = fn.split(".", 1)
+        else:
+            job = fn
+            filename = ""
         job = int(job)
         if filename in ("", "test"):
             ctype = "application/octet-stream"
@@ -54,111 +51,6 @@ class FileGet(_FilesBase):
                 return HTTPNotFound()
             else:
                 raise
-
-class _GetAttachment(_FilesBase):
-    REQTYPE = "GET"
-    PARAMS = [
-        {'name': 'id',
-         'in': 'path',
-         'required': True,
-         'description': 'Job ID to get file from',
-         'type': 'integer'},
-        {'name': 'file',
-         'in': 'path',
-         'required': True,
-         'description': 'File to download',
-         'type': 'string'}]
-    RESPONSES = { "200": {"description": "Successful response"}}
-    TAGS = ["jobs"]
-
-    def render(self):
-        job = int(self.request.matchdict['id'])
-        server = self.getServer(job, self.LOCATION_PARAM)
-
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
-
-class GetAttachmentPreRun(_GetAttachment):
-    LOCATION_PARAM='JOB_FILES_SERVER'
-    PATH='/job/{id}/attachment/prerun/{file}'
-    DESCRIPTION='Get URL for job attachment, uploaded before job ran'
-    OPERATION_ID='get_job_attachment_pre_run'
-
-class GetAttachmentPostRun(_GetAttachment):
-    LOCATION_PARAM='LOG_SERVER'
-    PATH='/job/{id}/attachment/postrun/{file}'
-    DESCRIPTION='Get URL for job attachment, uploaded after job ran'
-    OPERATION_ID='get_job_attachment_post_run'
-
-class GetJobLog(_FilesBase):
-    PATH='/job/{id}/log'
-    REQTYPE = "GET"
-    RESPONSES = { "200": {"description": "Successful response"}}
-    TAGS = ["jobs"]
-    PARAMS = [
-        {'name': 'id',
-         'in': 'path',
-         'required': True,
-         'description': 'Job ID to get file from',
-         'type': 'integer'}]
-    OPERATION_ID='get_job_log'
-    DESCRIPTION = "Get URL for Job log"
-
-    def render(self):
-        job = int(self.request.matchdict['id'])
-        server = self.getServer(job, "LOG_SERVER")
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.' % (server, job)}
-
-class GetTestLogByName(_FilesBase):
-    PATH='/job/{id}/{phase}/{test}/log'
-    REQTYPE = "GET"
-    RESPONSES = { "200": {"description": "Successful response"}}
-    TAGS = ["jobs"]
-    PARAMS = [
-        {'name': 'id',
-         'in': 'path',
-         'required': True,
-         'description': 'Job ID to get file from',
-         'type': 'integer'},
-        {'name': 'phase',
-         'in': 'path',
-         'required': True,
-         'description': 'Job ID to get file from',
-         'type': 'string'},
-        {'name': 'test',
-         'in': 'path',
-         'required': True,
-         'description': 'Job ID to get file from',
-         'type': 'string'}]
-    OPERATION_ID='get_test_log_by_name'
-    DESCRIPTION = "Get URL for Test log"
-
-    def render(self):
-        job = int(self.request.matchdict['id'])
-        detailid = self.getDetailId(job, self.request.matchdict['phase'], self.request.matchdict['test'])
-        server = self.getServer(job, "LOG_SERVER")
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.test' % (server, detailid)}
-
-class GetTestLogById(_FilesBase):
-    PATH='/test/{id}/log'
-    REQTYPE = "GET"
-    RESPONSES = { "200": {"description": "Successful response"}}
-    TAGS = ["jobs"]
-    PARAMS = [
-        {'name': 'id',
-         'in': 'path',
-         'required': True,
-         'description': 'Test detail ID to get file from',
-         'type': 'integer'}]
-    OPERATION_ID='get_test_log_by_id'
-    DESCRIPTION = "Get URL for Test log"
-
-    def render(self):
-        detail = int(self.request.matchdict['id'])
-        jobs = self.getJobs(1, detailids=[detail], getParams=True)
-        if len(jobs.keys()) == 0:
-            raise XenRTAPIError(HTTPNotFound, "Job not found")
-        server = jobs.values()[0]['params']['LOG_SERVER']
-        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.test' % (server, detail)}
 
 class UploadAttachment(_FilesBase):
     HIDDEN=True
@@ -249,11 +141,6 @@ class UploadTestLog(_FilesBase):
         self.uploadFile(detailid, "test", fh)
 
 RegisterAPI(UploadAttachment)
-RegisterAPI(GetAttachmentPreRun)
-RegisterAPI(GetAttachmentPostRun)
 RegisterAPI(UploadJobLog)
 RegisterAPI(UploadTestLog)
 RegisterAPI(FileGet)
-RegisterAPI(GetJobLog)
-RegisterAPI(GetTestLogByName)
-RegisterAPI(GetTestLogById)

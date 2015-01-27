@@ -10624,7 +10624,7 @@ class ClearwaterHost(TampaHost):
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
     def license(self, edition = "free", v6server = None, mockLicense = False, sku=None):
 
-        if (mockLicense == True or (edition != "free" and v6server == None)):
+        if mockLicense == True:
 
             expTime = datetime.datetime.now() + datetime.timedelta(days=365)
              
@@ -11358,10 +11358,6 @@ class DundeeHost(CreedenceHost):
 
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
-
-    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,v6server=v6server)
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest

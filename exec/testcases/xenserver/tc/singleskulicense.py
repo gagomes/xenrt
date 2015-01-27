@@ -161,7 +161,7 @@ class SingleSkuBase(xenrt.TestCase):
         else:
             obj = self.param['poolObj']
 
-        obj.templicense(edition = edition, v6server = v6server)
+        obj.license(edition= edition, v6server = v6server)
 
     def resetSystem(self):
        

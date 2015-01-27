@@ -8033,7 +8033,7 @@ rm -f /etc/xensource/xhad.conf || true
     def applyFullLicense(self,v6server):
  
         license = XenServerLicenceFactory().maxLicenceSkuHost(self)
-        LicenceManager().addLicenserToServer(v6server,license)
+        LicenceManager().addLicensesToServer(v6server,license)
         host.license(edition = license.getEdition(), v6server=v6server)
         
 

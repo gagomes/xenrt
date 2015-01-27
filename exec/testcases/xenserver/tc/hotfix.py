@@ -637,6 +637,13 @@ class _ClearwaterSP1(_ClearwaterRTM):
 class _ClearwaterSP1HFd(_ClearwaterSP1):
     INITIAL_HOTFIXES = ["XS62ESP1", "XS62ESP1002", "XS62ESP1003", "XS62ESP1004", "XS62ESP1005", "XS62ESP1006", "XS62ESP1007", "XS62ESP1008", "XS62ESP1009", "XS62ESP1011", "XS62ESP1012", "XS62ESP1013", "XS62ESP1014", "XS62ESP1015", "XS62ESP1016"]
     
+class _CreedenceRTM(_Hotfix):
+    INITIAL_VERSION = "Creedence"
+    INITIAL_BRANCH = "RTM"
+    
+class _CreedenceRTMHFd(_CreedenceRTM):
+    INITIAL_HOTFIXES = []
+    
     
 # Upgrades
 class _OrlandoRTMviaMiamiHF3(_MiamiHF3):
@@ -809,6 +816,10 @@ class TC20927(_ClearwaterSP1HFd):
     """Apply hotfix to XenServer 6.2 SP1 with all previous released hotfixes applied"""
     pass
     
+class TC23786(_CreedenceRTMHFd):
+    """Apply hotfix to XenServer 6.5 RTM with all previous released (non-SP1) hotfixes applied"""
+    pass
+    
 # Negative tests (the hotfix should not apply to this base)
 class TC10545(_OrlandoRTM):
     """Apply hotfix to XenServer 5.0.0 RTM (should fail)"""
@@ -881,7 +892,19 @@ class TC19912(_TampaRTM):
 class TC20945(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2RTM (should fail)"""
     NEGATIVE = True
+
+class TC23783(_ClearwaterRTM):
+    """Apply XS-6.5 hotfix to XenServer 6.2 (should fail)"""
+    NEGATIVE = True
     
+class TC23785(_ClearwaterSP1):
+    """Apply XS-6.5 hotfix to XenServer 6.2 SP1(should fail)"""
+    NEGATIVE = True
+
+class TC23784(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM"""
+    pass
+
 class TCvGPUTechPreview(_ClearwaterRTM):
     """Apply hotfix to XenServer 6.2 RTM with vGPU Tech Preview installed"""
     NEGATIVE = True
@@ -985,6 +1008,9 @@ class TC20946(_ClearwaterSP1):
     """Apply hotfix to XenServer 6.2 SP1 (pool)"""
     POOLED = True
     
+class TC23787(_CreedenceRTM):
+    """Apply XS 6.5 hotfix to XenServer 6.5 RTM (pool)"""
+    POOLED = True
 #############################################################################
 # Upgrade with a rollup
 
@@ -2033,6 +2059,18 @@ class TCUnsignedHotfixChecks(xenrt.TestCase):
             if toMatch in line:
                 return line.split("=")[-1].strip('"')
         return None
+
+class TCApplyHotfixes(xenrt.TestCase):
+    """Apply a defined set of hotfixes to the host"""
+
+    def run(self, arglist):
+        self.host = self.getDefaultHost()
+        patches = xenrt.TEC().lookup("BUNDLED_HOTFIX", {})
+        patchIdents = patches.keys()
+        patchIdents.sort()
+        for p in patchIdents:
+            self.host.applyPatch(xenrt.TEC().getFile(patches[p]), patchClean=True)
+        self.host.reboot()
 
 class TCRollingPoolUpdate(xenrt.TestCase):
     """

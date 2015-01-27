@@ -133,6 +133,7 @@ class TC7804(xenrt.TestCase):
         gdef["vifs"] = [(0, None, xenrt.randomMAC(), None)]
         gdef["memory"] = self.memory
         self.guest = xenrt.lib.xenserver.guest.createVM(**gdef)
+        self.getLogsFrom(self.guest)
         # Check disk is there and accessible.
         offline = self.getOfflineDisks()
         if offline:

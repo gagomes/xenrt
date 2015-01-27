@@ -15,10 +15,10 @@ class XenRTPage(Page):
         self._db = None
 
     def getUser(self):
-        user = self.request.headers.get("X-Forwarded-User")
-        if user == "(null)":
-            user = None
-        return user
+        user = self.request.headers.get("X-Forwarded-User", "")
+        if user == "(null)" or not user:
+            return None
+        return user.split("@")[0]
 
     def renderWrapper(self):
         if not self.getUser() and (self.REQUIRE_AUTH or (self.REQUIRE_AUTH_IF_ENABLED and config.auth_enabled == "yes")):

@@ -1113,20 +1113,20 @@ class PrepareNode:
                 if self.preparecount == 1:
                     for host in masters:
                         if not host.has_key("noisos") or not host["noisos"]:
-                            self.srs.append({"host":host["name"], 
-                                             "name":"XenRT ISOs",
-                                             "type":"iso",
-                                             "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
-                                             "default":False,
-                                             "blkbackPoolSize":""})
+                            self.srs.insert(0, {"host":host["name"], 
+                                                "name":"XenRT ISOs",
+                                                "type":"iso",
+                                                "path":xenrt.TEC().lookup("EXPORT_ISO_NFS"),
+                                                "default":False,
+                                                "blkbackPoolSize":""})
                             isos2 = xenrt.TEC().lookup("EXPORT_ISO_NFS_STATIC", None)
                             if isos2:
-                                self.srs.append({"host":host["name"],
-                                                 "name":"XenRT static ISOs",
-                                                 "type":"iso",
-                                                 "path":isos2,
-                                                 "default":False,
-                                                 "blkbackPoolSize":""})
+                                self.srs.insert(0, {"host":host["name"],
+                                                    "name":"XenRT static ISOs",
+                                                    "type":"iso",
+                                                    "path":isos2,
+                                                    "default":False,
+                                                    "blkbackPoolSize":""})
 
                 # If needed, create lun groups
                 iscsihosts = {}
@@ -1218,8 +1218,16 @@ class PrepareNode:
                                 sr = xenrt.productLib(host=host).NFSStorageRepository(host, s["name"])
                             sr.create(server, path, nosubdir=nosubdir)
                     elif s["type"] == "smb":
+                        vm = s["options"] and "vm" in s["options"].split(",")
+                        hostIndexes = [y.group(1) for y in [re.match("host-(\d)", x) for x in s['options'].split(",")] if y]
+                        if hostIndexes:
+                            share = xenrt.NativeWindowsSMBShare("RESOURCE_HOST_%s" % hostIndexes[0])
+                        elif vm:
+                            share = xenrt.VMSMBShare()
+                        else:
+                            share = xenrt.ExternalSMBShare(version=3)
                         sr = xenrt.productLib(host=host).SMBStorageRepository(host, s["name"])
-                        sr.create()
+                        sr.create(share)
                     elif s["type"] == "iso":
                         sr = xenrt.productLib(host=host).ISOStorageRepository(host, s["name"])
                         server, path = s["path"].split(":")

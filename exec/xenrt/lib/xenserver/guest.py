@@ -1358,7 +1358,7 @@ exit /B 1
 
         self.enlightenedDrivers = False
 
-    def waitForAgent(self, timeout):
+    def waitForAgent(self, timeout, checkPvDriversUpToDate=True):
         """Wait for guest agent to come up"""
 
         deadline = xenrt.util.timenow() + timeout
@@ -1389,10 +1389,11 @@ exit /B 1
                 xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
                 xenrt.sleep(5)
 
-                for i in range(48):
-                    if self.pvDriversUpToDate():
-                        break
-                    xenrt.sleep(10)
+                if not xenrt.TEC().lookup("NO_TOOLS_UP_TO_DATE_CHK", False, boolean=True) and checkPvDriversUpToDate:
+                    for i in range(48):
+                        if self.pvDriversUpToDate():
+                            break
+                        xenrt.sleep(10)
                 return xenrt.RC_OK
 
             xenrt.sleep(5)
@@ -5156,7 +5157,7 @@ class TampaGuest(BostonGuest):
     def installLegacyDrivers(self):
         self.installDrivers(useLegacy=True)
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
@@ -5219,7 +5220,11 @@ class TampaGuest(BostonGuest):
                     raise xenrt.XRTError('Windows guest agent HostTime=UTC functional only availalbe in Clearwater or later')
                 hostTimeString = 'HOSTTIME=utc'
 
-            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
+            # If source is specified, we should use it
+            pvToolsTgz = source
+            if not source:
+                # See if we have an override at the job level
+                pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
@@ -5281,7 +5286,7 @@ class TampaGuest(BostonGuest):
                 xenrt.sleep(120)
 
         # wait for guest agent
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
 
         self.enlightenedDrivers = True
 
@@ -5312,7 +5317,7 @@ class TampaGuest(BostonGuest):
             self.checkPVDevices()
 
         for i in range(12):
-            if self.pvDriversUpToDate():
+            if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
 

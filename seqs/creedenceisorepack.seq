@@ -1,0 +1,31 @@
+<xenrt>
+  <!-- Sequence for testing a repacked Creedence ISO -->
+
+  <!-- Put any bundled hotfixes into BUNDLED_HOTFIX variables (e.g. -D BUNDLED_HOTFIX/0=/path/to/hotfix/0) for comparing
+       against a host with hotfixes applied manually -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <PIDIR_CREEDENCE>/usr/groups/release/XenServer-6.x/XS-6.5/RTM-90233</PIDIR_CREEDENCE>
+    <APPLY_ALL_RELEASED_HFXS>no</APPLY_ALL_RELEASED_HFXS>
+  </variables>
+
+  <prepare>
+    <host id="0" version="${PIDIR_CREEDENCE}"/> <!-- The 'original' host -->
+    <host id="1"/>                              <!-- The 'repacked' host -->
+    <host id="2" version="${PIDIR_CREEDENCE}"/> <!-- The 'hotfixed' host -->
+  </prepare>
+
+  <testsequence>
+    <parallel group="IsoRepack">
+      <testcase id="testcases.xenserver.tc.host.TCIsoChecksums" />
+      <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCOriginalChecksums" host="RESOURCE_HOST_0" />
+      <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCRepackedChecksums" host="RESOURCE_HOST_1" />
+      <serial>
+        <testcase id="testcases.xenserver.tc.hotfix.TCApplyHotfixes" host="RESOURCE_HOST_2" />
+        <testcase id="testcases.xenserver.tc.host.TCDom0Checksums" name="TCHotfixedChecksums" host="RESOURCE_HOST_2" />
+      </serial>
+    </parallel>
+    <testcase id="testcases.xenserver.tc.host.TCDiffChecksums" />
+  </testsequence>
+</xenrt>

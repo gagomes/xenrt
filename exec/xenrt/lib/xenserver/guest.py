@@ -2418,32 +2418,27 @@ exit /B 1
         if not self.distro:
             self.determineDistro()
 
+        # Guest has its own limitation
         if self.distro:
             if self.distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]):
-                if self.windows:
-                    if "MAXSOCKETS" in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
-                        limits.append(int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, "MAXSOCKETS"])))
-                        xenrt.TEC().logverbose("%s supports up to %d VCPUs." % (self.distro, limits[-1]))
+                itemname = "MAX_VM_VCPUS"
+                if not self.windows and self.arch and "64" in self.arch:
+                    xenrt.TEC().logverbose("x64 is detected.")
+                    if "MAX_VM_VCPUS64" in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                        itemname = "MAX_VM_VCPUS64"
                     else:
-                        xenrt.TEC().warning("Supported number of VCPU for %s is not declared." % self.distro)
+                        xenrt.TEC().logverbose("No infor for 64 bit distro. Using 32 bit limit...")
+                if itemname in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                    limits.append(int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, itemname])))
+                    xenrt.TEC().logverbose("%s supports up to %d VCPUs." % (self.distro, limits[-1]))
                 else:
-                    itemname = "MAX_VM_VCPUS"
-                    if self.arch and "64" in self.arch:
-                        xenrt.TEC().logverbose("x64 is detected.")
-                        if "MAX_VM_VCPUS64" in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
-                            itemname = "MAX_VM_VCPUS64"
-                        else:
-                            xenrt.TEC().warning("No infor for 64 bit distro. Using 32 bit limit...")
-                    if itemname in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
-                        limits.append(int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, itemname])))
-                        xenrt.TEC().logverbose("%s supports up to %d VCPUs." % (self.distro, limits[-1]))
-                    else:
-                        xenrt.TEC().warning("Supported number of VCPU for %s is not declared." % self.distro)
+                    xenrt.TEC().warning("Supported number of VCPU for %s is not declared." % self.distro)
             else:
                 xenrt.TEC().warning("%s has no GUEST_LIMITATIONS config." % self.distro)
         else:
             xenrt.TEC().warning("Cannot detect distro.")
 
+        # XS has limitation
         pver = xenrt.TEC().lookup("PRODUCT_VERSION", None)
         if pver:
             if "MAX_VM_VCPUS" in xenrt.TEC().lookup(["VERSION_CONFIG", pver]):
@@ -2454,10 +2449,20 @@ exit /B 1
         else:
             xenrt.TEC().warning("Cannot determine PRODUCT VERSION")
 
+        # HVM cannot have more vcpus than pcpus.
+        pcpus = None
+        for hostname in xenrt.TEC().registry.hostList():
+            host = xenrt.TEC().registry.hostGet(hostname)
+            if not pcpus or pcpus > host.getCPUCores():
+                pcpus = host.getCPUCores()
+        if pcpus:
+            limits.append(pcpus)
+
         if limits:
             return min(limits)
 
         # Pick 4 if no limitation is declared.
+        xenrt.TEC().warning("None of guest limit, host limit and XS limit is found.")
         return 4
 
     def setRandomVcpus(self):

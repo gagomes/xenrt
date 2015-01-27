@@ -263,6 +263,18 @@ class XenServerLicenceFactory(object):
         lver = self.__getHostAge(xshost)
         return self.licence(lver, sku)
 
+    def maxLicenceSkuHost(self,xshost):
+        lver = self.__getHostAge(xshost)
+        if lver == self.__TAM:
+            return TampaLicence(XenServerLicenceSKU.XSPlatinum)    
+        if lver == self.__CLR:
+            return ClearwaterLicence(XenServerLicenceSKU.PerSocket)
+        if lver == self.__CRE:
+            return CreedenceLicence(XenServerLicenceSKU.PerUserEnterprise)
+ 
+    def maxLicenceSkuPool(self,xspool):
+        self.maxLicenceSkuHost(xspool.master)
+
     def licence(self, productVersion, sku):
         lver = productVersion.lower()
         if lver == self.__TAM:

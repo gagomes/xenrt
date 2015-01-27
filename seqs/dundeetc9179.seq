@@ -1,0 +1,52 @@
+<xenrt>
+
+  <!-- Linux kernel update (xs-tools.iso) tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="ToolsISO">
+
+    <parallel workers="${PARALLEL}">
+
+      <testcase id="xenserver.tc.pvdrivers.TC9181"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9182"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9577"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9184"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9185"/>
+      <testcase id="xenserver.tc.pvdrivers.TC9578"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11037"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11043"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11038"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11040"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11042"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11044"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11047"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11053"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11048"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11050"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11052"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11054"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11057"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11056"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11058"/>
+      
+      <!-- removed due to CA-72913 -->
+      <!--<testcase id="xenserver.tc.pvdrivers.TC11039"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11041"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11049"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11051"/>
+      <testcase id="xenserver.tc.pvdrivers.TC11055"/>-->
+
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

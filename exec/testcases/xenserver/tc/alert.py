@@ -144,7 +144,7 @@ class TC8175(xenrt.TestCase):
             self.runSubcase("checkEvent", (e[0], e[1], e[2]), "VM", e[0])
 
 class TC8176(xenrt.TestCase):
-    """Alerts can be sent via email. Use TC8176PrioPostTampa for Sarasota and later."""
+    """Alerts can be sent via email. Use TC8176PrioPostTampa for Dundee and later."""
 
     def __init__(self, tcid=None):
         self.smtpServer = None
@@ -166,7 +166,7 @@ class TC8176(xenrt.TestCase):
                                     (xenrt.TEC().lookup("XENRT_SERVER_ADDRESS"),
                                      self.smtpServer.port))
 
-        # This functionality has changed from Sarasota onwards. if condition is done to support both versions
+        # This functionality has changed from Dundee onwards. if condition is done to support both versions
         # https://confluence.uk.xensource.com/display/engp/XenServer+alert+proposal+%28was+audit%29
         if self.newPriority == True:
             self.prioMsgEmailChk(host, pool, testname="TC8176_a", testPriority=3, isReceived=True )
@@ -347,7 +347,7 @@ class TC8176(xenrt.TestCase):
             self.smtpServer.stop()
 
 class TC8176PrioPostTampa(TC8176):
-    """Alerts can be sent via email. New Priority applies to Sarasota and later."""
+    """Alerts can be sent via email. New Priority applies to Dundee and later."""
 
     def __init__(self, tcid=None):
         TC8176.__init__(self, tcid=tcid)
@@ -512,20 +512,17 @@ class _AlertBase(xenrt.TestCase):
 
     def verifyAlertIntervals(self, host, alarmAutoInhibitPeriod, mesages=MESSAGES):
         if len(self.MESSAGES)<2:
-            # Last attempt to get the **** alert generated
-            xenrt.sleep(60)
+            # Fail if alerts generated is less than 2
+            raise xenrt.XRTFailure("Alerts not getting generated at the configured interval, only one present so far")
         cli = host.getCLIInstance()
         xenrt.log("Alerts available for the specified perfmon, verifying repeat interval %s sec" % 
                     alarmAutoInhibitPeriod)
                     
         t1=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
                             self.MESSAGES[0]).strip()
-        try:
-            t2=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
+        t2=cli.execute("message-param-get", "param-name=timestamp uuid=%s" %
                             self.MESSAGES[1]).strip()
-        except:
-            raise xenrt.XRTFailure("Alerts not getting generated at the configured interval, only one present so far")
-
+            
         xenrt.TEC().logverbose("Timestamps for the first and second alert are %s and %s " % (t1,t2))
         # Get the relevant substring out of the timestamps for minutes passed
         interval=int(t1[t1.find("T")+1:t1.find("Z")].split(":")[1])-int(t2[t2.find("T")+1:t2.find("Z")].split(":")[1])
@@ -650,7 +647,7 @@ class MemoryAlerts(_AlertBase):
             raise xenrt.XRTError("Machine local SR not sufficient to run this test")
 
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
             self.PRIORITY=5
 
         # Setup required to generate memory alerts
@@ -780,10 +777,10 @@ class StorageAlerts(_AlertBase):
 
     def prepare(self, arglist=None):
         self.MESSAGES=[]
-        self.VARIANCE=200
+        self.VARIANCE=250
         """Fill up the host so that alerts can get generated"""
         self.host = self.getHost("RESOURCE_HOST_0")
-        numVMs=2
+        numVDIs=2
 
         # Enable the non-default DS
         self.host.execdom0("xe-enable-all-plugin-metrics true")
@@ -810,16 +807,34 @@ class StorageAlerts(_AlertBase):
                             alarmLevel=self.ALARMLEVEL,
                             alarmTriggerPeriod=self.ALARMTRIGGERPERIOD,
                             alarmAutoInhibitPeriod=self.ALARMAUTOINIHIBITPERIOD)
-        self.createWindowsVM(host=self.host, srtype=self.uuid, waitForStart=True)
 
-        # Setup required to generate alerts
-        for i in range(numVMs):
-            self.createWindowsVM(host=self.host, srtype=self.uuid)
+        #Create a generic linux guest
+        guest = self.host.createGenericLinuxGuest(sr = self.uuid)
+        self.uninstallOnCleanup(guest)
+        
+        for i in range(numVDIs):
+            #Create VDI of size 10GB to generate storage alerts by copying and destroying it multiple times.
+            device = guest.createDisk(sizebytes=2*xenrt.GIGA, sruuid=self.uuid, returnDevice=True)
+            time.sleep(5)
+            #Fill some space on the VDI 
+            guest.execguest("mkfs.ext3 /dev/%s" % device)
+            guest.execguest("mount /dev/%s /mnt" % device)
+            xenrt.TEC().logverbose("Creating some random data on VDI.")
+            guest.execguest("dd if=/dev/zero of=/mnt/random oflag=direct bs=1M count=1000")
 
+        if self.INTELLICACHE:
+            cli=self.host.getCLIInstance()
+            if guest.getState() != "DOWN":
+                guest.shutdown(force=True)
+            for vdi in self.host.minimalList("vdi-list",
+                                                 args="sr-uuid=%s" % (self.uuid)): 
+                cli.execute("vdi-param-set","allow-caching=true uuid=%s" % vdi)
+            guest.start()
+        
         memLeft=self.host.getMaxMemory()
         xenrt.TEC().logverbose("SR Alerts: Memory left after install %s" % memLeft)
         # Check Product version, for clearwater priority=5, post CLW, priority=3
-        if not isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
             self.PRIORITY=5
 
         # Start the sr spammer thread here
@@ -831,21 +846,21 @@ class StorageAlerts(_AlertBase):
                                 "are generated for the SR under test")
         xenrt.log(msglist)
         perfmon1=host.execdom0('xe message-param-get param-name=body uuid=%s | grep "configured_on" | cut -d\'"\' -f4' % 
-                                msglist[-1]).strip()
+                                msglist[0]).strip()
         xenrt.log("Perfmon name retrieved %s" %
                                 perfmon1)
         perfmon2=host.execdom0('xe message-param-get param-name=body uuid=%s | grep "configured_on" | cut -d\'"\' -f4' % 
-                                msglist[-2]).strip()
+                                msglist[1]).strip()
         xenrt.TEC().logverbose("Perfmon name retrieved %s" %
                                 perfmon2)
         # Verify uuid of sr in the perfmon
         if not re.search(perfmon1, self.uuid, re.IGNORECASE):
             xenrt.log(host.execdom0("xe message-list uuid=%s" % 
-                                    msglist[-1]))
+                                    msglist[0]))
             raise xenrt.XRTFailure("Generated alerts are not for the configured SR")
         if not re.search(perfmon2, self.uuid, re.IGNORECASE):
             xenrt.log(host.execdom0("xe message-list uuid=%s" % 
-                                    msglist[-2]))
+                                    msglist[1]))
             raise xenrt.XRTFailure("Generated alerts are not for the configured SR")
 
     def run(self, arglist=None):
@@ -920,11 +935,11 @@ class TC18680(StorageAlerts):
         if not "ext" in srType:
             raise xenrt.XRTError("Local storage of the host does not support thin provisioning")
         try:
-            cli.execute("host-disable")
-            cli.execute("host-enable-local-storage-caching", "sr-uuid=%s" % 
-                        self.host.getLocalSR())
-        except Exception,e:
+            xenrt.sleep(50)
+            self.host.disable()
+            self.host.enableCaching(self.host.getLocalSR())
+        except Exception, e:
             raise xenrt.XRTFailure("Enabling intellicache failed with exception %s" % e)
         finally:
-            cli.execute("host-enable")
+            self.host.enable()
         StorageAlerts.prepare(self, arglist)

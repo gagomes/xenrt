@@ -14,7 +14,7 @@
   <prepare>
 
     <!-- baremetal machines -->
-    <host id="0" productVersion="centos63-x64" productType="nativelinux">
+    <host id="0" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
       <NETWORK>
         <PHYSICAL network="ANY" jumbo="yes" speed="10G">
           <NIC/>
@@ -22,7 +22,7 @@
         </PHYSICAL>
       </NETWORK>
     </host>
-    <host id="1" productVersion="centos63-x64" productType="nativelinux">
+    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
       <NETWORK>
         <PHYSICAL network="ANY" jumbo="yes" speed="10G">
           <NIC/>

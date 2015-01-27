@@ -17,6 +17,7 @@
   <default name="THIS_HOTFIX" value="ToBeSpecifiedOnSubmitCommandLine" />
 
   <testsequence group="U2">
+    <testcase id="xenserver.tc.hotfix.TC17964" />
     <testcase id="xenserver.tc.hotfix.TC11501" />
     <testcase id="xenserver.tc.hotfix.TC11502" />
     <testcase id="xenserver.tc.hotfix.TC10545" />
@@ -27,7 +28,6 @@
     <testcase id="xenserver.tc.hotfix.TC11505" />
     <testcase id="xenserver.tc.hotfix.TC11506" />
     <testcase id="xenserver.tc.hotfix.TC11507" />
-    <testcase id="xenserver.tc.hotfix.TC17964" />
   </testsequence>
 
 </xenrt>

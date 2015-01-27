@@ -123,7 +123,7 @@
         <arg>benchmark=Redway3DTurbine</arg>
         <arg>benchmark=WebGL</arg>
       </testcase>
-      <testcase tc="TC-20768" id="guestops.basic.TCShutdown">
+      <testcase id="guestops.basic.TCShutdown">
         <arg>guest=win7x64</arg>
       </testcase>
     </serial>
@@ -189,6 +189,51 @@
         <arg>clones=8</arg>
       </testcase>
     </serial>
+
+    <serial group="Win7-x86-K120">
+      <testcase tc="TC-20731" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+      </testcase>
+      <testcase tc="TC-20703" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20767" id="guestops.basic.TCShutdown">
+        <arg>guest=win7</arg>
+      </testcase>
+    </serial>
+    <serial group="Win7-x86-K120Scale">
+      <testcase tc="TC-20732" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+      </testcase>
+      <testcase tc="TC-20749" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+        <arg>guest=win7</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>clones=8</arg>
+      </testcase>
+      <testcase tc="TC-20710" id="testcases.xenserver.tc.vgpu.TCGPUBenchmark">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+        <arg>vgpuconfig=K120</arg>
+        <arg>benchmark=UnigineSanctuary</arg>
+        <arg>benchmark=UnigineTropics</arg>
+        <arg>benchmark=WindowsExperienceIndex</arg>
+        <arg>benchmark=Redway3DTurbine</arg>
+        <arg>benchmark=WebGL</arg>
+      </testcase>
+      <testcase tc="TC-20756" id="testcases.xenserver.tc.vgpu.TCVGPUDeleteClones">
+        <arg>guest=win7</arg>
+        <arg>clones=8</arg>
+      </testcase>
+    </serial>
+
     <serial group="Win7-x86-K1PT">
       <testcase tc="TC-20739" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>

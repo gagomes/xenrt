@@ -1,0 +1,46 @@
+<xenrt>
+
+  <!-- Clearwater to Dundee host upgrade tests -->
+
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <OLD_PRODUCT_INPUTDIR>/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265/</OLD_PRODUCT_INPUTDIR>
+    <OLD_PRODUCT_VERSION>MNR</OLD_PRODUCT_VERSION>
+    <EXTRA_TIME>yes</EXTRA_TIME>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <CVSM_INPUTDIR>/usr/groups/xenrt/cvsm/</CVSM_INPUTDIR>
+  </variables>
+
+ <preprepare>
+   <host id="1">
+      <vm name="CVSMSERVER">
+        <distro>ws08sp2-x86</distro>
+        <memory>512</memory>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installCVSM"/>
+        <postinstall action="installCVSMCLI"/>
+      </vm>
+    </host>
+  </preprepare>
+
+  <prepare>
+      <pool>
+        <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+<!--
+        <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+--> 
+        <storage type="cvsmnetapp" name="cvsmsr" default="true"/>
+     </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="Upgrade">
+      <testcase id="xenserver.tc.upgrade.TC12698" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

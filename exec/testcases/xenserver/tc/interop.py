@@ -1,6 +1,7 @@
 import xenrt, xenrt.util, xenrt.lib.xenserver, xenrt.rootops
 import time, random, json, urllib
 import os, re
+import pprint
 from xml.dom.minidom import Document
 from xenrt.lazylog import step, comment, log
 
@@ -457,8 +458,7 @@ class TC10844(TCPVSBVT):
     
 # class TC10847(TCPVSBVT):
 
-
-class TCXsXdBvt(xenrt.TestCase):
+class TCXdAsfSetup(xenrt.TestCase):
 
     XD_SVC_ACCOUNT_USERNAME = 'ENG\\svc_testautomation'
     XD_SVC_ACCOUNT_PASSWORD = 't41ly.h13Q1'
@@ -507,10 +507,10 @@ class TCXsXdBvt(xenrt.TestCase):
 
         return guestDict
 
-    def executeASFShellCommand(self, asfCont, command, csvFormat=False):
+    def executeASFShellCommand(self, asfCont, command, csvFormat=False, timeout=300):
         csvFormatStr = csvFormat and '| convertto-csv' or ''
         commandStr = 'cd %s; Import-Module asf; echo "xrtretdatastart"; %s %s; echo "xrtretdataend"' % (self.ASF_WORKING_DIR, command, csvFormatStr)
-        rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True).splitlines()
+        rValue = asfCont.xmlrpcExec(commandStr, powershell=True, returndata=True, timeout=timeout).splitlines()
         rData = []
         storeLines = False
         finished = False 
@@ -546,16 +546,11 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
                                    returndata=returndata, returnerror=returnerror, returnrc=returnrc,
                                    timeout=timeout)
 
-#    def executePowershellASFCommand(self, asfCont, command, netUse=False, returndata=False, timeout=60):
-#        netUseCommand = netUse and 'net use %s /user:%s %s /persistent:yes;' % (self.XD_DOWNLOADS_PATH, self.XD_SVC_ACCOUNT_USERNAME, self.XD_SVC_ACCOUNT_PASSWORD) or ''
-#        setWorkingDirCommand = 'pushd %s' % (self.ASF_WORKING_DIR)
-#        rData = asfCont.xmlrpcExec('%s%s;%s' % (netUseCommand, setWorkingDirCommand, command), powershell=True, returndata=returndata, timeout=timeout)
-#        rData = asfCont.xmlrpcExec('powershell.exe -ExecutionPolicy ByPass %s%s;%s' % (netUseCommand, setWorkingDirCommand, command), returndata=returndata, timeout=timeout)
         return rData
 
 
-    def configureAsfController(self, asfCont, host):
-        asfRepository = 'bruin'
+    def configureAsfController(self, asfCont, xdVersion, host):
+        asfRepository = xdVersion
         testSuites = ['Common', 'TestApi', 'LayoutBvts']
 
         # Install tests
@@ -573,19 +568,15 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         # Get Client, DDC and VDA templates
         val = self.executeASFShellCommand(asfCont, 'Get-AsfHypervisorTemplate -HypName %s' % (host.getName()), csvFormat=True)
         templateData = map(lambda x:x.replace('"', '').split(','), val)
-        clientTemplates = filter(lambda x:x[0] == host.getName() and not x[1].startswith('__') and x[5] == 'True', templateData)
-        serverTemplates = filter(lambda x:x[0] == host.getName() and not x[1].startswith('__') and not x[1].startswith('ASF') and x[4] == 'True', templateData)
+        templateList = map(lambda x:dict(zip(templateData[1], x)), templateData[2:])
+        xenrt.TEC().logverbose('ASF Hypervisor Template list:\n' + pprint.pformat(templateList))
 
-        # TODO - Remove temp
-        self.executeASFShellCommand(asfCont, 'Add-AsfHypervisorTemplate -HypName %s -TemplateName 2012.x64.P1 -Hostname 2012x64p1 -OSName ws2012 -ServerOs 1 -ClientOS 0' % (host.getName())) 
-        self.executeASFShellCommand(asfCont, 'Add-AsfHypervisorTemplate -HypName %s -TemplateName Win8.x86.P1 -Hostname win8x86p1 -OSName Win8 -ServerOs 0 -ClientOS 1' % (host.getName())) 
+        clientTemplates = filter(lambda x:x['HypName'] == host.getName() and not x['TemplateName'].startswith('__') and x['ClientOs'] == 'True', templateList)
+        xenrt.TEC().logverbose('Using Client Templates: %s' % (map(lambda x:x['OSName'].strip(), clientTemplates)))
+        serverTemplates = filter(lambda x:x['HypName'] == host.getName() and not x['TemplateName'].startswith('__') and not x['TemplateName'].startswith('ASF') and x['ServerOs'] == 'True', templateList)
+        xenrt.TEC().logverbose('Using Server Templates: %s' % (map(lambda x:x['OSName'].strip(), serverTemplates)))
 
-        self.executeASFShellCommand(asfCont, 'Initialize-Tests C:\\asf\\tests\\layoutbvts\\XenServer')
-
-        # TODO = limit hostname to <=15 chars
-        self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role CLIENT | Set-AsfRoleHost -HypVmNameLabel %s' % (clientTemplates[0][1]))
-        self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role VDAWorkstation | Set-AsfRoleHost -HypVmNameLabel %s -Hostname V-%s' % (clientTemplates[0][1], clientTemplates[0][2]))
-        self.executeASFShellCommand(asfCont, 'Get-AsfRoleHost -TestConfig XenRtConfig -Role DDC | Set-AsfRoleHost -HypVmNameLabel %s' % (serverTemplates[0][1]))
+        self.executeASFShellCommand(asfCont, 'c:\\asf\\tests\\layoutbvts\\xenserver\\setup.ps1 -ClientTemplate %s -DdcTemplate %s -VdaTemplates %s' % (clientTemplates[0]['TemplateName'], serverTemplates[0]['TemplateName'], clientTemplates[0]['TemplateName']))
 
         # Temp - workaround
         asfCont.xmlrpcExec('copy c:\\asf\\bin\\JonasCntrl.dll c:\\asf')
@@ -611,15 +602,14 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
                                  '<add key="TIMEOUT_SCALE_FACTOR" value="%d"' % (2), fileData)
             asfCont.xmlrpcWriteFile(filename=filename, data=newFileData)
 
-        asfConfig = self.executeASFShellCommand(asfCont, 'Show-AsfConfig')
-        for line in asfConfig:
-            xenrt.TEC().logverbose(line)
+        map(lambda x:xenrt.TEC().logverbose(x), self.executeASFShellCommand(asfCont, 'Show-AsfConfig'))
 
     def configureInfrastructureVMs(self, host, infraGuests):
-        infraGuests['ASFDC1'].waitForAgent(timeout=300)
+        infraGuests['ASFDC1'].waitForAgent(300)
+        infraGuests['ASFDC1'].enlightenedDrivers = True
         infraGuests['ASFDC1'].shutdown()
 
-        infraGuests['ASFController'].waitForAgent(timeout=300)
+        infraGuests['ASFController'].waitForAgent(300)
         infraGuests['ASFController'].tailored = True
         infraGuests['ASFController'].existing(host)
         xenrt.TEC().logverbose('ASFController: IP=%s, windows=%s, enlightenedDrivers=%s' % (infraGuests['ASFController'].mainip, infraGuests['ASFController'].windows, infraGuests['ASFController'].enlightenedDrivers))
@@ -638,11 +628,9 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         # Start the DC after PV driver upgrade on the Controller to work around problems seen in CA-122684
         infraGuests['ASFDC1'].start() 
 
-        self.configureAsfController(infraGuests['ASFController'], host)
-
     def executeAsfTests(self, asfCont):
         try:
-            result = self.executePowershellASFCommand(asfCont, '.\\launch.ps1', returndata=False, timeout=60*60*3)
+            result = self.executeASFShellCommand(asfCont, 'Invoke-AsfWorkFlow -NewWindow', timeout=60*60*3)
             xenrt.TEC().comment('ASF Test Returned Result: %s' % (result))
         except Exception, e:
             xenrt.TEC().comment('ASF Test Returned Exception: %s' % (e))
@@ -733,11 +721,6 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
         logDirList = asfCont.xmlrpcGlobpath("%s\\*\\*" % (asfLogSrcDir))
         # Remove self test dir
         logDirList = filter(lambda x:'SelfTest' not in x, logDirList)
-        envCreateDir = filter(lambda x:'EnvCreate' in x, logDirList)[0]
-        envCreateLogFilePath = '%s\\GlobalLog.txt' % (envCreateDir)
-        asfCont.xmlrpcGetFile2(envCreateLogFilePath, os.path.join(logsubdir, 'envcreate-GlobalLog.txt'))
-
-        logDirList = filter(lambda x:'EnvCreate' not in x, logDirList)
         if not len(logDirList) == 1:
             xenrt.TEC().warning('Could not find unique ASF results directory')
         asfResultsDir = logDirList[0]
@@ -769,43 +752,56 @@ powershell %s""" % (self.ASF_WORKING_DIR, netUseCommand, command)
             raise xenrt.XRTError('Unknown ASF test verdict: %s' % (resultData[0].group(1)))
 
 
-    def prepare(self, arglist):
-        self.host = self.getDefaultHost()
+    def run(self, arglist):
+        host = self.getDefaultHost()
 
-        disableIPv6 = xenrt.TEC().lookup("DISABLE_IPV6_XOP440", False, boolean=True)
-
-        networkInfo = self.host.parameterList('network-list', ['name-label', 'uuid'])
+        networkInfo = host.parameterList('network-list', ['name-label', 'uuid'])
         bvtNetwork = filter(lambda x:x['name-label'] == self.ASF_NETWORK_NAME, networkInfo)
         if len(bvtNetwork) == 0:
-            self.bvtNetworkUUID = self.host.createNetwork(name=self.ASF_NETWORK_NAME)
+            self.bvtNetworkUUID = host.createNetwork(name=self.ASF_NETWORK_NAME)
         else:
             self.bvtNetworkUUID = bvtNetwork[0]['uuid'] 
 
-        self.xdTemplateList = self.createVDATemplatesFromGuests(self.host, self.bvtNetworkUUID)
+        self.createVDATemplatesFromGuests(host, self.bvtNetworkUUID)
 
-        version = self.host.checkVersion(versionNumber=True)
+        version = host.checkVersion(versionNumber=True)
         # Run trunk against Clearwater templates
-        if version == '6.2.50' or version == '6.4.90':
+        if host.productVersion == 'Creedence' or host.productVersion == 'Dundee':
             xenrt.TEC().warning('Using Clearwater Templates for trunk and Creedence')
             version = '6.2.0'
 
-        if xenrt.TEC().lookup("EXISTING_TEMPLATES", False, boolean=True):
-            templateInfo = self.host.parameterList(command='template-list', params=['uuid', 'name-label'])
-            infraTemplateList = filter(lambda x:x['name-label'].startswith('__'), templateInfo)    
-            self.infraGuests = self.createInfrastructureVMs(self.host, infraTemplateList)
-        else:
-            infraTemplateList = self.importXVAs(self.host, version)
-            self.infraGuests = self.createInfrastructureVMs(self.host, infraTemplateList)
+        if not xenrt.TEC().lookup("EXISTING_TEMPLATES", False, boolean=True):
+            infraTemplateList = self.importXVAs(host, version)
 
-            if len(self.xdTemplateList) == 0:
-                # Attempt to load templates from XVA repository
-                self.xdTemplateList = self.importXVAs(self.host, version, templates=True)
+class TCXsXdBvt(TCXdAsfSetup):
 
-        self.configureInfrastructureVMs(self.host, self.infraGuests) 
+    def prepare(self, arglist):
+        args = self.parseArgsKeyValue(arglist)
+        xdVersion = 'MerlinCloud'
+        if args.has_key('xdVersion'):
+            xdVersion = args['xdVersion']
+            xenrt.TEC().logverbose('Using XenDesktop version: %s' % (xdVersion))
+
+        self.host = self.getDefaultHost()
+
+        templateInfo = self.host.parameterList(command='template-list', params=['uuid', 'name-label'])
+        infraTemplateList = filter(lambda x:x['name-label'].startswith('__'), templateInfo)
+        self.infraGuests = self.createInfrastructureVMs(self.host, infraTemplateList)
+        self.configureInfrastructureVMs(self.host, self.infraGuests)
+        self.configureAsfController(self.infraGuests['ASFController'], xdVersion, self.host)
 
     def run(self, arglist):
         self.executeAsfTests(self.infraGuests['ASFController'])
 
+    def postRun(self):
+        # Clean-up any leftover VMs - not all VMs are XenRT controlled so not able to use standard XenRT guest methods
+        vmStateData = self.host.parameterList(command='vm-list', params=['uuid', 'name-label', 'power-state'], argsString='is-control-domain=false')
+        xenrt.TEC().logverbose("VMs to clean up:\n" + pprint.pformat(vmStateData))
+        cli = self.host.getCLIInstance()
+        for vmData in vmStateData:
+            if vmData['power-state'] != 'halted':
+                cli.execute('vm-shutdown uuid=%s --force' % (vmData['uuid']))
+            cli.execute('vm-uninstall uuid=%s --force' % (vmData['uuid']))
 
 class TCXenConvert(xenrt.TestCase):
     DISTRO = "w2k3eesp2-x64"
@@ -1120,7 +1116,9 @@ class TCOpenStackExercise(xenrt.TestCase):
     def run(self, arglist):
         devstack = self.getGuest("DevStackOSDomU")
         devstack.execguest(
-            "cd /opt/stack/devstack && ./exercise.sh",
+            "cd /opt/stack/tempest "
+            "&& sudo pip install tox==1.6.1 "
+            "&& tox -eall tempest.scenario.test_minimum_basic </dev/null",
             username="stack",
             timeout=14400
         )
@@ -1131,7 +1129,6 @@ class TCOpenStackSmokeTest(xenrt.TestCase):
         devstack = self.getGuest("DevStackOSDomU")
         devstack.execguest(
             "cd /opt/stack/tempest "
-            "&& sudo pip install tox==1.6.1 "
             "&& tox -esmoke </dev/null",
             username="stack",
             timeout=14400

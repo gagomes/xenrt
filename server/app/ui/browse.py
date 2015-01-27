@@ -334,13 +334,13 @@ class XenRTBrowseBinary(XenRTBrowseFile):
 
         return self.request.response
     
-PageFactory(XenRTBrowse, "browse", "/logs/{type}/{id}/browse", renderer="__main__:templates/default.pt")
-PageFactory(XenRTBrowse, "browsejpt", "/logs/job/{job}/{phase}/{test}/browse", renderer="__main__:templates/default.pt")
-PageFactory(XenRTBrowseJSON, "browsejson", "/logs/{type}/{id}/jsonlist", contentType="application/json")
-PageFactory(XenRTBrowseJSON, "browsejsonjpt", "/logs/job/{job}/{phase}/{test}/jsonlist", contentType="application/json")
-PageFactory(XenRTBrowseHTML, "browsehtml", "/logs/{type}/{id}/html/*file", renderer=None)
-PageFactory(XenRTBrowseHTML, "browsehtmljtp", "/logs/job/{job}/{phase}/{test}/html/*file", renderer=None)
-PageFactory(XenRTBrowseBinary, "browsebinary", "/logs/{type}/{id}/binary/*file", renderer=None)
-PageFactory(XenRTBrowseBinary, "browsebinaryjpt", "/logs/job/{job}/{phase}/{test}/binary/*file", renderer=None)
-PageFactory(XenRTBrowseFolded, "browsefolded", "/logs/{type}/{id}/folded/*file", renderer=None)
-PageFactory(XenRTBrowseFolded, "browsefoldedjpt", "/logs/job/{job}/{phase}/{test}/folded/*file", renderer=None)
+PageFactory(XenRTBrowse, "/logs/{type}/{id}/browse", renderer="__main__:templates/default.pt")
+PageFactory(XenRTBrowse, "/logs/job/{job}/{phase}/{test}/browse", renderer="__main__:templates/default.pt")
+PageFactory(XenRTBrowseJSON, "/logs/{type}/{id}/jsonlist", contentType="application/json")
+PageFactory(XenRTBrowseJSON, "/logs/job/{job}/{phase}/{test}/jsonlist", contentType="application/json")
+PageFactory(XenRTBrowseHTML, "/logs/{type}/{id}/html/*file", renderer=None)
+PageFactory(XenRTBrowseHTML, "/logs/job/{job}/{phase}/{test}/html/*file", renderer=None)
+PageFactory(XenRTBrowseBinary, "/logs/{type}/{id}/binary/*file", renderer=None)
+PageFactory(XenRTBrowseBinary, "/logs/job/{job}/{phase}/{test}/binary/*file", renderer=None)
+PageFactory(XenRTBrowseFolded, "/logs/{type}/{id}/folded/*file", renderer=None)
+PageFactory(XenRTBrowseFolded, "/logs/job/{job}/{phase}/{test}/folded/*file", renderer=None)

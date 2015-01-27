@@ -1,0 +1,56 @@
+<xenrt>
+
+  <!-- Sequence to verify source iso files -->
+
+  <default name="IGNORERMPVERSION" value="yes"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <pool id="0">
+      <host id="0">
+        <vm name="DVSC Controller VM">
+          <file>%CONTROLLER_XVA%</file>
+          <bootparams>rootssh</bootparams>
+          <postinstall action="start"/>
+        </vm>
+      </host>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="SourceVerify">
+      <testcase id="xenserver.install.TCDom0SourceCheck" name="TC17998" tc="TC-17998">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCDLVMSourceCheck" name="TC17999" tc="TC-17999">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCVPXConversionSourceCheck" name="TC18001" tc="TC-18001">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCDVSControllerSourceCheck" name="TC18002" tc="TC-18002">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCVPXWLBSourceCheck" name="TC18000" tc="TC-18000">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCDDKSourceCheck" name="TC18003" tc="TC-18003">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+      <testcase id="xenserver.install.TCDXenAPISDKSourceCheck" name="TC18004" tc="TC-18004">
+        <arg>ignorerpmversion=${IGNORERMPVERSION}</arg>
+      </testcase>
+
+    </serial>
+  </testsequence>
+
+</xenrt>

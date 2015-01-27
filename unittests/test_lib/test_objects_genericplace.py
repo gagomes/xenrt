@@ -26,7 +26,7 @@ class TestGenericPlace(XenRTUnitTestCase):
         self.assertTrue(self.genericobject.xmlrpcExec.called)
         self.assertTrue(xenrt.util.parseSectionedConfig.called)
 
-    def test_getlinuxifconfigdata_validinput_returnexpected(self):
+    def test_getlinuxifconfigdata__validinput_returnexpected_deprecatedifconfig_false(self):
         """
         Given clean linux environment , when ipconfig data is provided ,
         then output will be in  expected format
@@ -35,20 +35,22 @@ class TestGenericPlace(XenRTUnitTestCase):
             {'eth0': {'IP': '10.220.169.47', 'MAC': '52:f2:da:cc:72:fa', 'netmask': '255.255.240.0'}}),
             ("lo  Link encap:Local Loopback  \n  inet addr:127.0.0.1  Mask:255.0.0.0",
             {'lo': {'IP': '127.0.0.1', 'MAC': None, 'netmask': '255.0.0.0'}})]
-        self.run_for_many(data, self.__test_getlinuxifconfigdata_validinput_returnexpected)
+        self.run_for_many(data, self.__test_getlinuxifconfigdata_validinput_returnexpected_deprecatedifconfig_false)
 
-    def __test_getlinuxifconfigdata_validinput_returnexpected(self, data):
+    def __test_getlinuxifconfigdata_validinput_returnexpected_deprecatedifconfig_false(self, data):
         """
         Given clean linux environment, when execcmd support is provided,
         then parsed ifconfig is returned
         """
         ifconfigoutput, expected = data
         self.genericobject.execcmd = Mock(return_value=ifconfigoutput)
-        output = self.genericobject.getLinuxIFConfigData()
+        self.genericobject.deprecatedIfConfig = Mock(return_value= False)
+	output = self.genericobject.getLinuxIFConfigData()
         self.assertTrue(self.genericobject.execcmd.called)
         self.assertEqual(expected, output)
 
-    def test_getwindowsipconfigdata_validinput_returnexpected(self):
+    @patch('xenrt.TEC')
+    def test_getwindowsipconfigdata_validinput_returnexpected(self, _tec):
         """
         Given clean windows environment , when ipconfig data is provided with
         xmlrpcexec supported , then output is as expected
@@ -106,4 +108,30 @@ class TestGenericPlace(XenRTUnitTestCase):
                 data = ({'Ethernet1': {'IPv4 Address': '10.102.127.142'}},
                         {'Ethernet2': ('ae:d9:cf:d4:94:71', '10.102.127.142', '12345678')}, "Ethernet", "Ethernet2")
                 self.__initializegetwindowsinterface(data)
-                self.assertRaises(xenrt.XRTError, self.genericobject.getWindowsInterface, "Ethernet2")
+                self.assertRaises(xenrt.XRTError, self.genericobject.getWindowsInterface, "Ethernet2")   
+
+    def test_getlinuxifconfigdata__validinput_returnexpected_deprecated_ifconfig_true(self):
+   		"""
+        	Given clean linux environment , when ipconfig data is provided ,
+        	then output will be in  expected format
+        	"""
+	 	data = [("eth0  Link encap:Ethernet  ether 52:f2:da:cc:72:fa  \n  inet 10.220.169.47  broadcast:10.220.175.255  netmask 255.255.240.0",
+            		{'eth0': {'IP': '10.220.169.47', 'MAC': '52:f2:da:cc:72:fa', 'netmask': '255.255.240.0'}}),
+            		("lo  Link encap:Local Loopback  \n  inet 127.0.0.1  netmask 255.0.0.0",
+            		{'lo': {'IP': '127.0.0.1', 'MAC': None, 'netmask': '255.0.0.0'}})]
+
+		self.run_for_many(data, self.__test_getlinuxifconfigdata_validinput_returnexpected_deprecated_ifconfig_true)
+
+    def __test_getlinuxifconfigdata_validinput_returnexpected_deprecated_ifconfig_true(self, data):
+        """
+        Given clean linux environment, when execcmd support is provided,
+        then parsed ifconfig is returned
+        """
+        ifconfigoutput, expected = data
+	self.genericobject.execcmd = Mock(return_value=ifconfigoutput)
+        self.genericobject.deprecatedIfConfig = Mock(return_value= True)
+       	output = self.genericobject.getLinuxIFConfigData()
+        self.assertTrue(self.genericobject.execcmd.called)
+        self.assertEqual(expected, output)
+
+

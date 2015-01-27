@@ -27,6 +27,10 @@ class SLESBasedLinux(LinuxOS):
         self.nfsdir = None
 
     @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
+    
+    @property
     def _maindisk(self):
         if self.parent.hypervisorType == xenrt.HypervisorType.xen:
             return "xvda"
@@ -50,23 +54,27 @@ class SLESBasedLinux(LinuxOS):
         basePath = "%s/isolinux" % (self.installURL)
         return ("%s/vmlinuz" % (basePath), "%s/initrd.img" % basePath)
 
+    def preCloneTailor(self):
+        # TODO - see objects.py
+        return
+
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir, returning any command line arguments needed to boot the OS"""
-        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
-        filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
+        autoyastfile = "autoyast-%s.cfg" % (self.parent.name)
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), autoyastfile)
         xenrt.TEC().logverbose("FILENAME %s"%filename)
         
         self.nfsdir = xenrt.NFSDirectory()  
-        ksf= SLESAutoyastFile(self.distro,
+        ayf= SLESAutoyastFile(self.distro,
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
                              installOn=self.parent.hypervisorType,
                              pxe=False)
 #                             rebootAfterInstall = False)
 
-        ks = ksf.generate()
+        ay = ayf.generate()
         f = file(filename, "w")
-        f.write(ks)
+        f.write(ay)
         f.close()
 
         webdir.copyIn(filename)
@@ -76,23 +84,23 @@ class SLESBasedLinux(LinuxOS):
         return ["graphical", "utf8", "ks=%s" % url]
        
     def generateIsoAnswerfile(self):
-        kickstartfile = "kickstart-%s.cfg" % (self.parent.name)
-        filename = "%s/%s" % (xenrt.TEC().getLogdir(), kickstartfile)
+        autoyastfile = "autoyast-%s.cfg" % (self.parent.name)
+        filename = "%s/%s" % (xenrt.TEC().getLogdir(), autoyastfile)
         xenrt.TEC().logverbose("FILENAME %s"%filename)
         self.nfsdir = xenrt.NFSDirectory()  
-        ksf= SLESAutoyastFile(self.distro,
+        ayf= SLESAutoyastFile(self.distro,
                              self.nfsdir.getMountURL(""),
                              self._maindisk,
                              installOn=self.parent.hypervisorType,
                              pxe=False)
 #                             rebootAfterInstall = False)
 
-        ks = ksf.generate()
+        ay = ayf.generate()
         f = file(filename, "w")
-        f.write(ks)
+        f.write(ay)
         f.close()
 
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         
         self.cleanupdir = path
@@ -100,7 +108,15 @@ class SLESBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
-        shutil.copyfile(filename, "%s/kickstart" % (path))
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
+        xenrt.command("rm -f %s/autoyast.stamp" % path)
+        shutil.copyfile(filename, "%s/autoyast" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/autoyast.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -138,7 +154,7 @@ class SLESBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time

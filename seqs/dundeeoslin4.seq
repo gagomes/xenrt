@@ -1,0 +1,88 @@
+<xenrt>
+
+  <!-- OS functional tests: rhel48 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <default name="PARALLEL" value="2"/>
+  <default name="MIGRATEPAR" value="1"/>
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}"/>
+  </semaphores>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+    <serial group="rhel48">
+      <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-9542">
+        <arg>RESOURCE_HOST_0</arg>
+        <arg>guest=rhel48</arg>
+        <arg>distro=rhel48</arg>
+        <arg>memory=1024</arg>
+      </testcase>
+      <serial guest="rhel48">
+        <testcase id="guestops.basic.TCStartStop" tc="TC-9543">
+        <arg>guest=rhel48</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.basic.TCReboot" tc="TC-9544">
+        <arg>guest=rhel48</arg>
+        <arg>loops=20</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCSuspendResume" tc="TC-9545">
+        <arg>guest=rhel48</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" tc="TC-9546">
+        <arg>guest=rhel48</arg>
+        <arg>workloads</arg>
+        <arg>loops=10</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-9547">
+        <arg>guest=rhel48</arg>
+        <arg>live</arg>
+        <arg>workloads</arg>
+        <arg>loops=20</arg>
+        <arg>clone</arg>
+        </testcase>
+        <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-9549">
+        <arg>N/A</arg>
+        <arg>guest=rhel48</arg>
+        <arg>noshutdown</arg>
+        <arg>initial=4</arg>
+        <arg>max=7</arg>
+        </testcase>
+        <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-9550">
+        <arg>N/A</arg>
+        <arg>guest=rhel48</arg>
+        <arg>noshutdown</arg>
+        </testcase>
+        <testcase id="guestops.cpu.TCCPUWalk" tc="TC-9551">
+        <arg>guest=rhel48</arg>
+        <arg>max=8</arg>
+        <arg>noplugwindows</arg>
+        </testcase>
+        <finally>
+          <testcase id="guestops.basic.TCShutdown">
+            <arg>guest=rhel48</arg>
+            <arg>finally</arg>
+          </testcase>
+        </finally>
+      </serial>
+    </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

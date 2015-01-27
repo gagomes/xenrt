@@ -3802,6 +3802,7 @@ class TC15464(xenrt.TestCase):
     def testMultipathSanity(self):
         self.disableRandomFCPorts()
         self.waitUntilDevicesAreInaccessible()
+        time.sleep(3) # handling CA-124429
         self.checkWhetherMultipathTopologyHasChanged()
         self.enableFCPorts()
         time.sleep(120) # wait till devices are accessible
@@ -3921,10 +3922,12 @@ class _HardwareMultipath(xenrt.TestCase):
         
         except Exception, e:
             raise xenrt.XRTError("Exception cleaning up guest and FC SR.", data=str(e))
-        
-        self.enableFCPort(0)
-        self.enableFCPort(1)
-    
+        finally:
+            try: self.enableFCPort(0)
+            except: pass
+            try: self.enableFCPort(1)
+            except: pass
+
     def checkGuest(self):
         # Check the periodic read/write script is still running on the VM
         rc = self.guest.execguest("pidof python",retval="code")
@@ -4074,41 +4077,30 @@ class TC12154(_HardwareMultipath):
         self.createSR()
         self.checkThenDestroySR()
 
-class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest):
+class _HASmokeTestWithPathDown(testcases.xenserver.tc.ha._HASmoketest, _HardwareMultipath):
     """HA smoke test with FC path down"""
     STATEFILE_SR = "lvmoiscsi"
     NUMHOSTS = 2
     FAILURE_PATH = 0
+    ROOTDISK_MPATH_COUNT = 4
+    DEFAULT_PATH_COUNT = 1
     
     def prepare(self, arglist=None):
-        for h in self.pool.getHosts():
+        for h in self.getDefaultPool().getHosts():
             if h.lookup(["FC", "CMD_HBA0_ENABLE"], None) != None and h.lookup(["FC", "CMD_HBA1_ENABLE"], None) != None:
                 self.hostWithMultiplePaths = h
                 self.scsiid = string.split(h.lookup("OPTION_CARBON_DISKS", None), "scsi-")[1]
                 break
             
-        self.hostWithMultiplePaths.disableFCPort(self.FAILURE_PATH)
-        time.sleep(60)    
+        _HardwareMultipath.disableFCPort(self, self.FAILURE_PATH)
 
-        mp = self.hostWithMultiplePaths.getMultipathInfo(onlyActive=True, useLL=True)
-        
-        if len(mp[self.scsiid]) != 1:
-            raise xenrt.XRTFailure("Expecting 1/2 paths active, found %u" % (len(mp[self.scsiid])))
-            
-        testcases.xenserver.tc.ha._HASmoketest.prepare()
+        testcases.xenserver.tc.ha._HASmoketest.prepare(self)
 
     def postRun(self):
         testcases.xenserver.tc.ha._HASmoketest.postRun(self)
         
         xenrt.TEC().logverbose("Enabling FC Port %u" % self.FAILURE_PATH)
-        self.hostWithMultiplePaths.enableFCPort(self.FAILURE_PATH)
-        time.sleep(60)    
-
-        mp = self.hostWithMultiplePaths.getMultipathInfo(onlyActive=True, useLL=True)
-        
-        if len(mp[self.scsiid]) != 2:
-            raise xenrt.XRTFailure("Expecting 2/2 paths active, found %u" % (len(mp[self.scsiid])))
- 
+        _HardwareMultipath.enableFCPort(self, self.FAILURE_PATH)
         xenrt.TEC().logverbose("Successfully enabled FC Port %u" % self.FAILURE_PATH)
 
 
@@ -4147,7 +4139,7 @@ class TC21455(xenrt.TestCase):
         while(xenrt.timenow()<=deadline):
             pid = self.host.execdom0("pidof multipathd || true").strip()
             if pid :
-                xenrt.TEC().logverbose("Multipathd restarted with process id %d" % (pid))
+                xenrt.TEC().logverbose("Multipathd restarted with process id %s" % (pid))
                 break
         if(xenrt.timenow() > deadline):
             raise xenrt.XRTFailure("Mutlipathd did not restart with in 2m+2s")
@@ -4214,12 +4206,12 @@ class TC18156(xenrt.TestCase):
         eqlmpconf += "\\t\\tvendor \"EQLOGIC\"\\n"
         eqlmpconf += "\\t\\tproduct \"100E-00\"\\n"
         eqlmpconf += "\\t\\tpath_grouping_policy multibus\\n"
-        eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u -s /block/%n\"\\n"
-        # TODO: Remove above line and uncomment below lines when Centos 6.4 userspace in use
-        #if isinstance(self.host, xenrt.lib.xenserver.SarasotaHost):
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u --devices /dev/%n\"\\n"
-        #else:
-        #    eqlmpconf += "\\t\\tgetuid_callout \"/sbin/scsi_id -g -u -s /block/%n\"\\n"
+        
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.isCentOS7Dom0():
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u --devices /dev/%n\"\\n"
+        else:
+            eqlmpconf += "\\t\\tgetuid_callout \"" + self.host.scsiIdPath() + " -g -u -s /block/%n\"\\n"
+        
         eqlmpconf += "\\t\\tpath_checker readsector0\\n"
         eqlmpconf += "\\t\\tfailback immediate\\n"
         eqlmpconf += "\\t\\tpath_selector \"round-robin 0\"\\n"
@@ -4416,8 +4408,13 @@ class TC18782(xenrt.TestCase):
         multipathDebuginfoRpmFileName = self.host.execdom0(commandInput).strip()
 
         if multipathDebuginfoRpmFileName: # e.g. device-mapper-multipath-debuginfo-0.4.7-46.xs1033
-            multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
-                                                                                        multipathDebuginfoRpmFileName)
+        
+            if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/i386/%s.i386.rpm" %
+                                                                                                multipathDebuginfoRpmFileName)
+            else:
+                multipathDebuginfoRpmFilePath = xenrt.TEC().getFile("binary-packages/RPMS/domain0/RPMS/x86_64/valgrind-3.9.0-xs.10649.2569..x86_64.rpm")
+
             if not multipathDebuginfoRpmFilePath:
                 xenrt.TEC().logverbose("Device-mapper-multipath-debuginfo file path does not exist. "
                                         "A different version of device-mapper-multipath-debuginfo may exist. "
@@ -4447,8 +4444,23 @@ class TC18782(xenrt.TestCase):
 
     def run(self, arglist=None):
 
-        # Install Memcheck, a memory error detector using Valgrind-3.5.0
-        self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind")
+        # Install Memcheck, a memory error detector using Valgrind
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.execdom0("yum --disablerepo=citrix --enablerepo=base install -y gdb valgrind") # Valgrind v3.5.0
+        else:
+            # Valgrind v3.9.0 for Creedence.
+            script = """#!/usr/bin/expect
+    set timeout 180
+    spawn yum --disablerepo=citrix --enablerepo=base install gdb
+    expect -exact "Is this ok"
+    sleep 5
+    send -- "y\r"
+    expect -exact "Complete"
+    expect eof
+    """
+            self.host.execdom0("echo '%s' > script.sh; exit 0" % script)
+            self.host.execdom0("chmod a+x script.sh; exit 0")
+            self.host.execdom0("/root/script.sh")
 
         # Clean existing multipathd deamon, if any
         commandOutput = self.host.execdom0("killall multipathd; exit 0").strip()
@@ -4815,7 +4827,7 @@ class TCValidatePathCount(_TC8159):
         
         totalPaths = len(host.getMultipathInfo()[self.scsiid])
         activePaths = len(host.getMultipathInfo(onlyActive=True)[self.scsiid])
-        expectedPaths = [activePaths-1, totalPaths]
+        expectedPaths = [activePaths-2, totalPaths] # -2 because, the number of paths depends on the physical configuration.
         
         step("Drop one path by disabling port")
         host.disableFCPort(1)

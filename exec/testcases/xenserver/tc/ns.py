@@ -206,7 +206,7 @@ class SRIOVTests(xenrt.TestCase):
     def _createIO(self, host):
         io = xenrt.lib.xenserver.IOvirt(host)
         io.enableIOMMU(restart_host=False)
-        io.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return io
 
     def getSRIOVEthDevices(self):
@@ -819,7 +819,7 @@ class NSBVT(xenrt.TestCase):
     ATS_PASSWORD = "freebsd"
 
     # Client VMs should reside on Client VLAN 
-    ATS = "ATS.xva"
+    ATS = "ATS_10_5.xva"
     BWC1="BWC1.xva"
     BWC2="BWC2.xva"
     LCLNT1="LCLNT1.xva"
@@ -836,11 +836,12 @@ class NSBVT(xenrt.TestCase):
     IIS3 = "IIS3.xva"
 
     # NS VMs
-    VPX1 = "VPX1.xva"
-    VPX2 = "VPX2.xva"
+    VPX1 = "VPX1_10_5.xva"
+    VPX2 = "VPX2_10_5.xva"
 
     # Acceptable failures
-    IGNORE_TESTS = set(['26.2.1.37', '26.2.1.53', '26.2.1.87', '26.2.1.150'])
+    IGNORE_TESTS = set(['26.2.1.14'])
+    
     
     def getMountDir(self, mounts, src_path):
         
@@ -960,7 +961,7 @@ class NSBVT(xenrt.TestCase):
         vm_name = host.genParamGet('vm', vm_uuid, 'name-label')
         guest = host.guestFactory()(vm_name, None)
         guest.distro = "debian60"
-        
+        guest.enlightenedDrivers = False
         guest.windows = False
         guest.tailored = True
         guest.existing(host)
@@ -1040,20 +1041,19 @@ class NSBVT(xenrt.TestCase):
         self.configureTestVM(host, vlan_lst, xva_path, vm_key, start_vm)
         
         return
-
-
+    
     def configureClient(self, start_vm=True):
         
         self.cfg['clnt_nfs_dir'] = self.mountXvaNfsDir(self.cfg['clnt'])
         
         client_test_vms = [self.BWC1, self.BWC2, self.LCLNT1, self.LCLNT2, self.WCLNT1]
-        
         for xva in client_test_vms:
             self.configureClientVM(xva, start_vm)
             
         self.configureAtsController()
         if start_vm:
             ats = self.cfg["ats"]
+            ats.enlightenedDrivers = False
             ats.start()
             time.sleep(180)
             ats.waitForSSH(300, level=xenrt.RC_ERROR, desc="Waiting for ATS vm to boot")
@@ -1288,7 +1288,7 @@ class NSBVT(xenrt.TestCase):
         self.startTest()
 
         # A little wait can do wonders
-        time.sleep(60 * 5)
+        time.sleep(60 * 10)
         status = self.pollTestStatus()
         if status == 'RUNNING':
             self.stopTest()
@@ -1341,7 +1341,11 @@ class TC14935(xenrt.TestCase):
         # cannot easily check this is enforced but the main threat here
         # is losing the patch which makes the timeslice tunable.
         self.host.reboot()
-        self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+        if isinstance(self.host, xenrt.lib.xenserver.DundeeHost):
+            self.host.execdom0("xl debug-keys r")
+        else:
+            self.host.execdom0("/opt/xensource/debug/xenops debugkeys r")
+            
         dmesg = self.host.execdom0("xe host-dmesg uuid=%s" % (self.host.getMyHostUUID()))
         r = re.search(r"\stslice\s+=\s+(\d+)ms", dmesg)
         if not r:
@@ -1372,17 +1376,50 @@ class TCNsSuppPack(xenrt.TestCase):
                                                        "host-uuid=%s" %
                                                        self.host.getMyHostUUID()).strip()
 
+    def getSourcesFromP4(self):
+        '''Sync the NS-SDX supplemental pack source code from NetScaler perforce server'''
+
+        # Get the perforce command line client (32bit or 64bit) tool: p4
+        arch = self.ddkVM.execguest('uname -m').strip()
+        if arch == 'x86_64':
+            p4File = xenrt.TEC().getFile('/usr/groups/xenrt/perforce/x86_64/p4')
+        else:
+            p4File = xenrt.TEC().getFile('/usr/groups/xenrt/perforce/x86/p4')
+
+        sftp = self.ddkVM.sftpClient()
+        try:
+            sftp.copyTo(p4File, '/usr/bin/p4')
+        except:
+            raise xenrt.XRTError("Failed to sftp perforce binary to ddkVM")
+        finally:
+            sftp.close()
+
+        self.ddkVM.execguest("chmod +x /usr/bin/p4")
+
+        # Get NetScaler perforce server credentials
+        p4user = xenrt.TEC().lookup("NS_P4_USERNAME")
+        p4passwd = xenrt.TEC().lookup("NS_P4_PASSWORD")
+        p4client = xenrt.TEC().lookup("NS_P4_CLIENT")
+        p4port = xenrt.TEC().lookup("NS_P4_PORT")
+
+        # setup the p4 environment in the ddkVM
+        p4config_cmd = 'echo "export P4USER=%s; export P4PASSWD=%s; export P4CLIENT=%s; export P4PORT=%s"  >> /root/.bash_profile' % (p4user, p4passwd, p4client, p4port)
+        self.ddkVM.execguest(p4config_cmd)
+
+        # Force sync because multiple ddk vm's will be using the same p4 client and without force sync, the checkout will be unpredictable
+        self.ddkVM.execguest('source /root/.bash_profile; p4 sync -f //depot/SDX/main/supp-pack/xs-netscaler/...')
+
 
     def run(self, arglist):
-        self.ddkVM.execguest('hg clone http://hg.uk.xensource.com/closed/xs-netscaler.hg xs-netscaler.hg')
-        self.ddkVM.execguest('make -C xs-netscaler.hg > install.log 2>&1')
+        self.getSourcesFromP4()
+        self.ddkVM.execguest('make -C xs-netscaler > install.log 2>&1')
 
-        self.workdir = "/root/xs-netscaler.hg/output"
+        self.workdir = "/root/xs-netscaler/output"
 
         # Create a tmp directory on the controller that will be automatically cleaned up
         ctrlTmpDir = xenrt.TEC().tempDir()
 
-        sourcePath = self.ddkVM.execguest("find /root/xs-netscaler.hg/output/ -iname xs-netscaler*iso -type f").strip()
+        sourcePath = self.ddkVM.execguest("find /root/xs-netscaler/output/ -iname xs-netscaler*iso -type f").strip()
         packName = os.path.basename(sourcePath)
 
         # copy to tempdir on controller
@@ -1669,7 +1706,7 @@ class NSSRIOV(SRIOVTests):
     def enableSRIOV(self, host):
         iovirt = xenrt.lib.xenserver.IOvirt(host)
         iovirt.enableIOMMU(restart_host=False)
-        iovirt.enableVirtualFunctions()
+        host.enableVirtualFunctions()
         return iovirt
         
     def assignVFs(self, iovirt, vpx, eths):
@@ -1923,7 +1960,7 @@ class TC18685(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')
         self.prepVpxForFirstboot(self.host,self.TraffGen)
@@ -2037,7 +2074,7 @@ class TC18823(NSSRIOV):
         self.host = self.getDefaultHost()
         self.io = xenrt.lib.xenserver.IOvirt(self.host)
         self.io.enableIOMMU(restart_host=False)
-        self.io.enableVirtualFunctions()
+        self.host.enableVirtualFunctions()
         self.GOLDEN_VM = self.importNsXva(self.host, "NSVPX-XEN-10.0-72.5_nc.xva")
         self.uninstallOnCleanup(self.GOLDEN_VM)
         self.TraffGen = self.GOLDEN_VM.cloneVM(name ='Traffic Generator VPX')

@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
-    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
     <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
     <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
   </variables>
@@ -11,7 +9,7 @@
   <prepare>
       <host id="0">
         <NETWORK>
-          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+          <PHYSICAL network="ANY" speed="10G" name="NET_A">
             <MANAGEMENT/>
             <NIC/>
             <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
@@ -28,7 +26,7 @@
 
       <host id="1">
         <NETWORK>
-          <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_B">
+          <PHYSICAL network="ANY" speed="10G" name="NET_B">
             <MANAGEMENT/>
             <NIC/>
             <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->

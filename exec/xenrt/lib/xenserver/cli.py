@@ -205,7 +205,8 @@ class Session:
                 username=None,
                 password=None,
                 useCredentials=True,
-                debugOnFail=False):
+                debugOnFail=False,
+                nolog=False):
         """Execute a CLI command"""
         argusername = self.username
         argpassword = self.password
@@ -226,7 +227,7 @@ class Session:
             (debugOnFail or xenrt.TEC().lookup("XE_DEBUG_ON_FAIL", False, boolean=True))):
             c = c + " --debug-on-fail"
 
-        if xenrt.TEC().lookup("WORKAROUND_CA109448", False, boolean=True) and re.search(".*-(import|upload|restore(-database)?)$",command):
+        if xenrt.TEC().lookup("NO_XE_SSL", False, boolean=True) or (xenrt.TEC().lookup("WORKAROUND_CA109448", False, boolean=True) and re.search(".*-(import|upload|restore(-database)?)$",command)):
             c = c + " --nossl"
 
         if minimal:
@@ -254,7 +255,8 @@ class Session:
                                               level=level,
                                               timeout=timeout,
                                               ignoreerrors=ignoreerrors,
-                                              strip=strip)
+                                              strip=strip,
+                                              nolog=nolog)
                         return reply
                     except xenrt.XRTException, e:
                         # Propogate connectivity problems to retry loop

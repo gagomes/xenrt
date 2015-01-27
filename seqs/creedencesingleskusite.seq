@@ -41,12 +41,12 @@
         <arg>system=site</arg>
         <arg>edition=xendesktop</arg>
       </testcase>
-
+      <!--
       <testcase id="xenserver.tc.singleskulicense.GraceLic" name="TC19017" tc="TC-19017">
         <arg>system=site</arg>
         <arg>edition=xendesktop</arg>
       </testcase>
-
+     -->
     </serial>
 
   </testsequence>

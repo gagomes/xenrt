@@ -23,7 +23,7 @@
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>
@@ -32,20 +32,20 @@
         <distro>debian60</distro>
         <network device="0" bridge="NET_MGMT"/>
         <network device="1" bridge="NET_A"/>
-        <vcpus>1</vcpus>
-        <memory>512</memory>
+        <vcpus>2</vcpus>
+        <memory>2048</memory>
         <postinstall action="pause"/><!-- do not interfere with other vms  -->
       </vm>
     </host>
 
     <!-- a baremetal machine -->
-    <host id="1" productVersion="centos65-x64" productType="nativelinux">
+    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
       <NETWORK>
         <PHYSICAL name="NET_MGMT">
           <MANAGEMENT/>
           <NIC/>
         </PHYSICAL>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <NIC/>
         </PHYSICAL>
       </NETWORK>
@@ -62,7 +62,7 @@
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=1</arg>
+        <arg>endpoint1dev=NET_A</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>
@@ -73,7 +73,7 @@
         <arg>endpoint0dev=1</arg>
         <arg>endpoint0ip=192.168.0.88</arg>
         <arg>endpoint1=RESOURCE_HOST_1</arg>
-        <arg>endpoint1dev=1</arg>
+        <arg>endpoint1dev=NET_A</arg>
         <arg>endpoint1ip=192.168.0.99</arg>
       </testcase>
     </serial>

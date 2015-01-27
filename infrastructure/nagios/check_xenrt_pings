@@ -7,6 +7,12 @@ checktype = sys.argv[1]
 sitexmlnodes = []
 machinexmlnodes = []
 
+errortext = "CRITICAL"
+exitlevel = 2
+
+# Special for BMC check
+bmccheck = False
+
 if checktype == "gateways":
     sitexmlnodes = [("DEFAULT","GATEWAY","NPRI Gateway"),
                 ("SECONDARY","GATEWAY","NSEC Gateway"),
@@ -36,6 +42,9 @@ elif checktype == "pdus":
 elif checktype == "bmcs":
     sitexmlnodes = [("HOST_CONFIGS","BMC_ADDRESS","BMC")]
     machinexmlnodes = [("BMC_ADDRESS", "BMC")]
+    exitlevel = 1
+    errortext = "WARNING"
+    bmccheck = True
 elif checktype == "consoles":
     machinexmlnodes = [("CONSOLE_ADDRESS", "Serial Concentrator")]
     sitexmlnodes = [("CONSERVER_ENTRIES", "CONSOLE_ADDRESS", "Serial Concentrator")]
@@ -101,18 +110,27 @@ for s in sfiles:
 f = open("/etc/xenrt/siteid")
 site = f.read().strip()
 f.close()
-f = os.popen("xenrt mlist2 -s %s -C" % site)
+f = os.popen("xenrt mlist2 -qs %s" % site)
 machines = f.readlines()
 f.close()
 
-machinexml = xml.dom.minidom.parseString(os.popen("xrt --run-tool 'machineXML()'").read())
-
 for m in machines:
-    (machine,status,job) = m.split(",")
+    mm = m.split()
+    status = mm[3]
+    pool = mm[4]
+    machine = mm[0]
     if status == "offline":
         continue
+    if pool.endswith("x"):
+        continue
+    if pool in ("EX", "EVAL"):
+        continue
     try:
-        mdom = machinexml.getElementsByTagName(machine)[0]
+        mdom = xml.dom.minidom.parseString(open("/etc/xenrt/machines/%s.xml" % machine).read())
+        if bmccheck:
+            powerctl = mdom.getElementsByTagName("POWER_CONTROL")
+            if powerctl and getTextFromXmlNode(powerctl[0]) != "ipmi":
+                continue
         for (i,j) in machinexmlnodes:
             addresslist = mdom.getElementsByTagName(i)
             for a in addresslist:
@@ -130,6 +148,6 @@ if len(errors) == 0:
     sys.exit(0)
 
 else:
-    print "XenRT ping check of %s CRITICAL: %s" % (checktype, ", ".join(map (lambda x: "%s failed" % x, errors)))
-    sys.exit(2)
+    print "XenRT ping check of %s %s: %s" % (checktype, errortext, ", ".join(map (lambda x: "%s failed" % x, errors)))
+    sys.exit(exitlevel)
 

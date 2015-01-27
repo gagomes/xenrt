@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- MNR storage NIC(s) test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <CARBON_EXTRA_CDS>linux.iso</CARBON_EXTRA_CDS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="DedicatedNIC">
+      <testcase id="xenserver.tc.network.TC8095"/>
+      <testcase id="xenserver.tc.network.TC8100"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

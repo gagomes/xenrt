@@ -11,7 +11,7 @@ class TCLMBench(libperf.PerfTestCase):
         self.mb = 256
         self.runs = 4
 
-        self.instFiledir = "/usr/share/xenrt/tests/lmbench"
+        self.instFiledir = "/usr/share/xenrt/tests"
 
     def prepare(self, arglist=None):
         # Parse generic args
@@ -32,19 +32,21 @@ class TCLMBench(libperf.PerfTestCase):
         sftp = self.host.sftpClient()
 
         # From http://downloads.sourceforge.net/project/lmbench/development/lmbench-3.0-a9/lmbench-3.0-a9.tgz
-        lmbenchFilename = "lmbench-3.0-a9.tgz"
+        lmbenchFilename = "lmbench.tgz"
         lmbenchSrc = "%s/%s" % (self.instFiledir, lmbenchFilename)
         lmbenchDest = "/root/%s" % lmbenchFilename
 
         # Install lmbench
         sftp.copyTo(lmbenchSrc, lmbenchDest)
-        output = self.host.execdom0("tar xvfz /root/lmbench-3.0-a9.tgz")
+        output = self.host.execdom0("tar xvfz /root/lmbench.tgz")
+        xenrt.TEC().logverbose("output: %s" % output)
+        output = self.host.execdom0("tar xvfz /root/lmbench/lmbench-3.0-a9.tgz")
         xenrt.TEC().logverbose("output: %s" % output)
         instDir = "/root/lmbench-3.0-a9"
 
         # Install make, gcc
         extraargs = ""
-        if xenrt.productLib(self.host) == xenrt.lib.xenserver:
+        if xenrt.productLib(host=self.host) == xenrt.lib.xenserver:
             extraargs = "--disablerepo=citrix --enablerepo=base,updates"
         cmds = [
             "yum %s install -y make" % extraargs,
@@ -60,11 +62,10 @@ class TCLMBench(libperf.PerfTestCase):
         xenrt.TEC().logverbose("lmbench calls the dom0 OS '%s'" % osName)
 
         # Install the config file
-        configSrc = "%s/lmbench.config" % self.instFiledir
         configDestDir = "%s/bin/%s" % (instDir, osName)
         configDest = "%s/CONFIG.%s" % (configDestDir, self.host.getName())
         self.host.execdom0("mkdir -p %s" % configDestDir)
-        sftp.copyTo(configSrc, configDest)
+        self.host.execdom0("cp /root/lmbench/lmbench.config %s" % configDest)
 
         # Install the info file
         self.host.execdom0("cp %s/scripts/info-template %s/INFO.q9" % (instDir, configDestDir)) # "INFO.q9" because this is what is specified in the CONFIG file

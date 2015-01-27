@@ -1,0 +1,128 @@
+<xenrt>
+
+  <!-- OS functional tests: debian60 -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+  <default name="MIGRATEPAR" value="1" />
+
+  <semaphores>
+    <TCMigrate count="${MIGRATEPAR}" />
+  </semaphores>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <parallel workers="${PARALLEL}">
+
+      <serial group="debian60">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-16142">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=debian60</arg>
+          <arg>distro=debian60</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="debian60">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-16143">
+            <arg>guest=debian60</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-16144">
+            <arg>guest=debian60</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-16145">
+            <arg>guest=debian60</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-16146">
+            <arg>guest=debian60</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-16147">
+            <arg>guest=debian60</arg>
+            <arg>live</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-16148">
+            <arg>N/A</arg>
+            <arg>guest=debian60</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-16149">
+            <arg>N/A</arg>
+            <arg>guest=debian60</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=debian60</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+      <serial group="debian60x86-64">
+        <testcase id="xenserver.guest.TCXenServerVendorInstall" name="VMInstall" tc="TC-16152">
+          <arg>RESOURCE_HOST_0</arg>
+          <arg>guest=debian60x86-64</arg>
+          <arg>distro=debian60</arg>
+          <arg>arch=x86-64</arg>
+          <arg>memory=1024</arg>
+        </testcase>
+        <serial guest="debian60x86-64">
+          <testcase id="guestops.basic.TCStartStop" tc="TC-16153">
+            <arg>guest=debian60x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.basic.TCReboot" tc="TC-16154">
+            <arg>guest=debian60x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCSuspendResume" tc="TC-16155">
+            <arg>guest=debian60x86-64</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" tc="TC-16156">
+            <arg>guest=debian60x86-64</arg>
+            <arg>loops=10</arg>
+          </testcase>
+          <testcase id="guestops.srm.TCMigrate" name="TCLiveMigrate" tc="TC-16157">
+            <arg>guest=debian60x86-64</arg>
+            <arg>live</arg>
+            <arg>loops=20</arg>
+          </testcase>
+          <testcase id="xenserver.storage.TCMultipleVDI" tc="TC-16158">
+            <arg>N/A</arg>
+            <arg>guest=debian60x86-64</arg>
+            <arg>noshutdown</arg>
+            <arg>initial=4</arg>
+            <arg>max=7</arg>
+          </testcase>
+          <testcase id="xenserver.network.TCNICTest" name="TCNICTestLive" tc="TC-16159">
+            <arg>N/A</arg>
+            <arg>guest=debian60x86-64</arg>
+            <arg>noshutdown</arg>
+          </testcase>
+          <finally>
+            <testcase id="guestops.basic.TCShutdown">
+              <arg>guest=debian60x86-64</arg>
+              <arg>finally</arg>
+            </testcase>
+          </finally>
+        </serial>
+      </serial>
+
+    </parallel>
+  </testsequence>
+
+</xenrt>

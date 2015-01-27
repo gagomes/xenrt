@@ -14,5 +14,7 @@
    <serial group="Snowball">
     <testcase id="testcases.xenserver.tc.vhd.TC20995"/>
    </serial>
+   <testcase id="testcases.xenserver.tc.storage.TCPbdDuplicateSecret" tc="TC-21719"/>
+   <testcase id="testcases.xenserver.tc.host.TCSlaveConnectivity" name = "TC23773" tc ="TC-23773"/>
   </testsequence>
 </xenrt>

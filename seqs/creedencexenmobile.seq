@@ -1,0 +1,14 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <prepare>
+    <host id="0">
+      <vm name="XenMobile XVA">
+        <file user="yes">%XENMOBILE_XVA%</file>
+        <postinstall action="installXenMobileAppliance" />
+      </vm>
+    </host>
+  </prepare>
+</xenrt>

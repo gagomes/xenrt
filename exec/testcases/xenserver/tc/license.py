@@ -1341,7 +1341,7 @@ if __name__ == "__main__":
         if self.EDITION:
             host.license(edition=sku, expirein=5, applyEdition=False)
         else:
-            host.license(sku=sku, expirein=5, applyEdition=False)
+            host.license(sku=sku, expirein=5, applyedition=False)
 
         # Advance the host clocks to 10 minutes before license expires
         expires = host.getLicenseDetails()["expiry"]
@@ -2190,6 +2190,10 @@ class TC10017(_V6PlatinumEDN):
     """Verify WLB can be initialised"""
     FEATURE = "Kirkwood"
     ALLOWED = True
+class TC21479(_V6PlatinumEDN):
+    """Verify WLB cannot be initialised for unlicensed host on Creedence"""
+    FEATURE = "Kirkwood"
+    ALLOWED = False
 class TC11002(_V6PlatinumEDN):
     """Verify DMC can be used"""
     FEATURE = "DMC"
@@ -3748,7 +3752,7 @@ class TC10755(xenrt.TestCase):
                     errs['name'] = "'%s' not 'LICENSE_SERVER_UNREACHABLE'" % (name)
                 priority = self.host.genParamGet("message", a, "priority")
                 version = xenrt.TEC().lookup("PRODUCT_VERSION")
-                if version == "Sarasota":
+                if version == "Dundee":
                     if priority != "2":
                         errs['priority'] = "'%s' not '2'" % (priority)
                 else:

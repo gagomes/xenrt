@@ -1,0 +1,47 @@
+<xenrt>
+
+  <!-- MNR RBAC API Test Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+    <CLEAR_EVENT_LOGS_ON_FETCH>true</CLEAR_EVENT_LOGS_ON_FETCH>
+    <NESTED_HVM>yes</NESTED_HVM>
+  </variables>
+
+  <preprepare>
+    <host id="0">
+      <vm name="AUTHSERVER">
+        <distro>ws08sp2-x86</distro>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+        <postinstall action="installPowerShell"/>
+        <postinstall action="enablePowerShellUnrestricted"/>
+      </vm>
+    </host> 
+  </preprepare>
+  
+  <prepare>
+    <pool>
+      <host container="0" vname="xs0" />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="RBAC">
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9901"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9902"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9903"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9904"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9905"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9906"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9883"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9884"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9885"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9886"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9887"/>        
+      <testcase id="testcases.xenserver.tc.rbacapi.TC9888"/>        
+    </serial>
+  </testsequence>
+
+</xenrt>

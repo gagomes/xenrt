@@ -1,6 +1,8 @@
 <xenrt>
 
   <!-- RBAC API tests -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -10,7 +12,7 @@
 
   <prepare>
     <pool>
-      <host id="0" />
+      <host id="0" productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
     </pool>
     <host id="1" >
       <vm name="AUTHSERVER">
@@ -25,7 +27,10 @@
 
   <testsequence>
     <serial group="RBAC">
-      <testcase id="testcases.xenserver.tc.rbaccli.TC14902" />
+      <testcase id="xenserver.install.TCXenServerUpgrade">
+        <arg>input=DEFAULT</arg>
+        <arg>suspendDuringUpgrade</arg>
+      </testcase>
       <testcase id="testcases.xenserver.tc.rbacapi.TC10214" />
       <testcase id="testcases.xenserver.tc.rbacapi.TC10215" />
       <testcase id="testcases.xenserver.tc.rbacapi.TC10216" />

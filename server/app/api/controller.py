@@ -25,6 +25,8 @@ class XenRTPower(XenRTAPIPage):
 
             # Form a command line to launch the suite
             cmd = ["%s/exec/main.py" % config.sharedir, powerargs[powerop], machine]
+            if form.has_key("bootdev"):
+                cmd.append("--bootdev %s" % form['bootdev'])
             self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
             self.request.response.content_type="text/plain"
             return self.request.response
@@ -73,6 +75,52 @@ class XenRTMConfig(XenRTAPIPage):
             except Exception, e:
                 return "No config defined, machine config will be taken from racktables"
 
-PageFactory(XenRTPower, "power", "/api/controller/power", compatAction="power")
-PageFactory(XenRTSNetwork, "snetwork", "/api/controller/network", compatAction="network")
-PageFactory(XenRTMConfig, "mconfig", "/api/controller/machinecfg", compatAction="mconfig")
+class XenRTGetResource(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        machine = form['machine']
+        restype = form['type']
+        
+
+        if form.has_key('args'):
+            args = " %s" % form['args']
+        else:
+            args = ""
+        
+        xrtcmd = "--get-resource \"%s %s%s\"" % (machine, restype, args)
+        
+        cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+        self.request.response.body_file = os.popen("%s 2>&1" % string.join(cmd))
+        self.request.response.content_type="application/json"
+        return self.request.response
+
+class XenRTListResources(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        machine = form['machine']
+
+        xrtcmd = "--list-resources \"%s\"" % (machine)
+        
+        cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+        self.request.response.body_file = os.popen("%s 2>/dev/null" % string.join(cmd))
+        self.request.response.content_type="application/json"
+        return self.request.response
+
+class XenRTReleaseResources(XenRTAPIPage):
+    def render(self):
+        form = self.request.params
+        for v in form.getall("resource"):
+            if v.startswith("NFS-"):
+                xrtcmd = "--cleanup-nfs-dir \"%s\"" % (v.split("-", 1)[1])
+            else:
+                xrtcmd = "--release-lock \"%s\"" % (v)
+            cmd = ["%s/exec/main.py" % config.sharedir, xrtcmd]
+            os.system(string.join(cmd))
+        return "OK"
+
+PageFactory(XenRTGetResource, "/api/controller/getresource")
+PageFactory(XenRTListResources, "/api/controller/listresources")
+PageFactory(XenRTReleaseResources, "/api/controller/releaseresources", contentType="text/plain")
+PageFactory(XenRTPower, "/api/controller/power", compatAction="power")
+PageFactory(XenRTSNetwork, "/api/controller/network", compatAction="network")
+PageFactory(XenRTMConfig, "/api/controller/machinecfg", compatAction="mconfig")

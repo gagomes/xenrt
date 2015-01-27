@@ -1,20 +1,69 @@
 import xenrt
 import os.path
+import sys
+import urllib, json
 
 try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
     import jenkinsapi
     from jenkinsapi.jenkins import Jenkins
 except ImportError:
     pass
 
-def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
+def getArtifactsFromTar(place, artifacts):
+    tar = xenrt.TEC().lookup("CLOUDRPMTAR", None)
+    if not tar:
+        raise xenrt.XRTError("CLOUDRPMTAR not specified")
+    placeArtifactDir = '/tmp/csartifacts'
+    place.execcmd('mkdir %s' % (placeArtifactDir))
+    place.execcmd('wget %s -P %s' % (tar, placeArtifactDir))
+    place.execcmd('cd %s; tar -xzf %s' % (placeArtifactDir, os.path.basename(tar)))
+    # Remove any artifacts that weren't asked for
+    allArtifacts = place.execcmd('cd %s; ls *' % (placeArtifactDir))
+    for a in allArtifacts.split():
+        if not any(map(lambda r: a.startswith(r), artifacts)):
+            place.execcmd('rm -f %s' % (os.path.join(placeArtifactDir, a)))
+    return placeArtifactDir
+
+def getACSArtifacts(place, artifactsStart, artifactsEnd=[]):
+    if xenrt.TEC().lookup("CLOUDRPMTAR", None) is not None:
+        return getArtifactsFromTar(place, artifactsStart)
+
+    buildUrl = xenrt.TEC().lookup("ACS_BUILD", None)
+    if not buildUrl:
+        buildUrl = findACSBuild(place)
+
+    # Load the JSON data for this build
+    data = json.loads(urllib.urlopen("%s/api/json" % (buildUrl)).read())
+    artifactsDict = {}
+    for a in data['artifacts']:
+        artifactsDict[a['fileName']] = a['relativePath']
+
+    artifactKeys = filter(lambda x: any(map(lambda a: x.startswith(a), artifactsStart)), artifactsDict.keys())
+    artifactKeys.extend(filter(lambda x: any(map(lambda a: x.endswith(a), artifactsEnd)), artifactsDict.keys()))
+    
+
+    # Copy artifacts into the temp directory
+    localFiles = [xenrt.TEC().getFile(os.path.join(buildUrl, "artifact", artifactsDict[x])) for x in artifactKeys]
+
+    if not place:
+        return localFiles
+
+    placeArtifactDir = '/tmp/csartifacts'
+    place.execcmd('mkdir %s' % (placeArtifactDir))
+
+    webdir = xenrt.WebDirectory()
+    for f in localFiles:
+        webdir.copyIn(f)
+        place.execcmd('wget %s -P %s' % (webdir.getURL(os.path.basename(f)), placeArtifactDir))
+
+    webdir.remove()
+
+    return placeArtifactDir
+
+def findACSBuild(place):
     jenkinsUrl = 'http://jenkins.buildacloud.org'
 
     j = Jenkins(jenkinsUrl)
-    # TODO - Add support for getting a specific build (not just the last good one)?
     branch = xenrt.TEC().lookup('ACS_BRANCH', 'master')
     if not branch in j.views.keys():
         raise xenrt.XRTError('Could not find ACS_BRANCH %s' % (branch))
@@ -42,28 +91,10 @@ def getLatestArtifactsFromJenkins(place, artifacts, updateInputDir=False):
     xenrt.TEC().logverbose('Using jobKey: %s' % (jobKey))
 
     lastGoodBuild = view[jobKey].get_last_good_build()
-    if updateInputDir:
-        xenrt.GEC().dbconnect.jobUpdate("ACSINPUTDIR", lastGoodBuild.baseurl)
-    artifactsDict = lastGoodBuild.get_artifact_dict()
-
-    artifactKeys = filter(lambda x: any(map(lambda a: x.startswith(a), artifacts)), artifactsDict.keys())
-
-    placeArtifactDir = '/tmp/csartifacts'
-    place.execcmd('mkdir %s' % (placeArtifactDir))
-
-    xenrt.TEC().logverbose('Using CloudStack Build: %d, Timestamp %s' % (lastGoodBuild.get_number(), lastGoodBuild.get_timestamp().strftime('%d-%b-%y %H:%M:%S')))
-
-    # Copy artifacts into the temp directory
-    localFiles = [xenrt.TEC().getFile(artifactsDict[x].url) for x in artifactKeys]
-
-    webdir = xenrt.WebDirectory()
-    for f in localFiles:
-        webdir.copyIn(f)
-        place.execcmd('wget %s -P %s' % (webdir.getURL(os.path.basename(f)), placeArtifactDir))
-
-    webdir.remove()
-
-    return placeArtifactDir
+    buildUrl = lastGoodBuild.baseurl
+    xenrt.GEC().config.setVariable("ACS_BUILD", buildUrl)
+    xenrt.GEC().dbconnect.jobUpdate("ACS_BUILD", buildUrl)
+    return buildUrl
 
 from xenrt.lib.cloud.deploy import *
 from xenrt.lib.cloud.mansvr import *

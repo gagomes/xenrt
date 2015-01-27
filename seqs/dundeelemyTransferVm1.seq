@@ -1,0 +1,59 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="TransferVMTest">
+    <testcase id="xenserver.tc.transfervm.TC14047"/>
+    <testcase id="xenserver.tc.transfervm.TC14048"/>
+    <testcase id="xenserver.tc.transfervm.TC14049"/>
+    <testcase id="xenserver.tc.transfervm.TC14050"/>
+    <testcase id="xenserver.tc.transfervm.TC14051"/>
+    <testcase id="xenserver.tc.transfervm.TC14052"/>
+    <testcase id="xenserver.tc.transfervm.TC14053"/>
+    <testcase id="xenserver.tc.transfervm.TC14054"/>
+    <testcase id="xenserver.tc.transfervm.TC14055"/>
+    <testcase id="xenserver.tc.transfervm.TC14057"/>
+    <testcase id="xenserver.tc.transfervm.TC14058"/>
+    <testcase id="xenserver.tc.transfervm.TC14059"/>
+    <testcase id="xenserver.tc.transfervm.TC14060"/>
+    <testcase id="xenserver.tc.transfervm.TC14061"/>
+    <testcase id="xenserver.tc.transfervm.TC14062"/>
+    <testcase id="xenserver.tc.transfervm.TC14063"/>
+    <testcase id="xenserver.tc.transfervm.TC14064"/>
+    <testcase id="xenserver.tc.transfervm.TC14067"/>
+    <testcase id="xenserver.tc.transfervm.TC14068"/>
+    <testcase id="xenserver.tc.transfervm.TC14069"/>
+    <testcase id="xenserver.tc.transfervm.TC14070"/>
+    <testcase id="xenserver.tc.transfervm.TC14072"/>
+    <testcase id="xenserver.tc.transfervm.TC14076"/>
+    <testcase id="xenserver.tc.transfervm.TC14078"/>
+    <testcase id="xenserver.tc.transfervm.TC14080"/>
+    <testcase id="xenserver.tc.transfervm.TC14082"/>
+    <testcase id="xenserver.tc.transfervm.TC14083"/>
+    <testcase id="xenserver.tc.transfervm.TC14084"/>
+    <testcase id="xenserver.tc.transfervm.TC14085"/>
+    <testcase id="xenserver.tc.transfervm.TC14086"/>
+    <testcase id="xenserver.tc.transfervm.TC14087"/>
+    <testcase id="xenserver.tc.transfervm.TC14088"/>
+    <testcase id="xenserver.tc.transfervm.TC14112"/>
+    <testcase id="xenserver.tc.transfervm.TC14124"/>
+    <testcase id="xenserver.tc.transfervm.TC14125"/>
+    <testcase id="xenserver.tc.transfervm.TC14126"/>
+    <testcase id="xenserver.tc.transfervm.TC14127"/>
+    <testcase id="xenserver.tc.transfervm.TC14128"/>
+    <testcase id="xenserver.tc.transfervm.TC14130"/>
+    <testcase id="xenserver.tc.transfervm.TC14131"/>
+    <testcase id="xenserver.tc.transfervm.TC14132"/>
+    <testcase id="xenserver.tc.transfervm.TC14139"/>
+    <testcase id="xenserver.tc.transfervm.TC14140"/>
+    <testcase id="xenserver.tc.transfervm.TC14149"/>
+  </testsequence>
+
+</xenrt>
+

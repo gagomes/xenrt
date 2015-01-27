@@ -1,0 +1,66 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+    <NETWORK_BACKEND>bridge</NETWORK_BACKEND>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=4G</resources>
+    <param>MACHINES_REQUIRED=3</param>
+    <flags>staticip,nfs,!unsup_rhel63,vcenter</flags>
+    <param>OPTION_KEEP_NFS=yes</param>
+  </scheduler>
+  <prepare>
+    <cloud>
+{
+    "zones": [
+        {
+            "name": "XenRT-Zone-0",
+            "networktype": "Basic",
+            "pods": [
+                {
+                    "name": "XenRT-Zone-0-Pod-0",
+                    "XRT_PodIPRangeSize": 5,
+                    "clusters": [
+                        {
+                            "name": "XenRT-Zone-0-Pod-0-Cluster-0",
+                            "hypervisor": "vmware",
+                            "XRT_Hosts": 2
+                        },
+                        {
+                            "name": "XenRT-Zone-0-Pod-0-Cluster-1",
+                            "hypervisor": "vmware",
+                            "XRT_Hosts": 1
+                        }
+                    ],
+                    "guestIpRanges": [
+                        {
+                            "XRT_GuestIPRangeSize": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+</cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </sharedhost>
+  </prepare>
+
+  <testsequence group="Resiliency">
+      <testcase id="cloud.tc.resiliency.TCBlockVcenter" name="VCenterBlocked" tc="TC-21909" >
+      </testcase>
+  </testsequence>
+</xenrt>

@@ -15,6 +15,7 @@ import xenrt, xenrt.resources
 __all__ = ["PXEBootEntry",
            "PXEBootEntryLocal",
            "PXEBootEntryLinux",
+           "PXEBootEntryIPXE",
            "PXEBootEntryMboot",
            "PXEBootEntryMbootImg",
            "PXEBoot",
@@ -58,6 +59,24 @@ LABEL %s
     APPEND %s
 """ % (self.label, self.device)
 
+class PXEBootEntryIPXE(PXEBootEntry):
+    """An individual boot entry in a PXE config to boot iPXE."""
+    def __init__(self, cfg, label):
+        PXEBootEntry.__init__(self, cfg, label)
+
+    def generate(self):
+        if xenrt.TEC().lookup("EXTERNAL_PXE", False, boolean=True):
+            self.cfg.copyIn("/tftpboot/ipxe.embedded.0") 
+            return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, self.cfg.makeBootPath("ipxe.embedded.0"))
+        else:
+            return """
+LABEL %s
+    KERNEL %s
+""" % (self.label, xenrt.TEC().lookup("IPXE_KERNEL", "ipxe.0"))
+
 class PXEBootEntryLinux(PXEBootEntry):
     """An individual boot entry in a PXE config for Linux kernel booting."""
     def __init__(self, cfg, label):
@@ -85,6 +104,29 @@ LABEL %s
 %s
 """ % (self.label, self.kernel, extra)
 
+class PXEBootEntryMemdisk(PXEBootEntry):
+    def __init__(self, cfg, label):
+        PXEBootEntry.__init__(self, cfg, label)
+        self.initrd = ""
+        self.args = None
+
+    def setInitrd(self, initrd):
+        self.initrd = initrd
+
+    def setArgs(self, args):
+        self.args = args
+
+    def generate(self):
+        if self.args:
+            extra = "    APPEND %s" % (self.args)
+        else:
+            extra = ""
+        return """
+LABEL %s
+    LINUX memdisk
+    INITRD %s
+%s
+""" % (self.label, self.initrd, extra)
 
 class PXEBootEntryPxeGrub(PXEBootEntryLinux):
     """An individual boot entry in a PXE config for pxegrub chainloading."""
@@ -170,12 +212,17 @@ LABEL %s
 
 class PXEBoot(xenrt.resources.DirectoryResource):
     """A directory on a PXE server."""
-    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None):
+    def __init__(self, place=None, abspath=False, removeOnExit=False, iSCSILUN=None, remoteNfs=None):
         self.abspath = abspath
+        self.mount = None
         # Allow us to specify a guest to use as a PXE server.
-        place = xenrt.TEC().registry.guestGet(xenrt.TEC().lookup("PXE_SERVER", None))
+        if not place:
+            place = xenrt.TEC().registry.guestGet(xenrt.TEC().lookup("PXE_SERVER", None))
         if place:
             self.tftpbasedir = place.tftproot
+        elif remoteNfs:
+            self.mount = xenrt.MountNFS(remoteNfs)
+            self.tftpbasedir = self.mount.getMount()
         else:
             self.tftpbasedir = xenrt.TEC().lookup("TFTP_BASE")
         self.iSCSILUN = iSCSILUN
@@ -195,6 +242,9 @@ class PXEBoot(xenrt.resources.DirectoryResource):
         self.filename = None
         self.iSCSINICs = []
         self.removeOnExit = removeOnExit
+        self.iPXE = False
+        if self.iSCSILUN:
+            self.iPXE = True
         xenrt.TEC().gec.registerCallback(self)
 
     def setSerial(self, serport, serbaud):
@@ -213,6 +263,8 @@ class PXEBoot(xenrt.resources.DirectoryResource):
             e = PXEBootEntryMbootImg(self, label)
         elif boot == "linux":
             e = PXEBootEntryLinux(self, label)
+        elif boot == "ipxe":
+            e = PXEBootEntryIPXE(self, label)
         elif boot == "local":
             e = PXEBootEntryLocal(self, label)
         elif boot == "chainlocal":
@@ -221,6 +273,8 @@ class PXEBoot(xenrt.resources.DirectoryResource):
             e = PXEBootEntryPxeGrub(self, label)
         elif boot == "grub":
             e = PXEGrubBootEntry(self, label)
+        elif boot == "memdisk":
+            e = PXEBootEntryMemdisk(self, label)
         else:
             raise xenrt.XRTError("Unknown PXE boot type %s" % (boot))
         if default:
@@ -277,14 +331,68 @@ DEFAULT %s
     def addISCSINIC(self, index, pci):
         self.iSCSINICs.append((index, pci))
 
-    def writeISCSIConfig(self, machine, forceip=None, boot=False):
-        if not self.iSCSILUN:
-            return
+    def getIPXEFile(self, machine, forceip=None):
         if forceip:
             filename = "%s/%s" % (self._getIPXEDir(), forceip)
         else:
             filename = "%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)
+        return filename
 
+    def waitForIPXEStamp(self, machine, forceip=None):
+        if forceip:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), forceip)
+        else:
+            filename = "%s/%s.stamp" % (self._getIPXEDir(), machine.pxeipaddr)
+        self._rmtree(filename)
+        xenrt.waitForFile(filename, 1800, desc="Waiting for iPXE config to be accessed on !%s" % (machine.name))
+
+    def clearIPXEConfig(self, machine, forceip=None):
+        xenrt.TEC().logverbose("Clearing iPXE config")
+        self.iPXE = False
+        if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
+        if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
+            self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
+            
+
+    def writeIPXEExit(self, machine, forceip=None):
+        filename = self.getIPXEFile(machine, forceip)
+        
+        out = "goto end\n"
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
+    def writeIPXEConfig(self, machine, script, forceip=None):
+        self.iPXE = True
+        filename = self.getIPXEFile(machine, forceip)
+        
+        if script:
+            out = script
+            out += "\ngoto end\n"
+        else:
+            out = ""
+
+        t = xenrt.TEC().tempFile()
+        f = file(t, "w")
+        f.write(out)
+        f.close()
+        
+        self._copy(t, filename)
+        xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
+        return filename
+
+    def writeISCSIConfig(self, machine, forceip=None, boot=False):
+        if not self.iSCSILUN:
+            return
+
+        filename = self.getIPXEFile(machine, forceip)
 
 
         out = "set initiator-iqn %s\n" % (self.iSCSILUN.getInitiatorName())
@@ -326,17 +434,23 @@ dhcp
         xenrt.TEC().logverbose("Wrote iPXE config file %s" % (filename))
         return filename
 
-    def writeOut(self, machine, forcemac=None, forceip=None):
+    def writeOut(self, machine, forcemac=None, forceip=None, suffix=None):
         """Write this config for the specified machine."""
         pxedir = xenrt.TEC().lookup("PXE_CONF_DIR",
                                     self.tftpbasedir+"/pxelinux.cfg")
 
-        if not self.iSCSILUN:
+
+        if not self.iPXE:
             if machine and self._exists("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), machine.pxeipaddr))
             if forceip and self._exists("%s/%s" % (self._getIPXEDir(), forceip)):
                 self._rmtree("%s/%s" % (self._getIPXEDir(), forceip))
 
+        if xenrt.TEC().lookup("USE_IPXE", False, boolean=True) and \
+          self.default == "local" and \
+          xenrt.TEC().lookupHost(machine.name,"IPXE_EXIT", False, boolean=True):
+            self.writeIPXEExit(machine, forceip) 
+        
         if not forcemac:
             forcemac = xenrt.TEC().lookupHost(machine.name,"PXE_MAC_ADDRESS", None)
         if forcemac:
@@ -352,6 +466,8 @@ dhcp
                                      string.split(machine.name, ".")[0])
             pxefile = string.replace(pxefile, "@LOGNAME@",
                                      pwd.getpwuid(os.getuid())[0])
+        if suffix:
+            pxefile += suffix
         filename = os.path.join(pxedir, pxefile)
         self.filename = filename
         if not self._exists(os.path.dirname(filename)):
@@ -391,6 +507,8 @@ dhcp
                     xenrt.rootops.sudo("mv %s.xenrt.bak %s" % (self.filename, self.filename))
         self._delegate.remove() 
         xenrt.TEC().gec.unregisterCallback(self)
+        if self.mount:
+            self.mount.unmount()
 
 
 class PXEGrubBootEntry(PXEBootEntry):

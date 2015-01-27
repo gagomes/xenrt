@@ -257,7 +257,7 @@ class Host(_Entity):
             try: self.ref.execdom0("/etc/init.d/xapi start")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-            try: self.ref.execdom0("/etc/init.d/firstboot start")
+            try: self.ref.execdom0("/etc/init.d/firstboot restart")
             except Exception, e:
                 xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
                 try: self.ref.execdom0("rm -f /etc/firstboot.d/state/*")
@@ -291,8 +291,11 @@ class Host(_Entity):
                 try: self.ref.execdom0("xe host-apply-edition edition=platinum")
                 except Exception, e:
                     xenrt.TEC().logverbose("Host reset exception: %s" % (str(e)))
-                
-            xenrt.sleep(150) # adding some delay for the toolstack to initialise
+            try:
+                self.ref.waitForEnabled(300)            
+            except:
+                self.ref.enable()
+                self.ref.waitForEnabled(300)            
             self.live = False
 
 class Default(_Entity): 
@@ -447,10 +450,9 @@ class Patch(_Entity):
     NAME = "pool_patch"
 
     def create(self):
-        workdir = xenrt.TEC().getWorkdir()
-        xenrt.getTestTarball("patchapply",extract=True,directory=workdir)
-        filename = "%s/patchapply/hotfix-mnr-test1.xsupdate" % (workdir)
         cli = self.get("Host").ref.getCLIInstance()
+        filename = self.get("Host").ref.getTestHotfix(1)
+        self.get("Host").ref.addHotfixFistFile(filename)
         self.uuid = cli.execute("patch-upload", "file-name=%s" % (filename)).strip()
 
     def destroy(self):

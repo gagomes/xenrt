@@ -1,0 +1,38 @@
+<xenrt>
+
+  <!-- host operations test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <OPTION_BLOCK_ON_SKIP>yes</OPTION_BLOCK_ON_SKIP>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence group="HostOps">
+    <testcase id="xenserver.tc.logging.TC6710" prio="3" />
+    <!--
+    xenops is not availble in Dundee. These 2 TCs will always fail.
+    <testcase id="xenserver.cli.TCRioQoSBasic" tc="TC-6967" prio="3" />
+    <testcase id="xenserver.cli.TCRioCPUControl" tc="TC-6968" prio="3" />
+    -->
+    <testcase id="xenserver.tc.host.TC6858" prio="2" />
+    <testcase id="xenserver.tc.host.TC8253" prio="3" />
+    <testcase id="xenserver.tc.host.TC8254" prio="3" />
+    <testcase id="xenserver.tc.host.TC8453" prio="3" />
+    <testcase id="xenserver.tc.host.TC8341" prio="3" />
+    <testcase id="xenserver.negative.TCvdionreadonly" tc="TC-7320">
+      <arg>RESOURCE_HOST_0</arg>
+    </testcase>
+    <testcase id="xenserver.negative.TCincorrectPassword" tc="TC-7321">
+      <arg>RESOURCE_HOST_0</arg>
+    </testcase>
+    <testcase id="xenserver.negative.TCinvalidTemplate" tc="TC-7322">
+      <arg>RESOURCE_HOST_0</arg>
+    </testcase>
+  </testsequence>
+
+</xenrt>

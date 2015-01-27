@@ -1,6 +1,7 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>MNR</PRODUCT_VERSION>
+    <WORKAROUND_CA95084>yes</WORKAROUND_CA95084>
   </variables>
   
   <prepare>

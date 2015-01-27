@@ -300,7 +300,7 @@ class TC8542(_KirkwoodErrorBase):
         self.COMMAND_SHOULD_ERROR = True
         # CA-60147 - TC8542 If WLB is not alive, it is okay; pool-deconfigure-wlb is still expected to succeed.
         if isinstance(host, xenrt.lib.xenserver.BostonHost):
-            # CA-93312-TC8542-from Boston and forward (Sanibel, Tampa, Sarasota, etc), pool-deconfigure-wlb is still expected to succeed
+            # CA-93312-TC8542-from Boston and forward (Sanibel, Tampa, Clearwater, etc), pool-deconfigure-wlb is still expected to succeed
             self.COMMAND_SHOULD_ERROR = False
         self.pool.deconfigureWLB()
 
@@ -366,6 +366,15 @@ class TC8544(_KirkwoodErrorBase):
     def runCommand(self):
         self.kirkwood.poolConfig = {'sample':'config'}
         data = self.pool.retrieveWLBConfig()
+
+class TC21681(_KirkwoodErrorBase):
+    """Verify that receiving WLB Pool Audit Log configuration"""
+
+    def runCommand(self):
+        self.kirkwood.poolConfig = {'PoolAuditLogGranularity':'Medium'}
+        data = self.pool.retrieveWLBConfig()
+        if data.get('PoolAuditLogGranularity') != 'Medium':
+            raise xenrt.XRTFailure("set PoolAuditLogGranularity=Medium but return %r" % data.get('PoolAuditLogGranularity'))
 
 class TC21450(_KirkwoodErrorBase):
     """Verify WLB service network connection failure under error condition"""
@@ -882,17 +891,17 @@ class TC8623(_HostEvacuateRecBase):
 class TC8624(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM to the host itself"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = False
 class TC8625(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        VM that's not resident on the host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     VM_OFF_HOST = False
 class TC8626(_HostEvacuateRecBase):
     """Verify host evacuate recommendations with a recommendation to migrate a
        non agile VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = False
 
 class TC8627(_KirkwoodErrorBase):
@@ -1112,12 +1121,13 @@ class _PoolRecommendationBase(_KirkwoodBase):
         # Set up VMs
         sruuid1 = self.pool.master.lookupDefaultSR()
         sruuid2 = sruuid1
+        slave = self.pool.getSlaves()[0]
         if self.USE_LOCAL_SR:
             sruuid1 = self.pool.master.getLocalSR()
-            sruuid2 = self.pool.getSlaves()[0].getLocalSR()
+            sruuid2 = slave.getLocalSR()
         g1 = self.pool.master.createGenericLinuxGuest(sr=sruuid1)
         self.uninstallOnCleanup(g1)
-        g2 = self.pool.getSlaves()[0].createGenericLinuxGuest(sr=sruuid1)
+        g2 = slave.createGenericLinuxGuest(sr=sruuid2)
         self.uninstallOnCleanup(g2)
 
         # Build the recommendations
@@ -1185,17 +1195,17 @@ class TC8629(_PoolRecommendationBase):
 class TC8631(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to an
        offline / unavailable host"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_OFFLINE = True
 class TC8632(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a VM to a
        host it's already resident on"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     RECOMMEND_MIGRATE_TO_HOST = True
 class TC8634(_PoolRecommendationBase):
     """Verify pool recommendations with a recommendation to migrate a non agile
        VM"""
-    EXPECT_FAIL = True
+    #EXPECT_FAIL = True #CA-26101 won't fix
     USE_LOCAL_SR = True
 
 class TC8633(_KirkwoodErrorBase):
@@ -1265,6 +1275,27 @@ class TC8635(_KirkwoodBase):
             xenrt.TEC().copyToLogDir(fname, "testreportlong")
             raise xenrt.XRTFailure("Received report not as expected",
                                    data="Long report")
+
+
+class TC21682(_KirkwoodBase):
+    """Verify the WLB reports functionality"""
+    FORCE_FAKEKIRKWOOD = True
+
+    def run(self, arglist=None):
+        self.initialiseWLB()
+        cli = self.pool.getCLIInstance()
+        pool_uuid = self.pool.getUUID()
+        filename = os.path.join(xenrt.TEC().tempDir(), "TC21682.xml")
+        argument = "report=pool_audit_history LocaleCode=en Start=-6 End=0 PoolID=%s ReportVersion=Creedence AuditUser=ALL AuditObject=ALL StartLine=1 EndLine=10000 UTCOffset=480 filename=%s" % (pool_uuid, filename)
+        for i in xrange(100):
+            if os.path.isfile(filename):
+                os.remove(filename)
+            time.sleep(2)
+            data = cli.execute("pool-retrieve-wlb-report", argument)
+            if 'succeeded' not in data.lower():
+                raise xenrt.XRTFailure("execute %d pool-retrieve-wlb-report %s return %r" % (i+1, argument, data))
+
+
 
 class TC8669(_KirkwoodErrorBase):
     """Verify that Xapi handles errors from Kirkwood when retrieving reports"""
@@ -2025,6 +2056,18 @@ class _VPXWLBReports(_VPXWLB):
                       " PoolID="     + pool_uuid
             if report_name in ["host_health_history", "vm_performance_history"]:
                 command = command + " HostID=" + host_uuid
+            if report_name in ["pool_audit_history"]:
+                # add ReportVersion=creedence AuditUser=ALL AuditObject=ALL StartLine=1 EndLine=10000
+                if 'report_version' in args_dictionary:
+                    command = command + " ReportVersion=" + args_dictionary['report_version']
+                if 'audit_user' in args_dictionary:
+                    command = command + " AuditUser=" + args_dictionary['audit_user']
+                if 'audit_object' in args_dictionary:
+                    command = command + " AuditObject=" + args_dictionary['audit_object']
+                if 'start_line' in args_dictionary:
+                    command = command + " StartLine=" + args_dictionary['start_line']
+                if 'end_line' in args_dictionary:
+                    command = command + " EndLine=" + args_dictionary['end_line']
             command = command + \
                       " UTCOffset="  + args_dictionary["UTCOffset"] + \
                       " filename="   + report_output_fqp
@@ -2062,6 +2105,7 @@ class _VPXWLBReports(_VPXWLB):
                 break
 
         if not found:
+            xenrt.TEC().logverbose("TEST_FAILED: %r.verifyTestPassed not found keyword in %r" % (self, report_contents[:1024]))
             raise xenrt.XRTFailure("TEST_FAILED.")
 
     def verifyTestPassed(self, report_contents, args_dictionary):
@@ -2130,6 +2174,37 @@ class TC18154(_VPXWLBReports):
         args_dictionary["host_uuid"] = host_uuid
         args_dictionary["pool_uuid"] = pool_uuid
         self.doRunBase(args_dictionary)
+
+
+class TC21683(TC18154):
+    """Test pool audit trail report in creedence"""
+    def run(self, arglist=None):
+        # rather then use dictionary immediately, lets use list then convert to dictionary
+        # since in the future, may use run(arglist) method directly.
+        args_list = ["tmp_dir=/tmp/", "vmname=TestVM", "LocaleCode=en", "Start=-1", "End=0", "UTCOffset=-240", "report_name=pool_audit_history", "minutes_per_iteration=3", "iterations=5"]
+        args_dictionary = self.argslistToDictionary(args_list)
+        hosts = self.pool.getHosts()
+        # Initialise WLB
+        self.initialiseWLB()
+        # Install a specific VM
+        index = 0
+        vmname = args_dictionary["vmname"]
+        g1 = hosts[index].createGenericLinuxGuest(name=vmname,vcpus=1,memory=128)
+        self.uninstallOnCleanup(g1)
+        host_name = str(hosts[index].getName())
+        host_uuid = str(hosts[index].getMyHostUUID())
+        pool_uuid = str(self.pool.getUUID())
+        args_dictionary["host_name"] = host_name
+        args_dictionary["host_uuid"] = host_uuid
+        args_dictionary["pool_uuid"] = pool_uuid
+        #ReportVersion=creedence AuditUser=ALL AuditObject=ALL StartLine=1 EndLine=10000
+        args_dictionary["report_version"] = 'creedence'
+        args_dictionary["audit_user"] = 'ALL'
+        args_dictionary["audit_object"] = 'ALL'
+        args_dictionary["start_line"] = '1'
+        args_dictionary["end_line"] = '10000'
+        self.doRunBase(args_dictionary)
+
 
 class TC18157(_VPXWLBReports):
     """Test VM chargeback report"""

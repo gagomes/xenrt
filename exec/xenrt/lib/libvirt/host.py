@@ -85,7 +85,7 @@ class Host(xenrt.GenericHost):
     def execvirt(self, cmd):
         """Execute a command on the machine running libvirt. (Not in xenrt.lib.xenserver)"""
         if self.LIBVIRT_REMOTE_DAEMON:
-            self.execdom0(cmd)
+            return self.execdom0(cmd)
         else:
             cmd += " --connect \"%s\" " % self._getVirURL()
             child = pexpect.spawn(cmd)
@@ -98,6 +98,8 @@ class Host(xenrt.GenericHost):
             child.close()
             if child.exitstatus != 0:
                 raise xenrt.XRTFailure("libvirt command exited with error (%s)" % (cmd))
+            else:
+                return output
 
     def existing(self):
         """Query an existing host"""
@@ -107,7 +109,8 @@ class Host(xenrt.GenericHost):
             guest.existing(self)
             xenrt.TEC().logverbose("Found existing guest: %s" % (guestname))
         for sruuid in self.getSRs():
-            isESX = (self.productVersion == "ESXi" or self.productVersion == "ESX")
+            isESX = ("esx" in self.productVersion.lower() or "esx" in self.productType.lower())
+            isKVM = ("kvm" in self.productVersion.lower() or "kvm" in self.productType.lower())
             srname = self.getSRName(sruuid)
             if isESX and srname == "datastore1":
                 srclass = xenrt.lib.esx.EXTStorageRepository
@@ -115,6 +118,16 @@ class Host(xenrt.GenericHost):
                 srclass = xenrt.lib.esx.ISOStorageRepository
             elif isESX and srname == "XenRT static ISOs":
                 srclass = xenrt.lib.esx.ISOStorageRepository
+            elif isESX and srname.startswith("local"):
+                srclass = xenrt.lib.esx.EXTStorageRepository
+            elif isKVM and srname.startswith("LocalStorage"):
+                srclass = xenrt.lib.kvm.EXTStorageRepository
+            elif isKVM and srname.startswith("XenRT ISOs"):
+                srclass = xenrt.lib.kvm.ISOStorageRepository
+            elif isKVM and srname.startswith("XenRT static ISOs"):
+                srclass = xenrt.lib.kvm.ISOStorageRepository
+            elif isKVM and srname.startswith("SR-"):
+                srclass = xenrt.lib.kvm.EXTStorageRepository
             else:
                 xenrt.TEC().logverbose("Warning: No way of identifying type of SR %s" % (srname))
                 srclass = xenrt.lib.libvirt.sr.StorageRepository
@@ -270,6 +283,8 @@ class Host(xenrt.GenericHost):
                 template = self.chooseTemplate("TEMPLATE_NAME_WS08")
             elif distro.startswith("win7"):
                 template = self.chooseTemplate("TEMPLATE_NAME_WIN7")
+            elif distro.startswith("win8"):
+                template = self.chooseTemplate("TEMPLATE_NAME_WIN8")
             elif distro.startswith("debian"):
                 v = re.search("debian(\d*)", distro).group(1)
                 if v != "": v = "_" + v
@@ -328,4 +343,8 @@ class Host(xenrt.GenericHost):
         #TODO: use virsh list output
         return "unknown"
 
-
+    def getBridgeByName(self, name):
+        """Return the actual bridge based on the given friendly name. Currently
+        KVM has no way to store the friendly name of a bridge in its data model,
+        therefore should overwrite this function. """
+        return name

@@ -27,6 +27,14 @@ class _CIMInterface:
   
     RPMCHECK = True
 
+    def _startCimLogging(self):
+        #start capturing cimserver logs
+        script = self.cimLogScript()
+        try:
+            self.host.execdom0(command=script)
+        except:
+            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")
+
     def prepare(self,host):
         """Install a host with xenserver integration supplemental pack"""
 
@@ -41,6 +49,7 @@ class _CIMInterface:
                 break
 
         if flag == False:
+            self._startCimLogging()
             return
 
         suppPack = xenrt.TEC().getFile("xe-phase-2/%s" % (self.PACK),self.PACK)
@@ -96,12 +105,7 @@ class _CIMInterface:
         if not self.checkCimServerRunning(self.host):
             raise xenrt.XRTFailure("Cim Server is not running")
 
-        #start capturing cimserver logs
-        script = self.cimLogScript()
-        try:
-            self.host.execdom0(command=script)
-        except:
-            xenrt.TEC().logverbose("Exception occurred while trying to start cimserver logging")            
+        self._startCimLogging()
 
     def cimLogScript(self):
  
@@ -384,10 +388,19 @@ class _WSMANProtocol(_CIMInterface):
     def exportVM(self,vmuuid,transProtocol,ssl):
 
         self.createSharedDirectory()
-        #Export vm
-        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl)
-        self.psExecution(psScript,timeout = 40000)
-        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))         
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Export vm
+        psScript = xenrt.lib.xenserver.exportWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,static_ip,mask,gateway)
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
+        xenrt.TEC().logverbose("VM %s exported" % (vmuuid))
 
     def verifyExport(self,vdiuuid,vdiName):
         
@@ -427,9 +440,19 @@ class _WSMANProtocol(_CIMInterface):
  
     def importVM(self,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam):
 
-        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam)
-        ret = self.psExecution(psScript,timeout = 20000)
-        vm = ret.splitlines()[2]
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # import VM
+        psScript = xenrt.lib.xenserver.importWSMANVM(self.hostPassword,self.hostIPAddr,vmuuid,transProtocol,ssl,vmName,vmProc,vmRam,static_ip,mask,gateway)
+        try:
+            ret = self.psExecution(psScript,timeout = 40000)
+            vm = ret.splitlines()[2]
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANVMScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
         xenrt.TEC().logverbose("VM %s imported" % (vm))
         return vm
        
@@ -444,10 +467,15 @@ class _WSMANProtocol(_CIMInterface):
     def copyVM(self,origVMName,copyVMName):
 
         psScript =  xenrt.lib.xenserver.copyWSMANVM(self.hostPassword,self.hostIPAddr,origVMName,copyVMName)
-        ret = self.psExecution(psScript,timeout = 3600)
-        vm = ret.splitlines()[2]
-        xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
-        return vm
+        try:
+            ret = self.psExecution(psScript,timeout = 3600)
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            vm = ret.splitlines()[2]
+            xenrt.TEC().logverbose("VM copied from '%s'" % (origVMName))
+            return vm
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("copyVMWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
  
     def createCIFSISO(self,targetHost,isoSRName,vdiName,vmuuid,sharename,cifsGuest,host):
       
@@ -503,7 +531,11 @@ class _WSMANProtocol(_CIMInterface):
         except:
             raise xenrt.XRTError("Exception caught while mapping the share directory")
 
-        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        psScript =  xenrt.lib.xenserver.createWSMANCifsIsoSr(self.hostPassword,self.hostIPAddr,location,user,password,isoSRName,vdiName,vmuuid,static_ip,mask,gateway)
         ret = self.psExecution(psScript,timeout = 3600)
         return ret
 
@@ -723,19 +755,59 @@ class _WSMANProtocol(_CIMInterface):
         psScript = xenrt.lib.xenserver.convertWSMANVMToTemplate(self.hostPassword,self.hostIPAddr,vmuuid)
         ret = self.psExecution(psScript,timeout = 3600)
 
-    def exportVMSnapshotTree(self,vmuuid):
+    def getTheWsmanScriptsLogs(self, filename):
+        
+        base = xenrt.TEC().getLogdir()
+        self.guest.xmlrpcGetFile("C:\\%s" % filename, "%s/%s" % (base,filename))
+        self.guest.xmlrpcRemoveFile("C:\\%s" % filename)
+
+    def getIPRange(self,staticIPs):
+
+        s_obj = xenrt.StaticIP4Addr.getIPRange(staticIPs+1)
+        start_ip = s_obj[1].getAddr()
+        end_ip = s_obj[staticIPs].getAddr()
+        return start_ip,end_ip
+
+    def exportVMSnapshotTree(self,vmuuid,staticIPs):
 
         self.createSharedDirectory()
         driveName = "Q:\\"
-        psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
-        ret = self.psExecution(psScript,timeout = 30000)
+        if staticIPs:
+            start_ip,end_ip = self.getIPRange(staticIPs)
+            s_ip = start_ip.split('.')
+            if (int(s_ip[3]) == 0) or ((int(s_ip[3]) + staticIPs) >= 255):
+                start_ip,end_ip = self.getIPRange(staticIPs)
+            (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+            psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName,start_ip,end_ip,mask,gateway)
+        else:
+            psScript = xenrt.lib.xenserver.exportWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,vmuuid,driveName)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("exportWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
 
     def importVMSnapshotTree(self,transProtocol,ssl):
 
         driveName = "Q:\\"
-        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl)
-        ret = self.psExecution(psScript,timeout = 30000)
+        # Get the staticIP for connectToDiskImage
+        s_obj = xenrt.StaticIP4Addr.getIPRange(3)
+        static_ip = s_obj[1].getAddr()
+        (_, mask, gateway) = self.host.getNICAllocatedIPAddress(0)
+        # Import VMSnapshotTree
+        psScript = xenrt.lib.xenserver.importWSMANSnapshotTree(self.hostPassword,self.hostIPAddr,driveName,transProtocol,ssl,static_ip,mask,gateway)
+        
+        try:
+            ret = self.psExecution(psScript,timeout = 30000)
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+        except Exception, e:
+            self.getTheWsmanScriptsLogs("importWSMANScriptsOutput.txt")
+            raise xenrt.XRTFailure("Failure caught while executing wsman scripts")
+        
         return ret
+        
 
     def createInternalNetwork(self,networkName):
 
@@ -842,7 +914,7 @@ class _CimBase(xenrt.TestCase,_CIMInterface):
         #Check the VM state using CLI command
         deadline = xenrt.timenow() + timeout
         pollPeriod = 5
-        time.sleep(3)
+        time.sleep(10)
         while 1:
             data = host.execdom0("xe vm-param-get uuid=%s param-name=power-state" % (vmuuid))
             state = data.splitlines()[0]
@@ -3359,6 +3431,7 @@ class ExportImportSnapshotTree(_CimBase):
     LARGEVM = False
     SIZE = None 
     COPY = False
+    STATICIP = None
 
     def run(self,arglist):
 
@@ -3403,7 +3476,7 @@ class ExportImportSnapshotTree(_CimBase):
             self.guest.shutdown()
 
         vmuuid = self.guest.getUUID()
-        self.protocolObj.exportVMSnapshotTree(vmuuid)
+        self.protocolObj.exportVMSnapshotTree(vmuuid,self.STATICIP)
 
         ret = self.protocolObj.importVMSnapshotTree(transProtocol,ssl)
  
@@ -3462,9 +3535,11 @@ class ExportImportSnapshotTree(_CimBase):
             raise xenrt.XRTFailure("Exception occurred while reverting to snapshot")
         if importedVM.getState() == "UP":
             importedVM.shutdown()
+            self.changeVif(importedVM)
             importedVM.start()
 
         if importedVM.getState() == "DOWN":
+            self.changeVif(importedVM)
             importedVM.start()
 
     def verifySnapshotTree(self,snapshotPattern,host,vmuuid,guest):
@@ -3532,6 +3607,7 @@ class ExportImportSnapshotTree(_CimBase):
         guest.revert(snapshot)
         if guest.getState() == "DOWN":
             try:
+                self.changeVif(guest)
                 guest.start()
             except:
                 raise xenrt.XRTFailure("After reverting VM to snapshot %s, VM is not coming up" % snapshot)
@@ -3601,7 +3677,14 @@ class ExportImportSnapshotTree(_CimBase):
         else:
             guest.execguest("mkdir /tmp/%s" % (str(name)))
         time.sleep(15)
- 
+    
+    def changeVif(self, guest):
+        # Change the vif of newly created guest to XenRT random mac before guest start
+        mac = xenrt.randomMAC()
+        bridge = guest.host.getPrimaryBridge()
+        device = 'eth0'
+        guest.changeVIF(device, bridge, mac)
+    
     def fullTree(self,guest,isWindows):
 
         snapshotList = []
@@ -3636,6 +3719,7 @@ class TC14445(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 1
     ISWINDOWS = False
+    STATICIP = 7
 
 class TC14446(ExportImportSnapshotTree):
     """To verify the export and import of Linux VM snapshot tree of 14 snapshot (pattern 2) using WSMAN protocol"""
@@ -3643,6 +3727,7 @@ class TC14446(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 2 
     ISWINDOWS = False
+    STATICIP = 1
 
 class TC14447(ExportImportSnapshotTree):
     """To verify the export and import of Linux VM snapshot tree of 14 snapshot (pattern 3) using WSMAN protocol"""
@@ -3650,6 +3735,7 @@ class TC14447(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 3
     ISWINDOWS = False
+    STATICIP = 13
 
 class TC14448(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 1) using WSMAN protocol"""
@@ -3657,6 +3743,7 @@ class TC14448(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 1
     ISWINDOWS = True
+    STATICIP = 7
 
 class TC14449(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 2) using WSMAN protocol"""
@@ -3664,6 +3751,7 @@ class TC14449(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 2
     ISWINDOWS = True
+    STATICIP = 1
 
 class TC14450(ExportImportSnapshotTree):
     """To verify the export and import of Windows VM snapshot tree of 14 snapshot (pattern 3) using WSMAN protocol"""
@@ -3671,6 +3759,7 @@ class TC14450(ExportImportSnapshotTree):
     PROTOCOL = "WSMAN"
     SNAPSHOTPATTERN = 3
     ISWINDOWS = True
+    STATICIP = 13
 
 class TC13207(ExportImportSnapshotTree):
     """To verify the export and import of Large Windows VM (100GB) with 1 snapshot using WSMAN protocol"""
@@ -3679,6 +3768,7 @@ class TC13207(ExportImportSnapshotTree):
     ISWINDOWS = True
     LARGEVM = True
     SIZE = 102400 
+    STATICIP = 1
 
 class TC14452(ExportImportSnapshotTree):
     """To verify the export and import of Copied vm with 1 snapshot using WSMAN protocol"""

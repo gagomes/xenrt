@@ -1,0 +1,17 @@
+<xenrt>
+
+  <!-- Host DVD drive testing -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="DVD">
+    <testcase id="xenserver.tc.host.TCCheckLocalDVD" prio="3" tc="TC-21935"/>
+  </testsequence>
+
+</xenrt>

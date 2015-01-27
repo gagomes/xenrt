@@ -4,9 +4,11 @@
 */2 * * * * @@BINDIR@@/xrt -V --cleanup-locks 2>&1 | logger -t xenrtcleanuplocks
 10 * * * * @@BINDIR@@/xrt -V --cleanup-shared-hosts 2>&1 | logger -t xenrtcleanupsharedhosts
 20 * * * * @@BINDIR@@/xrt -V --cleanup-nfs-dirs 2>&1 | logger -t xenrtcleanupnfsdirs
+*/30 * * * * @@BINDIR@@/xrt -V --cleanup-vcenter 2>&1 | logger -t xenrtcleanupvcenter
 40 6 * * * if [ -e @@BINDIR@@/control/backupdb.sh ]; then @@SHAREDIR@@/control/backupdb.sh; fi
 MAILTO=#XenServerQAadmin@citrite.net
 */15 * * * * @@SHAREDIR@@/scripts/utils/checkSpinningConsoles.py
 0 15 * * 1,2,3,4,5 @@SHAREDIR@@/scripts/refreshwinguests `cat @@CONFDIR@@/siteid` 864000 2>&1 | logger -t xenrtrefreshwinguests; fi
 0 15 * * 6 @@SHAREDIR@@/scripts/refreshwinguests `cat @@CONFDIR@@/siteid` 432000 2>&1 | logger -t xenrtrefreshwinguests; fi
 * * * * * @@SHAREDIR@@/server/check_web.py 2>&1 | logger -t xenrtcheckweb
+* * * * * sudo @@SHAREDIR@@/xenrtdhcpd/checkdhcp.py 2>&1 | logger -t xenrtcheckdhcp

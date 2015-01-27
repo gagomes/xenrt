@@ -1,9 +1,9 @@
 <xenrt>
 
-  <!-- From MNR NFS pool rolling upgrade test with advanced networking -->
+  <!-- From Clearwater NFS pool rolling upgrade test with advanced networking -->
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

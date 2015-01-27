@@ -163,9 +163,11 @@ class  _VmGen(xenrt.TestCase):
         mac = self.host0.genParamGet("vif", vifUUID, "MAC")
         netuuid = self.host0.genParamGet("vif", vifUUID, "network-uuid")
         
+        self.guest.shutdown()
         self.snapshot= self.guest.snapshot("snapshot")
+        self.guest.start()
+        self.guest.waitForAgent(180)
         self.guest.reboot()
-        
         newVmGenId = self.guest.retreiveVmGenId()        
         if preVmGenId == newVmGenId :
             xenrt.TEC().logverbose("VmGenID remains same after taking snapshot of original VM as expected") 
@@ -239,9 +241,12 @@ class  _VmGen(xenrt.TestCase):
         if self.guest.getState() != "UP":
             self.guest.start()
         preVmGenId = self.guest.retreiveVmGenId()
+        self.guest.shutdown()
         self.snapshot= self.guest.snapshot("snapshot_revert")
+        self.guest.start()
         self.guest.waitForAgent(180)
-        self.guest.revert(self.snapshot)        
+        self.guest.shutdown()
+        self.guest.revert(self.snapshot)
         self.vmlifecycle(self.guest)
         
         newVmGenId = self.guest.retreiveVmGenId()

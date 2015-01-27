@@ -30,6 +30,10 @@ class RHELBasedLinux(LinuxOS):
         self.nfsdir = None
 
     @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
+    
+    @property
     def _maindisk(self):
         if self.parent.hypervisorType == xenrt.HypervisorType.xen:
             return "xvda"
@@ -53,6 +57,9 @@ class RHELBasedLinux(LinuxOS):
     def installerKernelAndInitRD(self):
         basePath = "%s/isolinux" % (self.installURL)
         return ("%s/vmlinuz" % (basePath), "%s/initrd.img" % basePath)
+
+    def preCloneTailor(self):
+        self.execSSH("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-*")
 
     def generateAnswerfile(self, webdir):
         """Generate an answerfile and put it in the provided webdir,
@@ -100,7 +107,7 @@ class RHELBasedLinux(LinuxOS):
         f.write(ks)
         f.close()
 
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
 
         self.cleanupdir = path
@@ -108,7 +115,15 @@ class RHELBasedLinux(LinuxOS):
             os.makedirs(path)
         except:
             pass
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
+        xenrt.command("rm -f %s/kickstart.stamp" % path)
         shutil.copyfile(filename, "%s/kickstart" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/kickstart.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -135,6 +150,9 @@ class RHELBasedLinux(LinuxOS):
         xenrt.waitForFile("%s/.xenrtsuccess" % (self.nfsdir.path()),
                               installtime,
                               desc="RHEL based installation")
+        if self.distro.startswith("rhel7") or self.distro.startswith("centos7") or self.distro.startswith("oel7"):
+            # This is likely to be a force stop, so we'll sleep to allow the disk to sync
+            xenrt.sleep(60)
         self.parent.stop()
         self.parent.poll(xenrt.PowerState.down, timeout=1800)
         if self.installMethod == xenrt.InstallMethod.IsoWithAnswerFile:
@@ -145,7 +163,7 @@ class RHELBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a RHEL guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time

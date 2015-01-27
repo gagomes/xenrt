@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Boston scalability on NFS test sequence -->
+  <!-- scalability on NFS test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

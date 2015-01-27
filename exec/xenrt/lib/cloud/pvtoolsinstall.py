@@ -3,12 +3,6 @@ import logging
 import os, urllib, string
 from datetime import datetime
 import xenrt.lib.cloud
-try:
-    from marvin import cloudstackTestClient
-    from marvin.integration.lib.base import *
-    from marvin import configGenerator
-except ImportError:
-    pass
 
 installerList = []
 
@@ -63,7 +57,7 @@ class WindowsXenServerPVToolsInstaller(PVToolsInstaller):
             else:
                 xenrt.sleep(30)
 
-class WindowsXenServer(WindowsXenServerPVToolsInstaller):
+class WindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
 
     @staticmethod
     def supportedInstaller(cloudstack, instance):
@@ -71,8 +65,11 @@ class WindowsXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
-        # TODO: Check the instance is running on XenServer
-
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version < "6.1":
+            return False
         #Name strings from /vol/xenrtdata/iso
         if next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
             return False
@@ -101,7 +98,7 @@ class WindowsXenServer(WindowsXenServerPVToolsInstaller):
         self._installMsi()
         self._pollForCompletion()
 
-class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
+class LegacyWindowsTampaXenServer(WindowsXenServerPVToolsInstaller):
 
     @staticmethod
     def supportedInstaller(cloudstack, instance):
@@ -109,6 +106,12 @@ class WindowsLegacyXenServer(WindowsXenServerPVToolsInstaller):
         @return Is the current instance support
         @rtype Boolean
         """
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version < "6.1":
+            return False
+
         #Name strings from /vol/xenrtdata/iso
         if not next((x for x in ["w2k3", "winxp"] if instance.distro.startswith(x)), None):
             return False
@@ -187,5 +190,57 @@ at > c:\\xenrtatlog.txt
         self._installMsi()
         self._pollForCompletion()
 
-registerInstaller(WindowsXenServer)
-registerInstaller(WindowsLegacyXenServer)
+class WindowsPreTampaXenServer(LegacyWindowsTampaXenServer):
+    @staticmethod
+    def supportedInstaller(cloudstack, instance):
+        """
+        @return Is the current instance support
+        @rtype Boolean
+        """
+        hypervisor = cloudstack.instanceHypervisorTypeAndVersion(instance, nativeCloudType=True)
+        if hypervisor.type != 'XenServer':
+            return False
+        if hypervisor.version >= "6.1":
+            return False
+
+        return isinstance(instance.os, xenrt.lib.opsys.WindowsOS)
+
+    def _installMsi(self):
+        # Note down the VM's uptime
+        self.vmuptime = self.instance.os.uptime
+
+        # Kill the autorun version
+        self.instance.os.killAll("xensetup.exe")
+        self.instance.os.startCmd("d:\\xensetup.exe /S")
+
+    def _pollForCompletion(self):
+        # Wait until we see a reduction in uptime
+        deadline = xenrt.util.timenow() + 3600
+        while True:
+            self.instance.os.waitForDaemon(deadline - xenrt.util.timenow())
+            try:
+                newUptime = self.instance.os.uptime
+                if newUptime < self.vmuptime:
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("VM did not reboot")
+            
+            xenrt.sleep(30)
+
+        # Now wait for the necessary XenStore key to appear
+        while True:
+            try:
+                if self.instance.os.xenstoreRead("attr/PVAddons/Installed").strip() == "1":
+                    xenrt.TEC().logverbose("Found PVAddons evidence, sleeping 5 seconds to allow Xapi to settle")
+                    xenrt.sleep(5)
+                    break
+            except:
+                pass
+            if xenrt.util.timenow() > deadline:
+                raise xenrt.XRTError("Couldn't find PV driver evidence")
+
+registerInstaller(WindowsTampaXenServer)
+registerInstaller(LegacyWindowsTampaXenServer)
+registerInstaller(WindowsPreTampaXenServer)

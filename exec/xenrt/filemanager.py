@@ -1,445 +1,348 @@
-#
-# XenRT: Test harness for Xen and the XenServer product family
-#
-# Abstract mechanism to get input files such as product ISOs to test
-#
-# Copyright (c) 2007 XenSource, Inc. All use and distribution of this
-# copyrighted material is governed by and subject to terms and
-# conditions as licensed by XenSource, Inc. All other rights reserved.
-#
 
-import sys, string, os.path, threading, os, shutil, tempfile, stat, md5
-import time, httplib, urlparse, glob
+import sys, string, os.path, threading, os, shutil, tempfile, stat, hashlib
+import time, urlparse, glob, re, requests
 import xenrt, xenrt.util
 
 __all__ = ["getFileManager"]
 
-class FileManager:
-    """Filemanager base class, used for controllers with access to the same
-    file tree as the job scheduler"""
+fm = None
 
-    def __init__(self, basevar="INPUTDIR"):
-        self.basedirdefault = self._resolveLatestDir(xenrt.TEC().lookup(basevar, None))
-        if not self.basedirdefault:
-            xenrt.TEC().warning('FileManager object created without base dir')
-        self.forceHTTPHack = False
+class FileNameResolver(object):
+    def __init__(self, fn, multipleFiles=False):
+        self.__fn = fn
+        self.__url = fn
+        self.__multiple = multipleFiles
+        self.__singleWildcard = False
+        self.__directory = False
+        # This order is important. First we need to subst the variables, then add the input dir, then convert to HTTP.
+        self.__resolveVariableSubstitutions()
+        self.__resolveInputDir()
+        self.__resolveHttpFetch()
+        self.__resolveLatest()
+        self.__useArchiveIfNeeded()
+        # Finally, we tidy up the path
+        self.__removeMultipleSlashes()
 
-    def setInputDir(self, dirname):
-        if not dirname:
-            dirname = "None"
-        xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR",
-                                           self._resolveLatestDir(dirname),
-                                           fallbackToGlobal=True)
+        self.__localName = self.__url
+        self.__resolveDirectory()
+        self.__resolveWildCards()
+        self.__resolveArchive()
 
-    def _resolveLatestDir(self, dirname):
-        userServer = xenrt.TEC().lookup("SSH_SYMLINK_RESOLVER", None)
-        if not userServer:
-            return dirname
-        if not dirname:
-            return None
-        sdirname = dirname
-        httpBase = xenrt.TEC().lookup("FORCE_HTTP_FETCH", None)
-        if httpBase and dirname.startswith(httpBase):
-            sdirname = dirname[len(httpBase):]
-        sdirname = sdirname.rstrip("/")
-        if not sdirname.endswith("latest"):
-            return dirname
-        (user, server) = userServer.split("@", 2)
-        try:
-            realDir = xenrt.SSH(server, "readlink %s" % sdirname, username=user, retval="string").strip()
-        except:
-            return dirname
-        if realDir == "":
-            return dirname
-        xenrt.TEC().logverbose("Resolved latest symlink to %s" % realDir)
-        return "%s/%s" % (os.path.dirname(dirname.strip("/")), realDir)
+    @property
+    def fn(self):
+        return self.__fn
 
-    def isReleasedBuild(self):
-        return "/release/" in self._getBaseDir()
+    @property
+    def url(self):
+        return self.__url
 
-    def _getBaseDir(self):
-        """Internal method to get the currently in force base directory.
-        This will take into account thread-local input dir overrides."""
-        dirname = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", None)
-        if not dirname or dirname == "None":
-            return self.basedirdefault
-        if self.forceHTTPHack and dirname[0] == "/":
-            urlpref = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "")
-            return "%s%s" % (urlpref, dirname)
-        return dirname
-    
-    def getFiles(self, *filename): 
-        raise xenrt.XRTError("%s: getFiles is not implemented" % self.__class__.__name__)
-     
-    def getFile(self, *filename):
-        """Get an absolute path to the relative filename provided. Returns
-        None if the file does not exist. If this is an absolute path then
-        just return it unchanged."""
-        for f in filename:
-            xenrt.TEC().logverbose("Looking for %s." % (f))
-            if f[0] == "/":
-                if os.path.exists(f):
-                    return f
-                return None
-            basedir = self._getBaseDir()
-            if not basedir:
-                raise xenrt.XRTError("No base directory.")
-            path = "%s/%s" % (basedir, f)
-            xenrt.TEC().logverbose("... %s" % (path))
-            if os.path.exists(path):
-                return path
-        return None
+    @property
+    def localName(self):
+        return self.__localName
 
-    def fileExists(self, *filename):
-        """Return True if one of the specified files exists"""
-        for f in filename:
-            xenrt.TEC().logverbose("Looking for %s." % (f))
-            if f[0] == "/":
-                if os.path.exists(f):
-                    return True
-                return False
-            basedir = self._getBaseDir()
-            if not basedir:
-                xenrt.TEC().logverbose("No base directory.")
-                return False
-            path = "%s/%s" % (basedir, f)
-            xenrt.TEC().logverbose("... %s" % (path))
-            if os.path.exists(path):
-                return True
-        return False
-    
-class RemoteFileManager(FileManager):
-    """A filemanager for remote sites that get files from the job scheduler."""
+    @property
+    def directory(self):
+        return self.__directory
 
-    MAX_ATTEMPTS = 1
+    @property
+    def multipleFiles(self):
+        return self.__multiple
 
-    def __init__(self, basevar="INPUTDIR"):
-        FileManager.__init__(self, basevar=basevar)
-        self.mylock = threading.Lock()
-        self.shared = xenrt.TEC().lookup("FILE_MANAGER_CACHE", None)
-        if self.shared and not os.path.exists(self.shared):
-            try:
-                os.makedirs(self.shared)
-            except:
-                self.shared = None
-        if self.shared:
-            # Use a subdir for the per-job cache so we can hardlink
-            try:
-                d = tempfile.mkdtemp("", "HL", self.shared)
-                os.chmod(d,
-                         stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH |
-                         stat.S_IXOTH)
-                self.cachedir = d
-            except:
-                # No write permission, use a non-shared cache only
-                self.shared = None
-        if not self.shared:
-            # Create a local cache for non-shared use
-            self.cachedir = xenrt.GEC().anontec.tempDir()
-        xenrt.GEC().registerCallback(self)
+    @property
+    def singleFileWithWildcard(self):
+        return self.__singleWildcard
 
-    def callback(self):
-        shutil.rmtree(self.cachedir,1)
-
-    def cleanup(self,days=14):
-        """Cleanup the shared cache"""
-        if not self.shared:
-            return
-
-        # Get directory entries
-        entries = os.listdir(self.shared)
+    @property
+    def isSimpleFile(self):
+        return not (self.multipleFiles or self.singleFileWithWildcard or self.directory)
         
-        # Process the list to find any that are older than 2 weeks
-        toRemove = []
-        for entry in entries:
-            cachepath = "%s/%s" % (self.shared,entry)
-            if os.path.isfile(cachepath):
-                mtime = os.path.getmtime(cachepath)
-                if (time.time() - mtime) > (days*24*3600):
-                    toRemove.append(entry)
+    def __resolveDirectory(self):
+        if self.__localName.endswith("/"):
+            self.__multiple = True
+            self.__directory = True
+
+    def __resolveWildCards(self):
+        if "*" in self.localName and not self.__multiple:
+            self.__singleWildcard = True
+        self.__localName = self.__localName.replace("*", "WILDCARD")
+
+    def __resolveArchive(self):
+        if self.__directory:
+            self.__localName = "%sxrtpackeddir" % self.__localName
+        if self.__multiple:
+            self.__localName = "%s.tar.gz" % self.__localName
+
+    def __resolveVariableSubstitutions(self):
+        """If the path contains ${VARIABLE}, subsitute with the xenrt variable ${VARIABLE}"""
+
+        # First do a special case for INPUTDIR, as that may be overridden on a thread basis
+        if re.search("\${INPUTDIR}", self.__url):
+            self.__url = re.sub("\${INPUTDIR}", xenrt.TEC().getInputDir(), self.__url)
+
+        # Now generic variables
+        self.__url = re.sub("\${(.*?)}", lambda x: xenrt.TEC().lookup(x.group(1)), self.__url)
+
+    def __resolveInputDir(self):
+        """If the file doesn't begin with an HTTP path or a / indicating a root directory, it's relative to the input dir"""
+        if    not self.__url.startswith("http://") \
+          and not self.__url.startswith("https://") \
+          and not self.__url.startswith("/"):
+            self.__url = "%s/%s" % (xenrt.TEC().getInputDir(), self.__url)
+        pass
+
+    def __resolveLatest(self):
+        m = re.match("(.+?)/([^/]*latest)/(.+)", self.__url)
+        if m:
+            try:
+                r = requests.get("%s/%s/manifest" % (m.group(1), m.group(2)))
+                r.raise_for_status()
+                buildnum = [x.strip().split()[-1] for x in r.content.splitlines() if x.startswith("@install-image")][0]
+                self.__url = "%s/%s/%s" % (m.group(1), buildnum, m.group(3))
+            except Exception, e:
+                xenrt.TEC().logverbose("Warning, could not determine build number for /latest - error: %s" % str(e))
+
+    def __resolveHttpFetch(self):
+        """If the file doesn't begin with an HTTP path, it needs the HTTP exporter prepending"""
+        if    not self.__url.startswith("http://") \
+          and not self.__url.startswith("https://"):
+            self.__url = "%s/%s" % (xenrt.TEC().lookup("FORCE_HTTP_FETCH"), self.__url)
+
+    def __removeMultipleSlashes(self):
+        """Some of these substitutions tends to leave double or triple-slashes. Replace all of them that aren't protocol separators"""
+        while re.search("[^:]//", self.__url):
+            self.__url = re.sub("([^:])//", "\\1/", self.__url)
+
+    def __useArchiveIfNeeded(self):
         
-        # Now remove the entries
-        for entry in toRemove:
-            os.unlink("%s/%s" % (self.shared,entry))
+        rootBuildPath = "/usr/groups/xen/carbon/"
+        rootArchivePath = "/nfs/archive/builds/carbon/"
 
-    def removeFromSharedCache(self, filename):
-        cachepath, remote = self.getRemotePaths(filename)
-        s = self.cacheLookup(remote)
-        if s and os.path.exists(s):
-            xenrt.TEC().logverbose("Removing %s" % s)
-            os.unlink(s)
-
-    def addToSharedCache(self, remote, filename):
-        """Add to shared cache. This is based on centralised path, not
-        content"""
-        if not self.shared:
+        m = re.match("(.*%s.+?/\d+)/.*" % rootBuildPath, self.__url)
+        if not m:
             return
-        md5sum = md5.new(remote).hexdigest()
-        cachepath = "%s/%s" % (self.shared, md5sum)
-        if not os.path.exists(cachepath):
-            xenrt.TEC().logverbose("Adding %s to shared cache as %s" %
-                                   (remote, cachepath))
-            os.link(filename, cachepath)
-        if os.path.exists("%s.fetching" % (cachepath)):
-            try:
-                os.unlink("%s.fetching" % (cachepath))
-            except:
-                pass
+        buildDir = m.group(1)
+        archiveDir = buildDir.replace(rootBuildPath, rootArchivePath)
 
-    def notifyCacheFetch(self, remote, cancel=False):
-        """Inform the shared cache we are commencing a fetch of a remote
-        file."""
-        if not self.shared:
-            return
-        md5sum = md5.new(remote).hexdigest()
-        flagpath = "%s/%s.fetching" % (self.shared, md5sum)
-        if cancel:
-            try:
-                os.unlink(flagpath)
-            except:
-                pass
-            return
-        if not os.path.exists(flagpath):
-            f = file(flagpath, "w")
-            f.write("%u" % (xenrt.util.timenow()))
-            f.close()
-            os.chmod(flagpath,
-                     stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+        if not xenrt.isUrlFetchable(buildDir) and xenrt.isUrlFetchable(archiveDir):
+            self.__url = self.__url.replace(rootBuildPath, rootArchivePath)
 
-    def cacheLookup(self, remote):
-        if not self.shared:
-            return None
-        md5sum = md5.new(remote).hexdigest()
-        cachepath = "%s/%s" % (self.shared, md5sum)
-        if os.path.exists(cachepath):
-            return cachepath
-        if os.path.exists("%s.fetching" % (cachepath)):
-            # Wait a limited duration for this fetch to complete. If we
-            # don't get it in time then return None and refetch ourselves
-            xenrt.TEC().logverbose("Waiting for another process to fetch %s"
-                                   % (cachepath))
-            deadline = xenrt.util.timenow() + 1800
-            while True:
-                if os.path.exists(cachepath):
-                    return cachepath
-                if not os.path.exists("%s.fetching" % (cachepath)):
-                    return None
-                if xenrt.util.timenow() > deadline:
-                    return None
-                xenrt.sleep(60)
-        return None
+class FileManager(object):
+    def __init__(self):
+        self.cachedir = xenrt.TempDirectory().path()
+        self.lock = threading.Lock()
 
-    def getFile(self, *filename):
-        return self._getFile(False, *filename)
-    
-    def getFiles(self, *filename):
-        return self._getFile(True, *filename)
-    
-    def _getFile(self, getMultipleFiles, *filename):
-        for file in filename:
-            
-            if file[0] != "/" and not self._getBaseDir():
-                continue
-            
-            xenrt.TEC().logverbose("Looking for %s." % (file))
-            tries = 0
-            while tries < self.MAX_ATTEMPTS:
-                try:
-                    f = self.getFileAttempt(file, getMultipleFiles)
-                    if f:
-                        return f
-                except Exception, e:
-                    xenrt.TEC().warning("Exception on getFileAttempt(%s): %s" %
-                                        (file, str(e)))
-                xenrt.sleep(5)
-                tries = tries + 1
-        return None
-    
-    def fileExists(self, *filename):
-        for file in filename:
-            xenrt.TEC().logverbose("Looking for %s." % (file))
-            if self.isFileAvailable(file):
-                return True
-        return False
-
-    def getRemotePaths(self, filename):
-        if filename[0] == "/":                
-            cachepath = "%s%s" % (self.cachedir, filename)
-            urlpref = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "")
-            if urlpref:
-                remote = urlpref + filename
-            else:
-                remote = filename
-        elif filename[0:7] == "http://":
-            cachepath = "%s/%s" % (self.cachedir, filename[7:])
-            if "*" in cachepath:
-                cachepath = cachepath + ".tar.gz"
-            remote = filename
-        else:
-            basedir = self._getBaseDir()
-            dmd5 = md5.new(basedir).hexdigest()
-            cachepath = "%s/%s/%s" % (self.cachedir, dmd5, filename)
-            remote = "%s/%s" % (basedir, filename)
-        cachepath = cachepath.replace("*", "WILDCARD")
-        if cachepath[-1] == "/":
-            cachepath = "%s.dir.tar.gz" % cachepath[0:-1]
-        return (cachepath, remote)
-
-    def getFileAttempt(self, filename, getMultipleFiles):
+    def getFile(self, filename, multiple=False):
         try:
-            xenrt.TEC().logverbose("Remote getFile: %s" % (filename))
-            self.mylock.acquire()
+            xenrt.TEC().logverbose("getFile %s" % filename)
+            self.lock.acquire()
+            sharedLocation = None
+            fnr = FileNameResolver(filename, multiple)
+            url = fnr.url
+            localName = fnr.localName
+            cache = self.__availableInCache(fnr)
+            if cache:
+                return cache
 
-            cachepath, remote = self.getRemotePaths(filename)
-            # If we have it already, return it
-            if os.path.exists(cachepath):
-                xenrt.TEC().logverbose("Found %s in cache (%s)." % (filename, cachepath))
-                return cachepath
-            if not os.path.exists(os.path.dirname(cachepath)):
-                os.makedirs(os.path.dirname(cachepath))
-            # See if it's in the shared cache
-            s = self.cacheLookup(remote)
-            if s:
-                xenrt.TEC().logverbose("Found %s in shared cache." % (filename))
-                os.link(s, cachepath)
             else:
-                # Fetch it
-                xenrt.TEC().logverbose("Fetching %s." % (filename))
-                self.notifyCacheFetch(remote)
-                try:
-                    if getMultipleFiles:
-                        r = self._fetchFiles(remote, cachepath)
-                    else:
-                        r = self._fetchFile(remote, cachepath)
-                    if r == None:
-                        xenrt.TEC().logverbose("Failed to retrieve %s." % (filename))
-                        try:
-                            os.unlink(cachepath)
-                        except:
-                            pass
-                        self.notifyCacheFetch(remote, cancel=True)
-                        return None
-                    os.chmod(cachepath,
-                             stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH |
-                             stat.S_IXOTH)
-                    self.addToSharedCache(remote, cachepath)
-                except Exception, e:
-                    self.notifyCacheFetch(remote, cancel=True)
-                    raise e
-            xenrt.TEC().logverbose("Retrieved %s." % (filename))
-            return cachepath
-        finally:
-            self.mylock.release()
-
-    def isFileAvailable(self, filename):
-        try:
-            xenrt.TEC().logverbose("Remote isFileAvailable: %s" % (filename))
-            self.mylock.acquire()
-
-            cachepath, remote = self.getRemotePaths(filename)
-
-            # Is it in the cache, or the shared cache already
-            if os.path.exists(cachepath):
-                return True
-            s = self.cacheLookup(remote)
-            if s:
-                return True
-
-            # See if it is fetchable
-            return self._isFetchable(remote)            
-        finally:
-            self.mylock.release()
-
-    def _fetchFile(self, remote, cachepath):
-        try:
-            proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
-            if proxy:
-                proxyflag = " -e http_proxy=%s" % proxy
-            else:
-                proxyflag = ""
-            if remote[-1] == "/":
-                t = xenrt.resources.TempDirectory()
-                u = urlparse.urlparse(remote)
-                cutdirs = len(u.path.split("/")) - 2 # Remove beginning and end items
-                xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (proxyflag, remote, t.dir, cutdirs))
-                xenrt.util.command("cd %s && tar -cvzf %s *" % (t.dir, cachepath))
-                t.remove()
-            elif "*" in remote:
-                t = xenrt.resources.TempDirectory()
-                xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1" % (proxyflag, "/".join(remote.split("/")[0:-1]), t.dir, remote.split("/")[-1]))
-                fetched = glob.glob("%s/*" % t.dir)
-                os.rename(fetched[0], cachepath)
-                t.remove()
-            else:
-                xenrt.util.command("wget%s -nv '%s' -O '%s'" % (proxyflag, remote, cachepath))
+                sharedLocation = self._sharedCacheLocation(localName)
+                perJobLocation = self._perJobCacheLocation(localName)
+                f = open("%s.fetching" % sharedLocation, "w")
+                f.write(str(xenrt.GEC().jobid()) or "nojob")
+                f.close()
                 
+                if multiple:
+                    self.__getMultipleFiles(url, sharedLocation)
+                elif fnr.directory:
+                    self.__getDirectory(url, sharedLocation)
+                elif fnr.singleFileWithWildcard:
+                    self.__getSingleFileWithWildcard(url, sharedLocation)
+                else:
+                    self.__getSingleFile(url, sharedLocation)
+                os.chmod(sharedLocation, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
+                os.link(sharedLocation, perJobLocation) 
+
+                return perJobLocation
         except Exception, e:
-            xenrt.TEC().logverbose("HTTP fetchFile exception: %s" % (str(e)))
+            xenrt.TEC().logverbose("Warning - could not fetch %s - %s" % (filename, e))
             return None
-        return True
-    
-    def _fetchFiles(self, remote, cachepath, depthOfSearch = 2):
+        finally:
+            if sharedLocation:
+                os.unlink("%s.fetching" % sharedLocation)
+            self.lock.release()
+
+    def __getSingleFile(self, url, sharedLocation):
+        try:
+            xenrt.util.command("wget%s -nv '%s' -O '%s.part'" % (self.__proxyflag, url, sharedLocation))
+        except:
+            os.unlink('%s.part' % sharedLocation)
+            raise
+        else:
+            os.rename('%s.part' % sharedLocation, sharedLocation)
+
+    def __getSingleFileWithWildcard(self, url, sharedLocation):
+        try:
+            t = xenrt.resources.TempDirectory()
+            splitpoint = 0
+            ss = url.split("/")
+            for s in ss:
+                if "*" in s:
+                    break
+                splitpoint += 1
+                    
+            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l 1 -H" % (self.__proxyflag, "/".join(ss[0:splitpoint]), t.dir, "/".join(ss[splitpoint:])))
+            fetched = glob.glob("%s/*" % t.dir)
+            os.rename(fetched[0], sharedLocation)
+        finally:
+            t.remove()
+
+    def __getDirectory(self, url, sharedLocation):
+        try:
+            t = xenrt.resources.TempDirectory()
+            u = urlparse.urlparse(url)
+            cutdirs = len(u.path.split("/")) - 2 # Remove beginning and end items
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive -nH -np --cut-dirs %d" % (self.__proxyflag, url, t.dir, cutdirs), ignoreerrors=True)
+            xenrt.util.command("cd %s && tar -cvzf %s *" % (t.dir, sharedLocation))
+        finally:
+            t.remove()
+
+    def __getMultipleFiles(self, url, sharedLocation, maxDepth=2):
         """
         Fetch a collection of files from a URL using wget
         depthOfSearch is how far down the URL tree to look for files - default is 2
         """
         try:
-            proxyflag = self._getProxyFlag()
             t = xenrt.resources.TempDirectory()
-            fetchPatterns= [remote.split("/")[-1], remote.split("/")[-1] + ".[0-9]*"]
-            xenrt.util.command("wget%s -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (proxyflag, "/".join(remote.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), depthOfSearch))
+            fetchPatterns= [url.split("/")[-1], url.split("/")[-1] + ".[0-9]*"]
+            xenrt.util.command("wget%s -H -nv '%s' -P '%s' --recursive --accept '%s' -nd -l %d" % (self.__proxyflag, "/".join(url.split("/")[0:-1]), t.dir, ",".join(fetchPatterns), maxDepth))
             fetched = glob.glob("%s/*" % t.dir)
             fileList = " ".join(fetched)
             xenrt.TEC().logverbose( "Fetched files: %s"  % fileList)
-            xenrt.archive.TarGzArchiver().create(cachepath, fileList)
+            xenrt.archive.TarGzArchiver().create(sharedLocation, fileList)
             t.remove()
         except Exception, e:
             xenrt.TEC().logverbose("HTTP multiple fetchFile exception: %s" % (str(e)))
             return None
         return True
     
-    def _getProxyFlag(self):
+    @property
+    def __proxyflag(self):
         proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
         if proxy:
             return " -e http_proxy=%s" % proxy
         else:
-            return ""   
+            return ""
 
-    def _isFetchable(self, remote):
-        # Split remote in to host and path
-        u = urlparse.urlparse(remote)
-        host = u[1]
-        path = u[2]
-        try:
-            conn = httplib.HTTPConnection(host)
-            conn.request("HEAD", path)
-            res = conn.getresponse()
-            conn.close()
-            return (res.status == 200)
-        except:
-            return False
+    def _filename(self, filename):
+        return filename.rstrip("/").split("/")[-1]
 
-def getFileManager(basevar="INPUTDIR", remote=False):
-    """Return a file manager object suitable for the local site."""
-    id = xenrt.TEC().lookup(basevar, "")
-    if id[0:7] == "http://":
-        return RemoteFileManager(basevar=basevar)
-    elif remote:
-        urlpref = xenrt.TEC().lookup("FORCE_HTTP_FETCH", "")
-        forceremotehttp = xenrt.TEC().lookup("FORCE_REMOTE_HTTP", False, boolean=True)
-        if urlpref and len(id) > 0 and id[0] == "/":
-            xenrt.GEC().config.setVariable(basevar, "%s%s" % (urlpref, id))
-            r = RemoteFileManager(basevar=basevar)
-            r.forceHTTPHack = True
-            return r
-        elif urlpref and forceremotehttp:
-            xenrt.GEC().config.setVariable(basevar, urlpref)
-            r = RemoteFileManager(basevar=basevar)
-            r.forceHTTPHack = True
-            return r
-        elif xenrt.TEC().lookup("FORCE_LOCAL_FETCH", False, boolean=True):
-            return FileManager(basevar=basevar)
+    def _sharedCacheLocation(self, filename):
+        dirname = "%s/%s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE"), hashlib.sha256(filename).hexdigest())
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        return "%s/%s" % (dirname, self._filename(filename))
+
+    def _perJobCacheLocation(self, filename):
+        dirname = "%s/%s" % (self.cachedir, hashlib.sha256(filename).hexdigest())
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        return "%s/%s" % (dirname, self._filename(filename))
+
+    def removeFromCache(self, filename):
+        sharedLocation = self._sharedCacheLocation(filename)
+        if os.path.exists(sharedLocation):
+            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
+            os.unlink(sharedLocation)
+            return
+        # Now try a resolved file name
+        fnr = FileNameResolver(filename, False)
+        url = fnr.url
+        sharedLocation = self._sharedCacheLocation(url)
+        if os.path.exists(sharedLocation):
+            xenrt.TEC().logverbose("Found %s in cache" % sharedLocation)
+            os.unlink(sharedLocation) 
+
+    def __availableInCache(self, fnr):
+
+        filename = fnr.localName
+        # First try the per-job cache
+        perJobLocation = self._perJobCacheLocation(filename)
+        sharedLocation = self._sharedCacheLocation(filename)
+        if os.path.exists(perJobLocation):
+            xenrt.TEC().logverbose("Found file in per-job cache")
+            return perJobLocation
+
+        # If it's not in the per-job cache, try the global cache
+        # First, if someone else is fetching, wait until fetching is complete
+        if os.path.exists("%s.fetching" % sharedLocation):
+            xenrt.TEC().logverbose("File is fetching - waiting")
+            while True:
+                if not os.path.exists("%s.fetching" % sharedLocation):
+                    break
+                xenrt.sleep(15)
+
+        # Now check whether the file is available
+
+        if os.path.exists(sharedLocation):
+            # If it is, hardlink it to the per-job cache
+            xenrt.TEC().logverbose("Found file in shared cache")
+
+            if fnr.isSimpleFile:
+                # Check the content length matches (i.e. the file hasn't been updated underneath us)
+                expectedLength = None
+                try:
+                    r = requests.head(fnr.url, allow_redirects=True)
+                    # We only trust the content-length if we got a 200 code, and the length is
+                    # >10M, this is to avoid situations where we have a script providing the
+                    # file where a HEAD request will give the size of the script not the file
+                    # it provides
+                    if r.status_code == 200 and 'content-length' in r.headers and \
+                       r.headers['content-length'] > (10 * xenrt.MEGA):
+                        expectedLength = int(r.headers['content-length'])
+                except:
+                    # File is currently not available for some reason, still valid to use it from the cache
+                    pass
+
+                if expectedLength:
+                    s = os.stat(sharedLocation)
+                    if s.st_size != expectedLength:
+                        raise xenrt.XRTError("found in shared cache, but content-length (%d) differs from original (%d)" % (s.st_size, expectedLength))
+
+            os.link(sharedLocation, perJobLocation) 
+
+            # Return the cache location in the per-job cache
+            return perJobLocation
         else:
-            return RemoteFileManager(basevar=basevar)
-    else:
-        return FileManager(basevar=basevar)
+            return None
+
+    def cleanup(self, days=None):
+        if not days:
+            days=7
+
+        sharedDir = xenrt.TEC().lookup("FILE_MANAGER_CACHE")
+
+        entries = os.listdir(sharedDir)
+
+        toRemove = []
+        for entry in entries:
+            cachepath = "%s/%s" % (sharedDir, entry)
+            mtime = os.path.getmtime(cachepath)
+            if (time.time() - mtime) > (days*24*3600):
+                xenrt.TEC().logverbose("Removing %s" % cachepath)
+                shutil.rmtree(cachepath)
+
+    def fileExists(self, filename):
+        try:
+            xenrt.TEC().logverbose("fileExists %s" % filename)
+            self.lock.acquire()
+            fnr = FileNameResolver(filename)
+            if self.__availableInCache(fnr):
+                return True
+            return xenrt.isUrlFetchable(fnr.url)
+        finally:
+            self.lock.release()
+    
+def getFileManager():
+    global fm
+    if not fm:
+        fm = FileManager()
+    return fm

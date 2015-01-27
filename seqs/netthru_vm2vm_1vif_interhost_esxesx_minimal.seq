@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<!-- netthru_vm2vm_1vif_interhost_xsxs_minimal.seq
+
+  This sequence contains network throughput experiments between
+  two VMs in two distinct XenServer hosts.
+
+-->
+<xenrt>
+  <variables>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+    <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
+  </variables>
+
+  <prepare>
+    <!--no pool here, the hosts can have different cpus-->
+    <host id="0">
+      <NETWORK>
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
+          <MANAGEMENT/>
+          <NIC/>
+          <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+        </PHYSICAL>
+      </NETWORK>
+
+        <vm name="debian60-0-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="installTools"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+
+    </host>
+    <host id="1">
+      <NETWORK>
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
+          <MANAGEMENT/>
+          <NIC/>
+          <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
+        </PHYSICAL>
+      </NETWORK>
+
+        <vm name="debian60-1-1v">
+          <distro>debian60</distro>
+          <network device="0" bridge="NET_A"/>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
+          <postinstall action="installTools"/>
+          <postinstall action="pause"/><!-- do not interfere with other vms  -->
+        </vm>
+
+    </host>
+  </prepare>
+
+  <testsequence>
+
+    <serial group="debian60/t01/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=1</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+      </testcase>
+    </serial>
+    <serial group="debian60/t08/v01">
+      <testcase id="xenserver.tc.perf.tc_networkthroughput2.TCNetworkThroughputPointToPoint">
+        <arg>threads=8</arg>
+        <arg>endpoint0=debian60-0-1v</arg>
+        <arg>endpoint1=debian60-1-1v</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

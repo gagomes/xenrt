@@ -36,7 +36,7 @@ class _PowerCtlBase:
     def on(self):
         raise xenrt.XRTError("Unimplemented")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         # Default implementation
         self.off()
         xenrt.sleep(5)
@@ -53,6 +53,9 @@ class _PowerCtlBase:
     def setVerbose(self):
         self.verbose = True
 
+    def setBootDev(self, dev, persistent=False):
+        raise xenrt.XRTError("Unsupported")
+
 class Dummy(_PowerCtlBase):
 
     def off(self):
@@ -63,7 +66,7 @@ class Dummy(_PowerCtlBase):
         xenrt.TEC().logverbose("Simulating power on of %s" % 
                                (self.machine.name))
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Simulating power cycle of %s" %
                                (self.machine.name))
 
@@ -95,7 +98,7 @@ class Xenuse(_PowerCtlBase):
         xenrt.TEC().logverbose("Turning on machine %s" % (self.machine.name))
         self.xenuse("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         self.xenuse("reboot")
         # Just in case it was turned off
@@ -127,7 +130,7 @@ class AskUser(_PowerCtlBase):
             dummy = sys.stdin.readline()
             print "Enter pressed."
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         if not self.pause("Please power cycle machine %s" % self.machine.name):
             print "\nPlease power cycle machine %s and press enter\n" % \
                   (self.machine.name)
@@ -149,7 +152,7 @@ class Soft(_PowerCtlBase):
         dummy = sys.stdin.readline()
         print "Enter pressed."
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Trying a soft reboot of %s" %
                                (self.machine.name))
         host = self.machine.getHost()
@@ -230,7 +233,7 @@ class PDU(_PowerCtlBase):
             xenrt.sleep(random.randint(0, 20))
         self.snmp("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         cyclehack = int(xenrt.TEC().lookupHost(self.machine.name,
                                                "PDU_REBOOT_DELAY",
                                                "0"))
@@ -264,7 +267,7 @@ class ILO(_PowerCtlBase):
             xenrt.sleep(random.randint(0, 20))
         self.ilo("on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
@@ -334,8 +337,10 @@ class IPMIWithPDUFallback(_PowerCtlBase):
                 xenrt.sleep(60)
                 self.machine.consoleLogger.reload()
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         try:
+            if fallback:
+                raise xenrt.XRTError("Hard reset requested")
             self.ipmi.cycle()
         except:
             xenrt.TEC().logverbose("IPMI failed, falling back to PDU control")
@@ -348,19 +353,25 @@ class IPMIWithPDUFallback(_PowerCtlBase):
 class IPMI(_PowerCtlBase):
 
     def getPower(self):
-        status = self.ipmi("power status")
+        status = self.ipmi("chassis power status")
         if re.search("is off", status):
             return "off"
         elif re.search("is on", status):
             return "on"
 
+    def setBootDev(self, dev, persist=False):
+        cmd = "chassis bootdev %s" % dev
+        if persist:
+            cmd += " options=persistent"
+        self.ipmi(cmd)
+
     def triggerNMI(self):
-        self.ipmi("power diag")
+        self.ipmi("chassis power diag")
 
     def off(self):
         xenrt.TEC().logverbose("Turning off machine %s" % (self.machine.name))
-        if self.getPower() != "off":
-            self.ipmi("power off")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "off":
+            self.ipmi("chassis power off")
 
     def on(self):
         xenrt.TEC().logverbose("Turning on machine %s" % (self.machine.name))
@@ -370,14 +381,17 @@ class IPMI(_PowerCtlBase):
             
         # Wait a random delay to try to avoid power surges when testing
         # with multiple machines.
-        if self.getPower() != "on":
-            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-                self.ipmi("bootdev pxe")
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or self.getPower() != "on":
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+                try:
+                    self.setBootDev("pxe", True)
+                except:
+                    xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
             if self.antiSurge:
                 xenrt.sleep(random.randint(0, 20))
-            self.ipmi("power on")
+            self.ipmi("chassis power on")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Power cycling machine %s" % (self.machine.name))
         # Some ILO controllers have broken serial on boot
         if xenrt.TEC().lookupHost(self.machine.name, "SERIAL_DISABLE_ON_BOOT",False, boolean=True) and self.machine.consoleLogger:
@@ -389,19 +403,38 @@ class IPMI(_PowerCtlBase):
         if self.antiSurge:
             xenrt.sleep(random.randint(0, 20))
         currentPower = self.getPower()
-        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",False, boolean=True):
-            self.ipmi("bootdev pxe")
+
+        if currentPower == "off" and xenrt.TEC().lookupHost(self.machine.name, "RESET_BMC", False, boolean=True):
+            self.ipmi("mc reset cold")
+            deadline = xenrt.timenow() + 120
+            while xenrt.timenow() < deadline:
+                xenrt.sleep(10)
+                try:
+                    self.ipmi("chassis power status")
+                    break
+                except:
+                    pass
+            if self.machine.consoleLogger:
+                self.machine.consoleLogger.reload()
+            
+        if xenrt.TEC().lookupHost(self.machine.name, "IPMI_SET_PXE",True, boolean=True):
+            try:
+                self.setBootDev("pxe", True)
+            except:
+                xenrt.TEC().logverbose("Warning: failed to set boot dwvice to PXE")
         offon = xenrt.TEC().lookupHost(self.machine.name, "IPMI_RESET_UNSUPPORTED",False, boolean=True)
         if offon:
-            if currentPower == "on":
-                self.ipmi("power off")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
+                self.ipmi("chassis power off")
                 xenrt.sleep(5)
-            self.ipmi("power on")
+            self.ipmi("chassis power on")
         else:
-            if currentPower == "on":
-                self.ipmi("power reset")
+            if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True) or currentPower == "on":
+                self.ipmi("chassis power reset")
+                if xenrt.TEC().lookupHost(self.machine.name, "IPMI_IGNORE_STATUS", False, boolean=True):
+                    self.ipmi("chassis power on")
             else:
-                self.ipmi("power on") # In case the machine was hard powered off
+                self.ipmi("chassis power on") # In case the machine was hard powered off
 
     def ipmi(self, action):
         # New method
@@ -419,7 +452,7 @@ class IPMI(_PowerCtlBase):
             user = "-U %s" % (ipmiuser)
         else:
             user = ""
-        command = "ipmitool -I %s -H %s %s %s chassis %s" % \
+        command = "ipmitool -I %s -H %s %s %s %s" % \
                    (ipmiintf, address, auth, user, action)
         return self.command(command)
 
@@ -433,7 +466,7 @@ class Custom(_PowerCtlBase):
         xenrt.TEC().logverbose("Running custom command to turn on machine %s" % (self.machine.name))
         self.runCustom("ON")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         xenrt.TEC().logverbose("Running custom command to power cycle machine %s" % (self.machine.name))
         self.runCustom("CYCLE")
         xenrt.sleep(5)
@@ -454,7 +487,7 @@ class CiscoUCS(_PowerCtlBase):
     def on(self):
         self._ucs("admin-up")
 
-    def cycle(self):
+    def cycle(self, fallback=False):
         self._ucs("cycle-immediate")
 
     def _ucs(self, op):
@@ -490,7 +523,7 @@ class Xapi(_PowerCtlBase):
         except Exception, e:
             self.log("Warning: %s" % str(e))
     
-    def cycle(self):
+    def cycle(self, fallback=False):
         try:
             self.xapi("vm-shutdown", force=True)
         except Exception, e:

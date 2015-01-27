@@ -26,6 +26,16 @@ $(IMAGEDIR)/%.iso:
 	$(info Building $@...)
 	cp -v $(TEST_INPUTS)/activepython/* $(ROOT)/$(XENRT)/images/windows/iso/common/\$$1/install/python/
 	[ -e /usr/bin/mkisofs ] || $(SUDO) ln -s `which genisoimage` /usr/bin/mkisofs
-	$(SUDO) $(MKISO) $(WINDOWS_ISOS)/$(notdir $@) \
+	$(SUDO) $(MKISO) $(WINDOWS_ISOS_INPUTS)/$(notdir $@) \
 			 $(call STRIP,$@) \
 			 $@ NOSFU=ALL
+
+.PHONY: $(WEBROOT)/wininstall/netinstall/%
+$(WEBROOT)/wininstall/netinstall/%:
+	$(info Building $@...)
+	$(SUDO) $(ROOT)/$(XENRT)/scripts/buildwinnetinstall.sh $@
+	$(SUDO) mkdir $@/winpe
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/boot.ipxe $@/winpe/
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/wimboot/diskpart.txt $@/
+	$(SUDO) cp $(TEST_INPUTS)/wimboot-1.0.5/wimboot $@/winpe
+	$(SUDO) chown -R $(USERID):$(GROUPID) $@

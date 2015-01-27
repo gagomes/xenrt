@@ -4,11 +4,13 @@ chdir = @sharedir@/server/
 worker-mount = /share/control=start.wsgi
 manage-script-name=true
 processes = @wsgiworkers@
+threads = @wsgithreads@
 stats = :9090
-uid = xenrtd
-gid = xenrtd
+uid = @user@
+gid = @group@
 harakiri = 300
 max-requests = 5000
 log-syslog=xenrt
 enable-threads = true
 disable-logging = true
+buffer-size = 16384

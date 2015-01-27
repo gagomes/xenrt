@@ -1,0 +1,18 @@
+<xenrt>
+  <!-- v6 licensing tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <serial group="License">
+      <testcase id="xenserver.tc.license.TC13498" />
+    </serial>
+  </testsequence>
+</xenrt>
+

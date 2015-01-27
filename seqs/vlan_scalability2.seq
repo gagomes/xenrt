@@ -1,6 +1,7 @@
   <xenrt>
     <variables>
       <PREPARE_WORKERS>2</PREPARE_WORKERS>
+      <WORKAROUND_CA95084>yes</WORKAROUND_CA95084>
     </variables>
 
     <prepare>

@@ -1,0 +1,18 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_DEFAULT_SR>yes</OPTION_DEFAULT_SR>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=4G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+    <flags>nfs4</flags>
+  </scheduler>
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="NFS Storage Repository 1" options="v4" />
+    </host>
+  </prepare>
+</xenrt>
+

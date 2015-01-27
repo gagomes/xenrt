@@ -1,0 +1,24 @@
+<xenrt>
+  <!-- From Clearwater RPU: Blocked operations test -->
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <SR_ISCSI_MINSIZE>100</SR_ISCSI_MINSIZE>
+    <OPTION_NO_AUTO_PATCH>yes</OPTION_NO_AUTO_PATCH>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="lvmoiscsi" name="pooliScsi" default="true"/>
+      <allhosts productVersion="${OLD_PRODUCT_VERSION}" version="${OLD_PRODUCT_INPUTDIR}"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TCRpuBlockedOperations" tc="TC-13509"/>
+  </testsequence>
+
+</xenrt>

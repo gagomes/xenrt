@@ -7,6 +7,7 @@ import xenrt
 import random, string
 import tc_networkthroughput2
 from random import randrange
+import libsynexec
 
 # Expects the sequence file to set up two VMs, called 'endpoint0' and 'endpoint1'
 #
@@ -162,7 +163,7 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
             endpoints[endpoint] = [] # list of vms cloned from endpoint
             self.start_endpoint(endpoint) #required state to install iperf
             endpoint.installIperf(version="2.0.5")
-            self.install_synexec(endpoint)
+            libsynexec.initialise_slave(endpoint)
 
         # reuse any existing clone
         for g in self.guests:
@@ -174,6 +175,11 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 endpoints[endpoint].append(g)
 
         self.log(None, "self.nr_vm_pairs=%s, endpoint=%s, endpoints=%s, self.endpoints_of(endpoint)=%s" % (self.nr_vm_pairs, endpoint, endpoints, self.endpoints_of(endpoint)))
+
+        if endpoint.distro.startswith("rhel") or endpoint.distro.startswith("centos") or endpoint.distro.startswith("oel"):
+            # When we clone this guest, we don't want it to remember its MAC address
+            endpoint.execguest("sed -i /HWADDR/d /etc/sysconfig/network-scripts/ifcfg-eth0")
+
         # clone as needed
         if self.nr_vm_pairs > len(self.endpoints_of(endpoint)):
             self.shutdown_endpoint(endpoint) #required state for cloning
@@ -192,23 +198,16 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
         all_endpoints = [endpoint] + (dict(self.endpoint1s.items() + self.endpoint0s.items())[endpoint])
         return all_endpoints[:n]
 
-    def install_synexec(self, endpoint):
-        outfile = "/tmp/synexec_install.out"
-        script = "cd /root && if [ ! -d synexec ]; then apt-get install --force-yes -y git ctags && git clone https://github.com/franciozzy/synexec && cd synexec && make; fi >%s 2>&1" % (outfile,)
-        endpoint.addExtraLogFile(outfile)
-        return endpoint.execcmd(script)
+    def install_git(self, endpoint):
+        if endpoint.execcmd("git --version", retval="code"):
+            if endpoint.distro.startswith('centos') or endpoint.distro.startswith('rhel'):
+                endpoint.execcmd("yum install git")
+            elif endpoint.distro.startswith('sles'):
+                endpoint.execcmd("zypper -n install git-core")
+            else:
+                endpoint.execcmd("apt-get install --force-yes -y git")
 
-    def run_synexec_slave(self, endpoint, session):
-        return endpoint.execcmd("nohup /root/synexec/synexec_slave -s %s 0</dev/null 1>/tmp/synexec_slave_%s_out 2>&1  &" % (session,session))
-
-    def run_synexec_master(self, endpoint, session, slave_number, configfile):
-        cmd = "/root/synexec/synexec_master -s %s %s %s" % (session, slave_number, configfile)
-        self.log(None, "run_synexec_master: going to execute on %s: %s" % (endpoint.getIP(), cmd))
-        if self.dopause.lower() == "on" or (xenrt.TEC().lookup("PAUSE_AT_MASTER_ON_PHASE", "None") in self.getPhase()):
-            self.pause('paused before run_synexec_master')  # pause the tc and wait for user assistance
-        return endpoint.execcmd(cmd)
-
-    def runIperf(self, origin, dest, interval=1, duration=30, threads=1, protocol="tcp"):
+    def runIperf(self, origin, origindev, dest, destdev, interval=1, duration=30, threads=1, protocol="tcp"):
 
         prot_switch = None
         if protocol == "tcp":   prot_switch = ""
@@ -230,26 +229,31 @@ class TCNetworkThroughputMultipleVifs(tc_networkthroughput2.TCNetworkThroughputP
                 # Start server
                 d.execcmd("nohup iperf %s -s 0<&- &>/dev/null &" % (prot_switch,)) # should be implemented in startIperf()
 
+            # 1.5. initialise synexec master in endpoint0
+            libsynexec.initialise_master_in_guest(origin)
+
             # 2. start synexec slave in each vm in endpoint0s + endpoint0
             for i in range(len(origin_endpoints)):
                 o = origin_endpoints[i]
                 d   = dest_endpoints[i]
-                self.run_synexec_slave(o, synexec_session)
-                o.execcmd("echo %s > %s" % (d.getIP(), iperf_in_file))
+                destIP = self.getIP(d, destdev)
+                libsynexec.start_slave(o, synexec_session)
+                o.execcmd("echo %s > %s" % (destIP, iperf_in_file))
 
             # 3. create synexec master script in endpoint 0 to run iperf -c in each slave
-            master_script_path = "/tmp/synexec.master.in"
             master_script = """/bin/sh :CONF:
 #!/bin/sh
 DEST_IP=$(cat "%s")
 iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
 """ % (iperf_in_file, prot_switch, interval, duration, threads, iperf_out_file)
             self.log(None, "synexec_master_script=%s" % (master_script,))
-            origin.execcmd("echo '%s' > %s" % (master_script, master_script_path))
+
+            if self.dopause.lower() == "on" or (xenrt.TEC().lookup("PAUSE_AT_MASTER_ON_PHASE", "None") in self.getPhase()):
+                self.pause('paused before running synexec_master')  # pause the tc and wait for user assistance
 
             # 4. start synexec master in endpoint0
             # 5. wait for synexec master to finish (=all synexec slaves finished iperf -c)
-            master_out = self.run_synexec_master(origin, synexec_session, len(origin_endpoints), master_script_path)
+            master_out = libsynexec.start_master_in_guest(origin, master_script, synexec_session, len(origin_endpoints))
             self.log(None, master_out)
 
             # 6. kill iperf servers in each vm in endpoints1s + endpoint1
@@ -258,8 +262,7 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
                 d.execcmd("killall iperf || true")
                 d.execcmd("killall -9 iperf || true")
             for o in origin_endpoints:
-                o.execcmd("killall synexec_slave || true")
-                o.execcmd("killall -9 synexec_slave || true")
+                libsynexec.kill_slave(o)
 
             # 7. collect the iperf -c output in each endpoint0s + endpoint0
             output = []
@@ -288,6 +291,14 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         for i in range(0, self.nr_vm_pairs):
             fn(endpoints[i])
 
+    def setIPFromPattern(self, endpoint, endpointdev, ippattern, offset=0):
+        i = offset
+        for ep in self.endpoints_of(endpoint):
+            # Replace the "%" in the pattern with the index of the endpoint
+            ip = ippattern.replace("%", str(i))
+            self.setIPAddress(ep, endpointdev, ip)
+            i = i+1
+
     def run(self, arglist=None):
 
         # set up gro if required
@@ -303,18 +314,28 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
             if g not in self.endpoints_of(self.endpoint0) and g not in self.endpoints_of(self.endpoint1):
                 self.shutdown_endpoint(g)
 
+        self.e0dev = None if self.e0devstr is None else int(self.e0devstr)
+        self.e1dev = None if self.e1devstr is None else int(self.e1devstr)
+
+        # Give IP addresses to the endpoints if necessary
+        if self.e0ip:
+            self.setIPFromPattern(self.endpoint0, self.e0dev, self.e0ip, offset=0)
+        if self.e1ip:
+            self.setIPFromPattern(self.endpoint1, self.e1dev, self.e1ip, offset=128)
+
         # Collect as much information as necessary for the rage importer
         info = {}
         if self.host_of(self.endpoint0) == self.host_of(self.endpoint1):
             total_nr_hosts = 1
         else:
             total_nr_hosts = 2
-        vifs_per_vm = 1
+        vifs_per_vm = len(self.endpoint0.vifs) # assume same number of vifs on each endpoint
         info["vifs_per_vm"] = vifs_per_vm
         info["total_nr_hosts"] = total_nr_hosts
         total_nr_vifs_per_host  = vifs_per_vm * (self.nr_vm_pairs * 2) / total_nr_hosts
         info["total_nr_vifs_per_host"]  = total_nr_vifs_per_host
         info["vifs_per_dom0vcpu"] = total_nr_vifs_per_host / self.dom0vcpus
+        info["dom0vcpus"] = self.dom0vcpus
         vif_pairs = vifs_per_vm * self.nr_vm_pairs
         info["vif_pairs"] = vif_pairs
         # sanity checks
@@ -324,12 +345,12 @@ iperf %s -c ${DEST_IP} -i %d -t %d -f m -P %d >%s 2>&1
         self.rageinfo(info = info)
 
         # Run some traffic in one direction between all pairs simultaneously
-        output = self.runIperf(self.endpoint1, self.endpoint0, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint1, self.e1dev, self.endpoint0, self.e0dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         for i in range(0, len(output)):
             self.log("iperf.1to0.%d" % (i,), output[i])
 
         # Now run traffic in the reverse direction between all pairs simultaneously
-        output = self.runIperf(self.endpoint0, self.endpoint1, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
+        output = self.runIperf(self.endpoint0, self.e0dev, self.endpoint1, self.e1dev, interval=self.interval, duration=self.duration, threads=self.threads, protocol=self.protocol)
         for i in range(0, len(output)):
             self.log("iperf.0to1.%d" % (i,), output[i])
 

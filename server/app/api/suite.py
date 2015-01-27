@@ -22,19 +22,19 @@ class XenRTSuiteStatus(XenRTAPIPage):
             sql = "select s.jobid, jobstart, jobend, mreq, jg.description " \
                   "from (select jobid, " \
                   "value as jobstart from tbljobdetails where jobid in (select " \
-                  "jobid from tbljobgroups where gid = 'SR%s') and param = " \
+                  "jobid from tbljobgroups where gid = %s) and param = " \
                   "'STARTED') s left join  (select jobid, value as jobend from " \
                   "tbljobdetails where jobid in (select jobid from tbljobgroups " \
-                  "where gid = 'SR%s') and param = 'FINISHED') e on s.jobid = " \
+                  "where gid = %s) and param = 'FINISHED') e on s.jobid = " \
                   "e.jobid left join (select jobid, value as mreq from " \
                   "tbljobdetails where jobid in (select jobid from tbljobgroups " \
-                  "where gid = 'SR%s') and param = 'MACHINES_REQUIRED') m on " \
+                  "where gid = %s) and param = 'MACHINES_REQUIRED') m on " \
                   "s.jobid = m.jobid left join tbljobgroups jg on s.jobid = " \
-                  "jg.jobid where gid = 'SR%s';" % \
-                  (suiterun, suiterun, suiterun, suiterun)
+                  "jg.jobid where gid = %s;"
+            params = ("SR" + suiterun, "SR" + suiterun, "SR" + suiterun, "SR" + suiterun)
             cur = db.cursor()
             try:
-                cur.execute(sql)
+                cur.execute(sql, params)
                 descs = []
                 while True:
                     rc = cur.fetchone()
@@ -64,10 +64,10 @@ class XenRTSuiteStatus(XenRTAPIPage):
                 cur.close()
 
         else:
-            sql = "SELECT j.jobid, g.description, j.jobstatus from tbljobgroups g INNER JOIN tbljobs j ON j.jobid = g.jobid WHERE g.gid='SR%s'" % suiterun
+            sql = "SELECT j.jobid, g.description, j.jobstatus from tbljobgroups g INNER JOIN tbljobs j ON j.jobid = g.jobid WHERE g.gid=%s"
             cur = db.cursor()
             try:
-                cur.execute(sql)
+                cur.execute(sql, ["SR" + suiterun])
                 while True:
                     rc = cur.fetchone()
                     if not rc:
@@ -78,4 +78,4 @@ class XenRTSuiteStatus(XenRTAPIPage):
 
         return out 
 
-PageFactory(XenRTSuiteStatus, "suitestatus", "/api/suite/status", compatAction="suitestatus")
+PageFactory(XenRTSuiteStatus, "/api/suite/status", compatAction="suitestatus")

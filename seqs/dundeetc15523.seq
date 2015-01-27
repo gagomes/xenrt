@@ -1,0 +1,27 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+  
+  <prepare>
+    <pool id="0">
+      <host id="0"/>
+      <NETWORK>
+        <PHYSICAL network="NPRI">
+          <NIC/>
+          <MANAGEMENT/>
+          <VLAN network="VR01">
+            <VMS/>
+          </VLAN>
+        </PHYSICAL>
+      </NETWORK>
+    </pool>
+    <host id="1" noisos="yes"/>
+  </prepare>
+  
+  <testsequence>
+    <testcase id="testcases.xenserver.tc.network.TC15523" />
+  </testsequence>
+  
+</xenrt>
+

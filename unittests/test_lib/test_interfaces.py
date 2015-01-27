@@ -4,7 +4,8 @@ import xenrt.lib.xl
 import xenrt.lib.opsys
 from zope.interface.verify import verifyObject, verifyClass
 from zope.interface import implementedBy
-from mock import Mock
+from mock import Mock, patch
+
 
 class TestInterfaces(XenRTTestCaseUnitTestCase):
     def test_cloudstackInterface(self):
@@ -26,6 +27,13 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.Toolstack, x)
 
+    def test_guestWrapperInterface(self):
+        """Verify the GuestWrapper class implements the Toolstack interface"""
+        # Create the toolstack object, no mocking needed for now
+        x = xenrt.lib.generic.GuestWrapper(Mock())
+        # Do the verification
+        verifyObject(xenrt.interfaces.Toolstack, x)
+
     def test_instanceInterface(self):
         """Verify the Instance class implements the OSParent interface"""
         # Mock out the methods used by the Instance __init__ so they don't get called
@@ -35,11 +43,18 @@ class TestInterfaces(XenRTTestCaseUnitTestCase):
         # Do the verification
         verifyObject(xenrt.interfaces.OSParent, i)
 
+    def test_staticOsInterface(self):
+        """Verify the Instance class implements the OSParent interface"""
+        # Mock out the methods used by the Instance __init__ so they don't get called
+        xenrt.lib.opsys.osFactory = Mock()
+        # Crete the Instance, mocking toolstack
+        i = xenrt.lib.generic.StaticOS(None, None)
+        # Do the verification
+        verifyObject(xenrt.interfaces.OSParent, i)
+
+
 def test_osLibraries():
     """Generate tests for each known OS library"""
-
-    # Some of the libraries call xenrt.TEC().lookup, so we need to mock xenrt.TEC
-    xenrt.TEC = Mock()
 
     def oslib_test(oslib):
         # Instantiate the OS library
@@ -62,11 +77,12 @@ def test_osLibraries():
             if not i in implementedInterfaces:
                 raise AssertionError("Interface %s not implemented but stated in supportedInstallMethods" % i.__name__)
 
-    for l in xenrt.lib.opsys.oslist:
-        # We use lambda functions here so we can give them a unique description
-        testfn = lambda: oslib_test(l)
-        testfn.description = "Verify the %s class implements its interfaces" % l.__name__
-        yield testfn
-        testfn = lambda: oslib_supportedInstallMethods(l)
-        testfn.description = "Verify the %s class implements interfaces for all supportedInstallMethods" % l.__name__
-        yield testfn
+    with patch('xenrt.TEC'):
+        for l in xenrt.lib.opsys.oslist:
+            # We use lambda functions here so we can give them a unique description
+            testfn = lambda: oslib_test(l)
+            testfn.description = "Verify the %s class implements its interfaces" % l.__name__
+            yield testfn
+            testfn = lambda: oslib_supportedInstallMethods(l)
+            testfn.description = "Verify the %s class implements interfaces for all supportedInstallMethods" % l.__name__
+            yield testfn

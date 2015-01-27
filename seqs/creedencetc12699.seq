@@ -1,9 +1,9 @@
 <xenrt>
 
-  <!-- cowley to Tampa integratedCVSM-netapp pool rolling upgrade test -->
+  <!-- Clearwater to Creedence integratedCVSM-netapp pool rolling upgrade test -->
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.x/XS-5.6.1-fp1/RTM-39265/"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

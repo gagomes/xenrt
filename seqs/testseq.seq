@@ -1,8 +1,10 @@
 <xenrt>
-
+  <variables>
+    <AUTO_BUG_FILE>yes</AUTO_BUG_FILE>
+  </variables>
   <testsequence>
-    <serial group="HostInstallation">
-      <testcase id="dummy.TCFail" />
+    <serial group="Serial">
+      <testcase id="dummy.TCSubcaseFail" />
     </serial>
 
   </testsequence>

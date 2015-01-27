@@ -1,6 +1,8 @@
 <xenrt>
+
   <variables>
     <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <!--<VGPU_HOST_DRIVER_RPM>NVIDIA-vgx-xenserver-6.2-331.59.i386.rpm</VGPU_HOST_DRIVER_RPM>-->
   </variables>
 
   <prepare>
@@ -9,9 +11,9 @@
 
   <testsequence>
     <testcase id="testcases.xenserver.tc.vgpusecurity.TCDEMUFuzzer" tc="TC-21156">
-        <arg>iterations=0</arg>
-        <arg>logperiteration=10000</arg>
-        <arg>timeout=180</arg> <!-- in minutes -->
+      <arg>iterations=0</arg>
+      <arg>logperiteration=10000</arg>
+      <arg>timeout=180</arg> <!-- in minutes -->
     </testcase>
   </testsequence>
 </xenrt>

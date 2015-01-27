@@ -46,7 +46,7 @@ class TCCLI(xenrt.TestCase):
                 if l[0] == "localsr":
                     uselocalsr = True
         guests = string.split(guests, ",")
-            
+
         host = xenrt.TEC().registry.hostGet(machine)
         self.hostToClean = host
         if not host:
@@ -55,7 +55,7 @@ class TCCLI(xenrt.TestCase):
         self.getLogsFrom(host)
         sftp = host.sftpClient()
         cli = host.getCLIInstance()
-        
+
         # Get the test binaries
         testtar = xenrt.TEC().lookup("CLI_REGRESSION_TESTS", None)
         if not testtar:
@@ -225,6 +225,7 @@ class TCCLI(xenrt.TestCase):
 
             if "debian-pv" in guests:
                 debianpv = host.createGenericLinuxGuest(name="debian-pv",
+                                                        vcpus=1,
                                                         sr=sruuid)
                 debianpv.setMemory(256)
                 debianpv.check()
@@ -1524,9 +1525,17 @@ class TCDom0FullPatchApply(xenrt.TestCase):
     def run(self, arglist=None):
         # proper error message is There is not enough space to upload the update
         host = self.getDefaultHost()
-        hotfixPath = host.getTestHotfix(2)
-        host.addHotfixFistFile(hotfixPath)
-        cli = host.getCLIInstance()
+        path = host.getTestHotfix(2)
+        hotfixPath = "/tmp/test-hotfix.unsigned"
+        sftp = host.sftpClient()
+        try:
+            xenrt.TEC().logverbose('About to copy "%s to "%s" on host.' \
+                                        % (path, hotfixPath))
+            sftp.copyTo(path, hotfixPath)
+        finally:
+            sftp.close()
+        sha1 = host.execdom0("sha1sum %s" % hotfixPath).strip()
+        host.execdom0('echo %s > /tmp/fist_allowed_unsigned_patches' % sha1)
 
         host.execdom0("dd count=1 if=/dev/zero of=/root/filldisktmp bs=5M") 
         try:
@@ -1537,10 +1546,10 @@ class TCDom0FullPatchApply(xenrt.TestCase):
         host.execdom0("rm -rf /root/filldisktmp")
 
         try:
-            patchUUID = cli.execute("patch-upload","file-name=\"%s\"" % hotfixPath).strip()
+            patchUUID = host.execdom0("xe patch-upload file-name=%s" % hotfixPath).strip()
             raise xenrt.XRTFailure("No Error message raised")
         except Exception, e:
-            if not "not enough space" in str(e):
+            if not "not enough space" in e.data:
                 xenrt.TEC().logverbose("Error message is not same, its %s" % (str(e)))
                 raise xenrt.XRTFailure("Error message is not correct, its %s" % (str(e)))
 
@@ -1562,7 +1571,7 @@ class TCPatchApply(xenrt.TestCase):
         except xenrt.XRTFailure, e:
             raise xenrt.XRTFailure("Failure while applying patch: " + e.reason)
 
-        if self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
+        if not isinstance(self.host, xenrt.lib.xenserver.DundeeHost) and self.host.execdom0("rpm -q Deployment_Guide-en-US", retval="code") != 0:
             raise xenrt.XRTFailure("Deployment_Guide-en-US RPM not found after applying hotfix2")
     
     def patch3(self):

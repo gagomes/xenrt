@@ -767,7 +767,7 @@ class TC10201(TC10190):
             self.guest.exportVM(tf)
             self.guest.uninstall()
             self.guest.vifs = []
-            self.guest.importVM(slave, tf, preserve=True)
+            self.guest.importVM(slave, tf, preserve=True, ispxeboot=True)
 
             # Reset flags to False before starting the VM. The importVM sets 
             # them to True when it calls the "existing" method.

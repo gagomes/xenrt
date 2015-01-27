@@ -1,0 +1,25 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0">
+    </host>
+  </prepare>
+
+  <testsequence>
+    <serial group="OutOfSpaceTests">
+      <testcase id="xenserver.tc.outofspace.PluginTest"
+                tc="TC-21678">
+      </testcase>
+      <testcase id="xenserver.tc.outofspace.PluginTestWithoutSpace"
+                tc="TC-21676">
+      </testcase>
+      <testcase id="xenserver.tc.outofspace.SnapshotTest"
+                tc="TC-21680">
+      </testcase>
+    </serial>
+  </testsequence>
+
+</xenrt>

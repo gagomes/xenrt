@@ -1,0 +1,33 @@
+<xenrt>
+
+  <!-- More v6 licensing tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <storage type="nfs" name="shared" default="true"/>
+      <allhosts />
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="PoolExpiry">
+      <testcase id="xenserver.tc.license.TC10063"/>
+    </serial>
+    <serial group="PoolUpgrade">
+      <testcase id="xenserver.tc.license.TC10065"/>
+      <testcase id="xenserver.tc.license.TC10066"/>
+      <testcase id="xenserver.tc.license.TC10067"/>
+      <testcase id="xenserver.tc.license.TC10068"/>
+      <testcase id="xenserver.tc.license.TC11330"/>
+      <testcase id="xenserver.tc.license.TC11331"/>
+      <testcase id="xenserver.tc.license.TC11332"/>
+      <testcase id="xenserver.tc.license.TC11333"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

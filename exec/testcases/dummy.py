@@ -8,7 +8,7 @@
 # conditions as licensed by XenSource, Inc. All other rights reserved.
 #
 
-import sys, string, time
+import sys, string, time, glob
 import threading
 import xenrt
 
@@ -105,8 +105,28 @@ class TCPause(xenrt.TestCase):
         xenrt.TEC().logverbose("About to pause...")
         self.pause("It's what I do...")
 
-class TCThread(xenrt.TestCase):
+class TCSubcaseFail(xenrt.TestCase):
+    SUBCASE_TICKETS=True
+    def run(self, arglist=None):
+        xenrt.TEC().logverbose("Running subcases")
+        self.testcaseResult("Group1", "test_1", xenrt.RESULT_PASS)
+        self.testcaseResult("Group1", "test_2", xenrt.RESULT_FAIL, "tc2 failed")
+        self.testcaseResult("Group2", "test_3", xenrt.RESULT_FAIL)
+        self.testcaseResult("Group2", "test_4", xenrt.RESULT_ERROR, "tc4 errored")
 
+        logdir = xenrt.TEC().getLogdir()
+
+        with open("%s/testlog.log" % logdir, "w") as f:
+            f.write("Extra log for Jira\n")
+
+    def ticketAttachments(self):
+        logdir = xenrt.TEC().getLogdir()
+        return glob.glob("%s/test*.log" % logdir)
+
+    def ticketAssignee(self):
+        return "johndi"
+
+class TCThread(xenrt.TestCase):
     def run(self, arglist=None):
         xenrt.TEC().logverbose("This is logged from the testcase body (%s)" %
                                (threading.currentThread().getName()))

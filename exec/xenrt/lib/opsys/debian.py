@@ -1,4 +1,4 @@
-import xenrt, os.path, os, shutil
+import xenrt, os.path, os, shutil, IPy
 from xenrt.lib.opsys import LinuxOS, registerOS
 from xenrt.linuxanswerfiles import DebianPreseedFile
 from abc import ABCMeta, abstractproperty
@@ -32,6 +32,10 @@ class DebianBasedLinux(LinuxOS):
 
         self.pvBootArgs = ["console=hvc0"]
         self.cleanupdir = None
+
+    @property
+    def canonicalDistroName(self):
+        return "%s_%s" % (self.distro, self.arch)
 
     @abstractproperty
     def isoName(self): pass
@@ -99,6 +103,9 @@ class DebianBasedLinux(LinuxOS):
         # TODO: handle native where console is different, and handle other interfaces
         return ["vga=normal", "auto=true priority=critical", "console=hvc0", "interface=eth0", "url=%s" % url]
 
+    def preCloneTailor(self):
+        return
+
     def generateIsoAnswerfile(self):
         preseedfile = "preseed-%s.cfg" % (self.parent.name)
         filename = "%s/%s" % (xenrt.TEC().getLogdir(), preseedfile)
@@ -107,14 +114,22 @@ class DebianBasedLinux(LinuxOS):
                                filename,
                                arch=self.arch)
         ps.generate()
-        installIP = self.parent.getIP(600)
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
         path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
         self.cleanupdir = path
         try:
             os.makedirs(path)
         except:
             pass
+        xenrt.rootops.sudo("chmod -R a+w %s" % path)
+        xenrt.command("rm -f %s/preseed.stamp" % path)
         shutil.copyfile(filename, "%s/preseed" % (path))
+
+    def waitForIsoAnswerfileAccess(self):
+        installIP = self.parent.getIP(trafficType="OUTBOUND", timeout=600)
+        path = "%s/%s" % (xenrt.TEC().lookup("GUESTFILE_BASE_PATH"), installIP)
+        filename = "%s/preseed.stamp" % path
+        xenrt.waitForFile(filename, 1800)
 
     def cleanupIsoAnswerfile(self):
         if self.cleanupdir:
@@ -133,11 +148,36 @@ class DebianBasedLinux(LinuxOS):
     def waitForBoot(self, timeout):
         # We consider boot of a Debian guest complete once it responds to SSH
         startTime = xenrt.util.timenow()
-        self.parent.getIP(timeout)
+        self.parent.getIP(trafficType="SSH", timeout=timeout)
         # Reduce the timeout by however long it took to get the IP
         timeout -= (xenrt.util.timenow() - startTime)
         # Now wait for an SSH response in the remaining time
         self.waitForSSH(timeout)
+
+    def setIPs(self, ipSpec):
+        ifs = []
+        ifcfgs = []
+        for i in ipSpec:
+            (eth, ip, masklen) = i
+            ifs.append(eth)
+            if ip:
+                mask = IPy.IP("0.0.0.0/%s" % masklen).netmask().strNormal()
+                ifcfgs.append("iface %s inet static\n\taddress %s\n\tnetmask %s\n" % (eth, ip, mask))
+            else:
+                ifcfgs.append("iface %s inet dhcp\n" % eth)
+
+        content = "auto lo %s\n\n" % " ".join(ifs)
+        content += "iface lo inet loopback\n\n"
+        content += "\n".join(ifcfgs)
+        sftp = self.sftpClient()
+        f = xenrt.TEC().tempFile()
+        with open(f, "w") as fh:
+            fh.write(content)
+        sftp.copyTo(f, "/etc/network/interfaces")
+        self.execSSH("ifup -a")
+        # Check we haven't broken networking
+        self.execSSH("true")
+
 
 class DebianLinux(DebianBasedLinux):
     implements(xenrt.interfaces.InstallMethodPV, xenrt.interfaces.InstallMethodIsoWithAnswerFile)
@@ -169,7 +209,8 @@ class UbuntuLinux(DebianBasedLinux):
     @property
     def _mappings(self):
         return { "ubuntu1004": "lucid",
-                 "ubuntu1204": "precise"}
+                 "ubuntu1204": "precise",
+                 "ubuntu1404": "trusty"}
 
     @staticmethod
     def knownDistro(distro):
@@ -181,10 +222,7 @@ class UbuntuLinux(DebianBasedLinux):
 
     @property
     def isoName(self):
-        if self.distro == "ubuntu1004":
-            return "ubuntu1004_%s.iso" % self.arch
-        elif self.distro == "ubuntu1204":
-            return "ubuntu1204_%s.iso" % self.arch
+        return "%s_%s.iso" % (self.distro, self.arch)
 
 
 registerOS(DebianLinux)

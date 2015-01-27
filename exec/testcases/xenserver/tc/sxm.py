@@ -997,8 +997,11 @@ class LiveMigrate(xenrt.TestCase):
         session = guest.getHost().getAPISession(secure=False)
         vmRef = session.xenapi.VM.get_by_uuid(guest.getUUID())
         domid = session.xenapi.VM.get_domid(vmRef)
-        try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
+        try:            
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):                
+                guest.getHost().execdom0("xl pause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops pause_domain -domid %s" % domid)
         except:
             error_msg.append("Unable to pause VM")
             guest.getHost().logoutAPISession(session)
@@ -1009,7 +1012,11 @@ class LiveMigrate(xenrt.TestCase):
         srcHost = vm['src_host']
         destHost = vm['dest_host']
 
-        output = srcHost.execdom0('/opt/xensource/debug/sm mirror-list') 
+        if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):
+            output = srcHost.execdom0('sm-cli mirror-list')
+        else:
+            output = srcHost.execdom0('/opt/xensource/debug/sm mirror-list') 
+ 
         vdiInfo = output.splitlines()
         for item in vdiInfo:
             if 'dest_vdi' in item:
@@ -1022,7 +1029,10 @@ class LiveMigrate(xenrt.TestCase):
                 error_msg.append("FAILURE_SXM: VDI %s MD5 sum is not same after migration" % vdi)
 
         try:
-            guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
+            if isinstance(guest.getHost(), xenrt.lib.xenserver.DundeeHost):                
+                guest.getHost().execdom0("xl unpause %s" % domid)
+            else:
+                guest.getHost().execdom0("/opt/xensource/debug/xenops unpause_domain -domid %s" % domid)
         except:
             xenrt.TEC().logverbose('INFO_SXM: Exception occurred while trying to unpause the VM')
 
@@ -1366,6 +1376,11 @@ class LiveMigrate(xenrt.TestCase):
         
         if totalFailures > 0:
             xenrt.TEC().logverbose("%d out of %d migration Failed." %(totalFailures,len(self.observers)))
+            if self.test_config['iterations'] > 1:
+                hostlist = xenrt.TEC().registry.hostList()
+                for h in hostlist:
+                    host = xenrt.TEC().registry.hostGet(h)
+                    host.execdom0("netstat -na")
             raise xenrt.XRTFailure(firstFailureMsg)
 
     def migrateVDIsWithXe(self):
@@ -1453,6 +1468,7 @@ class LiveMigrate(xenrt.TestCase):
             self.test_config['iterations'] = 1
             
         for i in range(self.test_config['iterations']):
+            xenrt.TEC().logverbose("Iteration %s"%i)
             self.preHook()
 
             if self.test_config.has_key('use_xe') and self.test_config['use_xe']:
@@ -1661,6 +1677,31 @@ class SrcSRFailDuringMig(MidMigrateFailure):
 
         sourceHost = self.observers[0].srcHost
         self.srFailure(sourceHost)
+        
+    def postHook(self):
+    #Fixing CA-96410: As the storage connectivity was lost ...once the sr connectivity is up rescan the sr and force reboot the vm 
+    #before we proceed for guest healthcheck
+        guest = self.guests[0]
+        if guest.getState() == "UP":                
+                cli = self.observers[0].srcHost.getCLIInstance()
+                vm = self.vm_config[guest.getName()]
+                VDIs = vm['VDI_SR_map'].keys()
+                src_host = vm['src_host']
+                orig_disks = vm['src_VDIs'].keys()
+                orig_disks.sort()
+                VDIs_sorted = [vm['src_VDIs'][disk] for disk in orig_disks]                
+                src_VDI_SR_map = dict(zip(VDIs_sorted, vm['VDI_src_SR_uuids']))
+                for vdi in VDIs:
+                    try:
+                        sr_uuid = src_host.getVDISR(vdi)
+                        orig_sr_uuid = src_VDI_SR_map[vdi]
+                        cli.execute("sr-scan", "uuid=%s" % (orig_sr_uuid))
+                        time.sleep(10)
+                    except Exception, e:
+                        xenrt.TEC().warning("Exception on sr-scan of %s: %s" % 
+                                    (orig_sr_uuid, str(e)))               
+                guest.reboot(force=True)
+        LiveMigrate.postHook(self)
 
 class DestSRFailDringMig(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated
@@ -1683,10 +1724,23 @@ class DestSesDownDuringMig(MidMigrateFailure):
     def hook(self):
 
         self.observers[0].closeDestHostSession() 
+        
+class InsuffMemoryForLiveVDI(LiveMigrate):
+
+    def preHook(self):
+        LiveMigrate.preHook(self)
+        host = self.test_config['host_A']
+        
+        xenrt.TEC().logverbose("Configuring %s so that it has memory left in host is almost equal to the ram of the VM ,which I want to migrate" % (host.getName()))        
+        freemem = host.getFreeMemory()
+        freemem = freemem - 256        
+        g = host.createGenericLinuxGuest(start=False , memory=freemem)
+        self.uninstallOnCleanup(g)
+        g.start()
        
 class InsuffSpaceDestSR(MidMigrateFailure):
     # Assuming only single VM/VDI is being migrated
-    # Destination SR will have somewhere between 50 GB and 100GB specified in the suite file and since the VM has got 55GB of disk migration should fail
+    # Destination SR will have somewhere between 200 GB and 225GB specified in the suite file and since the VM has got 220GB of disk migration should fail
 
     def preHook(self):
 
@@ -1694,7 +1748,7 @@ class InsuffSpaceDestSR(MidMigrateFailure):
         vm = self.guests[0]
         device = vm.listDiskDevices()[0]
         vm.shutdown()
-        vm.resizeDisk(device,56320)
+        vm.resizeDisk(device,225280)
         vm.start()
 
 class LargeDiskWin(LiveMigrate):
@@ -1937,6 +1991,25 @@ class AgentlessVMStorageMigration(LiveMigrate):
         if self.args.has_key('negative_test'):
             self.test_config['negative_test'] = self.args['negative_test']
             
+        return
+        
+class SxmFromLowToHighVersion(LiveMigrate):
+    """Baseclass for migrating VMs without PV drivers"""
+
+    def setTestParameters(self):
+    
+        self.test_config['test_VMs'] = ['win01']
+        assert self.args.has_key('src_SR_type')
+        assert self.args.has_key('dest_SR_type')
+
+        self.test_config['win01'] = {'distro' : 'win7-x86',
+                                    'src_SR_type' : self.args['src_SR_type'],
+                                    'dest_SR_type' : self.args['dest_SR_type'],
+                                    'nodrivers' : False }
+
+        self.test_config['src_SR_type'] = self.args['src_SR_type']
+        self.test_config['dest_SR_type'] = self.args['dest_SR_type']
+       
         return
 
 #class TC17088(AgentlessVMStorageMigration):
@@ -2573,4 +2646,16 @@ class ConcurrentVMMigrate2(LiveMigrate):
             self.test_config['negative_test'] = self.args['negative_test']
 
         return
+
+class VMRevertedToSnapshot(LiveMigrate):
+    """Verifying Cross Pool Storage Migration with a VM that has been reverted to a snapshot"""
+
+    def preHook(self):
+
+        LiveMigrate.preHook(self)
+        vm = self.guests[0]
+        snapUUID = vm.snapshot()
+        vm.revert(snapUUID)
+        vm.start()
+        self.vm_config[vm.getName()]['snapshot'] = snapUUID
 

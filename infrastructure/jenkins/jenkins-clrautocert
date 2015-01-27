@@ -13,7 +13,7 @@ if os.environ['No Bonding Tests'] == "true":
 else:
     noBond = ""
 
-cmd = "xenrt submit -n %s -m %s,%s -D JOBPRIO=1 -D MACHINES_REQUIRED=2 -v xenserver -r %s --inputs %s --email %s -D JOBDESC=AutoCertClearwater -D ALLOW_ACK_SINGLE_NIC=yes -D POOL_JOIN_FORCE=yes %s" % (seq, os.environ['Machine'],os.environ['Slave'],rev,inputs,os.environ['Email'], noBond)
+cmd = "xenrt submit -n %s -m %s,%s -D JOBPRIO=4 -D MACHINES_REQUIRED=2 -v xenserver -r %s --inputs %s --email %s -D JOBDESC=AutoCertClearwater -D ALLOW_ACK_SINGLE_NIC=yes -D POOL_JOIN_FORCE=yes %s" % (seq, os.environ['Machine'],os.environ['Slave'],rev,inputs,os.environ['Email'], noBond)
 
 print cmd
 job = os.popen(cmd).read().strip()

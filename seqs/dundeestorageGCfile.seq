@@ -1,0 +1,39 @@
+<xenrt>
+
+  <!-- NFS/VHDoEXT storage GC/coalesce tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+      <storage type="nfs" name="nfssr" default="false"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <serial group="VHDoEXT">
+      <testcase id="xenserver.tc.vhd.TC8553"/>
+      <testcase id="xenserver.tc.vhd.TC8554"/>
+      <testcase id="xenserver.tc.vhd.TC8555"/>
+      <testcase id="xenserver.tc.vhd.TC8558"/>
+      <testcase id="xenserver.tc.vhd.TC8579"/>
+      <testcase id="xenserver.tc.vhd.TC8590"/>
+      <testcase id="xenserver.tc.vhd.TC8591"/>
+      <testcase id="xenserver.tc.vhd.TC8592"/>
+    </serial>
+    <serial group="NFS">
+      <testcase id="xenserver.tc.vhd.TC8557"/>
+      <testcase id="xenserver.tc.vhd.TC8584"/>
+      <testcase id="xenserver.tc.vhd.TC8585"/>
+      <testcase id="xenserver.tc.vhd.TC8586"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

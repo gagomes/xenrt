@@ -4,11 +4,19 @@
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
-    <PREPARE_WORKERS>3</PREPARE_WORKERS>
+    <PREPARE_WORKERS>4</PREPARE_WORKERS>
   </variables>
 
   <prepare>
-    <pool>
+    <pool id="3">
+      <host id="3">
+        <vm name="LicenseServer">
+          <file>%LICENSE_SERVER_XVA%</file>
+          <postinstall action="installV6LicenseServer"/>
+        </vm>
+      </host>
+    </pool>
+    <pool id="0">
       <host id="0"/>
       <host id="1"/>
       <host id="2"/>
@@ -17,8 +25,14 @@
   </prepare>
 
   <testsequence>
+    <serial group="SingleSkuPool" blocker="yes">
+      <testcase id="xenserver.tc.singleskulicense.TC21468" name="TC21468" tc="TC-21468">
+        <arg>system=pool</arg>
+        <arg>edition=per-socket</arg>
+      </testcase>
+    </serial>
     <serial group="AVPXWLBInstall" blocker="yes">
-      <testcase id="xenserver.tc.appliance.TC12766">
+      <testcase id="xenserver.tc.appliance.TC12766" host="RESOURCE_HOST_3">
       </testcase>
     </serial>
     <serial group="VPXWLB">
@@ -30,6 +44,7 @@
       <testcase id="xenserver.tc.kirkwood.TC13484"/>
       <testcase id="xenserver.tc.kirkwood.TC18154"/>
       <testcase id="xenserver.tc.kirkwood.TC18157"/>
+      <testcase id="xenserver.tc.kirkwood.TC21683"/>
     </serial>
   </testsequence>
 

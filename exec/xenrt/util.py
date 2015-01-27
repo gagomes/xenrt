@@ -10,9 +10,11 @@
 
 import time, fnmatch, sys, os.path, time, os, popen2, random, string, socket, threading
 import signal, select, traceback, smtplib, math, re, urllib2, xml.dom.minidom
-import calendar, types, fcntl, resource
+import calendar, types, fcntl, resource, requests
 import xenrt, xenrt.ssh
 import IPy
+import xml.sax.saxutils
+from collections import namedtuple
 
 # Symbols we want to export from the package.
 __all__ = ["timenow",
@@ -21,6 +23,7 @@ __all__ = ["timenow",
            "waitForFile",
            "command",
            "randomMAC",
+           "randomMACXenSource",
            "randomMACViridian",
            "checkFileExists",
            "checkConfigDefined",
@@ -37,6 +40,7 @@ __all__ = ["timenow",
            "formSubnet",
            "median",
            "Timer",
+           "randomSuffix",
            "randomGuestName",
            "randomApplianceName",
            "isUUID",
@@ -69,13 +73,25 @@ __all__ = ["timenow",
            "recursiveFileSearch",
            "getRandomULAPrefix",
            "sleep",
+           "jobOnMachine",
            "canCleanJobResources",
-           "staleMachines"
+           "staleMachines",
+           "xrtAssert",
+           "xrtCheck",
+           "keepSetup",
+           "getADConfig",
+           "getDistroAndArch",
+           "getMarvinFile",
+           "dictToXML",
+           "getNetworkParam",
+           "getCCPInputs",
+           "getCCPCommit",
+           "isUrlFetchable"
            ]
 
 def sleep(secs, log=True):
     if log:
-        xenrt.TEC().logverbose("Sleeping for %d seconds - called from %s" % (secs, traceback.extract_stack(limit=2)[0]))
+        xenrt.TEC().logverbose("Sleeping for %s seconds - called from %s" % (secs, traceback.extract_stack(limit=2)[0]))
     time.sleep(secs)
 
 def parseXMLConfigString(configString):
@@ -468,6 +484,8 @@ def randomMAC():
     """Return a random MAC in the locally administered range, avoiding Cloudstack MACs (starting with 02, 06)"""
     # Start at 2, to avoid cloudstack IPs 
     o1 = (random.randint(2, 63) << 2) | 2
+    # Avoid tap device MAC range setup by libvirt i.e. 0xFE
+    if o1 == 0xFE: return randomMAC()
     o2 = random.randint(0, 255)
     o3 = random.randint(0, 255)
     o4 = random.randint(0, 255)
@@ -684,10 +702,20 @@ def median(values):
     if l & 1:
         return v[l/2]
     return (v[(l/2)-1] + v[l/2])/2
-    
-def randomGuestName():
-    return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
-                              random.randint(0, 0x7fffffff))
+   
+def randomSuffix():
+    return "%08x" % random.randint(0, 0x7fffffff)
+
+def randomGuestName(distro=None, arch=None):
+    if distro:
+        if not arch:
+            arch = ""
+        else:
+            arch = arch[-2:]
+        return "%s%s%08x" % (distro, arch, random.randint(0, 0x7fffffff))
+    else:
+        return "xenrt%08x%08x" % (random.randint(0, 0x7fffffff),
+                                  random.randint(0, 0x7fffffff))
 
 def randomApplianceName():
     return "appl%08x%08x" % (random.randint(0, 0x7fffffff),
@@ -1134,8 +1162,8 @@ def pfarm(tasks, start=True, interval=0, wait=True, value=True, exception=True):
         return jobs
     else:
         for j in jobs:
-            time.sleep(interval)
             j.start()
+            time.sleep(interval)
         if not wait:
             return jobs
         else:
@@ -1227,62 +1255,239 @@ def getRandomULAPrefix():
     global_id = xenrt.command("echo fd%s " % third_part + r"| sed -e 's|\(....\)\(....\)\(....\)|\1:\2:\3|'", strip=True)
     return global_id
 
-def canCleanJobResources(jobid):
-    jobid = str(jobid)
+def jobOnMachine(machine, jobid):
     xrs = xenrt.ctrl.XenRTStatus(None)
     jobdict = xrs.run([jobid])
-    # See if the job is completed
-    if jobdict['JOBSTATUS'] != "done":
-        xenrt.TEC().logverbose("Job is still running")
+    if not jobdict:
         return False
-    # It's completed, now see whether any of the machines are borrowed, and haven't had a new job that cleans the resources
-    ret = True
     machines = []
     for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
         if jobdict.has_key(k):
             machines.extend(jobdict[k].split(","))
-    for m in machines:
-        xenrt.TEC().logverbose("Checking whether machine %s is borrowed" % m)
-        mcmd = xenrt.ctrl.XenRTMachine(None)
-        machinedict = mcmd.run([m])
-        if machinedict.has_key("LEASEUSER"):
-            xenrt.TEC().logverbose("Machine %s is borrowed, checking job number" % m)
-            mjob = machinedict['JOBID']
-            if mjob != jobid:
-                xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
-                mjobcmd = xenrt.ctrl.XenRTStatus(None)
-                mjobdict = xrs.run([mjob])
-                if not mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
-                    # This is a new job that will clean the hardware, so don't prevent resources being cleaned
-                    xenrt.TEC().logverbose("Allowing the resources to be cleaned, as the new job will have cleaned the machine")
-                    continue
-            ret = False 
-            xenrt.TEC().logverbose("Machine %s is still borrowed, so not cleaning resources" % m)
-            break
+    return machine in machines
+
+def canCleanJobResources(jobid):
+    try:
+        jobid = str(jobid)
+        xenrt.TEC().logverbose("Checking job %s" % jobid)
+        xrs = xenrt.ctrl.XenRTStatus(None)
+        jobdict = xrs.run([jobid])
+        # See if the job is completed
+        if jobdict['JOBSTATUS'] != "done":
+            xenrt.TEC().logverbose("Job is still running")
+            return False
+        # It's completed, now see whether any of the machines are borrowed, and haven't had a new job that cleans the resources
+        ret = True
+        machines = []
+        for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
+            if jobdict.has_key(k):
+                machines.extend(jobdict[k].split(","))
+        for m in machines:
+            xenrt.TEC().logverbose("Checking whether machine %s is borrowed" % m)
+            mcmd = xenrt.ctrl.XenRTMachine(None)
+            machinedict = mcmd.run([m])
+            if machinedict.has_key("LEASEUSER"):
+                xenrt.TEC().logverbose("Machine %s is borrowed, checking job number" % m)
+                mjob = machinedict['JOBID']
+                if mjob != jobid:
+                    xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
+                    mjobcmd = xenrt.ctrl.XenRTStatus(None)
+                    mjobdict = xrs.run([mjob])
+                    if not mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
+                        # This is a new job that will clean the hardware, so don't prevent resources being cleaned
+                        xenrt.TEC().logverbose("Allowing the resources to be cleaned, as the new job will have cleaned the machine")
+                        continue
+                ret = False 
+                xenrt.TEC().logverbose("Machine %s is still borrowed, so not cleaning resources" % m)
+                break
+    except Exception, e:
+        xenrt.TEC().logverbose("Warning - could not determine whether job resources for job %s could be cleaned: %s" % (jobid, str(e)))
+        ret = False
     return ret
 
 def staleMachines(jobid):
-    jobid = str(jobid)
-    xrs = xenrt.ctrl.XenRTStatus(None)
-    jobdict = xrs.run([jobid])
-    machines = []
-    ret = []
-    for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
-        if jobdict.has_key(k):
-            machines.extend(jobdict[k].split(","))
-    for m in machines:
-        xenrt.TEC().logverbose("Checking whether machine %s is running a new job" % m)
-        mcmd = xenrt.ctrl.XenRTMachine(None)
-        machinedict = mcmd.run([m])
-        mjob = machinedict['JOBID']
-        if mjob == jobid:
-            ret.append(m)
-        else:
-            xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
-            mjobcmd = xenrt.ctrl.XenRTStatus(None)
-            mjobdict = xrs.run([mjob])
-            if mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
-                # This is a new job that will clean the hardware, so don't prevent resources being cleaned
-                xenrt.TEC().logverbose("Marking machine as stale, as last job used --existing")
+    try:
+        jobid = str(jobid)
+        xrs = xenrt.ctrl.XenRTStatus(None)
+        jobdict = xrs.run([jobid])
+        machines = []
+        ret = []
+        for k in ['SCHEDULEDON', 'SCHEDULEDON2', 'SCHEDULEDON3']:
+            if jobdict.has_key(k):
+                machines.extend(jobdict[k].split(","))
+        for m in machines:
+            xenrt.TEC().logverbose("Checking whether machine %s is running a new job" % m)
+            mcmd = xenrt.ctrl.XenRTMachine(None)
+            machinedict = mcmd.run([m])
+            mjob = machinedict['JOBID']
+            if mjob == jobid:
                 ret.append(m)
+            else:
+                xenrt.TEC().logverbose("A new job has run on this machine, checking whether it uses --existing")
+                mjobcmd = xenrt.ctrl.XenRTStatus(None)
+                mjobdict = xrs.run([mjob])
+                if mjobdict.has_key("CLI_ARGS_PASSTHROUGH"):
+                    # This is a new job that will clean the hardware, so don't prevent resources being cleaned
+                    xenrt.TEC().logverbose("Marking machine as stale, as last job used --existing")
+                    ret.append(m)
+    except Exception, e:
+        xenrt.TEC().logverbose("Warning: could not determine stale machines for job %s: %s" % (jobid, str(e)))
+        ret = []
     return ret
+
+def xrtAssert(condition, text):
+    if not condition:
+        raise xenrt.XRTError("Assertion %s failed" % text)
+
+def xrtCheck(condition, text):
+    if not condition:
+        raise xenrt.XRTFailure("Check %s failed" % text)
+
+def mostCommonInList(items):
+    counts = {}
+    for i in set(items):
+        counts[i] = len([x for x in items if x==i])
+    return sorted(counts, key=lambda x: counts[x], reverse=True)[0]
+
+def keepSetup():
+    keepOptions = ["OPTION_KEEP_SETUP",
+                   "OPTION_KEEP_ISCSI",
+                   "OPTION_KEEP_NFS",
+                   "OPTION_KEEP_CVSM",
+                   "OPTION_KEEP_VLANS",
+                   "OPTION_KEEP_STATIC_IPS",
+                   "OPTION_KEEP_UTILITY_VMS",
+                   "OPTION_KEEP_GLOBAL_LOCKS"]
+
+    for o in keepOptions:
+        if xenrt.TEC().lookup(o, False, boolean=True):
+            return True
+
+    if xenrt.TEC().lookup("MACHINE_HOLD_FOR", None):
+        return True
+
+    # if machines are borrowed then keep resources
+    try:
+        xrs = xenrt.ctrl.XenRTStatus(None)
+        jobdict = xrs.run([str(xenrt.GEC().jobid())])
+        for m in jobdict['SCHEDULEDON'].split(","):
+            mcmd = xenrt.ctrl.XenRTMachine(None)
+            if mcmd.run([m]).has_key("LEASEUSER"):
+                return True
+    except Exception, ex:
+        xenrt.TEC().logverbose("Exception checking if machines are borrowed: " + str(ex))
+
+    return False
+
+def getADConfig():
+    ad = xenrt.TEC().lookup("AD_CONFIG")
+    domain=ad['DOMAIN']
+    dns=ad['DNS']
+    domainName = ad['DOMAIN_NAME']
+    adminUser = ad['ADMIN_USER']
+    adminPassword = ad['ADMIN_PASSWORD']
+    dcAddress = ad['DC_ADDRESS']
+    dcDistro = ad['DC_DISTRO']
+
+    ADConfig = namedtuple('ADConfig', ['domain', 'domainName', 'adminUser', 'adminPassword', 'dns', 'dcAddress', 'dcDistro'])
+
+    return ADConfig(domain=domain, domainName=domainName, adminUser=adminUser, adminPassword=adminPassword, dns=dns, dcAddress=dcAddress, dcDistro=dcDistro)
+
+def getDistroAndArch(distrotext):
+    if distrotext.endswith("-x64"):
+        distro = distrotext[:-4]
+        arch = "x86-64"
+    elif distrotext.endswith("-x86"):
+        distro = distrotext[:-4]
+        arch = "x86-32"
+    elif distrotext.endswith("-x32"):
+        distro = distrotext[:-4]
+        arch = "x86-32"
+    elif distrotext.endswith("_x86-64"):
+        distro = distrotext[:-7]
+        arch = "x86-64"
+    elif distrotext.endswith("_x86-32"):
+        distro = distrotext[:-7]
+        arch = "x86-32"
+    else:
+        distro = distrotext
+        arch = "x86-32"
+    return (distro, arch)
+
+def getMarvinFile():
+    # Default to using the Goleta version of Marvin
+    marvinFile = "/usr/share/xenrt/marvin-4.4.tar.gz"
+
+    marvinversion = xenrt.TEC().lookup("MARVIN_VERSION", None)
+    if not marvinversion:
+        # The user has not specified the Marvin version to use
+        if re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR", '')) != None or \
+           re.search('[/-]3\.0\.[1-7]', xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", '')) != None:
+            marvinversion = "3.0."
+
+    if marvinversion:
+        if marvinversion.startswith("3."):
+            marvinFile = "/usr/share/xenrt/marvin-3.x.tar.gz"
+        elif marvinversion == "4.3":
+            marvinFile = "/usr/share/xenrt/marvin.tar.gz"
+        elif marvinversion.startswith("http://") or marvinversion.startswith("https://"):
+            marvinFile = xenrt.TEC().getFile(marvinversion)
+
+    xenrt.TEC().comment('Using Marvin Version: %s' % (marvinFile))
+    return marvinFile
+
+def dictToXML(d, indent):
+    out = ""
+    for k in sorted(d.keys()):
+        if isinstance(d[k], dict):
+            out += "%s<%s>\n%s%s</%s>\n" % (indent, k, dictToXML(d[k], indent + "  "),indent, k)
+        else:
+            out += "%s<%s>%s</%s>\n" % (indent, k, xml.sax.saxutils.escape(d[k]), k)
+    return out
+
+def getNetworkParam(network, param):
+    path = ["NETWORK_CONFIG"]
+    if network == "NPRI":
+        path.append("DEFAULT")
+    elif network == "NSEC":
+        path.append("SECONDARY")
+    else:
+        path.append("VLANS")
+        path.append(network)
+    if param == "VLAN" and network not in ["NPRI", "NSEC"]:
+        param = "ID"
+    elif param == "ID" and network in ["NPRI", "NSEC"]:
+        param = "VLAN"
+    path.append(param)
+    return xenrt.TEC().lookup(path)
+
+def getCCPInputs(distro):
+    defaultInputs = xenrt.TEC().lookup("CLOUDINPUTDIR", None)
+    rh6Inputs = xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", None)
+    rh7Inputs = xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL7", None)
+    if distro and rh6Inputs and (distro.startswith("rhel6") or distro.startswith("centos6")):
+        return rh6Inputs
+    elif distro and rh7Inputs and (distro.startswith("rhel7") or distro.startswith("centos7")):
+        return rh7Inputs
+    else:
+        return defaultInputs
+
+def getCCPCommit(distro):
+    defaultCommit = xenrt.TEC().lookup("CCP_EXPECTED_COMMIT", None)
+    rh6Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL6", None)
+    rh7Commit = xenrt.TEC().lookup("CCP_EXPECT_COMMIT_RHEL7", None)
+    if distro and rh6Commit and (distro.startswith("rhel6") or distro.startswith("centos6")):
+        return rh6Commit
+    elif distro and rh7Commit and (distro.startswith("rhel7") or distro.startswith("centos7")):
+        return rh7Commit
+    else:
+        return defaultCommit
+
+def isUrlFetchable(filename):
+    xenrt.TEC().logverbose("Attempting to check response for %s" % filename)
+    try:
+        r = requests.head(filename, allow_redirects=True)
+        return (r.status_code == 200)
+    except:
+        return False
+

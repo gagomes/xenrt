@@ -12,8 +12,6 @@ import socket, string, sys, os, os.path, traceback, time
 import paramiko
 import xenrt
 
-SSHPORT = 22
-
 # Symbols we want to export from the package.
 __all__ = ["SSHSession",
            "SFTPSession",
@@ -37,7 +35,8 @@ class SSHSession:
                  level=xenrt.RC_ERROR, 
                  password=None,
                  nowarn=False,
-                 useThread=False):
+                 useThread=False,
+                 port=22):
         self.level = level
         self.toreply = 0
         self.debug = False
@@ -47,7 +46,7 @@ class SSHSession:
             try:
                 if useThread:
                     t = xenrt.util.ThreadWithException(target=self.connect,
-                                                       args=(ip, username,
+                                                       args=(ip, port, username,
                                                              password, timeout))
                     # Make the thread daemonic (so python will exit if it ends
                     # up hung and still running)
@@ -59,7 +58,7 @@ class SSHSession:
                     if t.exception:
                         raise t.exception
                 else:
-                    self.connect(ip, username, password, timeout)
+                    self.connect(ip, port, username, password, timeout)
             except Exception, e:
                 traceback.print_exc(file=sys.stderr)
                 desc = str(e)
@@ -99,10 +98,10 @@ class SSHSession:
         self.toreply = 1
         self.close()
 
-    def connect(self, ip, username, password, timeout):
+    def connect(self, ip, port, username, password, timeout):
         if self.debug:
             xenrt.TEC().logverbose("connect")
-        sock = socket.create_connection((ip, SSHPORT), timeout)
+        sock = socket.create_connection((ip, port), timeout)
             
         # Create SSH transport.
         if self.debug:
@@ -174,12 +173,14 @@ class SFTPSession(SSHSession):
     def __init__(self,
                  ip,
                  username="root",
-                 timeout=300,
+                 timeout=1250,
                  level=xenrt.RC_ERROR,
                  password=None,
-                 nowarn=False):
+                 nowarn=False,
+                 port=22):
         xenrt.TEC().logverbose("SFTP session to %s@%s" % (username, ip))
         self.ip = ip
+        self.port = port
         self.username = username
         self.timeout = timeout
         self.level = level
@@ -191,7 +192,8 @@ class SFTPSession(SSHSession):
                             timeout=timeout,
                             level=level,
                             password=password,
-                            nowarn=nowarn)
+                            nowarn=nowarn,
+                            port=port)
         try:
             # We do this rather than the simple trans.open_sftp_client() because
             # if we don't then we don't get a timeout set so we can hang forever
@@ -397,14 +399,15 @@ class SSHCommand(SSHSession):
                  ip,
                  command,
                  username="root",
-                 timeout=300,
+                 timeout=1200,
                  level=xenrt.RC_ERROR,
                  password=None,
                  nowarn=False,
                  newlineok=False,
                  nolog=False,
                  useThread=False,
-                 usePty=False):
+                 usePty=False,
+                 port=22):
         SSHSession.__init__(self,
                             ip,
                             username=username,
@@ -412,7 +415,8 @@ class SSHCommand(SSHSession):
                             level=level,
                             password=password,
                             nowarn=nowarn,
-                            useThread=useThread)
+                            useThread=useThread,
+                            port=port)
         self.command = command
         self.nolog = nolog
         if string.find(command, "\n") > -1 and not newlineok:
@@ -516,7 +520,7 @@ class SSHCommand(SSHSession):
 def SSH(ip,
         command,
         username="root",
-        timeout=300,
+        timeout=1200,
         level=xenrt.RC_ERROR,
         retval="code",
         password=None,
@@ -527,7 +531,8 @@ def SSH(ip,
         nolog=False,
         outfile=None,
         useThread=False,
-        usePty=False):
+        usePty=False,
+        port=22):
     tries = 0
     while True:
         tries = tries + 1
@@ -548,7 +553,8 @@ def SSH(ip,
                            newlineok=newlineok,
                            nolog=nolog,
                            useThread=useThread,
-                           usePty=usePty)
+                           usePty=usePty,
+                           port=port)
             if outfile:
                 try:
                     f = file(outfile, 'w')
@@ -580,7 +586,8 @@ def SSHread(ip,
             password=None,
             idempotent=False,
             nowarn=False,
-            newlineok=False):
+            newlineok=False,
+            port=22):
     tries = 0
     while True:
         tries = tries + 1
@@ -598,7 +605,8 @@ def SSHread(ip,
                            level=level,
                            password=password,
                            nowarn=nowarn,
-                           newlineok=newlineok)
+                           newlineok=newlineok,
+                           port=port)
             reply = s.read(retval="string")
             return reply
         except Exception, e:

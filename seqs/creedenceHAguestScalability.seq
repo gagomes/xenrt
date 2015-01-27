@@ -1,6 +1,6 @@
 <xenrt>
 
-  <!-- Clearwater HA enabled Guests scalability test sequence -->
+  <!-- HA enabled Guests scalability test sequence -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

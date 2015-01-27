@@ -26,7 +26,7 @@
   </prepare>
 
   <testsequence>
-      <testcase id="xenserver.tc.winpdb.TCWinPDB" tc="TCWinPDB"/>
+      <testcase id="xenserver.tc.winpdb.TCWinPDB"/>
   </testsequence>
 
 </xenrt>

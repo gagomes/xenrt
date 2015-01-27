@@ -1,0 +1,42 @@
+<xenrt>
+
+  <!-- VM snapshot tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="Windows-VM-with-drivers">
+        <distro>ws08sp2-x64</distro>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <network device="0"/>
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence group="VMSnapshot">
+    <serial group="VMSnapshot">
+      <testcase id="xenserver.tc.snapshot.TC9707" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC9712" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC9745" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC9746" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC12560" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC12561" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC18770" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC18771" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC18772" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20549" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20557" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20550" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20554" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20555" prio="3"/>
+      <testcase id="xenserver.tc.snapshot.TC20556" prio="3"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -1,0 +1,31 @@
+<xenrt>
+  <!-- v6 licensing tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0" />
+  </prepare>
+
+  <testsequence>
+    <serial group="License">
+      <testcase id="xenserver.tc.license.TC10008" />
+      <testcase id="xenserver.tc.license.TC10009" />
+      <testcase id="xenserver.tc.license.TC10010" />
+      <testcase id="xenserver.tc.license.TC10011" />
+      <testcase id="xenserver.tc.license.TC10012" />
+      <testcase id="xenserver.tc.license.TC10014" />
+      <testcase id="xenserver.tc.license.TC10015" />
+      <testcase id="xenserver.tc.license.TC10016" />
+      <testcase id="xenserver.tc.license.TC21479" />
+      <testcase id="xenserver.tc.license.TC11002" />
+      <testcase id="xenserver.tc.license.TC11006" />
+      <testcase id="xenserver.tc.license.TC11337" />
+      <testcase id="xenserver.tc.license.TC12524" />
+      <testcase id="xenserver.tc.license.TC14444" />
+      <testcase id="xenserver.tc.license.TC10165" />
+    </serial>
+  </testsequence>
+</xenrt>

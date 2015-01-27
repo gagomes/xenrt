@@ -5,8 +5,7 @@
   </variables>
 
   <prepare>
-    <host>
-    </host>
+    <host license="enterprise-per-socket"/>
   </prepare>
 
   <testsequence>
@@ -45,6 +44,8 @@
       </testcase>
 
       <testcase id="testcases.xenserver.tc.vgpu.TCNonWindowsK2" name="TC20890" tc="TC-20890" />
+
+      <testcase id="testcases.xenserver.tc.vgpu.TCvGPUBalloon" name="TC-21552" tc="TC-21552" />
 
     </serial>
   </testsequence>

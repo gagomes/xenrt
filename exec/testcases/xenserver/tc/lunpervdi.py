@@ -53,6 +53,12 @@ class LunPerVDI(xenrt.TestCase):
         for host in self.hosts:
             host.scanFibreChannelBus()
             host.enableMultipathing()
+            
+            # In Creedence, Borehamwood features are installed by default. However, it requires to enable it.
+            # In other releases, installing the supplimental pack will enable Borehamwood features.
+            if isinstance(host, xenrt.lib.xenserver.CreedenceHost):
+                self.enableBorehamwood(host)
+
             self.checkForStaticLuns(host)
             self.getLogsFrom(host)
 
@@ -60,6 +66,19 @@ class LunPerVDI(xenrt.TestCase):
         self.netAppFiler.provisionLuns(10, 10, self._createInitiators())
         map(lambda host : self._customiseXenServerTemplates(host), self.hosts)
         map(lambda host : host.scanFibreChannelBus(), self.hosts)
+        
+    def enableBorehamwood(self, host):
+        """Enable Borehamwood pluggins on host"""
+        
+        try:
+           commandOutput = host.execdom0("/opt/xensource/sm/enable-borehamwood enable; exit 0")
+        except:
+            if re.search("Error: 17 [errno=File exists]", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are already enabled on host %s" % host)
+            elif re.search("RawHBASR symlink created", commandOutput) and re.search("toolstack restarted", commandOutput):
+                xenrt.TEC().logverbose("Borehamwood pluggins are successfully enabled on host %s" % host)            
+            else:
+                raise xenrt.XRTFailure("Borehamwood pluggins are not enabled on host %s" % host)
  
     def checkForStaticLuns(self, host):
         """Check for any pre-existing LUNs on the host."""
@@ -642,8 +661,8 @@ class VMLifeCycle(LunPerVDI):
             else:
                 raise
 
-class TC18352(LunPerVDI):
-    """Verify life cycle operations of a VM with RawHBA SR in a pool of servers."""
+class TCBwdEnvironment(LunPerVDI):
+    """Prepares a minimal Borehamwood environment"""
 
     DISTRO = "ws08r2-x64"
 
@@ -685,6 +704,14 @@ class TC18352(LunPerVDI):
         self.guests.append(self.hosts[0].createBasicGuest(distro="ws08r2-x64" ,rawHBAVDIs=diskList1))
         self.guests.append(self.hosts[0].createBasicGuest(distro="oel62" ,rawHBAVDIs=diskList2))
 
+class TC18352(TCBwdEnvironment):
+    """Verify life cycle operations of a VM with RawHBA SR in a pool of servers."""
+
+    def run(self, arglist=[]):
+
+        # Prepare the basic borehamwood environment.
+        TCBwdEnvironment.run(self, arglist=[])
+
         # Verify that VM can go through the life cycle operations.
         xenrt.TEC().logverbose("VM Life Cycle Operations...")
         for guest in self.guests:
@@ -709,52 +736,18 @@ class TC18352(LunPerVDI):
             if self.sruuid in srs:
                 raise xenrt.XRTFailure("Ejected slave can still see RawHBA SR.")
 
-class TC18358(LunPerVDI):
+class TC18358(TCBwdEnvironment):
     """Verify the migration of a VM with RawHBA SR in a pool of servers."""
 
     def run(self, arglist=[]):
-        # Create the RawHBA SR on the master.
-        self.createSR()
-
-        # Create the pool
-        self.pool = xenrt.lib.xenserver.poolFactory(self.hosts[0].productVersion)(self.hosts[0])
-        self.pool.master = self.hosts[0]
-
-        # Add all remaining hosts to the pool.
-        for host in self.hosts[1:]:
-            # The host joining the pool cannot contain any shared storage.
-            for sr in host.minimalList("sr-list", args="content-type=iso type=iso"):
-                host.forgetSR(sr)
-            self.pool.addHost(host)
-        self.pool.setPoolParam("name-label", "rawHBAPool")
-        self.pool.check()
-
-        # Set the pool default SR to be the RawHBA SR.
-        self.pool.setPoolParam("default-SR", self.sruuid)
-
-        xenrt.TEC().logverbose("There are %s VDIs [%s] in the test" % (len(self.vdiuuids), self.vdiuuids))
-
-        if len(self.vdiuuids) == 0:
-            raise xenrt.XRTFailure("The test failed to populate required LUN/VDIs.")
-
-        # Form a list with a root disk and one or more required extra disks.
-        diskList1 = [self.vdiuuids[0],self.vdiuuids[1], self.vdiuuids[2]]
-        diskList2 = [self.vdiuuids[3],self.vdiuuids[4], self.vdiuuids[5]]
-
-        # Create one windows & linux guests.
-        #self.guests = xenrt.pfarm([xenrt.PTask(self.hosts[0].createBasicGuest, distro="ws08r2-x64" ,rawHBAVDIs=diskList1),
-        #                            xenrt.PTask(self.hosts[0].createBasicGuest, distro="oel62" ,rawHBAVDIs=diskList2)])
-        
-        # Installing serially.
-        self.guests.append(self.hosts[0].createBasicGuest(distro="ws08r2-x64" ,rawHBAVDIs=diskList1, nodrivers=True))
-        self.guests.append(self.hosts[0].createBasicGuest(distro="oel62" ,rawHBAVDIs=diskList2))
+    
+        # Prepare the basic borehamwood environment.
+        TCBwdEnvironment.run(self, arglist=[])
 
         # Verify that VM can be migrated to slave.
         xenrt.TEC().logverbose("VM Migration...")
         for guest in self.guests:
             self.getLogsFrom(guest)
-            if guest.windows:
-                guest.installDrivers()
             guest.migrateVM(host=self.hosts[1], live="true")
             guest.check()
 
@@ -1189,7 +1182,7 @@ class TC18377(LunPerVDI):
 class TC18378(LunPerVDI):
     """Verify whether Storage Xen Motion is possible with LUN/VDI SR"""
 
-    DISTRO = "rhel56"
+    DISTRO = "rhel65"
     
     def run(self, arglist=[]):
 
@@ -1224,3 +1217,6 @@ class TC18378(LunPerVDI):
         migratedVMs = self.hosts[1].minimalList("vm-list", "name-label")
         if(re.search(str(guest), migratedVMs)):
             raise xenrt.XRTFailure("It was possible to use Storage XenMotion to migrate the VM from a rawHBA to a local SR on a different machine.")
+
+    
+       

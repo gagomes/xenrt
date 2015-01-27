@@ -1,0 +1,7 @@
+###### Ubuntu Main Repos
+deb http://uk.archive.ubuntu.com/ubuntu/ precise main 
+
+###### Ubuntu Update Repos
+deb http://uk.archive.ubuntu.com/ubuntu/ precise-security main 
+deb http://uk.archive.ubuntu.com/ubuntu/ precise-updates main 
+deb http://uk.archive.ubuntu.com/ubuntu/ precise-backports main 

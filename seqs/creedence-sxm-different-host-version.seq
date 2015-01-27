@@ -7,8 +7,8 @@
 
   -->
 
-  <default name="OLD_PRODUCT_VERSION" value="Creedence"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.1/RTM-59235"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
@@ -32,9 +32,9 @@
       <!-- cross-pool sxm migration from sr-type ext to lvm. -->
       
       <!-- TC17107 - Cross Pool Storage Migration to a destination with lower version of XenServer. -->
-      <testcase id="xenserver.tc.sxm.LiveMigrate" name="TC18788" tc="TC-18788">
+      <testcase id="xenserver.tc.sxm.SxmFromLowToHighVersion" name="TC18788" tc="TC-18788">
         <arg>src_SR=ext</arg>
-        <arg>dest_SR=lvm</arg>
+        <arg>dest_SR=lvm</arg>        
       </testcase>
     </serial>
 

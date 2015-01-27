@@ -1,0 +1,24 @@
+<xenrt>
+
+  <!-- Static IPv6 tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    <USE_GUEST_IPV6>yes</USE_GUEST_IPV6>
+  </variables>
+
+  <prepare>
+    <host />
+  </prepare>
+
+  <testsequence>
+    <serial group="IPv6">
+      <testcase id="xenserver.tc.ipv6.IPv6StaticAddrLinux" tc="TC-16584" />
+      <testcase id="xenserver.tc.ipv6.IPv6StaticAddrWin" tc="TC-16585" />
+      <testcase id="xenserver.tc.ipv6.IPv6StaticNoPVdriv" tc="TC-16586" />
+      <testcase id="xenserver.tc.ipv6.TCIPv6IPv4AllowedClear" tc="TC-20790" />
+    </serial>
+  </testsequence>
+
+</xenrt>

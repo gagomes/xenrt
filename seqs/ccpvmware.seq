@@ -1,0 +1,52 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
+    <OPTION_KEEP_ISCSI>yes</OPTION_KEEP_ISCSI>
+    <OPTION_KEEP_STATIC_IPS>yes</OPTION_KEEP_STATIC_IPS>
+    <OPTION_KEEP_UTILITY_VMS>yes</OPTION_KEEP_UTILITY_VMS>
+  </variables>
+  <scheduler>
+    <resources>memory&gt;=4G</resources>
+    <param>MACHINES_REQUIRED=1</param>
+    <flags>staticip,nfs</flags>
+    <param>OPTION_KEEP_NFS=yes</param>
+  </scheduler>
+  <prepare>
+    <cloud>
+{
+    "zones": [
+        {
+            "networktype": "Basic",
+            "pods": [
+                {
+                    "XRT_PodIPRangeSize": 5,
+                    "clusters": [
+                        {
+                            "hypervisor": "vmware",
+                            "XRT_Hosts": 1
+                        }
+                    ],
+                    "guestIpRanges": [
+                        {
+                            "XRT_GuestIPRangeSize": 10
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+</cloud>
+    <sharedhost>
+      <vm name="CS-MS">
+        <distro>rhel63</distro>
+        <arch>x86-64</arch>
+        <memory>1024</memory>
+        <vcpus>2</vcpus>
+        <postinstall action="installCloudManagementServer" />
+        <network device="0" />
+        <disk device="0" size="12" />
+      </vm>
+    </sharedhost>
+  </prepare>
+</xenrt>

@@ -9,6 +9,7 @@ PYTHONLIB ?= /usr/local/lib/python2.6/dist-packages/
 PYTHONLIB2 ?= /usr/local/lib/python2.7/dist-packages/
 JENKINS ?= http://xenrt.hq.xensource.com:8080
 WSGIWORKERS ?= 16
+WSGITHREADS ?= 1
 CURRENT_DIR ?= $(shell pwd)
 
 include build/config.mk
@@ -20,12 +21,12 @@ else
 EXECDIR = $(BUILDPREFIX)-exec
 endif
 
-SRCDIRS		:= control scripts seqs lib data provision server 
+SRCDIRS		:= control scripts seqs lib data provision server xenrtdhcpd 
 NEWDIRS		:= locks state results
 SCRIPTS		:= $(patsubst %.in,%,$(wildcard **/*.in))
 GENCODE		:= $(patsubst %.gen,%,$(wildcard **/*.gen))
-LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt
-BINLINKS    := xenrt xrt
+LINKS		:= control/xenrt.py $(EXECDIR)/xenrt/ctrl.py control/xrt control/xrt1
+BINLINKS    := xenrt xrt xrt1 xrtbranch runsuite
 
 SRCDIRS		:= $(addprefix $(SHAREDIR)/,$(SRCDIRS))
 NEWDIRS		:= $(addprefix $(SHAREDIR)/,$(NEWDIRS))
@@ -86,7 +87,7 @@ precommit-all: xmllint-all pylint-all
 
 .PHONY: pylint pylint-all
 pylint:
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(py|in)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
 	export PYTHONPATH=$(SHAREDIR)/lib:$(ROOT)/$(XENRT)/exec:$(PYTHONPATH) && cd $(ROOT)/$(XENRT) && \
 	pylint --rcfile=$(ROOT)/$(XENRT)/scripts/pylintrc \
@@ -104,16 +105,22 @@ pylint-all:
 
 .PHONY: xmllint xmllint-all
 xmllint:
-	@for f in `(git diff | lsdiff --strip 1; git diff master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
+	@for f in `(git diff | lsdiff --strip 1; git diff origin/master | lsdiff --strip 1) | egrep '\.(seq)$$' | sort | uniq`; do \
 	echo "Checking $$f..." && \
-	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f && \
+	xmllint --noout --schema $(XSD) $$f && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
 	done
+	rm $(XSD)
 xmllint-all:
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
 	@for f in `find | grep -e '\.seq$$'`; do \
-	xmllint --noout --schema $(ROOT)/$(XENRT)/seqs/seq.xsd $$f 2>&1 | grep -v " validates$$" && \
+	xmllint --noout --schema $(XSD) $$f 2>&1 | grep -v " validates$$" && \
 	$(ROOT)/$(XENRT)/scripts/misspelt $$f; \
 	done
+	rm $(XSD)
 
 .PHONY: clean
 clean:
@@ -138,16 +145,21 @@ $(CONFDIR):
 	$(SUDO) mkdir -p $@
 ifeq ($(PRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
+	$(SUDO) mkdir -p $@/machines
+	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
 	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/site.xml` $@/site.xml
-	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machines
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/machines` $@/machinesinput
+	$(SUDO) mkdir -p $@/machines
+	$(SUDO) chown $(USERID):$(GROUPID) $@/machines
 endif
 	if [ -e $(ROOT)/$(INTERNAL)/keys ]; then $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/keys` $@/keys; fi
 	$(SUDO) mkdir -p $@/conf.d
 	$(foreach dir,$(CONFDIRS), $(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(dir)` $@/conf.d/$(dir);)
 	$(SUDO) sh -c 'echo "$(SITE)" > $@/siteid'
+	-$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/suites` $@/suites
 
 .PHONY: docs
 docs:
@@ -165,19 +177,37 @@ control/xenrt.py:
 
 $(EXECDIR)/xenrt/ctrl.py:
 	$(info Creating link to $@...)
-	ln -sf ../../control/xenrt $(SHAREDIR)/$@
+	ln -sf $(SHAREDIR)/control/xenrt $(SHAREDIR)/$@
 
 control/xrt:
 	$(info Creating link to $@...)
-	ln -sf ../exec/main.py $(SHAREDIR)/$@
+	-rm $(SHAREDIR)/$@
+	/bin/echo -e '#!/bin/bash\n$(SHAREDIR)/control/venvwrapper2.sh `mktemp -d` /tmp/xenrtlogs NoJob $(SHAREDIR)/exec/main.py "$$@"' > $(SHAREDIR)/$@
+	chmod a+x $(SHAREDIR)/$@
+
+control/xrt1:
+	$(info Creating link to $@...)
+	ln -sf $(SHAREDIR)/exec/main.py $(SHAREDIR)/$@
 
 xrt:
 	$(info Creating link to $@...)
-	$(SUDO) ln -sf $(SHAREDIR)/exec/main.py $(BINDIR)/$@
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt $(BINDIR)/$@
+
+xrt1:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrt1 $(BINDIR)/$@
+
+xrtbranch:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/xrtbranch $(BINDIR)/$@
 
 xenrt:
 	$(info Creating link to $@...)
 	$(SUDO) ln -sf $(SHAREDIR)/control/xenrt $(BINDIR)/$@
+
+runsuite:
+	$(info Creating link to $@...)
+	$(SUDO) ln -sf $(SHAREDIR)/control/runsuite $(BINDIR)/$@
 
 images:
 	$(info Creating link to $@...)
@@ -228,13 +258,21 @@ $(NEWDIRS): $(SHAREDIR)
 .PHONY: $(SRCDIRS)
 $(SRCDIRS): $(SCRIPTS) $(GENCODE) $(SHAREDIR)
 	$(info Installing files to $@...)
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@) $(SHAREDIR)
+else
 	rsync -axl $(notdir $@) $(SHAREDIR)
+endif
 	-rsync -axl $(ROOT)/$(INTERNAL)/$(notdir $@) $(SHAREDIR)
 
 .PHONY: exec
 exec:
 	$(info Installing files to $(EXECDIR))
+ifeq ($(CLEANSCRIPTS),yes)
+	rsync -axl --delete $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+else
 	rsync -axl $(notdir $@)/* $(SHAREDIR)/$(EXECDIR)/
+endif
 
 .PHONY: $(SCRIPTS)
 $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
@@ -246,10 +284,14 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
 	-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
+	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
+	sed -i 's#@user@#$(USERNAME)#g' $@
+	sed -i 's#@group@#$(GROUPNAME)#g' $@
+	sed -i 's#@stablebranch@#$(STABLE_BRANCH)#g' $@
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@
 	chmod --reference $@.in $@
 	
 .PHONY: $(GENCODE)
@@ -262,8 +304,8 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 	sed -i 's#@confdir@#$(CONFDIR)#g' $@.tmp
 	sed -i 's#@vardir@#$(VARDIR)#g' $@.tmp
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@.tmp
-	sed -i 's#@masterurl@#$(MASTER_URL)#g' $@.tmp
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@.tmp
+	sed -i 's#@authenabled@#$(KERBEROS)#g' $@.tmp
 	python $@.tmp > $@
 	rm $@.tmp
 	chmod --reference $@.gen $@
@@ -272,7 +314,18 @@ $(GENCODE): $(addsuffix .gen,$(GENCODE))
 check: install
 	$(info Performing XenRT sanity checks ...)
 	$(SHAREDIR)/exec/main.py --sanity-check
-	cd $(SHAREDIR)/unittests && python runner.py
-	mv $(SHAREDIR)/unittests/nosetests.xml $(CURRENT_DIR)/nosetests.xml
-	mv $(SHAREDIR)/unittests/.coverage $(CURRENT_DIR)/
-	cd $(CURRENT_DIR) && coverage xml --include="$(SHAREDIR)/*" && sed -ie "s,$(SHAREDIR)/,,g" coverage.xml
+	$(SHAREDIR)/unittests/runner.sh $(SHAREDIR)
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
+	xmllint --schema $(XSD) seqs/*.seq --noout
+	rm $(XSD)
+
+.PHONY: minimal-check
+minimal-check: install
+	$(info Performing XenRT sanity checks ...)
+	$(SHAREDIR)/exec/main.py --sanity-check
+	$(SHAREDIR)/unittests/quickrunner.sh $(SHAREDIR)
+	$(eval XSD = $(shell mktemp))
+	sed 's/\\\$$/\\$$/' seqs/seq.xsd > $(XSD)
+	xmllint --schema $(XSD) seqs/*.seq --noout
+	rm $(XSD)

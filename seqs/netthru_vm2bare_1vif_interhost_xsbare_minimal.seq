@@ -7,11 +7,8 @@
 -->
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
-    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
     <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
-    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
   </variables>
 
   <prepare>
@@ -19,7 +16,7 @@
     <!-- a XenServer pool -->
     <pool>
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G" name="NET_A">
+        <PHYSICAL network="ANY" speed="10G" name="NET_A">
           <MANAGEMENT/>
           <NIC/>
           <!--<VMS/>  #unnecessary because we are using bridge directly in the VMs -->
@@ -30,8 +27,8 @@
         <vm name="debian60-0-1v">
           <distro>debian60</distro>
           <network device="0" bridge="NET_A"/>
-          <vcpus>1</vcpus>
-          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
 
@@ -39,9 +36,9 @@
     </pool>
 
     <!-- a baremetal machine -->
-    <host id="1" productVersion="centos63-x64" productType="nativelinux">
+    <host id="1" productVersion="centos65-x64" productType="nativelinux" cpufreqgovernor="performance">
       <NETWORK>
-        <PHYSICAL network="ANY" jumbo="yes" speed="10G">
+        <PHYSICAL network="ANY" speed="10G">
           <NIC/>
           <MANAGEMENT mode="dhcp"/> <!-- use nic for default ip of host -->
         </PHYSICAL>

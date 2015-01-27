@@ -5,7 +5,10 @@ import xenrt.lib.cloud
 
 class WindowsPackage(object):
     __metaclass__ = ABCMeta 
-    NAME = None    
+    NAME = None   
+    REQUIRE_REBOOT = False
+    REQUIRE_IMMEDIATE_REBOOT = False
+
     def __init__(self, os):
         self._os = os
     
@@ -35,7 +38,11 @@ class WindowsPackage(object):
     def ensureInstalled(self):
         if not self.isInstalled():
             self._installPackage()
+            ret = True
+        else:
+            ret = False
         self.__writeStampFile()
+        return ret
 
 class WindowsImagingComponent(WindowsPackage):
     NAME = "WIC"
@@ -60,6 +67,8 @@ RegisterWindowsPackage(WindowsImagingComponent)
 
 class DotNet35(WindowsPackage):
     NAME = ".NET 3.5"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
 
     def _packageInstalled(self):
         try:
@@ -87,22 +96,18 @@ Add-WindowsFeature as-net-framework"""
         else:
             self._os.unpackTarball("%s/dotnet35.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
             self._os.execCmd("c:\\dotnet35\\dotnetfx35.exe /q /norestart", timeout=3600, returnerror=False)
-            self._os.reboot()
-            xenrt.sleep(120)
-            self._os.waitForBoot(600)
 
 RegisterWindowsPackage(DotNet35)
 
 class DotNet4(WindowsPackage):
     NAME = ".NET 4"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
 
     def _installPackage(self):
         self._os.createDir("c:\\dotnet40logs")
         self._os.unpackTarball("%s/dotnet40.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), "c:\\", patient=True)
         self._os.execCmd("c:\\dotnet40\\dotnetfx40.exe /q /norestart /log c:\\dotnet40logs\\dotnet40log", timeout=3600, returnerror=False)
-        self._os.reboot()
-        xenrt.sleep(120)
-        self._os.waitForBoot(600)
     
     def _packageInstalled(self):
         val = 0
@@ -116,6 +121,8 @@ RegisterWindowsPackage(DotNet4)
 
 class DotNet2(WindowsPackage):
     NAME = ".NET 2"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
 
     def _packageInstalled(self):
         g = self._os.globPattern("c:\\windows\\Microsoft.NET\\Framework\\v2*\\mscorlib.dll")
@@ -132,14 +139,13 @@ class DotNet2(WindowsPackage):
         exe = self._os._os.getArch() == "amd64" and "NetFx20SP2_x64.exe" or "NetFx20SP2_x86.exe"
         self._os.execCmd("c:\\dotnet\\%s /q /norestart" % exe,
                         timeout=3600, returnerror=False)
-        self._os.reboot()
-        xenrt.sleep(120)
-        self._os.waitForBoot(600)
 
 RegisterWindowsPackage(DotNet2)
 
 class WindowsInstaller(WindowsPackage):
     NAME = "WindowsInstaller"
+    REQUIRE_REBOOT = True
+    REQUIRE_IMMEDIATE_REBOOT = True
 
     def _installPackage(self):
         """Install Windows Installer 4.5."""
@@ -165,8 +171,28 @@ class WindowsInstaller(WindowsPackage):
             else:
                 self._os.execCmd("c:\\wininstaller\\WindowsServer2003-KB942288-v4-x86.exe /quiet /norestart",
                                  timeout=3600, returnerror=False)
-        self._os.reboot()
-        xenrt.sleep(120)
-        self._os.waitForBoot(600)
 
 RegisterWindowsPackage(WindowsInstaller)
+
+class PowerShell30(WindowsPackage):
+    NAME = "PowerShell 3.0"
+    REQUIRE_REBOOT = True
+    
+    def _packageInstalled(self):
+        return self._os.getPowershellVersion() >= 3.0
+
+    def _installPackage(self):
+        if self._os.windowsVersion() == "6.1":
+            self._os.ensurePackageInstalled(".NET 4", doDelayedReboot=False)
+            if self._os.getArch() == "amd64":
+                exe = "Windows6.1-KB2506143-x64.msu"
+            else:
+                exe = "Windows6.1-KB2506143-x86.msu"
+        else:
+            raise xenrt.XRTError("PowerShell 3.0 installer is not \
+            available for Windows version %s" % self._os.windowsVersion())
+        t = self._os.tempDir()
+        self._os.unpackTarball("%s/powershell30.tgz" % (xenrt.TEC().lookup("TEST_TARBALL_BASE")), t)
+        self._os.execCmd("%s\\powershell30\\%s /quiet /norestart" % (t, exe), returnerror=False, timeout=600)
+
+RegisterWindowsPackage(PowerShell30)

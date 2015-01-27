@@ -2,7 +2,7 @@ import re,socket
 import xenrt
 from racktables import RackTables
 
-__all__ = ["getRackTablesInstance", "readMachineFromRackTables"]
+__all__ = ["getRackTablesInstance", "readMachineFromRackTables", "closeRackTablesInstance"]
 
 _rackTablesInstance = None
 
@@ -17,6 +17,13 @@ def getRackTablesInstance():
         rtPassword = xenrt.GEC().config.lookup("RACKTABLES_DB_PASSWORD", None)
         _rackTablesInstance = RackTables(rtHost, rtDB, rtUser, rtPassword)
     return _rackTablesInstance
+
+def closeRackTablesInstance():
+    global _rackTablesInstance
+    if _rackTablesInstance:
+        _rackTablesInstance.close()
+        _rackTablesInstance = None
+    
 
 def readMachineFromRackTables(machine,kvm=False):
     global BMC_ADDRESSES
@@ -189,6 +196,8 @@ def readMachineFromRackTables(machine,kvm=False):
             netport = getNetPortNameForPort(p)
             nicinfo = p[3].split("/")
             network = nicinfo[0]
+            if network.endswith("x"):
+                continue
             if "RSPAN" in nicinfo[1:]:
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"NICS","NIC%d" % i,"RSPAN"],"yes")
             mac = p[2]
@@ -221,6 +230,11 @@ def readMachineFromRackTables(machine,kvm=False):
         if pxechain:
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"PXE_CHAIN_LOCAL_BOOT"], pxechain)
 
+    if not xenrt.TEC().lookupHost(machine, "IPXE_EXIT", None):
+        ipxeForce = o.getAttribute("Force iPXE Exit")
+        if ipxeForce == "Yes":
+            xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"IPXE_EXIT"], "yes")
+
     if not xenrt.TEC().lookupHost(machine, "OPTION_ROOT_MPATH", None):
         if o.getAttribute("Multipath Root Disk") == "Yes":
             xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"OPTION_ROOT_MPATH"], "enabled")
@@ -229,22 +243,25 @@ def readMachineFromRackTables(machine,kvm=False):
                 xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"LOCAL_SR_POST_INSTALL"], "yes")
 
     # KVM (useful for DNS)
-    if kvm:
-        kvmports = [p for p in o.getPorts() if p[0] == "kvm" and p[4]]
-        if len(kvmports) > 0:
-            kvmport = kvmports[0]
-            uplinkports = [p for p in kvmport[4].getPorts() if p[4] and p[4].getType() == "KVM switch" and (kvmport[4].getType() != "KVM switch" or len(kvmport[4].getPorts()) < len(p[4].getPorts()))]
-            if len(uplinkports) > 0:
-                kvm = uplinkports[0][4]
-            else:
-                kvm = kvmport[4]
-            ips = kvm.getIPAddrs().keys()
-            if len(ips) > 0:
-                xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ips[0])
-            else:
-                if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
-                    ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
-                    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+    try:
+        if kvm:
+            kvmports = [p for p in o.getPorts() if p[0] == "kvm" and p[4]]
+            if len(kvmports) > 0:
+                kvmport = kvmports[0]
+                uplinkports = [p for p in kvmport[4].getPorts() if p[4] and p[4].getType() == "KVM switch" and (kvmport[4].getType() != "KVM switch" or len(kvmport[4].getPorts()) < len(p[4].getPorts()))]
+                if len(uplinkports) > 0:
+                    kvm = uplinkports[0][4]
+                else:
+                    kvm = kvmport[4]
+                ips = kvm.getIPAddrs().keys()
+                if len(ips) > 0:
+                    xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ips[0])
+                else:
+                    if xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN", None):
+                        ip = socket.gethostbyname("%s.%s" % (kvm.getName(), xenrt.GEC().config.lookup("INFRASTRUCTURE_DOMAIN")))
+                        xenrt.GEC().config.setVariable(["HOST_CONFIGS",machine,"KVM_HOST"], ip)
+    except:
+        pass
                 
 
 

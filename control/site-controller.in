@@ -16,6 +16,9 @@ import xenrt
 _sharedir = "@sharedir@"
 _rootdir = "@rootdir@"
 _vardir = "@vardir@"
+_stablebranch = "@stablebranch@"
+if not _stablebranch:
+    _stablebranch = "master"
 
 optparse = []
 optparse.append(("OPTIONS", "--arch", True))
@@ -105,6 +108,10 @@ if os.path.exists("/etc/xenrt/site.xml"):
     r = re.search("<LOG_SERVER>(.+)<\/LOG_SERVER>", data)
     if r:
         logserver = r.group(1)
+
+if not logserver:
+    logserver = com.run("logserver", [])
+    
 
 def fqdn(host):
     global domain
@@ -224,7 +231,7 @@ def start_job(jobid):
         branch = data['XRTBRANCH']
         otherBranch = True
     else:
-        branch = "master"
+        branch = _stablebranch
         otherBranch = False
     trace("Using branch '%s'\n" % (branch))
 
@@ -233,29 +240,29 @@ def start_job(jobid):
 
         
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir))
+        execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch))
         execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
 
         if otherBranch:
             # Try to delete the branch if it exists. Ignore the error
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
             # Pull down the branch from upstream
-            execCmd("cd %s && git fetch origin && git checkout %s" % (_rootdir, branch))
+            execCmd("cd %s && git fetch origin && git checkout -f %s" % (_rootdir, branch))
 
-            execCmd("cd %s && git checkout %s && git reset --hard" % (_rootdir, branch))
+            execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, branch))
             execCmd("cd %s && git pull --ff-only" % (_rootdir), errorException=otherBranch)
             try:
-                execCmd("cd %s && git merge master --no-edit" % (_rootdir))
+                execCmd("cd %s && git merge %s --no-edit" % (_rootdir, _stablebranch))
             except:
-                execCmd("cd %s && git merge master -m Merge" % (_rootdir))
+                execCmd("cd %s && git merge %s -m Merge" % (_rootdir, _stablebranch))
         
-        execCmd("cd %s/../xenrt-internal.git && git checkout master && git reset --hard && git pull --ff-only" % (_rootdir), errorException=False)
+        execCmd("cd %s/../xenrt-internal.git && git checkout -f %s && git reset --hard && git pull --ff-only" % (_rootdir, _stablebranch), errorException=False)
 
     except Exception, e:
         # Failed set-up, so bail out.
         errmsg = "Failed to checkout from git - %s" % str(e) 
         execCmd("cd %s && git reset --hard" % (_rootdir), errorException=False)
-        execCmd("cd %s && git checkout master && git reset --hard" % (_rootdir), errorException=False)
+        execCmd("cd %s && git checkout -f %s && git reset --hard" % (_rootdir, _stablebranch), errorException=False)
         if otherBranch:
             execCmd("cd %s && git branch -D %s" % (_rootdir, branch), errorException=False)
         trace("%s\n" % (errmsg))
@@ -276,9 +283,9 @@ def start_job(jobid):
             # apply patch
             rc = os.system("cd %s && patch -p1 < %s" % (_rootdir, custompatchtmp))
             if rc > 0:
-                errmsg = "Couldn't import custom patch %s" % (data["CUSTOM_PATCH"])
+                errmsg = "Could not import custom patch %s" % (data["CUSTOM_PATCH"])
         else:
-            errmsg = "Couldn't find custom patch %s" % (data["CUSTOM_PATCH"])
+            errmsg = "Could not find custom patch %s" % (data["CUSTOM_PATCH"])
             
         if len(errmsg) > 0:
             trace("%s\n" % (errmsg))
@@ -303,24 +310,16 @@ def start_job(jobid):
             startDebuggerJob(jobid, cmd)
         except Exception as e:
             print 'ERROR here: %s'%(e)
-    elif 'VENV' in data and data['VENV'] == 'yes':
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
-        cmd.insert(0, "%s/control/venvwrapper.sh" % _sharedir)
-        pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-        com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
-    elif 'VENV2' in data and data['VENV'] == 'yes':
-        os.system("cd %s && make minimal-install" % (_rootdir))
-        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
-        cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
-        pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
-        com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
     else:
         os.system("cd %s && make minimal-install" % (_rootdir))
+        cmd.insert(0, jobid)
+        cmd.insert(0, resdir)
+        cmd.insert(0, "%s/venvs/%s" % (_sharedir, jobid))
+        cmd.insert(0, "%s/control/venvwrapper2.sh" % _sharedir)
+        cmdl = string.join(cmd)
         trace("exec: %s\n" % (cmdl))
         if not debug:
-            if logserver:
-                com.run("update", [jobid, "LOG_SERVER", "%s" % logserver])
+            com.run("update", [jobid, "LOG_SERVER", "%s" % logserver])
             pid = os.spawnv(os.P_NOWAIT, cmd[0], cmd)
             com.run("update", [jobid, "HARNESS_PID", "%u" % (pid)])
 
@@ -333,7 +332,7 @@ def start_job(jobid):
         os.system("cd %s && git reset --hard" % (_rootdir))
         os.system("rm -f %s" % custompatchtmp)
     
-    os.system("cd %s && git checkout master" % (_rootdir))
+    os.system("cd %s && git checkout -f %s" % (_rootdir, _stablebranch))
     if otherBranch:
         os.system("cd %s && git branch -D %s" % (_rootdir, branch))
     os.system("cd %s && make minimal-install" % (_rootdir))
@@ -525,6 +524,12 @@ if __name__ == '__main__':
                     com.run("mstatus", [m, "running"])
                 for machine in machines:
                     com.run("event", ["JobStart", machine, j])
+
+                # Set the user of the job to the DB events table for quick access later
+                data = com.run("status", ["%s" % j])
+                if data.has_key("USERID"):
+                    com.run("event", ["JobStartUser", data["USERID"], j])
+
                 start_job(j)
                 starttimes.append(now)
                 maystart = maystart - 1

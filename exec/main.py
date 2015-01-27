@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 import sys, string, os.path, atexit, getopt, time, os, traceback, re
 import trace, socket, threading, xmlrpclib, glob, xml.dom.minidom, tarfile
-import pydoc, copy, urllib, IPy 
+import pydoc, copy, urllib, IPy, json
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 socket.setdefaulttimeout(3600)
@@ -29,13 +29,13 @@ for p in possible_paths:
     if os.path.exists(p):
         sys.path.append(p)
 
-import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys
+import xenrt, xenrt.lib.cloud, xenrt.lib.xenserver, xenrt.lib.oss, xenrt.lib.xl, xenrt.lib.generic, xenrt.lib.opsys, xenrt.lib.hyperv, xenrt.lib.oraclevm, xenrt.lib.nativewindows
 try:
     import xenrt.lib.libvirt
     import xenrt.lib.kvm
     import xenrt.lib.esx
-except:
-    sys.stderr.write("WARNING: Could not import libvirt classes\n")
+except Exception, e:
+    sys.stderr.write("WARNING: Could not import libvirt classes: %s\n" % (e))
 import localxenrt
 
 #############################################################################
@@ -141,6 +141,8 @@ def usage(fd):
 
     --sanity-check                        Run a sanity check to verify basic XenRT operation
     --make-configs                        Make server config files
+    --make-machines                       Make all machine config files for this site
+    --make-machine <machine>              Make a single machine config files
     --switch-config <machine>             Make switch config for a machine
     --shell                               Open an interactive shell
     --shell-logs                          Open an interactive shell with logs
@@ -154,6 +156,7 @@ def usage(fd):
                                           killed/crashed jobs
     --cleanup-temp-dirs <job>             Remove any left over temporary directories from a specified job
     --cleanup-nfs-dirs                    Remove any left over NFS directories from stale jobs
+    --cleanup-nfs-dir                     Remove a specific NFS directory
     --release-lock <id>                   Force release a resource lock
     --setup-net-peer <peer>               Set up the specified network test peer
     --setup-router                        Set up the software router for this site (IPv6)
@@ -161,9 +164,11 @@ def usage(fd):
     --poweroff <machine>                  Power off a machine
     --poweron <machine>                   Power on a machine
     --powercycle <machine>                Power cycle a machine
+    --bootdev <device>                     When power cycleing, boot a machine with a specific target (e.g. "bios")
     --nmi <machine>                       Sent NMI to a machine
     --mconfig <machine>                   See XML config for a machine
     --bootdiskless <machine>              Boot a machine into diskless Linux
+    --bootwinpe <machine>                 Boot a machine into WinPE
     --run-tool function(args)             Run a tool from xenrt.tools
     --show-network                        Display site network details
     --show-network6                       Display site IPv6 network details
@@ -171,6 +176,11 @@ def usage(fd):
     --setup-static-host <host>            Setup a Static (Xen-On-Xen/Static Windows Guests) host
     --setup-static-guest <guest>          Setup a Static Windows Guest
     --max-age <seconds>                   Only refresh a guest if it is older than <seconds>
+
+    --install-packages                    Install packages required for a job
+
+    --get-resource "<machine> <type> <args>"        Get a controller resource (NFS, IP address range)
+    --list-resources <machine>            List resources associated with a machine
 
 """ % (sys.argv[0]))
 
@@ -198,6 +208,8 @@ existing = False
 aux = False
 sanitycheck = False
 makeconfigs = False
+makemachines = False
+makemachine = None
 switchconfig = False
 doshell = False
 shelllogging = False
@@ -216,6 +228,7 @@ cleanuplocks = False
 cleanuptempdirs = False
 cleanuptempdirsjob = None
 cleanupnfsdirs = False
+cleanupnfsdir = None
 releaselock = None
 setupnetpeer = False
 setuprouter = False
@@ -228,11 +241,14 @@ setupstatichost = False
 setupstaticguest = False
 staticguest = None
 cleanupsharedhosts = False
+cleanupvcenter = False
 powercontrol = False
 powerhost = None
 poweroperation = None
+bootdev = None
 bootdiskless = False
 boothost = None
+bootwinpe = None
 ro = None
 dumpsuite = None
 listsuitetcs = None
@@ -251,9 +267,12 @@ knownissuelist = None
 knownissuesadd = []
 knownissuesdel = []
 historyfile = os.path.expanduser("~/.xenrt_history")
-loadmachines = None
+noloadmachines = False
 mconfig = None
 installguest = None
+installpackages = False
+getresource = None
+listresources = None
 
 try:
     optlist, optargs = getopt.getopt(sys.argv[1:],
@@ -305,6 +324,8 @@ try:
                                       'email=',
                                       'sanity-check',
                                       'make-configs',
+                                      'make-machines',
+                                      'make-machine=',
                                       'switch-config',
                                       'shell',
                                       'shell-logs',
@@ -325,6 +346,7 @@ try:
                                       'cleanup-locks',
                                       'cleanup-temp-dirs=',
                                       'cleanup-nfs-dirs',
+                                      'cleanup-nfs-dir=',
                                       'release-lock=',
                                       'setup-net-peer=',
                                       'setup-router',
@@ -336,12 +358,15 @@ try:
                                       'install-linux=',
                                       'install-guest=',
                                       'cleanup-shared-hosts',
+                                      'cleanup-vcenter',
                                       'poweroff=',
                                       'poweron=',
                                       'powercycle=',
+                                      'bootdev=',
                                       'nmi=',
                                       'mconfig=',
                                       'bootdiskless=',
+                                      'bootwinpe=',
                                       'perf-data=',
                                       'runon=',
                                       'check-suite=',
@@ -359,7 +384,10 @@ try:
                                       'run-tool=',
                                       'show-network',
                                       'show-network6',
-                                      'pdu'])
+                                      'pdu',
+                                      'install-packages',
+                                      'get-resource=',
+                                      'list-resources='])
     for argpair in optlist:
         (flag, value) = argpair
         if flag == "--runon":
@@ -564,10 +592,17 @@ try:
         elif flag == "--make-configs":
             makeconfigs = True
             aux = True
+        elif flag == "--make-machines":
+            makemachines = True
+            noloadmachines = True
+            aux = True
+        elif flag == "--make-machine":
+            makemachine = value
+            noloadmachines = True
+            aux = True
         elif flag == "--switch-config":
             switchconfig = True
             aux = True
-            setvars.append(("RACKTABLES_IGNORE_MISSING_MACS", "yes"))
         elif flag == "--shell":
             doshell = True
             aux = True
@@ -610,6 +645,7 @@ try:
             aux = True
         elif flag == "--remove-filecache":
             removefilecache = value
+            verbose=True
             aux = True
         elif flag == "--generate-docs":
             docgen = True
@@ -633,6 +669,9 @@ try:
             aux = True
         elif flag == "--cleanup-nfs-dirs":
             cleanupnfsdirs = True
+            aux = True
+        elif flag == "--cleanup-nfs-dir":
+            cleanupnfsdir = value
             aux = True
         elif flag == "--release-lock":
             releaselock = value
@@ -682,6 +721,9 @@ try:
             installguest = value
             verbose = True
             aux = True
+        elif flag == "--cleanup-vcenter":
+            cleanupvcenter = True
+            aux = True
         elif flag == "--cleanup-shared-hosts":
             cleanupsharedhosts = True
             aux = True
@@ -689,29 +731,27 @@ try:
             powercontrol = True
             powerhost = value
             poweroperation = "off"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--poweron":
             powercontrol = True
             powerhost = value
             poweroperation = "on"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--powercycle":
             powercontrol = True
             powerhost = value
             poweroperation = "cycle"
-            loadmachines = [powerhost]
+            aux = True
+        elif flag == "--bootdev":
+            bootdev = value 
             aux = True
         elif flag == "--nmi":
             powercontrol = True
             powerhost = value
             poweroperation = "nmi"
-            loadmachines = [powerhost]
             aux = True
         elif flag == "--mconfig":
             mconfig = value
-            loadmachines = [value]
             aux = True
         elif flag == "--pdu":
             forcepdu = True
@@ -720,7 +760,10 @@ try:
             boothost = value
             aux = True
             verbose = True
-            loadmachines = [boothost]
+        elif flag == "--bootwinpe":
+            bootwinpe = value
+            aux = True
+            verbose = True
         elif flag == "--dump-suite":
             dumpsuite = value
             aux = True
@@ -766,6 +809,19 @@ try:
             shownetwork = True
             shownetwork6 = True
             aux = True
+        elif flag == "--install-packages":
+            installpackages = True
+            noloadmachines = True
+            aux = True
+        elif flag == "--get-resource":
+            getresource = value
+            noloadmachines = True
+            setvars.append((["OPTION_KEEP_SETUP"], "yes"))
+            aux = True
+        elif flag == "--list-resources":
+            listresources = value
+            noloadmachines = True
+            aux = True
             
 except getopt.GetoptError:
     sys.stderr.write("ERROR: Unknown argument exception\n")
@@ -777,6 +833,17 @@ if redir:
     # unbuffered output
     # alternative: try buffering=1 for line buffering, if unbuffered is too slow, but you still want to follow harness.err with tail -f
     sys.stderr = file("harness.err", 'a', buffering=1)
+
+    def logUncaughtExceptions(type, value, tback):
+        try:
+            xenrt.GEC().harnessError()
+            xenrt.TEC().logverbose(''.join(traceback.format_tb(tback)))
+            xenrt.GEC().dbconnect.jobUpdate("PREPARE_FAILED", str(value).replace("\n", ",")[:250])
+        except:
+            pass
+        sys.__excepthook__(type, value, tback)
+
+    sys.excepthook = logUncaughtExceptions
 
 if not testcase and not seqfile and not aux:
     sys.stderr.write("ERROR: No test sequence defined\n")
@@ -858,59 +925,26 @@ for f in perfcheck:
 
 machines = []
 for machine in config.lookup("HOST_CONFIGS", {}).keys():
-    if loadmachines and machine not in loadmachines:
-        continue
     machines.append(machine)
-    if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
-        try:
-            xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-        except Exception, e:
-            xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
 
-        
-
-# Read in all machine config files
-hcfbase = config.lookup("MACHINE_CONFIGS", None)
-if not hcfbase:
-    sys.stderr.write("Could not find machine config directory.\n")
-    sys.exit(1)
-files = glob.glob("%s/*.xml" % (hcfbase))
-files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
-for filename in files:
-    r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
-    if r:
-        machine = r.group(1)
-        if loadmachines and machine not in loadmachines:
-            continue
-        machines.append(machine)
-        try:
-            config.readFromFile(filename, path=["HOST_CONFIGS", machine])
-        except:
-            sys.stderr.write("Warning: Could not read from %s\n" % filename)
-        if xenrt.TEC().lookupHost(machine, "RACKTABLES", False, boolean=True):
+if not noloadmachines:
+    # Read in all machine config files
+    hcfbase = config.lookup("MACHINE_CONFIGS", None)
+    if not hcfbase:
+        sys.stderr.write("Could not find machine config directory.\n")
+        sys.exit(1)
+    files = glob.glob("%s/*.xml" % (hcfbase))
+    files.extend(glob.glob("%s/*.xml.hidden" % (hcfbase)))
+    for filename in files:
+        r = re.search(r"%s/(.*)\.xml" % (hcfbase), filename)
+        if r:
+            machine = r.group(1)
+            if not machine in machines:
+                machines.append(machine)
             try:
-                xenrt.readMachineFromRackTables(machine,kvm=shownetwork)
-            except Exception, e:
-                xenrt.TEC().logverbose("Couldn't load machine %s from RackTables: %s" % (machine, str(e)))
-                
-
-if loadmachines:
-    for m in loadmachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m)
+                config.readFromFile(filename, path=["HOST_CONFIGS", machine])
             except:
-                pass
-elif config.lookup("XENRT_SITE", None):
-    sitemachines = [x[0] for x in xenrt.GEC().dbconnect.jobctrl("mlist", ["-Cs", config.lookup("XENRT_SITE")])]
-    for m in sitemachines:
-        if m not in config.lookup("HOST_CONFIGS", {}).keys():
-            try:
-                xenrt.readMachineFromRackTables(m, kvm=shownetwork)
-                machines.append(m)
-            except:
-                pass
-            
+                sys.stderr.write("Warning: Could not read from %s\n" % filename)
 
 # Populate the knownissues list with any issues specified in config files
 for var, varval in config.getWithPrefix("KNOWN_"):
@@ -939,7 +973,7 @@ if not remote:
         remote = True
 
 # Select a suitable file manager
-gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+gec.filemanager = xenrt.filemanager.getFileManager()
 
 #############################################################################
 def existingHost(hostname):
@@ -959,9 +993,14 @@ def existingHost(hostname):
             ips.append(place.getNICAllocatedIPAddress(n)[0])
         except:
             pass
+    place.checkWindows(ipList = ips)
     place.findPassword(ipList = ips)
     place.checkVersion()
-    if place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
+    if place.productType == "hyperv":
+        host = xenrt.lib.hyperv.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
+    elif place.productType == "nativewindows":
+        host = xenrt.lib.nativewindows.hostFactory(place.productVersion)(machine, productVersion=place.productVersion, productType=place.productType)
+    elif place.productVersion in ["ESXi", "ESX", "KVM", "libvirt"]:
         host = xenrt.lib.libvirt.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
     elif place.productVersion == "Linux":
         host = xenrt.lib.native.hostFactory(place.productVersion)(machine, productVersion=place.productVersion)
@@ -1125,6 +1164,37 @@ def existingLocations():
 
     return runon
 
+def findSeqFile(config):
+    # Try the following locations for a seqfile:
+    #   1. CWD
+    #   2. $XENRT_CONF/seqs
+    #   3. $XENRT_BASE/seqs
+    #   4. File supplied through controller
+    search = ["."]
+    p = config.lookup("XENRT_CONF", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    p = config.lookup("XENRT_BASE", None)
+    if p:
+        search.append("%s/seqs" % (p))
+    usefilename = None
+    for p in search:
+        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
+        filename = "%s/%s" % (p, seqfile)
+        if os.path.exists(filename):
+            usefilename = filename
+            break
+    p = config.lookup("CUSTOM_SEQUENCE", None)
+    if p:
+        xenrt.TEC().logverbose("Looking for seq file on controller ...")
+        sf = xenrt.TEC().tempFile()
+        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
+        f = file(sf, "w")
+        f.write(data)
+        f.close()
+        usefilename = sf
+    return usefilename 
+
 running = None
 
 def exitcb():
@@ -1156,12 +1226,50 @@ if confdump:
 if sanitycheck:
     # If we get this far then our standard imports etc have all
     # succeeded, so report this back to the user
-    sys.stderr.write("Sanity check passed sucessfully\n")
+    sys.stderr.write("Core XenRT libraries imported sucessfully\n")
+
+    # Now check that all the testcases can be imported successfully
+    tcDir = os.path.join(localxenrt.SHAREDIR, "exec/testcases")
+    importFails = []
+    for root, _, files in os.walk(tcDir):
+        if root.startswith(os.path.join(tcDir, "xenserver/tc/perf")):
+            # Skip performance tests
+            continue
+
+        sys.stderr.write("Checking %s\n" % root)
+        for fn in files:
+            if not fn.endswith(".py"):
+                # Ignore non .py files
+                continue
+
+            importPath = "testcases%s.%s" % (root[len(tcDir):].replace("/", "."), fn[:-3])
+            # Skip any files we know to be broken that have been removed, but
+            # may still exist on systems as we don't do --delete with rsync
+
+            if importPath in ["testcases.xenserver.tc.pysphere"]:
+                continue
+
+            try:
+                __import__(importPath)
+            except:
+                importFails.append(importPath)
+
+    if len(importFails) > 0:
+        sys.stderr.write("The following testcase files failed to import: %s" % importFails)
+        sys.exit(1)
+
     sys.exit(0)
 
 if makeconfigs:
     ret = xenrt.infrastructuresetup.makeConfigFiles(config, debian)
     sys.exit(ret)
+
+if makemachines:
+    xenrt.infrastructuresetup.makeMachineFiles(config)
+    sys.exit(0)
+elif makemachine:
+    xenrt.infrastructuresetup.makeMachineFiles(config, makemachine)
+    sys.exit(0)
 
 if shownetwork:
     if shownetwork6:
@@ -1260,7 +1368,7 @@ if shownetwork:
             allip.append(addr)
     sharedhosts = config.lookup(["SHARED_HOSTS"], {})
     for h in sharedhosts.keys():
-        managed = config.lookup(["SHARED_HOSTS", h, addrfield], False, boolean=True)
+        managed = config.lookup("SHARED_HOSTS_MANAGED", False, boolean=True)
         if managed:
             addr = config.lookup(["SHARED_HOSTS", h, addrfield], None)
             if not addr:
@@ -1383,6 +1491,35 @@ if shownetwork:
         if kvm:
             print "        %s %s-KVM" % (kvm, machine)
 
+if installpackages:
+    print "Evaluating whether we need marvin to be installed"
+    seq = findSeqFile(config)
+    if seq:
+        xenrt.TEC().comment("Loading seq file %s" % (seq))
+        try:
+            xenrt.TestSequence(seq, tcsku=xenrt.TEC().lookup("TESTRUN_TCSKU", None))
+        except Exception, e:
+            xenrt.TEC().warning("Could not load seq file - %s" % str(e))
+        
+        # Variables defined on the command line take precedence over those
+        # specified by the sequence so we reapply the command line variables
+        # the config after reading the sequence file
+        for sv in setvars:
+            var, value = sv
+            config.setVariable(var, value)
+
+    if xenrt.TEC().lookup("MARVIN_VERSION", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL6", None) or \
+       xenrt.TEC().lookup("CLOUDINPUTDIR_RHEL7", None) or \
+       xenrt.TEC().lookup("ACS_BRANCH", None) or \
+       xenrt.TEC().lookup("ACS_BUILD", None) or \
+       xenrt.TEC().lookup("EXISTING_CLOUDSTACK_IP", None):
+        xenrt.util.command("pip install %s" % xenrt.getMarvinFile())
+    else:
+        print "CLOUDINPUTDIR not specified, so marvin is not required"
+    sys.exit(0)
+
 if switchconfig:
     if len(optargs) != 1:
         raise xenrt.XRTError("Must specify a machine")
@@ -1487,7 +1624,7 @@ if replaydb:
 if cleanupfilecache:
     xenrt.TEC().logverbose("Cleaning shared file cache...")
     days = xenrt.TEC().lookup("FILECACHE_EXPIRY_DAYS", None)
-    rfm = xenrt.filemanager.RemoteFileManager()
+    rfm = xenrt.getFileManager()
     if days:
         rfm.cleanup(days=int(days))
     else:
@@ -1495,8 +1632,8 @@ if cleanupfilecache:
 
 if removefilecache:
     xenrt.TEC().logverbose("Removing %s from shared cache..." % removefilecache)
-    rfm = xenrt.filemanager.RemoteFileManager()
-    rfm.removeFromSharedCache(removefilecache)
+    fm = xenrt.filemanager.getFileManager()
+    fm.removeFromCache(removefilecache)
 
 
 if docgen:
@@ -1531,8 +1668,36 @@ if cleanupnfsdirs:
     nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
     for n in nfsConfig.keys():
         try:
-            m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
-            mp = m.getMount()
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
+            jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
+            for j in jobs:
+                try:
+                    if xenrt.canCleanJobResources(j):
+                        xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
+                except Exception, e:
+                    xenrt.TEC().logverbose(str(e))
+                    continue
+            if m:
+                m.unmount()
+        except:
+            pass
+    smbConfig = xenrt.TEC().lookup("EXTERNAL_SMB_SERVERS", {})
+    for n in smbConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "STATIC_MOUNT"], None)
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                ad = xenrt.getADConfig()
+                m = xenrt.rootops.MountSMB("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_SMB_SERVERS", n, "BASE"])), ad.domainName, ad.adminUser, ad.adminPassword)
+                mp = m.getMount()
             jobs = [x.strip() for x in xenrt.command("ls %s | cut -d '-' -f 1 | sort | uniq" % mp).splitlines()]
             for j in jobs:
                 try:
@@ -1540,12 +1705,33 @@ if cleanupnfsdirs:
                         xenrt.rootops.sudo("rm -rf %s/%s-*" % (mp, j))
                 except:
                     continue
-            m.unmount()
+            if m:
+                m.unmount()
         except:
             pass
 
-
-        
+if cleanupnfsdir:
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    (cleanupAddress, cleanupPath) = cleanupnfsdir.split(":", 1)
+    (cleanupBaseDir, cleanupDir) = cleanupPath.rsplit("/", 1)
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if address != cleanupAddress or cleanupBaseDir != basedir:
+                continue
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"]), xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])))
+                mp = m.getMount()
+            xenrt.rootops.sudo("rm -rf %s/%s" % (mp, cleanupDir))
+            if m:
+                m.unmount()
+        except:
+            pass
 
 if cleanuptempdirs:
     # to list the job ids of all running/paused/new jobs in xenrt.
@@ -1609,6 +1795,68 @@ if cleanuplocks:
                     if allowLockRelease:
                         print "Job is complete, and machines not locked"
                         # Release the lock
+                        if lock[0].startswith("EXT-IP4ADDR"):
+                            xenrt.resources.DhcpXmlRpc().releaseAddress(lock[0].split("-")[-1])
+                        else:
+                            path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
+                            path += "/%s" % (lock[2]['md5'])
+                            try:
+                                os.unlink("%s/jobid" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/id" % (path))
+                            except:
+                                pass
+                            try:
+                                os.unlink("%s/timestamp" % (path))
+                            except:
+                                pass
+
+                            os.rmdir(path)
+                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR") or lock[0].startswith("EXT-IP4ADDR"):
+                            jobsForMachinePowerOff.append(lock[2]['jobid']) 
+                        if lock[0].startswith("GLOBAL"):
+                            jobsForGlobalRelease.append(lock[2]['jobid'])
+                        print "Lock released"
+                else:
+                    print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
+    except Exception, ex:
+        print str(ex)
+
+    for j in set(jobsForMachinePowerOff):
+        machinesToPowerOff = xenrt.staleMachines(j)
+        for m in machinesToPowerOff:
+            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
+            xenrt.GenericHost(machine)
+            machine.powerctl.off()
+    
+    for j in set(jobsForGlobalRelease):
+        xenrt.GEC().dbconnect.jobctrl("globalresrelease", [j])
+
+if releaselock:
+    if (releaselock.startswith("IP4ADDR-") and xenrt.TEC().lookup("XENRT_DHCPD", False, boolean=True)) \
+              or releaselock.startswith("EXT-IP4ADDR"):
+        xenrt.resources.DhcpXmlRpc().releaseAddress(releaselock.split("-")[-1])
+    else:
+        cr = xenrt.resources.CentralResource()
+        locks = cr.list()
+        for lock in locks:
+            if lock[1]:
+                # Check ID
+                if lock[0] == releaselock:
+                    if lock[2]['jobid']:
+                        xrs = xenrt.ctrl.XenRTStatus(None)
+                        jobdict = xrs.run([lock[2]['jobid']])
+                        pid = jobdict['HARNESS_PID']
+                        # See if this PID is still running
+                        pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
+                    else:
+                        # Doesn't have a job, must be manual run
+                        pid = "(N/A)"
+                        pr = "1"
+                    if int(pr) == 1:
+                        # Release the lock
                         path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
                         path += "/%s" % (lock[2]['md5'])
                         try:
@@ -1625,71 +1873,17 @@ if cleanuplocks:
                             pass
 
                         os.rmdir(path)
-                        if lock[0].startswith("VLAN") or lock[0].startswith("IP4ADDR") or lock[0].startswith("IP6ADDR"):
-                            jobsForMachinePowerOff.append(lock[2]['jobid']) 
-                        if lock[0].startswith("GLOBAL"):
-                            jobsForGlobalRelease.append(lock[2]['jobid'])
-                        print "Lock released"
-                else:
-                    print "Lock %s not greater than 5 minutes old ts=%s" % (lock[0], str(ts))
-    except Exception, ex:
-        print str(ex)
-
-    for j in set(jobsForMachinePowerOff):
-        machinesToPowerOff = xenrt.staleMachines(j)
-        for m in machinesToPowerOff:
-            machine = xenrt.PhysicalHost(m, ipaddr="0.0.0.0")
-            machine.powerctl.off()
-    
-    for j in set(jobsForGlobalRelease):
-        xenrt.GEC().dbconnect.jobctrl("resrelease", [j])
-
-if releaselock:
-    cr = xenrt.resources.CentralResource()
-    locks = cr.list()
-    for lock in locks:
-        if lock[1]:
-            # Check ID
-            if lock[0] == releaselock:
-                if lock[2]['jobid']:
-                    xrs = xenrt.ctrl.XenRTStatus(None)
-                    jobdict = xrs.run([lock[2]['jobid']])
-                    pid = jobdict['HARNESS_PID']
-                    # See if this PID is still running
-                    pr = xenrt.util.command("ps -p %s | wc -l" % (pid),strip=True)
-                else:
-                    # Doesn't have a job, must be manual run
-                    pid = "(N/A)"
-                    pr = "1"
-                if int(pr) == 1:
-                    # Release the lock
-                    path = xenrt.TEC().lookup("RESOURCE_LOCK_DIR")
-                    path += "/%s" % (lock[2]['md5'])
-                    try:
-                        os.unlink("%s/jobid" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/id" % (path))
-                    except:
-                        pass
-                    try:
-                        os.unlink("%s/timestamp" % (path))
-                    except:
-                        pass
-
-                    os.rmdir(path)
-                    print "Lock %s released" % (releaselock)
-                else:
-                    print "Harness process still running, not releasing lock"
-                break
+                        print "Lock %s released" % (releaselock)
+                    else:
+                        print "Harness process still running, not releasing lock"
+                    break
 
 if setupsharedhost:
     # Setup logdir
     xenrt.TEC().logdir = xenrt.resources.LogDirectory()
     # Get the info for this peer
     sh = config.lookup(["SHARED_HOSTS",sharedhost])
-    if not config.lookup(["SHARED_HOSTS",sharedhost,"MANAGED"], False,boolean=True):
+    if not config.lookup("SHARED_HOSTS_MANAGED", False,boolean=True):
         print "Shared host %s is not managed by this controller" % sharedhost
     else:
         mac = sh["MAC"]
@@ -1702,6 +1896,34 @@ if setupsharedhost:
         host = xenrt.lib.xenserver.hostFactory(hosttype)(machine,productVersion=hosttype)
         host.install(installSRType="ext")
         host.license()
+        sho = xenrt.SharedHost(sharedhost)
+
+        macs = [sh['MAC']]
+        macs.extend(sh['BOND_NICS'].split(","))
+        pifs = [host.minimalList("pif-list", args="MAC=%s" % x)[0] for x in macs]
+        
+        nets = [host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % x)[0] for x in pifs]
+        for n in nets:
+            host.genParamSet("network", n, "name-label", "slave%s" % n)
+        
+        host.createBond(pifs, dhcp=True, management=True)
+
+        # Rename the bond network to get VMs to import onto the bond rather than the slave
+        bondPif = host.minimalList("bond-list", params="master")[0]
+        net = host.minimalList("pif-list", params="network-uuid", args="uuid=%s" % bondPif)[0]
+        host.genParamSet("network", net, "name-label", "Pool-wide network associated with eth0")
+
+        cli = host.getCLIInstance()
+        if sh.has_key("VLANS"):
+            for v in sh['VLANS'].keys():
+                vlan = sh['VLANS'][v]
+                nw = cli.execute("network-create name-label=%s" % v).strip()
+                cli.execute("vlan-create pif-uuid=%s network-uuid=%s vlan=%s" % (bondPif, nw, vlan))
+
+        templates = sh["TEMPLATES"]
+        for t in templates.keys():
+            sho.createTemplate(templates[t]['DISTRO'], templates[t]['ARCH'], int(templates[t]['DISKSIZE']))
+
 
 if setupstatichost:
     xenrt.infrastructuresetup.setupStaticHost()
@@ -1760,19 +1982,44 @@ if installguest:
     host.existing()
     host.createBasicGuest(distro, arch=arch)
 
+if cleanupvcenter:
+    if xenrt.TEC().lookup("VCENTER_MANAGED", False, boolean=True):
+        v = xenrt.lib.esx.getVCenter()
+        dcs = v.listDataCenters()
+        for d in dcs:
+            try:
+                m = re.match(".*-(\d+$)", d)
+                if m:
+                    xrs = xenrt.ctrl.XenRTStatus(None)                
+                    try:
+                        if xenrt.canCleanJobResources(m.group(1)):
+                            print "Cleaning up datacenter %s" % d
+                            v.removeDataCenter(d)
+                        else:
+                            print "Not cleaning up datacenter %s" % d
+                    except Exception, e:
+                        sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
+                        continue
+                else:
+                    print "Not cleaning up datacenter %s" % d
+            except Exception,e:
+                sys.stderr.write("Warning: Exception occurred %s\n" % str(e))
+
 if cleanupsharedhosts:
     # Setup logdir
     xenrt.TEC().logdir = xenrt.resources.LogDirectory()
     # Get the info for this peer
     sharedhosts = config.lookup(["SHARED_HOSTS"])
     for sharedhost in sharedhosts.keys():
-        if config.lookup(["SHARED_HOSTS",sharedhost,"MANAGED"], False,boolean=True):
+        if config.lookup("SHARED_HOSTS_MANAGED", False,boolean=True):
             sh = xenrt.resources.SharedHost(sharedhost, doguests=True)
             vms = sh.getHost().listGuests()
             for v in vms:
                 try:
                     m = re.match(".*-(\d+$)", v)
                     if m:
+                        if m.group(1) == "64": # This actually indicates a 64-bit VM!
+                            continue
                         xrs = xenrt.ctrl.XenRTStatus(None)                
                         try:
                             if xenrt.canCleanJobResources(m.group(1)):
@@ -1803,12 +2050,27 @@ if bootdiskless:
     h = xenrt.GenericHost(machine) 
     h.bootRamdiskLinux() 
 
+if bootwinpe:
+    machine = xenrt.PhysicalHost(bootwinpe)
+    h = xenrt.GenericHost(machine) 
+    pxe = xenrt.PXEBoot()
+    winpe = pxe.addEntry("winpe", default=True, boot="memdisk")
+    winpe.setInitrd("winpe/winpe.iso")
+    winpe.setArgs("iso raw")
+    pxe.writeOut(machine)
+    machine.powerctl.cycle()
+    xenrt.TEC().logverbose("Machine will reboot into WinPE")
+    
+
 if powercontrol:
     # Setup logdir
     if forcepdu:
         powerctltype = "APCPDU"
     else:
         powerctltype = None
+    if not powerhost in xenrt.TEC().lookup("HOST_CONFIGS").keys():
+        print "Loading %s from Racktables" % powerhost
+        xenrt.readMachineFromRackTables(powerhost)
     machine = xenrt.PhysicalHost(powerhost, ipaddr="0.0.0.0", powerctltype=powerctltype)
     h = xenrt.GenericHost(machine)
     machine.powerctl.setVerbose()
@@ -1818,6 +2080,9 @@ if powercontrol:
     elif poweroperation == "off":
         machine.powerctl.off()
     elif poweroperation == "cycle":
+        if bootdev:
+            machine.powerctl.setBootDev(bootdev)
+            config.setVariable("IPMI_SET_PXE", "no")
         machine.powerctl.cycle()
     elif poweroperation == "nmi":
         machine.powerctl.triggerNMI()
@@ -1871,9 +2136,90 @@ if runsuite:
         testrun = suite.submit(debug=suitedebug,delayfor=delayfor,devrun=suitedevrun)
         print "SUITE %s" % (testrun)
 
+if getresource:
+   args = getresource.split()
+   machine = args.pop(0)
+   job = xenrt.GEC().dbconnect.jobctrl("machine", [machine])["JOBID"]
+   config.setVariable("JOBID", job)
+   xenrt.GEC().dbconnect._jobid = int(job)
+   restype = args.pop(0)
+   try:
+       ret = xenrt.getResourceInteractive(restype, args)
+       print json.dumps({"result": "OK", "data": ret})
+   except Exception, e:
+       print json.dumps({"result": "ERROR", "data": str(e)})
+
+if listresources:
+    cr = xenrt.resources.CentralResource()
+    locks = cr.list()
+    jobs = [x[2]['jobid'] for x in locks if x[1] and x[2]['jobid']]
+    
+    jobdirs = {}
+
+    nfsConfig = xenrt.TEC().lookup("EXTERNAL_NFS_SERVERS")
+    for n in nfsConfig.keys():
+        try:
+            staticMount = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "STATIC_MOUNT"], None)
+            address = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "ADDRESS"])
+            basedir = xenrt.TEC().lookup(["EXTERNAL_NFS_SERVERS", n, "BASE"])
+            if staticMount:
+                mp = staticMount
+                m = None
+            else:
+                m = xenrt.rootops.MountNFS("%s:%s" % (address, basedir))
+                mp = m.getMount()
+            dirs = xenrt.command("ls %s" % mp)
+
+            for d in dirs.splitlines():
+                m = re.match("(\d+)-.*", d)
+                if m:
+                    job = m.group(1)
+                    if not job in jobdirs.keys():
+                        jobdirs[job] = []
+                    jobdirs[job].append("%s:%s/%s" % (address, basedir.rstrip("/"), d))
+                    jobs.append(job)
+            if m:
+                m.unmount()
+        except:
+            pass
+    
+    jobs = set(jobs)
+
+    machineJobs = [x for x in jobs if xenrt.jobOnMachine(listresources, x)]
+
+    ret = {}
+
+    for l in locks:
+        if l[1] and l[2]['jobid'] in machineJobs:
+            (resclass, resname) = l[0].rsplit("-",1)
+            if resclass.startswith("EXT-"):
+                resclass = resclass[4:]
+            if not resclass in ret.keys():
+                ret[resclass] = []
+            if not resname in ret[resclass]:
+                ret[resclass].append(resname)
+
+    for m in machineJobs:
+        if jobdirs.has_key(m):
+            if not "NFS" in ret.keys():
+                ret["NFS"] = []
+            ret['NFS'].extend(jobdirs[m])
+
+    for k in ret.keys():
+        if k in ("IP4ADDR", "IP6ADDR"):
+            ret[k].sort(key=lambda x: IPy.IP(x).int())
+        else:
+            try:
+                ret[k] = [int(x) for x in ret[k]]
+            except:
+                pass
+            ret[k].sort()
+
+    print json.dumps(ret)
+
 if runtool:
     eval("xenrt.tools." + runtool)
-    
+
 # We set the aux variable if the script is being used for things other
 # than test running.
 if aux:
@@ -2078,6 +2424,7 @@ if cloudip:
     cloud = xenrt.lib.cloud.CloudStack(ip=cloudip)
     gec.registry.toolstackPut("cloud", cloud)
 
+
 # Import any additional testcases.
 if tcfile:
     testfiles = string.split(tcfile, ",")
@@ -2147,39 +2494,19 @@ if testcase:
         if config.isVerbose():
             traceback.print_exc(file=sys.stderr)
 else:
-    # Try the following locations for a seqfile:
-    #   1. CWD
-    #   2. $XENRT_CONF/seqs
-    #   3. $XENRT_BASE/seqs
-    #   4. File supplied through controller
-    search = ["."]
-    p = config.lookup("XENRT_CONF", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    p = config.lookup("XENRT_BASE", None)
-    if p:
-        search.append("%s/seqs" % (p))
-    usefilename = None
-    for p in search:
-        xenrt.TEC().logverbose("Looking for seq file in %s ..." % (p))
-        filename = "%s/%s" % (p, seqfile)
-        if os.path.exists(filename):
-            usefilename = filename
-            break
-    p = config.lookup("CUSTOM_SEQUENCE", None)
-    if p:
-        xenrt.TEC().logverbose("Looking for seq file on controller ...")
-        sf = xenrt.TEC().tempFile()
-        data = xenrt.GEC().dbconnect.jobDownload(seqfile)
-        f = file(sf, "w")
-        f.write(data)
-        f.close()
-        usefilename = sf
+    usefilename = findSeqFile(config)
     if usefilename:
         xenrt.TEC().comment("Using sequence file %s" % (usefilename))
     else:
         gec.harnessError()
-        sys.stderr.write("Could not find sequence file.")
+        strErr = "Could not find sequence file."
+        gec.logverbose(strErr)
+        try:
+            gec.dbconnect.jobUpdate("PREPARE_FAILED", strErr)
+        except:
+            pass
+
+        sys.stderr.write(strErr)
         sys.exit(1)
     seqfilebase = os.path.basename(usefilename)
     seqfileroot, seqfileext = os.path.splitext(seqfilebase)
@@ -2215,7 +2542,7 @@ else:
     # one then recreate the filemanager
     inputdir2 = xenrt.TEC().lookup("INPUTDIR", None)
     if inputdir1 != inputdir2 and not inputdir1:
-        gec.filemanager = xenrt.filemanager.getFileManager(remote=remote)
+        gec.filemanager = xenrt.filemanager.getFileManager()
     if seqdump:
         if seq.prepare:
             seq.prepare.debugDisplay()

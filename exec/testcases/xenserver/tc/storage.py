@@ -13,6 +13,98 @@ import sys, traceback
 import xenrt
 from xenrt.lazylog import *
 
+
+class _AbstractLinuxHostedNFSServer(object):
+    def __init__(self, paths):
+        self.paths = paths
+        for path in self.paths:
+            if not path.startswith('/'):
+                raise ValueError('absolute path expected')
+
+    def _getExportsLine(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def _getCommandsToPrepareSharedDirectory(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def getStorageRepositoryClass(self):
+        raise NotImplementedError('This is an abstract class')
+
+    def _prepareSharedDirectory(self, guest):
+        for command in self._getCommandsToPrepareSharedDirectory():
+            guest.execguest(command)
+
+    def createNFSExportOnGuest(self, guest):
+        guest.execguest(
+            "apt-get install -y --force-yes nfs-kernel-server nfs-common "
+            "portmap"
+        )
+
+        # Create a dir and export it
+        self._prepareSharedDirectory(guest)
+        guest.execguest("echo '%s' > /etc/exports" % self._getExportsLine())
+        guest.execguest("/etc/init.d/portmap start")
+        guest.execguest("/etc/init.d/nfs-common start || true")
+        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+
+
+class _LinuxHostedNFSv3Server(_AbstractLinuxHostedNFSServer):
+    def _getExportsLine(self):
+        exportLines = []
+        for path in self.paths:
+            exportLines.append(
+                '%s *(sync,rw,no_root_squash,no_subtree_check)' % path)
+        return '\n'.join(exportLines)
+
+    def _getCommandsToPrepareSharedDirectory(self):
+        return ["mkdir -p %s" % path for path in self.paths]
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSStorageRepository
+
+    def prepareDomZero(self, host):
+        pass
+
+
+class _LinuxHostedNFSv4Server(_AbstractLinuxHostedNFSServer):
+    def _getExportsLine(self):
+        return '/nfsv4-root *(sync,rw,no_root_squash,no_subtree_check,fsid=0)'
+
+    def _getCommandsToPrepareSharedDirectory(self):
+        prepareCommands = []
+        for path in self.paths:
+            prepareCommands += [
+                "mkdir -p /nfsv4-root",
+                "mkdir -p /nfsv4-root%s" % path,
+                "chmod o+w /nfsv4-root%s" % path,
+            ]
+        return prepareCommands
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.host.NFSv4StorageRepository
+
+    def hostNameCouldBeResolved(self, host):
+        return 0 == host.execdom0('ping -c 1 -W1 $(hostname)', retval='code')
+
+    def prepareDomZero(self, host):
+        if not self.hostNameCouldBeResolved(host):
+            host.execdom0(
+                'echo "search xenrt.xs.citrite.net" >> /etc/resolv.conf')
+
+        if not self.hostNameCouldBeResolved(host):
+            raise xenrt.XRTError(
+                'NFSv4 expects hostname to resolve to an address')
+
+
+def linuxBasedNFSServer(revision, paths):
+    if revision == 3:
+        return _LinuxHostedNFSv3Server(paths)
+    elif revision == 4:
+        return _LinuxHostedNFSv4Server(paths)
+    else:
+        raise ValueError('Invalid value for revision')
+
+
 class TC7804(xenrt.TestCase):
     """Check that installing PV drivers doesn't cause a disk to go offline."""
 
@@ -41,6 +133,7 @@ class TC7804(xenrt.TestCase):
         gdef["vifs"] = [(0, None, xenrt.randomMAC(), None)]
         gdef["memory"] = self.memory
         self.guest = xenrt.lib.xenserver.guest.createVM(**gdef)
+        self.getLogsFrom(self.guest)
         # Check disk is there and accessible.
         offline = self.getOfflineDisks()
         if offline:
@@ -64,13 +157,14 @@ class TC7804(xenrt.TestCase):
         except:
             pass
 
-class _TC6824(xenrt.TestCase):
+class SRSanityTestTemplate(xenrt.TestCase):
     """SR Sanity Test Template"""
 
     SKIP_VDI_CREATE = False
     TARGET_USE_EXTRA_VBD = False
     TARGET_USE_EXTRA_VBD_SIZE = 32768
     CHECK_FOR_OPEN_ISCSI = False
+    NFS_VERSION = 3
 
     def __init__(self, tcid=None):
         xenrt.TestCase.__init__(self, tcid)
@@ -178,32 +272,25 @@ class _TC6824(xenrt.TestCase):
     def createSR(self,host,guest):
         raise xenrt.XRTError("Unimplemented")
 
-class TC6824(_TC6824):
+class NFSSRSanityTest(SRSanityTestTemplate):
     """NFS SR Sanity Test"""
 
     SRNAME = "test-nfs"
     SR_TYPE = "nfs"
 
     def createSR(self,host,guest):
-        # Set up NFS
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr'])
 
-        # Create a dir and export it
-        guest.execguest("mkdir /sr")
-        guest.execguest("echo '/sr *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " > /etc/exports")
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+        nfsServer.createNFSExportOnGuest(guest)
+
+        nfsServer.prepareDomZero(host)
 
         # CA-21630 Wait a short delay to let the nfs server properly start
         time.sleep(10)
 
         # Create the SR on the host
         if self.SR_TYPE == "nfs":
-            sr = xenrt.lib.xenserver.host.NFSStorageRepository(host,
-                                                               self.SRNAME)
+            sr = nfsServer.getStorageRepositoryClass()(host, self.SRNAME)
             if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
                 sr.create(guest.getIP(),"/sr")
             else:
@@ -215,18 +302,30 @@ class TC6824(_TC6824):
 
         return sr.uuid
 
-class TC20940(TC6824):
+
+class TC6824(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+
+
+class TC21934(NFSSRSanityTest):
+    SRNAME = "test-nfs"
+    SR_TYPE = "nfs"
+    NFS_VERSION = 4
+
+
+class TC20940(NFSSRSanityTest):
     """File SR Sanity Test"""
     
     SR_TYPE="file"
 
-class TC10626(TC6824):
+class TC10626(NFSSRSanityTest):
     """Creation, operation and destruction of a NFS SR with a name containing non-ASCII characters"""
 
     NEW_SRNAME =  u"NFS\u03b1booo2342\u03b1 SR"
 
     def createSR(self,host,guest):
-        sruuid = TC6824.createSR(self, host, guest)
+        sruuid = NFSSRSanityTest.createSR(self, host, guest)
         try:
             session = host.getAPISession()
             try:
@@ -256,13 +355,20 @@ class TC20937(TC10626):
 
     SR_TYPE = "file"
 
-class TC20948(TC6824):
+
+class TC23334(TC10626):
+    """Creation, operation and destruction of a file SR with a name containing non-ASCII characters"""
+
+    NFS_VERSION = 4
+
+
+class TC20948(NFSSRSanityTest):
     """NFS SR (with no sub directory) Sanity Test"""
 
     def prepare(self,arglist):
         xenrt.TEC().config.setVariable("NFSSR_WITH_NOSUBDIR", "yes")
 
-class TC20949(_TC6824):
+class TC20949(SRSanityTestTemplate):
     """Co-existence of multiple NFS SRs with no sub directory on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -280,7 +386,7 @@ class TC20949(_TC6824):
         
         return self.sruuids
 
-class TC20950(_TC6824):
+class TC20950(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and classic NFS SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -298,7 +404,7 @@ class TC20950(_TC6824):
 
         return self.sruuids
 
-class TC20951(_TC6824):
+class TC20951(SRSanityTestTemplate):
     """Co-existance of NFS SR with no sub directory and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -316,7 +422,7 @@ class TC20951(_TC6824):
 
         return self.sruuids
 
-class TC20952(_TC6824):
+class TC20952(SRSanityTestTemplate):
     """Co-existance of Classic NFS SR and file SR on the same NFS path"""
 
     def createSR(self,host,guest):
@@ -334,7 +440,7 @@ class TC20952(_TC6824):
 
         return self.sruuids
 
-class TC6825(_TC6824):
+class TC6825(SRSanityTestTemplate):
     """ISCSI SR Sanity Test"""
 
     def createSR(self,host,guest):
@@ -410,7 +516,7 @@ class TC6825(_TC6824):
 
         return sr.uuid
 
-class TC7366(_TC6824):
+class TC7366(SRSanityTestTemplate):
     """Create an iSCSI SR on a LUN other then LUN ID 0"""
     CHECK_FOR_OPEN_ISCSI = True
 
@@ -446,7 +552,7 @@ class TC7366(_TC6824):
                                    "was 1024MB" % (size))
         return sr.uuid
 
-class TC7367(_TC6824):
+class TC7367(SRSanityTestTemplate):
     """Create two iSCSI SRs on LUNs on the same target"""
 
     NUM_LUNS = 2
@@ -593,29 +699,20 @@ class TC9085(TC7367):
     SKIP_VDI_CREATE = True
     TARGET_USE_EXTRA_VBD = True
     
-class TC7368(_TC6824):
+class TC7368(SRSanityTestTemplate):
     """Create two NFS SRs on the same NFS server"""
 
     def createSR(self,host,guest):
-        # Set up NFS
-        guest.execguest("apt-get install -y --force-yes nfs-kernel-server nfs-common "
-                        "portmap")
+        nfsServer = linuxBasedNFSServer(self.NFS_VERSION, ['/sr0', '/sr1'])
 
-        # Create a dir and export it
-        guest.execguest("mkdir /sr0")
-        guest.execguest("echo '/sr0 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " > /etc/exports")
-        guest.execguest("mkdir /sr1")
-        guest.execguest("echo '/sr1 *(sync,rw,no_root_squash,no_subtree_check)'"
-                        " >> /etc/exports")
-        guest.execguest("/etc/init.d/portmap start")
-        guest.execguest("/etc/init.d/nfs-common start || true")
-        guest.execguest("/etc/init.d/nfs-kernel-server start || true")
+        nfsServer.createNFSExportOnGuest(guest)
+
+        nfsServer.prepareDomZero(host)
 
         # Create the SRs on the host
-        sr0 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs0")
+        sr0 = nfsServer.getStorageRepositoryClass()(host,"test-nfs0")
         sr0.create(guest.getIP(),"/sr0")
-        sr1 = xenrt.lib.xenserver.host.NFSStorageRepository(host,"test-nfs1")
+        sr1 = nfsServer.getStorageRepositoryClass()(host,"test-nfs1")
         sr1.create(guest.getIP(),"/sr1")
 
         return [sr0.uuid, sr1.uuid]
@@ -633,7 +730,13 @@ class TC7368(_TC6824):
                                    "first SR")
         self.checkSRs()
 
-class TC7369(_TC6824):
+
+class TC23336(TC7368):
+
+    NFS_VERSION = 4
+
+
+class TC7369(SRSanityTestTemplate):
     """Create an iSCSI SR on a target requiring CHAP authentication"""
 
     user = "myuser"
@@ -1025,18 +1128,34 @@ class TC8123(_TC8122):
 
     def prepareSR(self):
         # Set up an NFS SR
-        nfs = xenrt.ExternalNFSShare()
+        nfs = self.createExternalNFSShare()
         nfsm = nfs.getMount()
         r = re.search(r"([0-9\.]+):(\S+)", nfsm)
         if not r:
             raise xenrt.XRTError("Unable to parse NFS paths %s" % (nfsm))
-        sr = xenrt.lib.xenserver.NFSStorageRepository(self.host, "NFS SR")
+        sr = self.getStorageRepositoryClass()(self.host, "NFS SR")
         if not xenrt.TEC().lookup("NFSSR_WITH_NOSUBDIR", None):
             sr.create(r.group(1), r.group(2))
         else:
             sr.create(r.group(1), r.group(2), nosubdir=True) # NFS SR with no sub directory
         self.sr = sr.uuid
         self.host.addSR(sr)
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.NFSStorageRepository
+
+    def createExternalNFSShare(self):
+        return xenrt.ExternalNFSShare()
+
+
+class TC23335(TC8123):
+
+    def getStorageRepositoryClass(self):
+        return xenrt.lib.xenserver.NFSv4StorageRepository
+
+    def createExternalNFSShare(self):
+        return xenrt.ExternalNFSShare(version="4")
+
 
 class TC20929(_TC8122):
     """Ensure that VHD chain limit is enforced on filesr"""
@@ -1267,7 +1386,7 @@ class TC6723(xenrt.TestCase):
     def doCreate(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -1359,7 +1478,7 @@ class TC10860(TC6723):
     def doCreateWithSecret(self, index):
         # Attach the share as a CIFS ISO on the host.
         sharename, user, password = self.exports[index]
-        sr = xenrt.lib.xenserver.CIFSStorageRepository(self.host,
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,
                                                        "cifstest%u" % (index))
         self.srs.append(sr)
         self.srsToRemove.append(sr)
@@ -1379,7 +1498,7 @@ class TC10860(TC6723):
 
     def doListWithSecret(self, index):
 
-        if isinstance(self.host, xenrt.lib.xenserver.BostonHost):
+        if isinstance(self.host, xenrt.lib.xenserver.TampaHost):
             # As a result of the fix for CA-113392, SR's secret is duplicated and 
             # a unique secret uuid is used for each pbd creation.
             # Hence, find the secret having the same value as that of sr
@@ -1469,13 +1588,12 @@ class TC10615(TC6723):
     SR_COUNT = 2
 
 class _VDICopy(xenrt.TestCase):
-    """Base class for testcases that verify vdi-copy works between different SR
-       types"""
+    """Base class for testcases that verify vdi-copy works between different SR types"""
+
     FROM_TYPE = None
     TO_TYPE = None
     SAME_HOSTS = True   
     HOST_TYPE = None 
-    SPECIAL_NFS_SR_TYPE = False
     FIND_SR_BY_NAME = False
 
     def prepare(self, arglist):
@@ -1530,7 +1648,6 @@ class _VDICopy(xenrt.TestCase):
         self.toSR = toSRs[0]
         self.copies = {}
         self.vdisToDestroy = []
-        self.vdiPerfResults = {}
 
         # Create a VDI on the fromSR
         args = []
@@ -1572,48 +1689,13 @@ class _VDICopy(xenrt.TestCase):
         if "The device is not currently attached" in self.md5sum:
             raise xenrt.XRTError("Device not attached when trying to md5sum")
 
-        # Initial set of vdi performance parameters.
-        self.vdiPerfResults["vdi-virtual-size-in-bytes"] = self.vdi_size
-        self.vdiPerfResults["vdi-has-filesystem"] = "yes"
-        self.vdiPerfResults["vdi-has-written-data"] = "no"
-        if self.HOST_TYPE:
-            self.vdiPerfResults["multiple-hosts"] = self.HOST_TYPE
-        if self.SPECIAL_NFS_SR_TYPE:
-            self.vdiPerfResults["special-nfs-sr"] = "with no sub directory"
-
     def doCopy(self, sourcetag, targetsruuid, targettag):
         vdiuuid = self.copies[sourcetag]
         xenrt.TEC().logverbose("Attempting to copy to SR %s" % (targetsruuid))
         args = []
         args.append("uuid=%s" % (vdiuuid))
         args.append("sr-uuid=%s" % (targetsruuid))
-        
-        # Measuring vdi copy time for performance evaluation.
-        timeNow = xenrt.util.timenow(True)
         newVDI = self.cli.execute("vdi-copy", string.join(args)).strip()
-        timeDiff =  xenrt.util.timenow(True)- timeNow
-
-        if targettag == "intra":
-            self.vdiPerfResults["sameSR"] = {"description": "Copy VDI within the SR",
-                                      "from_sr_type": self.FROM_TYPE, 
-                                      "to_sr_type": self.FROM_TYPE, 
-                                      "vdi-copy-time-in-seconds": timeDiff
-                                     }
-        elif targettag == "other":
-            self.vdiPerfResults["otherSR"] = {"description": "Copy VDI to other SR",
-                                       "from_sr_type": self.FROM_TYPE, 
-                                       "to_sr_type": self.TO_TYPE, 
-                                       "vdi-copy-time-in-seconds": timeDiff
-                                      }
-        elif targettag == "back":
-            self.vdiPerfResults["originalSR"] = {"description": "Copy VDI back to original SR",
-                                          "from_sr_type": self.TO_TYPE, 
-                                          "to_sr_type": self.FROM_TYPE, 
-                                          "vdi-copy-time-in-seconds": timeDiff
-                                         }
-        else:
-            raise xenrt.XRTFailure("Target SR not specified")
-
         self.vdisToDestroy.append(newVDI)
         self.copies[targettag] = newVDI
 
@@ -1681,11 +1763,8 @@ class _VDICopy(xenrt.TestCase):
                     self.runSubcase("doCheck", ("back"), "Check", "OriginalSR")
 
     def postRun(self):
-        # Writing the measured vdi copy performance parameters.
-        f = open("%s/vdicopytime.json" % (xenrt.TEC().getLogdir()), "w")
-        f.write(json.dumps(self.vdiPerfResults))
-        f.close()
-        
+
+        # destroying target vdis created during vdicopy.
         for vdi in self.vdisToDestroy:
             try:
                 self.cli.execute("vdi-destroy","uuid=%s" % (vdi))
@@ -1754,13 +1833,11 @@ class TC20953(_VDICopy):
     """Verify vdi-copy between an lvmoiscsi SR and a NFS SR with no sub directory"""
     FROM_TYPE = "lvmoiscsi"
     TO_TYPE = "nfs"
-    SPECIAL_NFS_SR_TYPE = True
     
 class TC20954(_VDICopy):
     """Verify vdi-copy between an ext SR and a NFS SR with no sub directory"""
     FROM_TYPE = "ext"
     TO_TYPE = "nfs"
-    SPECIAL_NFS_SR_TYPE = True
     
 class TC20955(_VDICopy):
     """Verify vdi-copy between an NFS SR with no sub directory and a netapp SR"""            
@@ -1773,14 +1850,12 @@ class TC20956(_VDICopy):
     FIND_SR_BY_NAME = True
     FROM_TYPE = "nfssr_nosubdir" # options="nosubdir"
     TO_TYPE   = "nfssr_filesr" # options="filesr" 
-    SPECIAL_NFS_SR_TYPE = True
 
 class TC20957(_VDICopy):
     """Verify vdi-copy between an NFS SR and a NFS SR with no sub directory"""
     FIND_SR_BY_NAME = True
     FROM_TYPE = "nfssr_classic" # classic nfssr
     TO_TYPE   = "nfssr_nosubdir" # options="nosubdir" 
-    SPECIAL_NFS_SR_TYPE = True
 
 #############################################################################
 # VDI resize testcases
@@ -4232,3 +4307,215 @@ class TC20979(SRIntroduceBase):
     
     SR_TYPE = "nfs"
     NFSSR_WITH_NOSUBDIR = True
+    
+class TC21718(xenrt.TestCase):
+    """ Verify creating PBD with SRmaster key set to true throws exception"""
+    
+    SR_TYPE = "nfs"
+    
+    def prepare(self, arglist):
+        # Get a host to use
+        self.host = self.getDefaultHost()
+        self.sruuid = self.host.getSRs(type=self.SR_TYPE)
+        
+    def run(self, arglist):
+        args = []
+        args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+        args.append("sr-uuid=%s" % self.sruuid[0])
+        pbd = self.host.minimalList("pbd-list", args=string.join(args))[0]
+        
+        cli = self.host.getCLIInstance()
+        cli.execute("pbd-unplug", "uuid=%s" % (pbd))
+        cli.execute("pbd-destroy", "uuid=%s" % (pbd))
+        
+        try:
+            args = []
+            args.append("host-uuid=%s" % (self.host.getMyHostUUID()))
+            args.append("sr-uuid=%s" % (self.sruuid[0]))
+            args.append("device-config:SRmaster=true")
+            pbd = cli.execute("pbd-create", string.join(args)).strip()
+            
+        except Exception, e:
+        
+            if e.data and re.search(r"This key is for internal use only",e.data):
+                xenrt.TEC().logverbose("Setting SRmaster key in pbd device config failed with expected message")
+                return
+        raise xenrt.XRTFailure("SRmaster key in PBD device config can be set while creating PBD")
+
+class TCPbdDuplicateSecret(xenrt.TestCase):
+    """Duplicate device-config:password_secret should not be created.Regression test for SCTX-1486"""
+    # Jira TC-21719
+
+    def prepare(self, arglist=None):
+        self.srs = []
+        self.srsToRemove = []
+        self.host = self.getDefaultHost()
+        self.host1 = self.getHost("RESOURCE_HOST_1")
+        self.pool = self.getDefaultPool()
+
+        # Create a Windows VM to be the CIFS server.
+        self.guest = xenrt.TEC().registry.guestGet("CIFSSERVER")
+        if not self.guest:
+            self.guest = self.host.createGenericWindowsGuest()
+            self.uninstallOnCleanup(self.guest)
+        
+        # Enable file and printer sharing on the guest.
+        self.guest.xmlrpcExec("netsh firewall set service type=fileandprint "
+                              "mode=enable profile=all")
+
+        self.exports = []
+        # Create a user account.
+        user = "Administrator"
+        password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
+
+        # Share a directory.
+        sharedir = self.guest.xmlrpcTempDir()
+        sharename = "XENRTSHARE"
+        self.guest.xmlrpcExec("net share %s=%s /GRANT:%s,FULL" %
+                                    (sharename, sharedir, user))
+
+        self.exports.append((sharename, user, password))
+
+        self.client = self.host.createGenericLinuxGuest()
+        self.uninstallOnCleanup(self.client)
+        self.secrets = []
+
+    def run(self, arglist=None):
+        # Attach the share as a CIFS ISO to the pool.
+        sharename, user, password = self.exports[0]
+        sr = xenrt.lib.xenserver.CIFSISOStorageRepository(self.host,"cifstest")
+
+        self.srs.append(sr)
+
+        self.srsToRemove.append(sr)
+
+        # Create a secret
+        secret_uuid = self.host.createSecret(password)
+        self.secrets.append(secret_uuid)
+
+        sr.create(self.guest.getIP(),
+                    sharename,
+                    "iso",
+                    "iso",
+                    username=user,
+                    password=secret_uuid,
+                    use_secret=True)
+        cli=self.host.getCLIInstance()
+        cli.execute("sr-param-set","uuid=%s shared=true" % self.srs[0].uuid)
+
+        #create a pbd for slave host with same password secret as master
+        pbd1=self.srs[0].getPBDs().keys()[0]
+
+        master_pbd_dc = self.host.genParamsGet("pbd",pbd1,"device-config")
+        master_pbd_username = master_pbd_dc['username']
+        master_pbd_cifspassword_secret = master_pbd_dc['cifspassword_secret']
+        master_pbd_location = master_pbd_dc['location']
+        master_pbd_type = master_pbd_dc['type']
+
+        self.dconf = {"username": master_pbd_username , "cifspassword_secret": master_pbd_cifspassword_secret , "location":master_pbd_location, "type": master_pbd_type}
+
+        args = []
+        args.append("host-uuid=%s" % (self.host1.getMyHostUUID()))
+        args.append("sr-uuid=%s" % (self.srs[0].uuid))
+        args.extend(["device-config:%s=\"%s\"" % (x, y) for x,y in self.dconf.items()])
+        pbd2 = cli.execute("pbd-create", string.join(args)).strip()
+
+        cli.execute("pbd-plug uuid=%s" % pbd2)
+
+        #check if password secret of both pbds are different.
+
+        passwordSecret1=self.host.genParamsGet("pbd",pbd1,"device-config")['cifspassword_secret']
+        passwordSecret2=self.host.genParamsGet("pbd",pbd2,"device-config")['cifspassword_secret']
+
+        if passwordSecret1 == passwordSecret2:	
+            raise xenrt.XRTFailure('Unexpected Output: Created 2 pbds with same password secret')	
+        else:
+            xenrt.TEC().logverbose("Expected output: New pbd has different password secret")
+
+    def postRun(self):
+        for sr in self.srsToRemove:
+            try:
+                sr.remove()
+            except:
+                pass
+
+class TCVdiCorruption(xenrt.TestCase):
+    """TC to verify VDI corruption on writing data to a 2TB VDI (SCTX-1406)"""
+    #Jira TC-21641
+    
+    SRTYPE = "lvm"
+    SIZE = 2048 * xenrt.GIGA
+
+    def prepare(self, arglist):
+        self.vdi = None
+        self.vbd = None
+        self.host = self.getDefaultHost()
+        g=self.host.listGuests(running=True)
+        self.guest=self.host.getGuest(g[0])
+        self.cli = self.host.getCLIInstance()
+        srs = self.host.getSRs(type=self.SRTYPE)
+        if not srs:
+            raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
+        self.sr = srs[0]
+
+    def run(self, arglist):
+        step("Create vdi and plug VBD to guest")
+        self.vdi = self.host.createVDI(self.SIZE, self.sr)
+        device = self.guest.createDisk(vdiuuid=self.vdi,returnDevice=True)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(device))
+        self.vbd = self.guest.getDiskVBDUUID(device)
+        xenrt.TEC().logverbose("Plugged VBD %s" %(self.vbd))
+
+        step("Upgrade host")
+        self.host = self.host.upgrade()
+        self.host.applyRequiredPatches()
+        
+        step("Start VM")
+        self.guest.start()
+        xenrt.TEC().logverbose("Formatting VDI within VM.")
+        time.sleep(10)
+        self.guest.execguest("mkfs.ext3 /dev/%s" % (device))
+        self.guest.execguest("mkdir /mnt/vdi1")
+        self.guest.execguest("mount /dev/%s /mnt/vdi1" % (device))
+        try:
+            outfile = self.guest.execguest("dd if=/dev/zero of=/mnt/vdi1/file1 bs=512 count=4294967400 conv=notrunc", timeout=43200)
+        except Exception, e:
+            xenrt.TEC().logverbose("Exception raised: %s" % (str(e)))
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            if "Input/output error" in str(e.data):
+                if availSpace == "0":
+                    xenrt.TEC().logverbose("Expected output: Disk is full and dd command exited with an error")
+                else:
+                    raise xenrt.XRTError("Input/Error thrown before disk is full. available space=%s" % (availSpace))
+            elif "SSH timed out" in str(e) and availSpace == "0":
+                #Workaround due to CA-122162- dd command doesn't crash when 2TB VDI is full
+                #raise xenrt.XRTFailure("dd command didn't return after disk is full. available space=%s" % (availSpace))
+                #check if vdi is corrupted
+                filename = "/dev/VG_XenStorage-%s/VHD-%s" % (self.sr,self.vdi)
+                try:
+                    self.host.execdom0("vhd-util check -n %s" % filename)
+                except Exception, e:
+                    if "error calculating end of metadata" in str(e.data):
+                        raise xenrt.XRTFailure("VDI corruption on writing 2TB data")
+            else: 
+                raise xenrt.XRTFailure("Unexpected error occured: %s" % (str(e)))
+        else:
+            availSpace = self.guest.execguest("df -h /dev/%s | tail -n 1 | awk '{print $4}'" % (device))
+            if availSpace <> "0":
+                raise xenrt.XRTFailure("Unexpected output. Disk is not full and dd command exited without any error.available space=%s" % (availSpace))
+    
+    def postRun(self):
+        if self.vbd:
+            try:
+                self.cli.execute("vbd-unplug", "uuid=%s" % (self.vbd))
+            except:
+                pass
+            try:
+                self.cli.execute("vbd-destroy", "uuid=%s" % (self.vbd))
+            except:
+                pass
+        try:
+            if self.vdi:
+                self.cli.execute("vdi-destroy", "uuid=%s" % (self.vdi))
+        except:
+            pass

@@ -1,0 +1,26 @@
+<xenrt>
+
+  <!-- MNR 2 host iSCSI Multipath test sequence c -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <prepare>
+    <host id="0"/>
+    <host id="1"/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-8013">
+      <testcase id="xenserver.tc.multipath.TC8027"/>
+      <testcase id="xenserver.tc.multipath.TC8028"/>
+      <testcase id="xenserver.tc.multipath.TC8029"/>
+    </serial>
+    <serial group="TC-8136">
+      <testcase id="xenserver.tc.multipath.TC8135"/>
+      <testcase id="xenserver.tc.multipath.TC8140"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

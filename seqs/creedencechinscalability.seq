@@ -1,7 +1,6 @@
-<?xml version="1.0" ?>
 <xenrt>
 
-  <!-- 32 Test Host vSwitch CHIN Scalability -->
+  <!-- 16 Test Host vSwitch CHIN Scalability -->
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>

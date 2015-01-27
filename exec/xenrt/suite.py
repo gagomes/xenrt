@@ -121,7 +121,7 @@ class SuiteSequence(SuiteConfigurable):
         self.seq = node.getAttribute("seq")
         self.tcsku = node.getAttribute("tcsku")
         self.tc = node.getAttribute("tc")
-        self.seqfile = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
+        self.seqfile = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         self.pool = "default"
         self.delay = 0
         self.machines=1
@@ -153,7 +153,7 @@ class SuiteSequence(SuiteConfigurable):
         fd.write("  Sequence %s: %s\n" % (self.name, self.seq))
         for arg in self.args:
             fd.write("    %s\n" % (arg))
-        #seq = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq))
+        #seq = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq))
         #fd.write("    TCs: %s\n" % (seq.listTCs()))
         
     def listTCsInSequence(self, quiet=False):
@@ -168,7 +168,7 @@ class SuiteSequence(SuiteConfigurable):
             args.extend(["-r", rev])
         branch = xenrt.TEC().lookup(["CLIOPTIONS", "BRANCH"], "trunk")
         if rev and inputs:
-            build = string.split(rev, "-")[1]
+            build = string.split(rev, "-")[-1]
             inputs = string.replace(inputs, "${BUILD}", build)
             inputs = string.replace(inputs, "${BRANCH}", branch)
             args.extend(["--inputs", inputs])
@@ -387,7 +387,11 @@ class Suite(SuiteConfigurable):
             if not "/release/" in inputs and not xenrt.TEC().fileExists(manifest):
                 raise xenrt.XRTError("Manifest (%s) not found for build %s on branch %s" % (manifest, build, branch)) 
 
-        j = xenrt.jiralink.getJiraLink()
+        try:
+            j = xenrt.jiralink.getJiraLink()
+        except:
+            if not debug:
+                raise
         devCmp = xenrt.TEC().lookup("DEV_JIRA_TICKET_COMPONENT_ID", "11891")
         if devrun or "JIRA_TICKET_COMPONENT_ID=%s" % devCmp in self.getArgs():
             devrunCalc = True
@@ -454,7 +458,8 @@ class Suite(SuiteConfigurable):
             for s in skip:
                 if "TC-%s" % s in alltcs:
                     alltcs.remove("TC-%s" % s)
-            j.addTestsToSuiteRun(testrun,alltcs)
+            if not debug:
+                j.addTestsToSuiteRun(testrun,alltcs)
             if not xenrt.TEC().lookup(["CLIOPTIONS", "SUITE_TESTRUN_RERUN"], None):
                 for (s,delay) in self.includesuites:
                     if not delay:

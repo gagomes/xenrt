@@ -18,15 +18,18 @@ class SingleSkuBase(xenrt.TestCase):
     LICENSEFILE = ''
     LICENSENAME = ''
     v6 = None
+    NEED_LINUX_VM = True
+    grace = xenrt.TEC().lookup("GRACE", default=None)
 
     def prepare(self,arglist=None):
     
         self.parseArgs(arglist)
         self.setParam()
         self.addLicense()
-        sampleGuest = self.getGuest("linux")      
-        if sampleGuest.getState() == "DOWN":
-            sampleGuest.start() 
+        if self.NEED_LINUX_VM:
+            sampleGuest = self.getGuest("linux")      
+            if sampleGuest.getState() == "DOWN":
+                sampleGuest.start() 
  
     def parseArgs(self,arglist):
 
@@ -37,6 +40,10 @@ class SingleSkuBase(xenrt.TestCase):
                 self.args['system'] = arg.split('=')[1]
             if arg.startswith('edition'):
                 self.args['edition'] = arg.split('=')[1]
+
+    def licenseName(self):
+
+        return xenrt.TEC().lookup("LICENSE_NAME","CXS_STD_CCS")
 
     def setParam(self):
 
@@ -70,7 +77,7 @@ class SingleSkuBase(xenrt.TestCase):
             raise xenrt.XRTFailure("Unknown Site type")
 
         if self.LICENSEFILE:
-            self.LICENSENAME = "CXS_STD_CCS"
+            self.LICENSENAME = self.licenseName()
             self.param['edition'] = self.args['edition']
             return
 
@@ -93,7 +100,7 @@ class SingleSkuBase(xenrt.TestCase):
             else:
                 if self.param['edition'].startswith('per-socket'):
                     self.LICENSEFILE = "valid-persocket"
-                    self.LICENSENAME = "CXS_STD_CCS"
+                    self.LICENSENAME = self.licenseName()
         else:
             raise xenrt.XRTFailure("Unknown license type")
         
@@ -180,10 +187,10 @@ class SingleSkuBase(xenrt.TestCase):
 
         if self.USELICENSESERVER:
 
-            system = self.param['system']
-            tmp , currentLicinuse = self.v6.getLicenseInUse(self.LICENSENAME)
+            system = self.param['system']            
 
             if not self.EXPIRED :
+                tmp , currentLicinuse = self.v6.getLicenseInUse(self.LICENSENAME)
                 if system == 'pool' or system == 'host':
 
                     if system == 'pool':
@@ -192,9 +199,9 @@ class SingleSkuBase(xenrt.TestCase):
                         obj = self.param['hosts'][0] 
 
                     if not reset:
-                        if not ((obj.getNoOfCPUSockets() + self.param['licenseinuse']) == currentLicinuse):
+                        if not ((obj.getNoOfSockets() + self.param['licenseinuse']) == currentLicinuse):
                             raise xenrt.XRTFailure("No of licenses in use: %d , no of socket in whole pool: %d,"
-                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfCPUSockets(),self.param['licenseinuse']))              
+                                " number of licenses that were in use before operation: %d " %(currentLicinuse,obj.getNoOfSockets(),self.param['licenseinuse']))              
                     else:
                         if not (currentLicinuse == self.param['licenseinuse']):    
                             raise xenrt.XRTFailure("All the licenses are not returned to License server,"
@@ -315,6 +322,14 @@ class SingleSkuBase(xenrt.TestCase):
         # This is to verify the number of licenses used
         self.verifyLicenseServer(reset = True)
 
+class TC21468(SingleSkuBase):
+
+    NEED_LINUX_VM = False
+
+    def postRun(self):
+        #This is for WLB functional tests which need a licensed XS.
+        pass
+
 class LicensedSystem(SingleSkuBase):
 
     def preLicenseApplyAction(self):
@@ -351,7 +366,7 @@ class VerifyHostSocketCount(xenrt.TestCase):
         err = []
         for host in self.hosts: 
             xenrtCount = self.getSocketsFromXenrt(host)
-            cliCount = host.getSocketsonHost()
+            cliCount = host.getNoOfSockets()
             if not (xenrtCount == cliCount): 
                 err.append("Socket count from Xenrt %d and Socket count from CLI %d are not same\n" % (xenrtCount,cliCount))
 
@@ -457,19 +472,25 @@ class InsufficientLicenseUpgrade(SingleSkuBase):
        
         self.updateLicenseSerInfo() 
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
+        #TODO change the licensed flag to False after beta  build
+        if self.grace:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+        else:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
 
         self.USELICENSESERVER = True
        
         if self.LICENSEFILE:
             self.v6.addLicense(self.LICENSEFILE)
             self.updateLicenseCount()
- 
+
+        #TODO remove 'not' from the if condition 
         if self.hotfixStatus():
             xenrt.TEC().logverbose("Application of Hotfix is restricted for Unlicensed machineas expected" )
-        else :
+        elif self.grace:
+            xenrt.TEC().logverbose("Hotfix can be applied through Xencenter whic is expected")
+        else:
             raise xenrt.XRTFailure("Hotfix can be applied through Xencenter for Unlicensed Machine" )
-            
            
 class FreeEdnSufficientLicenseUpgrade(SingleSkuBase):
     #Class for upgrading the free machine where valid clearwater licenses are already available in the License Server
@@ -541,7 +562,7 @@ class HostLicExpiry(SingleSkuBase):
         self.affectedHost = guest.host
         licenseInfo = self.affectedHost.getLicenseDetails()        
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        self.affectedHost.execdom0("/etc/init.d/ntpd stop")
+        self.affectedHost.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         self.affectedHost.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -598,6 +619,9 @@ class HostReboot(SingleSkuBase):
         self.verifyLicenseServer()
 
 class GraceLic(SingleSkuBase):
+    
+    def postRun(self):
+        pass
 
     def postLicenseApplyAction(self):
 
@@ -665,7 +689,7 @@ class GraceLic(SingleSkuBase):
 
         for host in self.param['hosts']:
             host.execdom0("ntpdate `grep -e '^server ' /etc/ntp.conf | sed q | sed 's/server //'` || true")
-            host.execdom0("/etc/init.d/ntpd start")
+            host.execdom0("service ntpd start")
             host.restartToolstack()
 
     def connRestrdAfterGraceExp(self):
@@ -674,6 +698,8 @@ class GraceLic(SingleSkuBase):
         guest = self.getGuest("LicenseServer")
         sampleGuest = self.getGuest("linux")
 
+        
+        guest.execguest("echo 'xen.independent_wallclock=1' >> /etc/sysctl.conf")
         guest.shutdown()
 
         xenrt.sleep(120)
@@ -688,7 +714,7 @@ class GraceLic(SingleSkuBase):
                 raise xenrt.XRTFailure("Host does not have grace license")
      
             expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-            host.execdom0("/etc/init.d/ntpd stop")
+            host.execdom0("service ntpd stop")
             expiretarget = expiry - 300
             expiretarget = time.gmtime(expiretarget)
             host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -699,15 +725,25 @@ class GraceLic(SingleSkuBase):
   
             licenseInfo = host.getLicenseDetails()
             if not 'no' in licenseInfo['grace']:
-                raise xenrt.XRTFailure("Host grace license has not expired")
+                raise xenrt.XRTFailure("Host grace license has expired")
                
             if '19700101T00:00:00Z' != licenseInfo['expiry']:
                 raise xenrt.XRTFailure("Host License expiry time is not epoch time")
 
         self.verifySystemLicenseState(licensed=False)
         
-        #verify the host license state after license server is back up
+        #verify the host license state after license server is back up and ruuning 
         guest.start()
+        guest.execguest("date -u")
+        expirelicenseserver = expiry + 900
+        expirelicenseserver = time.gmtime(expirelicenseserver)
+        guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
+        guest.execguest("/etc/init.d/citrixlicensing stop")
+        xenrt.sleep(10)      
+        guest.execguest("/etc/init.d/citrixlicensing start > /dev/null 2>&1 < /dev/null")
+        xenrt.sleep(10)        
+        guest.execguest("date -u")
+        
         for host in self.param['hosts']:
             host.restartToolstack()
             xenrt.sleep(120)
@@ -727,14 +763,48 @@ class GraceLic(SingleSkuBase):
 
         self.verifySystemLicenseState(licensed=True)
         self.verifyLicenseServer()
-
+        
         if self.hotfixStatus():
             raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
+        
+        if not self.LICENSEFILE == "valid-xendesktop" :
+            #Now fast forward the time in host to cross its license-expiry date 
+            for host in self.param['hosts']:    
+                licenseInfo = host.getLicenseDetails()
+                expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
+                
+                expiretarget = expiry + 60*24*60*60 
+                expiretarget = time.gmtime(expiretarget)
+                host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))            
+                host.restartToolstack()        
+            
+            #Fast forward the time by same amount in license server too 
+            expirelicenseserver = expiry + 60*24*60*60
+            expirelicenseserver = time.gmtime(expirelicenseserver)
+            guest.execguest("date -u %s" %(time.strftime("%m%d%H%M%Y.%S",expirelicenseserver)))        
+            guest.execguest("service citrixlicensing restart" , getreply=False)        
+            xenrt.sleep(20)        
+            
+            sampleGuest.shutdown()
+            
+            for host in self.param['hosts']:            
+                host.reboot()            
+                xenrt.sleep(15)                      
+                host.restartToolstack()
+                xenrt.sleep(60)            
+                licenseInfo = host.getLicenseDetails()           
+                if '19700101T00:00:00Z' != licenseInfo['expiry']:
+                    raise xenrt.XRTFailure("Host License expiry time is not epoch time") 
+                    
+            self.EXPIRED = True 
+
+            if not self.hotfixStatus():
+                raise xenrt.XRTFailure("Hotfix installation is not allowed through Xencenter")
 
         #reset time
         for host in self.param['hosts']:
             host.execdom0("ntpdate `grep -e '^server ' /etc/ntp.conf | sed q | sed 's/server //'` || true")
-            host.execdom0("/etc/init.d/ntpd start")
+            host.execdom0("service ntpd start")
             host.restartToolstack()
 
 class NotEnoughLic(SingleSkuBase): 
@@ -815,7 +885,7 @@ class ExpiredUpgrade(SingleSkuBase):
         host = self.param['hosts'][0]
         licenseInfo = host.getLicenseDetails()
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        host.execdom0("/etc/init.d/ntpd stop")
+        host.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -877,7 +947,7 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
         host = self.param['hosts'][0]
         licenseInfo = host.getLicenseDetails()
         expiry = xenrt.util.parseXapiTime(licenseInfo['expiry'])
-        host.execdom0("/etc/init.d/ntpd stop")
+        host.execdom0("service ntpd stop")
         expiretarget = expiry - 300
         expiretarget = time.gmtime(expiretarget)
         host.execdom0("date -u %s" % (time.strftime("%m%d%H%M%Y.%S",expiretarget)))
@@ -906,7 +976,12 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
        
         self.updateLicenseSerInfo()
         #Verify the license state just after upgrade and ensure that its NOT  licensed as valid licenses are not available in License Server
-        self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
+        #TODO change the licensed flag to 'False' once tech preview is out
+      
+        if self.grace: 
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = True)
+        else:
+            self.verifySystemLicenseState(edition = self.param['edition'], licensed = False)
 
         self.USELICENSESERVER = True
        
@@ -916,6 +991,8 @@ class   InsufficientExpiredUpgrade(SingleSkuBase):
  
         if self.hotfixStatus():
             xenrt.TEC().logverbose("Application of Hotfix is restricted for Unlicensed machineas expected" )
+        elif self.grace:
+            xenrt.TEC().logverbose("Hotfix can be applied through Xencenter which is expected")
         else :
             raise xenrt.XRTFailure("Hotfix can be applied through Xencenter for Unlicensed Machine" )
             

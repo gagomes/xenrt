@@ -25,16 +25,16 @@
       </testcase>
     </serial>
     <serial group="Win8-x86-K140">
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K140</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
+      <testcase id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
         <arg>vgpuconfig=K140</arg>
         <arg>clones=32</arg>
       </testcase>
-      <testcase tc="TC-XXXX" id="testcases.xenserver.tc.vgpu.TCGPUWorkload">
+      <testcase id="testcases.xenserver.tc.vgpu.TCGPUWorkload">
         <arg>guest=win7</arg>
         <arg>clones=32</arg>
         <arg>vgpuconfig=K140</arg>

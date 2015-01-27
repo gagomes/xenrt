@@ -10,7 +10,7 @@
         <distro>win7sp1-x86</distro>
         <network device="0"/>
         <memory>2048</memory>
-        <vcpus>1</vcpus>
+        <vcpus>2</vcpus>
         <postinstall action="installDrivers"/>
       </vm>
     </host>
@@ -24,22 +24,22 @@
         <arg>benchmark=UnigineTropics</arg>
       </testcase>
     </serial>
-    <serial group="Win7-x86-K140">
+    <serial group="Win7-x86-K120">
       <testcase tc="TC-20788" id="testcases.xenserver.tc.vgpu.TCVGPUSetup">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K100</arg>
+        <arg>vgpuconfig=K120</arg>
       </testcase>
       <testcase tc="TC-20782" id="testcases.xenserver.tc.vgpu.TCVGPUCloneVM">
         <arg>guest=win7</arg>
-        <arg>vgpuconfig=K100</arg>
+        <arg>vgpuconfig=K120</arg>
         <arg>clones=64</arg>
       </testcase>
       <testcase tc="TC-20783" id="testcases.xenserver.tc.vgpu.TCGPUWorkload">
         <arg>guest=win7</arg>
         <arg>clones=64</arg>
-        <arg>vgpuconfig=K100</arg>
-        <arg>benchmark=UnigineSanctuary</arg>
-        <arg>benchmark=UnigineTropics</arg>
+        <arg>vgpuconfig=K120</arg>
+<!--        <arg>benchmark=UnigineSanctuary</arg> -->
+        <arg>benchmark=UnigineTropics</arg> 
         <arg>time=172800</arg>
       </testcase>
 

@@ -76,8 +76,8 @@ def parse_job(rc,cur):
     if rc[7] and string.strip(rc[7]) != "":
         d['REMOVED'] = string.strip(rc[7])
 
-    cur.execute(("SELECT param, value FROM tblJobDetails WHERE " +
-                      "jobid = %u;") % (rc[0]))
+    cur.execute("SELECT param, value FROM tblJobDetails WHERE " +
+                "jobid = %s;", [rc[0]])
     
     while 1:
         rd = cur.fetchone()
@@ -88,7 +88,7 @@ def parse_job(rc,cur):
             d[string.strip(rd[0])] = string.strip(rd[1])
     
     if d['JOBSTATUS'] == "running":
-        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';" % (d['JOBID']))
+        cur.execute("SELECT COUNT(result) FROM tblresults WHERE jobid=%s AND result='paused';", [d['JOBID']])
         rd = cur.fetchone()
         if rd[0] > 0:
             d['PAUSED'] = "yes"
@@ -145,7 +145,7 @@ def mystrip(s):
     return string.strip(str(s))
 
 def sqlescape(s):
-    return string.replace(s, "'", "''")
+    raise Exception("sqlescape should not be used, use the database layers quoting instead")
 
 def parse_shared_resources(resourcestring):
     result = {}
@@ -221,17 +221,20 @@ def check_attributes(available, required):
 
     # Check each required attribute
     for req in reqlist:
-        if req[0] == "~":
-            # This isn't a required attribute, but it allows it to run on a machine that specifies "+"
+        try:
+            if req[0] == "~":
+                # This isn't a required attribute, but it allows it to run on a machine that specifies "+"
+              continue
+            elif req[0] == '!':
+                if req[1:] in availlist:
+                    suitable = 0
+                    break
+            else:
+                if not req in availlist or "-%s" % (req) in availlist:
+                    suitable = 0
+                    break
+        except:
             continue
-        elif req[0] == '!':
-            if req[1:] in availlist:
-                suitable = 0
-                break
-        else:
-            if not req in availlist or "-%s" % (req) in availlist:
-                suitable = 0
-                break
             
     # See if we have mandatory flags (the job must specify these flags
     # to be able to use this machine).
@@ -248,7 +251,8 @@ def check_input(commandline):
     Check that an argument conforms to the format specified in XRT-66. Return 0
     if the input is correctly formed, 1 otherwise.
     """	
-
+    if commandline == "":
+        return 0
     if re.match('([A-Za-z0-9_]+(<=|>=|=|<|>)[0-9]+[kMGT]?/)*([A-Za-z0-9_]+(<=|>=|=|>|<)[0-9]+[kMGT]?$)', 
 		commandline) == None:
         return 1
@@ -318,4 +322,27 @@ def check_constraint(constraint, entry):
             return 1
     # Constraint wasn't satisifed.
     return 0
-	
+
+class XLogLocation(object):
+    def __init__(self, location):
+        self.location = location
+        (coarseStr, fineStr) = self.location.split("/")
+        self.coarse = int(coarseStr, 16)
+        self.fine = int(fineStr, 16)
+
+    def __cmp__(self, other):
+        if self.coarse > other.coarse:
+            return 1
+        elif self.coarse < other.coarse:
+            return -1
+        elif self.fine > other.fine:
+            return 1
+        elif self.fine < other.fine:
+            return -1
+        else:
+            assert self.coarse == other.coarse
+            assert self.fine == other.fine
+            return 0
+
+    def __str__(self):
+        return self.location

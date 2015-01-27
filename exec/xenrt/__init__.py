@@ -14,7 +14,8 @@
 
 import sys, string, os.path, traceback, time, tempfile, stat, threading, re
 import socket, os, shutil, xml.dom.minidom, thread, glob, inspect, types, urllib2
-import signal, popen2, IPy, urllib
+import signal, popen2, IPy, urllib, json
+from zope.interface import providedBy
 
 def irregularName(obj):
     """Decorator to declare that the item being decorated does not have a name
@@ -68,6 +69,7 @@ def resultDisplay(resultcode):
 
 STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/daemon.log",
+                 "/var/log/user.log",
                  "/var/log/xend.log",
                  "/var/log/xend-debug.log",
                  "/var/log/xen-hotplug.log",
@@ -86,6 +88,7 @@ STANDARD_LOGS = ["/var/log/messages",
                  "/var/log/kern.log",
                  "/var/log/isl_trace.log",
                  "/var/xapi/state.db",
+                 "/var/log/tapback",
                  "!/opt/xensource/libexec/sm_diagnostics",
                  "!xenstore-ls",
                  "!list_domains -all",
@@ -338,6 +341,7 @@ class TestCase:
 
     This is the parent class for all testcases."""
     iamtc = True
+    SUBCASE_TICKETS = False
     
     def __init__(self, tcid=None, anon=False):
         """Constructor.
@@ -1000,7 +1004,36 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if not "IGNORE" in tag:
             xenrt.TEC().warning(tag + text)
 
-    def _getRemoteLogsFrom(self, place, extraPaths=None):
+    def _getRemoteLogsFrom(self, obj, extraPaths=None):
+        if isinstance(obj, xenrt.GenericPlace): 
+            self._getRemoteLogsFromPlace(obj, extraPaths)
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            self._getRemoteLogsFromInstance(obj, extraPaths)
+        elif xenrt.interfaces.Toolstack in providedBy(obj):
+            self._getRemoteLogsFromToolstack(obj, extraPaths)
+
+    def _getRemoteLogsFromInstance(self, instance, extraPaths):
+        if xenrt.TEC().lookup("NO_GUEST_LOGS", False, boolean=True):
+            return
+
+        base = self.tec.getLogdir()
+        try:
+            instance.screenshot(base)
+        except:
+            xenrt.TEC().logverbose("Could not get screenshot from %s" % instance.name)
+
+        d = "%s/%s" % (base, instance.name)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        instance.os.getLogs(d)
+
+    def _getRemoteLogsFromToolstack(self, toolstack, extraPaths):
+        d = "%s/%s" % (self.tec.getLogdir(), toolstack.name)
+        if not os.path.exists(d):
+            os.makedirs(d)
+        toolstack.getLogs(d)
+
+    def _getRemoteLogsFromPlace(self, place, extraPaths=None):
         """Fetch logs etc. from a host or guest.
 
         @param place: an instance of L{GenericPlace} to fetch from
@@ -1163,7 +1196,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
                     xenrt.TEC().logverbose("Exception running %s on %s: %s" %
                                            (c, place.getName(), str(e)))
             # parse logs for errors
-            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log"]:
+            for log in ["messages", "xensource.log", "SMlog", "xha.log", "daemon.log", "kern.log", "user.log"]:
                 try:
                     # See if it's there
                     if os.path.exists("%s/%s" % (d,log)):
@@ -1237,6 +1270,17 @@ Abort this testcase with: xenrt interact %s -n '%s'
                                 if not line in place.thingsWeHaveReported:
                                     place.thingsWeHaveReported.append(line)
                                     self._warnWithPrefix("segfault in %s: %s" % (log,line))
+                            
+                            if "oom-killer" in line:
+                                if not line in place.thingsWeHaveReported:
+                                    place.thingsWeHaveReported.append(line)
+                                    self._warnWithPrefix("oom-killer in %s: %s" % (log,line))
+                            
+                            if "Out of memory" in line:
+                                if not line in place.thingsWeHaveReported:
+                                    place.thingsWeHaveReported.append(line)
+                                    self._warnWithPrefix("Out of memory in %s: %s" % (log,line))
+
                 except:
                     pass
             if place.guestconsolelogs:
@@ -1376,6 +1420,9 @@ Abort this testcase with: xenrt interact %s -n '%s'
                 self.getResult(code=True) == RESULT_PASS):
             try:
                 vncsnapshot = None
+                if place.execcmd("test -e /usr/lib64/xen/bin/vncsnapshot",
+                                 retval="code") == 0:
+                    vncsnapshot = "/usr/lib64/xen/bin/vncsnapshot"
                 if place.execcmd("test -e /usr/lib/xen/bin/vncsnapshot",
                                  retval="code") == 0:
                     vncsnapshot = "/usr/lib/xen/bin/vncsnapshot"
@@ -1476,13 +1523,21 @@ Abort this testcase with: xenrt interact %s -n '%s'
 
         sftp.close()
 
+    def getLogObjName(self, obj):
+        if isinstance(obj, xenrt.GenericPlace): 
+            return obj.getName()
+        elif isinstance(obj, xenrt.lib.generic.Instance):
+            return obj.name
+        elif xenrt.interfaces.Toolstack in providedBy(obj):
+            return obj.name
+
     def _getRemoteLogs(self):
         """Fetch logs from all hosts and guests registered for log collection.
         """
         if xenrt.TEC().lookup("NOLOGS", False, boolean=True):
             return
         xenrt.TEC().logverbose("Getting logs from %s." % 
-                              ([x.getName() for x in self.logsfrom.keys()]))
+                              ([self.getLogObjName(x) for x in self.logsfrom.keys()]))
         for h in self.logsfrom.keys():
             paths = self.logsfrom[h]
             try:
@@ -1505,42 +1560,45 @@ Abort this testcase with: xenrt interact %s -n '%s'
         d = xenrt.TEC().getLogdir()
         xenrt.command("/bin/ps wwwaxf -eo pid,tty,stat,time,nice,psr,pcpu,pmem,nwchan,wchan:25,args > %s/xenrt-process-tree.txt" % (d))
         xenrt.command("TERM=linux /usr/bin/top -b -n 1 > %s/xenrt-top.txt" % (d))
+        xenrt.command("/usr/sbin/arp -n > %s/xenrt-arp.txt" % (d))
 
-    def getLogsFrom(self, place, paths=None):
+    def getLogsFrom(self, obj, paths=None):
         """Register a host or guest for log collection.
 
-        @param place: an instance of L{GenericPlace} to fetch from
+        @param obj: an object to fetch from
         @param paths: a list of extra paths for log files to capture
         """
-        if not isinstance(place, xenrt.GenericPlace):
-            raise xenrt.XRTError("Only objects extending GenericPlace can be registered for log collection")
+        if not isinstance(obj, xenrt.GenericPlace) \
+          and not isinstance(obj, xenrt.lib.generic.Instance) \
+          and not xenrt.interfaces.Toolstack in providedBy(obj): 
+            raise xenrt.XRTError("Only objects extending GenericPlace, Instance or Toolstack can be registered for log collection")
 
-        if self.logsfrom.has_key(place):
+        if self.logsfrom.has_key(obj):
             # Already tracked, only add paths if we have them
             if paths:
-                if not self.logsfrom[place]:
-                    self.logsfrom[place] = []
-                self.logsfrom[place].extend(paths)
+                if not self.logsfrom[obj]:
+                    self.logsfrom[obj] = []
+                self.logsfrom[obj].extend(paths)
         else:
-            self.logsfrom[place] = paths
-        if isinstance(place, xenrt.lib.xenserver.Host):
-            if place.pool:
-                for slave in place.pool.slaves.values():
-                    if not slave == place:
+            self.logsfrom[obj] = paths
+        if isinstance(obj, xenrt.lib.xenserver.Host):
+            if obj.pool:
+                for slave in obj.pool.slaves.values():
+                    if not slave == obj:
                         self.logsfrom[slave] = paths
-                if not place.pool.master == place:
-                    self.logsfrom[place.pool.master] = paths
-        if isinstance(place, xenrt.GenericHost) and place.machine and not xenrt.TEC().lookup("NO_TC_HOST_SERIAL_LOGS", False, boolean=True):
+                if not obj.pool.master == obj:
+                    self.logsfrom[obj.pool.master] = paths
+        if isinstance(obj, xenrt.GenericHost) and obj.machine and not xenrt.TEC().lookup("NO_TC_HOST_SERIAL_LOGS", False, boolean=True):
             # Capture host console logs. We'll close the file handle when
             # the testcase completes - the console logger will notice this
             # and stop writing to it
             d = xenrt.TEC().getLogdir()
             fn = "%s/host-serial-log-%s-from-%s.txt" % \
                  (d,
-                  place.getName(),
+                  obj.getName(),
                   time.strftime("%Y%m%d-%H%M%S", time.gmtime()))
             fh = file(fn, "w")
-            place.machine.addConsoleLogWriter(fh)
+            obj.machine.addConsoleLogWriter(fh)
             self._fhsToClose.append(fh)
         
     def remoteLoggingDirectory(self, place):
@@ -1594,7 +1652,7 @@ Abort this testcase with: xenrt interact %s -n '%s'
         g = self.tec.gec.registry.guestGet(name)
         if g:
             self.getLogsFrom(g)
-            if g.host:
+            if g.host and not g.host.getName() in xenrt.TEC().lookup("SHARED_HOSTS", {}).keys():
                 self.getLogsFrom(g.host)
         return g
 
@@ -1618,11 +1676,26 @@ Abort this testcase with: xenrt interact %s -n '%s'
         if self._host:
             return self.getHost(self._host)
         else:
-            self._host = "RESOURCE_HOST_0"
-            return self.getHost("RESOURCE_HOST_0")
+            self._host = "RESOURCE_HOST_DEFAULT"
+            return self.getHost("RESOURCE_HOST_DEFAULT")
 
     def getDefaultToolstack(self):
-        return self.tec.gec.registry.toolstackGetDefault()
+        t = self.tec.gec.registry.toolstackGetDefault()
+        if t:
+            self.getLogsFrom(t)
+        return t
+
+    def getToolstack(self, name):
+        t = self.tec.gec.registry.toolstackGet(name)
+        if t:
+            self.getLogsFrom(t)
+        return t
+
+    def getInstance(self, name):
+        i = self.tec.gec.registry.instanceGet(name)
+        if i:
+            self.getLogsFrom(i)
+        return i
 
     def getPool(self, name):
         """Get a pool object by name. Registers the hosts for log fetching."""
@@ -1813,12 +1886,21 @@ rm -f %s
         kv = {}
         if arglist:
             for a in arglist:
-                aa = a.split("=", 2)
+                aa = a.split("=", 1)
                 if len(aa) == 1:
                     kv[aa[0]] = None
                 else:
                     kv[aa[0]] = aa[1]
         return kv
+
+    def ticketAttachments(self):
+        return []
+
+    def getSubCaseTicketDescription(self):
+        return None
+
+    def ticketAssignee(self):
+        return None
 
 class TCAnon(TestCase):
     """The "anonymous testcase".
@@ -1900,6 +1982,9 @@ class TestExecutionContext:
         if self.workdir:
             self.workdir.remove()
             self.workdir = None
+        if self.logdir:
+            self.logdir.remove()
+            self.logdir = None
 
     def getWorkdir(self):
         """Return the path to the working directory for this context."""
@@ -2171,19 +2256,34 @@ logdata call."""
         """Look up a name with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFile(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f)
+            if ret:
+                break
+        return ret
         
     def getFiles(self, *filename):
         """Look up a selection of names with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.getFiles(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.getFile(f, multiple=True)
+            if ret:
+                break
+        return ret
 
     def fileExists(self, *filename):
         """Determine if a file exists with the file manager."""
         if not self.gec.filemanager:
             raise XRTError("No filemanager object")
-        return self.gec.filemanager.fileExists(*filename)
+        ret = None
+        for f in filename:
+            ret = self.gec.filemanager.fileExists(f)
+            if ret:
+                break
+        return ret
 
     def getDir(self, dirname):
         """Look up a name with the file manager."""
@@ -2191,13 +2291,22 @@ logdata call."""
 
     def setInputDir(self, dirname):
         """Set (or clear if dirname is None) a temporary INPUTDIR override."""
-        if not self.gec.filemanager:
-            raise XRTError("No filemanager object")
-        self.gec.filemanager.setInputDir(dirname)
+        if not dirname:
+            dirname = ""
+        xenrt.TEC().setThreadLocalVariable("_THREAD_LOCAL_INPUTDIR", dirname, fallbackToGlobal=True)
+
+    def getInputDir(self):
+        # Check if there is a thread local INPUTDIR.  If not default to using the global INPUTDIR
+        # If there is neither a thread local or global INPUTDIR specified this function will
+        # raise an exception
+        inputDir = xenrt.TEC().lookup("_THREAD_LOCAL_INPUTDIR", None)
+        if not inputDir:
+            inputDir = xenrt.TEC().lookup("INPUTDIR")
+        return inputDir
 
     def isReleasedBuild(self):
-        return self.gec.filemanager.isReleasedBuild()
-    
+        return "/release/" in self.getInputDir()
+
     def __str__(self):
         if self.tc:
             return "TEC:%s" % (self.tc.tcid)
@@ -2463,6 +2572,13 @@ class PhysicalHost:
         
         return
 
+    def lookup(self, var, default=xenrt.XRTError, boolean=False):
+        """Lookup a per-host variable"""
+        return xenrt.TEC().lookupHost(self.name,
+                                      var,
+                                      default=default,
+                                      boolean=boolean)
+
     def exitPowerOff(self):
         if not xenrt.TEC().lookup("NO_HOST_POWEROFF", False, boolean=True) and not self.poweredOffAtExit:
             self.poweredOffAtExit = True
@@ -2510,6 +2626,10 @@ class PhysicalHost:
             return self.consoleLogger.getLogHistory()
         return []
 
+    def getVirtualMedia(self):
+        """Return a VirtualMedia object for manipulating virtual media."""
+        return xenrt.virtualmedia.VirtualMediaFactory(self)
+
 def markThread():
     """Thread to run periodic mark callback methods."""
     while True:
@@ -2554,8 +2674,16 @@ class GlobalExecutionContext:
         self.knownIssues = {}
         thread.start_new_thread(markThread, ())
         self.preJobTestsDone = False
+        self.locks = {}
+        self.lockLock = threading.Lock()
         return
 
+    def getLock(self, lockname):
+        with self.lockLock:
+            if not self.locks.has_key(lockname):
+                self.locks[lockname] = threading.Lock()
+        return self.locks[lockname]
+        
     def getRunningTests(self):
         """List tests currently running.
 
@@ -2921,7 +3049,7 @@ class GlobalExecutionContext:
                 if t.tec.lookup("AUTO_BUG_FILE", False, boolean=True):
                     try:
                         jl = xenrt.jiralink.getJiraLink()
-                        t.ticket = jl.processTC(t.tec,jiratc)
+                        t.ticket = jl.processTC(t.tec,jiratc, tcsku)
                         if t.ticket:
                             self.dbconnect.jobLogData(phase, t.basename, "comment", "Jira Ticket %s" % (t.ticket))
                             for cdt in t._crashdumpTickets:
@@ -2932,6 +3060,7 @@ class GlobalExecutionContext:
                         xenrt.GEC().logverbose("Jira Link Exception: %s" % (e),
                                                pref='WARNING')
 
+                if t.tec.lookup("TESTRUN_SR", None):
                     try:
                         jl = xenrt.jiralink.getJiraLink()
                         if not jl.processTR(t.tec,t.ticket,jiratc,tcsku):
@@ -2948,7 +3077,7 @@ class GlobalExecutionContext:
             t.tec.progress(str(blocked))
             if not isfinally:
                 self.dbconnect.jobSetResult(phase, t.basename, "blocked")
-            if t.tec.lookup("AUTO_BUG_FILE", False, boolean=True):
+            if t.tec.lookup("TESTRUN_SR", None):
                 try:
                     jl = xenrt.jiralink.getJiraLink()
                     jl.processTR(t.tec,blockedticket,jiratc,tcsku)
@@ -3125,9 +3254,9 @@ class GlobalExecutionContext:
             except Exception, e:
                 print str(e)
         if not aux:
-            # Try and collect logs from every host
-            try:
-                if not xenrt.TEC().lookup("NOLOGS", False, boolean=True):
+            if not xenrt.TEC().lookup("NOLOGS", False, boolean=True):
+                # Try and collect logs from every host
+                try:
                     hosts = self.config.getWithPrefix("RESOURCE_HOST_")
                     for hTuple in hosts:
                         hKey = hTuple[0]
@@ -3152,8 +3281,28 @@ class GlobalExecutionContext:
                                     h.postJobTests()
                             except:
                                 pass
-            except Exception, ex2:
-                xenrt.TEC().logverbose("Exception getting logs: %s" % str(ex2))
+                except Exception, ex2:
+                    xenrt.TEC().logverbose("Exception getting logs: %s" % str(ex2))
+
+                # And every toolstack
+                try:
+                    ts = xenrt.TEC().registry.toolstackGetAll()
+                    for t in ts:
+                        try:
+                            self.anontec.tc._getRemoteLogsFrom(t)
+                        except Exception, ex:
+                            xenrt.TEC().logverbose("Exception getting toolstack logs: %s" % str(ex))
+                except Exception, ex2:
+                    xenrt.TEC().logverbose("Exception getting logs: %s" % str(ex2))
+
+            try:
+                logdir = self.anontec.getLogdir()
+                record = xenrt.GEC().registry.getDeploymentRecord()
+                with open("%s/deployment.json" % logdir, "w") as f:
+                    f.write(json.dumps(record, indent=2))
+                self.dbconnect.jobUpload("%s/deployment.json" % logdir, prefix="deployment.json")
+            except Exception, e:
+                xenrt.TEC().logverbose("Exception getting deployment record: %s" % str(e))
 
             self.results.report(sys.stdout)
             if self.harnesserror:
@@ -3240,7 +3389,7 @@ class GlobalExecutionContext:
 
         if not aux:
             # XRT-3021 Disable outbound iSCSI on every host
-            if xenrt.TEC().lookup("OPTION_KEEP_ISCSI", False, boolean=True):
+            if xenrt.util.keepSetup():
                 xenrt.TEC().logverbose("Not blocking iSCSI traffic")
             else:
                 try:
@@ -3477,7 +3626,7 @@ from xenrt.util import *
 from xenrt.registry import *
 from xenrt.objects import *
 from xenrt.config import *
-from xenrt.sequence import *
+from xenrt.seq import *
 from xenrt.results import *
 from xenrt.formatter import *
 from xenrt.filemanager import *
@@ -3493,3 +3642,4 @@ from xenrt.racktableslink import *
 from xenrt.archive import *
 from xenrt.txt import *
 from xenrt.stringutils import *
+from xenrt.virtualmedia import *

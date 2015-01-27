@@ -16,20 +16,35 @@ class TCDom0Mem(libperf.PerfTestCase):
 
         # Parse arguments relating to this test
         self.numvms = libperf.getArgument (arglist, "numvms", int, 50)
+        self.vmname = libperf.getArgument (arglist, "guest",  str, None)
 
     def prepare(self, arglist=[]):
         self.basicPrepare (arglist)
 
-        self.master = self.getMaster()
-        if self.goldimagesruuid is None:
-            # Normally we use a very fast NFS server (NetApp machine, e.g. telti)
-            # to put the VM on, but in this case we use local storage:
-            self.goldimagesruuid = self.master.execdom0("""xe sr-list name-label=Local\ storage  --minimal""").strip()
-        self.goldvm = self.importGoldVM(self.goldimagesruuid, self.desktopimage, self.desktopvmname, self.desktopvmnetwork)
+        if self.vmname is None:
+            # Create a bunch of MPS VMs
+            self.master = self.getMaster()
+            if self.goldimagesruuid is None:
+                # Normally we use a very fast NFS server (NetApp machine, e.g. telti)
+                # to put the VM on, but in this case we use local storage:
+                self.goldimagesruuid = self.master.execdom0("""xe sr-list name-label=Local\ storage  --minimal""").strip()
+            self.goldvm = self.importGoldVM(self.goldimagesruuid, self.desktopimage, self.desktopvmname, self.desktopvmnetwork)
 
-        # Clone the VM n times
-        self.clones = self.createMPSVMs(self.numvms, self.goldvm)
-        self.configureAllVMs()
+            # Clone the VM n times
+            self.clones = self.createMPSVMs(self.numvms, self.goldvm)
+            self.configureAllVMs()
+
+        else:
+            # Clone the VM provided by the sequence file
+            vm = xenrt.TEC().registry.guestGet(self.vmname)
+            xenrt.TEC().logverbose("vm with name [%s] is [%s]" % (self.vmname, vm))
+
+            vm.shutdown()
+
+            self.clones = [vm]
+            for i in range(self.numvms-1):
+                xenrt.TEC().logverbose("making clone %d..." % (i))
+                self.clones.append(vm.cloneVM(name="clone%02d" % (i)))
 
     def sampleDom0State(self, numRunningVMs):
         xenrt.TEC().logverbose("Waiting for dom0 to settle...")

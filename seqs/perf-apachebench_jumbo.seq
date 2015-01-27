@@ -1,0 +1,45 @@
+  <xenrt>
+    <default name="VMS" value="64"/>
+    <default name="DISTRO" value="debian60"/>
+    <default name="ARCH" value="x86-32"/>
+    <default name="GUESTMEMORY" value="256"/>
+    <default name="GUESTVCPUS" value="1"/>
+
+    <variables>
+      <PREPARE_WORKERS>2</PREPARE_WORKERS>
+      <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+    </variables>
+
+    <prepare>
+      <pool>
+        <host id="0">
+          <NETWORK>
+            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">
+              <MANAGEMENT/>
+              <NIC/>
+              <VMS/>
+            </PHYSICAL>
+          </NETWORK>
+        </host>
+        <host id="1">
+          <NETWORK>
+            <PHYSICAL network="ANY" jumbo="yes" name="NET_A">
+              <MANAGEMENT/>
+              <NIC/>
+              <VMS/>
+            </PHYSICAL>
+          </NETWORK>
+        </host>
+      </pool>
+    </prepare>
+
+    <testsequence>
+      <testcase id="xenserver.tc.perf.tc_apachebench.TCApacheBench" host="RESOURCE_HOST_0">
+        <arg>numvms=${VMS}</arg>
+        <arg>distro=${DISTRO}</arg>
+        <arg>arch=${ARCH}</arg>
+        <arg>memory=${GUESTMEMORY}</arg>
+        <arg>vcpus=${GUESTVCPUS}</arg>
+      </testcase>
+    </testsequence>
+  </xenrt>

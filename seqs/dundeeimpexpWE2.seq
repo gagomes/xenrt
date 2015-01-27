@@ -1,0 +1,20 @@
+<xenrt>
+
+  <!-- MNR export/import test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+  </variables>
+
+  <prepare>
+    <host/>
+  </prepare>
+
+  <testsequence group="ImpExp">
+    <testcase id="xenserver.tc.impexp.TC6838" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC6841" prio="3"/>
+    <testcase id="xenserver.tc.impexp.TC6842" prio="3"/>
+  </testsequence>
+
+</xenrt>

@@ -105,12 +105,12 @@ class XenRTDetailFrame(XenRTPage):
             
             keydisp = key
             out += "<tr><td>%s</td><td>%s</td><td %s>%s%s%s</td></tr>" % \
-                  (string.strip(rc[0]), keydisp, col, value, units, rel)
+                  (rc[0].strftime("%Y-%m-%d %H:%M:%S"), keydisp, col, value, units, rel)
                    
         out += "</table>"
 
         cur.close()
         return {"title": "Job Detail", "main": out}
 
-PageFactory(XenRTStatusFrame, "statusframe", "/statusframe", renderer="__main__:templates/default.pt")
-PageFactory(XenRTDetailFrame, "detailframe", "/detailframe", renderer="__main__:templates/default.pt")
+PageFactory(XenRTStatusFrame, "/statusframe", renderer="__main__:templates/default.pt")
+PageFactory(XenRTDetailFrame, "/detailframe", renderer="__main__:templates/default.pt")

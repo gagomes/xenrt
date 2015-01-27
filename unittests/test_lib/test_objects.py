@@ -9,7 +9,8 @@ class TestType:
 
 class TestVgpuNaming(XenRTUnitTestCase):
 
-    def setUp(self):
+    @patch('xenrt.TEC')
+    def setUp(self, _tec):
         self.__arch = Mock()
         self.__guest = xenrt.GenericGuest("Fake")
         self.__guest.xmlrpcGetArch = self.__arch

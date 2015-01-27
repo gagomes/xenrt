@@ -69,10 +69,15 @@ class NFSPacketCatcher(PacketCatcher):
         src, dst = re.search("(?P<src>[\w\.]+)\s+>\s+(?P<dst>[\w\.]+)", header).groups()
         srcseq = re.search("\.(?P<sequence>\d+$)", src) 
         dstseq = re.search("\.(?P<sequence>\d+$)", dst)
+        xid = re.search("xid\s+(?P<xid>\d+)\s", header)
+        if xid:
+            return xid.group("xid")
         if srcseq:
             return srcseq.group("sequence")
-        else:
+        elif dstseq:
             return dstseq.group("sequence")
+        else:
+            raise xenrt.XRTError("Cannot find NFS sequence or xid from packet.")
 
     def getNFSHeader(self, packet):
         header, body = packet
@@ -234,8 +239,11 @@ class _Cache(xenrt.TestCase):
         for sr in unique(sr_list):
             self.host.execdom0("ls -l /var/run/sr-mount/%s/" % sr)
 
+        # Flushing read cache, too.
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.execdom0("sync && echo 3 > /proc/sys/vm/drop_caches")
+            xenrt.sleep(5)
 
-           
 
     def configureNetwork(self):
         if "latency" in self.networkCharacteristics:
@@ -254,7 +262,7 @@ class _Cache(xenrt.TestCase):
     def beginMeasurement(self): 
         self.configureNetwork()
         xenrt.TEC().logverbose("Capturing all NFS traffic on %s." % (self.host.getName()))
-        param = "tcp port nfs and host %s -i %s -tt -x -s 0 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
+        param = "tcp port nfs and host %s -i %s -tt -x -s 65535 -vvv" % (self.host.getIP(),self.host.getPrimaryBridge())
         #if isinstance(self.host, xenrt.lib.xenserver.ClearwaterHost):
             #param = param + " -B 64000"
         self.packetCatcher.startCapture(param)
@@ -609,6 +617,8 @@ class _Cache(xenrt.TestCase):
         if not self.host.genParamGet("sr", self.host.lookupDefaultSR(), "type") == "nfs":
             raise xenrt.XRTError("The default SR must be an nfs one.")
         self.packetCatcher = NFSPacketCatcher(self.host, delay=0)
+        if isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            self.host.disableReadCaching()
         self.enableCaching()
 
     def upgrade(self):
@@ -1504,7 +1514,7 @@ class _CachePerformance(_Cache):
 
 class TC12005(_CachePerformance):
     """Compare scenarios where the VMs' disks have a "reset-on-boot" policy and 
-       where the VMs' disks have a "persistent without caching" policy."""
+       where the VMs' disks have a "reset-on-boot without caching" policy."""
 
     RESET = True
     CACHED = True
@@ -1524,6 +1534,60 @@ class TC12006(_CachePerformance):
     #WRITEMAXGAIN = 1.15 # Due to increase in cache writeback, this increase is expected.
     WRITEMAXGAIN = 1.3 # Refer CA-124004
     WRITEMINGAIN = 0.5 # Ensure writes are still being sent back to nfs.
+
+class _ReadCachePerformance(_CachePerformance):
+    """ Same test with _CachePerformance except it tests read cache. """
+    
+    INTELLICACHE = False
+
+    def run(self, arglist=[]):
+        if not isinstance(self.host, xenrt.lib.xenserver.CreedenceHost):
+            raise xenrt.XRTError("Read cache requires Creedence or later.")
+
+        # it is on by default in _Cache class.
+        if not self.INTELLICACHE:
+            self.disableCaching()
+
+        self.host.disableReadCaching()
+        basereadiops, basewriteiops, basereadpackets, basewritepackets = self.measure()
+        # Note: these are numbers (counts) of IO operations, not ops per second.
+        xenrt.TEC().logverbose("Baseline read IOPS: %s" % (basereadiops))
+        #xenrt.TEC().logverbose("Baseline write IOPS: %s" % (basewriteiops))
+        xenrt.TEC().logverbose("Baseline read Packets: %s" % (basereadpackets))
+        #xenrt.TEC().logverbose("Baseline write Packets: %s" % (basewritepackets))
+        self.host.enableReadCaching()
+        self.iocounter = self.IOCounter(self.host)
+        self.packetCatcher = IOPPacketCatcher(self.host, nolog=True)
+        readiops, writeiops, readpackets, writepackets = self.measure()
+        xenrt.TEC().logverbose("Test read IOPS: %s" % (readiops))
+        #xenrt.TEC().logverbose("Test write IOPS: %s" % (writeiops))
+        xenrt.TEC().logverbose("Test read Packets: %s" % (readpackets))
+        #xenrt.TEC().logverbose("Test write Packets: %s" % (writepackets))
+        self.runSubcase("check", (basereadiops, readiops, self.READMAXGAIN, self.READMINGAIN), "IOPS", "Read")
+        #self.runSubcase("check", (basewriteiops, writeiops, self.WRITEMAXGAIN, self.WRITEMINGAIN), "IOPS", "Write")
+        self.runSubcase("check", (basereadpackets, readpackets, self.READMAXGAIN, self.READMINGAIN), "Packets", "Read")
+        #self.runSubcase("check", (basewritepackets, writepackets, self.WRITEMAXGAIN, self.WRITEMINGAIN), "Packets", "Write")
+
+class TC21544(_ReadCachePerformance):
+    """ Compare scenarios where read cache is on and where read cache is off
+    when intelliCache is off."""
+
+    CACHED = True
+    READMAXGAIN = 0.5
+    READMINGAIN = 0.01
+    WRITEMAXGAIN = 1.20
+    WRITEMINGAIN = 0.50
+
+class TC21545(_ReadCachePerformance):
+    """ Compare scenarios where read cache is on and where read cache is off
+    when intelliCache is on."""
+    
+    INTELLICACHE = True
+    CACHED = True
+    READMAXGAIN = 1.20
+    READMINGAIN = 0.50
+    WRITEMAXGAIN = 1.20
+    WRITEMINGAIN = 0.50
 
 class TC12008(_Cache):
     """Check that vm-start succeeds if a VM's VDIs are set for caching but no
@@ -1694,8 +1758,8 @@ class _ResetOnBootBase(_Cache):
         xenrt.TEC().logverbose("Found Gold VM %s (%s)"  % (self.goldVM.getName(), self.goldVM.getUUID()))
         
         # Setting up license. This is not required for Clearwater but for trunk.
-        for h in self.pool.getHosts():
-            h.license(edition='platinum')
+        #for h in self.pool.getHosts():
+            #h.license(edition='platinum')
 
     def prepare(self, arglist=None):
         self.settingUpTestEnvironment()
@@ -2050,7 +2114,8 @@ class TCUpgrade(_ResetOnBootBase):
         self.checkSMCapability()
         
         # Upgrade geusts.
-        xenrt.TEC().logverbose("Upgrading guests starts.")
+        # Work-around for crash with Windows driver update.
+        #xenrt.TEC().logverbose("Upgrading guests starts.")
         ####################################################
         # This is to save time on upgrading PV driver.
         # Not required for small number of target VMs.
@@ -2059,9 +2124,9 @@ class TCUpgrade(_ResetOnBootBase):
             #tasks.append(xenrt.PTask(installPV, guest))
         #xenrt.pfarm(tasks)
         ####################################################
-        for guest in self.guests:
-            installPV(guest)
-        xenrt.TEC().logverbose("Upgrading guests is done.")
+        #for guest in self.guests:
+        #    installPV(guest)
+        #xenrt.TEC().logverbose("Upgrading guests is done.")
 
         # Check all VDIs have proper on-boot flags as they are set.
         xenrt.TEC().logverbose("Checking on-boot flag after upgrade.")

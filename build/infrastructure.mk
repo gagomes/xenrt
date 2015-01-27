@@ -8,39 +8,39 @@ BACKUP	= if [ -e $(1) ]; then $(SUDO) cp $(1) $(1).xrt; fi
 RESTORE = if [ -e $(1).xrt ]; then $(SUDO) mv $(1).xrt $(1); fi
 
 ifeq ($(PRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOPROMPT = yes
-DOAUTOFS = yes
-DODHCPD = yes
-DODHCPD6 = yes
-DOHOSTS = yes
-DONETWORK = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOPROMPT ?= yes
+DOAUTOFS ?= yes
+DODHCPD ?= yes
+DODHCPD6 ?= yes
+DOHOSTS ?= yes
+DONETWORK ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(NISPRODUCTIONCONFIG),yes)
-DOSSH = yes
-DOWINPE = yes
-DOFILES = yes
-DOHOSTS = yes
-DONAGIOS = yes
-DOCONSERVER = yes
-DOLOGROTATE = yes
-DOCRON = yes
-DOSITECONTROLLERCMD = yes
-DOAUTOFSNIS = yes
-DOLIBVIRT = yes
-DOGITCONFIG = yes
+DOSSH ?= yes
+DOWINPE ?= yes
+DOFILES ?= yes
+DOHOSTS ?= yes
+DONAGIOS ?= yes
+DOCONSERVER ?= yes
+DOLOGROTATE ?= yes
+DOCRON ?= yes
+DOSITECONTROLLERCMD ?= yes
+DOAUTOFSNIS ?= yes
+DOLIBVIRT ?= yes
+DOGITCONFIG ?= yes
 endif
 ifeq ($(SSHCONFIG),yes)
-DOSSH = yes
+DOSSH ?= yes
 endif
 
 INETD_DAEMON ?= openbsd-inetd
@@ -61,21 +61,22 @@ ifeq ($(APT_CACHER_ONLINE),yes)
 endif
 
 .PHONY: extrapackages
-extrapackages: extrapackages-install dython-sync
-    
+extrapackages: extrapackages-install
+	
 
 .PHONY: extrapackages-install
 extrapackages-install:
 	$(info Installing extra packages not included in preseed file)
 	$(SUDO) apt-get update
-	$(SUDO) apt-get install -y unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks
+	$(SUDO) apt-get install -y --force-yes unzip zip ipmitool openipmi snmp-mibs-downloader dsh curl libxml2-utils python-profiler expect patchutils pylint libxml2-dev libpcap-dev libssl-dev telnet python-pygresql openssh-server psmisc less postgresql mercurial sudo make nfs-common rsync gcc python-crypto python-ipy python-simplejson python-paramiko python-fpconst python-soappy python-imaging python-logilab-common python-logilab-astng python-pywbem python-epydoc python-numpy python-tlslite python-libxml2 pylint nfs-kernel-server stunnel ntp dnsmasq vlan tftpd-hpa iscsitarget rpm2cpio module-assistant debhelper genisoimage conserver-client vim screen apt-cacher vsftpd python-matplotlib nmap ucspi-tcp uuid-runtime realpath autofs lsof xfsprogs libnet-ldap-perl python-mysqldb sshpass postgresql postgresql-client build-essential snmp python-lxml python-requests gcc-multilib squashfs-tools fping python-setuptools libapache2-mod-wsgi python-dev cabextract elinks python-pip samba cifs-utils python-psycopg2 libkrb5-dev
 	# Squeeze only
-	-$(SUDO) apt-get install -y iscsitarget-source
+	-$(SUDO) apt-get install -y --force-yes iscsitarget-source
 	# Wheezy only
-	-$(SUDO) apt-get install -y libc6-i386 xcp-xe
+	-$(SUDO) apt-get install -y --force-yes libc6-i386 xcp-xe
 
-	-$(SUDO) apt-get install -y git
-	-$(SUDO) apt-get install -y git-core
+	-$(SUDO) apt-get install -y --force-yes git
+	-$(SUDO) apt-get install -y --force-yes git-core
+	-$(SUDO) apt-get install -y --force-yes default-jre-headless
 
 	$(SUDO) easy_install --upgrade requests_oauthlib
 	$(SUDO) easy_install --upgrade pyramid
@@ -90,10 +91,15 @@ extrapackages-install:
 	$(SUDO) easy_install --upgrade jenkinsapi
 	$(SUDO) easy_install --upgrade virtualenv
 	$(SUDO) easy_install --upgrade fs
-	$(SUDO) easy_install --upgrade coverage
+	$(SUDO) easy_install --upgrade netifaces
+	$(SUDO) easy_install --upgrade mysql-connector-python
+	$(SUDO) easy_install --upgrade kerberos
+	$(SUDO) easy_install --upgrade pywinrm
+	$(SUDO) easy_install --upgrade pyyaml
+	$(SUDO) easy_install --upgrade jsonschema
 
 	$(SUDO) ln -sf `which genisoimage` /usr/bin/mkisofs
-	$(SUDO) apt-get install -y python-m2crypto
+	$(SUDO) apt-get install -y --force-yes python-m2crypto
 	$(SUDO) sed -i 's/^URLopener.open_https \=/# Removed as this breaks urllib\n# URLopener.open_https \=/' /usr/share/pyshared/M2Crypto/m2urllib.py
 
 $(SHAREDIR)/images/vms/etch-4.1.img:
@@ -109,7 +115,7 @@ libvirt-pkg:
 ifeq ($(DOLIBVIRT),yes)
 	$(info Installing libvirt after removing old version included in debian package...)
 	$(SUDO) apt-get remove -y libvirt0 python-libvirt
-	$(SUDO) apt-get install -y libgnutls-dev libyajl-dev libdevmapper-dev libcurl4-gnutls-dev python-dev libnl-dev libxml2-dev python-pexpect 
+	$(SUDO) apt-get install -y --force-yes libgnutls-dev libyajl-dev libdevmapper-dev libcurl4-gnutls-dev python-dev libnl-dev libxml2-dev python-pexpect 
 endif
 
 /usr/lib/libvirt-qemu.so.0.1000.0:
@@ -137,11 +143,14 @@ dsh:
 
 .PHONY: ntp
 ntp:
+ifeq ($(PUPPETNODE),yes)
+	$(info Skipping NTP config)
+else
 	$(info Configuring NTP...)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/ntp/ntp.conf /etc/ntp.conf
 	$(SUDO) sed -i 's/__NTP__/$(NTP_SERVER)/' /etc/ntp.conf
 	$(SUDO) /etc/init.d/ntp restart
-
+endif
 
 .PHONY: ssh
 ssh:
@@ -152,6 +161,7 @@ ifeq ($(DOSSH),yes)
 	$(SUDOSH) 'echo "PermitBlacklistedKeys yes" >> /etc/ssh/sshd_config'
 	$(SUDO) /etc/init.d/ssh reload
 	cp $(ROOT)/$(INTERNAL)/config/ssh/* $(HOME)/.ssh/
+	chmod 600 $(HOME)/.ssh/id_*
 else
 	$(info Skipping config)
 endif
@@ -186,12 +196,23 @@ ifeq ($(DOWINPE),yes)
 	rm -rf $(TMP)
 endif
 
+.PHONY: machines
+machines:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machines
+endif
+
+.PHONY: machine-%
+machine-%:
+ifeq ($(DOFILES),yes)
+	$(SHAREDIR)/exec/main.py --make-machine $(patsubst machine-%,%,$@)
+endif
 
 .PHONY: files
-files: $(SHAREDIR)/control/xrt
+files:
 ifeq ($(DOFILES),yes)
 	$(info Creating infrastructure configuration files...)
-	$(SHAREDIR)/control/xrt --make-configs --debian
+	$(SHAREDIR)/exec/main.py --make-configs --debian
 endif
 
 .PHONY: prompt 
@@ -233,6 +254,7 @@ nfs: $(SCRATCHDIR)
 	$(SUDOSH) 'echo "$(IMAGEDIR) *(ro,$(NFSCOMMON))" > $(EXPORTS)'
 	$(SUDOSH) 'echo "$(SCRATCHDIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(SUDOSH) 'echo "$(XVADIR) *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
+	$(SUDOSH) 'echo "/local/tftpboot *(rw,$(NFSCOMMON))" >> $(EXPORTS)'
 	$(foreach dir,$(EXTRANFSDIRS), $(SUDOSH) 'echo "$(dir) *(rw,$(NFSCOMMON))" >> $(EXPORTS)';)
 	$(SUDO) mkdir -p $(IMAGEDIR)
 	$(SUDO) mkdir -p $(XVADIR)
@@ -245,11 +267,34 @@ nfs-uninstall:
 	$(call RESTORE,$(EXPORTS))
 	$(SUDO) /etc/init.d/nfs-kernel-server stop 
 
+.PHONY: dhcpdb
+dhcpdb: files
+	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(ROOT)/$(XENRT)/xenrtdhcpd/importleases.py /var/lib/dhcp/dhcpd.leases 
+
 .PHONY: dhcpd
-dhcpd: files
+dhcpd: install files
 ifeq ($(DODHCPD),yes)
+ifeq ($(XENRT_DHCPD), yes)
+	$(info Removing ISC DHCPD)
+	$(SUDO) apt-get remove -y isc-dhcp-server
+	$(SUDOSH) 'su postgres -c "psql < $(SHAREDIR)/xenrtdhcpd/dhcp.sql"'
+	$(SUDO) cp $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd-init /etc/init.d/xenrtdhcpd
+	$(SUDO) insserv xenrtdhcpd
+	$(SUDO) mv $(ROOT)/$(XENRT)/xenrtdhcpd.cfg $(SHAREDIR)/xenrtdhcpd/xenrtdhcpd.cfg
+	$(SUDO) /etc/init.d/xenrtdhcpd restart
+	$(SUDO) sed -i '/leases/d' $(INETD)
+	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /usr/bin/python python $(SHAREDIR)/xenrtdhcpd/leases.py" >> $(INETD)'
+	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+else
+	-$(SUDO) insserv -r xenrtdhcpd
+	$(SUDO) rm -f /etc/init.d/xenrtdhcpd
+ifeq ($(DHCP_UID_WORKAROUND),yes)
+	-$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
+endif
 	$(info Installing DHCPD...)
-	$(SUDO) apt-get install -y dhcp3-server
+	$(SUDO) apt-get install -y --force-yes dhcp3-server
 	$(call BACKUP,$(DHCPD))
 ifeq ($(DHCP_UID_WORKAROUND),yes)
 	$(ROOT)/$(XENRT)/infrastructure/dhcpd/build.sh
@@ -259,6 +304,7 @@ endif
 	$(SUDO) sed -i '/leases/d' $(INETD)
 	$(SUDOSH) 'echo "5556            stream  tcp     nowait          nobody  /bin/cat cat /var/lib/dhcp/dhcpd.leases" >> $(INETD)'
 	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+endif
 else
 	$(info Skipping DHCP config)
 endif
@@ -284,6 +330,7 @@ ifeq ($(DODHCPD6),yes)
 	$(SUDO) mkdir -p /var/log/dibbler
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/log/dibbler
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/dibbler-server /etc/init.d/
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/dibbler/logrotate /etc/logrotate.d/dibbler
 	$(SUDO) update-rc.d dibbler-server defaults
 	-$(SUDO) mv $(ROOT)/$(XENRT)/dibbler-server.conf $(DHCPD6)
 	-$(SUDO) /etc/init.d/dibbler-server stop 
@@ -298,6 +345,7 @@ ifeq ($(DOHOSTS),yes)
 	$(info Installing $(HOSTS)...)
 	$(call BACKUP,$(HOSTS))
 	$(SUDO) mv $(ROOT)/$(XENRT)/hosts $(HOSTS)
+	$(SUDO) mv $(ROOT)/$(XENRT)/dnsmasq.conf /etc/dnsmasq.conf
 	$(SUDO) /etc/init.d/dnsmasq restart
 endif
 
@@ -329,32 +377,48 @@ network-uninstall:
 	$(call RESTORE,$(MODULES))
 	$(call RESTORE,$(INTERFACES))
 
+$(TFTPROOT)/ipxe.embedded.0:
+	$(info Building undionly.kpxe)
+	mkdir -p $(SHAREDIR)/ipxe
+	rsync -axl $(TEST_INPUTS)/ipxe/src $(SHAREDIR)/ipxe
+	echo "#!ipxe" > $(SHAREDIR)/ipxe/src/ipxe.script
+	echo dhcp >> $(SHAREDIR)/ipxe/src/ipxe.script
+	echo chain http://`ip addr | grep 'state UP' -A2 | grep inet | head -1 | awk '{print $$2}' | cut -d "/" -f 1`/tftp/default-ipxe.cgi >> $(SHAREDIR)/ipxe/src/ipxe.script
+	make -C $(SHAREDIR)/ipxe/src bin/undionly.kpxe EMBED=ipxe.script
+	$(SUDO) cp $(SHAREDIR)/ipxe/src/bin/undionly.kpxe $@
+
 .PHONY: tftp
 tftp:
 	$(info Installing TFTP...)
 	$(call BACKUP,$(INETD))
-	$(SUDO) mkdir -p $(TFTPROOT)
+	$(SUDO) mkdir -p /local/tftpboot
+	$(SUDO) ln -sfT /local/tftpboot $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/pxelinux.cfg
-	$(SUDO) sed -i 's#/srv/tftp#-s $(TFTPROOT)#g' $(INETD)
-	$(SUDOSH) 'echo "OPTIONS=\"-R 4096\"" > /etc/default/openbsd-inetd'
-	$(SUDO) /etc/init.d/$(INETD_DAEMON) restart
+	$(SUDO) sed -i 's#/srv/tftp#$(TFTPROOT)#g' /etc/default/tftpd-hpa
+	$(SUDO) /etc/init.d/tftpd-hpa restart
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/pxelinux.0 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/menu.c32 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/mboot.c32 $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/chain.c32 $(TFTPROOT)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/syslinux/memdisk $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/banner $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default $(TFTPROOT)/pxelinux.cfg
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/razor.ipxe $(TFTPROOT)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/pxe/default-ipxe.cgi $(TFTPROOT)
 	$(SUDO) sed -i 's/__RAZOR_SERVER__/$(RAZOR_SERVER)/' $(TFTPROOT)/razor.ipxe
-	-$(SUDO) cp $(TEST_INPUTS)/ipxe/ipxe.0 $(TFTPROOT)
 	-$(SUDO) cp $(TEST_INPUTS)/ipxe/undionly.kpxe $(TFTPROOT)
+	-$(SUDO) ln -sf undionly.kpxe $(TFTPROOT)/ipxe.0
 	-$(SUDO) cp -R $(TEST_INPUTS)/clean $(TFTPROOT)
 	$(SUDO) mkdir -p $(TFTPROOT)/tinycorelinux
 	$(SUDO) mkdir -p $(TFTPROOT)/ipxe.cfg
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/vmlinuz $(TFTPROOT)/tinycorelinux/
 	-$(SUDO) cp $(TEST_INPUTS)/tinycorelinux/output/core-xenrt.gz $(TFTPROOT)/tinycorelinux/
+	-$(SUDO) wget -O $(TFTPROOT)/grubx64.efi $(UEFI_GRUB_SOURCE)
+ifdef WINDOWS_ISOS
+	$(SUDO) ln -sfT $(WINDOWS_ISOS)/winpe $(TFTPROOT)/winpe
+endif
 	$(SUDO) chown -R $(USERID):$(GROUPID) $(TFTPROOT)
+	-make $(TFTPROOT)/ipxe.embedded.0
 
 .PHONY: tftp-uninstall
 tftp-uninstall:
@@ -383,10 +447,25 @@ httpd:
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/lock/apache2
 	$(SUDO) mkdir -p /var/cache/apache2 
 	$(SUDO) chown -R $(USERID):$(GROUPID) /var/cache/apache2 
+ifeq ($(KERBEROS),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default-kerberos /etc/apache2/sites-available/default
+	$(SUDO) sed -i "s/@@KERBEROSREALM@@/$(KERBEROSREALM)/" /etc/apache2/sites-available/default
+	$(SUDO) apt-get install -y --force-yes libapache2-mod-auth-kerb krb5-user
+	$(SUDO) ln -sfT `realpath $(ROOT)/$(INTERNAL)/config/$(SITE)/keytab` $(CONFDIR)/keytab
+	$(SUDO) a2enmod auth_kerb
+	$(SUDO) a2enmod headers
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/$(SITE)/krb5.conf /etc/krb5.conf
+else
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/default /etc/apache2/sites-available
+endif
 	$(SUDO) sed -i "s/@@USER@@/$(USERNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i "s/@@GROUP@@/$(GROUPNAME)/" /etc/apache2/sites-available/default
 	$(SUDO) sed -i 's#@@SHAREDIR@@#$(SHAREDIR)#g' /etc/apache2/sites-available/default
+ifeq ($(PROXY_JENKINS_8080),yes)
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/apache2/jenkins-proxy /etc/apache2/sites-available
+	$(SUDO) sed -i 's#@@PROXY_JENKINS_URL@@#$(PROXY_JENKINS_URL)#' /etc/apache2/sites-available/jenkins-proxy
+	$(SUDO) ln -sf /etc/apache2/sites-available/jenkins-proxy /etc/apache2/sites-enabled/001-jenkins
+endif
 	$(SUDO) a2enmod cgi
 	$(SUDO) a2enmod alias
 	$(SUDO) a2enmod rewrite
@@ -397,14 +476,20 @@ httpd:
 	-$(SUDO) /etc/init.d/apache2 start
 	$(SUDO) /etc/init.d/apache2 restart
 
+.PHONY: samba
+samba:
+	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/samba/smb.conf /etc/samba/smb.conf
+	$(SUDO) sed -i s/xenrtd/$(USERNAME)/ /etc/samba/smb.conf
+	$(SUDO) /etc/init.d/samba restart
+
 .PHONY: iscsi
 iscsi:
 ifeq ($(BUILDISCSI),no)
 	$(info Skipping iSCSI target setup)
 else
 	$(info Installing ISCSI target...)
-	$(SUDO) apt-get install -y linux-headers-`uname -r`
-	$(SUDO) apt-get install -y iscsitarget iscsitarget-dkms	
+	$(SUDO) apt-get install -y --force-yes linux-headers-`uname -r`
+	$(SUDO) apt-get install -y --force-yes iscsitarget iscsitarget-dkms	
 	$(SUDO) sed -i "s/false/true/" $(ISCSI)
 	$(SUDO) /etc/init.d/iscsitarget restart
 endif
@@ -420,7 +505,7 @@ conserver: files
 ifeq ($(DOCONSERVER),yes)
 	$(call BACKUP,$(CONSERVER))
 	$(SUDO) mv $(ROOT)/$(XENRT)/console.cf $(CONSERVER)
-	$(SUDO) apt-get install -y conserver-server
+	$(SUDO) apt-get install -y --force-yes conserver-server
 	$(SUDO) mv $(ROOT)/$(XENRT)/conserver.cf /etc/conserver/conserver.cf
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/conserver/* /etc/conserver/
 	$(SUDO) mkdir -p /local/consoles
@@ -466,15 +551,19 @@ loop:
 nagios:
 ifeq ($(DONAGIOS),yes)
 	$(info Setting up nagios)
-	$(SUDO) apt-get install -y nagios-nrpe-server nagios-plugins
+	$(SUDO) apt-get install -y --force-yes nagios-nrpe-server nagios-plugins
 	$(SUDO) sed -i 's/^allowed_hosts/#allowed_hosts/g' $(NRPE)
 	$(SUDO) sed -i 's/dont_blame_nrpe=0/dont_blame_nrpe=1/g' $(NRPE)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/xenrt.cfg $(NRPECONFDIR)
 	$(SUDO) cp $(ROOT)/$(XENRT)/infrastructure/nagios/check_* /usr/lib/nagios/plugins/
+ifeq ($(PUPPETNODE),yes)
+	$(SUDO) sed -i '/command[check_disk]/d' $(NRPECONFDIR)/xenrt.cfg
+else
 	$(SUDO) sed -i '/nrpe_user=/d' $(NRPE)
 	$(SUDO) sed -i '/nrpe_group=/d' $(NRPE)
-	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPE)"
-	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPE)"
+	$(SUDOSH) "echo 'nrpe_user=$(USERNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+	$(SUDOSH) "echo 'nrpe_group=$(GROUPNAME)' >> $(NRPECONFDIR)/xenrt.cfg"
+endif
 	$(SUDO) /etc/init.d/nagios-nrpe-server restart 
 endif
 
@@ -484,6 +573,9 @@ ifeq ($(DOLOGROTATE),yes)
 	$(info Setting logrotate to daily for syslog)
 	$(SUDO) sed -i 's/weekly/daily/g' /etc/logrotate.d/rsyslog
 	$(SUDO) sed -i '/delaycompress/d' /etc/logrotate.d/rsyslog
+	$(SUDO) sed -i 's/weekly/daily/g' /etc/logrotate.d/apache2
+	$(SUDO) sed -i '/delaycompress/d' /etc/logrotate.d/apache2
+	$(SUDO) sed -i 's/rotate 52/rotate 7/' /etc/logrotate.d/apache2
 endif
 
 .PHONY: nagios-uninstall
@@ -528,7 +620,7 @@ cron-uninstall:
 	$(SUDO) crontab -r
 
 .PHONY: infrastructure
-infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks libvirt debugger
+infrastructure: ssh httpd winpe files prompt autofs dhcpd dhcpd6 hosts network nagios conserver logrotate cron sitecontrollercmd nfs tftp httpd iscsi sudoers aptcacher ftp snmp extrapackages loop dsh ntp $(SHAREDIR)/images/vms/etch-4.1.img symlinks samba libvirt
 	$(info XenRT infrastructure installed.)
 
 
@@ -550,5 +642,21 @@ infrastructure-uninstall: network-uninstall \
 .PHONY: marvin
 marvin:
 	$(info Installing marvin)
+	wget -O $(SHAREDIR)/marvin-3.x.tar.gz http://repo-ccp.citrix.com/releases/Marvin/3.0.x/Marvin-66.tar.gz
 	wget -O $(SHAREDIR)/marvin.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.3-forward/Marvin-master-asfrepo-current.tar.gz
-	sudo easy_install $(SHAREDIR)/marvin.tar.gz
+	wget -O $(SHAREDIR)/marvin-4.4.tar.gz http://repo-ccp.citrix.com/releases/Marvin/4.4-forward/Marvin-master-asfrepo-current.tar.gz
+	wget -O $(SHAREDIR)/marvin-master.tar.gz http://repo-ccp.citrix.com/releases/Marvin/master/Marvin-master-asfrepo-current.tar.gz
+
+.PHONY: puppet-%
+puppet-%:
+ifeq ($(PUPPETNODE),yes)
+	$(info Installing puppet agent)
+	wget -O puppet-release.deb https://apt.puppetlabs.com/puppetlabs-release-$(patsubst puppet-%,%,$@).deb
+	$(SUDO) dpkg -i puppet-release.deb
+	$(SUDO) apt-get update
+	$(SUDO) apt-get install -y puppet
+	$(SUDO) cp $(ROOT)/$(INTERNAL)/config/puppet/puppet.conf /etc/puppet
+	$(SUDO) sed -i 's/xenrt.xs.citrite.net/xenrt.citrite.net/' /etc/resolv.conf
+else
+	$(info This node must be set as a PUPPETNODE in the config.mk file)
+endif

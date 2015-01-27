@@ -1,5 +1,5 @@
 <xenrt>
-    <!-- Clearwater test sequence PR1566-->
+    <!-- PR1566-->
     <variables>
         <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     </variables>

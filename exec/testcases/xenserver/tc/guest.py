@@ -88,11 +88,7 @@ class TC7477(xenrt.TestCase):
         guests = []
 
         # Create initial guest
-        guest = host.guestFactory()(
-                    xenrt.randomGuestName(),
-                    None,
-                    host)
-        self.uninstallOnCleanup(guest)
+        guest = host.guestFactory()(xenrt.randomGuestName(), None, host)
         guest.createHVMGuest([], pxe=True)
         guest.memset(256)
         guest.createVIF(bridge=host.getPrimaryBridge())
@@ -101,7 +97,6 @@ class TC7477(xenrt.TestCase):
         # Clone it the required number of times
         for i in range(vmcount-1):
             g = guest.cloneVM()
-            self.uninstallOnCleanup(g)
             guests.append(g.getUUID())
 
         # Run a script in dom0 to vm-uninstall force=true the VMs
@@ -131,8 +126,7 @@ class TC7477(xenrt.TestCase):
         if present > 0:
             xenrt.TEC().comment("%u VMs left" % (present))
             # Deliberately don't give the number left, to avoid filing new bugs
-            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left "
-                                   "some behind" % (vmcount))
+            raise xenrt.XRTFailure("Mass uninstall of %u diskless VMs left some behind" % (vmcount))
 
 class TC8605(xenrt.TestCase):
     """Suspend of a VM without PV drivers should be prevented"""
@@ -344,9 +338,132 @@ class _TCCoresPerSocket(xenrt.TestCase):
 
         xenrt.TEC().progress("The cores-per-sockets testcase ran successfully. The final results:\n%s" % results)
 
-
 class TC10178(_TCCoresPerSocket):
+    """Cores-per-socket parameter effectiveness on Windows VM"""
     pass
+
+class _TCCoresPerSocketVariants(xenrt.TestCase):
+
+    DISTRO = "win7-x86"
+    CORES = 1
+    SOCKETS = 1
+    CPS = 1
+
+    def prepare(self, arglist=[]):
+        args = xenrt.util.strlistToDict(arglist)
+
+        self.distro = args.get("distro") or self.DISTRO
+        self.cps = args.get("cps") or self.CPS
+
+        self.sockets = args.get("sockets") or self.SOCKETS
+        self.cores = args.get("cores") or self.CORES
+
+        xenrt.TEC().logverbose("SOCKETS is %s, CORES is %s" % (self.sockets, self.cores))
+
+        self.setConfigs()
+
+        xenrt.TEC().logverbose("Configurations to test:\n%s" % self.configs)
+
+        self.host = self.getDefaultHost()
+
+        self.guest = self.host.createBasicGuest(self.distro, name=self.distro)
+
+    def setConfigs(self):
+        self.configs = []
+        self.configs.append({ 'sockets': int(self.sockets),
+                              'cores': int(self.cores),
+                              'cps': int(self.cps) }) # cores / sockets
+
+    def cpsSet(self, num):
+        xenrt.TEC().logverbose("Setting cores-per-socket argument to %i" % num)
+        self.guest.paramSet("platform:cores-per-socket", num)
+
+    def cpsGet(self):
+        try:
+            return int(self.guest.paramGet("platform", "cores-per-socket"))
+        except xenrt.XRTFailure:
+            pass
+
+    def getCPUInfo(self):
+        info =  { 'sockets': self.guest.xmlrpcGetSockets(),
+                  'cores': self.guest.xmlrpcGetCPUs() }
+        xenrt.TEC().logverbose("CPU information on %s: %s" % (self.guest.getName(), info))
+        return info
+
+    def run(self, arglist=[]):
+
+        results = []
+
+        for cpu_conf in self.configs:
+
+            self.guest.shutdown()
+            self.guest.cpuset(cpu_conf['cores'])
+            self.cpsSet(cpu_conf['cps'])
+
+            self.guest.start()
+            cpu_info = self.getCPUInfo()
+
+            self.guest.suspend()
+            self.guest.resume(check=False)
+            cpu_info_1 = self.getCPUInfo()
+
+            self.guest.migrateVM(self.guest.getHost(), live="true")
+            cpu_info_2 = self.getCPUInfo()
+
+            if cpu_info == cpu_info_1 == cpu_info_2:
+                xenrt.TEC().logverbose("CPU information remained the same "
+                                       "after suspend/resume and live migration")
+            else:
+                raise xenrt.XRTFailure("CPU information changed during the process "
+                                       "of suspend/resume and live migration",
+                                       data = (cpu_info, cpu_info_1, cpu_info_2))
+
+            results.append((self.guest.getName(), cpu_conf, cpu_info_2))
+
+        xenrt.TEC().progress("The cores-per-sockets testcase ran successfully. The final results:\n%s" % results)
+
+class TC21457(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using virtual single socket with 4 cores on Windows 8"""
+
+    DISTRO = "win8-x64"
+    CORES = 4
+    SOCKETS = 1
+    CPS = 4
+
+class TC21458(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using virtual dual socket with 2 cores per socket on Windows 7"""
+
+    DISTRO = "win7-x86"
+    CORES = 4
+    SOCKETS = 2
+    CPS = 2
+
+class TC21459(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using 5 cores with 3 cores per socket on Windows Server 2012 R2"""
+
+    DISTRO = "ws12r2-x64"
+    CORES = 5
+    SOCKETS = 2
+    CPS = 3
+
+class TC21460(_TCCoresPerSocketVariants):
+    """Verify cores-per-socket effectiveness using random configuration of cores and sockets"""
+
+    DISTRO = "win7-x86"
+    CORES = 4
+    SOCKETS = 2
+    CPS = 4
+
+    def setConfigs(self):
+        self.configs = []
+        for i in range(int(math.log(self.sockets or self.SOCKETS, 2)) + 1):
+            sockets = int(math.pow(2, i))
+            for j in range(i, int(math.log(self.cores or
+                                           sockets * self.cps, 2)) + 1):
+                cores = int(math.pow(2, j))
+                self.configs.append({ 'sockets': sockets,
+                                      'cores': cores,
+                                      'cps': cores / sockets })
 
 class TC10549(xenrt.TestCase):
     """Testcase for SYMC-SFX - Preserver the Metadata on an exported VM"""
@@ -536,6 +653,31 @@ class TCCauseBsod(xenrt.TestCase):
                         g.shutdown(force=True)
                 
                 g.revert(snap)
+                
+                
+class TCDriverInstallLoop(xenrt.TestCase):
+    
+    def run(self, args=None):
+        gname = ""
+        for arg in args:
+            l = string.split(arg, "=", 1)
+            if l[0] == "guest":
+                gname = l[1]
+                break
+
+        if len(gname) == 0:
+            raise xenrt.XRTFailure("No guest")
+        
+        g = self.getGuest(gname)
+        g.shutdown()
+        snap = g.snapshot()
+        
+        for i in range(1000):
+            g.start()
+            g.installDrivers()
+            g.shutdown()
+            g.revert(snap)
+            g.enlightenedDrivers = False
                     
 class _TCToolstackRestart(xenrt.TestCase):
     XAPI_RESTART_DELAY_SECONDS = 60
@@ -671,7 +813,7 @@ class TC18693(_TCToolstackRestart):
         # Wait for guests to fully reboot
         for guest in guests:
             if guest.windows:
-                guest.waitForAgent(timeout=300)
+                guest.waitForAgent(300)
             else:
                 guest.waitForSSH(timeout=60)
 
@@ -1001,6 +1143,8 @@ class TCWinSMBFileTransfer(xenrt.TestCase):
    
     def getCopyDurationFromRobocopyLog(self, guest, robocopyLogFile, expectedFilesCopied=None):
         logData = guest.xmlrpcReadFile(robocopyLogFile)
+        if logData:
+            xenrt.TEC().logverbose(logData)
         data = map(lambda x:x.split(), logData.splitlines())
         data = filter(lambda x:len(x) > 0, data)
         filesData = filter(lambda x:x[0] == 'Files', data)
@@ -1544,96 +1688,13 @@ $a[0].log("THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S  %s")
         
         xenrt.sleep(20)
         
-        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -d " " -f1| rev').strip('\n')
+        data = self.host.execdom0( 'grep "THIS IS WHAT I EXPECT TO SEE AS PERCENTAGE S " /var/log/daemon.log | rev |cut -c -3| rev').strip('\n')
         
         if "%s" in data:
             xenrt.TEC().logverbose("Found '%s' in /var/log/daemon.log as expected" % data )
         else:
             raise xenrt.XRTFailure("Found '%s' in /var/log/daemon.log but '%%s' was expected" % data)
 
-
-class TCSetComputername(xenrt.TestCase):
-
-    def assertSetComputernameSupported(self, guestName):
-        cmdListXenstore = "xenstore-ls {domPath}".format(
-            domPath=self.getDomPath(guestName))
-
-        xenstoreListing = self.getDefaultHost().execdom0(cmdListXenstore)
-        expectedString = 'feature-setcomputername = "1"'
-
-        if expectedString not in xenstoreListing:
-            raise xenrt.XRTFailure('setcomputername not supported')
-
-    def getComputername(self, guestName):
-        guest = self.getGuest(guestName)
-        return guest.xmlrpcGetEnvVar('COMPUTERNAME')
-
-    def assertComputername(self, expectedName, guestName):
-        actualComputername = self.getComputername(guestName)
-
-        if expectedName.lower() != actualComputername.lower():
-            raise xenrt.XRTFailure(
-                'Computername mismatch. Expected: {expectedName}'.format(
-                    expectedName=expectedName)
-                + ' Actual: {actualComputername}'.format(
-                    actualComputername=actualComputername)
-            )
-
-    def getDomPath(self, guestName):
-        domId = self.getGuest(guestName).getDomid()
-        return '/local/domain/{domId}'.format(domId=domId)
-
-    def setComputername(self, guestName, computername):
-        commands = textwrap.dedent("""
-        xenstore-write {domPath}/control/setcomputername/name {computername}
-        xenstore-write {domPath}/control/setcomputername/action set
-        """).format(
-            domPath=self.getDomPath(guestName), computername=computername)
-
-        self.getDefaultHost().execdom0(commands)
-
-    def getSetComputernameState(self, guestName):
-        cmdGetSetComputernameState = (
-            "xenstore-read {domPath}/control/setcomputername/state"
-        ).format(domPath=self.getDomPath(guestName))
-
-        return self.getDefaultHost().execdom0(cmdGetSetComputernameState)
-
-    def assertStateIsSucceedNeedsReboot(self, guestName):
-        expectedState = "SucceededNeedsReboot"
-        actualState = self.getSetComputernameState(guestName)
-        if expectedState not in actualState:
-            raise xenrt.XRTFailure(
-                'Unexpected setcomputername state: {actualState}'.format(
-                    actualState=actualState)
-                + ' expected: {expectedState}'.format(
-                    expectedState=expectedState)
-            )
-
-    def waitTillStateIsNotInProgress(self, guestName):
-        attempts = 5
-        secondsToSleep = 5
-
-        for i in range(attempts):
-            if "InProgress" not in self.getSetComputernameState(guestName):
-                return
-            time.sleep(secondsToSleep)
-
-        raise xenrt.XRTFailure('SetComputername timed out')
-
-    def run(self, arglist=None):
-        guestName = "Windows 7"
-
-        self.assertSetComputernameSupported(guestName)
-
-        self.setComputername(guestName, "aaaa")
-        self.waitTillStateIsNotInProgress(guestName)
-        self.assertStateIsSucceedNeedsReboot(guestName)
-        self.rebootGuest(guestName)
-        self.assertComputername("aaaa", guestName)
-
-    def rebootGuest(self, guestName):
-        self.getGuest(guestName).reboot()
 
 class TCVerifyVMCorruption(xenrt.TestCase):
     """Verify Xapi fix to avoid VM Corruption during Migration"""  
@@ -1703,3 +1764,145 @@ class TCCentosUpgrade(xenrt.TestCase):
         g.resume()
         g.migrateVM(self.getDefaultHost(), live=False)
         g.migrateVM(self.getDefaultHost(), live=True)
+
+
+class TCSettingGuestNameViaXenstore(xenrt.TestCase):
+    """
+    This addresses SCTX-1476 which is a reinstate of the setting a host
+    name via XenStore. This was removed previously and reinstated for 
+    Creedence but in a recast form
+    """
+    def prepare(self, arglist):
+        for arg in arglist:
+            if arg.startswith("distro"):
+                distro = arg.split("=")[-1]
+
+        self.__host = self.getDefaultHost()
+        self.__guest = self.__host.createBasicGuest(distro=distro)
+        self.__distro = distro
+
+    def run(self, arglist):
+        step("Running XenStore rename for %s" % self.__distro)
+        initialName = self.__guest.xmlrpcExec("hostname", returndata=True).strip()
+        newName = ''.join(random.choice(string.ascii_uppercase) for _ in range(14))
+
+        step("Setting name to %s" % newName)
+        self.__guest.setNameViaXenstore(newName)
+        finalName = self.__guest.xmlrpcExec("hostname", returndata=True).strip()
+
+        step("Check name has been set")
+        if newName == finalName:
+            raise xenrt.XRTFailure("Initial name: %s and final name: %s do not match" % (initialName, finalName))
+
+class TCCopyDataOnMultipleVIFsWindows(xenrt.TestCase):
+    """
+    This addresses SCTX-1778 which states Windows VM with 5 VIFs
+    becomes unresponsive when copying data
+    """
+    
+    FILESIZE = 8 # In GB
+    THRESHOLD = 200 # Measuring 40MB/s copying speed
+    
+    def __init__(self, tcid=None):
+        xenrt.TestCase.__init__(self, tcid=tcid)
+        self.guest = None
+    
+    def checkTimeForCopyingData(self, fromLocation, toLocation):
+        # Copy data from one drive to another drive
+        log("Create a %dGB file on location %s" % (self.FILESIZE,fromLocation))
+        filename = 'xenrt-%s.dat' % (''.join(random.sample(string.ascii_lowercase + string.ascii_uppercase, 6)))
+        self.guest.xmlrpcExec('fsutil file createnew %s\\%s %d' % (fromLocation, filename, (self.FILESIZE * xenrt.GIGA)))
+        
+        log("Measure the time taken for copying file from %s to %s" % (fromLocation, toLocation))
+        startTime = datetime.now()
+        self.guest.xmlrpcExec('copy %s\\%s %s\\%s' % (fromLocation,filename,toLocation,filename), timeout=1800)
+        timeDelta = datetime.now() - startTime
+        
+        log('Total time taken %d seconds' % timeDelta.seconds)
+        if(timeDelta.seconds > self.THRESHOLD):
+            raise xenrt.XRTFailure("File copied at slow rate, total time taken to copy %dGB is %s" % (self.FILESIZE,timeDelta.seconds))
+        
+        log("Remove file created and copied in %s %s" % (fromLocation, toLocation))
+        self.guest.xmlrpcExec('del %s\\%s' % (fromLocation,filename))
+        self.guest.xmlrpcExec('del %s\\%s' % (toLocation,filename))
+
+    def run(self, arglist=None):
+        
+        step("Get the guest installed in seq")
+        self.guest = self.getGuest("Windows VM")
+        
+        pathA = 'C:\\temp'
+        pathB = 'E:\\temp'
+        log("Create directories %s %s" % (pathA, pathB))
+        self.guest.xmlrpcCreateDir(pathA)
+        self.guest.xmlrpcCreateDir(pathB)
+        
+        step("Test the file copying speed from one drive to another")
+        self.checkTimeForCopyingData(pathA,pathB)
+        
+        step("Test the file copying speed vice-versa")
+        self.checkTimeForCopyingData(pathB,pathA)
+
+class TC21711(xenrt.TestCase):
+    def prepare(self, arglist):
+        host = self.getDefaultHost()
+        self.guest = host.createBasicGuest("rhel59")
+
+        if self.guest is None:
+            raise xenrt.XRTError("Need RHEL VM for testcase. None found.")
+
+    def run(self, arglist):
+        self.guest.reboot()
+        filepath = "/sys/hypervisor/uuid"
+        response = self.guest.execguest("cat %s" % (filepath))
+
+        # UUID pattern
+        pattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+
+        if not re.search(pattern, response):
+            raise xenrt.XRTFailure("Failure. Was not able to read uuid from %s" % (filepath))
+
+class TCInstallDriversNoIPv6(xenrt.TestCase):
+    def doGuest(self, g):
+        g.disableIPv6()
+        g.installDrivers()
+    
+    def run(self, arglist=None):
+        for g in self.getDefaultHost().guests.values():
+            self.getLogsFrom(g)
+            self.runSubcase("doGuest", (g), "TCInstallDriversNoIPv6", g.getName())
+
+class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
+    """Test case for SCTX-1421 - Verify memory dump is created"""
+    #TC-23777
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
+        self.uninstallOnCleanup(self.guest)
+        
+        step("Enable complete Memory dump option")
+        self.guest.enableFullCrashDump()
+        
+        step("Set boot driver flag=1")
+        self.guest.winRegAdd("HKLM",
+                 "SYSTEM\\CurrentControlSet\\Control",
+                 "BootDriverFlags",
+                 "DWORD",
+                 1)
+        self.guest.reboot()
+        
+    def run(self, arglist):
+        step("Remove any existing memory.dmp file")
+        if self.guest.xmlrpcBigdump():
+            self.guest.xmlrpcRemoveFile("c:\\windows\\MEMORY.DMP")
+        
+        step("Crash the guest")
+        self.guest.crash()
+        xenrt.sleep(100)
+        self.guest.reboot(force=True)
+        
+        step("Check if crashdump file exists")
+        if not self.guest.xmlrpcBigdump():
+            raise xenrt.XRTFailure("Unexpected output: Crashdump is not created")
+        else:
+            xenrt.TEC().logverbose("Crashdump file found")

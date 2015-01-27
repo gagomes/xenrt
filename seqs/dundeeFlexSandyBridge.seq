@@ -1,0 +1,46 @@
+<xenrt>
+
+  <!-- FlexMigrate tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <PREPARE_WORKERS>2</PREPARE_WORKERS>
+  </variables>
+
+  <default name="PARALLEL" value="2" />
+
+  <prepare>
+    <host id="0">
+      <storage type="nfs" name="nfssr" default="true" />
+      <vm name="linux">
+        <distro>debian60</distro>
+        <network device="0" />
+        <postinstall action="preCloneTailor"/>
+      </vm>
+      <vm name="windows">
+        <distro>ws08sp2-x86</distro>
+        <network device="0" />
+        <postinstall action="installDrivers"/>
+      </vm>
+    </host>
+    <host id="1">
+      <vm name="linux">
+        <distro>debian60</distro>
+        <network device="0" />
+      </vm>
+    </host>
+    <host id="2">
+      <vm name="linux">
+        <distro>debian60</distro>
+        <network device="0" />
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence blocker="yes">
+    <serial group="HeterogeneousPool">
+      <testcase id="testcases.xenserver.tc.host.TCFlexMigrate" tc="TC-17987" />
+    </serial>
+  </testsequence>
+
+</xenrt>

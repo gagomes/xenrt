@@ -19,8 +19,36 @@ class Registry:
         self.data = {}
         self.mylock = threading.Lock()
 
+    def dump(self):
+        xenrt.TEC().logverbose(self.data)
+
+    def getDeploymentRecord(self):
+        # TODO consider pools and clouds
+        ret = {"hosts":[], "vms": []}
+
+        # First check hosts that are specifed by hostname
+        tmpHostnameList = []
+        for h in self.hostList():
+            if not h.startswith("RESOURCE_HOST_"):
+                if not h in tmpHostnameList:
+                    ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                    tmpHostnameList.append(h)
+                else:
+                    xenrt.TEC().warning('There are two registry entries for hostname key: %s' % (h))
+        # Nowe check hosts that are held in the registry against RESOURCE_HOST_ keys
+        for h in self.hostList():
+            if h.startswith("RESOURCE_HOST_") and not self.hostGet(h).getName() in tmpHostnameList:
+                ret['hosts'].append(self.hostGet(h).getDeploymentRecord())
+                tmpHostnameList.append(self.hostGet(h).getName())
+
+        # Add guests
+        for g in self.guestList():
+            ret['vms'].append(self.guestGet(g).getDeploymentRecord())
+        return ret
+
     # Generic operations
     def write(self, path, value):
+        xenrt.TEC().logverbose("Storing object of type %s at path %s" % (value.__class__.__name__, path))
         self.mylock.acquire()
         try:
             self.data[path] = value
@@ -64,6 +92,17 @@ class Registry:
         finally:
             self.mylock.release()        
 
+    def objGetAll(self, objType):
+        self.mylock.acquire()
+        objs = []
+        try:
+            for k in self.data.keys():
+                if k.startswith("/xenrt/specific/%s/" % objType):
+                    objs.append(self.data[k])
+        finally:
+            self.mylock.release()
+        return objs
+
     def objPut(self, objType, tag, obj):
         path = "/xenrt/specific/%s/%s" % (objType, tag)
         self.write(path, obj)
@@ -92,7 +131,10 @@ class Registry:
     def hostGet(self, tag):
         """Look up a host object by string tag"""
         path = "/xenrt/specific/host/%s" % (tag)
-        return self.read(path)
+        h = self.read(path)
+        if not h and tag == "RESOURCE_HOST_DEFAULT":
+            h = self.hostGet("RESOURCE_HOST_0")
+        return h
 
     def hostDelete(self, tag):
         path = "/xenrt/specific/host/%s" % (tag)
@@ -113,6 +155,15 @@ class Registry:
         if not self.data.has_key("/xenrt/specific/hostlist"):
             return []
         return self.data["/xenrt/specific/hostlist"]
+
+    def hostFind(self, hostName):
+        hosts = self.hostList()
+        found = []
+        for host in hosts:
+            possibleHost = self.hostGet(host)
+            if hostName == possibleHost.getName() or hostName == possibleHost.getIP():
+                found.append(possibleHost)
+        return found
     
     def guestLookup(self, vcpus=None, 
                           memory=None,
@@ -343,3 +394,31 @@ class Registry:
 
     def toolstackGetDefault(self):
         return self.objGetDefault("toolstack")
+
+    def toolstackGetAll(self):
+        return self.objGetAll("toolstack")
+
+    def instancePut(self, tag, resource):
+        self.objPut("instance", tag, resource)
+
+    def instanceGet(self, tag):
+        return self.objGet("instance", tag)
+
+    def instanceDelete(self, tag):
+        self.objDelete("instance", tag)
+
+    def instanceGetAll(self):
+        return self.objGetAll("instance")
+
+    def vlanPut(self, tag, resource):
+        self.objPut("vlan", tag, resource)
+
+    def vlanGet(self, tag):
+        return self.objGet("vlan", tag)
+
+    def vlanDelete(self, tag):
+        self.objDelete("vlan", tag)
+
+    def vlanGetAll(self):
+        return self.objGetAll("vlan")
+

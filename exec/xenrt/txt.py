@@ -1,18 +1,23 @@
-from xml.dom.minidom import parse, parseString
-import random, string, base64, time, calendar, re, os, os.path, IPy, sys, subprocess, hashlib, binascii
+from xml.dom.minidom import parseString
+import random, string, base64, re, os, os.path, sys, hashlib, traceback
 import xenrt, xenrt.lib.xenserver
-from M2Crypto import BIO, RSA, EVP, m2
-import socket
+from M2Crypto import BIO, RSA, EVP
 from struct import pack
-from Crypto.Cipher import AES
 from math import ceil
 from hashlib import sha1
 from Crypto.Util.strxor import strxor
 from Crypto.Util.number import long_to_bytes
+from  xenrt.lazylog import log, step
 
-__all__= ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller"]
+
+__all__ = ["TXTCommand", "AttestationIdParser", "TpmQuoteParser", "TXTSuppPackInstaller", "TXTErrorParser"]
+
 
 class TXTSuppPackInstaller:
+
+    __PASSWORD = "xenroot"
+    __CONFIG_FILE = "/opt/xensource/tpm/config"
+
     def install(self, hosts):
         """
         Install Intel txt supp pack onto a hosts
@@ -21,14 +26,24 @@ class TXTSuppPackInstaller:
         @param hosts: list of hosts onto which the spupp pack should be installed
         """
         suppPackIso = xenrt.TEC().getFile(xenrt.TEC().lookup("TXT_SUPP_PACK"))
-        
+
         try:
             for h in hosts:
                 self.__installSuppPack(h, suppPackIso)
         except Exception, e:
             xenrt.TEC().logverbose(str(e))
             raise xenrt.XRTFailure("Failure installing TXT supp pack")
-    
+
+    def __modifyPassword(self, host):
+        pw = self.__hashPassword()
+        host.execdom0("echo password=%s > %s" % (pw, self.__CONFIG_FILE))
+
+    def __hashPassword(self):
+        """Create a sha1 hash of the default password"""
+        hasher = hashlib.sha1()
+        hasher.update(self.__PASSWORD)
+        return hasher.hexdigest()
+
     def __installSuppPack(self, host, suppPackIso):
         packName = os.path.basename(suppPackIso)
         sftp = host.sftpClient()
@@ -36,25 +51,27 @@ class TXTSuppPackInstaller:
         sftp.close()
         host.execdom0("xe-install-supplemental-pack /tmp/%s" % packName)
         host.execdom0("sync")
+        self.__modifyPassword(host)
         host.reboot()
 
+
 class TXTCommand:
-    __PLUGIN_NAME="tpm"
-    __ATT_ID_KEY="tpm_get_attestation_identity"
-    __QUOTE_KEY="tpm_get_quote"
-    __CHALLENGE_KEY="tpm_challenge"
-    __NONCE_KEY="nonce"
-    __CHALLENGE_ARG_KEY="challenge"
-    __ASSET_TAG_SET_KEY="tpm_set_asset_tag"
-    __ASSET_TAG_SET_ARG_KEY="tag"
-    __ASSET_TAG_CLEAR_KEY="tpm_clear_asset_tag"
+    __PLUGIN_NAME = "tpm"
+    __ATT_ID_KEY = "tpm_get_attestation_identity"
+    __QUOTE_KEY = "tpm_get_quote"
+    __CHALLENGE_KEY = "tpm_challenge"
+    __NONCE_KEY = "nonce"
+    __CHALLENGE_ARG_KEY = "challenge"
+    __ASSET_TAG_SET_KEY = "tpm_set_asset_tag"
+    __ASSET_TAG_SET_ARG_KEY = "tag"
+    __ASSET_TAG_CLEAR_KEY = "tpm_clear_asset_tag"
     __DEBUG = False
-    
+
     def getAttestationId(self, hostRef, session):
         """
         Get the attestation id of a host from the TPM
-        
-        @type hostRef: string 
+
+        @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
         @param session: the session containing the host
@@ -62,11 +79,11 @@ class TXTCommand:
         @return: xml containing the 4 parts of the attetsation id
         """
         return self.__runCommand(hostRef, session, self.__ATT_ID_KEY, {})
-        
+
     def getQuote(self, hostRef, session, nonceValue):
         """
         Get the quotes of a host from the TPM
-        
+
         @type hostRef : string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -74,14 +91,14 @@ class TXTCommand:
         @type nonceValue: string
         @param nonceValue: a random string value to seed the quote - should really be unique per-call
         @rtype: string
-        @return: base64 encoded value containing a (uint16)mask size, (byte*)a bit mask, (uint32)a quote size, (byte*) a collection of 20 byte PCR values and 256 byte signature 
+        @return: base64 encoded value containing a (uint16)mask size, (byte*)a bit mask, (uint32)a quote size, (byte*) a collection of 20 byte PCR values and 256 byte signature
         """
         return self.__runCommand(hostRef, session, self.__QUOTE_KEY, {self.__NONCE_KEY : nonceValue})
-        
+
     def getChallenge(self, hostRef, session, challengeValue):
         """
         Provide the TPM with an encrypted challenge
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -98,7 +115,7 @@ class TXTCommand:
     def setAssetTag(self, hostRef, session, assetTag):
         """
         Set the Asset Tag
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -114,7 +131,7 @@ class TXTCommand:
     def clearAssetTag(self, hostRef, session):
         """
         Clear the Asset Tag
-        
+
         @type hostRef: string
         @param hostRef: the opaque ref of the host
         @type session: session
@@ -125,33 +142,61 @@ class TXTCommand:
         self.__runCommand(hostRef, session, self.__ASSET_TAG_CLEAR_KEY, {})
 
     def __runCommand(self, hostRef, session, command, args):
-        try: 
+        try:
             self.__logDebug("HostRef: " + hostRef, "Plugin: " + self.__PLUGIN_NAME, "Command: " + command, "Args: " + str(args))
             output = session.xenapi.host.call_plugin(hostRef, self.__PLUGIN_NAME, command, args)
             return output
         except:
+            traceback.print_exc(file=sys.stderr)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+
             xenrt.TEC().logverbose("HostRef: %s, Plugin: %s, Command: %s Args: %s" % (hostRef, self.__PLUGIN_NAME, command, str(args)))
             hostName = session.xenapi.host.get_record(hostRef)['hostname']
-            host = xenrt.TEC().registry.hostGet(hostName)
-            if host != None:
+            log("Host name %s" % hostName)
+            hosts = xenrt.TEC().registry.hostFind(hostName)
+
+            if len(hosts) < 1:
+                xenrt.TEC().logverbose("Hostname not found")
+                raise
+
+            host = hosts[0]
+            if host:
                 xenrt.TEC().logverbose(host.execdom0("find /etc/xapi.d/plugins -name tpm"))
                 xenrt.TEC().logverbose("Host is %s" % hostName)
-            else:
-                xenrt.TEC().logverbose("Hostname not found")
-            raise xenrt.XRTFailure("Could not find TXT command %s on host" % command)
-    
+                m = re.search('xentpm\[[0-9]*\]', str(exc_value))
+                if m:
+                    xenrt.TEC().logverbose(host.execdom0("grep -F '%s' /var/log/messages" % m.group(0)))
+
+            errorMessage = self.__attemptLogParse(host)
+            if errorMessage:
+                raise xenrt.XRTFailure(errorMessage)
+            raise
+
+    def __attemptLogParse(self, host):
+        parser = TXTErrorParser.fromHostFile(host, "/var/log/messages", "/var/log/kern.log", "/var/log/user.log")
+        step("Parsing logs from host: %s" % host)
+        self.__writeToNewLog("extractedTPMErrors.log", '\n'.join(parser.locateAllTpmData()))
+        keyErrs = parser.locateKeyErrors()
+        self.__writeToNewLog("keyTPMErrors.log", '\n'.join(keyErrs))
+        if len(keyErrs) > 0:
+            return TxtLogObfuscator(keyErrs).fuzz()[0]
+
+    def __writeToNewLog(self, fileName, data):
+        log("Writing relevant data into %s....." % fileName)
+        file("%s/%s" % (xenrt.TEC().getLogdir(), fileName), "w").write(data)
+
     def __logDebug(self, *message):
         if self.__DEBUG:
             for m in message:
                 xenrt.TEC().logverbose(m)
-                
+
 
 class TpmParser:
     def _getSHA1(self, data):
         sha1 = hashlib.sha1()
         sha1.update(data)
         return sha1.digest()
-    
+
     @staticmethod
     def generateRandomNonce(size=20):
         """
@@ -165,21 +210,22 @@ class TpmParser:
         nonce = "".join(lst)
         return base64.b64encode(nonce)
 
+
 class AttestationIdParser:
-    
-    __TPM_CERT_KEY="xentxt:TPM_Endorsement_Certficate"
-    __EKPUB_KEY="xentxt:TPM_Endorsement_KEY_PEM"
-    __TCPA_KEY="xentxt:TPM_Attestation_KEY_TCPA"
-    __AIK_KEY="xentxt:TPM_Attestation_KEY_PEM"
+
+    __TPM_CERT_KEY = "xentxt:TPM_Endorsement_Certficate"
+    __EKPUB_KEY = "xentxt:TPM_Endorsement_KEY_PEM"
+    __TCPA_KEY = "xentxt:TPM_Attestation_KEY_TCPA"
+    __AIK_KEY = "xentxt:TPM_Attestation_KEY_PEM"
     __attestationData = None
-    
+
     def __init__(self, data):
         """
-        @type data: string 
+        @type data: string
         @param data: the xml data from the attestation id TPM call
         """
         self.__attestationData = data
-        
+
     def __parseDataForKey(self, key):
         try:
             dom = parseString(self.__attestationData)
@@ -195,27 +241,28 @@ class AttestationIdParser:
         @return: the Attestation Identity Key
         """
         return self.__parseDataForKey(self.__AIK_KEY)
-    
+
     def getTpmCertificate(self):
         """
         @rtype: string
         @return: The Trusted Platform Modules certificate
         """
         return self.__parseDataForKey(self.__TPM_CERT_KEY)
-    
+
     def getEndorsementKey(self):
         """
         @rtype: string
         @return: The endorsement public key, a 2048-bit RSA public key, private key is in the TPM chip
         """
         return self.__parseDataForKey(self.__EKPUB_KEY)
-    
+
     def getTcpaKey(self):
         """
         @rtype: blob
         @return: The TCPA key
         """
         return base64.b64decode(self.__parseDataForKey(self.__TCPA_KEY))
+
 
 class TpmQuoteParser(TpmParser):
     __PCR_QUOTE_SIZE   = 20
@@ -227,20 +274,20 @@ class TpmQuoteParser(TpmParser):
     __domZeroPcrId     = 18
     __initrdPcrId      = 19
     __assetTagPcrId    = 22
-    
+
     def __init__(self, quoteStr):
         """
         @type quoteStr: string
         @param quoteStr: is the base64 encoded binary blob returned from the TPM as a quote
         """
         self.__quoteStr = base64.b64decode(quoteStr)
-        
+
     def __readbufint(self, data, pos, size):
         val = 0
         for x in range (0, size):
             val = ( val << 8) | data[pos+x]
         return val
-    
+
     def __calculatePcrs(self):
         data = bytearray((self.__quoteStr))
         pos = 0
@@ -251,7 +298,7 @@ class TpmQuoteParser(TpmParser):
         numPcrs = pcrblocksize / self.__PCR_QUOTE_SIZE
         pos = pos + self.__INT_SIZE
         return numPcrs, data, pos
-    
+
     def getCurrentQuoteValue(self):
         """
         @rtype: string
@@ -265,14 +312,14 @@ class TpmQuoteParser(TpmParser):
         @return: hex value of the PCR representing the hosts boot image
         """
         return self.getPcr(self.__initrdPcrId)
-    
+
     def getXenPcr(self):
         """
         @rtype: string
         @return: hex value of the PCR representing the Xen hypervisor
         """
         return self.getPcr(self.__xenPcrId)
-    
+
     def getDomZeroPcr(self):
         """
         @rtype: string
@@ -287,25 +334,24 @@ class TpmQuoteParser(TpmParser):
         """
         return self.getPcr(self.__assetTagPcrId)
 
-
     def getPcr(self, pcr):
         """
         Get a PCR value from the provided quote
-        
+
         @type pcr: int
         @param pcr: the index of the pcr required
         @rtype: string
-        @return: hex value of the n^th PCR 
+        @return: hex value of the n^th PCR
         """
         numPcrs, data, pos = self.__calculatePcrs()
         # BUGBUG check that pcr is not greater than numPCrs
         pos = pos + (self.__PCR_QUOTE_SIZE*pcr)
         return str(data[pos: pos + self.__PCR_QUOTE_SIZE]).encode('hex')
-    
+
     def allPcrs(self):
         """
         @rtype: list
-        @return: collection hex strings containing all PCR values 
+        @return: collection hex strings containing all PCR values
         """
         pcrs = []
         numPcrs, data, pos = self.__calculatePcrs()
@@ -321,18 +367,18 @@ class TpmQuoteParser(TpmParser):
         - 4 bytes of PCR value length (20 times number of PCRs) (big-endian)
         - PCR values
         - 256 bytes of Quote signature
-        
+
         @type aikPub: string
         @param aikPub: the AIK key of the TPM's attestation identity
         @type nonce: string
         @param nonce: the nonce value used for the quote
-        @rtype: boolean  
+        @rtype: boolean
         @returns: verification was successful
         """
         xenrt.TEC().logverbose("Verifying TPM Quote")
         data = bytearray((self.__quoteStr))
         pos = 0
-        # skip over the bitmask length and the bitmask itself 
+        # skip over the bitmask length and the bitmask itself
         mask_size = self.__readbufint(data, pos, self.__SHORT_SIZE)
         pos = pos + self.__SHORT_SIZE
         pos = pos + mask_size
@@ -341,7 +387,7 @@ class TpmQuoteParser(TpmParser):
         pos = pos + self.__INT_SIZE
         numPcrs = pcrblocksize/self.__PCR_QUOTE_SIZE
         pos = pos + (self.__PCR_QUOTE_SIZE*numPcrs)
-        
+
         # Get the TPM Quote signature
         tpmQuote_signature = data[pos:len(data)]
 
@@ -354,9 +400,9 @@ class TpmQuoteParser(TpmParser):
         tpmQuoteInfo_signature = bytearray(['Q','U','O','T'])
         # pos points to the signature, so get the SHA1 hash of the TPM_QUOTE structure only (do not include the signature)
         tpmQuote_digest = self._getSHA1(str(data[0:pos]))
-        
+
         nonce_digest = self._getSHA1(nonce)
-        
+
         tpmQuoteInfo_size =  len(tpmQuoteInfo_version) + len(tpmQuoteInfo_signature) + len(tpmQuote_digest) + len(nonce_digest)
         tpmQuoteInfo = bytearray(([0]*tpmQuoteInfo_size))
 
@@ -374,7 +420,7 @@ class TpmQuoteParser(TpmParser):
         pubkey.verify_init()
         pubkey.verify_update(tpmQuoteInfo)
         return pubkey.verify_final(tpmQuote_signature) != 1
-    
+
 
 class TpmChallengeParser(TpmParser):
     """
@@ -386,7 +432,7 @@ class TpmChallengeParser(TpmParser):
     __TPM_SS_NONE                = 0x0001
     __aikTcpa = None
     __ekPub = None
-    
+
     def __init__(self, tcpaKey, endorsementKey):
         """
         @type tcpaKey: binary blob
@@ -396,20 +442,20 @@ class TpmChallengeParser(TpmParser):
         """
         self.__aikTcpa = tcpaKey
         self.__ekPub = endorsementKey
-    
+
     def createChallenge(self, session, secret):
         """
         Create a challenge for the TPM to decrypt by encrypting the secret
         using the keys in this class
-        
+
         @type session: session
         @param session: the session for the host
         @type secret: string
         @secret: a secret to encrypt using stoed keys
         @rtype: string containing the encrypted challenge
-        @return: string 
+        @return: string
         """
-        
+
         SHA1_DIGEST_SIZE = (hashlib.sha1()).digest_size
         key_size = 16
         key = str(os.urandom(key_size))
@@ -462,7 +508,8 @@ class TpmChallengeParser(TpmParser):
         challenge[4:len(asymEnc)] = asymEnc
         challenge[4+len(asymEnc):8+len(asymEnc)] = (pack("!i",len(symAttest)))
         challenge[8+len(asymEnc):len(challenge)] = (symAttest)
-        return "".join(map(chr, challenge)) 
+        return "".join(map(chr, challenge))
+
 
 class OAEP(object):
     """
@@ -483,7 +530,7 @@ class OAEP(object):
     def __init__(self, randbytes, hashValue=sha1):
         self.__randbytes = randbytes
         self.__hash = hashValue
-        
+
     def __generateMgf1(self, mgfSeed, maskLen, hashFn=sha1):
         """
         Mask Generation Function based on a hash function.
@@ -513,7 +560,7 @@ class OAEP(object):
     def encode(self,k,M,L=""):
         """
         Encode a message using OAEP.
-        
+
         @type M: byte string
         @param M: to encode using Optimal Asymmetric Encryption Padding
         @type k: int
@@ -546,7 +593,7 @@ class OAEP(object):
     def decode(self, k, EM, L=""):
         """
         Decode a message using OAEP.
-        
+
         @type EM: byte string
         @param EM: to decode using Optimal Asymmetric Encryption Padding
         @type k: int
@@ -584,4 +631,100 @@ class OAEP(object):
         if not valid:
             raise ValueError("Decryption error")
         return M
-    
+
+
+class TXTErrorParser(object):
+    MARKERS = ["xentpm", "TCSD TDDL"]
+    __WARNINGS = ["failed", "error", "expired"]
+
+    def __init__(self, logFileAsList):
+        """
+        Needs the log file read in as an array
+        use readlines or equivalent to achieve this
+        """
+        self.__log = logFileAsList
+
+    @classmethod
+    def fromHostFile(cls, host, *filename):
+        """
+        Alt. constructor. Read marker matches from the log
+        on the host and then construct this class
+        host: a host object
+        filename: the file name on the host to parse
+        """
+        data = []
+        for fname in filename:
+            for m in cls.MARKERS:
+                grep = "grep '%s' %s" % (m, fname)
+                if host.execcmd(grep, retval="code") < 1:
+                    data += host.execcmd(grep).split('\n')
+                else:
+                    log("grep failed for %s in file %s - no data found" % (m, fname))
+        return cls(data)
+
+    def __locateKeyLines(self, marker):
+        return [l for l in self.__log if marker in l]
+
+    def locateAllTpmData(self):
+        """
+        Scan the log file array for data matching key identifiers
+        and filter them out
+        """
+        lines = []
+        for marker in self.MARKERS:
+            lines += self.__locateKeyLines(marker)
+        return lines
+
+    def __calculateWeight(self, line):
+        return sum([line.lower().count(w) for w in self.__WARNINGS])
+
+    def locateKeyErrors(self):
+        """
+        Weight lines found by filtering code and weight them with occurences of
+        error words to find the most likely issue
+
+        @return list of strings
+        """
+        weightedList = []
+        for l in self.locateAllTpmData():
+            weightedList.append((self.__calculateWeight(l),l))
+        weightedList.sort()
+
+        if len(weightedList) < 1:
+            return weightedList
+
+        maxweight = weightedList[-1][0]
+        return [i[1] for i in weightedList if i[0] == maxweight]
+
+
+class TxtLogObfuscator(object):
+
+    def __init__(self, listOfLines):
+        self.__log = listOfLines
+
+    def fuzzTimes(self, data=None):
+        # Match 11:43:34 i.e. a timestamp
+        regex = re.compile("[0-9]{2}\:[0-9]{2}\:[0-9]{2}")
+        sub = "XX:XX:XX"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def fuzzDates(self, data=None):
+        # Match line starting with "Jul 23", "Aug 2", etc
+        regex = re.compile("^[A-Z]{1}[a-z]{2}[ ][0-9]{1,2}")
+        sub = "XXX XX"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def fuzzThreadMarker(self, data=None):
+        regex = re.compile("[\[]{1}[0-9]+[\]]{1}")
+        sub = "[XXXX]"
+        return self.__fuzzStrings(data, regex, sub)
+
+    def __fuzzStrings(self, data, regex, substitution):
+        if not data:
+            data = self.__log
+        return [regex.sub(substitution, l) for l in data]
+
+    def fuzz(self):
+        return self.fuzzThreadMarker(self.fuzzDates(self.fuzzTimes(self.__log)))
+
+

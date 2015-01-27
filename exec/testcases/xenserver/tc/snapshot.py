@@ -11,6 +11,7 @@
 import string, time, re, traceback, sys
 import xml.dom.minidom
 import xenrt, testcases
+from xenrt.lazylog import step
 
 class _VDISnapshotBase(xenrt.TestCase):
     """Base class for VDI Snapshot Tests."""
@@ -1153,8 +1154,6 @@ class _VMSnapshotPerOS(xenrt.TestCase):
         vmnamebydistro = "snapshot-test-VM-%s" % (self.DISTRO)
         if self.DISTRO and not self.guest:
             self.guest = self.getGuest(vmnamebydistro)
-            if self.guest:
-                self.host = self.guest.host
 
         # Check the TC args to see if a guest name has been specified
         if not self.guest:
@@ -1167,6 +1166,8 @@ class _VMSnapshotPerOS(xenrt.TestCase):
             self.guest = self.createGuest(vmnamebydistro)
             xenrt.TEC().registry.guestPut(vmnamebydistro, self.guest)
 
+        if self.guest:
+            self.host = self.guest.host
         # Check the guest is healthy and reboot if it is already up
         try:
             if self.guest.getState() == "DOWN":
@@ -2789,3 +2790,51 @@ class TC18784(xenrt.TestCase):
         
         if self.vdiuuid:
             self.host.destroyVDI(self.vdiuuid)
+
+class TC21699(_VMSnapshotBase):
+    """Verify no exceptions thrown when exporting metadata of shapshot."""
+
+    SRTYPE = "ext"
+    VMNAME = "Linux-VM"
+
+    def run(self, arglist):
+        # Default VDI sizes to 100Mb.
+        self.size = 100*1024*1024
+        self.vdis = []
+
+        self.host = self.getDefaultHost()
+        srs = self.host.getSRs(type=self.SRTYPE)
+        if not srs:
+            raise xenrt.XRTError("No %s SR found on host." % (self.SRTYPE))
+        self.sr = srs[0]
+
+        xenrt.TEC().logverbose("Creating a test VDI.")
+        vdiuuid = self.host.createVDI(self.size,
+                                      sruuid=self.sr)
+        self.vdis.append(vdiuuid)
+
+        xenrt.TEC().logverbose("Plugging VDI.")
+        userdevice = self.guest.createDisk(vdiuuid=vdiuuid)
+        device = self.host.parseListForOtherParam("vbd-list",
+                                                  "vm-uuid",
+                                                   self.guest.getUUID(),
+                                                  "device",
+                                                  "userdevice=%s" % 
+                                                  (userdevice))
+        xenrt.TEC().logverbose("Formatting VDI within VM.")
+        time.sleep(30)
+        self.guest.execguest("mkfs.ext2 /dev/%s" % (device))
+
+        self.host.execdom0("xe vm-snapshot uuid=%s new-name-label=newsnapshot" % self.guest.getUUID())
+        self.host.execdom0("xe-backup-metadata -c -u %s" % self.sr)
+
+        errorString = "Exporting metadata of a snapshot is not allowed"
+
+        grepCode= self.host.execdom0("grep '%s' /var/log/xensource.log" % 
+                                        errorString, retval="code", level=xenrt.RC_OK)
+
+        # 0 = Errors found.
+        if grepCode == 0:
+            raise xenrt.XRTFailure("Error relating to failed exporting of metadata found in /var/log/xensource.log")
+        else:
+            xenrt.TEC().logverbose("There were no problems found in the log file.")

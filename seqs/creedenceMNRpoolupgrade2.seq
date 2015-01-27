@@ -1,13 +1,14 @@
 <xenrt>
 
-  <!-- From MNR NFS pool rolling upgrade (with suspend) test -->
+  <!-- From Clearwater NFS pool rolling upgrade (with suspend) test -->
 
-  <default name="OLD_PRODUCT_VERSION" value="MNR"/>
-  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-5.6.0"/>
+  <default name="OLD_PRODUCT_VERSION" value="Clearwater"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="/usr/groups/release/XenServer-6.x/XS-6.2/RTM-70446"/>
 
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
     <RPU_WINDOWS_VERSION>ws08sp2-x86</RPU_WINDOWS_VERSION>
+    <RPU_LINUX_VERSION>oel65</RPU_LINUX_VERSION>
   </variables>
 
   <prepare>
@@ -18,7 +19,10 @@
   </prepare>
 
   <testsequence>
-    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765"/>
+    <testcase group="Upgrade" id="xenserver.tc.upgrade.TC8765" blocker="yes"/>
+    <testcase group="Upgrade" id="guestops.basic.TCVerifyUEKonUpgrade" tc="TC-21716">
+        <arg>guest=Linux</arg>
+    </testcase>
   </testsequence>
 
 </xenrt>

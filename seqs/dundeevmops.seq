@@ -1,0 +1,75 @@
+<xenrt>
+
+  <!-- VM operations tests -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <FINALLY_UNINSTALL>yes</FINALLY_UNINSTALL>
+    <POOL_NO_DEFAULT_SR>yes</POOL_NO_DEFAULT_SR>
+  </variables>
+
+  <prepare>
+    <pool>
+      <host id="0"/>
+      <host id="1"/>
+    </pool>
+  </prepare>
+
+  <testsequence>
+    <parallel>
+      <serial host="RESOURCE_HOST_0">
+        <serial group="SuspendResume">
+          <testcase id="xenserver.tc.vmlifecycle.TC6860" prio="3"/>
+          <testcase id="xenserver.tc.vmlifecycle.TC6861" prio="3"/>
+          <testcase id="xenserver.tc.vmlifecycle.TC6862" prio="3"/>
+          <testcase id="xenserver.tc.vmlifecycle.TC17438" prio="3"/>
+        </serial>
+        <serial group="VBD">
+          <!--<testcase id="xenserver.tc.vbd.TC6940" prio="3"/>
+          <testcase id="xenserver.tc.vbd.TC6949" prio="3"/>-->
+          <testcase id="xenserver.tc.storage.TC7804" prio="3"/>
+        </serial>
+        <serial group="NoNIC">
+          <testcase id="xenserver.tc.vmlifecycle.TC8044" prio="3"/>
+          <testcase id="xenserver.tc.vmlifecycle.TC8045" prio="3"/>
+        </serial>
+        <serial group="Misc">
+          <testcase id="xenserver.tc.vmlifecycle.TC8004" prio="3"/>
+          <parallel>
+              <testcase id="xenserver.tc.pvdrivers.TC8369" prio="3"/>
+              <testcase id="xenserver.tc.pvdrivers.TC23788" prio="3"/>
+          </parallel>
+        </serial>
+        <serial group="Crash">
+          <testcase id="xenserver.tc.vmlifecycle.TC8312" prio="3"/>
+          <testcase id="xenserver.tc.vmlifecycle.TC8313" prio="3"/>
+        </serial>
+        <serial group="TC13496">
+          <testcase id="xenserver.tc.guest.TC13496" prio="3"/>
+        </serial>
+      </serial>
+      <serial host="RESOURCE_HOST_1">
+        <serial group="Clone">
+          <testcase id="xenserver.tc.clone.TC6919" prio="3"/>
+          <testcase id="xenserver.tc.clone.TC6920" prio="3"/>
+          <testcase id="xenserver.tc.clone.TC6921" prio="3"/>
+          <testcase id="xenserver.tc.clone.TC6922" prio="3"/>
+        </serial>
+        <serial group="Time">
+          <testcase id="xenserver.tc.vmlifecycle.TC9314" prio="3"/>
+        </serial>
+      </serial>
+    </parallel>
+
+    <serial>
+      <testcase id="xenserver.cli.TCCLI" group="FunctionalTests" tc="TC-6667">
+        <arg>RESOURCE_HOST_1</arg>
+        <arg>tests=ALL</arg>
+        <arg>guests=debian-pv</arg>
+        <arg>localsr</arg>
+      </testcase>
+    </serial>
+
+  </testsequence>
+
+</xenrt>

@@ -1,11 +1,8 @@
 <?xml version="1.0"?>
 <xenrt>
   <variables>
-    <PRODUCT_VERSION>Clearwater</PRODUCT_VERSION>
     <PREPARE_WORKERS>2</PREPARE_WORKERS>
-    <NETWORK_BACKEND>vswitch</NETWORK_BACKEND>
     <QUICK_LOGS_ON_PASS>True</QUICK_LOGS_ON_PASS>
-    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>  <!-- the ext sr can pack more vms in local disk than the default lvm sr -->
   </variables>
 
   <prepare>
@@ -21,15 +18,15 @@
         <vm name="debian60-0-1v">
           <distro>debian60</distro>
           <network device="0" bridge="NET_A"/>
-          <vcpus>1</vcpus>
-          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
         <vm name="debian60-1-1v">
           <distro>debian60</distro>
           <network device="0" bridge="NET_A"/>
-          <vcpus>1</vcpus>
-          <memory>512</memory>
+          <vcpus>2</vcpus>
+          <memory>2048</memory>
           <postinstall action="pause"/><!-- do not interfere with other vms  -->
         </vm>
       </host>

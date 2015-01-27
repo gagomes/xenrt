@@ -1,23 +1,19 @@
 import xenrt
 import logging
-import os, urllib
+import os, urllib, glob
 from datetime import datetime
 import shutil
 import tarfile
+import inspect
 
 import xenrt.lib.cloud
 try:
     from marvin import cloudstackTestClient
     from marvin import configGenerator
+    from marvin.cloudstackAPI import *
+    from xenrt.lib.cloud.marvindeploy import MarvinDeployer
 except ImportError:
     pass
-
-try:
-    from marvin.integration.lib.base import *
-except ImportError:
-#    from marvin.lib.base import *
-    pass
-
 
 __all__ = ["MarvinApi"]
 
@@ -28,6 +24,62 @@ class XenRTLogStream(object):
     def flush(self):
         pass
 
+class CloudApi(object):
+    def __init__(self, apiClient):
+        self.__apiClient = apiClient
+
+    def __command(self, command, **kwargs):
+        """Wraps a generic command. Paramters are command - name of the command (e.g. "listHosts"), then optional arguments of the command parameters. Returns the response class"""
+        # First we create the command
+
+        if command.endswith("Async"):
+            command = command[:-5]
+            async = True
+        else:
+            async = False
+
+        cls = eval("%s.%sCmd" % (command, command))
+        cmd = cls()
+        # Then iterate through the parameters
+        for k in kwargs.keys():
+            # If the command doesn't already have that member, it's not a valid parameter
+            if not cmd.__dict__.has_key(k):
+                raise xenrt.XRTError("Command does not have parameter %s" % k)
+            # Set the member value
+            cmd.__dict__[k] = kwargs[k]
+        
+        # Then run the command
+        if async:
+            if not cmd.isAsync=="true":
+                raise xenrt.XRTError("Command is not an asynchronous command")
+            cmd.isAsync="false"
+            return getattr(self.__apiClient, command)(cmd).jobid
+        else:
+            return getattr(self.__apiClient, command)(cmd)
+
+    def checkAsyncJob(self, jobid):
+        status = self.queryAsyncJobResult(jobid=jobid)
+        if status.jobstatus == 0:
+            return None
+        elif status.jobstatus == 2:
+            raise xenrt.XRTFailure("Cloudstack job failed with %s" % str(status.jobresult))
+        else:
+            return status.jobresult
+
+    def pollAsyncJob(self, jobid, timeout=1800):
+        deadline = xenrt.timenow() + timeout
+        while xenrt.timenow() <= deadline:
+            result = self.checkAsyncJob(jobid)
+            if result:
+                return result
+            xenrt.sleep(15)
+        raise xenrt.XRTError("Timed out waiting for response")
+
+    def __getattr__(self, attr):
+        def wrapper(**kwargs):
+            return self.__command(attr, **kwargs)
+        return wrapper
+
 class MarvinApi(object):
     MARVIN_LOGGER = 'MarvinLogger'
     
@@ -35,6 +87,7 @@ class MarvinApi(object):
     MS_PASSWORD = 'password'
 
     def __init__(self, mgtSvr):
+        self.__testClientObj = None
         self.mgtSvr = mgtSvr
         self.xenrtStream = XenRTLogStream()
         logFormat = logging.Formatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -51,61 +104,109 @@ class MarvinApi(object):
         self.mgtSvrDetails.mgtSvrIp = mgtSvr.place.getIP()
         self.mgtSvrDetails.user = self.MS_USERNAME
         self.mgtSvrDetails.passwd = self.MS_PASSWORD
-        try:
-            self.testClient = cloudstackTestClient.cloudstackTestClient(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
-        except AttributeError:
-            dbDetails = configGenerator.dbServer()
-            dbDetails.dbSvr = mgtSvr.place.getIP()
-            dbDetails.passd = dbDetails.passwd
-            self.testClient = cloudstackTestClient.CSTestClient(mgmt_details=self.mgtSvrDetails, dbsvr_details=dbDetails, logger=self.logger)
-            self.testClient.createTestClient()
+        self.dbDetails = configGenerator.dbServer()
+        self.dbDetails.dbSvr = mgtSvr.place.getIP()
 
-        self.apiClient = self.testClient.getApiClient()
+        self.__apiClient = self.__testClient.getApiClient()
+        self.__userApiClientObj = None
+        self.cloudApi = CloudApi(self.__apiClient)
 
-        #TODO - Fix this
-        self.apiClient.hypervisor = 'XenServer'
+    @property
+    def __testClient(self):
+        if not self.__testClientObj:
+            if hasattr(cloudstackTestClient, 'cloudstackTestClient'):
+                testCliCls = cloudstackTestClient.cloudstackTestClient
+            elif hasattr(cloudstackTestClient, 'CSTestClient'):
+                testCliCls = cloudstackTestClient.CSTestClient
+            else:
+                raise xenrt.XRTError('Unknown Marvin test client class')
+            xenrt.TEC().logverbose('Using Marvin Test Client class: %s' % (testCliCls))
 
-    def command(self, command, **kwargs):
-        """Wraps a generic command. Paramters are command - pointer to the class (not object) of the command, then optional arguments of the command parameters. Returns the response class"""
-        # First we create the command
-        cmd = command()
-        # Then iterate through the parameters
-        for k in kwargs.keys():
-            # If the command doesn't already have that member, it's not a valid parameter
-            if not cmd.__dict__.has_key(k):
-                raise xenrt.XRTError("Command does not have parameter %s" % k)
-            # Set the member value
-            cmd.__dict__[k] = kwargs[k]
-        
-        # The name of the function we need to call on the API is the same as the module name
-        # (If this isn't universally true, we may need to code in exceptions, but as the code is generated, that should be unlikely)
-        fn = command.__module__.split(".")[-1]
-        # Then run the command
-        return getattr(self.apiClient, fn)(cmd)
+            testCliArgs = inspect.getargspec(testCliCls.__init__).args
+            xenrt.TEC().logverbose('Marvin Test Client class has constructor args: %s' % (testCliArgs))
 
-    def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
-        configSetting = Configurations.list(self.apiClient, name=name)
+            if 'mgtSvr' in testCliArgs:
+                # This is 3.x Marvin
+                self.__testClientObj = testCliCls(mgtSvr=self.mgtSvr.place.getIP(), logging=self.logger)
+            elif 'mgmtDetails' in testCliArgs:
+                # This is 4.2 / 4.3 Marvin
+                self.__testClientObj = testCliCls(mgmtDetails=self.mgtSvrDetails, dbSvrDetails=None, logger=self.logger)
+            elif 'mgmt_details' in testCliArgs:
+                # This is 4.4+ Marvin
+                self.__testClientObj = testCliCls(mgmt_details=self.mgtSvrDetails, dbsvr_details=self.dbDetails, logger=self.logger)
+                self.__testClientObj.createTestClient()
+            else:
+                raise xenrt.XRTError('Unable to determine Marvin Test Client constructor signature')
+        return self.__testClientObj
+
+    @property
+    def __userApiClient(self):
+        if not self.__userApiClientObj:
+            if not hasattr(self.__apiClient, "hypervisor"):
+                self.__apiClient.hypervisor = None
+            self.__userApiClientObj = self.__testClient.createUserApiClient("admin", None)
+        return self.__userApiClientObj
+
+    def signCommand(self, params):
+        params["apikey"] = self.__userApiClient.connection.apiKey
+        params['signature'] = self.__userApiClient.connection.sign(params)
+        return params
+
+    def marvinDeployerFactory(self):
+        return MarvinDeployer(self.mgtSvrDetails.mgtSvrIp, self.logger, "root", self.mgtSvr.place.password, self.__testClient)
+
+    def getCloudGlobalConfig(self, name):
+        configSetting = self.cloudApi.listConfigurations(name=name)
         if configSetting == None or len(configSetting) == 0:
             raise xenrt.XRTError('Could not find setting: %s' % (name))
         elif len(configSetting) > 1:
             configSetting = filter(lambda x:x.name == name, configSetting)
-        xenrt.TEC().logverbose('Current value for setting: %s is %s, new value: %s' % (name, configSetting[0].value, value))
-        if value != configSetting[0].value:
-            Configurations.update(self.apiClient, name=name, value=value)
+        xenrt.TEC().logverbose('Current value for setting: %s is %s' % (name, configSetting[0].value))
+        return configSetting[0].value
+
+    def setCloudGlobalConfig(self, name, value, restartManagementServer=False):
+        if value != self.getCloudGlobalConfig(name):
+            self.cloudApi.updateConfiguration(name=name, value=value)
             if restartManagementServer:
                 self.mgtSvr.restart()
         else:
             xenrt.TEC().logverbose('Value of setting %s already %s' % (name, value))
 
+    def waitForSystemVmsReady(self):
+        deadline = xenrt.timenow() + 1200
+
+        while True:
+            systemvms = self.cloudApi.listSystemVms() or []
+            startingvms = [x for x in systemvms if x.state == "Starting"]
+            systemvmhosts = [x for x in self.cloudApi.listHosts() or [] if x.name in [y.name for y in systemvms]]
+            if systemvmhosts: # At least one host object has been created
+                downhosts = [x for x in systemvmhosts if x.state != "Up"]
+                if not downhosts and not startingvms:
+                    # All up, complete
+                    xenrt.TEC().logverbose("All System VMs ready")
+                    return
+                else:
+                    if downhosts:
+                        xenrt.TEC().logverbose("%s not up" % ", ".join([x.name for x in downhosts]))
+                    if startingvms:
+                        xenrt.TEC().logverbose("%s starting" % ", ".join([x.name for x in startingvms]))
+            else:
+                xenrt.TEC().logverbose("No system VMs present yet")
+            
+            if xenrt.timenow() > deadline:
+                raise xenrt.XRTError("Waiting for system VMs timed out")
+            xenrt.sleep(15)
+
     def waitForBuiltInTemplatesReady(self):
-        templateList = Template.list(self.apiClient, templatefilter='all', type='BUILTIN')
+        templateList = [x for x in self.cloudApi.listTemplates(templatefilter='all') if x.templatetype == "BUILTIN"]
         map(lambda x:self.waitForTemplateReady(name=x.name, zoneId=x.zoneid), templateList)
 
     def waitForTemplateReady(self, name, zoneId=None):
         templateReady = False
         startTime = datetime.now()
-        while((datetime.now() - startTime).seconds < 1800):
-            templateList = Template.list(self.apiClient, templatefilter='all', name=name, zoneid=zoneId)
+        timeout = 1800
+        while((datetime.now() - startTime).seconds < timeout):
+            templateList = self.cloudApi.listTemplates(templatefilter='all', name=name, zoneid=zoneId)
             if not templateList:
                 xenrt.TEC().logverbose('Template %s not found' % (name))
             elif len(templateList) == 1:
@@ -113,6 +214,9 @@ class MarvinApi(object):
                 templateReady = templateList[0].isready
                 if templateReady:
                     break
+                if templateList[0].hypervisor.lower() == "hyperv":
+                    # CS-20595 - Hyper-V downloads are very slow
+                    timeout = 10800
             else:
                 raise xenrt.XRTFailure('>1 template found with name %s' % (name))
 
@@ -130,8 +234,8 @@ class MarvinApi(object):
             raise xenrt.XRTError('Failed to find system templates')
 
         # Check if any non-default system templates have been specified
-        # These should be added in the form -D CLOUD_SYS_TEMPLATES/hypervisor=url
-        sysTemplates = xenrt.TEC().lookup("CLOUD_SYS_TEMPLATES", {})
+        # These should be added in the form -D CLOUD_TMPLT/hypervisor=url
+        sysTemplates = xenrt.TEC().lookup("CLOUD_TMPLT", {})
         for s in sysTemplates:
             templates[s] = sysTemplates[s]
 
@@ -141,246 +245,43 @@ class MarvinApi(object):
             xenrt.TEC().warning("Use of CLOUD_SYS_TEMPLATE is deprecated, use CLOUD_SYS_TEMPLATES/xenserver instead")
             templates['xenserver'] = sysTemplateSrcLocation
 
+        hvlist = xenrt.TEC().lookup("CLOUD_REQ_SYS_TMPLS", None)
+        if hvlist:
+            hvlist = hvlist.split(",")
+        else:
+            hvlist = []
+        for t in templates.keys():
+            if t not in hvlist:
+                del templates[t]
+        
         xenrt.TEC().logverbose('Using System Templates: %s' % (templates))
         webdir = xenrt.WebDirectory()
         if provider == 'NFS':
             self.mgtSvr.place.execcmd('mount %s /media' % (storagePath))
-            installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt').strip()
-
+        elif provider == 'SMB':
+            ad = xenrt.getADConfig()
+            self.mgtSvr.place.execcmd('mount -t cifs %s /media -o user=%s,password=%s,domain=%s' % (storagePath, ad.adminUser, ad.adminPassword, ad.domainName))
+        installSysTmpltLoc = self.mgtSvr.place.execcmd('find / -name *install-sys-tmplt -ignore_readdir_race').strip()
         for hv in templates:
             templateFile = xenrt.TEC().getFile(templates[hv])
-            webdir.copyIn(templateFile)
+            xenrt.TEC().logverbose("Using %s system VM template %s (md5sum: %s)" % (hv, templates[hv], xenrt.command("md5sum %s" % templateFile)))
+            if templateFile.endswith(".zip") and xenrt.TEC().lookup("WORKAROUND_CS22839", False, boolean=True):
+                xenrt.TEC().warning("Using CS-22839 workaround")
+                tempDir = xenrt.TEC().tempDir()
+                xenrt.command("cd %s && unzip %s" % (tempDir, templateFile))
+                dirContents = glob.glob("%s/*" % tempDir)
+                if len(dirContents) != 1:
+                    raise xenrt.XRTError("Unexpected contents of system template ZIP file")
+                templateFile = dirContents[0]
+            webdir.copyIn(templateFile) 
             templateUrl = webdir.getURL(os.path.basename(templateFile))
 
-            if provider == 'NFS':
+            if provider in ('NFS', 'SMB'):
                 self.mgtSvr.place.execcmd('%s -m /media -u %s -h %s -F' % (installSysTmpltLoc, templateUrl, hv), timeout=60*60)
 
-        if provider == 'NFS':
+        if provider in ('NFS', 'SMB'):
             self.mgtSvr.place.execcmd('umount /media')
         webdir.remove()
-
-    def addZone(self, name, networktype='Basic', dns1=None, internaldns1=None):
-        args = locals()
-        args['dns1'] = dns1 or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]    
-        args['internaldns1'] = internaldns1 or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'NAMESERVERS']).split(',')[0]
-        return Zone.create(self.apiClient, args)
-
-    def getZone(self, name=None, id=None):
-        args = locals()
-        xenrt.TEC().logverbose('Find Zone with args: %s' % (args))
-        zoneData = Zone.list(self.apiClient, **args)
-        if not zoneData:
-            raise xenrt.XRTFailure('Could not find zone')
-        if not len(zoneData) == 1:
-            raise xenrt.XRTFailure('Could not find unique zone')
-
-        return Zone(zoneData[0].__dict__)
-
-    def addSecondaryStorage(self, zone, url=None, provider='NFS'):
-        if not url:
-            if provider == 'NFS':
-                secondaryStorage = xenrt.ExternalNFSShare()
-                storagePath = secondaryStorage.getMount()
-                url = 'nfs://%s' % (secondaryStorage.getMount().replace(':',''))
-
-            self.copySystemTemplatesToSecondaryStorage(storagePath, provider) 
-
-        secondaryStorageC = addSecondaryStorage.addSecondaryStorageCmd()
-        secondaryStorageC.zoneid = zone.id
-        secondaryStorageC.url = url
-        return self.apiClient.addSecondaryStorage(secondaryStorageC)
-
-    def addPhysicalNetwork(self, name, zone, trafficTypeList=[], networkServiceProviderList=[]):
-        args = { 'name': name }
-        phyNet = PhysicalNetwork.create(self.apiClient, args, zone.id)
-        map(lambda x:phyNet.addTrafficType(self.apiClient, x), trafficTypeList)
-        phyNet.update(self.apiClient, state='Enabled')
-
-        networkServiceProvidersFull = NetworkServiceProvider.list(self.apiClient)
-        servicesToEnable = filter(lambda x:x.name in networkServiceProviderList and x.physicalnetworkid == phyNet.id, networkServiceProvidersFull)
-        if len(servicesToEnable) != len(networkServiceProviderList):
-            xenrt.TEC().logverbose('Not all network service providers specifed can be found')
-
-        for service in servicesToEnable:
-            if 'VirtualRouter' in service.name:
-                listVirtualRouterElementsC = listVirtualRouterElements.listVirtualRouterElementsCmd()
-                listVirtualRouterElementsC.nspid = service.id
-                vrElement = self.apiClient.listVirtualRouterElements(listVirtualRouterElementsC)[0]
-                if vrElement.state != 'Enabled':
-                    configureVirtualRouterElementC = configureVirtualRouterElement.configureVirtualRouterElementCmd()
-                    configureVirtualRouterElementC.enabled = 'true'
-                    configureVirtualRouterElementC.id = vrElement.id
-                    self.apiClient.configureVirtualRouterElement(configureVirtualRouterElementC)
-
-            NetworkServiceProvider.update(self.apiClient, id=service.id, state='Enabled')
-
-        return phyNet
-
-    def addNetwork(self, name, zone, vlan='untagged', networkOfferingName='DefaultSharedNetworkOfferingWithSGService'):
-        args = locals()
-        networkOffering = NetworkOffering.list(self.apiClient, name=args.pop('networkOfferingName'))[0]
-
-        args['zoneid'] = args.pop('zone').id
-        args['displaytext'] = '%s For %s' % (networkOfferingName, zone.name)
-        args['networkoffering'] = networkOffering.id
-
-        return Network.create(self.apiClient, args)
-
-    def addPod(self, name, zone, netmask=None, gateway=None, managementIpRangeSize=5):
-        args = locals()
-        ipResources = xenrt.StaticIP4Addr.getIPRange(args.pop('managementIpRangeSize'))
-        args['zoneid'] = args.pop('zone').id
-        args['startip'] = ipResources[0].getAddr()
-        args['endip'] = ipResources[-1].getAddr()
-        args['netmask'] = netmask or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
-        args['gateway'] = gateway or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
-        return Pod.create(self.apiClient, args) 
-
-    def addPublicIpRange(self, pod, networkid=None, forvirtualnetwork='false', netmask=None, gateway=None, publicIpRangeSize=5, vlan='untagged'):
-        args = locals()
-        ipResources = xenrt.StaticIP4Addr.getIPRange(args.pop('publicIpRangeSize'))
-        pod = args.pop('pod')
-        args['zoneid'] = pod.zoneid
-        args['podid'] = None
-        args['startip'] = ipResources[0].getAddr()
-        args['endip'] = ipResources[-1].getAddr()
-        args['netmask'] = netmask or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
-        args['gateway'] = gateway or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
-
-        return PublicIpRange.create(self.apiClient, args)
-
-    def addNetworkIpRange(self, pod, physicalNetwork, netmask=None, gateway=None, ipRangeSize=5, vlan='untagged'):
-        ipResources = xenrt.StaticIP4Addr.getIPRange(ipRangeSize)
-        ipRangeC = createVlanIpRange.createVlanIpRangeCmd()
-        ipRangeC.forvirtualnetwork = 'false'
-        ipRangeC.vlan = vlan
-        ipRangeC.gateway = gateway or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'GATEWAY'])
-        ipRangeC.netmask = netmask or xenrt.TEC().config.lookup(['NETWORK_CONFIG', 'DEFAULT', 'SUBNETMASK'])
-        ipRangeC.startip = ipResources[0].getAddr()
-        ipRangeC.endip = ipResources[-1].getAddr()
-        ipRangeC.physicalnetworkid = physicalNetwork.id
-        ipRangeC.podid = pod.id
-        ipRangeC.zoneid = pod.zoneid
-        return self.apiClient.createVlanIpRange(ipRangeC)
-
-    def addCluster(self, name, pod):
-        args = { 'clustername': name, 'zoneid': pod.zoneid, 'podid': pod.id, 'clustertype': 'CloudManaged' }
-            
-        return Cluster.create(self.apiClient, args)
-
-    def addPrimaryStorage(self, name, cluster, primaryStorageUrl=None, primaryStorageSRName=None):
-        args = { 'name': name, 'zoneid': cluster.zoneid, 'podid': cluster.podid, 'clusterid': cluster.id }
-        if primaryStorageSRName and self.apiClient.hypervisor == 'XenServer':
-            args['url'] = 'presetup://localhost/%s' % (primaryStorageSRName)
-        elif primaryStorageUrl:
-            args['url'] = primaryStorageUrl
-        else:
-            primaryNfs = xenrt.ExternalNFSShare()
-            args['url'] = 'nfs://%s' % (primaryNfs.getMount().replace(':',''))
-
-        return StoragePool.create(self.apiClient, args)
-
-    def addHost(self, cluster, hostAddr):
-        args = { 'url': 'http://%s' % (hostAddr), 'username': 'root', 'password': xenrt.TEC().lookup("ROOT_PASSWORD"), 'zoneid': cluster.zoneid, 'podid': cluster.podid }
-        host = Host.create(self.apiClient, cluster, args)
-
-        # Wait for host(s) to start up
-        allHostsUp = False
-        while(not allHostsUp):
-            xenrt.sleep(10)
-            hostList = Host.list(self.apiClient, clustername=cluster.name, type='Routing')
-            hostListState = map(lambda x:x.state, hostList)
-            xenrt.TEC().logverbose('Cluster: %s - Waiting for host(s) %s, Current State(s): %s' % (cluster.name, map(lambda x:x.name, hostList), hostListState))
-            allHostsUp = len(hostList) == hostListState.count('Up')
-
-    def addTemplateIfNotPresent(self, distro, url):
-        templates = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro]
-        if not templates:
-            xenrt.TEC().logverbose("Template is not present, registering")
-            # TODO: Cope with more zones
-            # Should also be able to do "All Zones", but marvin requires a zone to be specified
-
-            zone = Zone.list(self.apiClient)[0].id
-
-            osname = self.mgtSvr.lookup(["OS_NAMES", distro])
-            Template.register(self.apiClient, {
-                        "zoneid": zone,
-                        "ostype": osname,
-                        "name": distro,
-                        "displaytext": distro,
-                        "ispublic": True,
-                        "url": url,
-                        "format": "VHD"})
-
-        # Now wait until the Template is ready
-        deadline = xenrt.timenow() + 3600
-        xenrt.TEC().logverbose("Waiting for Template to be ready")
-        while xenrt.timenow() <= deadline:
-            try:
-                template = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == distro][0]
-                if template.isready:
-                    break
-                else:
-                    xenrt.TEC().logverbose("Status: %s" % template.status)
-            except:
-                pass
-            xenrt.sleep(15)
-
-    def addIsoIfNotPresent(self, distro, isoName, isoRepo):
-        listIsosC = listIsos.listIsosCmd()
-        listIsosC.isofilter = "all"
-        isos = Iso.list(self.apiClient, isofilter="all", name=isoName)
-        if not isos:
-            xenrt.TEC().logverbose("ISO is not present, registering")
-            if isoRepo == xenrt.IsoRepository.Windows:
-                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP"), isoName)
-            elif isoRepo == xenrt.IsoRepository.Linux:
-                url = "%s/%s" % (xenrt.TEC().lookup("EXPORT_ISO_HTTP_STATIC"), isoName)
-            else:
-                raise xenrt.XRTError("ISO Repository not recognised")
-
-            # TODO: Cope with more zones
-            # Should also be able to do "All Zones", but marvin requires a zone to be specified
-
-            zone = Zone.list(self.apiClient)[0].id
-            if distro:
-                osname = self.mgtSvr.lookup(["OS_NAMES", distro])
-            else:
-                osname = "None"
-            Iso.create(self.apiClient, {
-                        "zoneid": zone,
-                        "ostype": osname,
-                        "name": isoName,
-                        "displaytext": isoName,
-                        "ispublic": True,
-                        "url": url})
-
-        # Now wait until the ISO is ready
-        deadline = xenrt.timenow() + 3600
-        xenrt.TEC().logverbose("Waiting for ISO to be ready")
-        while xenrt.timenow() <= deadline:
-            try:
-                iso = Iso.list(self.apiClient, isofilter="all", name=isoName)[0]
-                if iso.isready:
-                    break
-                else:
-                    xenrt.TEC().logverbose("Status: %s" % iso.status)
-            except:
-                pass
-            xenrt.sleep(15)
-
-    def deleteIso(self, isoName):
-        iso = Iso.list(self.apiClient, isofilter="all", name=isoName)[0].id
-        cmd = deleteIso.deleteIsoCmd()
-        cmd.id = iso
-        self.apiClient.deleteIso(cmd)
-
-    def deleteTemplate(self, templateName):
-        template = [x for x in Template.list(self.apiClient, templatefilter="all") if x.displaytext == templateName][0].id
-        cmd = deleteTemplate.deleteTemplateCmd()
-        cmd.id = template
-        self.apiClient.deleteTemplate(cmd)
-  
 
 
 from lxml import etree
@@ -401,13 +302,13 @@ class TCMarvinTestRunner(xenrt.TestCase):
         self.marvinCfg['mgtSvr'].append({'mgtSvrIp': self.marvinApi.mgtSvrDetails.mgtSvrIp,
                                          'port'    : self.marvinApi.mgtSvrDetails.port})
 
-        self.marvinCfg['zones'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Zone.list(self.marvinApi.apiClient))
+        self.marvinCfg['zones'] = map(lambda x:x.__dict__, self.marvinApi.cloudApi.listZones())
         for zone in self.marvinCfg['zones']:
-            zone['pods'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Pod.list(self.marvinApi.apiClient, zoneid=zone['id']))
+            zone['pods'] = map(lambda x:x.__dict__, self.marvinApi.cloudApi.listPods(zoneid=zone['id']))
             for pod in zone['pods']:
-                pod['clusters'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Cluster.list(self.marvinApi.apiClient, podid=pod['id']))
+                pod['clusters'] = map(lambda x:x.__dict__, self.marvinApi.cloudApi.listClusters(podid=pod['id']))
                 for cluster in pod['clusters']:
-                    cluster['hosts'] = map(lambda x:x.__dict__, xenrt.lib.cloud.Host.list(self.marvinApi.apiClient, clusterid=cluster['id']))
+                    cluster['hosts'] = map(lambda x:x.__dict__, self.marvinApi.cloudApi.listHosts(clusterid=cluster['id']))
                     for host in cluster['hosts']:
                         host['username'] = 'root'
                         host['password'] = xenrt.TEC().lookup("ROOT_PASSWORD")

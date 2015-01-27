@@ -9,6 +9,7 @@ class LinuxIsHealthy(XenRTUnitTestCase):
         parent = interfaceMock(xenrt.interfaces.OSParent)
         self.__linux = LinuxOS(None, parent)
         self.__ssh = Mock()
+        self.__linux.waitForSSH = Mock()
         self.__linux.execSSH = self.__ssh
 
     def testDiskCommandIsCalledViaSsh(self):

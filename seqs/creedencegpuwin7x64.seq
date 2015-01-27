@@ -19,6 +19,7 @@
     </pool>
   </prepare>
   <testsequence group="Win7x64">
+    <testcase id="xenserver.tc.gpu.TC20904" tc="TC-20904" />    
     <testcase id="xenserver.tc.gpu.GPUBasic" tc="TC-18606" blocker="yes">
       <arg>gold=win7x64</arg>
       <arg>vendor=NVIDIA</arg>

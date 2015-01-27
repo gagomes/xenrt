@@ -1,0 +1,16 @@
+<xenrt>
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+  </variables>
+
+  <!-- specify what hosts, pools and VMs are required here: -->
+  <prepare>
+    <host>
+        <storage type="nfs" name="shared" default="true"/>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <testcase id="xenserver.tc.scalability.TC18494"/>
+  </testsequence>
+</xenrt>

@@ -161,7 +161,6 @@ class TCDriverUpgrade(xenrt.TestCase):
             guest.installDrivers()
         else:
             guest.installTools()
-        guest.waitForAgent(60, desc="Windows guest agent start after driver "
-                                    "upgrade")
+        guest.waitForAgent(60)
         guest.shutdown()
 

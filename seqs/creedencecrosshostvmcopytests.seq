@@ -1,13 +1,9 @@
 <xenrt>
   <variables>
     <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <SR_ISCSI_MINSIZE>100</SR_ISCSI_MINSIZE>
   </variables>
   <default name="PARALLEL" value="6" />
-  <scheduler>
-    <resources>memory&gt;=7G</resources>
-    <param>MACHINES_REQUIRED=2</param>
-    <flags>nfs,iscsi</flags>
-  </scheduler>
   <prepare>
     <pool id="0">
       <host id="0">

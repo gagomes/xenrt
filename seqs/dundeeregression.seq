@@ -1,0 +1,23 @@
+<xenrt>
+
+  <!-- MNR Regressions Sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Dundee</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>lvm</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <allhosts/>
+  </prepare>
+
+  <testsequence>
+    <serial group="TC-6728">
+      <testcase id="xenserver.tc.regression.TC8456"/>
+      <testcase id="xenserver.tc.regression.TC9222"/>
+      <testcase id="xenserver.tc.regression.TC9051"/>
+      <testcase id="xenserver.tc.regression.TC10189"/>
+    </serial>
+  </testsequence>
+
+</xenrt>

@@ -19,11 +19,11 @@
       <testcase id="xenserver.tc.license.TC10014" />
       <testcase id="xenserver.tc.license.TC10015" />
       <testcase id="xenserver.tc.license.TC10016" />
+      <testcase id="xenserver.tc.license.TC21479" />
       <testcase id="xenserver.tc.license.TC11002" />
       <testcase id="xenserver.tc.license.TC11006" />
       <testcase id="xenserver.tc.license.TC11337" />
       <testcase id="xenserver.tc.license.TC12524" />
-      <testcase id="xenserver.tc.license.TC13498" />
       <testcase id="xenserver.tc.license.TC14444" />
       <testcase id="xenserver.tc.license.TC10165" />
     </serial>

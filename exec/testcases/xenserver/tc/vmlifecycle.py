@@ -15,14 +15,11 @@ import testcases.xenserver.tc.guest
 
 def _setVCPUMax(guest):
 
-    if guest.getState() == "UP":
-        guest.shutdown()
-
-    guest.paramSet("VCPUs-max", "8")
+    guest.setState("DOWN")
+    guest.paramSet("VCPUs-max", guest.getMaxSupportedVCPUCount())
 
     # Even if the VM was shutdown before this function was called, it is powered on
-    if guest.getState() == "DOWN":
-        guest.start()
+    guest.setState("UP")
 
 class _NoNICBase(xenrt.TestCase):
 

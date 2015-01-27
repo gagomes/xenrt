@@ -238,4 +238,4 @@ class XenRT(object):
     
         return ret
 
-PageFactory(PythonBindings, "bindings/xenrt.py", reqType="GET", contentType="text/plain")
+PageFactory(PythonBindings, "bindings/xenrtapi.py", reqType="GET", contentType="text/plain")

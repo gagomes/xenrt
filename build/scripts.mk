@@ -285,7 +285,7 @@ $(SCRIPTS): $(addsuffix .in,$(SCRIPTS))
 	sed -i 's#@vardir@#$(VARDIR)#g' $@
 	sed -i 's#@webcontrdir@#$(WEB_CONTROL_PATH)#g' $@
 	sed -i 's#@jenkins@#$(JENKINS)#g' $@
-	-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
+	@-grep "@conskey@" $@ && sed -i 's#@conskey@#$(CONSKEY)#g' $@
 	sed -i 's#@wsgiworkers@#$(WSGIWORKERS)#g' $@
 	sed -i 's#@wsgithreads@#$(WSGITHREADS)#g' $@
 	sed -i 's#@user@#$(USERNAME)#g' $@

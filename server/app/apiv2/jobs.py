@@ -6,6 +6,8 @@ import json
 import jsonschema
 import config
 import urlparse
+import StringIO
+import requests
 
 class _JobsBase(XenRTAPIv2Page):
 
@@ -209,16 +211,16 @@ class _JobsBase(XenRTAPIv2Page):
         else:
             cur = db.cursor()
             try:
-                if not details.has_key(key):
-                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
-                                "VALUES (%s,%s,%s);", [jobid, key, value])
-                elif len(value) > 0:
-                    cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
-                                "jobid=%s AND param=%s;", [value,jobid,key])
-                else:
+                if value == None or value == "":
                     # Use empty string as a way to delete a property
                     cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
                                 "AND param=%s;", [jobid, key])
+                elif not details.has_key(key):
+                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                "VALUES (%s,%s,%s);", [jobid, key, str(value)])
+                else:
+                    cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
+                                "jobid=%s AND param=%s;", [str(value),jobid,key])
                 if commit:
                     db.commit()
             finally:
@@ -430,20 +432,25 @@ class NewJob(_JobsBase):
         "properties": {
             "pools": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": {"type": "string"},
+                "description": "Pools this job can run on"
             },
             "specified_machines": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": {"type": "string"},
+                "description": "Specified list of machines for this job to run on"
             },
             "machines": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Number of machines required for this job"
             },
             "sequence": {
-                "type": "string"
+                "type": "string",
+                "description": "Sequence file name"
             },
             "custom_sequence": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the sequence is in xenrt.git (false) or a custom sequence (true)"
             },
             "job_group": {
                 "type": "object",
@@ -455,29 +462,53 @@ class NewJob(_JobsBase):
                         "type": "string"
                      }
                  },
+                 "description": "Job group details. Members are 'id' (integer - id of job group), 'tag' (string - tag for this job"
+            },
+            "lease_machines": {
+                "type": "object",
+                "description": "Machine lease details. Members are 'duration' (integer - length of lease in hours), 'reason' (string -  reason that will be associated with the machine lease)",
+                "properties": {
+                    "duration": {
+                        "type": "integer",
+                        "description": "Duration of machine lease"
+                     },
+                     "reason": {
+                        "type": "string",
+                        "description": "Reason for machine lease"
+                     },
+                 }
             },
             "params": {
-                "type": "object"
+                "type": "object",
+                "description": "Key/value pair of job parameters"
             },
             "deployment": {
-                "type": "object"
+                "type": "object",
+                "description": "JSON deployment spec to just create a deployment"
             },
             "resources": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": {"type": "string"},
+                "description": "List of resources required. One such item might be memory>=4G"
             },
             "flags": {
                 "type": "array",
-                "items": {"type": "string"}
+                "items": {"type": "string"},
+                "description": "List of flags required. Can negate by prefixing a flag with '!'"
             },
             "email": {
-                "type": "string"
+                "type": "string",
+                "description": "Email address to notify on completion"
+            },
+            "inputdir": {
+                "type": "string",
+                "description": "Input directory for the job"
             }
         }
     }}
     RESPONSES = { "200": {"description": "Successful response"}}
     OPERATION_ID = "new_job"
-    PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email"]
+    PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email", "inputdir", "lease_machines"]
 
     def updateJobField(self, field, value):
         _JobsBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
@@ -493,7 +524,9 @@ class NewJob(_JobsBase):
                deployment=None,
                resources=None,
                flags=None,
-               email=None):
+               email=None,
+               inputdir=None,
+               lease=None):
 
         db = self.getDB()
         cur = db.cursor()
@@ -521,6 +554,10 @@ class NewJob(_JobsBase):
             else:
                 self.updateJobField("MACHINES_REQUIRED", "1")
 
+        if deployment:
+            sequence = "deployment.seq"
+            customSequence = True
+
         if sequence:
             self.updateJobField("DEPS", sequence)
             if customSequence:
@@ -537,8 +574,6 @@ class NewJob(_JobsBase):
                         "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
             
 
-        # TODO: Handle deployment spec
-
         if not params:
             params = {}
 
@@ -551,8 +586,24 @@ class NewJob(_JobsBase):
         if email:
             self.updateJobField("EMAIL", email)
 
+        if inputdir:
+            self.updateJobField("INPUTDIR", inputdir)
+
+        if lease and lease.get("duration"):
+            self.updateJobField("MACHINE_HOLD_FOR", lease['duration'] * 60)
+            self.updateJobField("MACHINE_HOLD_REASON", lease.get("reason", ""))
+
         db.commit()
         cur.close()
+        ret = self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False)[self.jobid]
+        if deployment:
+            deploymentSeq = app.utils.create_seq_from_deployment(deployment)
+            seqfile = StringIO.StringIO(deploymentSeq)
+            print ret['attachmentUploadUrl']
+            r = requests.post(ret['attachmentUploadUrl'], files={'file': ('deployment.seq', seqfile)})
+            r.raise_for_status()
+
+        return ret
 
     def render(self):
         try:
@@ -560,18 +611,19 @@ class NewJob(_JobsBase):
             jsonschema.validate(j, self.DEFINITIONS['newjob'])
         except Exception, e:
             raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
-        self.newJob(pools=j.get("pools"),
-                    numberMachines=j.get("machines"),
-                    specifiedMachines=j.get("specified_machines"),
-                    jobGroup=j.get("job_group"),
-                    params=j.get("params"),
-                    sequence=j.get("sequence"),
-                    customSequence=j.get("custom_sequence"),
-                    deployment=j.get("deployment"),
-                    resources=j.get("resources"),
-                    flags=j.get("flags"),
-                    email=j.get("email"))
-        return self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False)[self.jobid]
+        return self.newJob(pools=j.get("pools"),
+                           numberMachines=j.get("machines"),
+                           specifiedMachines=j.get("specified_machines"),
+                           jobGroup=j.get("job_group"),
+                           params=j.get("params"),
+                           sequence=j.get("sequence"),
+                           customSequence=j.get("custom_sequence"),
+                           deployment=j.get("deployment"),
+                           resources=j.get("resources"),
+                           flags=j.get("flags"),
+                           email=j.get("email"),
+                           inputdir=j.get("inputdir"),
+                           lease=j.get("lease_machines"))
 
 class _GetAttachmentUrl(_JobsBase):
     REQTYPE = "GET"
@@ -610,10 +662,57 @@ class GetAttachmentPostRun(_GetAttachmentUrl):
     DESCRIPTION='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
 
+class UpdateJob(_JobsBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/job/{id}"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/updatejob" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"updatejob": {
+        "title": "Update Job",
+        "type": "object",
+        "properties": {
+            "params": {
+                "type": "object",
+                "description": "Key-value pairs of parameters to update (set null to delete a parameter)"
+            }
+        }
+    }}
+    OPERATION_ID = "update_job"
+    PARAM_ORDER=["id", "params"]
+    DESCRIPTION = "Update job details"
+
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['updatejob'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        if j['params']:
+            for p in j['params'].keys():
+                self.updateJobField(int(self.request.matchdict['id']), p, j['params'][p], commit=False)
+        self.getDB().commit()
+        return {}
+    
+
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
 RegisterAPI(GetTest)
 RegisterAPI(RemoveJob)
 RegisterAPI(NewJob)
+RegisterAPI(UpdateJob)
 RegisterAPI(GetAttachmentPreRun)
 RegisterAPI(GetAttachmentPostRun)

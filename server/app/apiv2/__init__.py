@@ -37,7 +37,7 @@ class XenRTAPIv2Swagger(XenRTPage):
             "info": {
                 "version": "1.0.0",
                 "title": "XenRT API",
-                "description": "<a href=\"%s://%s%s/bindings/xenrt.py\">Python bindings</a>" % (u.scheme, u.netloc, u.path.rstrip("/"))
+                "description": "<a href=\"%s://%s%s/bindings/xenrtapi.py\">Python bindings</a>" % (u.scheme, u.netloc, u.path.rstrip("/"))
             },
             "basePath": "%s/api/v2" % u.path.rstrip("/"),
             "host": u.netloc,

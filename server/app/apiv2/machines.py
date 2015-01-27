@@ -189,7 +189,7 @@ class _MachineBase(XenRTAPIv2Page):
 class ListMachines(_MachineBase):
     PATH = "/machines"
     REQTYPE = "GET"
-    DESCRIPTION = "Get machines matching parameters"
+    SUMMARY = "Get machines matching parameters"
     PARAMS = [
          {'collectionFormat': 'multi',
           'default': '',
@@ -279,7 +279,7 @@ class ListMachines(_MachineBase):
 class GetMachine(_MachineBase):
     PATH = "/machine/{name}"
     REQTYPE = "GET"
-    DESCRIPTION = "Gets a specific machine object"
+    SUMMARY = "Gets a specific machine object"
     TAGS = ["machines"]
     PARAMS = [
         {'name': 'name',
@@ -300,7 +300,7 @@ class LeaseMachine(_MachineBase):
     WRITE = True
     PATH = "/machine/{name}/lease"
     REQTYPE = "POST"
-    DESCRIPTION = "Lease a machine"
+    SUMMARY = "Lease a machine"
     TAGS = ["machines"]
     PARAMS = [
         {'name': 'name',
@@ -387,7 +387,7 @@ class ReturnMachine(_MachineBase):
     WRITE = True
     PATH = "/machine/{name}/lease"
     REQTYPE = "DELETE"
-    DESCRIPTION = "Return a leased machine"
+    SUMMARY = "Return a leased machine"
     TAGS = ["machines"]
     PARAMS = [
         {'name': 'name',
@@ -502,7 +502,7 @@ class UpdateMachine(_MachineBase):
     }}
     OPERATION_ID = "update_machine"
     PARAM_ORDER=["id", "params"]
-    DESCRIPTION = "Update machine details"
+    SUMMARY = "Update machine details"
 
     def render(self):
         machine = self.request.matchdict['name']

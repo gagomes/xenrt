@@ -57,7 +57,7 @@ class UploadAttachment(_FilesBase):
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/attachments"
     REQTYPE = "POST"
-    DESCRIPTION = "Uploads an attachment to a job"
+    SUMMARY = "Uploads an attachment to a job"
     OPERATION_ID='upload_job_attachment'
     TAGS = ["jobs"]
     PARAMS = [
@@ -93,7 +93,7 @@ class UploadJobLog(_FilesBase):
     CONSUMES = "multipart/form-data"
     PATH = "/job/{id}/log"
     REQTYPE = "POST"
-    DESCRIPTION = "Uploads a log tarball to a job"
+    SUMMARY = "Uploads a log tarball to a job"
     OPERATION_ID='upload_job_log'
     TAGS = ["jobs"]
     PARAMS = [
@@ -119,7 +119,7 @@ class UploadTestLog(_FilesBase):
     CONSUMES = "multipart/form-data"
     PATH = "/test/{id}/log"
     REQTYPE = "POST"
-    DESCRIPTION = "Uploads a log tarball to a test"
+    SUMMARY = "Uploads a log tarball to a test"
     TAGS = ["jobs"]
     OPERATION_ID='upload_test_log'
     PARAMS = [

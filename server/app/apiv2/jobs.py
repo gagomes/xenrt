@@ -230,7 +230,7 @@ class _JobsBase(XenRTAPIv2Page):
 class ListJobs(_JobsBase):
     PATH = "/jobs"
     REQTYPE = "GET"
-    DESCRIPTION = "Get jobs matching parameters"
+    SUMMARY = "Get jobs matching parameters"
     PARAMS = [
          {'collectionFormat': 'multi',
           'default': 'new,running',
@@ -341,7 +341,7 @@ class ListJobs(_JobsBase):
 class GetJob(_JobsBase):
     PATH = "/job/{id}"
     REQTYPE = "GET"
-    DESCRIPTION = "Gets a specific job object"
+    SUMMARY = "Gets a specific job object"
     TAGS = ["jobs"]
     PARAMS = [
         {'name': 'id',
@@ -368,7 +368,7 @@ class GetJob(_JobsBase):
 class GetTest(_JobsBase):
     PATH = "/test/{id}"
     REQTYPE = "GET"
-    DESCRIPTION = "Gets a specific test object"
+    SUMMARY = "Gets a specific test object"
     TAGS = ["jobs"]
     PARAMS = [
         {'name': 'id',
@@ -397,7 +397,7 @@ class RemoveJob(_JobsBase):
     WRITE = True
     PATH = "/job/{id}"
     REQTYPE = "DELETE"
-    DESCRIPTION = "Removes a job"
+    SUMMARY = "Removes a job"
     TAGS = ["jobs"]
     PARAMS = [
         {'name': 'id',
@@ -416,7 +416,7 @@ class NewJob(_JobsBase):
     WRITE = True
     PATH = "/jobs"
     REQTYPE = "POST"
-    DESCRIPTION = "Submits a new job"
+    SUMMARY = "Submits a new job"
     TAGS = ["jobs"]
     PARAMS = [
         {'name': 'body',
@@ -653,13 +653,13 @@ class _GetAttachmentUrl(_JobsBase):
 class GetAttachmentPreRun(_GetAttachmentUrl):
     LOCATION_PARAM='JOB_FILES_SERVER'
     PATH='/job/{id}/attachment/prerun/{file}'
-    DESCRIPTION='Get URL for job attachment, uploaded before job ran'
+    SUMMARY='Get URL for job attachment, uploaded before job ran'
     OPERATION_ID='get_job_attachment_pre_run'
 
 class GetAttachmentPostRun(_GetAttachmentUrl):
     LOCATION_PARAM='LOG_SERVER'
     PATH='/job/{id}/attachment/postrun/{file}'
-    DESCRIPTION='Get URL for job attachment, uploaded after job ran'
+    SUMMARY='Get URL for job attachment, uploaded after job ran'
     OPERATION_ID='get_job_attachment_post_run'
 
 class UpdateJob(_JobsBase):
@@ -693,7 +693,7 @@ class UpdateJob(_JobsBase):
     }}
     OPERATION_ID = "update_job"
     PARAM_ORDER=["id", "params"]
-    DESCRIPTION = "Update job details"
+    SUMMARY = "Update job details"
 
     def render(self):
         try:

@@ -118,8 +118,13 @@ class _JobsBase(XenRTAPIv2Page):
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
-            jobs[j]['logUploadUrl'] = "%s://%s%s/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/api/v2/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/api/v2/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            if jobs[j]['params']['UPLOADED'] == "yes":
+                logUrl = "%s://%s%s/api/v2/fileget/%d" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            else:
+                logUrl = None
+            jobs[j]['logUrl'] = logUrl
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -136,18 +141,24 @@ class _JobsBase(XenRTAPIv2Page):
         if getResults:
             for j in jobs.keys():
                 jobs[j]['results'] = {}
-            cur.execute("SELECT jobid, result, detailid, test, phase FROM tblresults WHERE jobid IN (%s) ORDER BY detailid" % jobidlist, jobs.keys())
+            cur.execute("SELECT jobid, result, detailid, test, phase, uploaded FROM tblresults WHERE jobid IN (%s) ORDER BY detailid" % jobidlist, jobs.keys())
             detailids = {}
             while True:
                 rc = cur.fetchone()
                 if not rc:
                     break
+                if rc[5].strip() == "yes":
+                    logUrl = "%s://%s%s/api/v2/fileget/%d.test" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                else:
+                    logUrl = None
                 jobs[rc[0]]['results'][rc[2]] ={
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
                     "phase": rc[4].strip(),
-                    "logUploadUrl": "%s://%s%s/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
+                    "logUploadUrl": "%s://%s%s/api/v2/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2]),
+                    "logUrl": logUrl,
+                    "jobId": j
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:
@@ -352,6 +363,34 @@ class GetJob(_JobsBase):
             raise XenRTAPIError(HTTPNotFound, "Job not found")
         return jobs[job]
 
+class GetTest(_JobsBase):
+    PATH = "/test/{id}"
+    REQTYPE = "GET"
+    DESCRIPTION = "Gets a specific test object"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to fetch',
+         'type': 'integer'},
+         {'default': False,
+          'description': 'Return the log items for all testcases in the job. Defaults to false',
+          'in': 'query',
+          'name': 'logitems',
+          'required': False,
+          'type': 'boolean'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+
+    def render(self):
+        detail = int(self.request.matchdict['id'])
+        logitems = self.request.params.get("logitems", "false") == "true"
+        jobs = self.getJobs(1, detailids=[detail], getResults=True, getLog=logitems)
+        if len(jobs.values()) == 0:
+            raise XenRTAPIError(HTTPNotFound, "Job not found")
+
+        return jobs.values()[0]['results'][detail]
+
 class RemoveJob(_JobsBase):
     WRITE = True
     PATH = "/job/{id}"
@@ -534,7 +573,47 @@ class NewJob(_JobsBase):
                     email=j.get("email"))
         return self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False)[self.jobid]
 
+class _GetAttachmentUrl(_JobsBase):
+    REQTYPE = "GET"
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to get file from',
+         'type': 'integer'},
+        {'name': 'file',
+         'in': 'path',
+         'required': True,
+         'description': 'File to download',
+         'type': 'string'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    TAGS = ["jobs"]
+
+    def getServer(self, job, locationParam):
+        job = int(job)
+        
+    def render(self):
+        job = int(self.request.matchdict['id'])
+        server = self.getJobs(1, ids=[job], getParams=True)[job]['params'][self.LOCATION_PARAM]
+
+        return {'url': 'http://%s/xenrt/api/v2/fileget/%d.%s' % (server, job, self.request.matchdict['file'])}
+
+class GetAttachmentPreRun(_GetAttachmentUrl):
+    LOCATION_PARAM='JOB_FILES_SERVER'
+    PATH='/job/{id}/attachment/prerun/{file}'
+    DESCRIPTION='Get URL for job attachment, uploaded before job ran'
+    OPERATION_ID='get_job_attachment_pre_run'
+
+class GetAttachmentPostRun(_GetAttachmentUrl):
+    LOCATION_PARAM='LOG_SERVER'
+    PATH='/job/{id}/attachment/postrun/{file}'
+    DESCRIPTION='Get URL for job attachment, uploaded after job ran'
+    OPERATION_ID='get_job_attachment_post_run'
+
 RegisterAPI(ListJobs)
 RegisterAPI(GetJob)
+RegisterAPI(GetTest)
 RegisterAPI(RemoveJob)
 RegisterAPI(NewJob)
+RegisterAPI(GetAttachmentPreRun)
+RegisterAPI(GetAttachmentPostRun)

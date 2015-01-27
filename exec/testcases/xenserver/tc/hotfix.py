@@ -2080,14 +2080,16 @@ class TCApplyHotfixesToPoint(xenrt.TestCase):
         start = None
         stop = None
         if "start" in args.keys():
-            start = args["start"]
+            startAt = args["start"]
+        elif "startafter" in args.keys():
+            startAfter = args["startafter"]
         elif "stop" in args.keys():
             stop = args["stop"]
 
         host = self.getDefaultHost()
         release = host.productVersion
         branch = xenrt.TEC().lookup("HFX_BRANCH_%s" % release, "RTM")
-        hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startPoint=start, stopPoint=stop)
+        hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startAt=startAt, startAfter=startAfter stopAt=stop)
         for h in hotfixes:
             host.applyPatch(xenrt.TEC().getFile(h), patchClean=True)
         host.reboot()

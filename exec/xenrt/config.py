@@ -3325,7 +3325,7 @@ class Config:
         elif self.config.has_key("FROM_PRODUCT_INPUTDIR"):
             self.config["FROM_REVISION"] = getRevisionfromInputdir(self.config["FROM_PRODUCT_INPUTDIR"])
 
-    def getAllHotfixes(self, release, branch="RTM", startPoint=None, stopPoint=None):
+    def getAllHotfixes(self, release, branch="RTM", startAt=None, startAfter=None, stopAt=None):
         if not self.config["HOTFIXES"].has_key(release) or not self.config["HOTFIXES"][release].has_key(branch):
             raise xenrt.XRTError("Could not find hotfixes for %s (%s)" % (release, branch))
 
@@ -3336,9 +3336,10 @@ class Config:
         started = startPoint is None
         for h in hfKeys:
             if not started:
-                if h == startPoint:
-                    started = True # Get the next fix
-                continue
+                if h == startAt or h == startAfter:
+                    started = True
+                if h != startAt:
+                    continue
 
             hotfixes.append(allHotfixes[h])
             if stopPoint and h == stopPoint:

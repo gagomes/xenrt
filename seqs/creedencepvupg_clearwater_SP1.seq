@@ -31,6 +31,7 @@
   <testsequence>
     <serial group="PrepareVMs">
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1">
+        <arg>start=XS62ESP1</arg>
         <arg>stop=XS62ESP1</arg>
       </testcase>
       <parallel>
@@ -44,7 +45,7 @@
         </testcase>
       </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1003">
-        <arg>start=XS62ESP1</arg>
+        <arg>startafter=XS62ESP1</arg>
         <arg>stop=XS62ESP1003</arg>
       </testcase>
       <parallel>
@@ -58,7 +59,7 @@
         </testcase>
       </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62ESP1012">
-        <arg>start=XS62ESP1003</arg>
+        <arg>startafter=XS62ESP1003</arg>
         <arg>stop=XS62ESP1012</arg>
       </testcase>
       <parallel>

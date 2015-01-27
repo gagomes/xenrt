@@ -1947,17 +1947,24 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
 
     prepTCs = ""
     upgTCs = ""
-    start = None
+    startAfter = None
+    startAt = None
     hotfixes = xenrt.TEC().lookup(["TOOLS_HOTFIXES", oldRelease, branch])
     if branch == "RTM":
         hotfixes.insert(0, "RTM")
+    else:
+        startAt = hotfixes[0]
     for h in hotfixes:
         if h != "RTM":
             prepTCs += """      <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixTo%s">
 """ % h
-            if start:
+            if startAt:
                 prepTCs += """        <arg>start=%s</arg>
-""" % start
+""" % startAt
+                startAt = None
+            elif startAfter and startAfter != "RTM":
+                prepTCs += """        <arg>startafter=%s</arg>
+""" % startAfter
             prepTCs += """        <arg>stop=%s</arg>
       </testcase>
 """ % h
@@ -1975,7 +1982,7 @@ def _driverUpgradeMatrix(oldRelease, oldInputDir, newRelease, branch, distros):
 """ % (d, h, d, h)
         prepTCs += "      </parallel>\n"
 
-        start = h
+        startAfter = h
 
     seq = """<xenrt>
 

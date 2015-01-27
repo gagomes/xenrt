@@ -41,7 +41,6 @@
         </testcase>
       </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62E008">
-        <arg>start=RTM</arg>
         <arg>stop=XS62E008</arg>
       </testcase>
       <parallel>
@@ -55,7 +54,7 @@
         </testcase>
       </parallel>
       <testcase id="xenserver.tc.hotfix.TCApplyHotfixesToPoint" name="TCHotfixToXS62E015">
-        <arg>start=XS62E008</arg>
+        <arg>startafter=XS62E008</arg>
         <arg>stop=XS62E015</arg>
       </testcase>
       <parallel>

@@ -11361,7 +11361,7 @@ class DundeeHost(CreedenceHost):
 
     # For now, skip creedence, as trunk doesn't have the creedence license changes yet
     def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
+        ClearwaterHost.license(self, sku=sku,edition=edition,v6server=v6server)
 
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest

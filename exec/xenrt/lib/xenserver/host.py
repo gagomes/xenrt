@@ -11362,6 +11362,9 @@ class DundeeHost(CreedenceHost):
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
 
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
+
     def postInstall(self):
         CreedenceHost.postInstall(self)
 

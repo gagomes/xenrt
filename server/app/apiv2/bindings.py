@@ -25,6 +25,16 @@ class Path(object):
         else:
             return param
 
+    def pythonType(self, typename):
+        if typename == "file":
+            return "file path"
+        elif typename == "object":
+            return "dictionary"
+        elif typename == "array":
+            return "list"
+        else:
+            return typename
+
     @property
     def methodContent(self):
         ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
@@ -70,15 +80,11 @@ class Path(object):
                 for q in [x for x in objType['properties'].keys() if x in objType.get('required', [])]:
                     self.jsonParams.append(q)
                     args.append((q,))
-                    argdesc[q] = objType['properties'][q].get('description', "")
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
                 for q in [x for x in objType['properties'].keys() if x not in objType.get('required', [])]:
                     self.jsonParams.append(q)
-                    if objType['properties'][q]['type'] == "boolean":
-                        default = "False"
-                    else:
-                        default = "None"
-                    args.append((q, default))
-                    argdesc[q] = objType['properties'][q].get('description', "")
+                    args.append((q, "None"))
+                    argdesc[q] = "%s - %s" % (self.pythonType(objType['properties'][q]['type']), objType['properties'][q].get('description', ""))
             else:
                 if p['in'] == "path":
                     self.pathParams.append(p['name'])
@@ -89,7 +95,7 @@ class Path(object):
 
                 if p.get('type') == "file":
                     self.fileParams.append(p['name'])
-                argdesc[p['name']] = p.get('description',"")
+                argdesc[p['name']] = "%s - %s" % (self.pythonType(p.get('type')), p.get('description',""))
                 if p.get('required'):
                     if not p.get('default'):
                         args.append((p['name'],))
@@ -100,11 +106,7 @@ class Path(object):
                             default = p['default']
                         args.append((p['name'], default))
                 else:
-                    if p.get('type') == "boolean":
-                        default = "False"
-                    else:
-                        default = "None"
-                    args.append((p['name'], default))
+                    args.append((p['name'], "None"))
         for p in self.data.get('paramOrder', []):
             pp = [x for x in args if x[0] == p]
             if not pp:

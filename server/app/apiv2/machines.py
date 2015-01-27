@@ -99,7 +99,7 @@ class _MachineBase(XenRTAPIv2Page):
                 "rawstatus": rc[4].strip(),
                 "status": self.getStatus(rc[4].strip(), rc[7].strip() if rc[7] else None, rc[3].strip()),
                 "resources": rc[5].strip().split("/"),
-                "flags": rc[6].strip().split(",") if rc[6].strip() else [],
+                "flags": [],
                 "leaseuser": rc[7].strip() if rc[7] else None,
                 "leaseto": calendar.timegm(rc[8].timetuple()) if rc[8] else None,
                 "leasereason": rc[9].strip() if rc[9] else None,
@@ -146,6 +146,45 @@ class _MachineBase(XenRTAPIv2Page):
                     del ret[m]
 
         return ret
+
+    def updateMachineField(self, machine, key, value, commit=True, allowReservedField=False):
+        db = self.getDB()
+
+        machines = self.getMachines(limit=1, machines=[machine])
+        if not machine in machines:
+            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+
+        details = machines[machine]['params']
+        if key.lower() in ("machine", "comment", "leaseto", "leasereason", "leasefrom"):
+            raise XenRTAPIError(HTTPForbidden, "Can't update this field")
+        if key.lower() in ("status", "jobid") and not allowReservedField:
+            raise XenRTAPIError(HTTPForbidden, "Can't update this field")
+        if key.lower() in ("site", "cluster", "pool", "status", "resources", "flags", "descr", "jobid", "leasepolicy"):
+            cur = db.cursor()
+            try:
+                cur.execute("UPDATE tblmachines SET %s=%%s WHERE machine=%%s;" % (key.lower()), (value, machine))
+                if commit:
+                    db.commit()
+            finally:
+                cur.close()
+        else:
+            cur = db.cursor()
+            try:
+                if value == None or value == "":
+                    # Use empty string as a way to delete a property
+                    cur.execute("DELETE FROM tblmachinedata WHERE machine=%s "
+                                "AND key=%s;", [machine, key])
+                elif not details.has_key(key):
+                    cur.execute("INSERT INTO tblmachinedata (machine,key,value) "
+                                "VALUES (%s,%s,%s);", [machine, key, str(value)])
+                else:
+                    cur.execute("UPDATE tblmachinedata SET value=%s WHERE "
+                                "machine=%s AND key=%s;", [str(value),machine,key])
+                if commit:
+                    db.commit()
+            finally:
+                cur.close()
+    
 
 class ListMachines(_MachineBase):
     PATH = "/machines"
@@ -409,7 +448,114 @@ class ReturnMachine(_MachineBase):
         self.return_machine(self.request.matchdict['name'], self.getUser(), params.get('force', False))
         return {}
 
+class UpdateMachine(_MachineBase):
+    REQTYPE="POST"
+    WRITE = True
+    PATH = "/machine/{name}"
+    TAGS = ["machines"]
+    PARAMS = [
+        {'name': 'name',
+         'in': 'path',
+         'required': True,
+         'description': 'Machine to update',
+         'type': 'integer'},
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the update',
+         'schema': { "$ref": "#/definitions/updatemachine" }
+        }
+    ]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    DEFINITIONS = {"updatemachine": {
+        "title": "Update Macine",
+        "type": "object",
+        "properties": {
+            "params": {
+                "type": "object",
+                "description": "Key-value pairs of parameters to update (set null to delete a parameter)"
+            },
+            "status": {
+                "type": "string",
+                "description": "Status of the machine"
+            },
+            "broken": {
+                "type": "object",
+                "description": "Mark the machine as broken or fixed. Fields are 'broken' (boolean - whether or not the machine is broken), 'info' (string - notes about why the machine is broken), 'ticket' (string - ticket reference for this machine)",
+                "properties": {
+                    "broken": { "type": "boolean" },
+                    "info": { "type": "string" },
+                    "ticket": { "type": "string" }
+                }
+            },
+            "addflags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Flags to add to this machine"
+            },
+            "delflags": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Flags to remove from this machine"
+            }
+        }
+    }}
+    OPERATION_ID = "update_machine"
+    PARAM_ORDER=["id", "params"]
+    DESCRIPTION = "Update machine details"
+
+    def render(self):
+        machine = self.request.matchdict['name']
+        machines = self.getMachines(limit=1, machines=[machine])
+        if not machine in machines:
+            raise XenRTAPIError(HTTPNotFound, "Machine not found")
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['updatemachine'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        if j.get('params'):
+            for p in j['params'].keys():
+                self.updateMachineField(machine, p, j['params'][p], commit=False)
+        if j.get('status'):
+            self.updateMachineField(machine, "status", j['status'], allowReservedField=True, commit=False)
+        if "broken" in j:
+
+            pool = machines[machine]['pool']
+            if j['broken']['broken']:
+                if not pool.endswith("x"):
+                    self.updateMachineField(machine, "POOL", pool + "x", commit=False)
+                self.updateMachineField(machine, "BROKEN_INFO", j['broken'].get("info"), commit=False)
+                self.updateMachineField(machine, "BROKEN_TICKET", j['broken'].get("ticket"), commit=False)
+            else:
+                if pool.endswith("x"):
+                    self.updateMachineField(machine, "POOL", pool.rstrip("x"), commit=False)
+                self.updateMachineField(machine, "BROKEN_INFO", None, commit=False)
+                self.updateMachineField(machine, "BROKEN_TICKET", None, commit=False)
+        if "addflags" in j:
+            if not "PROPS" in machines[machine]['params']:
+                self.updateMachineField(machine, "PROPS", ",".join(j['addflags']), commit=False)
+            else:
+                props = machines[machine]['params']['PROPS'].split(",")
+                for f in j['addflags']:
+                    if not f in props:
+                        props.append(f)
+                self.updateMachineField(machine, "PROPS", ",".join(props), commit=False)
+        if "delflags" in j:
+            if "PROPS" in machines[machine]['params']:
+                props = machines[machine]['params']['PROPS'].split(",")
+                for f in j['delflags']:
+                    if f in props:
+                        props.remove(f)
+                self.updateMachineField(machine, "PROPS", ",".join(props), commit=False)
+
+        self.getDB().commit()
+        return {}
+    
+
+
 RegisterAPI(ListMachines)
 RegisterAPI(GetMachine)
 RegisterAPI(LeaseMachine)
 RegisterAPI(ReturnMachine)
+RegisterAPI(UpdateMachine)

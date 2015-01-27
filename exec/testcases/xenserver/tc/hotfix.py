@@ -2089,7 +2089,7 @@ class TCApplyHotfixesToPoint(xenrt.TestCase):
         host = self.getDefaultHost()
         release = host.productVersion
         branch = xenrt.TEC().lookup("HFX_BRANCH_%s" % release, "RTM")
-        hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startAt=startAt, startAfter=startAfter stopAt=stop)
+        hotfixes = xenrt.TEC().config.getAllHotfixes(release, branch, startAt=startAt, startAfter=startAfter, stopAt=stop)
         for h in hotfixes:
             host.applyPatch(xenrt.TEC().getFile(h), patchClean=True)
         host.reboot()

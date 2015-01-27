@@ -83,7 +83,7 @@ class _MachineBase(XenRTAPIv2Page):
         if conditions:
             query += " WHERE %s" % " AND ".join(conditions)
 
-        cur.execute(query, params)
+        cur.execute(query, self.expandVariables(params))
 
         ret = {}
 

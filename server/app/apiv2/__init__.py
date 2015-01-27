@@ -98,6 +98,9 @@ class XenRTAPIv2Page(XenRTPage):
     def generateInCondition(self, fieldname, items):
         return "%s IN (%s)" % (fieldname, ", ".join(["%s"] * len(items)))
 
+    def expandVariables(self, params):
+        return [self.getUser() if x=="${user}" else x for x in params]
+
 import app.apiv2.bindings
 import app.apiv2.jobs
 import app.apiv2.machines

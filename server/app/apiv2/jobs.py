@@ -1,8 +1,13 @@
-from app.apiv2 import XenRTAPIv2Page, RegisterAPI
+from app.apiv2 import *
 from pyramid.httpexceptions import *
+import app.constants
 import calendar
+import json
+import jsonschema
+import config
+import urlparse
 
-class XenRTGetJobsBase(XenRTAPIv2Page):
+class _JobsBase(XenRTAPIv2Page):
 
     def getStatus(self, status, removed):
         if removed == "yes":
@@ -109,9 +114,12 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
             value = rc[2].strip()
             jobs[job]['params'][param] = value
 
+        u = urlparse.urlparse(config.url_base)
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -138,7 +146,8 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
-                    "phase": rc[4].strip()
+                    "phase": rc[4].strip(),
+                    "logUploadUrl": "%s://%s%s/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:
@@ -165,7 +174,47 @@ class XenRTGetJobsBase(XenRTAPIv2Page):
 
         return jobs
 
-class XenRTListJobs(XenRTGetJobsBase):
+    def updateJobField(self, jobid, key, value, commit=True, lookupExisting=True):
+        db = self.getDB()
+
+        if lookupExisting:
+            jobs = self.getJobs(1, ids=[jobid], getParams=True)
+            if not jobid in jobs:
+                raise XenRTAPIError(HTTPNotFound, "Job not found")
+
+            details = jobs[jobid]['params']
+        else:
+            details = {}
+
+        if key in app.constants.core_params:
+            cur = db.cursor()
+            try:
+                cur.execute("UPDATE tbljobs SET %s=%%s WHERE jobid=%%s;" % (key), 
+                            [value,jobid])
+                if commit:
+                    db.commit()
+            finally:
+                cur.close()
+        else:
+            cur = db.cursor()
+            try:
+                if not details.has_key(key):
+                    cur.execute("INSERT INTO tbljobdetails (jobid,param,value) "
+                                "VALUES (%s,%s,%s);", [jobid, key, value])
+                elif len(value) > 0:
+                    cur.execute("UPDATE tbljobdetails SET value=%s WHERE "
+                                "jobid=%s AND param=%s;", [value,jobid,key])
+                else:
+                    # Use empty string as a way to delete a property
+                    cur.execute("DELETE FROM tbljobdetails WHERE jobid=%s "
+                                "AND param=%s;", [jobid, key])
+                if commit:
+                    db.commit()
+            finally:
+                cur.close()
+    
+
+class ListJobs(_JobsBase):
     PATH = "/jobs"
     REQTYPE = "GET"
     DESCRIPTION = "Get jobs matching parameters"
@@ -276,7 +325,7 @@ class XenRTListJobs(XenRTGetJobsBase):
                             getResults=results,
                             getLog=logitems)
 
-class XenRTGetJob(XenRTGetJobsBase):
+class GetJob(_JobsBase):
     PATH = "/job/{id}"
     REQTYPE = "GET"
     DESCRIPTION = "Gets a specific job object"
@@ -303,5 +352,189 @@ class XenRTGetJob(XenRTGetJobsBase):
             raise XenRTAPIError(HTTPNotFound, "Job not found")
         return jobs[job]
 
-RegisterAPI(XenRTListJobs)
-RegisterAPI(XenRTGetJob)
+class RemoveJob(_JobsBase):
+    WRITE = True
+    PATH = "/job/{id}"
+    REQTYPE = "DELETE"
+    DESCRIPTION = "Removes a job"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'id',
+         'in': 'path',
+         'required': True,
+         'description': 'Job ID to remove',
+         'type': 'integer'}]
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "remove_job"
+
+    def render(self):
+        self.updateJobField(int(self.request.matchdict['id']), "REMOVED", "yes")
+        return {}
+        
+class NewJob(_JobsBase):
+    WRITE = True
+    PATH = "/jobs"
+    REQTYPE = "POST"
+    DESCRIPTION = "Submits a new job"
+    TAGS = ["jobs"]
+    PARAMS = [
+        {'name': 'body',
+         'in': 'body',
+         'required': True,
+         'description': 'Details of the lease required',
+         'schema': { "$ref": "#/definitions/newjob" }
+        }
+    ]
+    DEFINITIONS = {"newjob": {
+        "title": "New Job",
+        "type": "object",
+        "properties": {
+            "pools": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "specified_machines": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "machines": {
+                "type": "integer"
+            },
+            "sequence": {
+                "type": "string"
+            },
+            "custom_sequence": {
+                "type": "boolean"
+            },
+            "job_group": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                     },
+                     "tag": {
+                        "type": "string"
+                     }
+                 },
+            },
+            "params": {
+                "type": "object"
+            },
+            "deployment": {
+                "type": "object"
+            },
+            "resources": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "flags": {
+                "type": "array",
+                "items": {"type": "string"}
+            },
+            "email": {
+                "type": "string"
+            }
+        }
+    }}
+    RESPONSES = { "200": {"description": "Successful response"}}
+    OPERATION_ID = "new_job"
+    PARAM_ORDER=["machines", "pools", "flags", "resources", "specified_machines", "sequence", "custom_sequence", "params", "deployment", "job_group", "email"]
+
+    def updateJobField(self, field, value):
+        _JobsBase.updateJobField(self, self.jobid, field, value, commit=False, lookupExisting=False)
+
+    def newJob(self,
+               pools=None,
+               numberMachines=None,
+               specifiedMachines=None,
+               jobGroup=None,
+               params=None,
+               sequence=None,
+               customSequence=False,
+               deployment=None,
+               resources=None,
+               flags=None,
+               email=None):
+
+        db = self.getDB()
+        cur = db.cursor()
+        cur.execute("LOCK TABLE tbljobs IN EXCLUSIVE MODE")
+        cur.execute("INSERT INTO tbljobs (jobstatus, userid, version, revision, options, uploaded,removed) VALUES ('new', %s, '', '', '', '', '')", [self.getUser()])
+        # Lookup jobid
+        cur.execute("SELECT last_value FROM jobid_seq")
+        rc = cur.fetchone()
+        self.jobid = int(rc[0])
+        db.commit() # Commit to release the lock
+
+        if specifiedMachines:
+            self.updateJobField("MACHINE", ",".join(specifiedMachines))
+            self.updateJobField("MACHINES_SPECIFIED", "yes")
+            self.updateJobField("MACHINES_REQUIRED", str(len(specifiedMachines)))
+        else:
+            if resources:
+                self.updateJobField("RESOURCES_REQUIRED", ",".join(resources))
+            if flags:
+                self.updateJobField("FLAGS", ",".join(flags))
+            if pools:
+                self.updateJobField("POOL", ",".join(pools))
+            if numberMachines:
+                self.updateJobField("MACHINES_REQUIRED", str(numberMachines))
+            else:
+                self.updateJobField("MACHINES_REQUIRED", "1")
+
+        if sequence:
+            self.updateJobField("DEPS", sequence)
+            if customSequence:
+                self.updateJobField("CUSTOM_SEQUENCE", "yes")
+
+        if jobGroup:
+            try:
+                cur.execute("DELETE FROM tblJobGroups WHERE "
+                            "gid = %s AND description = %s",
+                            [jobGroup['id'], jobGroup['tag']])
+            except:
+                pass
+            cur.execute("INSERT INTO tblJobGroups (gid, jobid, description) VALUES " \
+                        "(%s, %s, %s);", [jobGroup['id'], self.jobid, jobGroup['tag']])
+            
+
+        # TODO: Handle deployment spec
+
+        if not params:
+            params = {}
+
+        params['JOB_FILES_SERVER'] = config.log_server
+        params['LOG_SERVER'] = config.log_server
+
+        for p in params.keys():
+            self.updateJobField(p, params[p])
+
+        if email:
+            self.updateJobField("EMAIL", email)
+
+        db.commit()
+        cur.close()
+
+    def render(self):
+        try:
+            j = json.loads(self.request.body)
+            jsonschema.validate(j, self.DEFINITIONS['newjob'])
+        except Exception, e:
+            raise XenRTAPIError(HTTPBadRequest, str(e).split("\n")[0])
+        self.newJob(pools=j.get("pools"),
+                    numberMachines=j.get("machines"),
+                    specifiedMachines=j.get("specified_machines"),
+                    jobGroup=j.get("job_group"),
+                    params=j.get("params"),
+                    sequence=j.get("sequence"),
+                    customSequence=j.get("custom_sequence"),
+                    deployment=j.get("deployment"),
+                    resources=j.get("resources"),
+                    flags=j.get("flags"),
+                    email=j.get("email"))
+        return self.getJobs(1, ids=[self.jobid], getParams=True,getResults=False,getLog=False)[self.jobid]
+
+RegisterAPI(ListJobs)
+RegisterAPI(GetJob)
+RegisterAPI(RemoveJob)
+RegisterAPI(NewJob)

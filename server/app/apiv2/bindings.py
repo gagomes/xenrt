@@ -30,7 +30,7 @@ class Path(object):
         ret = """        path = "%%s%s" %% (self.base)\n""" % self.path
         for p in self.pathParams:
             q = self.pythonParamName(p)
-            ret += """        path = path.replace("{%s}", %s)\n""" % (p, q)
+            ret += """        path = path.replace("{%s}", self.__serializeForPath(%s))\n""" % (p, q)
         ret += """        paramdict = {}\n"""
         ret += """        files = {}\n"""
         for p in self.queryParams:
@@ -167,6 +167,10 @@ class PythonBindings(XenRTAPIv2Swagger):
         for p in swagger['paths'].keys():
             for m in swagger['paths'][p].keys():
                 self.funcs.append(Path(self, p, m, swagger['paths'][p][m], swagger['definitions']))
+        
+        self.scheme = swagger['schemes'][0]
+        self.base = swagger['basePath']
+        self.host = swagger['host']
 
     def generateFile(self):
         ret = """#!/usr/bin/python
@@ -183,14 +187,14 @@ class XenRTAPIException(Exception):
         self.canForce = canForce
 
     def __str__(self):
-        ret = "%s %s: %s" % (self.code, httplib.responses[self.code], self.reason)
+        ret = "%%s %%s: %%s" %% (self.code, httplib.responses[self.code], self.reason)
         if self.canForce:
             ret += " (can force override)"
         return ret
 
 class XenRT(object):
-    def __init__(self, base, user, password):
-        self.base = base
+    def __init__(self, user, password):
+        self.base = "%s://%s%s"
         self.user = user
         self.password = password
 
@@ -198,9 +202,12 @@ class XenRT(object):
         if isinstance(data, bool):
             return str(data).lower()
         elif isinstance(data, (list, tuple)):
-            return ",".join(data)
+            return ",".join([str(x) for x in data])
         else:
-            return data
+            return str(data)
+
+    def __serializeForPath(self, data):
+        return str(data)
 
     def __raiseForStatus(self, response):
         try:
@@ -220,7 +227,7 @@ class XenRT(object):
                                         canForce)
         response.raise_for_status()
 
-"""
+""" % (self.scheme, self.host, self.base)
         for func in self.funcs:
             ret += "%s\n" % func.methodSignature
             ret += "%s\n" % func.description

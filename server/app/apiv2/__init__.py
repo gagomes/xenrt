@@ -55,6 +55,8 @@ class XenRTAPIv2Swagger(XenRTPage):
         }
         global _apiReg
         for cls in _apiReg.apis:
+            if cls.HIDDEN:
+                continue
             if not cls.PATH in spec['paths']:
                 spec['paths'][cls.PATH] = {}
             spec['paths'][cls.PATH][cls.REQTYPE.lower()] = {
@@ -81,6 +83,7 @@ class XenRTAPIv2Page(XenRTPage):
     DEFINITIONS = {}
     OPERATION_ID = None
     PARAM_ORDER = []
+    HIDDEN = False
     
     def getMultiParam(self, paramName, delimiter=","):
         params = self.request.params.getall(paramName)

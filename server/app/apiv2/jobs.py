@@ -118,7 +118,8 @@ class _JobsBase(XenRTAPIv2Page):
         for j in jobs.keys():
             jobs[j]['suiterun'] = jobs[j]['params'].get("TESTRUN_SR")
             jobs[j]['result'] = jobs[j]['params'].get("CHECK")
-            jobs[j]['upload_to'] = "%s://%s%s/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['attachmentUploadUrl'] = "%s://%s%s/job/%d/attachments" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
+            jobs[j]['logUploadUrl'] = "%s://%s%s/job/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), j)
             mlist = ""
             for k in ["SCHEDULEDON", "SCHEDULEDON2", "SCHEDULEDON3"]:
                 if jobs[j]['params'].has_key(k):
@@ -145,7 +146,8 @@ class _JobsBase(XenRTAPIv2Page):
                     "result": rc[1].strip(),
                     "detailid": rc[2],
                     "test": rc[3].strip(),
-                    "phase": rc[4].strip()
+                    "phase": rc[4].strip(),
+                    "logUploadUrl": "%s://%s%s/test/%d/log" % (u.scheme, jobs[j]['params'].get("LOG_SERVER"), u.path.rstrip("/"), rc[2])
                 }
                 detailids[rc[2]] = rc[0]
             if getLog:

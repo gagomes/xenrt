@@ -590,7 +590,7 @@ class Guest(xenrt.GenericGuest):
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
 
     def installCoreOS(self):
-        self.changeCD(self.distro)
+        self.changeCD("%s.iso" % self.distro)
         host = self.getHost()
         templateName = host.getTemplate(self.distro)
         templateUUID = host.minimalList("template-list", args="name-label='%s'" % templateName)[0]

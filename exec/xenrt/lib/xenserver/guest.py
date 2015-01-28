@@ -821,6 +821,7 @@ class Guest(xenrt.GenericGuest):
                         if self.mainip:
                             xenrt.TEC().warning("Using cached IP address %s  for VM %s" % (self.mainip, self.getName()))
                         else:
+                            self.checkHealth()
                             raise
                     if not self.mainip:
                         raise xenrt.XRTFailure("Did not find an IP address")

@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ ! -f /etc/init.d/xenrtdhcpd ]; then
+    exit 0
+fi
+
+function check
+{
+    DHCPD=$(pgrep -f /usr/share/xenrt/xenrtdhcpd/xenrtdhcpd || true)
+    if [[ -z "$DHCPD" ]]; then
+        service xenrtdhcpd restart
+    fi
+    unset DHCPD
+}
+
+check
+sleep 15
+check
+sleep 15
+check
+sleep 15
+check

@@ -8,7 +8,7 @@
 #
 
 import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy
-import shutil, traceback, fnmatch, xml.dom.minidom
+import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
@@ -602,7 +602,7 @@ users:
     passwd: %s
 """ % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '\$6\$SALT\$')
         config = config.replace("\n", "%BR%")
-        cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), config))
+        cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
 
         
 

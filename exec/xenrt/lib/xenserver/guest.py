@@ -482,8 +482,9 @@ class Guest(xenrt.GenericGuest):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
         elif "coreos-" in distro:
-            self.installCoreOS()
+            self.enlightenedDrivers=True
             notools = True # CoreOS has tools installed already
+            self.installCoreOS()
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             if pxe:

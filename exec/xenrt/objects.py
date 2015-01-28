@@ -457,7 +457,7 @@ class GenericPlace:
         while 1:
             if not self.password:
                 self.findPassword()
-            if xenrt.ssh.SSH(self.getIP(),
+            if self.getIP() and xenrt.ssh.SSH(self.getIP(),
                              cmd,
                              password=self.password,
                              level=xenrt.RC_OK,

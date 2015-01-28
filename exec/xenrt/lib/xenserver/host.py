@@ -8034,7 +8034,7 @@ rm -f /etc/xensource/xhad.conf || true
  
         license = XenServerLicenceFactory().maxLicenceSkuHost(self)
         LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
-        self.license(edition = license.getEdition(), v6server=v6server)
+        self.license(edition = license.getEdition(), v6server=v6server,usev6testd=False)
         
 
 #############################################################################
@@ -10622,7 +10622,7 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None,usev6testd=False):
 
         if mockLicense == True:
 

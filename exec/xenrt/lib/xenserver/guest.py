@@ -8,7 +8,7 @@
 #
 
 import sys, string, time, random, re, crypt, urllib, os, os.path, socket, copy
-import shutil, traceback, fnmatch, xml.dom.minidom
+import shutil, traceback, fnmatch, xml.dom.minidom, pipes
 import xenrt
 from PIL import Image
 from IPy import IP
@@ -481,6 +481,10 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
+        elif "coreos-" in distro:
+            self.enlightenedDrivers=True
+            notools = True # CoreOS has tools installed already
+            self.installCoreOS()
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             if pxe:
@@ -586,6 +590,55 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+
+    def installCoreOS(self):
+        self.changeCD("%s.iso" % self.distro)
+        host = self.getHost()
+        templateName = host.getTemplate(self.distro)
+        templateUUID = host.minimalList("template-list", args="name-label='%s'" % templateName)[0]
+        cli = self.getCLIInstance()
+        config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
+        self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
+        passwd = crypt.crypt(self.password, '$6$SALT$')
+        proxy = xenrt.TEC().lookup("HTTP_PROXY", None)
+        if proxy:
+            config += """
+  - path: /etc/systemd/system/docker.service.d/http-proxy.conf
+    owner: core:core
+    permissions: 0644
+    content: |
+      [Service]
+      Environment="HTTP_PROXY=http://%s" """ % proxy
+        config += """
+users:
+  - name: root
+    passwd: %s
+""" % (passwd)
+        config = config.replace("\n", "%BR%")
+        cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
+        self.lifecycleOperation("vm-start")
+        # Monitor ARP to see what IP address it gets assigned and try
+        # to SSH to the guest on that address
+        vifname, bridge, mac, c = self.vifs[0]
+
+        if self.reservedIP:
+            self.mainip = self.reservedIP
+        elif self.use_ipv6:
+            self.mainip = self.getIPv6AutoConfAddress(vifname)
+        else:
+            arptime = 10800
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
+
+        if not self.mainip:
+            raise xenrt.XRTFailure("Did not find an IP address")
+
+        self.waitForSSH(600, "CoreOS ISO boot")
+
+        channel = self.distro.split("-")[-1]
+        
+        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+
+        self.shutdown()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

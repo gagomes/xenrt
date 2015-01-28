@@ -600,7 +600,7 @@ class Guest(xenrt.GenericGuest):
 users:
   - name: root
     passwd: %s
-""" % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '\$6\$SALT\$')
+""" % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '$6$SALT$')
         config = config.replace("\n", "%BR%")
         cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
         self.lifecycleOperation("vm-start")

@@ -3333,7 +3333,7 @@ class Config:
         hfKeys = allHotfixes.keys()
         hfKeys.sort()
         hotfixes = []
-        started = startPoint is None
+        started = startAt is None and startAfter is None
         for h in hfKeys:
             if not started:
                 if h == startAt or h == startAfter:

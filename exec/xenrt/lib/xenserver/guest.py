@@ -596,11 +596,13 @@ class Guest(xenrt.GenericGuest):
         templateUUID = host.minimalList("template-list", args="name-label='%s'" % templateName)[0]
         cli = self.getCLIInstance()
         config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
+        self.password = xenrt.TEC().lookup("ROOT_PASSWORD")
+        passwd = crypt.crypt(self.password, '$6$SALT$')
         config += """
 users:
   - name: root
     passwd: %s
-""" % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '$6$SALT$')
+""" % (passwd)
         config = config.replace("\n", "%BR%")
         cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
         self.lifecycleOperation("vm-start")
@@ -619,10 +621,13 @@ users:
         if not self.mainip:
             raise xenrt.XRTFailure("Did not find an IP address")
 
+        self.waitForSSH(600, "CoreOS ISO boot")
 
-        raise xenrt.XRTError("Not yet supported")
-
+        channel = self.distro.split("-")[-1]
         
+        self.execguest("coreos-install -d /dev/xvda -V current -C %s -o xen -b %s/amd64-usr" % (channel, xenrt.TEC().lookup(["RPM_SOURCE", self.distro, "x86-64", "HTTP"])))
+
+        self.shutdown()
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

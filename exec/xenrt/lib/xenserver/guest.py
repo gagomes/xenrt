@@ -603,6 +603,24 @@ users:
 """ % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '\$6\$SALT\$')
         config = config.replace("\n", "%BR%")
         cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), pipes.quote(config)))
+        self.lifecycleOperation("vm-start")
+        # Monitor ARP to see what IP address it gets assigned and try
+        # to SSH to the guest on that address
+        vifname, bridge, mac, c = self.vifs[0]
+
+        if self.reservedIP:
+            self.mainip = self.reservedIP
+        elif self.use_ipv6:
+            self.mainip = self.getIPv6AutoConfAddress(vifname)
+        else:
+            arptime = 10800
+            self.mainip = self.getHost().arpwatch(bridge, mac, timeout=arptime)
+
+        if not self.mainip:
+            raise xenrt.XRTFailure("Did not find an IP address")
+
+
+        raise xenrt.XRTError("Not yet supported")
 
         
 

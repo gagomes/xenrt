@@ -1923,7 +1923,9 @@ def newGuestsInstalls():
     print tccode
     print seqcode
 
-def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1-x64"]):
+def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1-x64"], upgradeRequired=False):
+
+    oldInputDir = xenrt.TEC().lookup("PIDIR_%s" % oldRelease.upper())
 
     vmPrepare = ""
     for d in distros:
@@ -1936,6 +1938,7 @@ def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1
 """ % (d, d)
 
     tcs = ""
+    upgtcs = ""
     branches = xenrt.TEC().lookup(["TOOLS_HOTFIXES", oldRelease]).keys()
 
     for branch in branches:
@@ -1949,15 +1952,36 @@ def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1
           <arg>hotfix=%s</arg>
         </testcase>
 """ % (d, h, d, h)
-                tcs += """        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+                if upgradeRequired:
+                    upgtcs += """      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpg%s_%s">
+        <arg>tag=%s_%s</arg>
+      </testcase>
+""" % (h, d, h, d)
+                else:
+                    tcs += """        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
           <arg>tag=%s_%s</arg>
         </testcase>
 """ % (h, d)
                 tcs += "      </serial>\n"
 
+    upg = ""
+    upghost = ""
+    if upgradeRequired:
+        upg = """    <testcase id="xenserver.install.TCXenServerUpgrade">
+      <arg>input=DEFAULT</arg>
+    </testcase>
+    <serial group="Upgrade">
+%s
+    </serial>
+""" % (upgtcs)
+        upghost = " productVersion=\"${OLD_PRODUCT_VERSION}\" version=\"${OLD_PRODUCT_INPUTDIR}\""
+
     seq = """<xenrt>
 
   <!-- Driver upgrade test sequence -->
+
+  <default name="OLD_PRODUCT_VERSION" value="%s"/>
+  <default name="OLD_PRODUCT_INPUTDIR" value="%s"/>
 
   <variables>
     <PRODUCT_VERSION>%s</PRODUCT_VERSION>
@@ -1965,16 +1989,17 @@ def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1
   </variables>
 
   <prepare>
-    <host>
+    <host%s>
 %s    </host>
   </prepare>
 
   <testsequence>
     <parallel workers="4">
 %s    </parallel>
+%s
   </testsequence>
 </xenrt>
-""" % (newRelease, vmPrepare, tcs)
+""" % (oldRelease, oldInputDir, newRelease, upghost, vmPrepare, tcs, upg)
 
     seqName = "seqs/%spvupg_%s.seq" % (newRelease.lower(), oldRelease.lower())
     with open(seqName, "w") as f:

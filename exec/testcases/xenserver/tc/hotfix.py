@@ -122,6 +122,7 @@ class _Hotfix(xenrt.TestCase):
             v6.removeAllLicenses()
             self.host.applyFullLicense(v6)
             if self.POOLED:
+                v6.removeAllLicenses()
                 self.slave.applyFullLicense(v6)
             v6applied = True
 
@@ -194,6 +195,7 @@ class _Hotfix(xenrt.TestCase):
                     v6.removeAllLicenses()
                     self.host.applyFullLicense(v6)
                     if self.POOLED:
+                        v6.removeAllLicenses()
                         self.slave.applyFullLicense(v6)
                     v6applied = True
 

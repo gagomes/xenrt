@@ -25,99 +25,107 @@
   </prepare>
 
   <testsequence>
-    <serial group="PrepareVMs">
-      <parallel>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62E008">
+    <parallel workers="4">
+      <serial group="XS62E008_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x86</arg>
-          <arg>tag=win7sp1-x86_XS62E008</arg>
+          <arg>tag=XS62E008_win7sp1-x86</arg>
           <arg>hotfix=XS62E008</arg>
         </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62E008">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62E008_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62E008_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x64</arg>
-          <arg>tag=win7sp1-x64_XS62E008</arg>
+          <arg>tag=XS62E008_win7sp1-x64</arg>
           <arg>hotfix=XS62E008</arg>
         </testcase>
-      </parallel>
-      <parallel>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62E015">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62E008_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62E015_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x86</arg>
-          <arg>tag=win7sp1-x86_XS62E015</arg>
+          <arg>tag=XS62E015_win7sp1-x86</arg>
           <arg>hotfix=XS62E015</arg>
         </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62E015">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62E015_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62E015_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x64</arg>
-          <arg>tag=win7sp1-x64_XS62E015</arg>
+          <arg>tag=XS62E015_win7sp1-x64</arg>
           <arg>hotfix=XS62E015</arg>
         </testcase>
-      </parallel>
-      <parallel>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62E015_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x86</arg>
-          <arg>tag=win7sp1-x86_XS62ESP1</arg>
+          <arg>tag=XS62ESP1_win7sp1-x86</arg>
           <arg>hotfix=XS62ESP1</arg>
         </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x64</arg>
-          <arg>tag=win7sp1-x64_XS62ESP1</arg>
+          <arg>tag=XS62ESP1_win7sp1-x64</arg>
           <arg>hotfix=XS62ESP1</arg>
         </testcase>
-      </parallel>
-      <parallel>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1003">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1003_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x86</arg>
-          <arg>tag=win7sp1-x86_XS62ESP1003</arg>
+          <arg>tag=XS62ESP1003_win7sp1-x86</arg>
           <arg>hotfix=XS62ESP1003</arg>
         </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1003">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1003_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1003_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x64</arg>
-          <arg>tag=win7sp1-x64_XS62ESP1003</arg>
+          <arg>tag=XS62ESP1003_win7sp1-x64</arg>
           <arg>hotfix=XS62ESP1003</arg>
         </testcase>
-      </parallel>
-      <parallel>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x86_XS62ESP1012">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1003_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1012_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x86</arg>
-          <arg>tag=win7sp1-x86_XS62ESP1012</arg>
+          <arg>tag=XS62ESP1012_win7sp1-x86</arg>
           <arg>hotfix=XS62ESP1012</arg>
         </testcase>
-        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrepwin7sp1-x64_XS62ESP1012">
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1012_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS62ESP1012_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=win7sp1-x64</arg>
-          <arg>tag=win7sp1-x64_XS62ESP1012</arg>
+          <arg>tag=XS62ESP1012_win7sp1-x64</arg>
           <arg>hotfix=XS62ESP1012</arg>
         </testcase>
-      </parallel>
-    </serial>
-    <parallel group="UpgradeVMs">
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62E008">
-        <arg>tag=win7sp1-x86_XS62E008</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62E008">
-        <arg>tag=win7sp1-x64_XS62E008</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62E015">
-        <arg>tag=win7sp1-x86_XS62E015</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62E015">
-        <arg>tag=win7sp1-x64_XS62E015</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62ESP1">
-        <arg>tag=win7sp1-x86_XS62ESP1</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62ESP1">
-        <arg>tag=win7sp1-x64_XS62ESP1</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62ESP1003">
-        <arg>tag=win7sp1-x86_XS62ESP1003</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62ESP1003">
-        <arg>tag=win7sp1-x64_XS62ESP1003</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x86_XS62ESP1012">
-        <arg>tag=win7sp1-x86_XS62ESP1012</arg>
-      </testcase>
-      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpgwin7sp1-x64_XS62ESP1012">
-        <arg>tag=win7sp1-x64_XS62ESP1012</arg>
-      </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS62ESP1012_win7sp1-x64</arg>
+        </testcase>
+      </serial>
     </parallel>
   </testsequence>
 </xenrt>

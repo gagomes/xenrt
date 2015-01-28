@@ -1938,26 +1938,25 @@ def driverUpgradeMatrix():
       </vm>
 """ % (d, d)
 
-    prepTCs = ""
-    upgTCs = ""
+    tcs = ""
     branches = xenrt.TEC().lookup(["TOOLS_HOTFIXES", oldRelease]).keys()
 
     for branch in branches:
         hotfixes = xenrt.TEC().lookup(["TOOLS_HOTFIXES", oldRelease, branch])
         for h in hotfixes:
-            prepTCs += "      <parallel>\n"
             for d in distros:
-                prepTCs += """        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade" name="TCPrep%s_%s">
+                tcs += "      <serial group=\"%s_%s\">\n" % (h, d)
+                tcs += """        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
           <arg>template=%s</arg>
           <arg>tag=%s_%s</arg>
           <arg>hotfix=%s</arg>
         </testcase>
-""" % (d, h, d, d, h, h)
-                upgTCs += """      <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade" name="TCUpg%s_%s">
-        <arg>tag=%s_%s</arg>
-      </testcase>
 """ % (d, h, d, h)
-            prepTCs += "      </parallel>\n"
+                tcs += """        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=%s_%s</arg>
+        </testcase>
+""" % (h, d)
+                tcs += "      </serial>\n"
 
     seq = """<xenrt>
 
@@ -1974,13 +1973,11 @@ def driverUpgradeMatrix():
   </prepare>
 
   <testsequence>
-    <serial group="PrepareVMs">
-%s    </serial>
-    <parallel group="UpgradeVMs">
+    <parallel workers="4">
 %s    </parallel>
   </testsequence>
 </xenrt>
-""" % (newRelease, vmPrepare, prepTCs, upgTCs)
+""" % (newRelease, vmPrepare, tcs)
 
     seqName = "seqs/%spvupg_%s.seq" % (newRelease.lower(), oldRelease.lower())
     with open(seqName, "w") as f:

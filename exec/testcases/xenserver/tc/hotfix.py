@@ -2077,7 +2077,8 @@ class TCApplyHotfixesToPoint(xenrt.TestCase):
 
     def run(self, arglist):
         args = self.parseArgsKeyValue(arglist)
-        start = None
+        startAt = None
+        startAfter = None
         stop = None
         if "start" in args.keys():
             startAt = args["start"]

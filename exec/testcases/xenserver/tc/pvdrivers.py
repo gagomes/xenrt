@@ -1201,18 +1201,18 @@ class TCTestDriverUpgrade(xenrt.TestCase):
         guest = self.getGuest(hotfixTag)
         snapshot = guest.snapshot()
 
-        xenrt.TEC().delimit("Testing normal driver upgrade")
+        xenrt.TEC().logdelimit("Testing normal driver upgrade")
         guest.start()
 
         # Try upgrading drivers
         guest.installDrivers()
 
         # Revert to snapshot, make existing drivers boot start
-        xenrt.TEC().delimit("Reverting to snapshot")
+        xenrt.TEC().logdelimit("Reverting to snapshot")
         guest.shutdown()
         guest.revert(snapshot)
 
-        xenrt.TEC().delimit("Testing boot start driver upgrade")
+        xenrt.TEC().logdelimit("Testing boot start driver upgrade")
         guest.start()
         guest.setDriversBootStart()
 

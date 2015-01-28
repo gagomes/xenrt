@@ -4942,8 +4942,8 @@ class TCIsoChecksums(xenrt.TestCase):
         xenrt.TEC().logdelimit("Comparing ISO volume labels")
         origLabel = xenrt.command("file -b %s" % originalIso, strip=True)
         repackLabel = xenrt.command("file -b %s" % repackedIso, strip=True)
-        if origLabel != repackLabel:
-            raise xenrt.XRTFailure("ISO volume labels differ", data="Original %s, Repack %s" % (origLabel, repackLabel))
+        if origLabel == repackLabel:
+            raise xenrt.XRTFailure("ISO volume labels are identical")
 
         # Output isoinfo for reference
         xenrt.TEC().logdelimit("Getting isoinfo")

@@ -63,4 +63,4 @@ class XenRTCompat(XenRTPage):
                 retParams.append("%s=%s" % (p, self.request.params[p]))
         return "&".join(retParams)
 
-PageFactory(XenRTCompat, "compat", "/queue.cgi")
+PageFactory(XenRTCompat, "/queue.cgi")

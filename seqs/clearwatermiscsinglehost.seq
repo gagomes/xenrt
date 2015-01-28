@@ -18,5 +18,8 @@
     <serial group="hfx1003">
       <testcase id="xenserver.tc.network.TC2VlansPerBridge" tc="TC-20912"/>
     </serial>
+    <serial group="hfx1168">
+      <testcase id="xenserver.tc.guest.TCMemoryDumpBootDriverFlag" tc="TC-23777"/>
+    </serial>
   </testsequence>
 </xenrt>

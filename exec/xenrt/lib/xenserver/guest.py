@@ -127,17 +127,8 @@ class Guest(xenrt.GenericGuest):
         """
         return self.paramGet("allowed-operations").strip().split("; ")
 
-    def existing(self, host):
-        self.setHost(host)
-        host.addGuest(self)
-        self.enlightenedDrivers = True 
-
-        # Get basic guest details
-        self.vcpus = self.cpuget()
-        self.memory = self.memget()
-        if self.windows or self.checkWindows():
-            self.windows = True
-            self.vifstem = self.VIFSTEMHVM
+    def determineDistro(self):
+        """ Try find installed distro. """
 
         # use distro from other-config field if VM was created by XenRT
         if not self.distro:
@@ -195,6 +186,23 @@ class Guest(xenrt.GenericGuest):
                         self.distro = "ws08r2"
             except:
                 pass
+
+        return self.distro
+
+    def existing(self, host):
+        self.setHost(host)
+        host.addGuest(self)
+        self.enlightenedDrivers = True 
+
+        # Get basic guest details
+        self.vcpus = self.cpuget()
+        self.memory = self.memget()
+        if self.windows or self.checkWindows():
+            self.windows = True
+            self.vifstem = self.VIFSTEMHVM
+
+        if not self.distro:
+            self.determineDistro()
 
         # If we've still not got it, try some heuristics
         if not self.distro and string.lower(self.getName()[0]) == "w":
@@ -813,6 +821,7 @@ class Guest(xenrt.GenericGuest):
                         if self.mainip:
                             xenrt.TEC().warning("Using cached IP address %s  for VM %s" % (self.mainip, self.getName()))
                         else:
+                            self.checkHealth()
                             raise
                     if not self.mainip:
                         raise xenrt.XRTFailure("Did not find an IP address")
@@ -1350,7 +1359,7 @@ exit /B 1
 
         self.enlightenedDrivers = False
 
-    def waitForAgent(self, timeout):
+    def waitForAgent(self, timeout, checkPvDriversUpToDate=True):
         """Wait for guest agent to come up"""
 
         deadline = xenrt.util.timenow() + timeout
@@ -1381,10 +1390,11 @@ exit /B 1
                 xenrt.TEC().logverbose("Wait 5 seconds just in case XAPI is still settling.")
                 xenrt.sleep(5)
 
-                for i in range(48):
-                    if self.pvDriversUpToDate():
-                        break
-                    xenrt.sleep(10)
+                if not xenrt.TEC().lookup("NO_TOOLS_UP_TO_DATE_CHK", False, boolean=True) and checkPvDriversUpToDate:
+                    for i in range(48):
+                        if self.pvDriversUpToDate():
+                            break
+                        xenrt.sleep(10)
                 return xenrt.RC_OK
 
             xenrt.sleep(5)
@@ -2400,6 +2410,114 @@ exit /B 1
             if vdi in after:
                 raise xenrt.XRTFailure("VDI still present after uninstall",
                                        "%s" % (vdi))
+
+    def getMaxSupportedVCPUCount(self):
+        """ Find maximum supported number of VCPU for this guest."""
+
+        limits = []
+
+        if not self.distro:
+            self.determineDistro()
+
+        # Guest has its own limitation
+        if self.distro:
+            if self.distro in xenrt.TEC().lookup(["GUEST_LIMITATIONS"]):
+                itemname = "MAX_VM_VCPUS"
+                if not self.windows and self.arch and "64" in self.arch:
+                    xenrt.TEC().logverbose("x64 is detected.")
+                    if "MAX_VM_VCPUS64" in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                        itemname = "MAX_VM_VCPUS64"
+                    else:
+                        xenrt.TEC().logverbose("No infor for 64 bit distro. Using 32 bit limit...")
+                if itemname in xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro]):
+                    limits.append(int(xenrt.TEC().lookup(["GUEST_LIMITATIONS", self.distro, itemname])))
+                    xenrt.TEC().logverbose("%s supports up to %d VCPUs." % (self.distro, limits[-1]))
+                else:
+                    xenrt.TEC().warning("Supported number of VCPU for %s is not declared." % self.distro)
+            else:
+                xenrt.TEC().warning("%s has no GUEST_LIMITATIONS config." % self.distro)
+        else:
+            xenrt.TEC().warning("Cannot detect distro.")
+
+        # XS has limitation
+        pver = xenrt.TEC().lookup("PRODUCT_VERSION", None)
+        if pver:
+            if "MAX_VM_VCPUS" in xenrt.TEC().lookup(["VERSION_CONFIG", pver]):
+                limits.append(int(xenrt.TEC().lookup(["VERSION_CONFIG", pver, "MAX_VM_VCPUS"])))
+                xenrt.TEC().logverbose("%d VCPUs per VM on %s host." % (limits[-1], pver))
+            else:
+                xenrt.TEC().warning("MAX_VM_VCPUS is not declared for %s host." % pver)
+        else:
+            xenrt.TEC().warning("Cannot determine PRODUCT VERSION")
+
+        # HVM cannot have more vcpus than pcpus.
+        pcpus = None
+        for hostname in xenrt.TEC().registry.hostList():
+            host = xenrt.TEC().registry.hostGet(hostname)
+            if not pcpus or pcpus > host.getCPUCores():
+                pcpus = host.getCPUCores()
+        if pcpus:
+            limits.append(pcpus)
+
+        if limits:
+            return min(limits)
+
+        # Pick 4 if no limitation is declared.
+        xenrt.TEC().warning("None of guest limit, host limit and XS limit is found.")
+        return 4
+
+    def setRandomVcpus(self):
+        xenrt.TEC().logverbose("Setting random vcpus for VM ")
+        maxVcpusSupported = self.getMaxSupportedVCPUCount()
+        randomVcpus = random.randint(1, maxVcpusSupported)
+        with xenrt.GEC().getLock("RND_VCPUS"):
+            dbVal = int(xenrt.TEC().lookup("RND_VCPUS_VAL", "0"))
+            if dbVal != 0:
+                xenrt.TEC().logverbose("Using vcpus from DB: %d" % dbVal)
+                self.setVCPUs(dbVal)
+            else:
+                xenrt.TEC().logverbose("Randomly choosen vcpus is %d" % randomVcpus)
+                self.setVCPUs(randomVcpus)
+                xenrt.GEC().config.setVariable("RND_VCPUS_VAL",str(randomVcpus))
+                xenrt.GEC().dbconnect.jobUpdate("RND_VCPUS_VAL",str(randomVcpus))
+
+    def setRandomCoresPerSocket(self, host, vcpus):
+        xenrt.TEC().logverbose("Setting random cores per socket....")
+
+        if not isinstance(host, xenrt.lib.xenserver.ClearwaterHost) or not self.windows:
+            xenrt.TEC().logverbose("Refusing to set cores-per-socket on anything prior \
+                to Clearwater or non-windows guests")
+            return
+
+        # Max cores per socket makes sure we don't exceed the number of cores per socket on the host
+        cpuCoresOnHost = host.getCPUCores()
+        socketsOnHost  = host.getNoOfSockets()
+        maxCoresPerSocket = cpuCoresOnHost / socketsOnHost
+        xenrt.TEC().logverbose("cpuCoresonHost: %s, socketsonHost: %s, maxCoresPerSocket: %s" % (cpuCoresOnHost, socketsOnHost, maxCoresPerSocket))
+
+        if vcpus != None:
+            # This gives us all the factors of the vcpus specified
+            possibleCoresPerSocket = [x for x in range(1, vcpus+1) if vcpus % x == 0]
+            xenrt.TEC().logverbose("possibleCoresPerSocket is %s" % possibleCoresPerSocket)
+
+            # This eliminates the factors that would exceed the host's cores per socket
+            validCoresPerSocket = [x for x in possibleCoresPerSocket if x <= maxCoresPerSocket]
+            xenrt.TEC().logverbose("validCoresPerSocket is %s" % validCoresPerSocket)
+
+            # Then choose a value from here
+            coresPerSocket = random.choice(validCoresPerSocket)
+
+            with xenrt.GEC().getLock("RND_CORES_PER_SOCKET"):
+                dbVal = int(xenrt.TEC().lookup("RND_CORES_PER_SOCKET_VAL", "0"))
+
+                if dbVal in validCoresPerSocket:
+                    xenrt.TEC().logverbose("Using Randomly choosen cores-per-socket from DB: %d" % dbVal)
+                    self.setCoresPerSocket(dbVal)
+                else:
+                    xenrt.TEC().logverbose("Randomly choosen cores-per-socket is %s" % coresPerSocket)
+                    self.setCoresPerSocket(coresPerSocket)
+                    xenrt.GEC().config.setVariable("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
+                    xenrt.GEC().dbconnect.jobUpdate("RND_CORES_PER_SOCKET_VAL", str(coresPerSocket))
 
     def cpuget(self):
         """Return the initial number of vcpus this guest has"""
@@ -4353,6 +4471,7 @@ def createVM(host,
         g = host.guestFactory()(displayname, 
                                 template, 
                                 password=password)
+        g.distro = distro
         g.arch = arch
         if re.search("[vw]", distro):
             g.windows = True
@@ -4374,11 +4493,11 @@ def createVM(host,
         if vcpus:
             g.setVCPUs(vcpus)
         elif xenrt.TEC().lookup("RND_VCPUS", default=False, boolean=True):
-            host.setRandomVcpus(g)
+            g.setRandomVcpus()
         if corespersocket:
             g.setCoresPerSocket(corespersocket)
         elif xenrt.TEC().lookup("RND_CORES_PER_SOCKET", default=False, boolean=True):
-            host.setRandomCoresPerSocket(g, vcpus)
+            g.setRandomCoresPerSocket(host, vcpus)
         if memory:
             g.setMemory(memory)
 
@@ -5044,7 +5163,7 @@ class TampaGuest(BostonGuest):
     def installLegacyDrivers(self):
         self.installDrivers(useLegacy=True)
 
-    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False):
+    def installDrivers(self, source=None, extrareboot=False, useLegacy=False, useHostTimeUTC=False, expectUpToDate=True):
         if not self.windows:
             xenrt.TEC().skip("Non Windows guest, no drivers to install")
             return
@@ -5107,7 +5226,11 @@ class TampaGuest(BostonGuest):
                     raise xenrt.XRTError('Windows guest agent HostTime=UTC functional only availalbe in Clearwater or later')
                 hostTimeString = 'HOSTTIME=utc'
 
-            pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
+            # If source is specified, we should use it
+            pvToolsTgz = source
+            if not source:
+                # See if we have an override at the job level
+                pvToolsTgz = xenrt.TEC().lookup("PV_TOOLS_TGZ_" + self.host.productVersion.upper(), None)
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
@@ -5169,7 +5292,7 @@ class TampaGuest(BostonGuest):
                 xenrt.sleep(120)
 
         # wait for guest agent
-        self.waitForAgent(300)
+        self.waitForAgent(300, checkPvDriversUpToDate=expectUpToDate)
 
         self.enlightenedDrivers = True
 
@@ -5200,7 +5323,7 @@ class TampaGuest(BostonGuest):
             self.checkPVDevices()
 
         for i in range(12):
-            if self.pvDriversUpToDate():
+            if self.pvDriversUpToDate() or not expectUpToDate:
                 break
             xenrt.sleep(10)
 

@@ -12,8 +12,11 @@ distribution as separate works.
 
 bonnie++, dbench, dhcp, dnsmasq, gnbd, iscsitarget, kernbench, lmbench, ltp,
 memtest, memtest86+, mysql, perl DBI+DBD-MySQL, osdb, osdlaim, pxelinux, qemu,
-scapy, stress, sysbench, virtinst and xm-test are distributed under the terms of
-the GNU Public License.
+scapy, stress, sysbench, virtinst, xm-test and geteltorito are distributed under
+the terms of the GNU Public License.
+
+swagger-ui is released under the terms of the Apache License, Version 2.0 Full
+details can be found in the file server/swagger/LICENSE
 
 Twisted and libvirt are distributed under the terms of the GNU Lesser General 
 Public License.

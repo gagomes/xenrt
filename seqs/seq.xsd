@@ -21,7 +21,7 @@
 
   <xs:simpleType name="storageType">
     <xs:restriction base="xs:string">
-      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc"/>
+      <xs:pattern value="nfs|lvmoiscsi|fc|eql|netapp|icvsmeql|icvsmnetapp|icvsmfc|icvsmsmisiscsi|icvsmsmisfc|cvsmnetapp|cvsmeql|cvsmsmisiscsi|cvsmfc|cvsmsmisfc|smb"/>
     </xs:restriction>
   </xs:simpleType>
 
@@ -526,12 +526,16 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="preprepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>
+              <xs:group ref ="vlan" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref ="host" minOccurs="0" maxOccurs="unbounded"/>
               <xs:group ref="pool" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="cloud" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="template" minOccurs="0" maxOccurs="unbounded"/>
+              <xs:group ref="instance" minOccurs="0" maxOccurs="unbounded"/>
             </xs:choice>
           </xs:complexType>
         </xs:element>
@@ -547,7 +551,7 @@
           </xs:complexType>
         </xs:element>
         <xs:element name="prepare" minOccurs="0" maxOccurs="1" >
-          <xs:complexType>
+          <xs:complexType mixed="true">
             <xs:choice minOccurs="1" maxOccurs="unbounded">
               <xs:group ref="sharedhost" minOccurs="0" maxOccurs="unbounded"/>
               <xs:element name ="allhosts" minOccurs="0" maxOccurs="1"/>

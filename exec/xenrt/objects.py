@@ -17,6 +17,7 @@ import testcases.benchmarks.workloads
 import bz2, simplejson
 import IPy
 import XenAPI
+import xml.etree.ElementTree as ET
 from xenrt.lazylog import log, warning
 from xenrt.linuxanswerfiles import *
 
@@ -450,8 +451,13 @@ class GenericPlace:
                     self.windows=True
                     return
 
-    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
-                   username="root", cmd="true"):
+    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation", username="root", cmd="true"):
+
+        if not self.getIP():
+            if level == xenrt.RC_FAIL:
+                self.checkHealth(unreachable=True)
+            return xenrt.XRT("%s: No IP address found" % (desc), level)
+
         now = xenrt.util.timenow()
         deadline = now + timeout
         while 1:
@@ -4236,6 +4242,21 @@ class GenericHost(GenericPlace):
         if x.machine:
             x.machine.setHost(x)
 
+    def getDeploymentRecord(self):
+        ret = {"access": {"hostname": self.getName(),
+                          "ipaddress": self.getIP()},
+               "os": {"family": self.productType,
+                      "version": self.productVersion}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                                    "ADMINISTRATOR_PASSWORD"],
+                                                                    "xensource")
+        else: 
+            ret['access']['username'] = "root"
+            ret['access']['password'] = self.password
+        return ret
+
     def getOS(self):
         if not self.os:
             if self.windows or not self.arch:
@@ -6734,6 +6755,28 @@ class GenericGuest(GenericPlace):
         x.reservedIP = self.reservedIP
         x.instance = self.instance
 
+    def getDeploymentRecord(self):
+        ret = {"access": {"vmname": self.getName(),
+                          "ipaddress": self.getIP()}, "os": {}}
+        if self.windows:
+            ret['access']['username'] = "Administrator"
+            ret['access']['password'] = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS",
+                                                            "ADMINISTRATOR_PASSWORD"],
+                                                            "xensource")
+            ret['os']['family'] = "windows"
+            ret['os']['version'] = self.distro
+        else:
+            ret['access']['username'] = "root"
+            ret['access']['password'] = "xenroot"
+            ret['os']['family'] = "linux"
+            arch = self.arch or "x86-32"
+            ret['os']['version'] = "%s_%s" % (self.distro, arch)
+        if self.host:
+            ret['host'] = self.host.getName()
+        else:
+            ret['host'] = None
+        return ret
+
     def setHost(self, host):
         if host and host.replaced:
             self.host = host.replaced
@@ -9130,6 +9173,54 @@ class GenericGuest(GenericPlace):
 
         return gpuMake
 
+    def installIntelGPUDriver(self):
+        """This function installs the Intel Iris and HD Graphics Driver on Windows guest 7/8/8.1"""
+
+        xenrt.TEC().logverbose("Installing Intel Iris and HD Graphics Driver on guest %s" %
+                                                                                self.getName())
+
+        if not self.windows:
+            raise xenrt.XRTError("Intel Iris and HD Graphics Driver is only available for Windows guests.")
+
+        currentVersion = xenrt.TEC().lookup("INTEL_GPU_DRIVER_VERSION", None)
+        if not currentVersion:
+            raise xenrt.XRTError("The current Intel Iris and HD Graphics Driver version is not described")
+
+        tarBall = "intelgpudriver.tgz"
+        if self.xmlrpcGetArch() == "amd64":
+            fileName = "win64_%s.exe" % currentVersion
+        else:
+            fileName = "win32_%s.exe" % currentVersion
+
+        urlPrefix = xenrt.TEC().lookup("EXPORT_DISTFILES_HTTP", "")
+        url = "%s/intelgpudriver/%s" % (urlPrefix, fileName)
+        installFile = xenrt.TEC().getFile(url)
+        if not installFile:
+            raise xenrt.XRTError("Failed to fetch Intel Iris and HD Graphics Driver from distmaster.")
+
+        tempDir = xenrt.TEC().tempDir()
+        xenrt.command("cp %s %s" % (installFile, tempDir))
+        xenrt.command("cd %s && tar -cvf %s %s" %
+                      (tempDir, tarBall, fileName))
+        self.xmlrpcSendFile("%s/%s" % (tempDir,tarBall),"c:\\%s" % tarBall)
+
+        self.xmlrpcExtractTarball("c:\\%s" % tarBall,"c:\\")
+
+        returncode = self.xmlrpcExec("c:\\%s /s /noreboot" % (fileName),
+                                      level=xenrt.RC_OK, returnerror=False, returnrc=True,
+                                      timeout = 600)
+
+        # Wait for some time to settle down with driver installer.
+        xenrt.sleep(30)
+
+        if returncode == 0:
+            xenrt.TEC().logverbose("Intel Iris and HD Graphics Driver installation successful")
+            # Because of /noreboot option, the setup may require guest reboot.
+            self.reboot()
+        else:
+            raise xenrt.XRTError("Intel Iris and HD Graphics Driver installation failed! (return code = %d)" %
+                                                                                                    (returncode,))
+
     def installGPUDriver(self):
 
         xenrt.TEC().logverbose("Installing GPU driver on vm %s" % self.getName())
@@ -9306,6 +9397,94 @@ sleep (3000)
         finally:
             if self.xmlrpcDirExists(targetPath):
                 self.xmlrpcDelTree(targetPath)
+
+    def isGPUBeingUtilized(self, gpuType):
+        """Find if a GPU is being utilized on a linux vm.
+        Designed for use with Ubuntu1404, RHEL7, OEL7, CentOS7.
+        Raises XRTError if used with a different distro, although older versions of above fail gracefully.
+        @param gpuType: The brand of the GPU which should be checked against. eg. "NVIDIA"
+        @rtype: boolean
+        """
+
+        def findPciID(componentList):
+            """Find the pciid from the lspci output components list."""
+            pciid = None
+            for line in componentList.splitlines():
+                if "VGA" in line:
+                    pciid = componentList.split(" ")[0]
+                    break
+            return pciid
+
+        def isKernelDriverInUse(lspciOut):
+            """Parse the input to figure out if Kernel Driver in use from lspci output."""
+            # Check if "Kernel driver in use: " is in second last line.
+            loLastLine = [line for line in lspciOut.splitlines()][-2]
+            xenrt.TEC().logverbose("Output last line: %s" % loLastLine)
+
+            if "Kernel driver in use: " not in loLastLine:
+                return False # No kernel driver in use, ie. GPU not utilized.
+            return True
+
+        def isGPUClaimed(xml):
+            root = ET.fromstring(xml)
+            desiredNode = None
+            for child in root:
+                if child.attrib["handle"].endswith(pciid):
+                    desiredNode = child
+                    break
+
+            if "claimed" in desiredNode.attrib:
+                if desiredNode.attrib["claimed"] != "true":
+                    return False # GPU is unclaimed.
+            else:
+                return False
+            return True
+
+        if not gpuType:
+            return False
+
+        # List of compatible distros.
+        workingDistros = ["rhel", "centos", "oel", "ubuntu"]
+
+        self.findDistro()
+        xenrt.TEC().logverbose("Current distro is: %s" % self.distro)
+
+        if not any([self.distro.lower().startswith(d) for d in workingDistros]):
+            raise xenrt.XRTError("Function can only be used with certain linux distros. Current distro: %s. Woring distros: %s" % (self.distro, workingDistros))
+
+        # RHEL based systems need to install lspci/lshw
+        if not self.distro.lower().startswith("ubuntu"):
+            self.execguest("yum -y install pciutils")
+            self.execguest("wget -nv '%slshw.tgz' -O - | tar -zx -C /tmp" %
+                                            (xenrt.TEC().lookup("TEST_TARBALL_BASE")))
+            self.execguest("yum -y install /tmp/lshw/lshw-2.17-1.e17.rf.x86_64.rpm")
+
+        # Check if the GPU of given type is present.
+        try:
+            componentList = self.execguest("lspci | grep %s" % gpuType)
+        except:
+            xenrt.TEC().logverbose("Could not find any devices of the given name: %s" % gpuType)
+            return False
+
+        # Identify pciid of GPU.
+        # Sample output to parse: "0:00.0 VGA|Audio ... NVIDIA|AMD|Intel"
+        pciid = findPciID(componentList)
+        if not pciid:
+            xenrt.TEC().logverbose("Could not find any graphics devices of the given name: %s" % gpuType)
+            return False
+
+        lspciOut = self.execguest("lspci -v -s %s" % pciid)
+        inUse = isKernelDriverInUse(lspciOut)
+        if not inUse:
+            return False
+                
+        xml = self.execguest("lshw -xml -c video")
+        claimed = isGPUClaimed(xml)
+        if not claimed:
+            return False
+
+        # Both tests for the GPU being utilized passed.
+        return True
 
     def diskWriteWorkLoad(self,timeInsecs,FileNameForTimeDiff=None):
 
@@ -10338,6 +10517,8 @@ write $computers.psbase.get_Children()
         self.place.password = password
         self.domainname = domainname
         self.netbiosname = None
+        self.forestMode = None
+        self.domainMode = None
 
         if not dontinstall:
             self.prepare()
@@ -10400,6 +10581,23 @@ write $computers.psbase.get_Children()
         # Disable the password complexity requirement so we can continue using our default.
         self.place.disableWindowsPasswordComplexityCheck()
 
+        # Set forest mode and domain mode
+        self.forestMode = xenrt.TEC().lookup("ADSERVER_FORESTMODE", "Win2008")
+        self.domainMode = xenrt.TEC().lookup("ADSERVER_DOMAINMODE", "Win2008")
+        ## DCPromo setup requires numeric value rather than windows version string.
+        if float(self.place.xmlrpcWindowsVersion()) < 6.3:
+            modeLevels = {'0':"Win2000", '2':"Win2003", '3':"Win2008", '4':"Win2008R2"}
+
+            forestLevelList = [key for key,value in modeLevels.iteritems() if value.lower() == self.forestMode.lower()]
+            if len(forestLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.forestMode)
+            self.forestMode = forestLevelList[0]
+
+            domainLevelList = [key for key,value in modeLevels.iteritems() if value.lower() == self.domainMode.lower()]
+            if len(domainLevelList) != 1:
+                raise xenrt.XRTError("Unknown forest level : '%s' " % self.domainMode)
+            self.domainMode = domainLevelList[0]
+
         # Set up a new AD domain.
         if float(self.place.xmlrpcWindowsVersion()) < 6.3:
             self.installOnWS2008()
@@ -10419,9 +10617,9 @@ write $computers.psbase.get_Children()
 ReplicaOrNewDomain=Domain
 NewDomain=Forest
 NewDomainDNSName=%s
-ForestLevel=0
+ForestLevel=%s
 DomainNetbiosName=%s
-DomainLevel=0
+DomainLevel=%s
 InstallDNS=Yes
 ConfirmGc=Yes
 CreateDNSDelegation=No
@@ -10430,7 +10628,7 @@ LogPath="C:\Windows\NTDS"
 SYSVOLPath="C:\Windows\SYSVOL"
 SafeModeAdminPassword=%s
 RebootOnSuccess=No
-""" % (self.domainname, self.netbiosname, self.place.password)
+""" % (self.domainname, self.forestMode, self.netbiosname, self.domainMode, self.place.password)
         self.place.xmlrpcCreateFile("c:\\ad.txt", dcpromo)
         self.place.xmlrpcExec("dcpromo.exe /unattend:c:\\ad.txt\n"
                               "netsh advfirewall set domainprofile "
@@ -10452,10 +10650,10 @@ RebootOnSuccess=No
 Install-ADDSForest `
 -CreateDnsDelegation:$false `
 -DatabasePath "C:\Windows\NTDS" `
--DomainMode "Win2008" `
+-DomainMode "%s" `
 -DomainName "%s" `
 -DomainNetbiosName "%s" `
--ForestMode "Win2008" `
+-ForestMode "%s" `
 -InstallDns:$true `
 -LogPath "C:\Windows\NTDS" `
 -NoRebootOnCompletion:$true `
@@ -10463,7 +10661,7 @@ Install-ADDSForest `
 -Force:$true `
 -Confirm:$false `
 -SafeModeAdministratorPassword `
-(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainname, self.netbiosname, self.place.password)
+(ConvertTo-SecureString '%s' -AsPlainText -Force) """ % (self.domainMode, self.domainname, self.netbiosname, self.forestMode, self.place.password)
         self.place.xmlrpcExec(psscript,powershell=True,returndata=True)
         self.place.winRegAdd("HKLM",
                            "software\\microsoft\\windows nt\\currentversion\\winlogon",
@@ -11788,22 +11986,23 @@ class XenMobileApplianceServer:
 
     def __init__(self, guest):
         self.guest = guest
-        self.password = "adminadmin"
+        self.password = xenrt.TEC().lookup("XENMOBILE_PASSWORD", "adminadmin")
         self.host = self.guest.getHost()
 
     def doFirstbootUnattendedSetup(self):
         """ Answer the first boot questions"""
         mac, _, _ = self.guest.getVIF("eth0")
         ip = xenrt.StaticIP4Addr(mac=mac).getAddr()
+        self.guest.mainip = ip
         _, netmask = self.host.getNICNetworkAndMask(0)
         gateway = self.host.getGateway()
         dns = xenrt.TEC().lookup(["NETWORK_CONFIG", "DEFAULT", "NAMESERVERS"], "").split(",")[0].strip()
 
         # choose root passwd
-        self.guest.writeToConsole("%s\\n" % self.password)
+        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
         xenrt.sleep(2)
         # retype root passwd
-        self.guest.writeToConsole("%s\\n" % self.password)
+        self.guest.writeToConsole("%s\\n" % xenrt.TEC().lookup("ROOT_PASSWORD"))
         xenrt.sleep(2)
         # type static-ip
         self.guest.writeToConsole("%s\\n" % ip)

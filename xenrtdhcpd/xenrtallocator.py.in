@@ -340,8 +340,18 @@ class XMLRPCAllocator(object):
         self.parent.releaseAddress(addr)
         return True
 
+    def releaseAddresses(self, addrs):
+        for addr in addrs:
+            self.parent.releaseAddress(addr)
+        return True
+
     def updateReservation(self, addr):
         self.parent.updateReservation(addr)
+        return True
+
+    def updateReservations(self, addrs):
+        for addr in addrs:
+            self.parent.updateReservation(addr)
         return True
 
     def listReservedAddresses(self):

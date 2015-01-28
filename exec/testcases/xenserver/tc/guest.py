@@ -1871,3 +1871,38 @@ class TCInstallDriversNoIPv6(xenrt.TestCase):
         for g in self.getDefaultHost().guests.values():
             self.getLogsFrom(g)
             self.runSubcase("doGuest", (g), "TCInstallDriversNoIPv6", g.getName())
+
+class TCMemoryDumpBootDriverFlag(xenrt.TestCase):
+    """Test case for SCTX-1421 - Verify memory dump is created"""
+    #TC-23777
+    def prepare(self, arglist):
+        self.host = self.getDefaultHost()
+        self.guest = self.host.createGenericWindowsGuest(distro="win7sp1-x64")
+        self.uninstallOnCleanup(self.guest)
+        
+        step("Enable complete Memory dump option")
+        self.guest.enableFullCrashDump()
+        
+        step("Set boot driver flag=1")
+        self.guest.winRegAdd("HKLM",
+                 "SYSTEM\\CurrentControlSet\\Control",
+                 "BootDriverFlags",
+                 "DWORD",
+                 1)
+        self.guest.reboot()
+        
+    def run(self, arglist):
+        step("Remove any existing memory.dmp file")
+        if self.guest.xmlrpcBigdump():
+            self.guest.xmlrpcRemoveFile("c:\\windows\\MEMORY.DMP")
+        
+        step("Crash the guest")
+        self.guest.crash()
+        xenrt.sleep(100)
+        self.guest.reboot(force=True)
+        
+        step("Check if crashdump file exists")
+        if not self.guest.xmlrpcBigdump():
+            raise xenrt.XRTFailure("Unexpected output: Crashdump is not created")
+        else:
+            xenrt.TEC().logverbose("Crashdump file found")

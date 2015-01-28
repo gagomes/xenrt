@@ -121,7 +121,7 @@ class SuiteSequence(SuiteConfigurable):
         self.seq = node.getAttribute("seq")
         self.tcsku = node.getAttribute("tcsku")
         self.tc = node.getAttribute("tc")
-        self.seqfile = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
+        self.seqfile = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq), tc=self.tc, tcsku=self.tcsku)
         self.pool = "default"
         self.delay = 0
         self.machines=1
@@ -153,7 +153,7 @@ class SuiteSequence(SuiteConfigurable):
         fd.write("  Sequence %s: %s\n" % (self.name, self.seq))
         for arg in self.args:
             fd.write("    %s\n" % (arg))
-        #seq = xenrt.TestSequence(xenrt.sequence.findSeqFile(self.seq))
+        #seq = xenrt.TestSequence(xenrt.seq.findSeqFile(self.seq))
         #fd.write("    TCs: %s\n" % (seq.listTCs()))
         
     def listTCsInSequence(self, quiet=False):

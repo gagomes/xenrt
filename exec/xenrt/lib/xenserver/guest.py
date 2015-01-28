@@ -5233,7 +5233,11 @@ class TampaGuest(BostonGuest):
             pvToolsDir = "D:"
             if pvToolsTgz:
                 xenrt.TEC().logverbose("Using tools from: %s" % pvToolsTgz)
-                self.xmlrpcSendFile(xenrt.TEC().getFile(pvToolsTgz), "c:\\tools.tgz")
+                if os.path.exists(pvToolsTgz):
+                    toolsTgz = pvToolsTgz
+                else:
+                    toolsTgz = xenrt.TEC().getFile(pvToolsTgz)
+                self.xmlrpcSendFile(toolsTgz, "c:\\tools.tgz")
                 pvToolsDir = self.xmlrpcTempDir()
                 self.xmlrpcExtractTarball("c:\\tools.tgz", pvToolsDir)
 

@@ -3325,6 +3325,17 @@ class Config:
         elif self.config.has_key("FROM_PRODUCT_INPUTDIR"):
             self.config["FROM_REVISION"] = getRevisionfromInputdir(self.config["FROM_PRODUCT_INPUTDIR"])
 
+    def getHotfix(self, hotfix, release):
+        if not self.config["HOTFIXES"].has_key(release):
+            raise xenrt.XRTError("Could not find hotfixes for %s" % (release))
+        
+        branches = self.config["HOTFIXES"][release]
+        for hotfixes in branches.values():
+            if hotfix in hotfixes:
+                return hotfixes[hotfix]
+
+        raise xenrt.XRTError("Hotfix %s for %s not found" % (hotfix, release))
+
     def getAllHotfixes(self, release, branch="RTM", startAt=None, startAfter=None, stopAt=None):
         if not self.config["HOTFIXES"].has_key(release) or not self.config["HOTFIXES"][release].has_key(branch):
             raise xenrt.XRTError("Could not find hotfixes for %s (%s)" % (release, branch))

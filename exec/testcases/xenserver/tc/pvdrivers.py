@@ -1153,7 +1153,30 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
     def run(self, arglist):
         args = xenrt.util.strlistToDict(arglist)
         template = args["template"]
-        hotfixTag = args["tag"]
+        tag = arg["tag"]
+        hotfix = arg["hotfix"]
+
+        host = self.getDefaultHost()
+
+        # Get the hotfix file
+        hotfixFile = xenrt.TEC().getFile(xenrt.TEC().config.getHotfix(hotfix, host.productVersion))
+
+        # Extract the tools ISO from the hotfix
+        workdir = xenrt.TempDirectory()
+        patchDir = host.unpackPatch(hotfixFile)
+        toolsIso = host.execdom0("find %s -name \"xs-tools*.iso\"").strip()
+        sftp = host.sftpClient()
+        localToolsIso = "%s/%s.iso" % (workdir, tag)
+        sftp.copyFrom(toolsIso, localToolsIso)
+        sftp.close()
+        host.execdom0("rm -fr %s" % patchDir)
+
+        # Create a tarball from the tools ISO
+        iso = xenrt.rootops.MountISO(localToolsIso)
+        mountpoint = iso.getMount()
+        toolsTgz = "%s/%s.tgz" % (workdir, tag)
+        host.execdom0("cd %s; tar -czf %s *" % (mountpoint, toolsTgz))
+        iso.unmount()
 
         # Clone the template VM
         templateVM = self.getGuest(template)
@@ -1161,7 +1184,7 @@ class TCPrepareDriverUpgrade(xenrt.TestCase):
 
         # Install drivers
         guest.start()
-        guest.installDrivers()
+        guest.installDrivers(source=toolsTgz)
 
         # Shutdown the clone
         guest.shutdown()

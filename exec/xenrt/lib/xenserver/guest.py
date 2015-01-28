@@ -481,6 +481,8 @@ class Guest(xenrt.GenericGuest):
             if xenrt.TEC().lookup("FORCE_NX_DISABLE", False, boolean=True):
                 self.paramSet("platform:nx", "false")
             self.installWindows(self.isoname)
+        elif "coreos-" in distro:
+            self.installCoreOS()
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             if pxe:
@@ -586,6 +588,23 @@ class Guest(xenrt.GenericGuest):
                     xenrt.TEC().logverbose("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("wget %s/%s"%(_new_kernel,kernelFix))
                     self.execcmd("rpm -ivh --force %s"%(kernelFix))
+
+    def installCoreOS(self):
+        self.changeCD(self.distro)
+        host = self.getHost()
+        templateName = host.getTemplate(self.distro)
+        templateUUID = host.minimalList("template-list", args="name-label='%s'" % templateName)[0]
+        cli = self.getCLIInstance()
+        config = cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=get_config_drive_default args:templateuuid=%s" % (host.uuid, templateUUID)).rstrip().lstrip("True")
+        config += """
+users:
+  - name: root
+    passwd: %s
+""" % crypt.crypt(xenrt.TEC().lookup("ROOT_PASSWORD"), '\$6\$SALT\$')
+        config = config.replace("\n", "%BR%")
+        cli.execute("host-call-plugin host-uuid=%s plugin=xscontainer fn=create_config_drive args:vmuuid=%s args:sruuid=%s args:configuration=%s" % (host.uuid, self.uuid, self.chooseSR(), config))
+
+        
 
     def installWindows(self, isoname):
         """Install Windows into a VM"""

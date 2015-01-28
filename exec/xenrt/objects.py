@@ -450,14 +450,19 @@ class GenericPlace:
                     self.windows=True
                     return
 
-    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation",
-                   username="root", cmd="true"):
+    def waitForSSH(self, timeout, level=xenrt.RC_FAIL, desc="Operation", username="root", cmd="true"):
+
+        if not self.getIP():
+            if level == xenrt.RC_FAIL:
+                self.checkHealth(unreachable=True)
+            return xenrt.XRT("%s: No IP address found" % (desc), level)
+
         now = xenrt.util.timenow()
         deadline = now + timeout
         while 1:
             if not self.password:
                 self.findPassword()
-            if self.getIP() and xenrt.ssh.SSH(self.getIP(),
+            if xenrt.ssh.SSH(self.getIP(),
                              cmd,
                              password=self.password,
                              level=xenrt.RC_OK,

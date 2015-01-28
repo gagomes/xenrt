@@ -269,7 +269,7 @@ class XenServerLicenceFactory(object):
 
     def maxLicenceSkuHost(self,xshost):
         lver = self.__getHostAge(xshost)
-        if lver == self.__TAM or lver == self.__SAN or lver == self.__BOS or lver == self.__OXF or lver == self.__COW or lver == self.__MNR:
+        if lver == self.__TAM or lver == self.__SAN or lver == self.__BOS or lver == self.__COW or lver == self.__MNR:
             return TampaLicence(XenServerLicenceSKU.XSPlatinum)    
         if lver == self.__CLR:
             return ClearwaterLicence(XenServerLicenceSKU.PerSocket)

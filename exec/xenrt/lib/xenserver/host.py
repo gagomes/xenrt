@@ -22,7 +22,9 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
+from xenrt.lib.xenserver.iptablesutil import IpTablesFirewall
 from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
+
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -8036,6 +8038,9 @@ rm -f /etc/xensource/xhad.conf || true
         LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
         self.license(edition = license.getEdition(), v6server=v6server)
         
+    def getIpTablesFirewall(self):
+        """IPTablesFirewall object used to create and delete iptables rules."""
+        return IpTablesFirewall(self)
 
 #############################################################################
 

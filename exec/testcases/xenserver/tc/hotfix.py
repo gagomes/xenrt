@@ -120,10 +120,9 @@ class _Hotfix(xenrt.TestCase):
             v6 = self.getGuest("LicenseServer").getV6LicenseServer()
             self.uninstallOnCleanup(self.getGuest("LicenseServer"))
             v6.removeAllLicenses()
-            v6.addLicense("valid-platinum")
-            self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+            self.host.applyFullLicense(v6)
             if self.POOLED:
-                self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
+                self.slave.applyFullLicense(v6)
             v6applied = True
 
         if self.POOLED:
@@ -193,11 +192,10 @@ class _Hotfix(xenrt.TestCase):
                     # Apply a v6 platinum license to this host
                     v6 = self.getGuest("LicenseServerForNonV6").getV6LicenseServer(host=self.host)
                     v6.removeAllLicenses()
-                    v6.addLicense("valid-platinum")
-                    self.host.license(edition="platinum", usev6testd=False, v6server=v6)
+                    self.host.applyFullLicense(v6)
                     if self.POOLED:
-                        self.slave.license(edition="platinum", usev6testd=False, v6server=v6)
-                    v6applied = True # This ensures we only apply the v6 license once
+                        self.slave.applyFullLicense(v6)
+                    v6applied = True
 
                 # Perform hotfixes for this version
                 self.doHotfixes(uver, ubranch, uhfs)

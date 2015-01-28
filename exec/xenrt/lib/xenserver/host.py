@@ -22,7 +22,7 @@ import xenrt.lib.xenserver.jobtests
 from  xenrt.lib.xenserver import licensedfeatures
 import XenAPI
 from xenrt.lazylog import *
-from xenrt.lib.xenserver.licensing import XenServerLicenceFactory
+from xenrt.lib.xenserver.licensing import LicenceManager, XenServerLicenceFactory
 
 # Symbols we want to export from the package.
 __all__ = ["Host",
@@ -8030,6 +8030,13 @@ rm -f /etc/xensource/xhad.conf || true
         xenrt.GEC().config.setVariable(['HOST_CONFIGS', name, 'PXE_CHAIN_LOCAL_BOOT'], "hd0")
         return name
 
+    def applyFullLicense(self,v6server):
+ 
+        license = XenServerLicenceFactory().maxLicenceSkuHost(self)
+        LicenceManager().addLicensesToServer(v6server,license,getLicenseInUse=False)
+        self.license(edition = license.getEdition(), v6server=v6server)
+        
+
 #############################################################################
 
 class MNRHost(Host):
@@ -10614,21 +10621,10 @@ class ClearwaterHost(TampaHost):
     DOM0_VCPU_PINNED = 'xpin'
     DOM0_VCPU_NOT_PINNED = 'nopin'
     
-    def license(self, sku="XE Enterprise", edition=None, expirein=None, usev6testd=True, v6server=None, activateFree=True, applyEdition=True):
-
-        mockd = xenrt.TEC().getFile(self.V6MOCKD_LOCATION)
-        if mockd:
-            xenrt.TEC().logverbose("v6mockd present - using clearwater licensing")
-        else:
-            try:
-                TampaHost.license(self, sku, edition, expirein, usev6testd, v6server, activateFree, applyEdition)        
-            except:
-                xenrt.TEC().logverbose("Could not apply license - assuming clearwater licensing")
-
     #This is a temp license function once clearwater and trunk will be in sync this will become "license" funtion
-    def templicense(self, edition = "free", v6server = None, mockLicense = False):
+    def license(self, edition = "free", v6server = None, mockLicense = False, sku=None):
 
-        if (mockLicense == True or (edition != "free" and v6server == None)):
+        if mockLicense == True:
 
             expTime = datetime.datetime.now() + datetime.timedelta(days=365)
              
@@ -11285,7 +11281,7 @@ class CreedenceHost(ClearwaterHost):
     def vSwitchCoverageLog(self):
         self.vswitchAppCtl("coverage/show")
 
-    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True):
+    def license(self, v6server=None, sku="enterprise-per-socket", usev6testd=True, edition=None):
         """
         In order to keep backwards compatability "sku" arg is called sku
         but really it needs the edition to be passed in
@@ -11312,6 +11308,9 @@ class CreedenceHost(ClearwaterHost):
                     self.execdom0("service v6d restart")
                 else:
                     xenrt.XRTError("v6testd RPM nor found")
+         
+        if edition:
+            sku = edition
 
         args.append("edition=%s" % sku)
         if v6server:
@@ -11360,12 +11359,11 @@ class DundeeHost(CreedenceHost):
     def getTestHotfix(self, hotfixNumber):
         return xenrt.TEC().getFile("xe-phase-1/test-hotfix-%u-*.unsigned" % hotfixNumber)
 
-    # For now, skip creedence, as trunk doesn't have the creedence license changes yet
-    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
-        ClearwaterHost.license(self, sku=sku,edition=edition,usev6testd=usev6testd,v6server=v6server)
-
     def guestFactory(self):
         return xenrt.lib.xenserver.guest.DundeeGuest
+
+    def license(self, sku="free",edition=None, usev6testd=True, v6server=None):
+        xenrt.TEC().logverbose("No license is required for the time being as Clearwater licensing is still aplicable on trunk")
 
     def postInstall(self):
         CreedenceHost.postInstall(self)

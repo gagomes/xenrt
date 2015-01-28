@@ -3164,7 +3164,11 @@ class StaticIP4AddrDHCP(object):
             return "eth0.%s" % (xenrt.TEC().lookup(["NETWORK_CONFIG","VLANS",network,"ID"]))
 
     def mark(self):
-        DhcpXmlRpc().updateReservation(self.addr)
+        try:
+            DhcpXmlRpc().updateReservation(self.addr)
+        except Exception, ex:
+            xenrt.TEC().logverbose("Error updating DHCP reservation: " + str(ex))
+            xenrt.TEC().warning("Error updating DHCP reservation: " + str(ex))
 
     def callback(self):
         self.release(atExit=True)

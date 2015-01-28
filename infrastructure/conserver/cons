@@ -1,0 +1,6 @@
+#!/bin/sh
+
+set $SSH_ORIGINAL_COMMAND
+
+console -U $@
+

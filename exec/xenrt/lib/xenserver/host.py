@@ -6491,6 +6491,8 @@ fi
                         template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1204")
             elif re.search("ubuntu1404", distro):
                 template = self.chooseTemplate("TEMPLATE_NAME_UBUNTU_1404")
+            elif re.search("coreosv1", distro):
+                template = self.chooseTemplate("TEMPLATE_NAME_COREOS_V1")
             elif re.search(r"other", distro):
                 template = self.chooseTemplate("TEMPLATE_OTHER_MEDIA")
             else:

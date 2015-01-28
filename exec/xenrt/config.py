@@ -2929,6 +2929,7 @@ class Config:
 
         # Stanley tools ISO
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E009"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E009/59006/hotfix-XS602E009/XS602E009.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Sanibel"]["RTM"].append("XS602E009")
 
         # Martens xen-firmware
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E010"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E010/59507/hotfix-XS602E010/XS602E010.xsupdate"
@@ -2956,6 +2957,7 @@ class Config:
       
         # Rolson tools ISO. Rolls up XS602E009
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E019"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E019/64947/hotfix-XS602E019/XS602E019.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Sanibel"]["RTM"].append("XS602E019")
       
         # Gruffalo #1 xen, xen tools, vncterm, openssl, qemu. Rolls up XS602E018, XS602E016, XS602E014, XS602E008, XS602E004.
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E020"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E020/62915/hotfix-XS602E020/XS602E020.xsupdate"
@@ -2992,6 +2994,7 @@ class Config:
         
         # MrToad: xen-tools . Rolls up XS602E002, XS602E009, XS602E019
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E031"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E031/84256/hotfix-XS602E031/XS602E031.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Sanibel"]["RTM"].append("XS602E031")
         
         # Carabosse: kexec-tools, openssl, vncterm, xen-device-model, xen-hypervisor, xen-tools . Rolls up XS602E004, XS602E008, XS602E014, XS602E016, XS602E018, XS602E020, XS602E022, XS602E023, XS602E025, XS602E026, XS602E029 
         self.config["HOTFIXES"]["Sanibel"]["RTM"]["XS602E032"] = "/usr/groups/release/XenServer-6.x/XS-6.0.2/hotfixes/XS602E032/77409/hotfix-XS602E032/XS602E032.xsupdate"
@@ -3046,6 +3049,7 @@ class Config:
       
         # Gucci: Tools ISO.
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E010"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E010/62464/hotfix-XS61E010/XS61E010.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Tampa"]["RTM"].append("XS61E010")
       
         # Excalibur: xapi, xenopsd. Rolls up XS61E009, XS61E008, XS61E003
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E012"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E012/62681/hotfix-XS61E012/XS61E012.xsupdate"
@@ -3100,6 +3104,7 @@ class Config:
       
         # Bosch: tools ISO. Rolls up XS61E010. Depends on XS61E009.
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E029"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E029/73563/hotfix-XS61E029/XS61E029.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Tampa"]["RTM"].append("XS61E029")
 
         # Excelsior: kernel-kdump, kernel-xen, md3000-rdac, openvswitch. Rolls up XS61E018, XS61E014.
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E030"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E030/73563/hotfix-XS61E030/XS61E030.xsupdate"
@@ -3126,6 +3131,7 @@ class Config:
         
         # MrToad: xen-tools. Rolls up XS61E010, XS61E029
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E038"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E038/84220/hotfix-XS61E038/XS61E038.xsupdate"
+        self.config["TOOLS_HOTFIXES"]["Tampa"]["RTM"].append("XS61E038")
         
         # Dave: kernel, ovs. Rolls up XS61E014, XS61E018, XS61E028, XS61E030, XS61E035
         self.config["HOTFIXES"]["Tampa"]["RTM"]["XS61E039"] = "/usr/groups/release/XenServer-6.x/XS-6.1/hotfixes/XS61E039/84261/hotfix-XS61E039/XS61E039.xsupdate"

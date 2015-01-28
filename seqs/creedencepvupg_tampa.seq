@@ -1,0 +1,91 @@
+<xenrt>
+
+  <!-- Driver upgrade test sequence -->
+
+  <variables>
+    <PRODUCT_VERSION>Creedence</PRODUCT_VERSION>
+    <INSTALL_SR_TYPE>ext</INSTALL_SR_TYPE>
+  </variables>
+
+  <prepare>
+    <host>
+      <vm name="win7sp1-x86">
+        <distro>win7sp1-x86</distro>
+        <network device="0"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
+      </vm>
+      <vm name="win7sp1-x64">
+        <distro>win7sp1-x64</distro>
+        <network device="0"/>
+        <postinstall action="preCloneTailor"/>
+        <postinstall action="shutdown"/>
+      </vm>
+    </host>
+  </prepare>
+
+  <testsequence>
+    <parallel workers="4">
+      <serial group="XS61E010_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=XS61E010_win7sp1-x86</arg>
+          <arg>hotfix=XS61E010</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E010_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS61E010_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=XS61E010_win7sp1-x64</arg>
+          <arg>hotfix=XS61E010</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E010_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS61E029_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=XS61E029_win7sp1-x86</arg>
+          <arg>hotfix=XS61E029</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E029_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS61E029_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=XS61E029_win7sp1-x64</arg>
+          <arg>hotfix=XS61E029</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E029_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+      <serial group="XS61E038_win7sp1-x86">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x86</arg>
+          <arg>tag=XS61E038_win7sp1-x86</arg>
+          <arg>hotfix=XS61E038</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E038_win7sp1-x86</arg>
+        </testcase>
+      </serial>
+      <serial group="XS61E038_win7sp1-x64">
+        <testcase id="xenserver.tc.pvdrivers.TCPrepareDriverUpgrade">
+          <arg>template=win7sp1-x64</arg>
+          <arg>tag=XS61E038_win7sp1-x64</arg>
+          <arg>hotfix=XS61E038</arg>
+        </testcase>
+        <testcase id="xenserver.tc.pvdrivers.TCTestDriverUpgrade">
+          <arg>tag=XS61E038_win7sp1-x64</arg>
+        </testcase>
+      </serial>
+    </parallel>
+  </testsequence>
+</xenrt>

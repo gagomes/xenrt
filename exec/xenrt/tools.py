@@ -1923,10 +1923,7 @@ def newGuestsInstalls():
     print tccode
     print seqcode
 
-def driverUpgradeMatrix():
-    oldRelease = "Clearwater"
-    newRelease = "Creedence"
-    distros = ["win7sp1-x86", "win7sp1-x64"]
+def driverUpgradeMatrix(oldRelease, newRelease, distros=["win7sp1-x86", "win7sp1-x64"]):
 
     vmPrepare = ""
     for d in distros:

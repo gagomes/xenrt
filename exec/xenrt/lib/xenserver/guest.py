@@ -4469,7 +4469,7 @@ def createVM(host,
         g.ips = ips
 
         g.removeAllVIFs()
-        if re.search("[vw]", distro) and not "coreos" in distro:
+        if re.search("[vw]", distro):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])
@@ -4525,7 +4525,7 @@ def createVM(host,
                                 password=password)
         g.distro = distro
         g.arch = arch
-        if re.search("[vw]", distro) and not "coreos" in distro:
+        if re.search("[vw]", distro):
             g.windows = True
             g.vifstem = g.VIFSTEMHVM
             g.password = xenrt.TEC().lookup(["WINDOWS_INSTALL_ISOS", "ADMINISTRATOR_PASSWORD"])

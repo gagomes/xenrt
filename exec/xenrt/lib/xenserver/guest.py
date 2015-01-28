@@ -483,6 +483,7 @@ class Guest(xenrt.GenericGuest):
             self.installWindows(self.isoname)
         elif "coreos-" in distro:
             self.installCoreOS()
+            notools = True # CoreOS has tools installed already
         elif repository and not isoname:
             dev = "%sa" % (self.vendorInstallDevicePrefix())
             if pxe:

@@ -260,10 +260,14 @@ class FileManager(object):
             os.makedirs(dirname)
         return "%s/%s" % (dirname, self._filename(filename))
 
-    def _externalCacheLocation(self, filename):
+    def _externalCacheLocation(self, filename, ignoreError=False):
         dirname = "%s/%s" % (xenrt.TEC().lookup("FILE_MANAGER_CACHE2_MNT"), hashlib.sha256(filename).hexdigest())
         if not os.path.exists(dirname):
             os.makedirs(dirname)
+        if not xenrt.command("stat -f -c %T %s" % dirname) == "nfs":
+            if ignoreError:
+                return None
+            raise xenrt.XRTError("Location '%s' is not an external storage" % dirname)
         return "%s/%s" % (dirname, self._filename(filename))
 
     def removeFromCache(self, filename):
@@ -284,8 +288,10 @@ class FileManager(object):
 
         filename = fnr.localName
         perJobLocation = self._perJobCacheLocation(filename)
-        sharedLocation = self._sharedCacheLocation(filename)
-        externalLocation = self._externalCacheLocation(filename)
+        globalCaches = [self._sharedCacheLocation(filename)]
+        externalLocation = self._externalCacheLocation(filename, ignoreError=True)
+        if externalLocation: 
+            globalCaches.append(externalLocation)
 
         # First try the per-job cache
         if os.path.exists(perJobLocation):
@@ -294,7 +300,7 @@ class FileManager(object):
 
         # If it's not in the per-job cache, try the global cache(s)
         ## First, if someone else is fetching, wait until fetching is complete
-        for cache in [sharedLocation, externalLocation]:
+        for cache in globalCaches:
             if os.path.exists("%s.fetching" % cache):
                 xenrt.TEC().logverbose("File is fetching - waiting")
                 while True:
@@ -302,8 +308,7 @@ class FileManager(object):
                         break
                     xenrt.sleep(15)
 
-        # Now check whether the file is available
-        for cache in [sharedLocation, externalLocation]:
+            # Now check whether the file is available
             if os.path.exists(cache):
                 # If it is, hardlink it to the per-job cache
                 xenrt.TEC().logverbose("Found file in cache : %s" % cache)

@@ -266,7 +266,7 @@ class FileManager(object):
             cachedir="/tmp/cache"
             if not os.path.exists(cachedir):
                 os.makedirs(cachedir)
-            xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (nfssr, cachedir))
+                xenrt.command("sudo mount -onfsvers=3 -t nfs %s %s" % (nfssr, cachedir))
             dirname = "%s/%s" % (cachedir, hashlib.sha256(filename).hexdigest())
             if not os.path.exists(dirname):
                 os.makedirs(dirname)
